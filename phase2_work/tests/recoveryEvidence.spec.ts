@@ -25,7 +25,6 @@ function valid() {
     approvedTargets: { rpoMinutes: 30, rtoMinutes: 30, approvedBy: 'Incident commander', approvedAt: '2026-09-29T17:00:00Z' },
     integrity: { sourceDocumentCount: 1000, restoredDocumentCount: 1000, sampledChecksums: [{ path: 'users/sample', sourceSha256: hash, restoredSha256: hash }] },
     smokeTests: { api: 'passed', rules: 'passed', playwright: 'passed' },
-    rollbackEvidence: { trafficPercent: 100, health: 'passed', readiness: 'passed' },
   };
 }
 
