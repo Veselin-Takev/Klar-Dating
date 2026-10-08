@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ipKeyGenerator } from 'express-rate-limit';
 
 interface RateLimitStore {
   [key: string]: { count: number; resetTime: number };
