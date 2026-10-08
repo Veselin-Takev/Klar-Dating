@@ -28,15 +28,8 @@ export function SentimentAnalyticsWidget() {
     }
 
     if (history.length < 2) {
-      // Mock data if not enough history
-      const now = new Date();
-      history = [
-        { id: '1', sentiment: 'negative', date: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: '2', sentiment: 'neutral', date: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: '3', sentiment: 'positive', date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: '4', sentiment: 'positive', date: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-        ...history
-      ];
+      setData([]);
+      return;
     }
 
     const valueMap: Record<string, number> = {
@@ -60,7 +53,9 @@ export function SentimentAnalyticsWidget() {
 
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
-      const val = payload[0].payload.sentiment;
+      const first = payload[0];
+      if (!first) return null;
+      const val = first.payload.sentiment;
       let text = "Okay";
       let emoji = "🤔";
       if (val === "positive") { text = "Super"; emoji = "😍"; }
