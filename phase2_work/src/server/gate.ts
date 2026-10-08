@@ -10,8 +10,8 @@ type GateData = JsonObject & { participants: string[] };
 
 function gateResponse(data: GateData, actor: string) {
   const ichBinA = data.participants[0] === actor;
-  const antwortenA = Number.isSafeInteger(data.gateAntwortenA) ? Math.max(0, data.gateAntwortenA) : 0;
-  const antwortenB = Number.isSafeInteger(data.gateAntwortenB) ? Math.max(0, data.gateAntwortenB) : 0;
+  const antwortenA = typeof data.gateAntwortenA === 'number' && Number.isSafeInteger(data.gateAntwortenA) ? Math.max(0, data.gateAntwortenA) : 0;
+  const antwortenB = typeof data.gateAntwortenB === 'number' && Number.isSafeInteger(data.gateAntwortenB) ? Math.max(0, data.gateAntwortenB) : 0;
   return {
     zustand: gateZustand({ antwortenA, antwortenB }, ichBinA),
     benoetigt: GATE_FRAGEN,
