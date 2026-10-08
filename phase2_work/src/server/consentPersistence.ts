@@ -1,5 +1,5 @@
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
-import { getDb, FieldValue } from './db';
+import { getDb, FieldValue, runObservedTransaction } from './db';
 import { consentAuditSecret, signConsentAuditRecord, type ConsentAuditAction } from './consentAudit';
 
 export interface ConsentState {
@@ -28,7 +28,7 @@ export async function persistConsentDecision(
   const userRef = db.collection('users').doc(actorUid);
   const evidenceRef = userRef.collection('einwilligungen').doc();
   const secret = consentAuditSecret();
-  return db.runTransaction(async (tx: Transaction) => {
+  return runObservedTransaction(db, 'consentPersistence.persistConsentDecision', async (tx: Transaction) => {
     const snapshot = await tx.get(userRef);
     const previous = (snapshot.data()?.einwilligung ?? null) as ConsentState | null;
     const decision = decide(previous);
