@@ -1,0 +1,112 @@
+name: Klar Production Release Evidence
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: klar-production-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: phase2_work
+    env:
+      KLAR_PRODUCTION_RELEASE_APPROVED: ${{ vars.KLAR_PRODUCTION_RELEASE_APPROVED }}
+      KLAR_RELEASE_DIGEST: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c624218aad6d
+        with:
+          bun-version: '1.4.2'
+
+      - name: Production release approval
+        run: node scripts/check-production-release-approval.mjs
+
+      - name: Install application dependencies
+        run: |
+          bun install --lockfile-only
+          bun ci
+
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+
+      - name: Build Functions
+        run: npm run build --prefix functions
+
+      - name: Build and publish immutable container
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app:${GITHUB_REF_NAME}"
+          docker buildx build             --file Dockerfile             --platform linux/amd64             --provenance=mode=max             --sbom=true             --tag "$image"             --push             .
+          docker buildx imagetools inspect "$image" > release/container-tag-inspect.txt
+          docker buildx imagetools inspect --raw "$image" > release/container-index.json
+          digest="$(grep -m1 -Eo 'Digest: sha256:[0-9a-f]{64}' release/container-tag-inspect.txt | awk '{print $2}')"
+          test -n "$digest"
+          echo "KLAR_RELEASE_DIGEST=$digest" >> "$GITHUB_ENV"
+
+      - name: Verify release identity
+        run: node scripts/write-release-identity.mjs
+
+      - name: Generate Functions release identity
+        run: node scripts/write-functions-release-identity.mjs
+
+      - name: Generate CycloneDX 1.7 SBOM
+        run: |
+          mkdir -p release
+          npx --yes @cyclonedx/cdxgen@12.8.5 -r -o release/sbom.cdx.json --spec-version 1.7 --validate
+
+      - name: Bind release tag to immutable image
+        run: node scripts/write-container-tag-binding.mjs
+
+      - name: Bind SBOM to exact release
+        run: node scripts/write-sbom-identity.mjs
+
+      - name: Render immutable deployment manifests
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          rm -rf release/deploy
+          node scripts/release-manifests.mjs render "ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app@${KLAR_RELEASE_DIGEST}" release/deploy
+
+      - name: Validate release artifact hygiene
+        run: node scripts/check-release-artifact-hygiene.mjs
+
+      - name: Build release checksum ledger
+        run: |
+          find release -type f -print0 | sort -z | xargs -0 sha256sum > release/SHA256SUMS
+          test -s release/SHA256SUMS
+          sha256sum -c release/SHA256SUMS
+
+      - name: Verify container attestations
+        run: node scripts/check-container-attestations.mjs release/container-index.json
+
+      - name: Upload immutable release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: klar-production-release-${{ github.ref_name }}-${{ github.sha }}
+          path: phase2_work/release/
+          if-no-files-found: error
+          retention-days: 30
