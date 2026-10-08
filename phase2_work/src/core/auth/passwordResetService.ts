@@ -122,7 +122,8 @@ export async function requestPasswordReset(
     };
   } catch (err: unknown) {
     // Suppress auth/user-not-found to prevent Account Enumeration!
-    if (err?.code === 'auth/user-not-found') {
+    const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: unknown }).code : undefined;
+    if (code === 'auth/user-not-found') {
       return {
         success: true,
         message: 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen gesendet.',
@@ -133,6 +134,11 @@ export async function requestPasswordReset(
       error: 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
     };
   }
+}
+
+/** Backwards-compatible UI/test API for confirming a password reset token. */
+export async function confirmNewPassword(token: string, newPassword: string): Promise<PasswordResetResult> {
+  return confirmPasswordResetWithToken(token, newPassword);
 }
 
 /** Verify if a reset token / action code is valid */
