@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `f6a6a4fcef61db17ca7ff85a93f3b3c2c5aeb539`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `7c2b7bb378ec5988220be5dd44b69c24b91ec9d7`.
 
 ## Current authoritative status
 
@@ -369,3 +369,9 @@ Exact-head Enterprise CI run `37826645943` completed after the Dependabot remedi
 Remediation on candidate commit `f6a6a4fcef61db17ca7ff85a93f3b3c2c5aeb539`: the tag-to-digest deployment-manifest render now uses the repository-scoped `github.repository_owner` expression, and the workflow explicitly verifies the generated application build identity, Firebase Functions build identity, container tag-binding evidence, and CycloneDX SBOM identity before the checksum ledger and artifact upload. This keeps the gate fail-closed while making the release evidence chain directly auditable.
 
 The release workflow remains tag-only and protected-environment gated. No production deployment is inferred from artifact publication alone. Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head CI run completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance and the independent operational/governance evidence is verified.
+
+### 2026-10-08 — Release manifest owner binding corrected
+
+A final source-contract review found that the release manifest render command still interpolated the repository owner through the shell environment even though the enterprise checker requires the owner to be bound through the GitHub repository context. Candidate commit `7c2b7bb378ec5988220be5dd44b69c24b91ec9d7` now passes `github.repository_owner` directly into the immutable `@sha256` image reference used for generated deployment manifests.
+
+This is a control-plane hardening change only. The release remains tag-only, protected-environment gated, digest-immutable and fail-closed; no production deployment or release approval is inferred from static checks. A fresh exact-head CI result is required after this change.
