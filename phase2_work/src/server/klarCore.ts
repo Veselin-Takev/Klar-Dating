@@ -427,8 +427,8 @@ export async function handleSubscriptionStatus(req: Request, res: Response): Pro
 async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'cancel' | 'withdraw') {
   try {
     const { randomUUID } = await import('node:crypto');
-    let email = (req as unknown).user?.email;
-    let name = (req as unknown).user?.name || uid(req);
+    let email = req.user?.email;
+    let name = req.user?.name || uid(req);
     try {
       const account = await getAuth().getUser(uid(req));
       if (account.email) email = account.email;
@@ -437,7 +437,7 @@ async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'c
       // Identity Toolkit API may be offline/disabled; fallback to token claims
     }
     if (!email) { res.status(400).json({ code: 'confirmation_email_required' }); return; }
-    const profile = (await db().collection('users').doc(uid(req)).get()).data();
+    const profile = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
     const subscription = await db().collection('subscriptions').doc(uid(req)).get();
     const subscriptionData = subscription.data() ?? {};
     if (kind === 'cancel' && subscriptionData.plan !== 'plus') { res.status(409).json({ code: 'no_active_subscription' }); return; }
