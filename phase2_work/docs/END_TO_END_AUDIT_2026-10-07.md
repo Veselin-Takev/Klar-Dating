@@ -167,3 +167,10 @@ Candidate: `deb5722030a6974caf97ae592e29bf6229174036`. Strict compiler settings 
 The Chat list optimization is now backed by a dedicated static Enterprise boundary check. The gate enforces one bounded Firestore transaction with one batched `tx.getAll`, verifies that `/api/chats` calls the loader, and rejects per-entry profile reads or async per-entry mapping.
 
 This is a regression-control improvement, not runtime certification. Real Firestore traces are still required before the Chat P1 is closed quantitatively.
+
+
+## Update 2026-10-08 — Chat gate integration failure corrected
+
+Enterprise CI #173 (`37816110016`) failed before static gates because the newly added Chat read-path gate contained escaped newline text rather than actual newlines. This was a repository-format/integration defect, not a runtime authorization finding.
+
+The gate is now stored as valid JSON/script source on candidate `2a3b3bc7cf3666e46afb696f990f9f64573e5322`. The release state remains **NO-GO / NOT CONFIRMED** pending exact-head dynamic evidence.
