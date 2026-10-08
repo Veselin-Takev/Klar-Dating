@@ -66,7 +66,7 @@ Static security/privacy/feature boundaries remain PASS. Full dynamic production 
 
 ## 2026-10-08 — Autonomous CI remediation
 
-- Enterprise static gates: all checks through dependency/toolchain/release gates passed in CI run #16.
+- Enterprise static gates: all checks through dependency/toolchain/release gates passed in CI run #16 before the IPv6 regression gate.
 - Remaining blocker: the first IPv6 regression detector produced false positives because its source-expression matcher was too broad.
 - Remediation: the gate was tightened to validate the actual keyGenerator expression and require explicit ipKeyGenerator(req.ip ...) normalization whenever req.ip is used.
 - Production status: **NO-GO** until a subsequent CI run proves the corrected gate, followed by typecheck, tests, build, production smoke, browser acceptance, and release provenance evidence.
