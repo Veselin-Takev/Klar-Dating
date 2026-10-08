@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import type { Profile } from "../data";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
@@ -6,7 +7,27 @@ import { Clock, ShieldCheck, Search } from "lucide-react";
 import { fetchWithTimeout } from "../lib/api";
 
 
-function DismissableChat({ profile, idx, onRemove }: unknown) {
+interface ChatListProfile extends Pick<Profile, 'id' | 'name' | 'bio' | 'age' | 'photoUrl'> {
+  chatId: string;
+}
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+function parseChatProfile(value: unknown): ChatListProfile | null {
+  if (!isRecord(value)) return null;
+  const profile = isRecord(value.profile) ? value.profile : {};
+  const id = typeof value.id === 'string' ? value.id : '';
+  if (!id) return null;
+  return {
+    id,
+    chatId: id,
+    name: typeof profile.name === 'string' && profile.name.trim() ? profile.name : 'Verbindung',
+    bio: typeof profile.bio === 'string' ? profile.bio : '',
+    age: typeof profile.age === 'number' && Number.isFinite(profile.age) ? profile.age : 0,
+    photoUrl: typeof profile.photoUrl === 'string' ? profile.photoUrl : '',
+  };
+}
+function DismissableChat({ profile, idx, onRemove }: { profile: ChatListProfile; idx: number; onRemove: (id: string) => void }) {
   return (
     <motion.div
       layout
@@ -53,19 +74,24 @@ function DismissableChat({ profile, idx, onRemove }: unknown) {
 }
 
 export default function Chats() {
-  const [profiles, setProfiles] = useState<unknown[]>([]);
+  const [profiles, setProfiles] = useState<ChatListProfile[]>([]);
   useEffect(() => {
     let cancelled = false;
-    fetchWithTimeout('/api/chats', { timeout: 10000, retries: 0 }).then(async response => response.ok ? response.json() : { chats: [] }).then(data => {
-      if (!cancelled) setProfiles((data.chats ?? []).map((chat: unknown) => ({ ...(chat.profile ?? {}), id: chat.id, chatId: chat.id, name: chat.profile?.name ?? 'Verbindung', bio: chat.profile?.bio ?? '', age: chat.profile?.age ?? 0 })));
-    }).catch(() => { if (!cancelled) setProfiles([]); });
+    fetchWithTimeout('/api/chats', { timeout: 10000, retries: 0 })
+      .then(async response => response.ok ? response.json() : { chats: [] })
+      .then((data: unknown) => {
+        const chats = isRecord(data) && Array.isArray(data.chats) ? data.chats.map(parseChatProfile).filter((chat): chat is ChatListProfile => chat !== null) : [];
+        if (!cancelled) setProfiles(chats);
+      })
+      .catch(() => { if (!cancelled) setProfiles([]); });
     return () => { cancelled = true; };
   }, []);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredProfiles = profiles.filter(p =>
-    (p.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-    (p.bio && (p.bio || '').toLowerCase().includes((searchQuery || '').toLowerCase()))
+    p.name.toLowerCase().includes(normalizedQuery) ||
+    p.bio.toLowerCase().includes(normalizedQuery)
   );
   const handleRemove = (id: string) => setProfiles(p => p.filter(x => x.id !== id));
 
