@@ -665,7 +665,7 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
                 return unwrap(ref);
               };
               const wrappedTx: DurableTransaction = {
-                get: async ref => realTx.get(unwrapRead(ref) as never),
+                get: async ref => realTx.get(unwrapRead(ref) as never) as unknown as Promise<DurableDocSnapshot | DocumentSnapshot | DurableQuerySnapshot | QuerySnapshot>,
                 getAll: async (...refs) => realTx.getAll(...refs.map(unwrap)),
                 set: (ref, data, options) => {
                   const actual = unwrap(ref);
