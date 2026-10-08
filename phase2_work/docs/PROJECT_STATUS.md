@@ -254,3 +254,12 @@ The GitHub container provenance attestation introduced in the previous release-h
 GitHub documents full-length commit-SHA pinning as the immutable-release control for Actions and recommends it for supply-chain protection. citeturn0search2turn0search8
 
 Production remains **NO-GO / NOT CONFIRMED** pending dynamic exact-head CI and independent operational/governance evidence.
+
+
+### 2026-10-08 — Artifact metadata permission aligned with current Attest contract
+
+The production release workflow now grants the additional `artifact-metadata: write` permission required by the current `actions/attest` container-registry attestation contract. The permission remains scoped to the release job and is enforced by the release-workflow static gate, preventing a future regression to an incomplete attestation permission set.
+
+GitHub's current Attest documentation lists `id-token: write`, `attestations: write`, and `artifact-metadata: write` for attestation generation, with `packages: write` required for container registry publishing. citeturn0search1turn0search2
+
+Production remains **NO-GO / NOT CONFIRMED**. Dynamic exact-head CI and actual attestation verification are still required before release approval.
