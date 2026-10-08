@@ -17,19 +17,26 @@ function filesUnder(target) {
   return out;
 }
 
+function importsNativeGetFirestore(source) {
+  // Type-only Firestore imports are permitted; they do not create an SDK access path.
+  const directValueImport = /import\s*(?!type\b)\{[^}]*\bgetFirestore\b[^}]*\}\s*from\s*['"]firebase-admin\/firestore['"]/s;
+  const namespaceImport = /import\s*(?!type\b)\*\s+as\s+\w+\s+from\s*['"]firebase-admin\/firestore['"]/;
+  const defaultImport = /import\s*(?!type\b)\w+(?:\s*,\s*\{[^}]*\})?\s+from\s*['"]firebase-admin\/firestore['"]/;
+  const nativeGetterCall = /\bgetFirestore\s*\(/;
+  return (directValueImport.test(source) && nativeGetterCall.test(source))
+    || (namespaceImport.test(source) && /\.getFirestore\s*\(/.test(source))
+    || (defaultImport.test(source) && nativeGetterCall.test(source));
+}
+
 for (const file of roots.flatMap(filesUnder)) {
   if (path.resolve(file) === allowed) continue;
   const source = fs.readFileSync(file, 'utf8');
-  const hasNativeFirestoreModule = /['"]firebase-admin\/firestore['"]/.test(source);
-  const hasNativeGetter = /\bgetFirestore\b/.test(source);
-  if (hasNativeFirestoreModule && hasNativeGetter) {
-    violations.push(path.relative(process.cwd(), file));
-  }
+  if (importsNativeGetFirestore(source)) violations.push(path.relative(process.cwd(), file));
 }
 
 if (violations.length) {
   throw new Error(
-    'Firestore boundary failed: native getFirestore access is only allowed in src/server/db.ts. Violations:\n' + violations.join('\n'),
+    'Firestore boundary failed: native Firebase Admin getFirestore access is only allowed in src/server/db.ts. Violations:\n' + violations.join('\n'),
   );
 }
 
