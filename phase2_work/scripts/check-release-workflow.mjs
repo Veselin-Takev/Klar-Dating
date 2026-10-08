@@ -4,6 +4,9 @@ const file = ".github/workflows/release.yml";
 const text = fs.readFileSync(file, "utf8");
 const identityText = fs.readFileSync("scripts/write-release-identity.mjs", "utf8");
 const failures = [];
+if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("uses: actions/attest@v4") || !text.includes("subject-name: ghcr.io/${{ github.repository_owner }}/klar-app") || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
+  failures.push("Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.");
+}
 const workflowFiles = fs.readdirSync(".github/workflows").filter(name => /\.ya?ml$/.test(name));
 for (const workflowFile of workflowFiles) {
   const workflowText = fs.readFileSync(`.github/workflows/${workflowFile}`, "utf8");
