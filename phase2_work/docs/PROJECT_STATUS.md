@@ -213,3 +213,10 @@ The correction restores valid JSON and normal JavaScript source newlines; no app
 Exact-head review of the Chat read-path regression guard found a repository-integration defect in its regular-expression literals: word-boundary assertions had been persisted with an extra escape level, so the intended structural matcher was not reliably expressed. The gate was corrected on candidate commit `02c9c7e2516f763301615a14d6e4061ae21bf45f` without changing application runtime behavior.
 
 The release candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head Enterprise CI run proves the corrected gate and completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance. A static source inspection is not substituted for CI evidence.
+
+
+### 2026-10-08 — Chat gate final regex normalization
+
+A second source-level review identified remaining double escaping in the Chat regression guard's regex literals. The gate has now been rewritten with canonical JavaScript regular-expression literals for word boundaries, member-access dots and whitespace matching on candidate commit `555a2b89a23fc4449b5c2679be91f26db3d9c1a9`. This is CI/test infrastructure only; application runtime code is unchanged.
+
+**Evidence policy:** no release credit is assigned until the exact candidate head is executed by Enterprise CI and all dynamic gates complete successfully. Production remains **NO-GO / NOT CONFIRMED**.
