@@ -132,3 +132,11 @@ Issue #27 remains open. Issues #35–38 have code mitigations in PR 51; cloud ac
 The subsequent exact-head-adjacent CI run `37802236002` reduced the earlier Firestore cascade to concrete server/UI contracts. Server-side release-relevant findings were repaired on commit `671e2798cf2b92d7c9516b698e1f6076ad3dfd5e`: consent input is narrowed to the canonical `Einwilligung` contract; launch density uses the canonical `LaunchCity` union; the AI route uses `GenerateContentParameters`; authenticated audit access is explicitly guarded; and smart-audit prompt parts are typed to permit only text or bounded inline image data.
 
 The branch remains **NO-GO**. CI run `37802545060` was running on an earlier head while these fixes were applied; only the next completed run for the new exact head is authoritative. Tests, build, production smoke and browser acceptance remain blocked until Typecheck passes.
+
+### 2026-10-08 — Typecheck remediation round 3
+
+The candidate was reduced from broad strict-TypeScript cascades to concrete persistence/UI contracts. The current remediation includes typed Trust & Safety, consent, risk, age-gate, AdMob, DSA and privacy-export Firestore boundaries; safe validation of production-control JSON structures before nested property access; strict Stripe API/event typing without weakening compiler checks; bounded traceparent parsing in observability; runtime guards for persisted diary, mood, calendar and profile data; typed Recharts callback payloads and profile component contracts; versioned onboarding translations through the declared i18next object contract; removal of stale/unused client imports and dead state; and removal of synthetic fallback trait selection from the Weekly-Vibes view so missing user evidence cannot be presented as observed traits.
+
+The active candidate head is 96fd51fb098ff01b7b3392807220519921f92429. CI run 37805740362 is registered for this head but has not started its job yet. No dynamic PASS is inferred from a queued run.
+
+**Production remains NO-GO / NOT CONFIRMED.** Exact-head Typecheck, Tests, Build, Production Smoke and Browser Acceptance must all pass, followed by the independent operational/governance release evidence.
