@@ -46,6 +46,9 @@ jobs:
       - name: Production release approval
         run: node scripts/check-production-release-approval.mjs
 
+      - name: Dependency lock preflight
+        run: node scripts/check-dependency-locks.mjs
+
       - name: Install application dependencies
         run: |
           bun install --lockfile-only
