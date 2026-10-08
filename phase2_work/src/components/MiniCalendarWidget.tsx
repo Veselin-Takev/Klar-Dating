@@ -17,7 +17,12 @@ export function MiniCalendarWidget() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setHistoryDates(parsed.map((p: unknown) => p.date));
+        const entries: unknown[] = Array.isArray(parsed) ? parsed : [];
+        setHistoryDates(entries.flatMap((p) => {
+          if (!p || typeof p !== 'object') return [];
+          const date = (p as { date?: unknown }).date;
+          return typeof date === 'string' ? [date] : [];
+        }));
       } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
 
