@@ -18,14 +18,15 @@ if (!fs.existsSync(configPath)) {
     ['npm', '/phase2_work/functions'],
     ['docker', '/phase2_work'],
   ];
+  const blocks = text.split(/\n(?=\s*- package-ecosystem:)/).filter((block) => block.includes('package-ecosystem:'));
   for (const [ecosystem, directory] of required) {
-    const block = text.match(new RegExp(`package-ecosystem:\\s*${ecosystem}[\\s\\S]*?(?=\\n\\s*- package-ecosystem:|\\s*$)`))?.[0] ?? '';
+    const block = blocks.find((candidate) => candidate.includes(`package-ecosystem: ${ecosystem}`)) ?? '';
     if (!block) {
       failures.push(`Dependabot ecosystem ${ecosystem} is missing.`);
       continue;
     }
     if (!block.includes(`directory: ${directory}`)) failures.push(`Dependabot ${ecosystem} directory must be ${directory}.`);
-    if (!/schedule:[\\s\\S]*?interval:\\s*weekly/.test(block)) failures.push(`Dependabot ${ecosystem} must run on a weekly schedule.`);
+    if (!block.includes('interval: weekly')) failures.push(`Dependabot ${ecosystem} must run on a weekly schedule.`);
   }
 }
 
