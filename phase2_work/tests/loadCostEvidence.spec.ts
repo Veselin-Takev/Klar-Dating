@@ -45,10 +45,10 @@ describe('production load/cost evidence validation', () => {
   });
   it('rejects measured cost above the approved envelope', () => {
     const e = evidence(); e.approvedBudget.maxCostPer1000RequestsUsd = 0.2;
-    expect(validateProductionLoadCostEvidence(e, load(), sha).errors.join(' ')).toMatch(/exceeds/);
+    expect(validate(e, load()).errors.join(' ')).toMatch(/exceeds/);
   });
   it('rejects placeholder records without billing evidence or approval', () => {
     const e = evidence(); e.billingSource.evidenceLinks = []; e.approvedBudget.approvedBy = '';
-    expect(validateProductionLoadCostEvidence(e, load(), sha).passed).toBe(false);
+    expect(validate(e, load()).passed).toBe(false);
   });
 });
