@@ -475,7 +475,7 @@ const nurModeration: express.RequestHandler = requireRole("moderator", "trust_sa
 const adminHealthCheckLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   limit: 6,
-  keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+  keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: 'Zu viele Health-Check-Anfragen. Bitte später erneut versuchen.' },
@@ -965,21 +965,21 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   const contactWriteLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 10,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Kontaktanfragen. Bitte kurz warten.' },
   });
   const contactUndoLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Rücknahmeversuche. Bitte kurz warten.' },
   });
   const contractMutationLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: 3,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Vertragsänderungsanfragen. Bitte später erneut versuchen.' },
   });
