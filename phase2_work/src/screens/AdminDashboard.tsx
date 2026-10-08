@@ -116,7 +116,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n'>('system');
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [averageLatency, setAverageLatency] = useState(0);
-  const [functionRuntimes, setFunctionRuntimes] = useState<FunctionRuntime[]>([]);
+  const [functionRuntimes] = useState<FunctionRuntime[]>([]);
   const [showLogViewer, setShowLogViewer] = useState(false);
 
   useEffect(() => {
