@@ -5,15 +5,11 @@ import { pathToFileURL } from 'node:url';
 const names = ['cloud-run', 'service'];
 const owner = process.env.GITHUB_REPOSITORY_OWNER ?? 'veselin8606-source';
 if (!/^[a-z0-9][a-z0-9._-]*$/i.test(owner)) throw new Error('Invalid GITHUB_REPOSITORY_OWNER.');
-const imagePattern = new RegExp(`^ghcr\\.io\\/${owner.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\const imagePattern = /^ghcr\.io\/veselin8606-source\/klar-app@sha256:[0-9a-f]{64}$/;')}\\/klar-app@sha256:[0-9a-f]{64}import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-
-const names = ['cloud-run', 'service'];
-);
+const imagePrefix = `ghcr.io/${owner}/klar-app@sha256:`;
+const imageDigestPattern = /^[0-9a-f]{64}$/;
 
 export function validateImage(image) {
-  if (typeof image !== 'string' || !imagePattern.test(image)) {
+  if (typeof image !== 'string' || !image.startsWith(imagePrefix) || !imageDigestPattern.test(image.slice(imagePrefix.length))) {
     throw new Error('Expected the Klar release image with a complete immutable sha256 digest.');
   }
   return image;
