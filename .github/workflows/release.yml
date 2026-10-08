@@ -99,6 +99,7 @@ jobs:
         run: |
           find release -type f -print0 | sort -z | xargs -0 sha256sum > release/SHA256SUMS
           test -s release/SHA256SUMS
+          ls release/deploy/*.json >/dev/null
           sha256sum -c release/SHA256SUMS
 
       - name: Verify container attestations
