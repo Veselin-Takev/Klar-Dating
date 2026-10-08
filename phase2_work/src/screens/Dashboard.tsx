@@ -817,7 +817,7 @@ export default function Dashboard() {
       if (highVerbindungen.length > 0) {
         // Mark them as notified
         const newNotified = new Set(notifiedHighVerbindungen);
-        highVerbindungen.forEach((p: unknown) => newNotified.add(p.id));
+        highVerbindungen.forEach((p) => newNotified.add(p.id));
         setNotifiedHighVerbindungen(newNotified);
 
         // If we have more than one, consolidate notification
