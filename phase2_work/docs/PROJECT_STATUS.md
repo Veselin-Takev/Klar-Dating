@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `6c5e639b989f715424dd80912467e2d9f166b0ac`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `b09fc7e87620b418b529f8001b3742c70d53a9e5`.
 
 ## Current authoritative status
 
@@ -407,3 +407,11 @@ The strict-test remediation exposed one additional environment-boundary defect i
 Candidate `6c5e639b989f715424dd80912467e2d9f166b0ac` now preserves the user-scoped memory cleanup and invokes the persistent IndexedDB cleanup only when `indexedDB` is available. This is a defensive runtime-boundary correction; it does not introduce a global queue-clear capability and does not alter browser behavior.
 
 Production remains **NO-GO / NOT CONFIRMED** until fresh exact-head CI proves Typecheck, Tests, Build, Production Smoke and Browser Acceptance and independent operational/governance evidence is verified.
+
+### 2026-10-08 — Exact-head CI 37829119764: DSA test parser defect corrected
+
+Exact-head Enterprise CI run `37829119764` again passed dependency-lock preflight and all Enterprise static gates, then failed in the test TypeScript compilation with three parser errors at `tests/enterprise/dsaAppealEngine.spec.ts:15`. The source review showed a literal `\\n` sequence had been persisted before the newly introduced mock interface.
+
+Candidate `b09fc7e87620b418b529f8001b3742c70d53a9e5` removes that literal escape and restores valid TypeScript source. A repository-wide inspection of the recently touched strict-test remediation files found no further matching literal-newline defects.
+
+Production remains **NO-GO / NOT CONFIRMED**. The next exact-head CI run must still prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance before release evidence can advance.
