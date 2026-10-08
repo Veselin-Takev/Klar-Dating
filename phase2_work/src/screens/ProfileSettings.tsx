@@ -10,7 +10,7 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
   const [interests, setInterests] = useState<string[]>(initialInterests || []);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const logoutTitleId = useId();
-  const { dialogRef, onKeyDown } = useModalAccessibility(() => setShowLogoutConfirm(false), showLogoutConfirm);
+  const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(() => setShowLogoutConfirm(false), showLogoutConfirm);
 
   const handleSave = async () => {
     await fetch('/api/profile/update', {
