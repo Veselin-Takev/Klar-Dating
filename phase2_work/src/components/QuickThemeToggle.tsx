@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 import { useEffect, useState } from 'react';
 import { Sun, Moon, MonitorSmartphone } from 'lucide-react';
 
