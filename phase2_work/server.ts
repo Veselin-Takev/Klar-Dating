@@ -71,7 +71,7 @@ import { createVerificationStoragePurgeRouter } from './src/server/routes/compli
 import helmet from "helmet";
 import path from "path";
 
-import { Type } from "@google/genai";
+import { Type, type GenerateContentParameters } from "@google/genai";
 import { aiRequest, createBudgetedAI } from "./src/server/aiBudget";
 // 11.08.2026 — der eine Weg, auf dem ein KI-Aufruf stattfindet.
 // Befund: src/server/kiPolitik.ts hatte bis heute null Aufrufer im
@@ -112,7 +112,7 @@ import { parseBoundedText, parseOptionalBoundedText } from './src/server/platfor
 import { parseSafetyMessage, serializeSafetyAuditOutput } from './src/server/platform/safetyBoundary';
 import { createAuditLogRouter } from './src/server/routes/auditLogs';
 import { createChatRouter } from './src/server/routes/chat';
-import { activationScore, getLocalDensity, getRecommendations, normalizeLaunchCity, recordActivation, referralCodeFor, toPublicProfile } from './src/server/platform/launchPlatform';
+import { activationScore, getLocalDensity, getRecommendations, normalizeLaunchCity, recordActivation, referralCodeFor, toPublicProfile, type LaunchCity } from './src/server/platform/launchPlatform';
 import { validateFeatureFlagConfiguration } from './src/server/platform/featureFlags';
 // SEC-03: Die Pruefung der Bild-Herkunft liegt in pure.ts — abhaengigkeitsfrei
 // und damit ohne Firebase und ohne Express nachrechenbar.
@@ -821,7 +821,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
       });
     }
 
-    if (KI_ENDPUNKTE.has(pfad) && !zweckErlaubt(daten?.einwilligung ?? null, "ki_auswertung")) {
+    if (KI_ENDPUNKTE.has(pfad) && !zweckErlaubt((daten?.einwilligung as import('./src/server/pure').Einwilligung | null | undefined) ?? null, "ki_auswertung")) {
       return res.status(401).json({
         error: "Für diese Funktion fehlt deine Einwilligung zur KI-Auswertung. Du kannst sie in den Einstellungen erteilen.",
         code: "einwilligung_fehlt",
@@ -911,7 +911,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     currentUserId,
     getFirestore,
     normalizeLaunchCity,
-    getLocalDensity,
+    getLocalDensity: (db, city: LaunchCity) => getLocalDensity(db, city),
     referralCodeFor,
     recordActivation,
     activationScore,
@@ -1053,7 +1053,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   app.use('/api', createAiPassgenauigkeitRouter({
     currentUserId,
     answer: beantworte,
-    generate: parameters => ai.models.generateContent(parameters),
+    generate: (parameters: GenerateContentParameters) => ai.models.generateContent(parameters),
     modelName: () => process.env.GEMINI_MODEL || 'gemini-3.8-flash',
   }));
 
@@ -1207,7 +1207,8 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
       // Protokolleintrag darf eine geglueckte Antwort nicht verderben.
       if (antwort.koerper["herkunft"] === "ki") {
         try {
-          const userId = req.user.uid;
+          const userId = currentUserId(req);
+          if (!userId) return res.status(401).json({ error: 'Unauthorized' });
           const db = getFirestore();
           const inputDigest = crypto.createHash('sha256').update(String(message), 'utf8').digest('hex');
           const outputDigest = crypto.createHash('sha256').update(serializeSafetyAuditOutput(antwort.koerper), 'utf8').digest('hex');
@@ -1755,7 +1756,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
         return res.status(400).json({ error: "Ungültige oder zu große Smart-Audit-Daten." });
       }
       const { bio, values, profileImageUrl } = input;
-      const promptParts: string[] = [
+      const promptParts: Array<string | { inlineData: { data: string; mimeType: string } }> = [
         `Evaluiere die folgende Dating-Profil-Bio, das hochgeladene Profilbild (falls vorhanden) und die Werte. Gleiche sie gegen Deep-Verbindung Kriterien ab. Mache 3 konkrete, umsetzbare Vorschläge zur Optimierung der 'Werte-Radar' Ausprägung für bessere Deep-Verbindunges.\nBio: ${bio}\nWerte: ${values.join(", ")}`
       ];
 
