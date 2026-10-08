@@ -30,7 +30,7 @@ export function AdminComplianceAuditWidget() {
       const data = await fetchComplianceAuditLogs({ kind: filterKind, limit: 100 });
       setRecords(data);
     } catch (err: unknown) {
-      setErrorMessage(err.message || 'Fehler beim Laden der Konformitäts-Logs');
+      setErrorMessage(err instanceof Error ? err.message : 'Fehler beim Laden der Konformitäts-Logs');
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export function AdminComplianceAuditWidget() {
       setSuccessMessage(`CSV-Export erfolgreich heruntergeladen: ${filename}`);
       setTimeout(() => setSuccessMessage(null), 6000);
     } catch (err: unknown) {
-      setErrorMessage(err.message || 'Export fehlgeschlagen');
+      setErrorMessage(err instanceof Error ? err.message : 'Export fehlgeschlagen');
     } finally {
       setExporting(false);
     }
