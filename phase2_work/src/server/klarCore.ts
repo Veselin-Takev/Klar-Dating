@@ -44,8 +44,12 @@ import {
 // das Limit eine Anzeige, keine Grenze.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const db = () => getFirestore() as unknown;
-const uid = (req: Request) => (req as unknown).user?.uid as string;
+const db = () => getFirestore();
+const uid = (req: Request): string => {
+  const value = req.user?.uid;
+  if (!value) throw new Error('Unauthorized');
+  return value;
+};
 
 function fehler(res: Response, e: unknown, wo: string) {
   if (e instanceof InputError) {
