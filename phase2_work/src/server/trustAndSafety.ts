@@ -13,6 +13,8 @@ import {
   recordModerationDecision,
   submitDsaAppeal,
   reviewDsaAppeal,
+  type DsaRestrictionType,
+  type DsaLegalGround,
 } from './platform/dsaAppealEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -33,6 +35,11 @@ import {
 //         hat nach den Firestore-Regeln keinen Schreibzugriff auf fremde
 //         Chatdokumente. Sie sieht nur so aus.
 // ═══════════════════════════════════════════════════════════════════════════
+
+const DSA_RESTRICTION_TYPES = ['content_removal', 'account_suspension', 'account_warning', 'account_termination', 'feature_restriction'] as const;
+const DSA_LEGAL_GROUNDS = ['harassment', 'hate_speech', 'underage', 'fraud_scam', 'unauthorized_commercial', 'impersonation', 'terms_violation'] as const;
+function isDsaRestrictionType(value: string): value is DsaRestrictionType { return (DSA_RESTRICTION_TYPES as readonly string[]).includes(value); }
+function isDsaLegalGround(value: string): value is DsaLegalGround { return (DSA_LEGAL_GROUNDS as readonly string[]).includes(value); }
 
 function uid(req: Request): string {
   const value = req.user?.uid;
@@ -241,8 +248,12 @@ export async function handleReportDecision(req: Request, res: Response): Promise
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const restrictionType = text(req.body?.restrictionType, 'restrictionType', 64);
-    const legalGround = text(req.body?.legalGround, 'legalGround', 64);
+    const restrictionTypeRaw = text(req.body?.restrictionType, 'restrictionType', 64);
+    const legalGroundRaw = text(req.body?.legalGround, 'legalGround', 64);
+    if (!isDsaRestrictionType(restrictionTypeRaw)) throw new Error('Ungültiger Einschränkungstyp.');
+    if (!isDsaLegalGround(legalGroundRaw)) throw new Error('Ungültiger Rechtsgrund.');
+    const restrictionType = restrictionTypeRaw;
+    const legalGround = legalGroundRaw;
     const factsAndCircumstances = text(req.body?.factsAndCircumstances, 'factsAndCircumstances', 2000);
 
     const statement = await recordModerationDecision(
@@ -291,7 +302,9 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const outcome = text(req.body?.outcome, 'outcome', 32);
+    const outcomeRaw = text(req.body?.outcome, 'outcome', 32);
+    if (outcomeRaw !== 'upheld' && outcomeRaw !== 'overturned') throw new Error('Ungültiges Beschwerdeergebnis.');
+    const outcome = outcomeRaw;
     const rationale = text(req.body?.rationale, 'rationale', 2000);
 
     const updatedAppeal = await reviewDsaAppeal(
