@@ -1,24 +1,24 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `541b3d37f4b5beb263dba08c08d5f0abacb41a51`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99`.
 
 ## Current authoritative status
 
-- The previous exact-head CI run for `8c38df8ed4525f9922ab06d09b5e5df81e8dad67` failed only in Typecheck, with three concrete diagnostics: missing `SpeechRecognitionLike.onend`, untyped consent response `evidenceId`, and an unused `Tips.tsx` import.
-- Those three diagnostics are now remediated on `541b3d37f4b5beb263dba08c08d5f0abacb41a51` without weakening TypeScript strictness or adding a broad `any` escape hatch.
-- A fresh exact-head Enterprise CI run is expected for this candidate; until its Typecheck, Tests, Build, Production Smoke and Browser Acceptance steps complete successfully, no dynamic PASS is inferred.
-- The documented P1 findings remain unchanged: Chat `/api/chats` read-path N+1 remains open pending real traces; direct Firestore transaction trace coverage remains an evidence/coverage item; process-local rate-limit migration remains evidence-driven and is not being broadened speculatively.
-- **Production release remains NO-GO / NOT CONFIRMED.** External operational and governance evidence is still required after all exact-head CI gates pass.
+- The exact-head Typecheck blockers from `8c38df8ed4525f9922ab06d09b5e5df81e8dad67` were remediated on `541b3d37f4b5beb263dba08c08d5f0abacb41a51`: the speech-recognition `onend` contract was completed, the consent response was narrowed through an unknown-safe record boundary with a validated `evidenceId`, and the stale `Tips.tsx` import was removed.
+- Follow-up hardening on `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99` adds explicit process-lifetime Firestore transaction request/error metrics and an Enterprise `check:firestore-boundary` gate that rejects native `getFirestore` access outside `src/server/db.ts`.
+- Exact-head Enterprise CI is still the release authority. The latest branch listing shows earlier runs pending/in progress; no PASS is inferred until the newest head completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance successfully.
+- The Chat `/api/chats` read-path N+1 remains **P1 / OPEN** pending real traces; no speculative batching has been introduced. Process-local rate limits remain **P1 / OPEN pending evidence**; critical chat message and gate-answer limits are already distributed.
+- **Production release remains NO-GO / NOT CONFIRMED.** Operational/governance evidence remains required after dynamic CI is green.
 
-## Latest remediation — exact-head Typecheck blockers
+## Latest remediation — Typecheck and transaction observability
 
-- `DatingTimelineWidget.tsx`: `SpeechRecognitionLike` now declares the `onend` event handler used by the runtime speech-recognition adapter.
-- `EinwilligungUndAlter.tsx`: the consent response is parsed through an explicit unknown-safe record contract; `evidenceId` is narrowed before authoritative profile confirmation.
-- `Tips.tsx`: the unused `UserCircle/Wind` import was removed.
+- `DatingTimelineWidget.tsx`: `SpeechRecognitionLike` declares `onend`, matching the assigned runtime callback.
+- `EinwilligungUndAlter.tsx`: consent JSON is treated as `unknown`, narrowed to a record, and `evidenceId` is validated before profile confirmation.
+- `Tips.tsx`: removed unused `UserCircle/Wind` import.
+- `observability.ts`: transaction starts/failures are counted without synthetic traffic and exported through the existing Prometheus endpoint.
+- `check-firestore-boundary.mjs`: production server code is statically constrained to the shared Firestore acquisition boundary in `src/server/db.ts`.
 
 ## Release evidence rule
-
-A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.
 
 ---
 
