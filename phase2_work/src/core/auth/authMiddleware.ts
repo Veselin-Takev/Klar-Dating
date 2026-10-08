@@ -2,21 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { getServerFirebaseApp } from '../../server/db';
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    email?: string;
-    role?: string;
-    roles?: string[];
-    admin?: boolean;
-    moderator?: boolean;
-    support?: boolean;
-    trust_safety?: boolean;
-    finance?: boolean;
-    super_admin?: boolean;
-  };
-}
-
+export type AuthenticatedRequest = Request;
 /**
  * Verify Firebase ID tokens with the Admin SDK. Never decode JWT payloads
  * locally and never substitute a fixed/test identity in a runtime boundary.
