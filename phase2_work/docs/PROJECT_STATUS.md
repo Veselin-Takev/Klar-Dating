@@ -332,3 +332,12 @@ The preceding CI logs emitted a GitHub Actions warning that the pinned `actions/
 This changes only the GitHub Action's execution runtime; the Klar application/toolchain contract remains Node `22.23.3` and Bun `1.4.2`. GitHub's current setup-node documentation shows the action running under `node24`, and the current v7 line documents Node 24 usage. citeturn174539search6turn174539search1
 
 Production remains **NO-GO / NOT CONFIRMED** until the next exact-head CI run completes all deterministic gates and independent production approval/operational evidence is verified.
+
+
+### 2026-10-08 — Continuous dependency-update coverage added
+
+Supply-chain hardening now includes an automated maintenance path in addition to immutable action pins. A repository-root `.github/dependabot.yml` was added for weekly GitHub Actions, Bun, Firebase Functions npm, and Docker dependency monitoring. A dedicated `check-dependabot-config.mjs` Enterprise gate verifies the file, supported directories, version 2 configuration, and weekly schedules. This prevents the immutable-pin policy from becoming stale without an automated update mechanism.
+
+Current GitHub documentation lists Bun and GitHub Actions as supported Dependabot ecosystems and requires `.github/dependabot.yml` in the default-branch `.github` directory. citeturn111071search0turn111071search2turn111071search10
+
+Production remains **NO-GO / NOT CONFIRMED** pending the next exact-head CI run through all deterministic stages and independent production approval/operational evidence.
