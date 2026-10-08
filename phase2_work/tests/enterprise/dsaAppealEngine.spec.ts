@@ -12,7 +12,7 @@ interface InMemoryDb {
   reports: Map<string, any>;
   users: Map<string, any>;
 }
-\ninterface MockDocSnapshot {
+interface MockDocSnapshot {
   exists: boolean;
   data: () => any;
 }
