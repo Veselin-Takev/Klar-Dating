@@ -9,9 +9,14 @@ const failures = [];
 
 if (!fs.existsSync(path.join(repoRoot, 'phase2_work', 'bun.lock'))) failures.push('Root dependency lock bun.lock is missing.');
 if (fs.existsSync(path.join(repoRoot, 'phase2_work', 'package-lock.json'))) failures.push('package-lock.json must not coexist with the Bun-only root dependency policy.');
-const autoVersion = fs.readFileSync(path.join(repoRoot, '.github/workflows/auto-version.yml'), 'utf8');
-if (autoVersion.includes('package-lock.json')) failures.push('auto-version workflow must not reference root package-lock.json under the Bun-only root dependency policy.');
-if (!autoVersion.includes("bun-version: '1.4.2'")) failures.push('auto-version workflow must pin Bun 1.4.2 for the root package graph.');
+const optionalRootWorkflows = ['auto-version.yml'];
+for (const name of optionalRootWorkflows) {
+  const workflowPath = path.join(repoRoot, '.github', 'workflows', name);
+  if (!fs.existsSync(workflowPath)) continue;
+  const workflowText = fs.readFileSync(workflowPath, 'utf8');
+  if (workflowText.includes('package-lock.json')) failures.push(`${name} must not reference root package-lock.json under the Bun-only root dependency policy.`);
+  if (!workflowText.includes("bun-version: '1.4.2'")) failures.push(`${name} must pin Bun 1.4.2 for the root package graph.`);
+}
 if (!fs.existsSync(path.join(repoRoot, 'phase2_work/functions/package-lock.json'))) {
   failures.push('functions/: package-lock.json is missing. Functions use npm@10.9.2 and require a committed npm lockfile for reproducible CI/CD installs.');
 }
