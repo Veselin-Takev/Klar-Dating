@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { BookOpen, CheckCircle, ShieldAlert, Heart, MessageSquare, CheckSquare, Square, PenLine, Trash2, CalendarPlus, Lightbulb, HeartHandshake, Sparkles, Bookmark, BookmarkCheck } from "lucide-react";
 import { motion } from "motion/react";
 import { fetchDateIdeas } from "../lib/api";
-import { UserCircle, Wind } from "lucide-react";
 import { MindfulDatingExercisesWidget } from "../components/MindfulDatingExercisesWidget";
 import { melde } from "../lib/fehler";
 import { useAuth } from "../lib/AuthContext";

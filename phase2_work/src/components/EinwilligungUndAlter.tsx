@@ -135,16 +135,20 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         },
         body: JSON.stringify({ zwecke: gewaehlt }),
       });
-      const daten = await res.json().catch(() => ({}));
+      const rawData: unknown = await res.json().catch(() => ({}));
+      const daten = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+        ? rawData as { ok?: unknown; evidenceId?: unknown; einwilligung?: unknown; error?: unknown }
+        : {};
+      const evidenceId = typeof daten.evidenceId === 'string' ? daten.evidenceId : null;
       if (!res.ok) {
         setFehler(typeof daten.error === 'string' ? daten.error : "Die Einwilligung konnte nicht gespeichert werden.");
         return;
       }
-      if (daten?.ok !== true || typeof daten?.evidenceId !== 'string' || !daten?.einwilligung) {
+      if (daten.ok !== true || !evidenceId || !daten.einwilligung) {
         throw new Error('Der gespeicherte Nachweis fehlt.');
       }
       const profile = await refreshProfile();
-      if (profile?.isAdult !== true || profile?.einwilligung?.evidenceId !== daten.evidenceId) {
+      if (profile?.isAdult !== true || profile?.einwilligung?.evidenceId !== evidenceId) {
         throw new Error('Der aktuelle Einwilligungsstand wurde nicht bestätigt.');
       }
       onFertig?.();
