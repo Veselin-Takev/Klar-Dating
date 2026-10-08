@@ -16,7 +16,7 @@ function baseDb() {
       doc: vi.fn((id: string) => ({ id, get: vi.fn(async () => ({ exists: true, data: () => ({ location: 'München', isAdult: true }) })), set: vi.fn(async () => undefined) })),
       where: vi.fn(() => ({ limit: vi.fn(() => ({ get: vi.fn(async () => ({ empty: true, docs: [] })) })) })),
     })),
-    runTransaction: vi.fn(),
+    runTransaction: vi.fn(async (fn: any) => fn({ get: vi.fn(async () => ({ exists: false, data: () => undefined })), set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() })),
   } as any;
 }
 

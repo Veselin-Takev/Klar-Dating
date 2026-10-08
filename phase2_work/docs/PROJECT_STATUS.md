@@ -431,3 +431,10 @@ Exact-head Enterprise CI run `37829119764` again passed dependency-lock prefligh
 Candidate `b09fc7e87620b418b529f8001b3742c70d53a9e5` removes that literal escape and restores valid TypeScript source. A repository-wide inspection of the recently touched strict-test remediation files found no further matching literal-newline defects.
 
 Production remains **NO-GO / NOT CONFIRMED**. The next exact-head CI run must still prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance before release evidence can advance.
+
+
+### 2026-10-08 — Exact-head remediation wave: transaction/security contracts
+
+The follow-up remediation extends the Durable boundary hardening to its adjacent security contracts: consent evidence is backend-only, KYC start checks recent authentication before its distributed limiter, and Enterprise test fixtures now model the mandatory transactional rate-limit surface. Firestore rule tests explicitly seed the authoritative adult gate and complete guest schema.
+
+Production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head dynamic CI result.

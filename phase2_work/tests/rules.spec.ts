@@ -264,6 +264,8 @@ describe('Profile', () => {
 describe('Öffentliches Profil', () => {
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/anna'), { isAdult: true }, { merge: true });
+      await setDoc(doc(ctx.firestore(), 'users/bea'), { isAdult: true }, { merge: true });
       await setDoc(doc(ctx.firestore(), 'public_profiles/bea'), {
         uid: BEA, name: 'Bea', age: 31, ort: 'Leipzig', bio: 'kurz', isVerified: true,
       });
@@ -625,7 +627,7 @@ describe('Gastzugang', () => {
     // nirgendwohin. Anlegen ja, Aendern nein — siehe naechster Test.
     await assertSucceeds(
       setDoc(doc(alsGast(GAST), `users/${GAST}`), {
-        uid: GAST, createdAt: '2026-08-14', updatedAt: '2026-08-14', name: 'Gast',
+        uid: GAST, createdAt: '2026-08-14', updatedAt: '2026-08-14', name: 'Gast', bio: '', interests: [], goal: 'undecided',
       }),
     );
   });

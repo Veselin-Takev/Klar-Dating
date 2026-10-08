@@ -27,7 +27,7 @@ async function endpoint(options: {
     createCheckoutSession: checkout,
     getFirestore: () => ({
       collection: () => ({ doc: () => ({ get: async () => ({ exists: false, data: () => undefined }) }) }),
-      runTransaction: async (fn: (tx: { get: () => Promise<{ exists: boolean; data: () => undefined }> }) => Promise<unknown>) => fn({ get: async () => ({ exists: false, data: () => undefined }) }),
+      runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} })
     } as any),
   }));
   const server = app.listen(0, '127.0.0.1');

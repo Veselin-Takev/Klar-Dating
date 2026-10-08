@@ -9,7 +9,7 @@ async function endpoint(fail = false) {
   const writes = vi.fn().mockImplementation(async () => { if (fail) throw new Error('internal secret'); });
   const doc = vi.fn(() => ({ set: writes }));
   const app = express(); app.use(express.json());
-  app.use('/api', createAccountRouter({ getFirestore: () => ({ collection: () => ({ doc }) }) as any,
+  app.use('/api', createAccountRouter({ getFirestore: () => ({ collection: () => ({ doc }), runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }) }) as any,
     currentUserId: req => req.headers.authorization === 'Bearer test' ? 'own-user' : null,
     getAuth: () => ({ revokeRefreshTokens: vi.fn() } as any) }));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);

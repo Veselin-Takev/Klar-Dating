@@ -21,6 +21,7 @@ async function endpoint() {
   app.use('/api', createAccountRouter({
     getFirestore: () => ({
       collection: () => ({ doc: () => ({}) }),
+      runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }),
     } as never),
     currentUserId: () => 'user-age-contract',
   }));

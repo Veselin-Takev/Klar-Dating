@@ -145,8 +145,7 @@ service cloud.firestore {
     }
 
     match /users/{userId}/einwilligungen/{evidenceId} {
-      allow read: if isOwner(userId);
-      allow create, update, delete: if false;
+      allow read, create, update, delete: if false;
     }
 
     match /audit_logs/{entryId} {
