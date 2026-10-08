@@ -283,3 +283,12 @@ The follow-up CI run `37819483838` reached dependency installation successfully 
 This is a CI-gate correctness fix only; no application runtime behavior was changed. A fresh exact-head run is required before any downstream test or release evidence is considered valid.
 
 Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-08 — Exact-head CI 37820349100: stale release-workflow assertions remediated
+
+Fresh exact-head CI run `37820349100` reached the Enterprise static gates and failed only in `check-release-workflow.mjs`. The reported failures were (1) the attestation assertion and (2) the semver tag-to-digest assertion. Runtime inspection showed that the production workflow already contained the intended controls, but the static gate had stale text assertions that did not match the actual variable-bound Buildx command form.
+
+The release gate was corrected to assert the canonical workflow contract actually used by the release job: the digest-bound GitHub Attest configuration and the tag inspection command operating on the explicitly constructed `$image` variable. No application runtime code was changed. Because typecheck, tests, build, smoke, and browser acceptance were skipped after the static gate failure, those stages remain unproven until a fresh run executes them.
+
+Production remains **NO-GO / NOT CONFIRMED** pending the next exact-head CI run and subsequent independent release/operational evidence.
