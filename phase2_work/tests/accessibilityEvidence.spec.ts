@@ -65,6 +65,6 @@ describe('manual accessibility evidence validation', () => {
     const evidence = validEvidence();
     evidence.checks[0]!.status = 'not_tested';
     evidence.conclusion = 'incomplete';
-    expect(validateAccessibilityManualEvidence(evidence, 'a'.repeat(40)).passed).toBe(false);
+    expect(validate(evidence).passed).toBe(false);
   });
 });
