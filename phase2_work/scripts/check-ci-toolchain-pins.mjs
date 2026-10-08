@@ -2,14 +2,14 @@ import fs from 'node:fs';
 
 const failures = [];
 const expectedNode = '22.23.3';
-const workflows = [
-  '.github/workflows/ci.yml',
-  '.github/workflows/release.yml',
-  '.github/workflows/docs-autoupdate.yml',
-  '.github/workflows/playwright.yml',
-  '.github/workflows/security.yml',
-  '.github/workflows/auto-version.yml',
-];
+const workflows = fs.readdirSync('.github/workflows')
+  .filter(name => /\\.ya?ml$/.test(name))
+  .map(name => `.github/workflows/${name}`)
+  .sort();
+if (workflows.length === 0) {
+  console.error('CI toolchain pin gate FAILED: no GitHub Actions workflows found.');
+  process.exit(1);
+}
 
 for (const file of workflows) {
   if (!fs.existsSync(file)) {
