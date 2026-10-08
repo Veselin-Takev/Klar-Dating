@@ -14,18 +14,14 @@ let initialization: Promise<void> | null = null;
 function durableFallbackAllowed(): boolean {
   return process.env.NODE_ENV === 'development' && process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true';
 }
-
 function readConfig(): Record<string, unknown> {
   const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
   return fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
 }
-
 export function getServerFirebaseApp() {
   const { projectId } = resolveFirebaseRuntime(readConfig());
   return getApps()[0] ?? initializeApp(projectId ? { projectId } : undefined);
 }
-
-/** Production fails closed when Firestore is unavailable; the explicit local durable adapter implements the Firestore subset used by Klar. */
 export function getDb(): Firestore {
   if (!proxyDbInstance) {
     try {
@@ -33,21 +29,16 @@ export function getDb(): Firestore {
       const { databaseId } = resolveFirebaseRuntime(readConfig());
       realDbInstance = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
     } catch (err) {
-      if (!durableFallbackAllowed()) {
-        throw new Error('Firestore initialization failed; durable fallback is disabled outside explicitly enabled non-production environments.', { cause: err });
-      }
+      if (!durableFallbackAllowed()) throw new Error('Firestore initialization failed; durable fallback is disabled outside explicitly enabled non-production environments.', { cause: err });
       console.warn('Direct Firestore initialization failed; explicitly enabled non-production durable fallback is active:', err);
     }
-    if (!realDbInstance && !durableFallbackAllowed()) {
-      throw new Error('Firestore is unavailable; durable fallback is disabled.');
-    }
+    if (!realDbInstance && !durableFallbackAllowed()) throw new Error('Firestore is unavailable; durable fallback is disabled.');
     proxyDbInstance = (realDbInstance && typeof realDbInstance.runTransaction !== 'function')
       ? realDbInstance
       : createDurableDbProxy(realDbInstance) as Firestore;
   }
   return proxyDbInstance;
 }
-
 export async function initServerDb(): Promise<Firestore> {
   const db = getDb();
   if (!initialization) {
@@ -56,20 +47,13 @@ export async function initServerDb(): Promise<Firestore> {
       try {
         await Promise.race([
           db.collection('system').doc('ping').get(),
-          new Promise<never>((_, reject) => {
-            timer = setTimeout(() => reject(new Error('Firestore initialization timed out')), 10_000);
-          }),
+          new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Firestore initialization timed out')), 10_000); }),
         ]);
       } finally {
         if (timer !== undefined) clearTimeout(timer);
       }
     })();
   }
-  try {
-    await initialization;
-  } catch (error) {
-    initialization = null;
-    throw error;
-  }
+  try { await initialization; } catch (error) { initialization = null; throw error; }
   return db;
 }
