@@ -93,7 +93,7 @@ import { getServerFirebaseApp, initServerDb } from './src/server/db';
 import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
-import { extractTraceContext, startHttpSpan, runInSpan, observabilityPrometheus } from './src/server/observability';
+import { extractTraceContext, startHttpSpan, runInSpan } from './src/server/observability';
 import { appendAuditLog } from './src/server/platform/auditLog';
 
 
