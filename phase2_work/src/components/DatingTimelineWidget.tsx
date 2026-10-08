@@ -107,7 +107,8 @@ export function DatingTimelineWidget() {
   };
 
   const startRecording = () => {
-    const SpeechRecognition = (window as unknown).SpeechRecognition || (window as unknown).webkitSpeechRecognition;
+    const SpeechRecognition = (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition
+      || (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Spracherkennung wird in diesem Browser nicht unterstützt.");
       return;
@@ -120,7 +121,7 @@ export function DatingTimelineWidget() {
       setIsRecording(true);
           };
 
-    recognition.onresult = async (event: unknown) => {
+    recognition.onresult = async (event: SpeechRecognitionEventLike) => {
       const transcript = event.results[0][0].transcript;
       setIsRecording(false);
 
