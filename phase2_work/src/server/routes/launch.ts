@@ -133,7 +133,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         if (userSnap.data()?.referredBy || inviter.data()?.referralCode !== code) return;
         tx.set(userRef, { referredBy: inviterRef.id, referralQualified: false }, { merge: true });
         tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
-          inviterUid: (inviterRef as unknown).id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
+          inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
         }, { merge: true });
       });
       return res.json({ ok: true });
