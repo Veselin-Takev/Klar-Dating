@@ -45,8 +45,8 @@ describe('POST /api/account/alter contract', () => {
     processAgeVerification.mockResolvedValue({ ok: false, status: 'locked_underage', age: 17, code: 'underage_locked', error: 'underage' });
     const api = await endpoint();
     const response = await api.send({ geburtsdatum: '2009-01-10' });
-    expect(response.status).toBe(422);
-    await expect(response.json()).resolves.toMatchObject({ code: 'UNDERAGE_RESTRICTION' });
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ code: 'UNDERAGE_ACCOUNT_LOCKED' });
   });
 
   it('returns 400 for non-ISO payloads before domain processing', async () => {
