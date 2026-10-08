@@ -5,11 +5,19 @@ import { Activity } from 'lucide-react';
 
 export function DateSuccessRadarWidget() {
   const [expanded, setExpanded] = useState(false);
-  const [data, setData] = useState<unknown[]>([]);
+  type RadarPoint = { subject: string; A: number; B: number; fullMark: number };
+  type ReflectionLog = { date: string | number; tags?: string[] };
+  const [data, setData] = useState<RadarPoint[]>([]);
 
   useEffect(() => {
     const saved = klarStorage.getItem('klar_reflection_logs');
-    const logs = saved ? JSON.parse(saved) : [];
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
+    const logs: ReflectionLog[] = Array.isArray(parsed) ? parsed.filter((item): item is ReflectionLog => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+      const value = item as Record<string, unknown>;
+      return (typeof value.date === 'string' || typeof value.date === 'number') &&
+        (value.tags === undefined || (Array.isArray(value.tags) && value.tags.every((tag): tag is string => typeof tag === 'string')));
+    }) : [];
 
     const tagsThisWeek: Record<string, number> = {};
     const tagsLastMonth: Record<string, number> = {};
