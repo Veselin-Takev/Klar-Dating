@@ -303,3 +303,12 @@ Remediation: all three gates now resolve the active workflow directory from `imp
 This is intentionally a governance/control-plane fix, not an application workaround. It eliminates path ambiguity and prevents stale CI/release definitions from silently becoming release evidence inputs.
 
 Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head CI run passes all deterministic validation stages and the independent release/operational approval evidence is verified.
+
+
+### 2026-10-08 — Exact-head CI dependency-lock gate path/topology fix
+
+Exact-head CI run `37822007081` passed dependency installation but failed in `check-dependency-locks.mjs` because the gate still attempted to read the removed nested `phase2_work/.github/workflows/auto-version.yml`. After the workflow-shadow cleanup, the authoritative Actions surface is repository-root `.github/workflows`, and `auto-version.yml` is no longer present.
+
+Remediation: `check-dependency-locks.mjs` now resolves all paths from the repository root and treats `auto-version.yml` as an optional policy surface: when present it is validated, when absent it cannot become a false blocker. The active GitHub and GitLab dependency-install contracts remain explicitly verified. No dependency versions were changed and no lockfile regeneration was accepted as a substitute for a deterministic policy fix.
+
+Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head run reaches and passes all subsequent deterministic validation stages.
