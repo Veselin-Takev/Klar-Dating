@@ -19,6 +19,36 @@ async function readDiditJson(response: Response): Promise<unknown> {
 async function ignoreMissing(action: () => Promise<unknown>) {
   try { await action(); } catch (error) { if ((error as { code?: string }).code !== 'auth/user-not-found') throw error; }
 }
+
+/**
+ * Auth deletion is a destructive security boundary. Do not mark the durable
+ * deletion workflow complete until the provider postcondition is observable.
+ * A bounded retry handles transient provider propagation while persistent
+ * failure leaves the durable job retryable instead of falsely reporting completion.
+ */
+async function removeAuthAndVerify(uid: string): Promise<void> {
+  const auth = getAuth();
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      await auth.deleteUser(uid);
+    } catch (error) {
+      if ((error as { code?: string }).code === 'auth/user-not-found') return;
+      lastError = error;
+    }
+
+    try {
+      await auth.getUser(uid);
+      lastError = new Error('auth_deletion_not_confirmed');
+    } catch (error) {
+      if ((error as { code?: string }).code === 'auth/user-not-found') return;
+      lastError = error;
+    }
+
+    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 50 * (2 ** attempt)));
+  }
+  throw lastError instanceof Error ? lastError : new Error('auth_deletion_not_confirmed');
+}
 export async function requestAccountDeletion(uid: string, db: Firestore = getDb()) {
   const ref = db.doc(`account_deletions/${uid}`);
   const result = await runObservedTransaction(db, 'accountDeletion.requestAccountDeletion', async tx => {
@@ -66,7 +96,7 @@ export type DeletionDependencies = {
 export function deletionDependencies(): DeletionDependencies {
   return { db: getDb(), now: Date.now, purge: purgeAccountData,
     disable: async uid => { await ignoreMissing(() => getAuth().updateUser(uid, { disabled: true })); await ignoreMissing(() => getAuth().revokeRefreshTokens(uid)); },
-    removeAuth: uid => ignoreMissing(() => getAuth().deleteUser(uid)),
+    removeAuth: removeAuthAndVerify,
     eraseProvider: (uid, id) => eraseDiditPage(uid, id, process.env.DIDIT_API_KEY ?? ''),
     cancelSubscription: async (id, customerId) => {
       const stripe = getStripe(); const subscription = await stripe.subscriptions.retrieve(id);

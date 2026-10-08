@@ -11,6 +11,14 @@
 - The latest Exact-Head CI run must still pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the final head before technical release gates are green.
 - **Production release remains NO-GO / NOT CONFIRMED.**
 
+### 2026-10-08 — Exact-head CI 37839602957: five concrete test blockers isolated
+
+Exact-head Enterprise CI run `37839602957` on candidate `c18fb297f8353f19fa5210b6ad822963957aeb49` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 7 failures across 5 files. The failures were isolated to four stale fixture contracts and one production erasure postcondition: the account-age fixture expected the wrong locked-underage response, the referral configuration fixture incorrectly expected the distributed limiter to bypass Firestore, the Stripe emulator fixture omitted the canonical checkout-session ID, the recommendation test still asserted against the retired global storage key, and account erasure lacked positive verification that the Firebase Auth identity was actually gone before the durable workflow could advance.
+
+The remediation aligns the four stale fixtures to the current contracts and hardens account erasure with a bounded Auth delete-and-verify loop. Auth deletion remains fail-closed: if provider absence cannot be confirmed, the durable deletion job stays retryable rather than reporting completion. No compiler relaxation, local rate-limit fallback, global storage reintroduction, or production test bypass is introduced.
+
+The next exact-head CI run must prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance. Independent load/cost/SLO, restore/rollback, secret rotation/alert delivery, manual accessibility and governance evidence remain separate release gates; **production remains NO-GO / NOT CONFIRMED**.
+
 ## Latest remediation — distributed critical rate limits
 
 - `src/server/distributedRateLimiter.ts` provides atomic Firestore-backed counters with bounded identities, fail-closed 503 behavior on unavailable limiter storage, and RateLimit/Retry-After metadata.
