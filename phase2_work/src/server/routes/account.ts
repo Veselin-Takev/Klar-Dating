@@ -5,7 +5,6 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from '../distributedRateLimiter';
-import { ipKeyGenerator } from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
 import { getAuth as getAdminAuth, type Auth } from 'firebase-admin/auth';
 import {
@@ -64,7 +63,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     collection: 'rate_limit_account_alter',
     windowMs: 60 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? '',
     message: { error: 'Zu viele Altersprüfungen. Bitte später erneut versuchen.' },
     getDb: getFirestore,
   });
@@ -77,7 +76,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 2,
     keyGenerator: (req) => {
       const uid = currentUserId(req);
-      return uid ? 'uid:' + uid : 'ip:' + (req.ip ?? 'unknown');
+      return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Auskunftsanfragen. Bitte später erneut versuchen.' },
     getDb: getFirestore,

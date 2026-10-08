@@ -1,5 +1,5 @@
 import express, { Router, type Request } from 'express';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { distributedRateLimit } from '../distributedRateLimiter';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import type { LaunchCity } from '../platform/launchPlatform';
 
@@ -23,56 +23,74 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   // Sensitive launch/referral flows are authenticated but still business-write
   // surfaces. Keep their limits UID-scoped so IP rotation cannot multiply the
   // write budget, while preserving a stricter one-time claim limit.
-  const referralClaimLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+  const referralClaimLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_referral_claim',
+    windowMs: 900000,
     limit: 10,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Einladungsversuche. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
-  const activationWriteLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+  const activationWriteLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_activation_write',
+    windowMs: 900000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Aktivierungsereignisse. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
-  const foundingClaimLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
+  const foundingClaimLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_founding_claim',
+    windowMs: 3600000,
     limit: 3,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Founding-Member-Versuche. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
 
-  const referralGenerationLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
+  const referralGenerationLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_referral_generation',
+    windowMs: 3600000,
     limit: 10,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Einladungslink-Anfragen. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
 
-  const launchSummaryReadLimiter = rateLimit({
-    windowMs: 60 * 1000,
+  const launchSummaryReadLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_summary_read',
+    windowMs: 60000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Launch-Status-Anfragen. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
 
-  const activationSummaryReadLimiter = rateLimit({
-    windowMs: 60 * 1000,
+  const activationSummaryReadLimiter = distributedRateLimit({
+    collection: 'rate_limit_launch_activation_summary_read',
+    windowMs: 60000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
     message: { error: 'Zu viele Aktivierungsstatus-Anfragen. Bitte später erneut versuchen.' },
+    getDb: deps.getFirestore,
   });
 
   router.get('/launch/summary', launchSummaryReadLimiter, async (req, res) => {

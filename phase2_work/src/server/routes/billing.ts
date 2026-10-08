@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import type { Firestore } from 'firebase-admin/firestore';
+import { distributedRateLimit } from '../distributedRateLimiter';
 import { z } from 'zod';
 import { CheckoutConflictError } from '../stripeService';
 
@@ -8,6 +9,7 @@ export type BillingRouterDeps = {
   isBookable: () => boolean;
   validateReturnUrl: (returnUrl: string) => string;
   createCheckoutSession: (userId: string, returnUrl: string) => Promise<string | null>;
+  getFirestore?: () => Firestore;
 };
 
 const checkoutPayload = z.object({
@@ -17,12 +19,15 @@ const checkoutPayload = z.object({
 
 export function createBillingRouter(deps: BillingRouterDeps): Router {
   const router = Router();
-  const checkoutCreationLimiter = rateLimit({
+  const checkoutCreationLimiter = distributedRateLimit({
+    collection: 'rate_limit_billing_checkout',
     windowMs: 15 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = deps.currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
+    getDb: deps.getFirestore,
     message: { error: 'Zu viele Checkout-Anfragen. Bitte versuche es später erneut.' },
   });
 

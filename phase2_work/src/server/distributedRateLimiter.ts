@@ -20,7 +20,9 @@ export function distributedRateLimit(options: DistributedRateLimitOptions) {
   if (!Number.isSafeInteger(options.windowMs) || options.windowMs <= 0) throw new Error('Invalid rate-limit window.');
   if (!Number.isSafeInteger(options.limit) || options.limit <= 0) throw new Error('Invalid rate-limit limit.');
   return async function distributedRateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-    const identity = (options.keyGenerator(req) || 'ip:' + (req.ip ?? 'unknown')).trim();
+    const candidate = options.keyGenerator(req).trim();
+    if (!candidate) return next();
+    const identity = candidate;
     const db = options.getDb ? options.getDb() : getDb();
     const ref = db.collection(options.collection).doc(hashKey(options.collection, identity));
     const now = Date.now();

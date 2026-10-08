@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { distributedRateLimit } from '../distributedRateLimiter';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from '../db';
 import { z } from 'zod';
@@ -16,12 +16,15 @@ const payloadSchema = z.object({
 
 export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceTokenRouterDeps): Router {
   const router = Router();
-  const deviceTokenWriteLimiter = rateLimit({
+  const deviceTokenWriteLimiter = distributedRateLimit({
+    collection: 'rate_limit_device_token_write',
     windowMs: 15 * 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const uid = currentUserId(req);
+      return uid ? 'uid:' + uid : '';
+    },
+    getDb: getFirestore,
     message: { error: 'Zu viele Geräte-Token-Anfragen. Bitte versuche es später erneut.' },
   });
 

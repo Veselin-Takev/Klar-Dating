@@ -25,6 +25,10 @@ async function endpoint(options: {
     isBookable: () => options.bookable ?? false,
     validateReturnUrl: validate,
     createCheckoutSession: checkout,
+    getFirestore: () => ({
+      collection: () => ({ doc: () => ({ get: async () => ({ exists: false, data: () => undefined }) }) }),
+      runTransaction: async (fn: (tx: { get: () => Promise<{ exists: boolean; data: () => undefined }> }) => Promise<unknown>) => fn({ get: async () => ({ exists: false, data: () => undefined }) }),
+    } as any),
   }));
   const server = app.listen(0, '127.0.0.1');
   servers.push(server);

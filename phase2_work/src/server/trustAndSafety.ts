@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
@@ -65,12 +65,17 @@ function text(wert: unknown, feld: string, max: number, pflicht = true): string 
 // Keep these sensitive business flows bounded per authenticated UID rather than
 // relying only on the broad IP-based /api limiter. This also limits abuse when
 // a client rotates source IPs.
-export const trustSafetyWriteLimiter = rateLimit({ validate: false,
+export const trustSafetyWriteLimiter = distributedRateLimit({
+  collection: 'rate_limit_trust_safety_write',
   windowMs: 15 * 60 * 1000,
   limit: 20,
-  keyGenerator: (req) => uid(req) || ipKeyGenerator(req.ip ?? ''),
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
+  keyGenerator: (req) => {
+    try {
+      return 'uid:' + uid(req);
+    } catch {
+      return '';
+    }
+  },
   message: { error: 'Zu viele Trust-&-Safety-Aktionen. Bitte versuche es später erneut.' },
 });
 
