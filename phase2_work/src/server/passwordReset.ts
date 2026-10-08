@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { getDb } from './db';
-import { rateLimiter } from '../security/rateLimiter';
+import { rateLimiter, ipKeyGenerator } from '../security/rateLimiter';
 import { appendAuditLog } from './platform/auditLog';
 
 /**
