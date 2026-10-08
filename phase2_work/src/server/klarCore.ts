@@ -1,6 +1,6 @@
 import { getAppBucket } from './storage';
 import { toPublicProfile } from './platform/launchPlatform';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT (Ab 500 Nutzer)
@@ -112,7 +112,7 @@ export async function handleContact(req: Request, res: Response): Promise<void> 
     const nutzer = firestore.collection('users').doc(meine);
     const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
 
-    const ergebnis = await firestore.runTransaction(async (t: unknown) => {
+    const ergebnis = await firestore.runTransaction(async (t: Transaction) => {
       const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
         t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
       if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
@@ -177,7 +177,7 @@ export async function handleContactUndo(req: Request, res: Response): Promise<vo
     const nutzer = firestore.collection('users').doc(meine);
     const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
 
-    const ok = await firestore.runTransaction(async (t: unknown) => {
+    const ok = await firestore.runTransaction(async (t: Transaction) => {
       const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
         t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
       if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
@@ -328,7 +328,7 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
  */
 export async function handleVerificationDecide(req: Request, res: Response): Promise<void> {
   try {
-    let claims = (req as unknown).user ?? {};
+    let claims: Record<string, unknown> = req.user ? req.user as unknown as Record<string, unknown> : {};
     try {
       const konto = await getAuth().getUser(uid(req));
       if (konto?.customClaims) {
