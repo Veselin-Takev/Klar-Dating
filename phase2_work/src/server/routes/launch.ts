@@ -25,7 +25,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const referralClaimLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 10,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Einladungsversuche. Bitte später erneut versuchen.' },
@@ -33,7 +33,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const activationWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Aktivierungsereignisse. Bitte später erneut versuchen.' },
@@ -41,7 +41,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const foundingClaimLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: 3,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Founding-Member-Versuche. Bitte später erneut versuchen.' },
@@ -50,7 +50,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const referralGenerationLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: 10,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Einladungslink-Anfragen. Bitte später erneut versuchen.' },
@@ -59,7 +59,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const launchSummaryReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Launch-Status-Anfragen. Bitte später erneut versuchen.' },
@@ -68,7 +68,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const activationSummaryReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Aktivierungsstatus-Anfragen. Bitte später erneut versuchen.' },
