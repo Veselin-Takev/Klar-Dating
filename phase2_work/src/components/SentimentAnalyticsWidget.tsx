@@ -3,17 +3,27 @@ import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp, MessageCircle } from "lucide-react";
 
+type Sentiment = "positive" | "neutral" | "negative";
+type SentimentRecord = { id?: string; sentiment: Sentiment; date: string };
+type ChartPoint = { name: string; value: number; sentiment: Sentiment; rawDate: Date };
+type TooltipProps = { active?: boolean; payload?: Array<{ payload: ChartPoint }>; label?: string };
+
 export function SentimentAnalyticsWidget() {
   const [uiError, setUiError] = useState<string | null>(null);
 
-  const [data, setData] = useState<unknown[]>([]);
+  const [data, setData] = useState<ChartPoint[]>([]);
 
   useEffect(() => {
     const saved = klarStorage.getItem("klar_chat_sentiment_history");
-    let history: unknown[] = [];
+    let history: SentimentRecord[] = [];
     if (saved) {
       try {
-        history = JSON.parse(saved);
+        const parsed: unknown = JSON.parse(saved);
+        history = Array.isArray(parsed) ? parsed.filter((item): item is SentimentRecord => {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+          const value = item as Record<string, unknown>;
+          return typeof value.date === 'string' && (value.sentiment === 'positive' || value.sentiment === 'neutral' || value.sentiment === 'negative');
+        }) : [];
       } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
 
@@ -48,7 +58,7 @@ export function SentimentAnalyticsWidget() {
     setData(formattedData);
   }, []);
 
-  const CustomTooltip = ({ active, payload, label }: unknown) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       const val = payload[0].payload.sentiment;
       let text = "Okay";
