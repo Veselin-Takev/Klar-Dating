@@ -5,7 +5,6 @@ import { getAuth } from 'firebase-admin/auth';
 import { getDb } from '../src/server/db';
 import { getAppBucket } from '../src/server/storage';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
-import { deletionDependencies, runAccountDeletion } from '../src/server/accountDeletion';
 
 describe('account erasure including archived messages and photos', () => {
   it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('deletes owned data without recreating an analytics identity', async () => {
