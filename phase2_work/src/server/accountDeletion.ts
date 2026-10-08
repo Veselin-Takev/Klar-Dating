@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { getDb } from './db';
+import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
 
@@ -21,7 +21,7 @@ async function ignoreMissing(action: () => Promise<unknown>) {
 }
 export async function requestAccountDeletion(uid: string, db: Firestore = getDb()) {
   const ref = db.doc(`account_deletions/${uid}`);
-  const result = await db.runTransaction(async tx => {
+  const result = await runObservedTransaction(db, 'accountDeletion.requestAccountDeletion', async tx => {
     const [existing, user, kyc] = await tx.getAll(ref, db.doc(`users/${uid}`), db.doc(`kyc_accounts/${uid}`));
     if (existing!.exists) return { requestId: existing!.data()!.requestId as string };
     const requestId = randomUUID();
@@ -80,7 +80,7 @@ export function deletionDependencies(): DeletionDependencies {
 /** Leased durable job survives process restarts and provider/database failures. */
 export async function runAccountDeletion(uid: string, deps = deletionDependencies()) {
   const ref = deps.db.doc(`account_deletions/${uid}`); const now = deps.now(); const lease = randomUUID();
-  const job = await deps.db.runTransaction(async tx => {
+  const job = await runObservedTransaction(deps.db, 'accountDeletion.acquireDeletionLease', async tx => {
     const snapshot = await tx.get(ref); const data = snapshot.data();
     const nextAttemptMs = typeof data?.nextAttemptAt?.toMillis === 'function'
       ? data.nextAttemptAt.toMillis()
@@ -99,17 +99,17 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     await deps.removeAuth(uid);
     // Old Storage ID tokens and requests already in flight can outlive revocation.
     // Final sweep only after the maximum token lifetime plus grace; never report completion early.
-    await deps.db.runTransaction(async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; if (job.phase === 'purge') tx.update(ref, { phase: 'final_sweep', nextAttemptAt: new Date(now + 61 * 60_000), leaseUntil: 0, lastError: null });
+    await runObservedTransaction(deps.db, 'accountDeletion.finalizeDeletion', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; if (job.phase === 'purge') tx.update(ref, { phase: 'final_sweep', nextAttemptAt: new Date(now + 61 * 60_000), leaseUntil: 0, lastError: null });
       else tx.set(ref, { requestId: job.requestId, status: 'completed', completedAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000), nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
   } catch {
     // No provider error bodies, email addresses, photos or raw identity data in logs/receipts.
     const attempts = typeof job.attempts === 'number' ? job.attempts : 0;
     const maxAttempts = 50;
     if (attempts >= maxAttempts) {
-      await deps.db.runTransaction(async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { status: 'manual_review', lastError: 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
+      await runObservedTransaction(deps.db, 'accountDeletion.markManualReview', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { status: 'manual_review', lastError: 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
     } else {
       const backoffMs = Math.min(60 * 60_000, 60_000 * 2 ** Math.min(attempts, 6));
-      await deps.db.runTransaction(async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { lastError: 'retry_required', nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }); });
+      await runObservedTransaction(deps.db, 'accountDeletion.scheduleRetry', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { lastError: 'retry_required', nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }); });
     }
   }
 }
