@@ -110,9 +110,12 @@ export class DurableFirestoreStore {
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, 'utf8');
         const parsed: unknown = JSON.parse(raw);
-        this.data = isRecord(parsed)
-          ? Object.fromEntries(Object.entries(parsed).filter(([, value]) => isRecord(value)))
-          : {};
+        const entries: Array<[string, DurableData]> = isRecord(parsed)
+          ? Object.entries(parsed)
+              .filter(([, value]) => isRecord(value))
+              .map(([key, value]) => [key, value as DurableData])
+          : [];
+        this.data = Object.fromEntries(entries);
       } else {
         this.data = {
           'system/ping': { ok: true, at: new Date().toISOString() },
