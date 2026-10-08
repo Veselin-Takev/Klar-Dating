@@ -218,6 +218,20 @@ export async function recordModerationDecision(
   });
 }
 
+export function submitDsaAppeal(
+  firestore: Firestore,
+  reportId: unknown,
+  appellantUid: unknown,
+  appealReasonRaw: unknown,
+  additionalEvidenceRaw?: unknown,
+  now?: Date
+): Promise<DsaAppeal>;
+export function submitDsaAppeal(
+  decisionId: string,
+  userId: unknown,
+  appealStatement?: unknown,
+  now?: Date
+): Promise<{ ok: true; message: string }>;
 export async function submitDsaAppeal(
   firestoreOrDecisionId: Firestore | string,
   reportIdOrUserId: unknown,
@@ -225,7 +239,7 @@ export async function submitDsaAppeal(
   appealReasonRaw?: unknown,
   additionalEvidenceRaw?: unknown,
   now: Date = new Date()
-): Promise<unknown> {
+): Promise<DsaAppeal | { ok: true; message: string }> {
   // Support both 3-arg simple call and 5-arg transactional call
   if (typeof firestoreOrDecisionId === 'string') {
     const decisionId = firestoreOrDecisionId;
