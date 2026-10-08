@@ -94,11 +94,11 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
   // Pseudonyme für Prüfungszwecke
   const auditId = `AUDIT-312K-${sha256(reqId).substring(0, 12).toUpperCase()}`;
   const originalRequestIdMasked = `${reqId.substring(0, 8)}-****-****-****-${reqId.substring(Math.max(0, reqId.length - 4))}`;
-  const userPseudonym = raw.uid
-    ? `USR-ANON-${sha256(raw.uid).substring(0, 10).toUpperCase()}`
+  const userPseudonym = typeof data.uid === 'string'
+    ? `USR-ANON-${sha256(data.uid).substring(0, 10).toUpperCase()}`
     : 'GAST-ANON';
 
-  const fingerprint = raw.fingerprint || sha256(`${reqId}-${receivedAtUTC}`);
+  const fingerprint = typeof data.fingerprint === 'string' ? data.fingerprint : sha256(`${reqId}-${receivedAtUTC}`);
   const integrityHash = `${fingerprint.substring(0, 24)}...`;
 
   return {
@@ -201,16 +201,12 @@ export async function getAnonymizedComplianceAuditLogs(
 
   try {
     const colRef = db.collection('contract_requests');
-    let snapshot: unknown;
-
-    if (options?.kind && options.kind !== 'all') {
-      snapshot = await colRef.where('kind', '==', options.kind).limit(maxRecords).get();
-    } else {
-      snapshot = await colRef.limit(maxRecords).get();
-    }
+    const snapshot = options?.kind && options.kind !== 'all'
+      ? await colRef.where('kind', '==', options.kind).limit(maxRecords).get()
+      : await colRef.limit(maxRecords).get();
 
     if (snapshot && !snapshot.empty) {
-      snapshot.forEach((docSnap: unknown) => {
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data) {
           records.push(anonymizeContractRequest(data, docSnap.id));
