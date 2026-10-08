@@ -52,10 +52,10 @@ if (!text.includes('node scripts/check-release-artifact-hygiene.mjs')) {
 if (!text.includes('node scripts/write-functions-release-identity.mjs')) {
   failures.push("Production release must generate an exact Firebase Functions build identity after the Functions build.");
 }
-if (!text.includes("provenance: mode=max")) {
+if (!text.includes("provenance: mode=max") && !text.includes("--provenance=mode=max")) {
   failures.push("Production container builds must enable maximum Buildx provenance attestation.");
 }
-if (!text.includes("sbom: true")) {
+if (!text.includes("sbom: true") && !text.includes("--sbom=true")) {
   failures.push("Production container builds must enable SBOM attestation.");
 }
 if (!text.includes('docker buildx imagetools inspect --raw "$image" > release/container-index.json') || !text.includes('node scripts/check-container-attestations.mjs release/container-index.json')) {
