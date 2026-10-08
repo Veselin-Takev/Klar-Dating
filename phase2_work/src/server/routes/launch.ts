@@ -147,7 +147,8 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const result = await deps.recordActivation(
-        deps.getFirestore(), uid, String(req.body?.eventName ?? ''), req.body?.eventId,
+        deps.getFirestore(), uid, String(req.body?.eventName ?? ''),
+        req.body?.eventId ?? (/^onboarding_v2_(started|completed)$/.test(String(req.body?.eventName ?? '')) ? `${String(req.body?.eventName)}_${uid}` : undefined),
         typeof req.body?.metadata === 'object' && req.body.metadata ? req.body.metadata : {},
       );
       return res.status(201).json(result);
@@ -181,7 +182,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         return { member: true, rank, already: false };
       });
       if (result.member && !result.already) {
-        await deps.recordActivation(db, uid, 'founding_500_claimed', undefined, { step: 'launch' });
+        await deps.recordActivation(db, uid, 'founding_500_claimed', `founding_500_claimed_${uid}`, { step: 'launch' });
       }
       return res.json(result);
     } catch (error) {
