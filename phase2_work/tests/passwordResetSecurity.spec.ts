@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import express from 'express';
+import type { AddressInfo } from 'node:net';
 import {
   handleForgotPassword, handleVerifyResetToken, handleResetPassword, validatePasswordStrength,
   checkAccountRateLimit, clearResetTokensForTesting, NEUTRAL_FORGOT_PASSWORD_MESSAGE,
@@ -63,7 +65,6 @@ describe('Password Reset Security & Account Enumeration Prevention Suite', () =>
     expect(existing.status).toBe(200);
     expect(absent.status).toBe(200);
     expect(await existing.json()).toEqual(await absent.json());
-    expect((await (await fetch('data:text/plain,')).text()).length).toBeGreaterThanOrEqual(0);
   });
 
   it('queues mail work for existing accounts but never exposes reset tokens', async () => {

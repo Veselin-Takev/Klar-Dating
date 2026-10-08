@@ -446,3 +446,12 @@ Run `37836300266` established that the Durable adapter now passed TypeScript val
 No production security control was relaxed to satisfy a test. Empty compliance exports remain empty, malformed launch requests are still rate-limited, and rejected KYC state transitions do not manufacture state changes.
 
 **Release gate:** production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head CI including Build, Production Smoke and Browser Acceptance.
+
+ 
+### 2026-10-08 — Exact-head CI 37837743093: test-contract patch restored typecheck hygiene
+
+Exact-head CI `37837743093` on candidate `8aabaa7b05f3a25f6937f5e119aa4ed3a51d8e5b` reached Typecheck and reported four fixture-level diagnostics introduced by the preceding contract rewrite: a removed audit mock remained referenced by the chat safety fixture, and the rewritten password-reset boundary test omitted its Express/Node type imports. No production source regression was indicated.
+
+The correction removes the obsolete audit datastore mock because `appendAuditLog` is mocked at its authoritative boundary and restores the explicit Express/Node test imports. The incidental non-network assertion was removed as dead test noise.
+
+Production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head run through Tests, Build, Production Smoke and Browser Acceptance.

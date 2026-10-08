@@ -13,9 +13,7 @@ vi.mock('../src/server/db', () => ({
   FieldValue: { serverTimestamp: () => 'server-time' },
   getDb: () => ({
     runTransaction: mocks.runTransaction,
-    collection: (name: string) => name === 'audit_logs'
-      ? { add: mocks.add }
-      : { doc: () => ({ collection: () => ({ doc: () => ({ id: 'message-id' }) }) }) },
+    collection: () => ({ doc: () => ({ collection: () => ({ doc: () => ({ id: 'message-id' }) }) }) }),
   }),
 }));
 vi.mock('../src/server/platform/launchPlatform', () => ({ recordActivation: vi.fn(async () => {}) }));
