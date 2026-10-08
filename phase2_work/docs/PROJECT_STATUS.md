@@ -187,3 +187,10 @@ Exact-head Enterprise CI run #166 (37814479762) passed all Enterprise static gat
 These issues are corrected on candidate head c47dea5dacc4832e354373226c88d43ee333c702. The correction preserves the IPv6-safe ipKeyGenerator policy and the cross-instance limiter regression coverage without weakening compiler strictness.
 
 No PASS is inferred yet: the new head has not produced an authoritative workflow result at documentation time. Production remains NO-GO / NOT CONFIRMED until the exact current head completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance, followed by independent operational/governance evidence.
+
+
+### 2026-10-08 — CI typecheck remediation: server tsconfig declaration boundary
+
+Exact-head Enterprise CI #170 (`37815141084`) passed dependency installation and all Enterprise static gates but failed at the separate server Typecheck project because `src/types/express.d.ts` was not part of `tsconfig.server.json`. This caused the global Express `Request` augmentation (`user`, `session`, `nutzer`, `istGast`) to disappear from the server compilation context.
+
+The server TypeScript project now explicitly includes `src/**/*.d.ts` on candidate `deb5722030a6974caf97ae592e29bf6229174036`. No casts or compiler relaxations were introduced. Production remains **NO-GO / NOT CONFIRMED** pending a successful exact-head dynamic gate sequence.
