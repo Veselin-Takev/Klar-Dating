@@ -1,0 +1,52 @@
+name: Klar Enterprise CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: klar-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: phase2_work
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.2'
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: |
+          bun ci
+          npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+      - name: Enterprise static gates
+        run: |
+          bun run check:enterprise
+          bun run check:release-workflow
+          bun run check:release-provenance
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Tests
+        run: bun run test:ci
+      - name: Build
+        run: bun run build
+      - name: Production smoke
+        run: bun run test:production
+      - name: Browser acceptance
+        run: bunx playwright test
