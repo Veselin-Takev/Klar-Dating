@@ -32,7 +32,7 @@ export function SafeDatePlannerWidget() {
   }, []);
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (activeTimer) {
       interval = setInterval(() => {
         const now = Date.now();
