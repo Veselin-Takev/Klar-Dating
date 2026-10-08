@@ -126,3 +126,9 @@ See [the dated audit](AUDIT_2026-09-27.md) for commit-specific CI results and [t
 - Provider integration for identity, audio persistence, music icebreaker caller and complete payment/offline journeys remain incomplete or unproven.
 
 Issue #27 remains open. Issues #35–38 have code mitigations in PR 51; cloud acceptance and merge status must be verified before closing them. Upstream Firebase issues are not resolved by application workarounds.
+
+### 2026-10-08 — Typecheck remediation round 2
+
+The subsequent exact-head-adjacent CI run `37802236002` reduced the earlier Firestore cascade to concrete server/UI contracts. Server-side release-relevant findings were repaired on commit `671e2798cf2b92d7c9516b698e1f6076ad3dfd5e`: consent input is narrowed to the canonical `Einwilligung` contract; launch density uses the canonical `LaunchCity` union; the AI route uses `GenerateContentParameters`; authenticated audit access is explicitly guarded; and smart-audit prompt parts are typed to permit only text or bounded inline image data.
+
+The branch remains **NO-GO**. CI run `37802545060` was running on an earlier head while these fixes were applied; only the next completed run for the new exact head is authoritative. Tests, build, production smoke and browser acceptance remain blocked until Typecheck passes.
