@@ -178,7 +178,7 @@ export class NotificationService {
           const history = parseSentimentHistory(historyRaw);
           if (history.length > 0) {
             // Sort to get the latest
-            const latest = history.sort((a: unknown, b: unknown) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            const latest = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
             if (latest.sentiment === 'negative') {
               title = "Coach-Tipp für zähe Chats 💡";
@@ -223,7 +223,7 @@ export class NotificationService {
       let lastEntryTime = 0;
 
       if (journals.length > 0) {
-        lastEntryTime = Math.max(...journals.map((j: unknown) => j.timestamp));
+        lastEntryTime = Math.max(...journals.map(j => j.timestamp));
       } else {
         // Fallback to app start time if never logged
         const initial = klarStorage.getItem('klar_app_install_time');
