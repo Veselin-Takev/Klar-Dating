@@ -66,7 +66,7 @@ export function DateDiaryStatsWidget() {
     const chartData = MOODS.map(m => ({
       name: m.label,
       emoji: m.emoji,
-      value: hasData ? aggregated[m.id as Mood] : 0,
+      value: hasData ? (aggregated[m.id as Mood] ?? 0) : 0,
       color: m.color
     }));
 
@@ -75,7 +75,8 @@ export function DateDiaryStatsWidget() {
 
   const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
-      const dataPoint = payload[0].payload;
+      const dataPoint = payload[0]?.payload;
+      if (!dataPoint) return null;
       return (
         <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-3 rounded-xl shadow-lg">
       {uiError && <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
@@ -84,7 +85,7 @@ export function DateDiaryStatsWidget() {
             <span>{dataPoint.emoji}</span> {dataPoint.name}
           </p>
           <p className="text-xs text-stone-500 mt-1">
-            {payload[0].value} Dates diesen Monat
+            {payload[0]?.value ?? 0} Dates diesen Monat
           </p>
         </div>
       );
