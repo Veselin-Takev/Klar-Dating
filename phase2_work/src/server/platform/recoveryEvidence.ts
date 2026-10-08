@@ -61,7 +61,7 @@ export function validateRecoveryDrillEvidence(value: unknown, expectedBuildSha: 
   if (Number.isFinite(backupMs) && Number.isFinite(restoreMs) && backupMs > restoreMs) errors.push('backupCreatedAt must not be after restoreStartedAt');
   if (Number.isFinite(restoreMs) && Number.isFinite(readyMs) && restoreMs > readyMs) errors.push('readyAt must not be before restoreStartedAt');
 
-  const targets = evidence.approvedTargets;
+  const targets = evidence.approvedTargets ?? { rpoMinutes: NaN, rtoMinutes: NaN, approvedBy: '', approvedAt: '' };
   if (!Number.isFinite(approvedRpoMinutes) || approvedRpoMinutes <= 0) errors.push('approvedRpoMinutes must be a positive trusted value');
   if (!Number.isFinite(approvedRtoMinutes) || approvedRtoMinutes <= 0) errors.push('approvedRtoMinutes must be a positive trusted value');
   if (!Number.isFinite(targets?.rpoMinutes) || Number(targets?.rpoMinutes) <= 0) errors.push('approvedTargets.rpoMinutes must be positive');
