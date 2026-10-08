@@ -312,3 +312,14 @@ Exact-head CI run `37822007081` passed dependency installation but failed in `ch
 Remediation: `check-dependency-locks.mjs` now resolves all paths from the repository root and treats `auto-version.yml` as an optional policy surface: when present it is validated, when absent it cannot become a false blocker. The active GitHub and GitLab dependency-install contracts remain explicitly verified. No dependency versions were changed and no lockfile regeneration was accepted as a substitute for a deterministic policy fix.
 
 Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head run reaches and passes all subsequent deterministic validation stages.
+
+
+### 2026-10-08 — Dependency lock preflight moved before installation
+
+The next exact-head CI failure was in `check-dependency-locks.mjs`: the gate required the active CI/release workflow to run the lock verification before the Functions dependency graph was installed. The repository's GitHub workflows previously satisfied the policy only indirectly through the later Enterprise static-gate bundle.
+
+Remediation: both repository-root `.github/workflows/ci.yml` and `.github/workflows/release.yml` now execute `node scripts/check-dependency-locks.mjs` as an explicit preflight step before `bun ci` or `npm ci --prefix functions`. The lock gate also remains part of the Enterprise static-gate bundle as defense-in-depth. No dependency versions or lockfile contents were changed.
+
+This makes the release/CI control order deterministic: validate lockfile policy first, then materialize dependency graphs, then execute security/type/test/build stages.
+
+Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head CI run through all remaining deterministic stages and independent operational release evidence.
