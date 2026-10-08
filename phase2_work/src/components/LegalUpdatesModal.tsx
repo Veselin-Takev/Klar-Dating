@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShieldCheck, ExternalLink, Scale, CheckCircle2, Sparkles, History } from 'lucide-react';
+import { X, ShieldCheck, ExternalLink, Scale, CheckCircle2, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useModalAccessibility } from '../lib/useModalAccessibility';
 
