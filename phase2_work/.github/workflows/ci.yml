@@ -65,6 +65,7 @@ jobs:
         run: |
           bun run check:enterprise
           bun run check:release-workflow
+          bun run check:release-provenance
           bun run check:functions
           bun audit --audit-level=high
           bun audit --omit=dev --audit-level=high
