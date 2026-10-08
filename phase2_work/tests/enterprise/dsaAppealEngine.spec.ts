@@ -1,13 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { Firestore } from 'firebase-admin/firestore';
 import {
   buildStatementOfReasons,
   recordModerationDecision,
   submitDsaAppeal,
   reviewDsaAppeal,
-  type MinimalFirestore,
-  type MinimalTransaction,
-  type MinimalDocSnapshot,
+  type DsaAppeal,
 } from '../../src/server/platform/dsaAppealEngine';
 
 interface InMemoryDb {
@@ -16,7 +15,7 @@ interface InMemoryDb {
 }
 
 function createMockFirestore(seedData?: { reports?: Record<string, any>; users?: Record<string, any> }): {
-  firestore: MinimalFirestore;
+  firestore: Firestore;
   db: InMemoryDb;
 } {
   const db: InMemoryDb = {
@@ -71,7 +70,7 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
     },
   };
 
-  return { firestore, db };
+  return { firestore: firestore as unknown as Firestore, db };
 }
 
 test('DSA Engine: buildStatementOfReasons enforces valid inputs and sets DSA Art. 20 guarantees', () => {
