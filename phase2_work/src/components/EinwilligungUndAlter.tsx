@@ -66,7 +66,10 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         },
         body: JSON.stringify({ geburtsdatum }),
       });
-      const daten = await res.json().catch(() => ({}));
+      const rawData: unknown = await res.json().catch(() => ({}));
+      const daten = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+        ? rawData as Record<string, unknown>
+        : {};
 
       if (!res.ok) {
         switch (daten?.code) {
@@ -134,7 +137,7 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
       });
       const daten = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setFehler(daten?.error ?? "Die Einwilligung konnte nicht gespeichert werden.");
+        setFehler(typeof daten.error === 'string' ? daten.error : "Die Einwilligung konnte nicht gespeichert werden.");
         return;
       }
       if (daten?.ok !== true || typeof daten?.evidenceId !== 'string' || !daten?.einwilligung) {
@@ -146,10 +149,10 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
       }
       onFertig?.();
     } catch (err: unknown) {
-      if (err instanceof TypeError || (err?.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed to fetch')))) {
+      if (err instanceof TypeError || (err instanceof Error && /fetch|network|Failed to fetch/i.test(err.message))) {
         setFehler(t("ageGate.errorOffline"));
       } else {
-        setFehler(err?.message || "Die Einwilligung konnte nicht gespeichert werden.");
+        setFehler(err instanceof Error ? err.message : "Die Einwilligung konnte nicht gespeichert werden.");
       }
     } finally {
       setLaeuft(false);
