@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [claims, setClaims] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const profileRequest = useRef(0);
-  const profileDataRef = useRef<unknown>(null);
+  const profileDataRef = useRef<UserProfileData | null>(null);
 
   const session = useMemo(() => {
     return loadAuthSession(user, profileData, claims, loading);
