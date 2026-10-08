@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `7c2b7bb378ec5988220be5dd44b69c24b91ec9d7`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `aa5613095712c1ca706ec079535a8c4e766ed1ad`.
 
 ## Current authoritative status
 
@@ -375,3 +375,11 @@ The release workflow remains tag-only and protected-environment gated. No produc
 A final source-contract review found that the release manifest render command still interpolated the repository owner through the shell environment even though the enterprise checker requires the owner to be bound through the GitHub repository context. Candidate commit `7c2b7bb378ec5988220be5dd44b69c24b91ec9d7` now passes `github.repository_owner` directly into the immutable `@sha256` image reference used for generated deployment manifests.
 
 This is a control-plane hardening change only. The release remains tag-only, protected-environment gated, digest-immutable and fail-closed; no production deployment or release approval is inferred from static checks. A fresh exact-head CI result is required after this change.
+
+### 2026-10-08 — Release artifact uploader path assertion corrected
+
+Exact-head release-gate review identified a false-negative in `check-release-workflow.mjs`: GitHub Actions steps with a `phase2_work` working-directory still execute action inputs such as `upload-artifact.path` relative to the workspace root. The authoritative release workflow therefore correctly uploads `phase2_work/release/`, while the checker incorrectly required the ambiguous `release/` path.
+
+Candidate commit `aa5613095712c1ca706ec079535a8c4e766ed1ad` aligns the static gate with the actual action path semantics. The release artifact path itself is unchanged. This preserves fail-closed packaging while removing a checker-only false positive.
+
+Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head Enterprise CI result through Typecheck, Tests, Build, Production Smoke and Browser Acceptance plus independent operational/governance evidence.
