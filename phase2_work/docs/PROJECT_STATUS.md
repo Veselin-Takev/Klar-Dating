@@ -323,3 +323,12 @@ Remediation: both repository-root `.github/workflows/ci.yml` and `.github/workfl
 This makes the release/CI control order deterministic: validate lockfile policy first, then materialize dependency graphs, then execute security/type/test/build stages.
 
 Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head CI run through all remaining deterministic stages and independent operational release evidence.
+
+
+### 2026-10-08 — GitHub Actions Node 20 runtime warning remediated
+
+The preceding CI logs emitted a GitHub Actions warning that the pinned `actions/setup-node` revision targeted the deprecated Node 20 action runtime. Current `actions/setup-node` v7 runs on Node 24 while remaining capable of installing the project's pinned application runtime (Node `22.23.3`). The three active repository-root workflows (`ci.yml`, `release.yml`, and `llm-evaluation.yml`) were therefore upgraded to the verified immutable `actions/setup-node@820762786026740c76f36085b0efc47a31fe5020` revision, with the enterprise toolchain-pin gate updated to require the same SHA.
+
+This changes only the GitHub Action's execution runtime; the Klar application/toolchain contract remains Node `22.23.3` and Bun `1.4.2`. GitHub's current setup-node documentation shows the action running under `node24`, and the current v7 line documents Node 24 usage. citeturn174539search6turn174539search1
+
+Production remains **NO-GO / NOT CONFIRMED** until the next exact-head CI run completes all deterministic gates and independent production approval/operational evidence is verified.
