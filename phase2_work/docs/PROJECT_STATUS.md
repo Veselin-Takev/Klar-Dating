@@ -236,3 +236,12 @@ Current candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head Ent
 ### 2026-10-08 — Release artifact assertion tightened
 
 The release-evidence workflow now explicitly asserts the generated `release/deploy/*.json` manifests before checksum verification. This closes a gate-to-artifact naming mismatch without changing deployment semantics.
+
+
+### 2026-10-08 — Signed container provenance attestation
+
+Supply-chain hardening was extended from Buildx provenance/OCI metadata to a GitHub-signed container provenance attestation. The production release workflow now grants only the required `id-token: write` and `attestations: write` permissions and invokes `actions/attest@v4` against the immutable `ghcr.io/<repository-owner>/klar-app@sha256:<digest>` subject. The release workflow gate requires this exact digest-bound attestation configuration before release evidence can pass.
+
+This follows current GitHub guidance that provenance generation must be accompanied by verification and that container attestations should be bound to the image name and immutable digest. citeturn0search2turn0search0
+
+Production remains **NO-GO / NOT CONFIRMED** until the exact candidate head passes dynamic CI and the independent production approval/operational evidence is present.
