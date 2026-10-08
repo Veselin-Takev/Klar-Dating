@@ -53,12 +53,13 @@ export async function acceptDeclaration(db: Firestore, input: Declaration, authe
       }
     }
     const receivedAt = new Date().toISOString(); const { t } = createRequestI18n(input.language);
-    const text = [t('contracts.receipt'), t(input.kind === 'cancel' ? 'contracts.cancelDeclaration' : 'contracts.withdrawDeclaration'),
-      `${t('contracts.reference')}: ${input.requestId}`, `${t('contracts.receivedAt')}: ${receivedAt}`,
-      `${t('contracts.name')}: ${input.name}`, `${t('contracts.email')}: ${input.email}`, `${t('contracts.contract')}: ${input.contract}`,
-      ...(input.kind === 'cancel' ? [`${t('contracts.cancellationType')}: ${t(input.cancellationType === 'ordinary' ? 'contracts.ordinary' : 'contracts.extraordinary')}`,
-        `${t('contracts.termination')}: ${formatContractEnd(input, context, t('contracts.earliest'))}`] : []),
-      `${t('contracts.reason')}: ${input.reason}`, t('contracts.receiptNote')].join('\n');
+    const translate = t as unknown as (key: string) => string;
+    const text = [translate('contracts.receipt'), translate(input.kind === 'cancel' ? 'contracts.cancelDeclaration' : 'contracts.withdrawDeclaration'),
+      `${translate('contracts.reference')}: ${input.requestId}`, `${translate('contracts.receivedAt')}: ${receivedAt}`,
+      `${translate('contracts.name')}: ${input.name}`, `${translate('contracts.email')}: ${input.email}`, `${translate('contracts.contract')}: ${input.contract}`,
+      ...(input.kind === 'cancel' ? [`${translate('contracts.cancellationType')}: ${translate(input.cancellationType === 'ordinary' ? 'contracts.ordinary' : 'contracts.extraordinary')}`,
+        `${translate('contracts.termination')}: ${formatContractEnd(input, context, translate('contracts.earliest'))}`] : []),
+      `${translate('contracts.reason')}: ${input.reason}`, translate('contracts.receiptNote')].join('\n');
     const receipt = { id: input.requestId, receivedAt, text };
     tx.create(ref, { ...input, uid: authenticatedUid ?? null, fingerprint, receipt,
       terminationAt: context?.terminationAt ?? null,
