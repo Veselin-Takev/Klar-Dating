@@ -43,7 +43,7 @@ export async function handleGateStatus(req: Request, res: Response): Promise<voi
   try {
     const chatId = requireString(req.query?.chatId, 'chatId', 128);
     const actor = actorId(req);
-    const firestore = getDb() as Firestore;
+    const firestore = getDb();
     const result = await firestore.runTransaction(async (tx: Transaction) => {
       const { data } = await readChatAccess(firestore, tx, chatId, actor);
       return gateResponse(data as GateData, actor);
