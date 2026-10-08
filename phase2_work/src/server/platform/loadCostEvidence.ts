@@ -77,7 +77,7 @@ export function validateProductionLoadCostEvidence(evidenceValue: unknown, loadV
     } catch { errors.push('billing evidence link is invalid: ' + link); }
   }
 
-  const budget = evidence.approvedBudget;
+  const budget = evidence.approvedBudget ?? { maxCostPer1000RequestsUsd: NaN, approvedBy: '', approvedAt: '', rationale: '' };
   if (!Number.isFinite(approvedMaxCostPer1000RequestsUsd) || approvedMaxCostPer1000RequestsUsd <= 0) errors.push('approvedMaxCostPer1000RequestsUsd must be a positive trusted value');
   if (!Number.isFinite(budget?.maxCostPer1000RequestsUsd) || Number(budget?.maxCostPer1000RequestsUsd) <= 0) {
     errors.push('approvedBudget.maxCostPer1000RequestsUsd must be a positive approved value');
