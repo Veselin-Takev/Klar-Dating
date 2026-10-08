@@ -179,6 +179,7 @@ export class NotificationService {
           if (history.length > 0) {
             // Sort to get the latest
             const latest = [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            if (!latest) return;
 
             if (latest.sentiment === 'negative') {
               title = "Coach-Tipp für zähe Chats 💡";
