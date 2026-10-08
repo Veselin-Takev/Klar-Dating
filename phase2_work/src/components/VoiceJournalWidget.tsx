@@ -42,7 +42,8 @@ export function VoiceJournalWidget({ onSave }: { onSave: (text: string, analysis
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
         let currentTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
+          const result = event.results[i]?.[0];
+          if (result && typeof result.transcript === 'string') currentTranscript += result.transcript;
         }
         setTranscript(currentTranscript);
       };
