@@ -2,6 +2,34 @@ import { askAICoach } from "../lib/api";
 import { fetchDatePlans } from "../lib/datePlans";
 import { getUserStorageItem, klarStorage } from "../lib/userScopedStorage";
 
+type SentimentRecord = { date: string; sentiment: 'negative' | 'neutral' | 'positive' };
+type JournalRecord = { timestamp: number };
+
+function parseSentimentHistory(raw: string): SentimentRecord[] {
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is SentimentRecord => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+      const record = item as Record<string, unknown>;
+      return typeof record.date === 'string' &&
+        (record.sentiment === 'negative' || record.sentiment === 'neutral' || record.sentiment === 'positive');
+    });
+  } catch { return []; }
+}
+
+function parseJournalEntries(raw: string): JournalRecord[] {
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is JournalRecord => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+      const record = item as Record<string, unknown>;
+      return typeof record.timestamp === 'number' && Number.isFinite(record.timestamp);
+    });
+  } catch { return []; }
+}
+
 export class NotificationService {
   static async requestPermission() {
     if ("Notification" in window) {
@@ -147,7 +175,7 @@ export class NotificationService {
         // Sentiment-based impulses
         const historyRaw = klarStorage.getItem('klar_chat_sentiment_history');
         if (historyRaw) {
-          const history = JSON.parse(historyRaw);
+          const history = parseSentimentHistory(historyRaw);
           if (history.length > 0) {
             // Sort to get the latest
             const latest = history.sort((a: unknown, b: unknown) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
@@ -191,7 +219,7 @@ export class NotificationService {
     static checkDiaryInactivity() {
     try {
       const journalsRaw = klarStorage.getItem("klar_dating_journals");
-      const journals = journalsRaw ? JSON.parse(journalsRaw) : [];
+      const journals = journalsRaw ? parseJournalEntries(journalsRaw) : [];
       let lastEntryTime = 0;
 
       if (journals.length > 0) {
