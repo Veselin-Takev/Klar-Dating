@@ -15,6 +15,12 @@ function signedEvent(type: string, object: Record<string, unknown>, id = 'evt_' 
 async function send(type: string, object: Record<string, unknown>) {
   const event = signedEvent(type, object); return handleStripeWebhook(event.body, event.signature);
 }
+async function userPlan(uid: string): Promise<unknown> {
+  const data = (await getDb().doc('users/' + uid).get()).data();
+  if (!data) throw new Error('Expected persisted user profile.');
+  return data.plan;
+}
+
 async function setup() {
   const uid = 'stripe-' + randomUUID(); const subscription = 'sub_' + randomUUID();
   docs.add('users/' + uid); docs.add('processed_stripe_events/subscription_' + subscription);
@@ -60,7 +66,7 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     const { uid, subscription, session } = await setup();
     await send('customer.subscription.deleted', { id: subscription });
     expect(await send('checkout.session.completed', session)).toMatchObject({ applied: false });
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('free');
+    expect(await userPlan(uid)).toBe('free');
   });
   it('persists a terminal cancellation tombstone even before local subscription linkage exists', async () => {
     const { uid, subscription, session } = await setup();
