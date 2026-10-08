@@ -30,14 +30,22 @@ export function VibeSummaryPDFGenerator() {
       const datingMoodsStr = klarStorage.getItem('klar_dating_moods');
       const dailyVibeStr = klarStorage.getItem('klar_daily_vibe');
 
-      let moods: unknown[] = [];
-      let lastVibe: unknown = null;
+      type MoodRecord = { mood: string };
+      type VibeRecord = { focusMessage?: string };
+      let moods: MoodRecord[] = [];
+      let lastVibe: VibeRecord | null = null;
 
       if (datingMoodsStr) {
-        try { moods = JSON.parse(datingMoodsStr); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+        try {
+          const parsed: unknown = JSON.parse(datingMoodsStr);
+          moods = Array.isArray(parsed) ? parsed.filter((item): item is MoodRecord => !!item && typeof item === 'object' && typeof (item as Record<string, unknown>).mood === 'string') : [];
+        } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
       }
       if (dailyVibeStr) {
-        try { lastVibe = JSON.parse(dailyVibeStr); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+        try {
+          const parsed: unknown = JSON.parse(dailyVibeStr);
+          lastVibe = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as VibeRecord : null;
+        } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
       }
 
       // Content
@@ -49,7 +57,7 @@ export function VibeSummaryPDFGenerator() {
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       if (moods.length > 0) {
-        const moodCounts = moods.reduce((acc: unknown, curr: unknown) => {
+        const moodCounts = moods.reduce<Record<string, number>>((acc, curr) => {
           acc[curr.mood] = (acc[curr.mood] || 0) + 1;
           return acc;
         }, {});
