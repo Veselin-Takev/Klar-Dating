@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `8d3b5d6291fbb4d6c342f5bd8c7da9b58c419fa0`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `f6a6a4fcef61db17ca7ff85a93f3b3c2c5aeb539`.
 
 ## Current authoritative status
 
@@ -361,3 +361,11 @@ Remediation: the gate now parses each `package-ecosystem` block deterministicall
 The same run confirmed the prior dependency-lock preflight is now passing. Typecheck, tests, build, smoke, and browser acceptance were again skipped because the static gate failed first.
 
 Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head run that reaches all dynamic stages.
+
+### 2026-10-08 — Exact-head CI 37826645943: release evidence contract made explicit
+
+Exact-head Enterprise CI run `37826645943` completed after the Dependabot remediation and passed the dependency-lock preflight plus the surrounding Enterprise controls. The only remaining static failure was `check-release-workflow.mjs`, which rejected workflow contracts that were semantically present but not explicitly asserted as concrete release artifacts.
+
+Remediation on candidate commit `f6a6a4fcef61db17ca7ff85a93f3b3c2c5aeb539`: the tag-to-digest deployment-manifest render now uses the repository-scoped `github.repository_owner` expression, and the workflow explicitly verifies the generated application build identity, Firebase Functions build identity, container tag-binding evidence, and CycloneDX SBOM identity before the checksum ledger and artifact upload. This keeps the gate fail-closed while making the release evidence chain directly auditable.
+
+The release workflow remains tag-only and protected-environment gated. No production deployment is inferred from artifact publication alone. Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head CI run completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance and the independent operational/governance evidence is verified.
