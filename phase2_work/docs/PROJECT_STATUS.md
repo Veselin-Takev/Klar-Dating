@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `aa5613095712c1ca706ec079535a8c4e766ed1ad`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `08e8c42227651bdb5bd2ae8cc668d82e7a416519`.
 
 ## Current authoritative status
 
@@ -383,3 +383,19 @@ Exact-head release-gate review identified a false-negative in `check-release-wor
 Candidate commit `aa5613095712c1ca706ec079535a8c4e766ed1ad` aligns the static gate with the actual action path semantics. The release artifact path itself is unchanged. This preserves fail-closed packaging while removing a checker-only false positive.
 
 Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head Enterprise CI result through Typecheck, Tests, Build, Production Smoke and Browser Acceptance plus independent operational/governance evidence.
+
+### 2026-10-08 — Exact-head CI 37827690046: strict test typecheck remediation
+
+Exact-head Enterprise CI run `37827690046` passed all Enterprise static gates and the dependency-lock preflight, then failed in the dedicated `tsconfig.tests.json` typecheck. The failure surface contained 58 diagnostics across accessibility, operational evidence validators, Firestore-backed platform tests, DSA appeals, offline queue tests, and several nullable Firestore/Auth snapshots.
+
+Remediation was performed without weakening strict TypeScript:
+- accessibility, load/cost, operational-control and recovery fixtures were migrated to their current validator schemas and trusted context arguments;
+- Firestore test doubles are now explicitly isolated at the test boundary instead of widening production function contracts;
+- the DSA appeal API now exposes overloads with a typed transactional `DsaAppeal` result, while its in-memory test transaction contract is declared locally;
+- the offline queue tests use the user-scoped `clearQueueForUser` API instead of a stale global clear helper;
+- Vitest's `vi` spy API and Firebase emulator response/profile snapshots are explicitly typed;
+- nullable Firestore snapshots in persistence tests are narrowed before field access.
+
+Candidate `08e8c42227651bdb5bd2ae8cc668d82e7a416519` contains the complete remediation lineage. Static source review found the previously reported stale calls removed. A fresh exact-head CI result remains required; no success is inferred from source inspection alone.
+
+Production remains **NO-GO / NOT CONFIRMED** pending green Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the same exact head, followed by independent operational/governance evidence.
