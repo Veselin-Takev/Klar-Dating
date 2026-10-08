@@ -132,7 +132,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         const inviter = await tx.get(inviterRef);
         if (userSnap.data()?.referredBy || inviter.data()?.referralCode !== code) return;
         tx.set(userRef, { referredBy: inviterRef.id, referralQualified: false }, { merge: true });
-        tx.set(db.collection('referral_events').doc(`${(inviterRef as unknown).id}_${uid}`), {
+        tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
           inviterUid: (inviterRef as unknown).id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
         }, { merge: true });
       });
@@ -168,7 +168,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const db = deps.getFirestore();
       const userRef = db.collection('users').doc(uid);
       const cohortRef = db.collection('system').doc('founding_500');
-      const result = await db.runTransaction(async (tx: unknown) => {
+      const result = await db.runTransaction(async (tx: Transaction) => {
         const userSnap = await tx.get(userRef);
         const cohortSnap = await tx.get(cohortRef);
         if (!userSnap.exists) throw new Error('User not found');
