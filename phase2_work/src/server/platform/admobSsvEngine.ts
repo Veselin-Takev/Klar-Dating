@@ -326,7 +326,7 @@ export async function handleAdMobCallback(req: Request, res: Response): Promise<
       key_id: req.query.key_id as string,
     };
 
-    const firestore = getFirestore();
+    const firestore = getDb();
     const result = await processAdMobReward(firestore, params, rawQueryString);
 
     if (!result.ok) {
