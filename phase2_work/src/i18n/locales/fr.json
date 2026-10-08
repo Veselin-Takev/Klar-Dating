@@ -348,5 +348,29 @@
         "source": "Commission européenne"
       }
     }
+  },
+  "dashboardOnboarding": {
+    "steps": [
+      {
+        "title": "Bienvenue sur Klar",
+        "content": "Klar favorise les conversations et les rencontres réelles grâce à des suggestions pertinentes."
+      },
+      {
+        "title": "Le principe Klar",
+        "content": "La conversation d’abord, sans pression de sélection. Des intentions claires, la vérification et une interface calme vous accompagnent."
+      },
+      {
+        "title": "Votre départ local",
+        "content": "Choisissez votre ville pour que Klar puisse vous proposer des personnes pertinentes à proximité."
+      },
+      {
+        "title": "Du contact au rendez-vous",
+        "content": "Points communs, idées de conversation et préparation du rendez-vous accompagnent le parcours, sans logique de catalogue."
+      }
+    ],
+    "progress": "Étape {{step}} sur {{total}}",
+    "skip": "Passer l’introduction",
+    "next": "Suivant",
+    "start": "Commencer"
   }
 }
