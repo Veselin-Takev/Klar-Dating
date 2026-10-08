@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const failures = [];
 const expectedNode = '22.23.3';
 const workflows = fs.readdirSync('.github/workflows')
-  .filter(name => /\\.ya?ml$/.test(name))
+  .filter(name => /\.ya?ml$/.test(name))
   .map(name => `.github/workflows/${name}`)
   .sort();
 if (workflows.length === 0) {
