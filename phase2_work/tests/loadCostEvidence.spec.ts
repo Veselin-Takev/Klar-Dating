@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateProductionLoadCostEvidence } from '../src/server/platform/loadCostEvidence';
 
+const sha = 'a'.repeat(40);
 function validate(evidenceValue: unknown, loadValue: unknown, expectedBuildSha = sha) {
   return validateProductionLoadCostEvidence(
     evidenceValue,
@@ -14,7 +15,6 @@ function validate(evidenceValue: unknown, loadValue: unknown, expectedBuildSha =
   );
 }
 
-const sha = 'a'.repeat(40);
 function evidence() {
   return {
     schemaVersion: 2, buildSha: sha, environment: 'production', measuredAt: '2026-09-29T19:00:00Z',
@@ -25,7 +25,7 @@ function evidence() {
   };
 }
 function load() {
-  return { schemaVersion: 1, generatedAt: '2026-09-29T19:00:00Z', buildSha: sha, measurements: { total: 10000 }, verdict: { passed: true } };
+  return { schemaVersion: 2, generatedAt: '2026-09-29T19:00:00Z', buildSha: sha, measurements: { total: 10000 }, verdict: { passed: true } };
 }
 
 describe('production load/cost evidence validation', () => {
