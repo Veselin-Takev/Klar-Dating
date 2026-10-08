@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { MessageCircle, Sparkles, Send } from "lucide-react";
 import { Link } from "react-router";
 
-export function MatchIcebreakersWidget({ profiles = [] }: { profiles?: Array<{ id: string; name: string; age: number; interests: string[] }> }) {
+export function MatchIcebreakersWidget({ profiles = [] }: { profiles?: Array<{ id: string; name: string; age: number; interests: string[]; photoUrl?: string }> }) {
   const [icebreakers, setIcebreakers] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -42,7 +42,7 @@ export function MatchIcebreakersWidget({ profiles = [] }: { profiles?: Array<{ i
         {verbindungen.map(profile => (
           <div key={profile.id} className="bg-stone-50 dark:bg-stone-800/50 p-4 rounded-2xl border border-stone-100 dark:border-stone-700">
             <div className="flex items-center gap-3 mb-3">
-              <img src={(profile as unknown).photoUrl || ""} alt={profile.name} className="w-10 h-10 rounded-full object-cover" />
+              <img src={profile.photoUrl || ""} alt={profile.name} className="w-10 h-10 rounded-full object-cover" />
               <div className="flex-1">
                 <span className="font-medium text-sm text-stone-900 dark:text-stone-100">{profile.name}</span>
                 <span className="text-xs text-stone-500 block">Neues Verbindung</span>
