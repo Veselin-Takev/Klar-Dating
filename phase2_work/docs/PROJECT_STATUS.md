@@ -438,3 +438,11 @@ Production remains **NO-GO / NOT CONFIRMED**. The next exact-head CI run must st
 The follow-up remediation extends the Durable boundary hardening to its adjacent security contracts: consent evidence is backend-only, KYC start checks recent authentication before its distributed limiter, and Enterprise test fixtures now model the mandatory transactional rate-limit surface. Firestore rule tests explicitly seed the authoritative adult gate and complete guest schema.
 
 Production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head dynamic CI result.
+ 
+### 2026-10-08 — Exact-head CI 37836300266 remediation wave: 40 test contracts
+
+Run `37836300266` established that the Durable adapter now passed TypeScript validation, leaving 40 deterministic test failures. The remediation aligns test boundaries with the hardened runtime: UID/session scoped storage, pseudonymized audit records, trusted cost ceilings, structured AI output, immutable release-image owner binding, Firebase OOB password-reset ownership, server-side retirement of legacy reset endpoints, current Stripe event monotonicity, and runtime i18next normalization.
+
+No production security control was relaxed to satisfy a test. Empty compliance exports remain empty, malformed launch requests are still rate-limited, and rejected KYC state transitions do not manufacture state changes.
+
+**Release gate:** production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head CI including Build, Production Smoke and Browser Acceptance.

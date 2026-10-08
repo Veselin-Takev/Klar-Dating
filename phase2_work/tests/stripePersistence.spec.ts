@@ -9,7 +9,7 @@ const secret = 'whsec_emulator_test_only';
 function signedEvent(type: string, object: Record<string, unknown>, id = 'evt_' + randomUUID()) {
   vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_emulator'); vi.stubEnv('STRIPE_WEBHOOK_SECRET', secret);
   docs.add('processed_stripe_events/' + id);
-  const payload = JSON.stringify({ id, object: 'event', type, data: { object } });
+  const payload = JSON.stringify({ id, object: 'event', type, created: Math.floor(Date.now() / 1000), data: { object } });
   return { body: Buffer.from(payload), signature: getStripe().webhooks.generateTestHeaderString({ payload, secret }) };
 }
 async function send(type: string, object: Record<string, unknown>) {

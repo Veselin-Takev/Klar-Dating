@@ -12,7 +12,7 @@ describe('request-scoped translation instances', () => {
 
   it('uses the German catalog as the single runtime fallback', () => {
     const instance = createRequestI18n('en');
-    expect(instance.options.fallbackLng).toBe('de');
+    expect(instance.options.fallbackLng).toEqual(['de']);
     expect(instance.t('settings.language')).toBe('Language');
   });
 
