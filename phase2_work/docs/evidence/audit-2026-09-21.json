@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-21",
+  "repository": "veselin8606-source/Klar-App",
+  "pullRequest": 13,
+  "testedCodeCommit": "f172abfc1eb4014349a6eb0c5317fce4d108d5a2",
+  "enterprise": {
+    "run": 35630837390,
+    "job": 106436351677,
+    "conclusion": "success",
+    "url": "https://github.com/veselin8606-source/Klar-App/actions/runs/35630837390",
+    "typecheck": "passed",
+    "vitest": {
+      "files": 64,
+      "tests": 474,
+      "failed": 0
+    },
+    "staticChecks": "passed",
+    "productionBuild": "passed",
+    "containerBuild": "passed"
+  },
+  "browser": {
+    "run": 35630837241,
+    "job": 106436351810,
+    "url": "https://github.com/veselin8606-source/Klar-App/actions/runs/35630837241",
+    "project": "chromium",
+    "passed": 10,
+    "failed": 0
+  },
+  "dependencies": {
+    "auditAtTestedCommit": {
+      "full": {
+        "moderate": 7,
+        "high": 0,
+        "critical": 0
+      },
+      "production": {
+        "moderate": 2,
+        "high": 0,
+        "critical": 0
+      }
+    },
+    "remainingModerateReview": "open",
+    "forcedMajorOverrides": false
+  },
+  "readiness": {
+    "fullFeatureCoverage": false,
+    "manualWcagEvaluation": false,
+    "productionControlsVerified": false,
+    "loadAndCostBaseline": false,
+    "recoveryDrill": false,
+    "independentReviewRequired": true,
+    "broadProductionReleaseApproved": false
+  }
+}

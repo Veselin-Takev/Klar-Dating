@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "owner": "Frontend maintainers",
+  "reviewedAt": "2026-09-24",
+  "rationale": "Regression ceilings approximately 5-8 percent above measured build output including GDPR consent telemetry, multi-provider verification, and auth recovery flows.",
+  "limits": {
+    "initialJsGzipBytes": 520000,
+    "initialCssGzipBytes": 29000,
+    "totalJsGzipBytes": 1380000,
+    "largestJsGzipBytes": 240000,
+    "largestJsBytes": 960000
+  }
+}

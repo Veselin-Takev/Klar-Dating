@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-07",
+  "master": "v149",
+  "features": {
+    "consent_center": "PASS",
+    "privacy_screen_lock": "PASS",
+    "date_planner_calendar": "PASS",
+    "date_prep_checklist": "PASS"
+  },
+  "related_gates": {
+    "legal_updates": "PASS",
+    "language_switcher": "PASS",
+    "design_system": "PASS",
+    "chat_translation": "PASS",
+    "contrast": "PASS"
+  },
+  "full_release_status": "BLOCKED_ENVIRONMENT",
+  "production_promotion": false
+}

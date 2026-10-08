@@ -1,0 +1,226 @@
+--- a/server.ts
++++ b/server.ts
+@@ -91,28 +91,23 @@
+   const authTag = cipher.getAuthTag().toString("hex");
+   return iv.toString("hex") + ":" + authTag + ":" + encrypted;
+ }
+ import { FieldValue } from './src/server/db';
+ import { getDb as getFirestore } from './src/server/db';
+-import { handleBlock, handleDeleteAccount, handleReport } from './src/server/trustAndSafety';
++import { handleBlock, handleReport } from './src/server/trustAndSafety';
+ import { assertSelf, requireRole, currentUserId } from './src/server/authorization';
+ import { handleSendMessage } from './src/server/messages';
+ import { getLocalDensity, getRecommendations, normalizeLaunchCity, recordActivation, referralCodeFor, toPublicProfile } from './src/server/platform/launchPlatform';
+ // SEC-03: Die Pruefung der Bild-Herkunft liegt in pure.ts — abhaengigkeitsfrei
+ // und damit ohne Firebase und ohne Express nachrechenbar.
+ // `contactDay` stand hier bis zum 14.08.2026 mit im Import — gebraucht wurde
+ // es nur von /api/admob-ssv. Mit dem Endpunkt faellt es weg; `noUnusedLocals`
+ // haette `npm run verify` sonst mit TS6133 abgebrochen.
+ import { pruefeBildUrl, zweckErlaubt, BILD_MAX_BYTES, BILD_TIMEOUT_MS } from './src/server/pure';
+ // DSG-02 und DSG-04: Alter, Einwilligung, Datenauskunft.
+-import {
+-  handleAlter,
+-  handleEinwilligung,
+-  handleEinwilligungLesen,
+-  handleEinwilligungWiderruf,
+-  handleExport,
+-} from './src/server/datenschutz';
++import { createHealthRouter } from './src/server/routes/health';
++import { createAccountRouter } from './src/server/routes/account';
+ import {
+   handleCancel,
+   handleContact as handleKontakt,
+   handleContactUndo,
+   handleGateAnswer,
+   handleGateStatus,
+   handleQuota,
+   handleSubscriptionStatus,
+   handleVerificationChallenge,
+   handleVerificationDecide,
+   handleVerificationStatus,
+   handleVerificationSubmit,
+   handleWithdraw,
+ } from './src/server/klarCore';
+@@ -484,52 +479,6 @@
+       timestamp: Date.now()
+     });
+     // Bounded memory: metrics are operational signals, not request history.
+     if (healthStats.apiLatencies.length > 1000) healthStats.apiLatencies.shift();
+   });
+ 
+-  app.get('/api/system-health', requireAuth, nurModeration, (_req, res) => {
+-    // ── BEFUND 14.08.2026 ────────────────────────────────────────────
+-    // Dieser Endpunkt lieferte SIEBEN Kennzahlen, von denen sechs erfunden
+-    // waren: crashFreeRate 99.8, startupTimeMs 1240 („Simulated"),
+-    // susScore 82, cacheHitRate 74 („mock value"), dazu zwei fest
+-    // eingebaute Reihen (susHistory, latencyHeatmap) und eine
+-    // ausgewuerfelte (latencyHistory).
+-    //
+-    // Selbst die eine echte Zahl hatte einen erfundenen Rueckfallwert:
+-    // `: 145; // Default if no data`. Ohne Messungen behauptete der
+-    // Endpunkt also 145 ms — derselbe Fehler wie `|| '2'` im geloeschten
+-    // Gespraechs-Diagramm (ffad351).
+-    //
+-    // Er ist nur fuer Moderatoren erreichbar und hat KEINEN Aufrufer im
+-    // Client. Trotzdem nicht geloescht: Die Latenzmessung darunter ist
+-    // echt, und ein Gesundheitsendpunkt ist an sich richtig. Entfernt sind
+-    // die Erfindungen; was fehlt, wird benannt statt gefuellt.
+-    //
+-    // WIEDERVORLAGE: Echte Werte fuer Absturzrate, Startzeit und
+-    //   Zwischenspeicher brauchen eine Erhebung — Sentry liefert die erste,
+-    //   die zweite gehoert an den Serverstart, die dritte an den
+-    //   Zwischenspeicher selbst. Erst erheben, dann anzeigen.
+-    const recentApi = healthStats.apiLatencies.slice(-100);
+-    const avgApi = recentApi.length > 0
+-      ? Math.round(recentApi.reduce((acc, curr) => acc + curr.duration, 0) / recentApi.length)
+-      : null;
+-
+-    res.json({
+-      // `null` heisst „noch nichts gemessen" und ist etwas anderes als 0.
+-      apiAvgResponseTimeMs: avgApi,
+-      // Sagt immer, worauf die Zahl beruht. Ein Mittel aus drei Aufrufen
+-      // ist etwas anderes als eines aus hundert.
+-      apiMessungen: recentApi.length,
+-      // GRENZE, die dazugehoert: Die Messwerte liegen im Arbeitsspeicher
+-      // DIESER Instanz und umfassen die letzten 100 Aufrufe. Ein Neustart
+-      // setzt sie zurueck.
+-      nichtVerfuegbar: [
+-        'crashFreeRate — es gibt keine Absturzerfassung',
+-        'startupTimeMs — die Startzeit wird nicht gemessen',
+-        'susScore, susHistory — es liegen keine erhobenen SUS-Antworten vor',
+-        'latencyHistory, latencyHeatmap — es gibt keine Messwerte ueber die letzten 100 Aufrufe hinaus',
+-        'cacheHitRate — es gibt keine Zwischenspeicher-Statistik',
+-      ],
+-    });
+-  });
+-
+ 
+   // ── SEC-10 ──────────────────────────────────────────────────────────
+   // BEFUND: `trust proxy` fest auf 1. Stimmt die Zahl nicht mit der echten
+   // Anzahl vorgeschalteter Proxys ueberein, laesst sich die Absender-IP
+   // ueber einen selbst gesetzten X-Forwarded-For-Kopf faelschen — und damit
+   // das IP-Limit beliebig oft zuruecksetzen.
+@@ -597,53 +546,21 @@
+   // Version, keine Zaehlwerte. Sie ist ohne Anmeldung erreichbar, und
+   // alles darin waere oeffentlich.
+-  app.get("/api/health", (_req, res) => {
+-    res.json({ ok: true });
+-  });
+-
+-  app.get("/api/ready", async (_req, res) => {
+-    try {
+-      await getFirestore().collection("system").doc("readiness").get();
+-      res.json({ ok: true });
+-    } catch {
+-      res.status(503).json({ ok: false });
+-    }
+-  });
+-
+-  app.get("/api/metrics", (req, res) => {
+-    const configuredToken = process.env.METRICS_TOKEN;
+-    const suppliedToken = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+-    if (!configuredToken || suppliedToken !== configuredToken) {
+-      return res.status(404).end();
+-    }
+-
+-    const durations = healthStats.apiLatencies.map(entry => entry.duration).sort((a, b) => a - b);
+-    const percentile = (p: number) =>
+-      durations.length === 0 ? 0 : durations[Math.min(durations.length - 1, Math.ceil(durations.length * p) - 1)] || 0;
+-    const lines = [
+-      "# HELP klar_uptime_seconds Process uptime in seconds.",
+-      "# TYPE klar_uptime_seconds gauge",
+-      `klar_uptime_seconds ${Math.floor((Date.now() - healthStats.startedAt) / 1000)}`,
+-      "# HELP klar_http_requests_total Completed API requests.",
+-      "# TYPE klar_http_requests_total counter",
+-      `klar_http_requests_total ${healthStats.apiRequests}`,
+-      "# HELP klar_http_errors_total Completed API requests with a 5xx response.",
+-      "# TYPE klar_http_errors_total counter",
+-      `klar_http_errors_total ${healthStats.apiErrors}`,
+-      "# HELP klar_http_latency_ms Recent API latency percentiles.",
+-      "# TYPE klar_http_latency_ms gauge",
+-      `klar_http_latency_ms{quantile="0.50"} ${percentile(0.5)}`,
+-      `klar_http_latency_ms{quantile="0.95"} ${percentile(0.95)}`,
+-      `klar_http_latency_ms{quantile="0.99"} ${percentile(0.99)}`,
+-      ...[...healthStats.statusCodes.entries()].map(([code, count]) =>
+-        `klar_http_responses_total{status="${code}"} ${count}`
+-      ),
+-    ];
+-    res.type("text/plain; version=0.0.4").send(lines.join("\n") + "\n");
+-  });
++  // Health routes (extracted move-only — see src/server/routes/health.ts)
++  app.use(
++    '/api',
++    createHealthRouter({
++      getFirestore,
++      healthStats,
++      requireAuth,
++      nurModeration,
++    }),
++  );
++
+ 
+   // ── GEGENPRÜFUNG 09.08.2026 ─────────────────────────────────────────────
+   // BEFUND: Die Altersprüfung und die Einwilligung wirkten AUSSCHLIESSLICH
+   // im Browser. `isAdult` kam in keiner einzigen `allow`-Bedingung der
+   // Firestore-Regeln vor und in keiner Prüfung auf dem Server. Ein Konto
+@@ -883,16 +800,11 @@
+   app.post("/api/report", handleReport);
+   app.post("/api/auth/send-verification", express.json(), handleSendVerification);
+   app.post("/api/block", handleBlock);
+ 
+   // P0-6: Loeschung mit Kaskade, serverseitig (Art. 17 DSGVO).
+-  app.post("/api/account/delete", handleDeleteAccount);
+ 
+   // ── DSG-02 / DSG-04 ─────────────────────────────────────────────────────
+   // Alter, Einwilligung, Auskunft. `isAdult` und `einwilligung` werden
+   // ausschliesslich hier geschrieben — der Client kann beides nach den
+   // Firestore-Regeln nicht setzen.
+-  app.post("/api/account/alter", handleAlter);
+-  app.get("/api/account/export", handleExport);
+-  app.get("/api/einwilligung", handleEinwilligungLesen);
+-  app.post("/api/einwilligung", handleEinwilligung);
+ 
+   app.get("/api/legal-updates", (_req, res) => {
+     res.json([
+@@ -907,18 +819,14 @@
+       { id: "privacy-v3", title: "Aktualisierte Datenschutzrichtlinie", date: "2024-05-20", summary: "Klarere Informationen zur Datenverarbeitung und deinen Rechten." }
+     ]);
+   });
+ 
+-  app.get("/api/account/status", async (req, res) => {
+-    try {
+-      const uid = currentUserId(req);
+-      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+-
+-      const userDoc = await getFirestore().collection("users").doc(uid).get();
+-      const data = userDoc.data();
+-      res.json({ ok: true, isAdult: data?.isAdult === true, einwilligung: data?.einwilligung ?? null });
+-    } catch {
+-      res.status(503).json({ error: "Status derzeit nicht verfügbar. Bitte erneut versuchen." });
+-    }
+-  });
++  // Account / consent routes (extracted move-only — see src/server/routes/account.ts)
++  app.use(
++    '/api',
++    createAccountRouter({
++      getFirestore,
++      currentUserId,
++    }),
++  );
+ 
+   // Launch/activation platform: only aggregate local density is exposed.
+   app.get("/api/launch/summary", async (req, res) => {
+     try {
+       const uid = currentUserId(req);
+@@ -1168,11 +1076,10 @@
+     } catch (e: any) {
+       console.error('Promo error:', e);
+       res.status(500).json({ error: "Fehler beim Einlösen" });
+     }
+   });
+-  app.post("/api/einwilligung/widerruf", handleEinwilligungWiderruf);
+ 
+   // ═══════════════════════════════════════════════════════════════════════
+   // Klar — Kernmechanik (P1)
+   // Begriff: gezaehlt werden KONTAKTE, also erste Nachrichten an neue
+   // Menschen. Nicht Swipes, nicht Nachrichten im laufenden Gespraech.

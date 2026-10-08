@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-27",
+  "repository": "veselin8606-source/Klar-App",
+  "pullRequest": 51,
+  "baselineMain": "a2a37cda1431000101a6e56a25f174e2ff55d065",
+  "verifiedSnapshot": {
+    "commit": "9ba1a87d526e4d21b7bde2a97aa5a1c1d328954a",
+    "enterpriseRun": 36320935207,
+    "enterpriseConclusion": "success",
+    "unitAndIntegrationTests": 547,
+    "vitestFiles": 80,
+    "browserRun": 36320935300,
+    "browserConclusion": "success",
+    "browserTests": 14,
+    "browserRetries": 0,
+    "documentationRun": 36320935276,
+    "documentationConclusion": "success",
+    "node": "22.23.0",
+    "java": "21",
+    "firebaseTools": "15.31.0",
+    "productionSmoke": "passed",
+    "containerBuild": "passed",
+    "bundleBudget": "passed",
+    "dependencyFindings": {
+      "rootTotalModerate": 5,
+      "rootProductionModerate": 2,
+      "functionsProductionModerate": 2,
+      "high": 0,
+      "critical": 0
+    }
+  },
+  "inventory": {
+    "modules": 344,
+    "uiComponents": 198,
+    "apiRoutes": 78,
+    "testFilesIncludingHelpers": 87,
+    "modulesWithDirectTestImports": 71
+  },
+  "inventoryWarning": "Static inventory and direct imports are not runtime test coverage or proof of correctness.",
+  "successorChanges": "Documentation, Word report, and a follow-up fix renaming the Functions parameter to KLAR_STORAGE_BUCKET with Firebase CLI parameter-name validation. The added gate reproduces rejection of the old reserved prefix and passes with the corrected name. See PR checks for exact successor revision results.",
+  "openIssues": [
+    27,
+    35,
+    36,
+    37,
+    38
+  ],
+  "releaseGates": [
+    "Independent review and protected main",
+    "Legacy public-profile migration",
+    "Cloud IAM, named database, bucket and Frankfurt deployment evidence",
+    "Retention capacity and alerting",
+    "Distributed analytics limits and AI budgets",
+    "Manual WCAG evaluation",
+    "Real provider and payment journeys",
+    "Backup restore and rollback drill",
+    "Load and cost baseline",
+    "Legal retention and evidence approval"
+  ],
+  "deploymentPerformed": false,
+  "enterpriseCertification": false,
+  "completeDynamicFeatureCoverage": false,
+  "dependencyRemediation": {
+    "commit": "9ba1a87d526e4d21b7bde2a97aa5a1c1d328954a",
+    "firebaseTools": "15.31.0",
+    "functionsFirebaseAdmin": "14.5.0",
+    "localRootModerate": 5,
+    "localFunctionsProductionModerate": 2,
+    "high": 0,
+    "critical": 0,
+    "ciStatusAtReportCreation": "success"
+  },
+  "previousVerifiedSnapshot": {
+    "commit": "98ca107975d215098aa4dd306a47345320500367",
+    "enterpriseRun": 36320315503,
+    "enterpriseConclusion": "success",
+    "unitAndIntegrationTests": 547,
+    "vitestFiles": 80,
+    "browserRun": 36320315517,
+    "browserConclusion": "success",
+    "browserTests": 14,
+    "browserRetries": 0,
+    "documentationRun": 36320315506,
+    "documentationConclusion": "success",
+    "node": "22.23.0",
+    "java": "21",
+    "firebaseTools": "15.30.2",
+    "productionSmoke": "passed",
+    "containerBuild": "passed",
+    "bundleBudget": "passed",
+    "dependencyFindings": {
+      "rootTotalModerate": 7,
+      "rootProductionModerate": 2,
+      "functionsProductionModerate": 6,
+      "high": 0,
+      "critical": 0
+    }
+  }
+}

@@ -1,0 +1,11 @@
+import { readFileSync } from 'node:fs';
+const source = readFileSync('src/server/verification/diditKyc.ts', 'utf8');
+const statusRoute = source.slice(source.indexOf("router.get('/status'"));
+if (!source.includes('const kycStatusReadLimiter = rateLimit({')) throw new Error('KYC status route must define an endpoint-specific read limiter');
+if (!source.includes('windowMs: 60 * 1000')) throw new Error('KYC status read limiter must use a one-minute window');
+if (!source.includes('limit: 30')) throw new Error('KYC status read limiter must allow at most 30 requests per minute');
+if (!statusRoute.includes("router.get('/status', kycStatusReadLimiter")) throw new Error('KYC status route must apply the endpoint-specific read limiter');
+if (!statusRoute.includes("status: 'unavailable'")) throw new Error('KYC status route must expose unavailable state on storage/config failure');
+if (!statusRoute.includes('kyc_status_unavailable')) throw new Error('KYC storage failures need an explicit machine-readable error code');
+if (/catch \{\s*return res\.json\(\{ status: 'not_started'/.test(statusRoute)) throw new Error('KYC storage failure must never be reported as not_started');
+console.log('PASS: KYC status is fail-closed and rate-limited.');

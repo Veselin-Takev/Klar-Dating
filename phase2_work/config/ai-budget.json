@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "currency": "USD",
+  "period": "monthly",
+  "defaults": {
+    "softCapPercent": 80,
+    "hardCapPercent": 100,
+    "maxRequestsPerMinute": 60,
+    "maxInputTokensPerRequest": 2250,
+    "maxOutputTokensPerRequest": 750
+  },
+  "tenants": {
+    "default": {
+      "monthlyBudget": 35000,
+      "requestsPerMinute": 60
+    }
+  },
+  "workflows": {
+    "default": {
+      "monthlyBudget": 10000,
+      "requestsPerMinute": 30
+    },
+    "high-risk": {
+      "monthlyBudget": 5000,
+      "requestsPerMinute": 10,
+      "humanApprovalRequired": true
+    }
+  }
+}

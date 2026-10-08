@@ -1,0 +1,67 @@
+{
+    "title": "Recording 16.9.2026 at 01:17:57",
+    "steps": [
+        {
+            "type": "setViewport",
+            "width": 1451,
+            "height": 1271,
+            "deviceScaleFactor": 1,
+            "isMobile": false,
+            "hasTouch": false,
+            "isLandscape": false
+        },
+        {
+            "type": "navigate",
+            "url": "https://redesigned-bassoon-9666q66vwr5gc9rj9-3000.app.github.dev/",
+            "assertedEvents": [
+                {
+                    "type": "navigation",
+                    "url": "https://redesigned-bassoon-9666q66vwr5gc9rj9-3000.app.github.dev/",
+                    "title": "Klar — Echtes Dating ohne Swipe-Stress"
+                }
+            ]
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                ["#ki"],
+                ["aria/KI-Auswertung"]
+            ],
+            "offsetY": 10.5,
+            "offsetX": 10.5
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                ["#fehler"],
+                ["aria/Fehlerberichte"]
+            ],
+            "offsetY": 4.5,
+            "offsetX": 9.5
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                ["text/Nichts davon"],
+                ["aria/Nichts davon"],
+                ["button:has-text('Nichts davon')"]
+            ],
+            "offsetY": 10,
+            "offsetX": 10
+        },
+        {
+            "type": "click",
+            "target": "main",
+            "selectors": [
+                ["text/Auswahl speichern"],
+                ["aria/Auswahl speichern"],
+                ["button:has-text('Auswahl speichern')"]
+            ],
+            "offsetY": 10,
+            "offsetX": 10
+        }
+    ]
+}

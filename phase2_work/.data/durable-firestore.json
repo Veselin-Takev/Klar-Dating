@@ -1,0 +1,10 @@
+{
+  "system/ping": {
+    "ok": true,
+    "at": "2026-10-08T11:48:13.502Z"
+  },
+  "system/readiness": {
+    "ok": true,
+    "at": "2026-10-08T11:48:13.502Z"
+  }
+}

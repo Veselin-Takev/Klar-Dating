@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-07",
+  "version": "v149",
+  "features": {
+    "legalUpdates": "PASS",
+    "liveChatTranslation": "PASS",
+    "languageSwitcher": "PASS",
+    "designSystem": "PASS",
+    "wcagContrast": "PASS"
+  },
+  "translation": {
+    "endpoint": "/api/translate",
+    "authentication": true,
+    "art9Sanitization": true,
+    "paidProviderFallback": false,
+    "outgoingOriginalPreserved": true,
+    "incomingOnly": true
+  },
+  "releaseGatePolicy": "BLOCKED_ENVIRONMENT is not PASS"
+}

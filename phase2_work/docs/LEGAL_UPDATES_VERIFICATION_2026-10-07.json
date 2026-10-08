@@ -1,0 +1,27 @@
+{
+  "feature": "legal-updates",
+  "master": "v149",
+  "date": "2026-10-07",
+  "static": {
+    "legalUpdatesBoundary": "PASS",
+    "i18n": "PASS",
+    "firestoreRules": "PASS",
+    "secrets": "PASS",
+    "consentBoundary": "PASS",
+    "datePlannerBoundary": "PASS",
+    "datePrepBoundary": "PASS",
+    "csp": "PASS",
+    "naming": "PASS",
+    "buttonLabels": "PASS"
+  },
+  "requiredReleaseGates": {
+    "npm run check:enterprise": "BLOCKED_ENVIRONMENT",
+    "npm run typecheck": "BLOCKED_ENVIRONMENT",
+    "npm run test:pure": "BLOCKED_ENVIRONMENT",
+    "npm run test:rules": "BLOCKED_ENVIRONMENT",
+    "npx playwright test": "BLOCKED_ENVIRONMENT",
+    "npm run build": "BLOCKED_ENVIRONMENT"
+  },
+  "productionApproval": false,
+  "reason": "The runner lacks the project dependency tree and Firebase/Playwright/Vite toolchain; no production build or dynamic test PASS is claimed."
+}

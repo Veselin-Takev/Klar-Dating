@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-15",
+  "base": "Klar_15.09.2026",
+  "secondary": "remix-klar-cl_15.09.2026",
+  "status": "enterprise-candidate-not-certified",
+  "node_required": ">=22.22.2",
+  "node_available": "22.16.0",
+  "verified": {
+    "service_worker": "10/10",
+    "ki_strategies": "23/23",
+    "contrast": "pass",
+    "hooks": "pass",
+    "names": "pass",
+    "json_form": "pass",
+    "milestones": "7/7",
+    "diagram_data": "0 fixed-data findings",
+    "fabricated_statements": "0",
+    "oauth_permissions": "0 extra",
+    "scripts": "pass",
+    "csp": "12/12",
+    "effect_dependencies": "pass"
+  },
+  "blocked": [
+    "npm ci incomplete in execution environment",
+    "TypeScript typecheck unavailable",
+    "full Vitest unavailable",
+    "Firebase emulator tests unavailable",
+    "Storage rules tests unavailable",
+    "browser/E2E unavailable"
+  ],
+  "known_static_debt": [
+    "60 form fields without id/name (threshold 59)",
+    "29 labels without field association (threshold 28)",
+    "46 initial static own imports (threshold 41)"
+  ]
+}

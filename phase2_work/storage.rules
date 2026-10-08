@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Klar — Storage-Regeln. Vorgabe ist Verweigerung.
+//
+// Das Verifizierungsfoto ist ein biometrisches Datum im Sinne von Art. 9
+// DSGVO, sobald es zum Abgleich dient. Deshalb: schreiben ja, LESEN NEIN —
+// auch nicht für die eigene Person. Ein lesbarer Pfad ist ein teilbarer
+// Pfad, und ein Foto mit vorgegebener Geste ist genau das Material, mit dem
+// sich ein fremdes Konto verifizieren ließe. Die Sichtprüfung läuft über das
+// Admin-SDK und braucht die Client-Leseberechtigung nicht.
+// ═══════════════════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    // GAST-01 (14.08.2026): Ein Gastkonto laedt keine Bilder hoch. Weder ein
+    // Profilfoto (es gibt kein Gastprofil) noch ein Verifizierungsfoto (ein
+    // Gastkonto ist beim naechsten Besuch weg, die Pruefung waere umsonst).
+    // Das verhindert zugleich, dass anonyme Konten Speicher fuellen.
+    function istGast() {
+      return signedIn()
+             && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    function istBild() { return request.resource != null && request.resource.contentType != null && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
+
+    match /verification/{uid}/{datei} {
+      allow read: if false;
+      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+                   && istBild() && request.resource.size < 8 * 1024 * 1024;
+      allow delete: if false;   // nur serverseitig, nach der Entscheidung
+    }
+
+    match /profiles/{uid}/{datei} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+                   && istBild() && request.resource.size < 8 * 1024 * 1024;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+  }
+}
+

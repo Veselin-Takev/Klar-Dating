@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-07",
+  "baseline": "v149",
+  "features": {
+    "consent_center": "implemented",
+    "privacy_screen_lock": "implemented",
+    "date_planner": "implemented",
+    "date_calendar": "implemented",
+    "date_prep_checklist": "implemented",
+    "date_reminders": "implemented"
+  },
+  "static_gates": {
+    "check:date-prep-checklist": "PASS",
+    "check:date-planner-boundary": "PASS",
+    "check:privacy-screen": "PASS",
+    "check:consent-center": "PASS",
+    "check:secrets": "PASS",
+    "check:auth-boundary": "PASS",
+    "check:public-firestore-rules": "PASS",
+    "check:ai-pii-sanitizer": "PASS",
+    "check:art17-deletion-audit": "PASS",
+    "check:isverified-authority": "PASS",
+    "check:didit-webhook-boundaries": "PASS",
+    "check:didit-kyc-integrity": "PASS",
+    "check:kyc-reconciliation": "PASS",
+    "check:i18n": "PASS"
+  },
+  "requested_dynamic_gates": {
+    "npm run check:enterprise": "BLOCKED_ENVIRONMENT",
+    "npm run typecheck": "BLOCKED_ENVIRONMENT",
+    "npm run test:pure": "BLOCKED_ENVIRONMENT",
+    "npm run test:rules": "BLOCKED_ENVIRONMENT",
+    "npx playwright test": "BLOCKED_ENVIRONMENT",
+    "npm run build": "BLOCKED_ENVIRONMENT"
+  },
+  "environment_blockers": [
+    "node_modules absent",
+    "typescript package unavailable to project scripts",
+    "vitest executable unavailable",
+    "firebase CLI unavailable",
+    "vite executable unavailable",
+    "Playwright package not cached; npm registry DNS returned EAI_AGAIN"
+  ],
+  "production_release": false
+}

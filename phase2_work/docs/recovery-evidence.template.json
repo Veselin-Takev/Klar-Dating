@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "buildSha": "0000000000000000000000000000000000000000",
+  "environment": "isolated_restore",
+  "projectId": "REPLACE",
+  "databaseId": "REPLACE",
+  "backupUri": "gs://REPLACE",
+  "backupCreatedAt": "2026-09-29T00:00:00Z",
+  "restoreStartedAt": "2026-09-29T00:00:00Z",
+  "readyAt": "2026-09-29T00:00:00Z",
+  "approvedTargets": {
+    "rpoMinutes": 0,
+    "rtoMinutes": 0,
+    "approvedBy": "REPLACE",
+    "approvedAt": "2026-09-29T00:00:00Z"
+  },
+  "integrity": {
+    "sourceDocumentCount": 0,
+    "restoredDocumentCount": 0,
+    "sampledChecksums": [
+      {
+        "path": "REPLACE",
+        "sourceSha256": "REPLACE",
+        "restoredSha256": "REPLACE"
+      }
+    ]
+  },
+  "smokeTests": {
+    "api": "failed",
+    "rules": "failed",
+    "playwright": "failed"
+  },
+  "rollbackEvidence": {
+    "trafficPercent": 0,
+    "health": "failed",
+    "readiness": "failed"
+  }
+}

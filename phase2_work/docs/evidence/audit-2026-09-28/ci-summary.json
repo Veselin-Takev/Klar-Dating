@@ -1,0 +1,29 @@
+{
+  "codeCommit": "7bfceddc0eb49bb06c0575c9f624926050629022",
+  "pr": 52,
+  "enterprise": {
+    "runId": 36376282721,
+    "jobId": 108782677600,
+    "conclusion": "success",
+    "vitestFiles": 88,
+    "vitestTests": 574
+  },
+  "playwright": {
+    "runId": 36376282750,
+    "jobId": 108782677798,
+    "conclusion": "success",
+    "tests": 16,
+    "retries": 0
+  },
+  "documentation": {
+    "runId": 36376282722,
+    "jobId": 108782677608,
+    "conclusion": "success"
+  },
+  "dependencyModerateFindings": {
+    "rootAll": 5,
+    "rootProduction": 2,
+    "functionsProduction": 2
+  },
+  "note": "Commit-specific automated evidence. No production deployment, full runtime coverage, legal certification or full WCAG conformance established."
+}

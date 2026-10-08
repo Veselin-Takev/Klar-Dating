@@ -1,0 +1,360 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KLAR — Designtokens
+
+   Eine Stelle für Farben, Schriften und Radien.
+
+   Der Dunkelmodus tauscht ausschließlich die Tokenwerte. Markup, das Tokens
+   benutzt, braucht deshalb KEINE dark:-Varianten — genau daraus waren die
+   doppelten Klassen entstanden (`dark:bg-[#1a1c1a] dark:bg-[#1a1c1a]/90`).
+
+   Alle Werte unten sind gerechnet, nicht geschätzt (WCAG 2.1, relative
+   Luminanz). Die Prüfung liegt bei: `npm run check:kontrast`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Klassenbasierter Dunkelmodus. Ohne diese Zeile wertet Tailwind v4 `dark:`
+   über prefers-color-scheme aus — ein Umschalter in der App bewirkt nichts. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
+
+  /* Semantische Tokens. Erzeugen bg-canvas, text-ink, border-line-ui usw. */
+  --color-canvas: #faf8f5;
+  --color-surface: #ffffff;
+  --color-ink: #1c1c1c;          /* 15,94 : 1 auf canvas */
+  --color-muted: #6b6560;        /*  5,37 : 1 auf canvas */
+  --color-accent: #3f4a3c;       /*  8,70 : 1 auf canvas · weiß darauf 9,31 : 1 */
+  --color-on-accent: #ffffff;
+  --color-accent-strong: #333d31;
+  --color-accent-quiet: #eff0ec;
+  --color-line: #e8e4de;         /* nur optische Trennung, kein Bedienelement */
+  --color-line-ui: #918879;      /*  3,50 : 1 auf weiß · 3,27 : 1 auf canvas */
+  --color-photo: #dad5cc;
+
+  /* DSG-02: Fehlermeldungen im Einwilligungs- und Altersdialog brauchen
+     eine eigene Farbe. Rot aus der stone-Palette gibt es nicht, und ein
+     frei gewaehlter Rotton verfehlt den Textkontrast schnell — deshalb
+     nachgerechnet und in check-kontrast.mjs aufgenommen. */
+  --color-warn: #a02b1e;         /*  6,87 : 1 auf canvas · 7,35 : 1 auf surface */
+
+  /* Bestehende Namen bleiben gültig, damit die 128 vorhandenen Ansichten
+     unverändert weiterlaufen. */
+  --color-brand: #3f4a3c;
+  --color-brand-light: #a9bda5;
+  --color-dark-bg: #161815;
+  --color-light-bg: #faf8f5;
+
+  --radius-card: 24px;
+  --radius-inner: 16px;
+
+  /* ── Korrektur der Graustufen ──────────────────────────────────────────
+     Die App benutzt Tailwinds stone-Skala. Zwei Werte daraus verfehlen im
+     Hellmodus den Textkontrast nach WCAG 1.4.3 (4,5 : 1):
+
+       stone-400  #a8a29b  →  2,36 : 1 auf der Grundfläche   (408 Fundstellen)
+       stone-500  #78716c  →  4,49 : 1                        (416 Fundstellen)
+
+     Statt an 824 Stellen die Klasse zu tauschen, wird der WERT geändert.
+     Ein Tokensystem ist genau dafür da: eine Stelle statt achthundert.
+     Der Farbton (warmes Grau) bleibt, die Helligkeit sinkt so wenig wie
+     nötig. Geprüft gegen Grundfläche UND Weiß, weil beide vorkommen. */
+  --color-stone-400: #75716c;   /* 4,53 : 1 auf canvas · 4,84 : 1 auf weiß */
+  --color-stone-500: #766f6a;   /* 4,62 : 1 auf canvas · 4,94 : 1 auf weiß */
+}
+
+/* Dunkelmodus: nur die Werte werden getauscht.
+   #3F4A3C auf #161815 wäre 1,92 : 1 und unsichtbar — deshalb ist der Akzent
+   im Dunkeln hell und der Text darauf dunkel. */
+.dark {
+  --color-canvas: #161815;
+  --color-surface: #1f221e;
+  --color-ink: #edeae4;          /* 14,88 : 1 auf canvas */
+  --color-muted: #a8a29b;        /*  7,07 : 1 auf canvas */
+  --color-accent: #a9bda5;       /*  8,94 : 1 auf canvas */
+  --color-on-accent: #161815;
+  --color-accent-strong: #c2d2bf;
+  --color-accent-quiet: #23281f;
+  --color-line: #2f332d;
+
+  /* KORRIGIERT gegenüber der Fassung vom 03.08.: dort stand #4a5147.
+     Das ergibt auf der Fläche #1f221e nur 1,96 : 1 — WCAG 1.4.11 verlangt
+     für Ränder, die ein Bedienelement erst erkennbar machen, 3 : 1.
+     Aufgefallen ist das beim Nachrechnen, nicht beim Ansehen: Im
+     Dunkelmodus wirkt eine zu schwache Linie „dezent" statt falsch. */
+  --color-line-ui: #6c6f69;      /*  3,15 : 1 auf surface · 3,50 : 1 auf canvas */
+  --color-photo: #2a2e28;
+
+  /* Im Dunkeln muss die Warnfarbe heller werden, nicht dunkler.
+     #a02b1e auf #161815 waere 3,1 : 1 und damit unter der Schwelle. */
+  --color-warn: #f0928a;         /*  7,81 : 1 auf canvas · 7,03 : 1 auf surface */
+
+  /* Im Dunkeln muss derselbe Text HELLER werden, nicht dunkler.
+     #75716c auf #161815 wäre 3,4 : 1 und damit zu wenig. */
+  --color-stone-400: #a8a29b;   /* 7,07 : 1 auf canvas */
+  --color-stone-500: #b8b2ab;   /* 8,50 : 1 auf canvas */
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;        /* Design-Richtlinie §4: Fließtext nie kleiner */
+    line-height: 1.5;       /* WCAG 1.4.12 */
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  }
+
+  /* Klar Enterprise Reading System: one rhythm across every page/view.
+     Headings use the calm serif face; body copy stays in the highly legible
+     sans face. Explicit utility classes remain available for exceptions. */
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.012em;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  h4, h5, h6 {
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+
+  p, li, label, input, textarea, select, button {
+    line-height: 1.5;
+  }
+
+  input, textarea, select {
+    font-size: 1rem;
+  }
+
+  /* Sichtbarer Tastaturfokus (WCAG 2.4.7). Pflicht, keine Geschmacksfrage. */
+  :focus-visible {
+    outline: 3px solid var(--color-accent) !important;
+    outline-offset: 3px !important;
+    border-radius: 4px;
+    scroll-margin-block: 5rem;
+  }
+
+  /* WCAG 2.4.11/2.4.12: Fokus bleibt auch bei Systemfarben sichtbar. */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline: 3px solid CanvasText !important;
+      outline-offset: 3px !important;
+    }
+  }
+
+  /* WCAG 2.3.3. Ohne diesen Block ist jede Animation in der App ein Verstoß
+     — auch die, die man selbst für harmlos hält. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; z-index: 100;
+    background-color: var(--color-surface); color: var(--color-ink);
+    border: 1px solid var(--color-line-ui); border-radius: 999px;
+    padding: 12px 20px;
+  }
+  .skip-link:focus { left: 16px; top: 16px; }
+
+  /* WCAG 2.5.8: zentrale interaktive Ziele unterschreiten nicht 24 CSS-Pixel. */
+  button, [role="button"], input[type="checkbox"], input[type="radio"] {
+    min-inline-size: 24px;
+    min-block-size: 24px;
+  }
+
+  /* Enterprise layout primitives. Existing Tailwind views can adopt these
+     without introducing page-specific visual languages. */
+  .klar-page {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  .klar-readable {
+    max-width: 68ch;
+    line-height: 1.65;
+  }
+
+  .klar-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 2px rgb(28 28 28 / 0.04);
+  }
+
+  .klar-icon-button {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: var(--color-ink);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, var(--color-surface));
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .klar-language-switcher {
+    min-height: 44px;
+  }
+
+  .klar-language-switcher select {
+    min-height: 44px;
+  }
+
+  @media (max-width: 640px) {
+    .klar-language-switcher {
+      max-width: 10rem;
+    }
+    .klar-language-switcher select {
+      max-width: 6.75rem;
+    }
+  }
+
+  .klar-icon-button:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 10%, var(--color-surface));
+  }
+
+  .klar-icon-button:active {
+    transform: scale(0.97);
+  }
+
+  .klar-input {
+    min-block-size: 44px;
+    border: 1px solid var(--color-line-ui);
+    border-radius: var(--radius-inner);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    line-height: 1.5;
+  }
+
+  .klar-input::placeholder {
+    color: var(--color-muted);
+    opacity: 1;
+  }
+
+  .klar-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  .klar-chat-scroll {
+    scrollbar-color: var(--color-line-ui) transparent;
+    scrollbar-width: thin;
+    scroll-padding-block: 1rem;
+  }
+
+  .klar-chat-message {
+    max-width: min(78ch, 82%);
+    font-size: 1rem;
+    line-height: 1.62;
+    letter-spacing: 0.002em;
+  }
+
+  @media (max-width: 640px) {
+    .klar-chat-message {
+      max-width: 88%;
+    }
+  }
+
+  .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .hide-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* `env()` liefert auf Geräten ohne Aussparung 0 — nicht den Ersatzwert.
+     Deshalb max() statt env(…, 1rem). */
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
+  /* Ladezustand: ruhige Platzhalterfläche statt drehender Spinner
+     (Design-Richtlinie §6). */
+  .skeleton {
+    background-color: var(--color-accent-quiet);
+    border-radius: var(--radius-inner);
+
+  }
+}
+
+@keyframes klar-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* Countdown-Ring der Rücknahme-Leiste. Als CSS-Animation, damit React
+   während der Geste nichts rechnet. 50.27 ist der Umfang des Kreises mit
+   r = 8 (2πr) — ein anderer Radius verlangt einen anderen Wert. */
+@keyframes klar-countdown {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 50.27; }
+}
+
+@layer utilities {
+  .card-background {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card); /* 24px */
+    transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  }
+
+  .card-background:focus-within {
+    border-color: var(--color-accent);
+  }
+
+  /* WCAG-Optimierung fuer helles Umgebungslicht im Dunkelmodus
+  Gemessene Kontrastwerte:
+  - Gegen Fließtext (--color-ink, #edeae4): 14.29:1 (Erfüllt AAA)
+  - Gegen Sekundärtext (--color-muted, #a8a29b): 6.79:1 (Erfüllt AA)
+  */
+  .dark .card-background {
+    background-color: #1a1c19;
+    border-color: #3e443c;
+  }
+
+  /* :focus-within Kontrast: var(--color-accent) ist #a9bda5 im Dunkelmodus.
+     Das liefert ~8.9:1 gegen #1a1c19 (Soll: mind. 3:1 nach WCAG 2.4.11) */
+  .dark .card-background:focus-within {
+    border-color: var(--color-accent);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
+
+  .animate-skeleton-pulse {
+    animation: skeletonPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}

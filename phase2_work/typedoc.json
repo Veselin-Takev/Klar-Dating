@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/types",
+    "src/lib/matching.ts",
+    "src/services/funnelValidation.ts"
+  ],
+  "out": "docs/api",
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ],
+  "readme": "none",
+  "gitRevision": "main",
+  "entryPointStrategy": "expand"
+}

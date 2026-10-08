@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "standard": "WCAG 2.2 AA",
+  "buildSha": "0000000000000000000000000000000000000000",
+  "evaluatedAt": "2026-09-29T00:00:00Z",
+  "scope": {
+    "product": "Klar web application",
+    "environments": [
+      "Chrome + NVDA",
+      "Safari + VoiceOver",
+      "Firefox keyboard-only",
+      "Windows forced-colors"
+    ],
+    "flows": [
+      "sign-in / guest entry",
+      "onboarding",
+      "discovery / matching / chat",
+      "consent / export / deletion",
+      "error and offline states"
+    ]
+  },
+  "reviewer": {
+    "name": "REPLACE_WITH_REVIEWER",
+    "role": "Accessibility reviewer"
+  },
+  "implementer": {
+    "name": "REPLACE_WITH_IMPLEMENTER"
+  },
+  "checks": [
+    {
+      "area": "keyboard",
+      "status": "not_tested",
+      "environments": [
+        "Chrome",
+        "Firefox",
+        "Safari"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "screen_reader",
+      "status": "not_tested",
+      "environments": [
+        "NVDA + Chrome",
+        "VoiceOver + Safari"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "reflow_zoom",
+      "status": "not_tested",
+      "environments": [
+        "Desktop at 200%/400%",
+        "320 CSS px"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "visual",
+      "status": "not_tested",
+      "environments": [
+        "Light",
+        "Dark",
+        "Windows forced-colors"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "motion",
+      "status": "not_tested",
+      "environments": [
+        "prefers-reduced-motion"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "input",
+      "status": "not_tested",
+      "environments": [
+        "Mobile viewport",
+        "speech input"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    },
+    {
+      "area": "cognitive",
+      "status": "not_tested",
+      "environments": [
+        "Critical journeys"
+      ],
+      "notes": "REPLACE",
+      "evidenceLinks": [
+        "REPLACE"
+      ]
+    }
+  ],
+  "findings": [],
+  "conclusion": "incomplete"
+}

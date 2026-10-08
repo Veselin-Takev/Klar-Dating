@@ -1,0 +1,36 @@
+{
+  "baseline": "v149",
+  "date": "2026-10-08",
+  "workPackages": {
+    "promptSecurity": "implemented",
+    "firestoreRbacAndAudit": "implemented",
+    "testSeparation": "implemented"
+  },
+  "staticGates": {
+    "check-secrets": "PASS",
+    "check-auth-boundary": "PASS",
+    "check-public-firestore-rules": "PASS",
+    "check-ai-pii-sanitizer": "PASS",
+    "check-art17-deletion-audit": "PASS",
+    "check-ai-prompt-security": "PASS",
+    "check-rbac-claims-boundary": "PASS",
+    "check-audit-log-immutability": "PASS",
+    "check-test-separation": "PASS",
+    "check-ai-provider-boundary": "PASS",
+    "check-translation-ai-policy-boundary": "PASS",
+    "check-legacy-translation-boundary": "PASS",
+    "check-dependency-locks": "PASS",
+    "check-toolchain-policy": "PASS",
+    "check-ci-toolchain-pins": "PASS",
+    "check-release-workflow": "PASS"
+  },
+  "dynamicGates": {
+    "npm run typecheck": "BLOCKED_ENVIRONMENT",
+    "npm run test:pure": "BLOCKED_ENVIRONMENT",
+    "npm run test:rules": "BLOCKED_ENVIRONMENT",
+    "npx playwright test": "BLOCKED_ENVIRONMENT",
+    "npm run build": "BLOCKED_ENVIRONMENT",
+    "npm run check:enterprise": "BLOCKED_ENVIRONMENT"
+  },
+  "productionPromotion": "NOT_APPROVED"
+}

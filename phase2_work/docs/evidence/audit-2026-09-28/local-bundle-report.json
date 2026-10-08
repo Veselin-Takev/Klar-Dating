@@ -1,0 +1,343 @@
+{
+  "version": 1,
+  "measurements": {
+    "initialJsGzipBytes": 437056,
+    "initialCssGzipBytes": 25973,
+    "totalJsGzipBytes": 1190280,
+    "largestJsGzipBytes": 214471,
+    "largestJsBytes": 873592
+  },
+  "initialFiles": [
+    "assets/firebase-rJKG8ZHV.js",
+    "assets/index-CEkDiIVp.js",
+    "assets/index-DFAbwzJ9.css",
+    "assets/motion-DMqJ5DlJ.js",
+    "assets/vendor-Cvv0tz07.js"
+  ],
+  "assets": [
+    {
+      "file": "assets/ActivePoints-C9yAFEO7.js",
+      "bytes": 5183,
+      "gzipBytes": 1833
+    },
+    {
+      "file": "assets/AdminDashboard-DjQjHBxS.js",
+      "bytes": 76819,
+      "gzipBytes": 22667
+    },
+    {
+      "file": "assets/AICoach-wy0rQuIi.js",
+      "bytes": 68033,
+      "gzipBytes": 16331
+    },
+    {
+      "file": "assets/arrow-right-BkaLZT8a.js",
+      "bytes": 370,
+      "gzipBytes": 288
+    },
+    {
+      "file": "assets/BarChart-Pb7GvaVm.js",
+      "bytes": 21591,
+      "gzipBytes": 7477
+    },
+    {
+      "file": "assets/brain-Bu2iDa41.js",
+      "bytes": 782,
+      "gzipBytes": 439
+    },
+    {
+      "file": "assets/calendar-days-DWsrKBrC.js",
+      "bytes": 697,
+      "gzipBytes": 391
+    },
+    {
+      "file": "assets/calendar-heart-D17OZJwu.js",
+      "bytes": 1454,
+      "gzipBytes": 623
+    },
+    {
+      "file": "assets/CartesianChart-Bd9KBeal.js",
+      "bytes": 27433,
+      "gzipBytes": 8631
+    },
+    {
+      "file": "assets/CategoricalChart-D_fnGiHv.js",
+      "bytes": 313885,
+      "gzipBytes": 95414
+    },
+    {
+      "file": "assets/Chats-DHC8pf6J.js",
+      "bytes": 4102,
+      "gzipBytes": 1701
+    },
+    {
+      "file": "assets/ChatView-B0_oYthh.js",
+      "bytes": 104703,
+      "gzipBytes": 27440
+    },
+    {
+      "file": "assets/check-CfBQE-Cj.js",
+      "bytes": 329,
+      "gzipBytes": 266
+    },
+    {
+      "file": "assets/chevron-right-BiY0Vugj.js",
+      "bytes": 335,
+      "gzipBytes": 267
+    },
+    {
+      "file": "assets/circle-user-UsmJJZC-.js",
+      "bytes": 484,
+      "gzipBytes": 337
+    },
+    {
+      "file": "assets/coffee-Ct-7mLo8.js",
+      "bytes": 509,
+      "gzipBytes": 334
+    },
+    {
+      "file": "assets/Dashboard-CVOhhFeM.js",
+      "bytes": 569305,
+      "gzipBytes": 132837
+    },
+    {
+      "file": "assets/data-FkMWeRso.js",
+      "bytes": 13674,
+      "gzipBytes": 5233
+    },
+    {
+      "file": "assets/DatingRituals-C1h8dm3A.js",
+      "bytes": 14652,
+      "gzipBytes": 4638
+    },
+    {
+      "file": "assets/firebase-rJKG8ZHV.js",
+      "bytes": 873592,
+      "gzipBytes": 214471
+    },
+    {
+      "file": "assets/heart-4ZbkbsDL.js",
+      "bytes": 463,
+      "gzipBytes": 345
+    },
+    {
+      "file": "assets/html2canvas.esm-QH1iLAAe.js",
+      "bytes": 202379,
+      "gzipBytes": 48044
+    },
+    {
+      "file": "assets/index-CEkDiIVp.js",
+      "bytes": 541653,
+      "gzipBytes": 172050
+    },
+    {
+      "file": "assets/index-DFAbwzJ9.css",
+      "bytes": 198730,
+      "gzipBytes": 25973
+    },
+    {
+      "file": "assets/index.es-DnxY8M8T.js",
+      "bytes": 159844,
+      "gzipBytes": 53605
+    },
+    {
+      "file": "assets/info-CDvwjQyQ.js",
+      "bytes": 950,
+      "gzipBytes": 454
+    },
+    {
+      "file": "assets/jspdf.es.min-CPCJNx3K.js",
+      "bytes": 391320,
+      "gzipBytes": 129069
+    },
+    {
+      "file": "assets/KlarMatchWidget-D18AWU2Y.js",
+      "bytes": 9950,
+      "gzipBytes": 3358
+    },
+    {
+      "file": "assets/KlarPlus-B3sUw7BU.js",
+      "bytes": 6538,
+      "gzipBytes": 2678
+    },
+    {
+      "file": "assets/languages-B1Di8hz5.js",
+      "bytes": 521,
+      "gzipBytes": 343
+    },
+    {
+      "file": "assets/Meilensteine-Dw_3rT2d.js",
+      "bytes": 5928,
+      "gzipBytes": 2285
+    },
+    {
+      "file": "assets/MeilensteineAlle-CFVDUj8f.js",
+      "bytes": 2470,
+      "gzipBytes": 1124
+    },
+    {
+      "file": "assets/minus-b-yeuftj.js",
+      "bytes": 322,
+      "gzipBytes": 259
+    },
+    {
+      "file": "assets/motion-DMqJ5DlJ.js",
+      "bytes": 99584,
+      "gzipBytes": 32945
+    },
+    {
+      "file": "assets/Onboarding-DtPblG8Q.js",
+      "bytes": 8922,
+      "gzipBytes": 2964
+    },
+    {
+      "file": "assets/pen-line-CXVIRqa-.js",
+      "bytes": 1501,
+      "gzipBytes": 638
+    },
+    {
+      "file": "assets/plus-C6Nnx_cw.js",
+      "bytes": 358,
+      "gzipBytes": 277
+    },
+    {
+      "file": "assets/Profile-B-XFheC4.js",
+      "bytes": 147687,
+      "gzipBytes": 38344
+    },
+    {
+      "file": "assets/purify.es-CYR4BTuT.js",
+      "bytes": 28930,
+      "gzipBytes": 11138
+    },
+    {
+      "file": "assets/RadarChart-IyIZoCnk.js",
+      "bytes": 30732,
+      "gzipBytes": 8151
+    },
+    {
+      "file": "assets/RecentIntrosWidget-gx4T51iD.js",
+      "bytes": 3719,
+      "gzipBytes": 1652
+    },
+    {
+      "file": "assets/Rechtstexte-AID_5r3Q.js",
+      "bytes": 4443,
+      "gzipBytes": 1710
+    },
+    {
+      "file": "assets/SafetyCenter-RdZ_Z7pE.js",
+      "bytes": 7593,
+      "gzipBytes": 2462
+    },
+    {
+      "file": "assets/search-C0qbeUQZ.js",
+      "bytes": 374,
+      "gzipBytes": 292
+    },
+    {
+      "file": "assets/smartMatchService-DErY1Svv.js",
+      "bytes": 325854,
+      "gzipBytes": 85448
+    },
+    {
+      "file": "assets/SmartVerbindungCarousel-DnNRA0nD.js",
+      "bytes": 3207,
+      "gzipBytes": 1491
+    },
+    {
+      "file": "assets/square-check-big-Se9W2Iqz.js",
+      "bytes": 459,
+      "gzipBytes": 334
+    },
+    {
+      "file": "assets/square-DzUZeU-J.js",
+      "bytes": 738,
+      "gzipBytes": 392
+    },
+    {
+      "file": "assets/star-B4C_rEBk.js",
+      "bytes": 1066,
+      "gzipBytes": 521
+    },
+    {
+      "file": "assets/Symbols-CWyE5RSO.js",
+      "bytes": 4486,
+      "gzipBytes": 1919
+    },
+    {
+      "file": "assets/tag-Y2-UiRxv.js",
+      "bytes": 2445,
+      "gzipBytes": 897
+    },
+    {
+      "file": "assets/target-DLrd3uI2.js",
+      "bytes": 431,
+      "gzipBytes": 289
+    },
+    {
+      "file": "assets/Tips-Ct1bNrTi.js",
+      "bytes": 70250,
+      "gzipBytes": 18984
+    },
+    {
+      "file": "assets/tooltipContext-Cz-9zRqg.js",
+      "bytes": 539,
+      "gzipBytes": 285
+    },
+    {
+      "file": "assets/trash-B91D57K3.js",
+      "bytes": 551,
+      "gzipBytes": 350
+    },
+    {
+      "file": "assets/trending-up-CHwpxT3U.js",
+      "bytes": 791,
+      "gzipBytes": 401
+    },
+    {
+      "file": "assets/triangle-alert-Dgcfr9b3.js",
+      "bytes": 497,
+      "gzipBytes": 350
+    },
+    {
+      "file": "assets/trophy-BDXftcUs.js",
+      "bytes": 996,
+      "gzipBytes": 463
+    },
+    {
+      "file": "assets/vendor-Cvv0tz07.js",
+      "bytes": 52936,
+      "gzipBytes": 17590
+    },
+    {
+      "file": "assets/wand-sparkles-Dl7i1_4r.js",
+      "bytes": 737,
+      "gzipBytes": 432
+    },
+    {
+      "file": "assets/wind-fblfU8fy.js",
+      "bytes": 451,
+      "gzipBytes": 321
+    },
+    {
+      "file": "assets/YAxis-B0FA95zY.js",
+      "bytes": 11319,
+      "gzipBytes": 3667
+    },
+    {
+      "file": "assets/zap-CFVpwhPl.js",
+      "bytes": 478,
+      "gzipBytes": 341
+    }
+  ],
+  "limits": {
+    "initialJsGzipBytes": 470000,
+    "initialCssGzipBytes": 29000,
+    "totalJsGzipBytes": 1280000,
+    "largestJsGzipBytes": 240000,
+    "largestJsBytes": 960000
+  },
+  "failures": [],
+  "passed": true
+}

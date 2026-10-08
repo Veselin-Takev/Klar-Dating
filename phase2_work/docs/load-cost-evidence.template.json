@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "buildSha": "0000000000000000000000000000000000000000",
+  "environment": "production",
+  "measuredAt": "2026-09-29T00:00:00Z",
+  "loadReportPath": "REPLACE_WITH_LOAD_REPORT_PATH",
+  "billingSource": {
+    "name": "REPLACE_WITH_BILLING_EXPORT_OR_PROVIDER_REPORT",
+    "evidenceLinks": [
+      "REPLACE_WITH_EVIDENCE_LINK"
+    ]
+  },
+  "approvedBudget": {
+    "maxCostPer1000RequestsUsd": 0,
+    "approvedBy": "REPLACE_WITH_APPROVER",
+    "approvedAt": "2026-09-29T00:00:00Z",
+    "rationale": "REPLACE_WITH_APPROVED_COST_ENVELOPE"
+  },
+  "cost": {
+    "totalCostUsd": 0,
+    "requestCount": 0,
+    "costPer1000RequestsUsd": 0
+  }
+}

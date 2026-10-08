@@ -1,0 +1,10 @@
+:root { font: 1rem/1.6 system-ui, sans-serif; color: #161815; background: #fafaf9; }
+body { margin: 0; padding: 1rem; }
+main { max-width: 42rem; margin: auto; }
+input, select, textarea, button { box-sizing: border-box; font: inherit; min-height: 44px; max-width: 100%; }
+input:not([type=hidden]), select, textarea { width: 100%; padding: .5rem; border: 1px solid #62665f; background: white; color: #161815; }
+textarea { min-height: 6rem; }
+button { padding: .6rem 1rem; background: #161815; color: white; border: 2px solid #161815; cursor: pointer; }
+a { color: #064c37; display: inline-block; min-height: 44px; }
+:focus-visible { outline: 3px solid #064c37; outline-offset: 3px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }

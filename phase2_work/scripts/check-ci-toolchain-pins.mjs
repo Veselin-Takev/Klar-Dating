@@ -1,0 +1,41 @@
+import fs from 'node:fs';
+
+const failures = [];
+const expectedNode = '22.23.3';
+const workflows = [
+  '.github/workflows/ci.yml',
+  '.github/workflows/release.yml',
+  '.github/workflows/docs-autoupdate.yml',
+  '.github/workflows/playwright.yml',
+  '.github/workflows/security.yml',
+  '.github/workflows/auto-version.yml',
+];
+
+for (const file of workflows) {
+  if (!fs.existsSync(file)) {
+    failures.push(`${file} is missing from the supported workflow surface.`);
+    continue;
+  }
+  const text = fs.readFileSync(file, 'utf8');
+  if (!text.includes('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020')) {
+    failures.push(`${file} must pin actions/setup-node to the approved immutable revision.`);
+  }
+  if (!text.includes(`node-version: '${expectedNode}'`)) {
+    failures.push(`${file} must pin Node ${expectedNode}.`);
+  }
+  if (!text.includes("oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6")) {
+    failures.push(`${file} must pin Bun 1.4.2.`);
+  }
+}
+
+const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+if (packageJson.engines?.node !== '>=22.23.3') {
+  failures.push(`package.json engines.node must remain >=${expectedNode}.`);
+}
+
+if (failures.length) {
+  console.error(`CI toolchain pin gate FAILED (${failures.length}):`);
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+console.log(`CI toolchain pin gate PASS: supported GitHub workflows pin Node ${expectedNode} and Bun 1.4.2.`);

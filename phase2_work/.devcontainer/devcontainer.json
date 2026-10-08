@@ -1,0 +1,22 @@
+{
+  // Node 20+ ist Pflicht: vite@6, firebase-admin@14, react-router und tsx
+  // schliessen aeltere Versionen aus. Ohne diese Datei raet der Codespace.
+  "name": "Klar",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    // Die Firebase-Emulatoren sind Java-Anwendungen.
+    // Java 21, weil firebase-tools@15 die Unterstuetzung fuer < 21 fallen laesst
+    // (Warnung bei jedem Emulatorlauf, Stand 09.08.2026).
+    "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": false, "installGradle": false }
+  },
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000, 4000, 8080, 9099, 9199],
+  "portsAttributes": {
+    "3000": { "label": "Klar (Vite + API)" },
+    "4000": { "label": "Emulator-Oberflaeche" },
+    "8080": { "label": "Firestore-Emulator" },
+    "9099": { "label": "Auth-Emulator" },
+    "9199": { "label": "Storage-Emulator" }
+  },
+  "remoteUser": "node"
+}

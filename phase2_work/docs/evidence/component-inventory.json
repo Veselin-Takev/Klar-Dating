@@ -1,0 +1,2969 @@
+{
+  "schemaVersion": 1,
+  "warning": "Static reachability and literal references are not runtime coverage or proof of correctness.",
+  "summary": {
+    "modules": 348,
+    "componentModules": 198,
+    "testFiles": 96,
+    "apiRoutes": 79,
+    "modulesWithDirectTestImport": 76
+  },
+  "uiRoutes": [
+    "*",
+    "/",
+    "/admin",
+    "/ai-coach",
+    "/chat/:id",
+    "/chats",
+    "/klar-plus",
+    "/meilensteine",
+    "/profile",
+    "/rechtstexte/:art",
+    "/rituals",
+    "/safety",
+    "/tips",
+    "/verifizierung"
+  ],
+  "modules": [
+    {
+      "file": "app/components/BiometricsVerificationModal.tsx",
+      "lines": 2,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "app/routes/api.analytics.track.ts",
+      "lines": 3,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "app/routes/api.matching.feedback.ts",
+      "lines": 5,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "app/services/analytics.client.ts",
+      "lines": 13,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "functions/src/archiveInactiveChats.ts",
+      "lines": 38,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "functions/src/deleteExpiredPhotos.ts",
+      "lines": 32,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "functions/src/index.ts",
+      "lines": 8,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "functions/src/retention.ts",
+      "lines": 39,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/photoRetention.spec.ts",
+        "tests/storageRules.spec.ts"
+      ]
+    },
+    {
+      "file": "functions/src/runtime.ts",
+      "lines": 21,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "server.ts",
+      "lines": 2365,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/__tests__/payment.spec.ts"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "lines": 765,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AICoachMoodCheckWidget.tsx",
+      "lines": 75,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AboVerwaltung.tsx",
+      "lines": 105,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ActivityChartWidget.tsx",
+      "lines": 91,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ActivitySummaryWidget.tsx",
+      "lines": 147,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AdminHealthStatusWidget.tsx",
+      "lines": 219,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AdminI18nCoverageWidget.tsx",
+      "lines": 107,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AdminLogViewerModal.tsx",
+      "lines": 208,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AdminSystemManagementWidget.tsx",
+      "lines": 132,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/Antworttext.tsx",
+      "lines": 71,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AppTour.tsx",
+      "lines": 93,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/AuthRecoveryModal.tsx",
+      "lines": 138,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/BeiSicht.tsx",
+      "lines": 90,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/BioOptimizerWidget.tsx",
+      "lines": 110,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/BiometricsVerificationModal.tsx",
+      "lines": 37,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/BreathingExerciseWidget.tsx",
+      "lines": 260,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ChartEmptyState.tsx",
+      "lines": 40,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ChatDateExtractorWidget.tsx",
+      "lines": 77,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ChatDatePlanner.tsx",
+      "lines": 950,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ChatQualityChart.tsx",
+      "lines": 57,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CheckinTimelineWidget.tsx",
+      "lines": 114,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CityInsiderWidget.tsx",
+      "lines": 134,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CityTrendRadarWidget.tsx",
+      "lines": 107,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ClarityScoreWidget.tsx",
+      "lines": 118,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CoachGoalTracker.tsx",
+      "lines": 212,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CoachParticles.tsx",
+      "lines": 53,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CompatibilityRadarWidget.tsx",
+      "lines": 126,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/CompetenceRadarWidget.tsx",
+      "lines": 102,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ConsentSettings.tsx",
+      "lines": 33,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/ConsentSettings.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/ConsistencyStreakWidget.tsx",
+      "lines": 109,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyAffirmationWidget.tsx",
+      "lines": 70,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyCheckinWidget.tsx",
+      "lines": 82,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyCoachAffirmation.tsx",
+      "lines": 76,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyCoachInsightWidget.tsx",
+      "lines": 168,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyGoalRingsWidget.tsx",
+      "lines": 136,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyGoalTracker.tsx",
+      "lines": 124,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyIcebreakerWidget.tsx",
+      "lines": 176,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyMoodCheckInWidget.tsx",
+      "lines": 98,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyMoodWidget.tsx",
+      "lines": 201,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyPromptWidget.tsx",
+      "lines": 58,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyPulseWidget.tsx",
+      "lines": 118,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyTaskWidget.tsx",
+      "lines": 47,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyUsageRitualWidget.tsx",
+      "lines": 77,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DailyVibeCheckWidget.tsx",
+      "lines": 202,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DashboardDateBanner.tsx",
+      "lines": 69,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DashboardOnboarding.tsx",
+      "lines": 73,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/DashboardOnboarding.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/DataExportWidget.tsx",
+      "lines": 291,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateArchiveWidget.tsx",
+      "lines": 314,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateCalendar.tsx",
+      "lines": 273,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateDiaryStatsWidget.tsx",
+      "lines": 139,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateInspirationTab.tsx",
+      "lines": 150,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateMemoriesWidget.tsx",
+      "lines": 223,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateMoodChartWidget.tsx",
+      "lines": 136,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateMoodStreakWidget.tsx",
+      "lines": 114,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatePlannerWidget.tsx",
+      "lines": 442,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatePrepChecklistModal.tsx",
+      "lines": 148,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatePrepModeWidget.tsx",
+      "lines": 122,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatePreparationChecklistWidget.tsx",
+      "lines": 171,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateProposalMessage.tsx",
+      "lines": 159,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateRatingChartWidget.tsx",
+      "lines": 132,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateReflectionJournalWidget.tsx",
+      "lines": 400,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateSuccessRadarWidget.tsx",
+      "lines": 79,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateSuccessTrendWidget.tsx",
+      "lines": 140,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DateTypePieChartWidget.tsx",
+      "lines": 63,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingDuelWidget.tsx",
+      "lines": 152,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingFocusModeWidget.tsx",
+      "lines": 102,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingGlossaryWidget.tsx",
+      "lines": 188,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingGoalProgressWidget.tsx",
+      "lines": 123,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingGoalRoadmapWidget.tsx",
+      "lines": 189,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingHappinessScoreWidget.tsx",
+      "lines": 226,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingHealthAnalysisWidget.tsx",
+      "lines": 176,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingHealthWidget.tsx",
+      "lines": 133,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingJournalWidget.tsx",
+      "lines": 532,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingKarmaWidget.tsx",
+      "lines": 131,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingMoodTrackerWidget.tsx",
+      "lines": 165,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingReadinessWidget.tsx",
+      "lines": 176,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingRitualWidget.tsx",
+      "lines": 165,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingStyleQuizWidget.tsx",
+      "lines": 252,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingSuccessArchiveWidget.tsx",
+      "lines": 52,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingSuccessScoreWidget.tsx",
+      "lines": 225,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingTimelineWidget.tsx",
+      "lines": 615,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingVibeAnalyzerWidget.tsx",
+      "lines": 105,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingVibeChartWidget.tsx",
+      "lines": 254,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingVibeCheckQuiz.tsx",
+      "lines": 271,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DatingWheelWidget.tsx",
+      "lines": 335,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/DevPerformanceOverlay.tsx",
+      "lines": 127,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/EinwilligungUndAlter.tsx",
+      "lines": 286,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/consentUi.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/ErrorBoundary.tsx",
+      "lines": 68,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/__tests__/ErrorBoundary.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/FeedbackFormWidget.tsx",
+      "lines": 107,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/FocusTimeSettingsWidget.tsx",
+      "lines": 81,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/GlobalApiOverlay.tsx",
+      "lines": 66,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/diagnostics.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/GlobalErrorOverlay.tsx",
+      "lines": 110,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/HapticSettings.tsx",
+      "lines": 179,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/IdentityVerification.tsx",
+      "lines": 10,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ImageCropperModal.tsx",
+      "lines": 79,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/InAppNotification.tsx",
+      "lines": 174,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/__tests__/InAppNotification.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/InactiveNotificationManager.tsx",
+      "lines": 131,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/InsightsChart.tsx",
+      "lines": 204,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/InterestsSettings.tsx",
+      "lines": 46,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/KlarCompassWidget.tsx",
+      "lines": 136,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/KlarInsightsWidget.tsx",
+      "lines": 158,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/KlarMatchWidget.tsx",
+      "lines": 278,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/KontingentAnzeige.tsx",
+      "lines": 75,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/LanguageSwitcher.tsx",
+      "lines": 23,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/components/LanguageSwitcher.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/LaunchPromoWidget.tsx",
+      "lines": 107,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/LazyImage.tsx",
+      "lines": 49,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/LazyImage.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/LegalUpdatesModal.tsx",
+      "lines": 208,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/LocalLaunchWidget.tsx",
+      "lines": 112,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/LogoLoader.tsx",
+      "lines": 30,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/Maintenance.tsx",
+      "lines": 67,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MaintenanceMode.tsx",
+      "lines": 41,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/MaintenanceMode.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/components/MatchCompassWidget.tsx",
+      "lines": 283,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MatchCompatibilityInsights.tsx",
+      "lines": 130,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MatchIcebreakersWidget.tsx",
+      "lines": 79,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/Meilensteine.tsx",
+      "lines": 154,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MemoizedKlarMatchCard.tsx",
+      "lines": 133,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MemoizedProfileCard.tsx",
+      "lines": 163,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MessageBubble.tsx",
+      "lines": 70,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/components/MessageBubble.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/MindfulDatingExercisesWidget.tsx",
+      "lines": 91,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MiniCalendarWidget.tsx",
+      "lines": 136,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MiniDiaryWidget.tsx",
+      "lines": 122,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MonetizationChoiceModal.tsx",
+      "lines": 72,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MonthlyMoodAreaWidget.tsx",
+      "lines": 89,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodCalendarGridWidget.tsx",
+      "lines": 91,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodDiaryReminder.tsx",
+      "lines": 93,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodDiaryWidget.tsx",
+      "lines": 259,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodHeatmapWidget.tsx",
+      "lines": 97,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodInsightWidget.tsx",
+      "lines": 94,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MoodMonitorWidget.tsx",
+      "lines": 170,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/MotivationReminderWidget.tsx",
+      "lines": 53,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/NextDateCountdownWidget.tsx",
+      "lines": 80,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/NextDateWidget.tsx",
+      "lines": 179,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/OktoberfestBanner.tsx",
+      "lines": 38,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/OnboardingMusic.tsx",
+      "lines": 125,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/components/OnboardingMusic.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/PDFResumeGenerator.tsx",
+      "lines": 256,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/PastDatesArchiveWidget.tsx",
+      "lines": 302,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/PhotoVerificationModal.tsx",
+      "lines": 126,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/PopularDateIdeasWidget.tsx",
+      "lines": 134,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/PreDateChecklistWidget.tsx",
+      "lines": 83,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/PrePostDateVibeWidget.tsx",
+      "lines": 165,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ProfileCardThemeSelector.tsx",
+      "lines": 65,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ProfileCheckWidget.tsx",
+      "lines": 1063,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ProfileCompletionWidget.tsx",
+      "lines": 135,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ProfileDetailModal.tsx",
+      "lines": 99,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/QuickPreparationCountdownWidget.tsx",
+      "lines": 267,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/QuickRepliesDrawer.tsx",
+      "lines": 128,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/QuickThemeToggle.tsx",
+      "lines": 77,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/RecentIntrosWidget.tsx",
+      "lines": 107,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ReflectionInsightDashboard.tsx",
+      "lines": 96,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ReflectionLogWidget.tsx",
+      "lines": 350,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/RegistrierungsGate.tsx",
+      "lines": 121,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/Reiterleiste.tsx",
+      "lines": 95,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/RelationshipJourneyWidget.tsx",
+      "lines": 95,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/RelationshipProgressWidget.tsx",
+      "lines": 179,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/RitualReminderSetting.tsx",
+      "lines": 78,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SUSFeedbackModal.tsx",
+      "lines": 121,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SafeDatePlannerWidget.tsx",
+      "lines": 209,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SentimentAnalyticsWidget.tsx",
+      "lines": 127,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/Sichtschutz.tsx",
+      "lines": 136,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SituationalIcebreakerWidget.tsx",
+      "lines": 232,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SkeletonScreen.tsx",
+      "lines": 43,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartAuditWidget.tsx",
+      "lines": 362,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartDatePlannerWidget.tsx",
+      "lines": 297,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartDateReminderWidget.tsx",
+      "lines": 121,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartDatingDiaryWidget.tsx",
+      "lines": 357,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartDatingJournalWidget.tsx",
+      "lines": 233,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartMatchFilter.tsx",
+      "lines": 83,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartPause.tsx",
+      "lines": 327,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartVerbindungBadgeWidget.tsx",
+      "lines": 135,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartVerbindungCarousel.tsx",
+      "lines": 66,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartVerbindungTutorialOverlay.tsx",
+      "lines": 226,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartVibeMapWidget.tsx",
+      "lines": 151,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SmartVorschlaegeWidget.tsx",
+      "lines": 117,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SocialEnergyWidget.tsx",
+      "lines": 166,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/States.tsx",
+      "lines": 112,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SuccessDashboardWidget.tsx",
+      "lines": 269,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SuccessRadarWidget.tsx",
+      "lines": 143,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SuccessSummaryWidget.tsx",
+      "lines": 83,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/SyncBanner.tsx",
+      "lines": 45,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ThemeProvider.tsx",
+      "lines": 148,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/theme.test.tsx"
+      ]
+    },
+    {
+      "file": "src/components/TodayFeelingTrackerWidget.tsx",
+      "lines": 157,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/TrendingInterestsWidget.tsx",
+      "lines": 87,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/UpcomingDateWidget.tsx",
+      "lines": 218,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/ValuesQuizWidget.tsx",
+      "lines": 228,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VerbindungContextAnalysisWidget.tsx",
+      "lines": 162,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VerbindungInterestsTagCloudWidget.tsx",
+      "lines": 76,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VerbindungOptimizerWidget.tsx",
+      "lines": 114,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VerbindungScoreBadge.tsx",
+      "lines": 58,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VibeSummaryPDFGenerator.tsx",
+      "lines": 124,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/VoiceJournalWidget.tsx",
+      "lines": 115,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyConsistencyTracker.tsx",
+      "lines": 146,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyConsistencyWidget.tsx",
+      "lines": 129,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyMilestoneRevealWidget.tsx",
+      "lines": 93,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyMoodSummaryWidget.tsx",
+      "lines": 151,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklySuccessSummaryWidget.tsx",
+      "lines": 64,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyTimelineWidget.tsx",
+      "lines": 195,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WeeklyVibesWidget.tsx",
+      "lines": 232,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/WheelStatsWidget.tsx",
+      "lines": 155,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/components/YearInReviewWidget.tsx",
+      "lines": 122,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/core/auth/ForgotPasswordForm.tsx",
+      "lines": 69,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/core/auth/ForgotPasswordForm.test.tsx"
+      ]
+    },
+    {
+      "file": "src/core/auth/authMiddleware.ts",
+      "lines": 31,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/core/auth/passwordResetService.ts",
+      "lines": 25,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/core/auth/ForgotPasswordForm.test.tsx",
+        "src/core/auth/passwordResetService.test.ts"
+      ]
+    },
+    {
+      "file": "src/core/auth/sessionManager.ts",
+      "lines": 35,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/data.ts",
+      "lines": 15,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/i18n/LanguagePreference.tsx",
+      "lines": 42,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/i18n/config.ts",
+      "lines": 34,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/components/LanguageSwitcher.test.tsx",
+        "src/components/MessageBubble.test.tsx",
+        "src/i18n/config.test.ts"
+      ]
+    },
+    {
+      "file": "src/i18n/format.ts",
+      "lines": 26,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/i18n/format.test.ts"
+      ]
+    },
+    {
+      "file": "src/i18n/i18next.d.ts",
+      "lines": 13,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/i18n/locale.ts",
+      "lines": 15,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/i18n/format.test.ts"
+      ]
+    },
+    {
+      "file": "src/index.ts",
+      "lines": 33,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/AuthContext.tsx",
+      "lines": 326,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/AuthContext.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/aiCoachService.ts",
+      "lines": 48,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/__tests__/newServices.test.ts"
+      ]
+    },
+    {
+      "file": "src/lib/aiCostOptimization.ts",
+      "lines": 42,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/anmeldefehler.ts",
+      "lines": 80,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/anmeldefehler.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/api.ts",
+      "lines": 546,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/DashboardOnboarding.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/apiMonitor.ts",
+      "lines": 4,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/apiMonitor.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/appCheck.ts",
+      "lines": 17,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/appLogs.ts",
+      "lines": 89,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/authFetch.ts",
+      "lines": 62,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/authFetch.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/campaignService.ts",
+      "lines": 40,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/complianceGuardrails.ts",
+      "lines": 28,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/cropImage.ts",
+      "lines": 53,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/diagnostics.ts",
+      "lines": 15,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/efficiencyGovernanceService.ts",
+      "lines": 88,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/enterpriseObservability.ts",
+      "lines": 39,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/fcm.ts",
+      "lines": 45,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/fehler.ts",
+      "lines": 29,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/diagnostics.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/firebase.ts",
+      "lines": 125,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/firebaseUtils.ts",
+      "lines": 50,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/diagnostics.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/firestoreErrorHandler.ts",
+      "lines": 50,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/gastGrenze.ts",
+      "lines": 116,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/gastGrenze.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/geoFallback.ts",
+      "lines": 59,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/haptics.ts",
+      "lines": 72,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/klar.ts",
+      "lines": 180,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/klarPlus.ts",
+      "lines": 197,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/klarPlus.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/klarPlusService.ts",
+      "lines": 21,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/lib/klarPlusService.test.ts"
+      ]
+    },
+    {
+      "file": "src/lib/matching.ts",
+      "lines": 51,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/matching/matching.test.ts"
+      ]
+    },
+    {
+      "file": "src/lib/meilensteine.ts",
+      "lines": 254,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/meilensteine.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/offlineQueue.ts",
+      "lines": 116,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/pausenplan.ts",
+      "lines": 135,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/pausenplan.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/perfMonitor.ts",
+      "lines": 29,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/diagnostics.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/performanceTracker.ts",
+      "lines": 94,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/resilienceService.ts",
+      "lines": 17,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/smartMatchService.ts",
+      "lines": 33,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/sprache.ts",
+      "lines": 132,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/sprache.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/spracherkennung.ts",
+      "lines": 59,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/spracherkennung.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/stimmung.ts",
+      "lines": 194,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/stimmung.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/tagesstimmung.ts",
+      "lines": 170,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/tagesstimmung.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/telemetryPrivacy.ts",
+      "lines": 49,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/__tests__/ErrorBoundary.test.tsx",
+        "tests/AuthContext.spec.tsx",
+        "tests/apiMonitor.spec.ts",
+        "tests/diagnostics.spec.tsx",
+        "tests/telemetryPrivacy.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/textform.ts",
+      "lines": 156,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/textform.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/useChatGate.ts",
+      "lines": 54,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/useChatGate.spec.tsx"
+      ]
+    },
+    {
+      "file": "src/lib/useFirestoreSyncTime.ts",
+      "lines": 25,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/useModalAccessibility.ts",
+      "lines": 84,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/useOnline.ts",
+      "lines": 24,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/useUsageAnalytics.ts",
+      "lines": 62,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/verbindungszustand.ts",
+      "lines": 53,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/verbindungszustand.spec.ts"
+      ]
+    },
+    {
+      "file": "src/lib/verification/DiditProvider.ts",
+      "lines": 27,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/verification/VerificationService.ts",
+      "lines": 19,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/lib/verification/VerificationService.test.ts"
+      ]
+    },
+    {
+      "file": "src/lib/verification/types.ts",
+      "lines": 24,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/lib/wiederholung.ts",
+      "lines": 67,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/wiederholung.spec.ts"
+      ]
+    },
+    {
+      "file": "src/main.tsx",
+      "lines": 74,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/AICoach.tsx",
+      "lines": 1126,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/AdminDashboard.tsx",
+      "lines": 374,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/screens/AdminDashboard.test.tsx"
+      ]
+    },
+    {
+      "file": "src/screens/ChatView.tsx",
+      "lines": 2314,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Chats.tsx",
+      "lines": 172,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Dashboard.tsx",
+      "lines": 2921,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/DatingRituals.tsx",
+      "lines": 358,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/KlarPlus.tsx",
+      "lines": 246,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Login.tsx",
+      "lines": 294,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/LoginView.tsx",
+      "lines": 98,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/MeilensteineAlle.tsx",
+      "lines": 103,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Onboarding.tsx",
+      "lines": 205,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Profile.tsx",
+      "lines": 2218,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/ProfileSettings.tsx",
+      "lines": 36,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Rechtstexte.tsx",
+      "lines": 155,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/SafetyCenter.tsx",
+      "lines": 145,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Tips.tsx",
+      "lines": 730,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/screens/Verifizierung.tsx",
+      "lines": 158,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/security/rateLimiter.ts",
+      "lines": 40,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/security/rateLimiter.test.ts"
+      ]
+    },
+    {
+      "file": "src/security/rbac.ts",
+      "lines": 33,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/security/rbac.test.ts"
+      ]
+    },
+    {
+      "file": "src/server/aiBudget.ts",
+      "lines": 64,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/server/aiBudget.test.ts",
+        "tests/aiBudgetPersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/analytics.ts",
+      "lines": 23,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/authorization.ts",
+      "lines": 37,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/chatAccess.ts",
+      "lines": 38,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/consentAudit.ts",
+      "lines": 86,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/consentAudit.spec.ts",
+        "tests/consentPersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/consentPersistence.ts",
+      "lines": 56,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/datenschutz.ts",
+      "lines": 335,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/consentFailures.spec.ts",
+        "tests/consentPersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/db.ts",
+      "lines": 58,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/accountErasure.spec.ts",
+        "tests/aiBudgetPersistence.spec.ts",
+        "tests/chatPersistence.spec.ts",
+        "tests/consentPersistence.spec.ts",
+        "tests/db.spec.ts",
+        "tests/recommendationPrivacy.spec.ts",
+        "tests/stripePersistence.spec.ts",
+        "tests/verificationSecurity.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/email.ts",
+      "lines": 180,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/emulatorCsp.ts",
+      "lines": 63,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/emulatorCsp.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/envValidation.ts",
+      "lines": 75,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/firebaseRuntime.ts",
+      "lines": 24,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/firebaseRuntime.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/gastrechte.ts",
+      "lines": 130,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/inMemoryStore.ts",
+      "lines": 260,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/kiAufruf.ts",
+      "lines": 298,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/server/aiBudget.test.ts",
+        "tests/kiAufruf.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/kiPolitik.ts",
+      "lines": 331,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/kiPolitik.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/klarCore.ts",
+      "lines": 544,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/chatPersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/kontingente.ts",
+      "lines": 109,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/kontingente.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/kuratiert.ts",
+      "lines": 269,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/messages.ts",
+      "lines": 42,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/chatPersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/notifications.ts",
+      "lines": 46,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/platform/admobSsvEngine.ts",
+      "lines": 19,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/verificationSecurity.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/platform/compatibility.ts",
+      "lines": 57,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/server/platform/compatibility.test.ts",
+        "tests/enterprise/platform.spec.ts",
+        "tests/recommendationPrivacy.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/platform/dsaAppealEngine.ts",
+      "lines": 86,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/platform/featureFlags.ts",
+      "lines": 57,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "src/server/platform/featureFlags.test.ts"
+      ]
+    },
+    {
+      "file": "src/server/platform/launchPlatform.ts",
+      "lines": 254,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/server/platform/launchPlatform.test.ts",
+        "tests/recommendationPrivacy.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/platform/riskEngine.ts",
+      "lines": 31,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/enterprise/platform.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/pure.ts",
+      "lines": 459,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/ConsentSettings.spec.tsx",
+        "tests/analyticsEndpoint.spec.ts",
+        "tests/pure.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/routes/account.ts",
+      "lines": 67,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/accountPreferences.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/routes/analytics.ts",
+      "lines": 42,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/analyticsEndpoint.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/routes/chat.ts",
+      "lines": 66,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/routes/health.ts",
+      "lines": 104,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/routes/webhooks.ts",
+      "lines": 40,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/securityHeaders.ts",
+      "lines": 32,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/storage.ts",
+      "lines": 16,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/accountErasure.spec.ts",
+        "tests/storageRules.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/stripeService.ts",
+      "lines": 105,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/server/stripeService.test.ts",
+        "tests/stripePersistence.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/translation.ts",
+      "lines": 34,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/translationService.ts",
+      "lines": 58,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/trustAndSafety.ts",
+      "lines": 276,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/accountErasure.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/verification-routes.ts",
+      "lines": 9,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/verification/DiditProvider.ts",
+      "lines": 11,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/verification.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/verification/IdNowProvider.ts",
+      "lines": 11,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/verification.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/verification/VerificationManager.ts",
+      "lines": 38,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/verification.spec.ts"
+      ]
+    },
+    {
+      "file": "src/server/verification/types.ts",
+      "lines": 24,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/server/zwischenspeicher.ts",
+      "lines": 156,
+      "reachableFromEntrypoint": false,
+      "directTestImports": [
+        "tests/zwischenspeicher.spec.ts"
+      ]
+    },
+    {
+      "file": "src/services/aiCoachService.ts",
+      "lines": 3,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/authRecovery.ts",
+      "lines": 126,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/costOptimizationService.ts",
+      "lines": 71,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/dataExportService.ts",
+      "lines": 90,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/funnelValidation.ts",
+      "lines": 17,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "tests/unit/funnelValidation.test.ts"
+      ]
+    },
+    {
+      "file": "src/services/geminiCacheService.ts",
+      "lines": 32,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/matchScore.ts",
+      "lines": 79,
+      "reachableFromEntrypoint": true,
+      "directTestImports": [
+        "src/services/matchScore.test.ts"
+      ]
+    },
+    {
+      "file": "src/services/notificationService.ts",
+      "lines": 309,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/pushNotificationService.ts",
+      "lines": 42,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/recommendationEngine.ts",
+      "lines": 78,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/services/smartMatchService.ts",
+      "lines": 16,
+      "reachableFromEntrypoint": true,
+      "directTestImports": []
+    },
+    {
+      "file": "src/setupTests.ts",
+      "lines": 3,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    },
+    {
+      "file": "src/types/user.ts",
+      "lines": 16,
+      "reachableFromEntrypoint": false,
+      "directTestImports": []
+    }
+  ],
+  "apiRoutes": [
+    {
+      "method": "GET",
+      "path": "/api/admin/build-info",
+      "source": "server.ts",
+      "line": 455,
+      "literalTestReferences": [
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/failed-apis",
+      "source": "server.ts",
+      "line": 459,
+      "literalTestReferences": [
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/health-check",
+      "source": "server.ts",
+      "line": 463,
+      "literalTestReferences": [
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/report",
+      "source": "server.ts",
+      "line": 809,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/send-verification",
+      "source": "server.ts",
+      "line": 810,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/block",
+      "source": "server.ts",
+      "line": 811,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/legal-updates",
+      "source": "server.ts",
+      "line": 820,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/launch/summary",
+      "source": "server.ts",
+      "line": 843,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/feedback",
+      "source": "server.ts",
+      "line": 863,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/profile/publish",
+      "source": "server.ts",
+      "line": 896,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/recommendations",
+      "source": "server.ts",
+      "line": 918,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/referral",
+      "source": "server.ts",
+      "line": 938,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/referral/claim",
+      "source": "server.ts",
+      "line": 955,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/activation",
+      "source": "server.ts",
+      "line": 980,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/launch/founding-claim",
+      "source": "server.ts",
+      "line": 993,
+      "literalTestReferences": [
+        "tests/DashboardOnboarding.spec.tsx"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/activation/summary",
+      "source": "server.ts",
+      "line": 1028,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/claim-launch-promo",
+      "source": "server.ts",
+      "line": 1044,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/quota",
+      "source": "server.ts",
+      "line": 1101,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/contact",
+      "source": "server.ts",
+      "line": 1102,
+      "literalTestReferences": [
+        "tests/e2e/e2e-critical-flows.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/contact/undo",
+      "source": "server.ts",
+      "line": 1103,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/verification/status",
+      "source": "server.ts",
+      "line": 1106,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/verification/challenge",
+      "source": "server.ts",
+      "line": 1107,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/verification/submit",
+      "source": "server.ts",
+      "line": 1108,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/verification/decide",
+      "source": "server.ts",
+      "line": 1109,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/subscription/status",
+      "source": "server.ts",
+      "line": 1116,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/subscription/cancel",
+      "source": "server.ts",
+      "line": 1117,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/subscription/withdraw",
+      "source": "server.ts",
+      "line": 1118,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/audit-logs",
+      "source": "server.ts",
+      "line": 1121,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai-list",
+      "source": "server.ts",
+      "line": 1164,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/analyze-reflection",
+      "source": "server.ts",
+      "line": 1189,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai-coach",
+      "source": "server.ts",
+      "line": 1221,
+      "literalTestReferences": [
+        "tests/api-ai-coach.spec.ts",
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/check-safety",
+      "source": "server.ts",
+      "line": 1248,
+      "literalTestReferences": [
+        "tests/kiAufruf.spec.ts",
+        "tests/kiPolitik.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/compatibility-radar",
+      "source": "server.ts",
+      "line": 1375,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/dating-journal-analysis",
+      "source": "server.ts",
+      "line": 1415,
+      "literalTestReferences": [
+        "tests/kiPolitik.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/conversation-dynamics",
+      "source": "server.ts",
+      "line": 1448,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/date-check",
+      "source": "server.ts",
+      "line": 1488,
+      "literalTestReferences": [
+        "tests/kiPolitik.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/deep-verbindung-info",
+      "source": "server.ts",
+      "line": 1528,
+      "literalTestReferences": [],
+      "status": "retired",
+      "caller": "none",
+      "notes": "Retired on 2026-09-30 after repository-wide caller tracing; server returns 410 Gone."
+    },
+    {
+      "method": "POST",
+      "path": "/api/nogo-suggestions",
+      "source": "server.ts",
+      "line": 1557,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/weekly-review",
+      "source": "server.ts",
+      "line": 1599,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/extract-success-factors",
+      "source": "server.ts",
+      "line": 1637,
+      "literalTestReferences": [],
+      "status": "retired",
+      "caller": "none",
+      "notes": "Retired on 2026-10-01; no active network caller and no writer for klar_success_factors."
+    },
+    {
+      "method": "POST",
+      "path": "/api/quick-insight",
+      "source": "server.ts",
+      "line": 1672,
+      "literalTestReferences": [
+        "tests/kiAufruf.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/conversation-tuning",
+      "source": "server.ts",
+      "line": 1699,
+      "literalTestReferences": [
+        "tests/kiAufruf.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/reply-suggestions",
+      "source": "server.ts",
+      "line": 1742,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/icebreakers",
+      "source": "server.ts",
+      "line": 1768,
+      "literalTestReferences": [
+        "src/server/aiBudget.test.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/profile-check",
+      "source": "server.ts",
+      "line": 1801,
+      "literalTestReferences": [
+        "tests/kiPolitik.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/optimize-bio-values",
+      "source": "server.ts",
+      "line": 1849,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/journal-audio-dump",
+      "source": "server.ts",
+      "line": 1888,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/smart-audit",
+      "source": "server.ts",
+      "line": 1918,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/dating-readiness",
+      "source": "server.ts",
+      "line": 2014,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/daily-coach-insight",
+      "source": "server.ts",
+      "line": 2052,
+      "literalTestReferences": [
+        "tests/kiAufruf.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/verify-photo",
+      "source": "server.ts",
+      "line": 2146,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/ads/callback",
+      "source": "server.ts",
+      "line": 2162,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/ab-test",
+      "source": "server.ts",
+      "line": 2166,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/device-token",
+      "source": "server.ts",
+      "line": 2184,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/subscribe-klar-plus",
+      "source": "server.ts",
+      "line": 2203,
+      "literalTestReferences": [
+        "tests/klarPlus.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/{*path}",
+      "source": "server.ts",
+      "line": 2287,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/alter",
+      "source": "src/index.ts",
+      "line": 21,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/e2e/identity-helpers.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/account/preferences",
+      "source": "src/server/routes/account.ts",
+      "line": 28,
+      "literalTestReferences": [
+        "tests/accountPreferences.spec.ts",
+        "tests/e2e/localization.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/delete",
+      "source": "src/server/routes/account.ts",
+      "line": 39,
+      "literalTestReferences": [
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/alter",
+      "source": "src/server/routes/account.ts",
+      "line": 40,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/e2e/identity-helpers.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/account/export",
+      "source": "src/server/routes/account.ts",
+      "line": 41,
+      "literalTestReferences": [
+        "tests/e2e/onboarding.spec.ts",
+        "tests/gastrechte.spec.ts",
+        "tests/kontingente.spec.ts",
+        "tests/rules.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/einwilligung",
+      "source": "src/server/routes/account.ts",
+      "line": 42,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/e2e/identity-helpers.ts",
+        "tests/e2e/onboarding.spec.ts",
+        "tests/e2e/privacy-settings.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/einwilligung",
+      "source": "src/server/routes/account.ts",
+      "line": 43,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/e2e/identity-helpers.ts",
+        "tests/e2e/onboarding.spec.ts",
+        "tests/e2e/privacy-settings.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/einwilligung/widerruf",
+      "source": "src/server/routes/account.ts",
+      "line": 44,
+      "literalTestReferences": [
+        "tests/e2e/privacy-settings.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/account/status",
+      "source": "src/server/routes/account.ts",
+      "line": 46,
+      "literalTestReferences": [
+        "tests/e2e/e2e-critical-flows.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/track",
+      "source": "src/server/routes/analytics.ts",
+      "line": 20,
+      "literalTestReferences": [
+        "tests/analyticsEndpoint.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/gate/status",
+      "source": "src/server/routes/chat.ts",
+      "line": 12,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/gate/answer",
+      "source": "src/server/routes/chat.ts",
+      "line": 13,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts",
+        "tests/gastrechte.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/send",
+      "source": "src/server/routes/chat.ts",
+      "line": 14,
+      "literalTestReferences": [
+        "tests/e2e/chat-security.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/send-audio",
+      "source": "src/server/routes/chat.ts",
+      "line": 15,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/chats",
+      "source": "src/server/routes/chat.ts",
+      "line": 16,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/chats/:chatId",
+      "source": "src/server/routes/chat.ts",
+      "line": 32,
+      "literalTestReferences": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/mark-read",
+      "source": "src/server/routes/chat.ts",
+      "line": 45,
+      "literalTestReferences": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "source": "src/server/routes/health.ts",
+      "line": 31,
+      "literalTestReferences": [
+        "tests/api-observability.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "source": "src/server/routes/health.ts",
+      "line": 35,
+      "literalTestReferences": [
+        "tests/api-observability.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/metrics",
+      "source": "src/server/routes/health.ts",
+      "line": 44,
+      "literalTestReferences": [
+        "tests/api-observability.spec.ts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/system-health",
+      "source": "src/server/routes/health.ts",
+      "line": 80,
+      "literalTestReferences": [
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/webhooks/stripe",
+      "source": "src/server/routes/webhooks.ts",
+      "line": 26,
+      "literalTestReferences": [
+        "tests/api-security.spec.ts"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/verification/verify",
+      "source": "src/server/verification-routes.ts",
+      "line": 5,
+      "literalTestReferences": [
+        "tests/verificationSecurity.spec.ts"
+      ]
+    }
+  ]
+}

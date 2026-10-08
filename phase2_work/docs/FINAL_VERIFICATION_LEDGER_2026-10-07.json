@@ -1,0 +1,29 @@
+{
+  "project": "Klar",
+  "version": "v149",
+  "date": "2026-10-07",
+  "static_gates": {
+    "secrets": "PASS",
+    "auth_boundary": "PASS",
+    "public_firestore_rules": "PASS",
+    "ai_pii_sanitizer": "PASS",
+    "art17_deletion_audit": "PASS",
+    "date_prep_checklist_boundary": "PASS",
+    "isverified_authority": "PASS",
+    "didit_webhook_boundary": "PASS",
+    "didit_kyc_integrity": "PASS",
+    "kyc_reconciliation": "PASS",
+    "user_storage_boundary": "PASS",
+    "i18n": "PASS",
+    "naming": "PASS",
+    "accessible_labels": "PASS"
+  },
+  "dependency_backed_gates": {
+    "typecheck": "BLOCKED_ENVIRONMENT",
+    "test_pure": "BLOCKED_ENVIRONMENT",
+    "test_rules": "BLOCKED_ENVIRONMENT",
+    "playwright": "BLOCKED_ENVIRONMENT",
+    "build": "BLOCKED_ENVIRONMENT"
+  },
+  "production_promotion": "NOT_APPROVED"
+}

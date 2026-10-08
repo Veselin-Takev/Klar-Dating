@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      linting-and-types:
+        patterns:
+          - "eslint*"
+          - "typescript-eslint*"
+          - "@types/*"
+      frontend-frameworks:
+        patterns:
+          - "motion*"
+          - "lucide-react*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"

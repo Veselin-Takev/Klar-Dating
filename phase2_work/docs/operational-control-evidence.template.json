@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "buildSha": "0000000000000000000000000000000000000000",
+  "environment": "production",
+  "secretRotation": {
+    "secretName": "REPLACE",
+    "oldVersionDisabled": false,
+    "newVersionCreatedAt": "2026-09-29T00:00:00Z",
+    "workloadObservedNewVersionAt": "2026-09-29T00:00:00Z",
+    "smokeTest": "failed",
+    "evidenceLinks": [
+      "REPLACE"
+    ]
+  },
+  "alertDelivery": {
+    "policyName": "REPLACE",
+    "exerciseStartedAt": "2026-09-29T00:00:00Z",
+    "notificationReceivedAt": "2026-09-29T00:00:00Z",
+    "acknowledgedAt": "2026-09-29T00:00:00Z",
+    "recipient": "REPLACE",
+    "channelType": "REPLACE",
+    "evidenceLinks": [
+      "REPLACE"
+    ]
+  }
+}

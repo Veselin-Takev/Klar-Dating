@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "service": "klar-app",
+  "windowDays": 30,
+  "objectives": [
+    {
+      "name": "api-availability",
+      "target": 0.9995,
+      "indicator": "successful_api_requests / eligible_api_requests"
+    },
+    {
+      "name": "messaging-availability",
+      "target": 0.9999,
+      "indicator": "successful_message_requests / eligible_message_requests"
+    },
+    {
+      "name": "api-latency-p95-ms",
+      "target": 300,
+      "indicator": "p95(klar_http_latency_ms)"
+    },
+    {
+      "name": "message-send-p95-ms",
+      "target": 500,
+      "indicator": "p95(message_send_latency_ms)"
+    },
+    {
+      "name": "ai-availability",
+      "target": 0.995,
+      "indicator": "successful_ai_requests / eligible_ai_requests"
+    }
+  ],
+  "burnRateAlerts": [
+    { "window": "1h", "threshold": 14.4, "severity": "page" },
+    { "window": "6h", "threshold": 6, "severity": "page" },
+    { "window": "3d", "threshold": 1, "severity": "ticket" }
+  ]
+}
