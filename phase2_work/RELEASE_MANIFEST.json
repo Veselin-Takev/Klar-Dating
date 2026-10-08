@@ -42,6 +42,6 @@
       "dynamicTestEvidence",
       "attestation"
     ],
-    "status": "pending-dynamic-ci"
+    "status": "pending-dynamic-ci-and-remote-sync"
   }
 }
