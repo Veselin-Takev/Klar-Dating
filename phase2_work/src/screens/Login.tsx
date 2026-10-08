@@ -50,6 +50,17 @@ import { useState } from "react";
 
 import { verbindungshinweis } from '../lib/verbindungszustand';
 import { getUserStorageItem } from '../lib/userScopedStorage';
+function firebaseErrorCode(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const code = (error as Record<string, unknown>).code;
+  return typeof code === 'string' ? code : '';
+}
+function firebaseErrorMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const message = (error as Record<string, unknown>).message;
+  return typeof message === 'string' ? message : '';
+}
+
 export default function Login() {
   const { t } = useTranslation();
   let deletionReference: string | null = null;
@@ -105,9 +116,9 @@ export default function Login() {
     try {
       await signInWithGoogle();
     } catch (e: unknown) {
-      if (e?.code === 'auth/popup-closed-by-user') {
+      if (firebaseErrorCode(e) === 'auth/popup-closed-by-user') {
         setError('cancelled');
-      } else if (e?.code === 'auth/unauthorized-domain' || e?.code === 'auth/network-request-failed' || e?.message?.includes('network-request-failed') || e?.message?.includes('org_internal') || e?.message?.includes('Access blocked')) {
+      } else if (firebaseErrorCode(e) === 'auth/unauthorized-domain' || firebaseErrorCode(e) === 'auth/network-request-failed' || firebaseErrorMessage(e).includes('network-request-failed') || firebaseErrorMessage(e).includes('org_internal') || firebaseErrorMessage(e).includes('Access blocked')) {
         setError('googleUnavailable');
       } else {
         setError('failed');
@@ -123,7 +134,7 @@ export default function Login() {
     try {
       await signInAsGuest();
     } catch (e: unknown) {
-      if (e?.code === 'auth/admin-restricted-operation') {
+      if (firebaseErrorCode(e) === 'auth/admin-restricted-operation') {
         setError('guestUnavailable');
       } else {
         setError('guestFailed');
@@ -148,20 +159,20 @@ export default function Login() {
             await signInWithEmail(email, password);
         }
     } catch (e: unknown) {
-        if (e.code === 'auth/unverified-email') {
+        if (firebaseErrorCode(e) === 'auth/unverified-email') {
             setError('verifyEmail');
-        } else if (e.code === 'auth/verification-sent') {
+        } else if (firebaseErrorCode(e) === 'auth/verification-sent') {
             setError('registered');
             setIsSignUp(false);
             setEmail("");
             setPassword("");
-        } else if (e.code === 'auth/email-already-in-use') {
+        } else if (firebaseErrorCode(e) === 'auth/email-already-in-use') {
             setError('emailUsed');
-        } else if (e.code === 'auth/invalid-credential') {
+        } else if (firebaseErrorCode(e) === 'auth/invalid-credential') {
             setError('invalid');
-        } else if (e.code === 'auth/weak-password') {
+        } else if (firebaseErrorCode(e) === 'auth/weak-password') {
             setError('weakPassword');
-        } else if (e.code === 'auth/operation-not-allowed') {
+        } else if (firebaseErrorCode(e) === 'auth/operation-not-allowed') {
             setError('emailUnavailable');
         } else {
             setError('error');
