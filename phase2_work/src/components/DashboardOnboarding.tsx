@@ -10,6 +10,13 @@ const ONBOARDING_KEY = 'klar_onboarding_state';
 const LEGACY_ONBOARDING_KEY = 'klar_onboarding_seen';
 const ACTIVATION_STARTED_ID = 'onboarding_v2_started';
 const ACTIVATION_COMPLETED_ID = 'onboarding_v2_completed';
+
+const steps = [
+  { title: 'dashboardOnboarding.steps.0.title', content: 'dashboardOnboarding.steps.0.content' },
+  { title: 'dashboardOnboarding.steps.1.title', content: 'dashboardOnboarding.steps.1.content' },
+  { title: 'dashboardOnboarding.steps.2.title', content: 'dashboardOnboarding.steps.2.content' },
+  { title: 'dashboardOnboarding.steps.3.title', content: 'dashboardOnboarding.steps.3.content' },
+] as const;
 type OnboardingState = { version: number; state: 'in_progress' | 'completed' | 'skipped'; completedAt?: string; skipped?: boolean };
 function readState(): OnboardingState | null {
   try {
@@ -56,7 +63,7 @@ export function DashboardOnboarding() {
   };
   const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(() => close(), isVisible);
   if (!isVisible) return null;
-  const currentStep = steps[step];
+  const currentStep = steps[step] ?? steps[0]!;
 
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60">
@@ -73,10 +80,10 @@ export function DashboardOnboarding() {
         transition={{ duration: reducedMotion ? 0 : 0.15 }}
         className="bg-white dark:bg-stone-800 rounded-[24px] p-6 max-w-sm w-full max-h-[90dvh] overflow-y-auto"
       >
-        <h2 id={titleId} className="text-xl font-serif text-stone-900 dark:text-white mb-2">{t(`dashboardOnboarding.steps.${step}.title`)}</h2>
-        <p id={descriptionId} className="text-base text-stone-600 dark:text-stone-300 mb-4">{t(`dashboardOnboarding.steps.${step}.content`)}</p>
+        <h2 id={titleId} className="text-xl font-serif text-stone-900 dark:text-white mb-2">{t(currentStep.title)}</h2>
+        <p id={descriptionId} className="text-base text-stone-600 dark:text-stone-300 mb-4">{t(currentStep.content)}</p>
         <p role="status" className="text-sm text-stone-600 dark:text-stone-300 mb-6">
-          {t('dashboardOnboarding.progress', { step: step + 1, total: steps.length })}<span className="sr-only">: {currentStep?.title}</span>
+          {t('dashboardOnboarding.progress', { step: step + 1, total: steps.length })}<span className="sr-only">: {t(currentStep.title)}</span>
         </p>
         <div className="flex flex-wrap justify-between items-center gap-3">
           <button type="button" onClick={() => close()} className="px-3 py-2.5 text-stone-700 dark:text-stone-200 rounded-full">{t('dashboardOnboarding.skip')}</button>
