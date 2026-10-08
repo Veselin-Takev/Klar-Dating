@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { getDb } from './db';
+import type { Firestore } from 'firebase-admin/firestore';
 
 export type DistributedRateLimitOptions = {
   collection: string;
@@ -8,6 +9,7 @@ export type DistributedRateLimitOptions = {
   limit: number;
   keyGenerator: (req: Request) => string;
   message: Record<string, unknown>;
+  getDb?: () => Firestore;
 };
 
 function hashKey(collection: string, identity: string): string {
@@ -19,7 +21,7 @@ export function distributedRateLimit(options: DistributedRateLimitOptions) {
   if (!Number.isSafeInteger(options.limit) || options.limit <= 0) throw new Error('Invalid rate-limit limit.');
   return async function distributedRateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
     const identity = (options.keyGenerator(req) || 'ip:' + (req.ip ?? 'unknown')).trim();
-    const db = getDb();
+    const db = options.getDb ? options.getDb() : getDb();
     const ref = db.collection(options.collection).doc(hashKey(options.collection, identity));
     const now = Date.now();
     try {

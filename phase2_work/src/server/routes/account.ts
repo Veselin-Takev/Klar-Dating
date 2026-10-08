@@ -66,6 +66,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 5,
     keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Altersprüfungen. Bitte später erneut versuchen.' },
+    getDb: getFirestore,
   });
   const accountAlterSchema = z.object({
     geburtsdatum: z.string().trim().min(1).max(10).regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE_FORMAT'),
@@ -79,6 +80,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       return uid ? 'uid:' + uid : 'ip:' + (req.ip ?? 'unknown');
     },
     message: { error: 'Zu viele Auskunftsanfragen. Bitte später erneut versuchen.' },
+    getDb: getFirestore,
   });
   const accountPreferencesLimiter = distributedRateLimit({
     collection: 'rate_limit_account_preferences',
@@ -86,6 +88,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 30,
     keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einstellungsänderungen. Bitte später erneut versuchen.' },
+    getDb: getFirestore,
   });
   const consentWriteLimiter = distributedRateLimit({
     collection: 'rate_limit_consent_write',
@@ -93,6 +96,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 20,
     keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einwilligungsänderungen. Bitte später erneut versuchen.' },
+    getDb: getFirestore,
   });
   router.post('/auth/logout', async (req, res) => {
     const uid = currentUserId(req);
