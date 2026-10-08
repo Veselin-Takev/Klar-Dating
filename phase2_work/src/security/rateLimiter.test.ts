@@ -8,7 +8,7 @@ describe('rateLimiter middleware', () => {
   let next: NextFunction;
 
   beforeEach(() => {
-    req = { ip: '127.0.0.1', socket: {} as unknown };
+    req = { ip: '127.0.0.1', socket: {} as Request['socket'] };
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
