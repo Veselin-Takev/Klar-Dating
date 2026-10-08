@@ -1,10 +1,16 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '../..');
+const workflowDir = path.join(repoRoot, '.github', 'workflows');
 const failures = [];
 const expectedNode = '22.23.3';
-const workflows = fs.readdirSync('.github/workflows')
+const workflows = fs.readdirSync(workflowDir)
   .filter(name => /\.ya?ml$/.test(name))
-  .map(name => `.github/workflows/${name}`)
+  
+  .map(name => path.join(workflowDir, name))
   .sort();
 if (workflows.length === 0) {
   console.error('CI toolchain pin gate FAILED: no GitHub Actions workflows found.');
@@ -28,7 +34,7 @@ for (const file of workflows) {
   }
 }
 
-const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'phase2_work', 'package.json'), 'utf8'));
 if (packageJson.engines?.node !== '>=22.23.3') {
   failures.push(`package.json engines.node must remain >=${expectedNode}.`);
 }
