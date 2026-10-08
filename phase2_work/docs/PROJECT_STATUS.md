@@ -245,3 +245,12 @@ Supply-chain hardening was extended from Buildx provenance/OCI metadata to a Git
 This follows current GitHub guidance that provenance generation must be accompanied by verification and that container attestations should be bound to the image name and immutable digest. citeturn0search2turn0search0
 
 Production remains **NO-GO / NOT CONFIRMED** until the exact candidate head passes dynamic CI and the independent production approval/operational evidence is present.
+
+
+### 2026-10-08 — Attestation action immutability hardening
+
+The GitHub container provenance attestation introduced in the previous release-hardening step is now pinned to the reviewed full commit SHA `7d8b1cacecb65f487779b3b98fd5296a018d1a1b` instead of the mutable `v4` tag. The release workflow gate requires this immutable reference. This closes the remaining mutable third-party-action reference introduced by the attestation control and preserves the repository-wide full-SHA policy.
+
+GitHub documents full-length commit-SHA pinning as the immutable-release control for Actions and recommends it for supply-chain protection. citeturn0search2turn0search8
+
+Production remains **NO-GO / NOT CONFIRMED** pending dynamic exact-head CI and independent operational/governance evidence.
