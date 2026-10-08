@@ -1,21 +1,21 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `fbd45fd5066f653226faf2403acb47b4eef253d4`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `8d3b5d6291fbb4d6c342f5bd8c7da9b58c419fa0`.
 
 ## Current authoritative status
 
-- The current Exact-Head CI candidate is `fbd45fd5066f653226faf2403acb47b4eef253d4`. The immediately preceding completed gate exposed only the consent profile type-contract blocker; that was remediated before this head.
-- The Firestore observability boundary is enforced through the central `src/server/db.ts` acquisition path; its transaction request/error metrics and Enterprise boundary gate are committed.
-- The Chat `/api/chats` list path now performs one initial chat query followed by one deduplicated `getAll(...references)` bulk read for block/deletion/profile state instead of one transaction plus one profile read per chat. This removes the per-chat transaction/RPC amplification while preserving the existing access, block, deletion and example-profile semantics.
-- Runtime trace evidence is still required to quantify the resulting Firestore read/latency improvement before the Chat P1 can be closed as fully remediated.
-- Process-local rate limits remain **P1 / OPEN pending evidence**. Critical chat message and gate-answer paths remain distributed; broader migration is not introduced without demonstrated multi-instance risk.
-- **Production release remains NO-GO / NOT CONFIRMED.** The exact-head Enterprise CI must pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance, followed by the independent operational/governance gates.
+- Critical Multi-Instance rate limits are now backed by the shared Firestore transaction boundary for account/consent changes, billing checkout, device-token writes, launch/referral flows and Trust-&-Safety writes.
+- The Cloud Run deployment template permits up to 10 instances; process-local counters were therefore insufficient as the sole abuse control on those critical paths.
+- A dedicated `check:rate-limit-distribution` Enterprise gate prevents the critical modules from silently reverting to local counters.
+- The Chat `/api/chats` N+1 mitigation is implemented via deduplicated Firestore bulk reads; runtime traces remain required to close the P1 with measured read/latency evidence.
+- The latest Exact-Head CI run must still pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the final head before technical release gates are green.
+- **Production release remains NO-GO / NOT CONFIRMED.**
 
-## Latest remediation — Chat read-path hardening
+## Latest remediation — distributed critical rate limits
 
-- `routes/chat.ts` validates chat participant tuples before constructing access references.
-- Access checks and public profile reads are deduplicated by document path and issued through a single bounded `getAll` call. Up to 50 chats therefore avoid 50 individual transactions and 50 sequential profile requests.
-- The endpoint remains bounded at 50 conversations and continues to fail closed on account deletion, either block direction, invalid participant data and example profiles.
+- `src/server/distributedRateLimiter.ts` provides atomic Firestore-backed counters with bounded identities, fail-closed 503 behavior on unavailable limiter storage, and RateLimit/Retry-After metadata.
+- Critical state-changing and cost-sensitive routers use the distributed middleware. Authenticated paths are UID-scoped; unauthenticated requests fall through to the existing global authentication/rate-limit controls.
+- The global API limiter and lower-risk read/anonymous limiters remain local by design and are not treated as authoritative cross-instance enforcement.
 
 ## Release evidence rule
 

@@ -98,6 +98,16 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 - Der Fix zielt auf RPC-/Latenz-N+1 und reduziert die Anzahl separater Firestore-Aufrufe deutlich; die tatsächliche Read-/Kostenreduktion muss mit Runtime-Traces bestätigt werden, bevor der P1-Befund geschlossen wird.
 - Keine Denormalisierung oder speculative caching wurde eingeführt, um Staleness- und Datenschutzrisiken zu vermeiden.
 
+## Update 2026-10-08 — Critical rate-limit distribution hardening
+
+Cloud Run allows up to 10 instances in the current deployment template. Critical abuse-sensitive and cost-sensitive paths therefore cannot rely on in-process counters alone.
+
+The following paths now use an atomic Firestore-backed rate-limit counter: account/consent writes, Klar+ checkout creation, device-token writes, launch/referral flows and Trust-&-Safety writes.
+
+The limiter fails closed when shared state is unavailable, exposes standard remaining/reset metadata, and is guarded by a static Enterprise regression check.
+
+Lower-risk read/anonymous rate limits remain local to avoid turning every read into a Firestore dependency; they are not considered the authoritative multi-instance abuse control.
+
 ## 4. Dokumentations-Updates
 
 ### Release Gate Policy
