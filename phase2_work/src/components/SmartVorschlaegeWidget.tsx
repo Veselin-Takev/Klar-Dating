@@ -39,25 +39,6 @@ interface GeplantesDate {
   idea: string;
 }
 
-/** Nimmt an, was die Form hat, und verwirft den Rest. Ein halb gelesener
- *  Termin wäre schlimmer als keiner. */
-function geplanteDatesAus(wert: unknown): GeplantesDate[] {
-  if (!Array.isArray(wert)) return [];
-  const aus: GeplantesDate[] = [];
-  for (const e of wert) {
-    if (e === null || typeof e !== 'object') continue;
-    const o = e as Record<string, unknown>;
-    if (typeof o['date'] !== 'string') continue;
-    if (Number.isNaN(new Date(o['date']).getTime())) continue;
-    aus.push({
-      date: o['date'],
-      matchName: typeof o['matchName'] === 'string' ? o['matchName'] : 'deiner Verbindung',
-      idea: typeof o['idea'] === 'string' ? o['idea'] : '',
-    });
-  }
-  return aus;
-}
-
 /** Der nächste Termin in der Zukunft, oder `null`. */
 function naechsterTermin(dates: readonly GeplantesDate[], jetzt: Date): GeplantesDate | null {
   const kommend = dates
