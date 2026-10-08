@@ -1,0 +1,34 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+*.swp
+*.swo
+*.swn
+playwright-report/
+test-results/
+coverage/
+*.pem
+*.key
+service-account*.json
+firebase-adminsdk*.json
+release/
+.DS_Store
+
+# Google Cloud CLI SDK (lokal)
+google-cloud-sdk/
+google-cloud-sdk-linux-x86_64.tar.gz
+
+
+# Google Cloud CLI SDK (lokal)
+google-cloud-sdk/
+google-cloud-sdk-linux-x86_64.tar.gz
+
+*.tar.gz
+
+
+functions/lib/
+docs/api/

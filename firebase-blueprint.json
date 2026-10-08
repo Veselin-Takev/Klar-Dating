@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "goal": { "type": "string" },
+        "isAdult": { "type": "boolean" },
+        "smartMatchAlerts": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "createdAt", "updatedAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "A conversation between two users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string", "maxLength": 1000 },
+        "lastMessageAt": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["participants", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A message in a chat",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["chatId", "senderId", "text", "createdAt"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Connection test document for health checks",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profiles"
+    },
+    "chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Stores chats between users"
+    },
+    "chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Stores messages within a chat"
+    },
+    "test/{docId}": {
+      "schema": "TestConnection",
+      "description": "Connection probe document"
+    }
+  }
+}

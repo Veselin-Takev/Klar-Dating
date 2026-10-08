@@ -1,0 +1,30 @@
+{
+  "product": "Klar",
+  "releaseDate": "2026-09-15",
+  "releaseType": "enterprise-production-candidate",
+  "node": "22.23.3",
+  "productionData": "no bundled sample profiles",
+  "localLaunchCities": [
+    "München",
+    "Berlin",
+    "Hamburg",
+    "Köln",
+    "Frankfurt am Main"
+  ],
+  "foundingMembers": 500,
+  "foundingPlusMembers": 100,
+  "activationEvents": [
+    "onboarding_started",
+    "onboarding_completed",
+    "launch_city_selected",
+    "first_recommendations",
+    "first_profile_opened",
+    "first_contact",
+    "first_conversation",
+    "date_planned",
+    "date_reflected",
+    "referral_shared",
+    "referral_qualified"
+  ],
+  "ciRequired": true
+}

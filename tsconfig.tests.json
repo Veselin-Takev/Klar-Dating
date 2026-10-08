@@ -1,0 +1,31 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════
+  // Typpruefung fuer die Testdateien
+  //
+  // BEFUND 10.08.2026: tsconfig.json hat "include": ["src"],
+  // tsconfig.server.json deckt nur server.ts ab. Die Dateien unter tests/
+  // wurden von npm run typecheck NIE geprueft. Ein Typfehler in einem Test
+  // war damit unsichtbar -- und genau einer lag drin (TS2345). Aufgefallen
+  // nur, weil der Editor ihn anzeigte.
+  //
+  // Derselbe Mechanismus wie bei @ts-nocheck, nur eine Ebene hoeher: Eine
+  // Pruefung, die einen Bereich nicht ansieht, meldet dort auch nichts --
+  // und sieht dabei aus wie "alles gruen".
+  //
+  // allowImportingTsExtensions: Die Tests importieren mit ausgeschriebener
+  // Endung ('../src/server/pure.ts'), weil tsx --test sie direkt ausfuehrt.
+  // ═══════════════════════════════════════════════════════════════════════
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    // BEIDE, und das ist keine Bequemlichkeit:
+    // - node, weil die Tests unter Node laufen (node:test, node:assert).
+    // - vite/client, weil dieselbe Konfiguration auch src/ erfasst und dort
+    //   import.meta.env benutzt wird. Mit nur ["node"] meldete TypeScript
+    //   prompt drei Fehler in App.tsx, fehler.ts und firebase.ts, die es
+    //   vorher nicht gab -- verursacht von dieser Datei, nicht vom Code.
+    "types": ["node", "vite/client", "@testing-library/jest-dom"]
+  },
+  "include": ["tests/**/*.ts", "tests/**/*.tsx", "src/**/*.ts"]
+}

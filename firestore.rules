@@ -1,0 +1,310 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null
+        && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function istGast() {
+      return isAuthenticated()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    // RBAC is sourced exclusively from Firebase Auth custom claims.
+    // Firestore user-profile role fields are never authorization inputs.
+    function hasRole(role) {
+      return isAuthenticated()
+        && (request.auth.token.role == role
+          || (request.auth.token.roles is list && role in request.auth.token.roles));
+    }
+
+    function hasAnyRole(roles) {
+      return isAuthenticated()
+        && request.auth.token.roles is list
+        && roles.hasAny(request.auth.token.roles);
+    }
+
+    function isPrivilegedClaim() {
+      return hasRole('admin')
+        || hasRole('super_admin')
+        || hasRole('trust_safety')
+        || hasRole('moderator')
+        || hasRole('support')
+        || hasRole('finance');
+    }
+
+    function validUserMutableUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'uid', 'name', 'bio', 'interests', 'goal', 'location', 'age', 'birthdate',
+        'gender', 'photoURL', 'photoUrl', 'photos', 'language', 'preferredLanguage',
+        'smartMatchAlerts', 'visibilitySettings', 'musicPreferences', 'theme',
+        'moodHistory', 'userSettings', 'updatedAt'
+      ])
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid']) || request.resource.data.uid == userId)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name']) || request.resource.data.name is string && request.resource.data.name.size() <= 100)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['bio']) || request.resource.data.bio is string && request.resource.data.bio.size() <= 2000)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['interests']) || request.resource.data.interests is list && request.resource.data.interests.size() <= 50)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['goal']) || request.resource.data.goal is string && request.resource.data.goal.size() <= 100)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['location']) || request.resource.data.location is string && request.resource.data.location.size() <= 100)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['age']) || request.resource.data.age is int && request.resource.data.age >= 18 && request.resource.data.age <= 120)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['birthdate']) || request.resource.data.birthdate is string && request.resource.data.birthdate.matches('^\\d{4}-\\d{2}-\\d{2}$'))
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['gender']) || request.resource.data.gender is string && request.resource.data.gender.size() <= 50)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photoURL']) || request.resource.data.photoURL is string || request.resource.data.photoURL == null)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photoUrl']) || request.resource.data.photoUrl is string || request.resource.data.photoUrl == null)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos']) || request.resource.data.photos is list && request.resource.data.photos.size() <= 20)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['language']) || request.resource.data.language is string && request.resource.data.language.size() <= 10)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['preferredLanguage']) || request.resource.data.preferredLanguage is string && request.resource.data.preferredLanguage.size() <= 10)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['smartMatchAlerts']) || request.resource.data.smartMatchAlerts is bool)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['visibilitySettings']) || request.resource.data.visibilitySettings is map)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['theme']) || request.resource.data.theme is string && request.resource.data.theme in ['light', 'dark', 'system'])
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['moodHistory']) || request.resource.data.moodHistory is list && request.resource.data.moodHistory.size() <= 365)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userSettings']) || request.resource.data.userSettings is map)
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt']) || request.resource.data.updatedAt is string);
+    }
+
+    function validMusicPreferences(data) {
+      return !('musicPreferences' in data) || (
+        data.musicPreferences is map
+        && data.musicPreferences.keys().hasAll(['genres', 'concertGoer', 'playingInstrument'])
+        && data.musicPreferences.keys().hasOnly(['genres', 'concertGoer', 'playingInstrument'])
+        && data.musicPreferences.genres is list
+        && data.musicPreferences.genres.size() <= 20
+        && data.musicPreferences.concertGoer is bool
+        && data.musicPreferences.playingInstrument is bool
+      );
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'createdAt', 'updatedAt', 'name', 'bio', 'interests', 'goal',
+          'location', 'age', 'birthdate', 'gender', 'photoURL', 'photoUrl', 'photos',
+          'language', 'preferredLanguage', 'smartMatchAlerts', 'visibilitySettings',
+          'musicPreferences', 'theme', 'moodHistory', 'userSettings'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.uid is string
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() <= 2000
+        && request.resource.data.interests is list
+        && request.resource.data.interests.size() <= 50
+        && request.resource.data.goal is string
+        && request.resource.data.goal.size() <= 100
+        && (!('smartMatchAlerts' in request.resource.data) || request.resource.data.smartMatchAlerts is bool)
+        && (!('theme' in request.resource.data) || request.resource.data.theme is string && request.resource.data.theme in ['light', 'dark', 'system'])
+        && !('isVerified' in request.resource.data)
+        && !('verificationProvider' in request.resource.data)
+        && !('identityVerificationStatus' in request.resource.data)
+        && !('plan' in request.resource.data)
+        && !('roles' in request.resource.data)
+        && !('isAdult' in request.resource.data)
+        && !('geburtsdatum' in request.resource.data)
+        && !('einwilligung' in request.resource.data)
+        && !('contactCount' in request.resource.data)
+        && validMusicPreferences(request.resource.data);
+      
+      allow update: if isOwner(userId) && !istGast()
+        && validUserMutableUpdate()
+        && (resource != null ? (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationProvider', 'identityVerificationStatus'])
+          && (!('isVerified' in request.resource.data) || (resource.data != null && 'isVerified' in resource.data && request.resource.data.isVerified == resource.data.isVerified))
+          && (!('plan' in request.resource.data) || (resource.data != null && 'plan' in resource.data && request.resource.data.plan == resource.data.plan))
+          && (!('roles' in request.resource.data) || (resource.data != null && 'roles' in resource.data && request.resource.data.roles == resource.data.roles))
+          && (!('isAdult' in request.resource.data) || (resource.data != null && 'isAdult' in resource.data && request.resource.data.isAdult == resource.data.isAdult))
+          && (!('geburtsdatum' in request.resource.data) || (resource.data != null && 'geburtsdatum' in resource.data && request.resource.data.geburtsdatum == resource.data.geburtsdatum))
+          && (!('einwilligung' in request.resource.data) || (resource.data != null && 'einwilligung' in resource.data && request.resource.data.einwilligung == resource.data.einwilligung))
+          && (!('contactCount' in request.resource.data) || (resource.data != null && 'contactCount' in resource.data && request.resource.data.contactCount == resource.data.contactCount))
+        ) : false)
+        && !('irgendwas' in request.resource.data)
+        && validMusicPreferences(request.resource.data);
+      
+      allow delete: if false;
+    }
+
+    // Server-authoritative date planning state. Clients may read only their own
+    // documents; all writes go through authenticated API handlers so connection,
+    // block, age and verification checks cannot be bypassed.
+    match /users/{userId}/datePlans/{planId} {
+      allow read: if isOwner(userId);
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId}/dateAvailability/{availabilityId} {
+      allow read: if isOwner(userId);
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId}/einwilligungen/{evidenceId} {
+      allow read: if isOwner(userId);
+      allow create, update, delete: if false;
+    }
+
+    match /audit_logs/{entryId} {
+      allow read: if isPrivilegedClaim();
+      allow create, update, delete: if false;
+    }
+
+    match /consent_audit_log/{entryId} {
+      allow read, write: if false;
+    }
+
+    // Legal notices are backend-controlled and immutable from clients.
+    // Acknowledgements are user-scoped but can only be written through the
+    // authenticated API, which verifies the referenced legal update version.
+    match /legal_updates/{updateId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/legal_acknowledgements/{updateId} {
+      allow read: if isOwner(userId);
+      allow create, update, delete: if false;
+    }
+
+
+    match /public_profiles/{userId} {
+      // P0 Age-Gate: profile discovery is unavailable to guests and to accounts
+      // that have not completed the server-side adult gate.
+      allow read: if isAuthenticated() && !istGast()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdult == true
+        && get(/databases/$(database)/documents/users/$(userId)).data.isAdult == true
+        && !(
+          exists(/databases/$(database)/documents/blocks/$(request.auth.uid + '_' + userId)) ||
+          exists(/databases/$(database)/documents/blocks/$(userId + '_' + request.auth.uid))
+        );
+      allow write: if false;
+    }
+
+    // Verbindungen / Matches (Unterstützt exakt fromUid, toUid, senderId, receiverId)
+    match /connections/{connectionId} {
+      allow read: if isAuthenticated() && resource != null && resource.data != null && (
+        (resource.data.keys().hasAny(['fromUid']) && resource.data.fromUid == request.auth.uid) ||
+        (resource.data.keys().hasAny(['toUid']) && resource.data.toUid == request.auth.uid) ||
+        (resource.data.keys().hasAny(['senderId']) && resource.data.senderId == request.auth.uid) ||
+        (resource.data.keys().hasAny(['receiverId']) && resource.data.receiverId == request.auth.uid) ||
+        (resource.data.keys().hasAny(['users']) && resource.data.users is list && request.auth.uid in resource.data.users) ||
+        (resource.data.keys().hasAny(['uids']) && resource.data.uids is list && request.auth.uid in resource.data.uids)
+      );
+      allow write: if false;
+    }
+
+    match /blocks/{blockId} {
+      allow read: if isAuthenticated() && resource != null && resource.data != null && ('blockerUid' in resource.data) && resource.data.blockerUid == request.auth.uid;
+      
+      allow create: if isAuthenticated()
+        && request.resource.data != null
+        && request.resource.data.keys().hasOnly(['blockerUid', 'blockedUid', 'createdAt'])
+        && ('blockerUid' in request.resource.data) && ('blockedUid' in request.resource.data)
+        && request.resource.data.blockerUid is string
+        && request.resource.data.blockedUid is string
+        && request.resource.data.blockerUid == request.auth.uid
+        && request.resource.data.blockedUid != request.auth.uid
+        && blockId == request.resource.data.blockerUid + '_' + request.resource.data.blockedUid
+        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp);
+
+      allow delete: if isAuthenticated()
+        && (resource != null ? (
+          resource.data != null
+          && ('blockerUid' in resource.data) && ('blockedUid' in resource.data)
+          && resource.data.blockerUid == request.auth.uid
+          && blockId == resource.data.blockerUid + '_' + resource.data.blockedUid
+        ) : false);
+    }
+
+    function validChatParticipants(data) {
+      return data != null
+        && ('participants' in data)
+        && data.participants is list
+        && data.participants.size() == 2
+        && data.participants[0] != data.participants[1];
+    }
+
+    function chatOtherParticipant(data) {
+      return data.participants[0] == request.auth.uid
+        ? data.participants[1]
+        : data.participants[0];
+    }
+
+    function canReadChat(data) {
+      return isAuthenticated()
+        && validChatParticipants(data)
+        && request.auth.uid in data.participants
+        && !exists(/databases/$(database)/documents/account_deletions/$(chatOtherParticipant(data)))
+        && !exists(/databases/$(database)/documents/blocks/$(request.auth.uid + '_' + chatOtherParticipant(data)))
+        && !exists(/databases/$(database)/documents/blocks/$(chatOtherParticipant(data) + '_' + request.auth.uid));
+    }
+
+    function isOpenChat(data) {
+      return canReadChat(data)
+        && ('gateAntwortenA' in data)
+        && ('gateAntwortenB' in data)
+        && data.gateAntwortenA is int
+        && data.gateAntwortenB is int
+        && data.gateAntwortenA >= 2
+        && data.gateAntwortenB >= 2;
+    }
+
+    match /chats/{chatId} {
+      allow read: if canReadChat(resource.data);
+      
+      allow create: if isAuthenticated() 
+        && !istGast()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data != null
+        && ('isVerified' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerified == true
+        && request.resource.data != null 
+        && ('participants' in request.resource.data)
+        && request.resource.data.participants is list
+        && request.resource.data.participants.size() == 2
+        && request.resource.data.participants[0] != request.resource.data.participants[1]
+        && !exists(/databases/$(database)/documents/account_deletions/$(request.resource.data.participants[0]))
+        && !exists(/databases/$(database)/documents/account_deletions/$(request.resource.data.participants[1]))
+        && !exists(/databases/$(database)/documents/blocks/$(request.resource.data.participants[0] + '_' + request.resource.data.participants[1]))
+        && !exists(/databases/$(database)/documents/blocks/$(request.resource.data.participants[1] + '_' + request.resource.data.participants[0]))
+        && request.resource.data.keys().hasOnly(['participants', 'createdAt'])
+        && request.auth.uid in request.resource.data.participants;
+
+      // Gate counters, questions and membership may only change on the server.
+      allow update: if false;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated()
+          && exists(/databases/$(database)/documents/chats/$(chatId))
+          && isOpenChat(get(/databases/$(database)/documents/chats/$(chatId)).data);
+        allow write: if false;
+      }
+    }
+
+    // Refund requests are server-side financial workflow state; clients must never read or mutate them.
+    match /refund_queue/{refundId} {
+      allow read, write: if false;
+    }
+
+    match /subscriptions/{subId} {
+      allow read: if isAuthenticated() && (subId == request.auth.uid || (resource != null && resource.data != null && ('userId' in resource.data) && resource.data.userId == request.auth.uid));
+      allow write: if false;
+    }
+    
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated() && resource != null && resource.data != null && (
+        (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid) ||
+        (resource.data.keys().hasAny(['fromUid']) && resource.data.fromUid == request.auth.uid) ||
+        (resource.data.keys().hasAny(['toUid']) && resource.data.toUid == request.auth.uid)
+      );
+      allow write: if false;
+    }
+
+  }
+}
