@@ -121,7 +121,7 @@ export function DatingStyleQuizWidget() {
       }
     });
 
-    setResultKey(highestCat as unknown);
+    setResultKey(highestCat as 'analytical' | 'intuitive' | 'cautious' | 'impulsive');
     setIsFinished(true);
   };
 
