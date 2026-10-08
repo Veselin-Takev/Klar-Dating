@@ -2,6 +2,12 @@
 
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
 
+### 2026-10-08 — Exact-head CI 37848439991: test import regression corrected
+
+Exact-head Enterprise CI run `37848439991` on candidate `31890a66fabf32c989ee8413f897135badbfd309` passed dependency-lock preflight, dependency installation and Enterprise static gates, then failed in Typecheck with one deterministic fixture error: `tests/accountErasure.spec.ts` referenced `purgeAccountData` after an import-cleanup commit had removed that required symbol. No production source defect was identified.
+
+The test import is restored explicitly at the test boundary. No runtime behavior or security control is changed. A fresh exact-head CI run is required; **production remains NO-GO / NOT CONFIRMED** pending the complete dynamic validation chain and independent operational/governance evidence.
+
 ### 2026-10-08 — Exact-head CI 37846966637: emulator integration boundary isolated
 
 Exact-head Enterprise CI run `37846966637` on candidate `c0b5425faa952a4f3b412c9189982be2c7d72040` passed dependency-lock preflight, dependency installation, Enterprise static gates, Typecheck, and 966/967 tests. The sole failure was the emulator-backed account-erasure integration journey, which asserted the worker phase transition after executing the real purge implementation. The purge itself completed its owned-data assertions, but the mixed test path did not provide reliable evidence for the worker's durable phase transition and the orchestration failure was swallowed by the retry boundary.
