@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { getDb } from "../db";
 import { InputError, requireString, optionalString } from '../pure';
 
@@ -59,24 +59,6 @@ export interface ModerationDecisionInput {
   restrictionType: DsaRestrictionType;
   legalGround: DsaLegalGround;
   factsAndCircumstances: string;
-}
-
-export interface MinimalDocSnapshot {
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-}
-
-export interface MinimalTransaction {
-  get: (ref: unknown) => Promise<MinimalDocSnapshot>;
-  set: (ref: unknown, data: unknown, options?: unknown) => void;
-  delete?: (ref: unknown) => void;
-}
-
-export interface MinimalFirestore {
-  collection: (name: string) => {
-    doc: (id: string) => unknown;
-  };
-  runTransaction: <T>(updateFunction: (transaction: MinimalTransaction) => Promise<T>) => Promise<T>;
 }
 
 export interface DsaModerationDecision {
@@ -184,7 +166,7 @@ export function buildStatementOfReasons(
 }
 
 export async function recordModerationDecision(
-  firestore: MinimalFirestore,
+  firestore: Firestore,
   reportIdRaw: unknown,
   moderatorUid: string,
   decision: ModerationDecisionInput,
@@ -193,7 +175,7 @@ export async function recordModerationDecision(
   const reportId = requireString(reportIdRaw, 'reportId', 128);
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
@@ -237,7 +219,7 @@ export async function recordModerationDecision(
 }
 
 export async function submitDsaAppeal(
-  firestoreOrDecisionId: MinimalFirestore | string,
+  firestoreOrDecisionId: Firestore | string,
   reportIdOrUserId: unknown,
   appellantUidOrStatement?: unknown,
   appealReasonRaw?: unknown,
@@ -249,7 +231,7 @@ export async function submitDsaAppeal(
     const decisionId = firestoreOrDecisionId;
     const userId = String(reportIdOrUserId ?? '');
     const appealStatement = String(appellantUidOrStatement ?? '');
-    const db = getDb() as any;
+    const db = getDb();
     const decisionDoc = await db.collection("dsa_decisions").doc(decisionId).get();
 
     if (!decisionDoc.exists) {
