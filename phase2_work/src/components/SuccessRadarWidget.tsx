@@ -36,7 +36,7 @@ export function SuccessRadarWidget() {
     const loadAnalysis = () => {
       try {
         const savedLogs = klarStorage.getItem("klar_reflection_logs");
-        let logs: unknown[] = [];
+        let logs: ReflectionLog[] = [];
         if (savedLogs) {
           try {
             const parsed: unknown = JSON.parse(savedLogs);
