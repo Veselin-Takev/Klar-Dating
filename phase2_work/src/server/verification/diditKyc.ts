@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Router, text, type Request } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
@@ -372,7 +372,7 @@ export function createKycRouter(deps: KycDependencies) {
   const kycStatusReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => actor(req)?.uid ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => actor(req)?.uid ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele KYC-Statusabfragen. Bitte kurz warten.' },
   });
