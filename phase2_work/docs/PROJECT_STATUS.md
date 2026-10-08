@@ -350,3 +350,14 @@ The repository work is now paired with an explicit execution-budget guardrail re
 A scheduled CI-monitoring automation was created for PR #1 to inspect completed validation runs, diagnose concrete failures, apply repository fixes, and keep this status document synchronized. The automation does not treat the absence of a CI result as success and retains the existing fail-closed production rule.
 
 Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-08 — Exact-head CI 37825579777: Dependabot gate parser fixed
+
+The exact-head CI run `37825579777` reached the new Dependabot control and failed because `check-dependabot-config.mjs` used an over-escaped schedule regex. The repository configuration itself was valid; the gate incorrectly rejected all four weekly schedules.
+
+Remediation: the gate now parses each `package-ecosystem` block deterministically and asserts the literal `interval: weekly` contract, while retaining explicit ecosystem and directory checks. No dependency configuration or versions were changed. This is a test-infrastructure correction only.
+
+The same run confirmed the prior dependency-lock preflight is now passing. Typecheck, tests, build, smoke, and browser acceptance were again skipped because the static gate failed first.
+
+Production remains **NO-GO / NOT CONFIRMED** pending a fresh exact-head run that reaches all dynamic stages.
