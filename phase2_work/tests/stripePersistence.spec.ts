@@ -74,7 +74,7 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     expect((await getDb().doc(`processed_stripe_events/subscription_${subscription}`).get()).exists).toBe(true);
     expect(await send('customer.subscription.updated', { id: subscription, status: 'active', cancel_at_period_end: false })).toMatchObject({ applied: false });
     expect(await send('checkout.session.completed', session)).toMatchObject({ applied: false });
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('free');
+    expect(await userPlan(uid)).toBe('free');
   });
   it('revokes a completed subscription and rejects tampered signatures before writes', async () => {
     const { uid, subscription, session } = await setup();
