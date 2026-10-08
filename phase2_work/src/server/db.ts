@@ -35,7 +35,7 @@ export function getDb(): Firestore {
     if (!realDbInstance && !durableFallbackAllowed()) throw new Error('Firestore is unavailable; durable fallback is disabled.');
     proxyDbInstance = (realDbInstance && typeof realDbInstance.runTransaction !== 'function')
       ? realDbInstance
-      : createDurableDbProxy(realDbInstance) as Firestore;
+      : createDurableDbProxy(realDbInstance) as unknown as Firestore;
   }
   return proxyDbInstance;
 }
