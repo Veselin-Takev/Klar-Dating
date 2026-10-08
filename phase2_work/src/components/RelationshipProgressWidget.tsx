@@ -121,7 +121,10 @@ export function RelationshipProgressWidget({ chatHistory, userName, targetName, 
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 500 }}
                     labelStyle={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}
-                    formatter={(value: unknown, _name: unknown, props: unknown) => [`${value}% Wärme`, props.payload.theme]}
+                    formatter={(value: unknown, _name: unknown, props: { payload?: { theme?: string } }) => [
+                      `0% Wärme`,
+                      props.payload?.theme ?? ''
+                    ]}
                   />
                   <Line
                     type="monotone"
