@@ -160,3 +160,10 @@ The candidate remains NO-GO / NOT CONFIRMED until a new exact-head CI run is suc
 Enterprise CI #170 (`37815141084`) reached Typecheck after all static gates passed and failed because the dedicated `tsconfig.server.json` excluded `src/types/express.d.ts`. The fix explicitly includes declaration files in that server project so Express request augmentation remains authoritative across server compilation.
 
 Candidate: `deb5722030a6974caf97ae592e29bf6229174036`. Strict compiler settings remain unchanged. Production is **NO-GO / NOT CONFIRMED** until the new exact-head CI run completes all dynamic gates successfully.
+
+
+## Update 2026-10-08 — Chat list regression guard
+
+The Chat list optimization is now backed by a dedicated static Enterprise boundary check. The gate enforces one bounded Firestore transaction with one batched `tx.getAll`, verifies that `/api/chats` calls the loader, and rejects per-entry profile reads or async per-entry mapping.
+
+This is a regression-control improvement, not runtime certification. Real Firestore traces are still required before the Chat P1 is closed quantitatively.

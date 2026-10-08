@@ -194,3 +194,8 @@ No PASS is inferred yet: the new head has not produced an authoritative workflow
 Exact-head Enterprise CI #170 (`37815141084`) passed dependency installation and all Enterprise static gates but failed at the separate server Typecheck project because `src/types/express.d.ts` was not part of `tsconfig.server.json`. This caused the global Express `Request` augmentation (`user`, `session`, `nutzer`, `istGast`) to disappear from the server compilation context.
 
 The server TypeScript project now explicitly includes `src/**/*.d.ts` on candidate `deb5722030a6974caf97ae592e29bf6229174036`. No casts or compiler relaxations were introduced. Production remains **NO-GO / NOT CONFIRMED** pending a successful exact-head dynamic gate sequence.
+
+
+### 2026-10-08 — Chat read-path regression gate
+
+The implemented Chat list optimization is now protected by a deterministic Enterprise gate. `check:chat-read-path` requires `/api/chats` to use the bounded `loadChatListAccess` path, exactly one transaction and one `tx.getAll` in that loader, and no asynchronous per-entry profile reads. This blocks regression to the former N+1 access pattern without claiming production trace evidence.
