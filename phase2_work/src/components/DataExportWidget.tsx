@@ -187,7 +187,7 @@ export function DataExportWidget() {
           styles: { fontSize: 9 }
         });
 
-        currentY = (doc as unknown).lastAutoTable.finalY + 15;
+        currentY = ((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? currentY) + 15;
       }
 
       // Reflections Table
