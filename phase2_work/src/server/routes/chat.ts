@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'node:crypto';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { getDb } from '../db';
@@ -77,7 +77,7 @@ export function createChatRouter() {
   const chatListReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Gesprächsabfragen. Bitte kurz warten.' },
@@ -85,7 +85,7 @@ export function createChatRouter() {
   const chatDetailReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 60,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Gesprächsabfragen. Bitte kurz warten.' },
@@ -93,7 +93,7 @@ export function createChatRouter() {
   const markReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Lesebestätigungen. Bitte kurz warten.' },
