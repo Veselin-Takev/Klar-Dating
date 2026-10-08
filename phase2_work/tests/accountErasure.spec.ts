@@ -28,6 +28,11 @@ describe('account erasure including archived messages and photos', () => {
     const job = db.collection('account_deletions').doc(uid);
     expect((await job.get()).data()?.status).toBe('pending');
     const deps = deletionDependencies();
+    // This journey owns Firestore/Storage purge verification; provider-side
+    // disable/delete is covered by injected lifecycle tests and production runtime paths.
+    deps.disable = async () => {};
+    deps.eraseProvider = async () => true;
+    deps.cancelSubscription = async () => {};
     deps.removeAuth = async () => {};
     await runAccountDeletion(uid, deps);
     expect((await db.collection('users').doc(uid).get()).exists).toBe(false);

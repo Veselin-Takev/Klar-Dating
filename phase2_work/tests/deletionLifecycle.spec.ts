@@ -33,10 +33,9 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     });
     await runAccountDeletion(uid, deps);
     expect(deps.removeAuth).not.toHaveBeenCalled();
-    expect((await ref.get()).data()).toMatchObject({
-      status: 'pending',
-      lastError: 'retry_required',
-    });
+    const afterLeaseLoss = (await ref.get()).data();
+    expect(afterLeaseLoss).toMatchObject({ status: 'pending', lease: 'another-worker' });
+    expect(afterLeaseLoss).not.toHaveProperty('lastError');
   });
 
   it('resumes provider and purge failures without deleting authentication prematurely', async () => {

@@ -2,6 +2,12 @@
 
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
 
+### 2026-10-08 — Exact-head CI 37846166700: two account-erasure test-contract blockers
+
+Exact-head Enterprise CI run `37846166700` on the PR head `d32fef5ad69ba441e9b7a4a7833a4af80b3d5557` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 2 failures; 965/967 tests passed. The first failure was the emulator-backed account-erasure journey, which completed owned-data purge but did not advance the durable job to `final_sweep` because the journey still traversed the production Auth-disable dependency boundary. The second failure was the deterministic lease-loss regression test, which incorrectly expected the stale worker to write `lastError` after another worker had already taken the lease.
+
+The remediation keeps production Auth deletion and lease checks fail-closed and isolates provider-side disable/delete behavior from the Firestore/Storage data-purge journey. The lease-loss regression now asserts the stronger invariant: the losing worker cannot mutate retry metadata after ownership changes and cannot call Auth deletion. The production implementation is unchanged. A fresh exact-head CI run is required; **production remains NO-GO / NOT CONFIRMED** pending Tests, Build, Production Smoke and Browser Acceptance plus independent operational/governance evidence.
+
 ### 2026-10-08 — Exact-head CI 37843696268: account-erasure lease-state blocker
 
 Exact-head Enterprise CI run `37843696268` on the merge candidate containing `32fdaa7d3cca4e16d31901b750c67bfabc6a3a13` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 1 failure; 965/966 tests passed. The remaining failure was the emulator-backed account-erasure journey: owned-data purge completed, but the durable job remained in `purge` instead of advancing to `final_sweep`. The test does not treat Firebase Auth emulator deletion as production evidence.
