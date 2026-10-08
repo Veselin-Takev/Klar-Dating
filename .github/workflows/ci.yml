@@ -1,5 +1,6 @@
 name: Klar Enterprise CI
 # v149 autonomous gate runner
+# refresh: corrected IPv6 gate
 
 on:
   push:
