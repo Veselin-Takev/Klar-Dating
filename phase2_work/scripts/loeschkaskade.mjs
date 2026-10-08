@@ -93,6 +93,8 @@ const ENTSCHEIDEN = {
   activation_events: { art: 'geloescht', grund: 'Enthält actorUid; wird bei Kontolöschung gelöscht.' },
   referral_events: { art: 'geloescht', grund: 'Enthält inviterUid und inviteeUid; wird bei Kontolöschung gelöscht.' },
   app_feedback: { art: 'geloescht', grund: 'Nutzereingaben und Feedback; wird bei Kontolöschung gelöscht.' },
+  legal_updates: { art: 'bleibt', grund: 'Systemweite rechtliche Veröffentlichungen ohne kontobezogene Nutzerdaten; die Sammlung selbst ist kein Bestandteil der Kontolöschung.' },
+  legal_acknowledgements: { art: 'geloescht', grund: 'Nutzerbezogene Bestätigungen unter users/{uid}; werden mit den übrigen kontobezogenen Unterkollektionen gelöscht.' },
   admob_rewards: { art: 'geloescht', grund: 'Werbebelohnungen des Nutzers; wird bei Kontolöschung gelöscht.' },
   consent_audit_log: { art: 'bleibt', grund: 'Unveränderlicher Consent-Nachweis; bei Kontolöschung wird die direkte userId entfernt und durch ein nicht rückführbares HMAC-Pseudonym ersetzt.' },
   notifications: { art: 'geloescht', grund: 'Benachrichtigungen des Nutzers; wird bei Kontolöschung gelöscht.' },
