@@ -58,13 +58,15 @@ type DurableCollectionRef = {
   startAfter: (...args: unknown[]) => DurableQuery;
 };
 
+type DurableDocRefLike = DurableDocRef | DocumentReference;
+
 type DurableTransaction = {
-  get: (ref: DurableDocRef) => Promise<DurableDocSnapshot | DocumentSnapshot>;
-  getAll: (...refs: DurableDocRef[]) => Promise<Array<DurableDocSnapshot | DocumentSnapshot>>;
-  set: (ref: DurableDocRef, data: unknown, options?: unknown) => DurableTransaction;
-  create: (ref: DurableDocRef, data: unknown) => DurableTransaction;
-  update: (ref: DurableDocRef, data: unknown) => DurableTransaction;
-  delete: (ref: DurableDocRef) => DurableTransaction;
+  get: (ref: DurableDocRefLike) => Promise<DurableDocSnapshot | DocumentSnapshot>;
+  getAll: (...refs: DurableDocRefLike[]) => Promise<Array<DurableDocSnapshot | DocumentSnapshot>>;
+  set: (ref: DurableDocRefLike, data: unknown, options?: unknown) => DurableTransaction;
+  create: (ref: DurableDocRefLike, data: unknown) => DurableTransaction;
+  update: (ref: DurableDocRefLike, data: unknown) => DurableTransaction;
+  delete: (ref: DurableDocRefLike) => DurableTransaction;
 };
 
 type DurableDbProxy = {
@@ -423,8 +425,20 @@ function createDurableQuery(
   };
 }
 
-function realDocRef(value: DurableDocRef): DocumentReference | null {
-  return value._realDocRef ?? null;
+function realDocRef(value: DurableDocRefLike): DocumentReference | null {
+  if (value._realDocRef) return value._realDocRef;
+  if (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.path === 'string' &&
+    typeof value.get === 'function' &&
+    typeof value.set === 'function' &&
+    typeof value.update === 'function' &&
+    property(value, 'parent') !== undefined
+  ) {
+    return value as unknown as DocumentReference;
+  }
+  return null;
 }
 
 function realErrorCode(error: unknown): unknown {

@@ -36,6 +36,14 @@ The remediation keeps production contracts strict and changes only test fixtures
 
 Production remains **NO-GO / NOT CONFIRMED**. The next exact-head CI run must prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance before technical release gates can advance.
 
+### 2026-10-08 — Exact-head CI 37830946345: test phase exposed two classes of blockers
+
+Exact-head Enterprise CI run `37830946345` passed Typecheck on candidate `a7780d28a9a19c87d83bdc9069f2fcde2e66ce73`, then failed in the Tests stage with 54 failing cases. Trace analysis separated the failures into two classes: lightweight HTTP test doubles did not implement the mandatory distributed rate-limit transaction surface, and the real Firestore emulator returned native `DocumentReference` values from query snapshots that the Durable transaction adapter rejected with `Durable transaction reference is not backed by Firestore.`
+
+The production root cause is fixed at the Durable Firestore boundary: transaction references may now be either adapter-wrapped references or native Firestore `DocumentReference` instances returned by real queries. Native references are accepted only after strict structural identification; no fallback, fail-open path, or compiler relaxation was introduced.
+
+The remaining HTTP test-double failures are a separate fixture-alignment task and are not being masked by weakening distributed rate-limit enforcement.
+
 ---
 
 ---
