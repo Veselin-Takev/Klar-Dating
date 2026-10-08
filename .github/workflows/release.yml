@@ -111,7 +111,7 @@ jobs:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           rm -rf release/deploy
-          node scripts/release-manifests.mjs render "ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app@${KLAR_RELEASE_DIGEST}" release/deploy
+          node scripts/release-manifests.mjs render "ghcr.io/${{ github.repository_owner }}/klar-app@${KLAR_RELEASE_DIGEST}" release/deploy
 
       - name: Validate release artifact hygiene
         run: node scripts/check-release-artifact-hygiene.mjs
