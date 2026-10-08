@@ -58,6 +58,7 @@ export function DashboardOnboarding() {
   const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(() => close(), isVisible);
   if (!isVisible) return null;
   const translatedSteps = t('dashboardOnboarding.steps', { returnObjects: true }) as unknown as ReadonlyArray<{ title: string; content: string }>;
+  const translate = t as unknown as (key: string) => string;
   const currentStep = translatedSteps[step] ?? translatedSteps[0]!;
 
 
@@ -76,17 +77,17 @@ export function DashboardOnboarding() {
         transition={{ duration: reducedMotion ? 0 : 0.15 }}
         className="bg-white dark:bg-stone-800 rounded-[24px] p-6 max-w-sm w-full max-h-[90dvh] overflow-y-auto"
       >
-        <h2 id={titleId} className="text-xl font-serif text-stone-900 dark:text-white mb-2">{t(currentStep.title)}</h2>
-        <p id={descriptionId} className="text-base text-stone-600 dark:text-stone-300 mb-4">{t(currentStep.content)}</p>
+        <h2 id={titleId} className="text-xl font-serif text-stone-900 dark:text-white mb-2">{translate(currentStep.title)}</h2>
+        <p id={descriptionId} className="text-base text-stone-600 dark:text-stone-300 mb-4">{translate(currentStep.content)}</p>
         <p role="status" className="text-sm text-stone-600 dark:text-stone-300 mb-6">
-          {t('dashboardOnboarding.progress', { step: step + 1, total: translatedSteps.length })}<span className="sr-only">: {t(currentStep.title)}</span>
+          {t('dashboardOnboarding.progress', { step: step + 1, total: translatedSteps.length })}<span className="sr-only">: {translate(currentStep.title)}</span>
         </p>
         <div className="flex flex-wrap justify-between items-center gap-3">
-          <button type="button" onClick={() => close()} className="px-3 py-2.5 text-stone-700 dark:text-stone-200 rounded-full">{t('dashboardOnboarding.skip')}</button>
-          {step < steps.length - 1 ? (
-            <button type="button" onClick={() => setStep(s => s + 1)} className="px-6 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full font-medium">{t('dashboardOnboarding.next')}</button>
+          <button type="button" onClick={() => close()} className="px-3 py-2.5 text-stone-700 dark:text-stone-200 rounded-full">{translate('dashboardOnboarding.skip')}</button>
+          {step < translatedSteps.length - 1 ? (
+            <button type="button" onClick={() => setStep(s => s + 1)} className="px-6 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full font-medium">{translate('dashboardOnboarding.next')}</button>
           ) : (
-            <button type="button" onClick={() => close(true)} className="px-6 py-2.5 bg-brand text-white rounded-full font-medium">{t('dashboardOnboarding.start')}</button>
+            <button type="button" onClick={() => close(true)} className="px-6 py-2.5 bg-brand text-white rounded-full font-medium">{translate('dashboardOnboarding.start')}</button>
           )}
         </div>
       </motion.div>
