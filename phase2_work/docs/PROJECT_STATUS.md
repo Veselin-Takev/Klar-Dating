@@ -1,5 +1,27 @@
 # Current audit status — 8 October 2026
 
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `541b3d37f4b5beb263dba08c08d5f0abacb41a51`.
+
+## Current authoritative status
+
+- The previous exact-head CI run for `8c38df8ed4525f9922ab06d09b5e5df81e8dad67` failed only in Typecheck, with three concrete diagnostics: missing `SpeechRecognitionLike.onend`, untyped consent response `evidenceId`, and an unused `Tips.tsx` import.
+- Those three diagnostics are now remediated on `541b3d37f4b5beb263dba08c08d5f0abacb41a51` without weakening TypeScript strictness or adding a broad `any` escape hatch.
+- A fresh exact-head Enterprise CI run is expected for this candidate; until its Typecheck, Tests, Build, Production Smoke and Browser Acceptance steps complete successfully, no dynamic PASS is inferred.
+- The documented P1 findings remain unchanged: Chat `/api/chats` read-path N+1 remains open pending real traces; direct Firestore transaction trace coverage remains an evidence/coverage item; process-local rate-limit migration remains evidence-driven and is not being broadened speculatively.
+- **Production release remains NO-GO / NOT CONFIRMED.** External operational and governance evidence is still required after all exact-head CI gates pass.
+
+## Latest remediation — exact-head Typecheck blockers
+
+- `DatingTimelineWidget.tsx`: `SpeechRecognitionLike` now declares the `onend` event handler used by the runtime speech-recognition adapter.
+- `EinwilligungUndAlter.tsx`: the consent response is parsed through an explicit unknown-safe record contract; `evidenceId` is narrowed before authoritative profile confirmation.
+- `Tips.tsx`: the unused `UserCircle/Wind` import was removed.
+
+## Release evidence rule
+
+A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.
+
+---
+
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `33ef9eb3255919bec8b07d4132665754fa8ae930`.
 
 ## Current authoritative status
