@@ -17,6 +17,13 @@
 - Critical state-changing and cost-sensitive routers use the distributed middleware. Authenticated paths are UID-scoped; unauthenticated requests fall through to the existing global authentication/rate-limit controls.
 - The global API limiter and lower-risk read/anonymous limiters remain local by design and are not treated as authoritative cross-instance enforcement.
 
+### 2026-10-08 — Final P1 consolidation
+
+- Chat list access is now evaluated in one bounded Firestore read transaction across the candidate set, replacing the per-chat transaction/profile RPC pattern while preserving fail-closed block, account-deletion and example-profile semantics.
+- Critical multi-instance rate limits are now enforced with shared Firestore counters for account/consent, billing checkout, device-token writes, launch/referral and Trust-&-Safety flows. Cloud Run maxScale evidence is 10.
+- A deterministic cross-instance limiter regression test and Enterprise topology gate protect the new control.
+- The remaining local limiters are lower-risk read/anonymous controls and are not treated as authoritative cross-instance abuse protection.
+
 ## Release evidence rule
 
 A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.

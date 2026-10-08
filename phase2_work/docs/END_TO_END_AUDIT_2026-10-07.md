@@ -83,7 +83,7 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 |---|---:|---|
 | Chat-Read-N+1 mit realen Traces quantifizieren und reduzieren | 9/8/6 = 432 | **IMPLEMENTIERT / RUNTIME-EVIDENZ OFFEN** |
 | Direkte Firestore-Transaction-Trace-Abdeckung auf 100% bringen | 8/8/6 = 384 | **OFFEN** |
-| Process-local Rate-Limits nur dort ersetzen, wo Multi-Instance-Schutz erforderlich ist | 8/7/5 = 280 | **OFFEN / Lastnachweis erforderlich** |
+| Process-local Rate-Limits nur dort ersetzen, wo Multi-Instance-Schutz erforderlich ist | 8/7/5 = 280 | **KRITISCHE PFADE ERLEDIGT / REST EVIDENZBASIERT OFFEN** |
 
 ### P2 — Enterprise Excellence
 
@@ -107,6 +107,10 @@ The following paths now use an atomic Firestore-backed rate-limit counter: accou
 The limiter fails closed when shared state is unavailable, exposes standard remaining/reset metadata, and is guarded by a static Enterprise regression check.
 
 Lower-risk read/anonymous rate limits remain local to avoid turning every read into a Firestore dependency; they are not considered the authoritative multi-instance abuse control.
+
+## Update 2026-10-08 — Final P1 consolidation
+
+The candidate now contains the critical P1 implementation set: Chat list access is collapsed into one bounded read transaction, and security-/cost-sensitive rate limits use atomic Firestore-backed counters suitable for a Cloud Run service scaled to up to 10 instances. Runtime traces and complete CI remain required before the release gates can be closed.
 
 ## 4. Dokumentations-Updates
 
