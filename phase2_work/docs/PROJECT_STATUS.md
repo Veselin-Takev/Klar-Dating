@@ -1,12 +1,13 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `4b7ff4bc98a6152eab0a66217923d0ae3b826f9d`.
 
 ## Current authoritative status
 
 - The exact-head Typecheck blockers from `8c38df8ed4525f9922ab06d09b5e5df81e8dad67` were remediated on `541b3d37f4b5beb263dba08c08d5f0abacb41a51`: the speech-recognition `onend` contract was completed, the consent response was narrowed through an unknown-safe record boundary with a validated `evidenceId`, and the stale `Tips.tsx` import was removed.
-- Follow-up hardening on `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99` adds explicit process-lifetime Firestore transaction request/error metrics and an Enterprise `check:firestore-boundary` gate that rejects native `getFirestore` access outside `src/server/db.ts`.
-- Exact-head Enterprise CI is still the release authority. The latest branch listing shows earlier runs pending/in progress; no PASS is inferred until the newest head completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance successfully.
+- Follow-up hardening on `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99` adds process-lifetime Firestore transaction request/error metrics and an Enterprise `check:firestore-boundary` gate that rejects native `getFirestore` access outside `src/server/db.ts`.
+- Documentation is synchronized on the current candidate head `4b7ff4bc98a6152eab0a66217923d0ae3b826f9d`; the exact-head Enterprise CI run for this head is the authoritative dynamic release evidence.
+- The latest known CI listing has run #153 pending on this head while an earlier parent-head run is still in progress/candidate cancellation. No PASS is inferred until the current head completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance successfully.
 - The Chat `/api/chats` read-path N+1 remains **P1 / OPEN** pending real traces; no speculative batching has been introduced. Process-local rate limits remain **P1 / OPEN pending evidence**; critical chat message and gate-answer limits are already distributed.
 - **Production release remains NO-GO / NOT CONFIRMED.** Operational/governance evidence remains required after dynamic CI is green.
 
@@ -19,6 +20,8 @@
 - `check-firestore-boundary.mjs`: production server code is statically constrained to the shared Firestore acquisition boundary in `src/server/db.ts`.
 
 ## Release evidence rule
+
+A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.
 
 ---
 
