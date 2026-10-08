@@ -78,7 +78,7 @@ export const kiRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
   max: 15,
   message: 'KI-Ratenbegrenzung erreicht. Bitte warte kurz vor der nächsten Analyse.',
-  keyGenerator: (req) => `ki_${(req as unknown).user?.uid || req.ip || 'anon'}`,
+  keyGenerator: (req) => `ki_${(req as unknown).user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
 });
 
 /**
@@ -89,5 +89,5 @@ export const chatRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
   max: 30,
   message: 'Nachrichtenlimit erreicht. Bitte reduziere die Sendefrequenz.',
-  keyGenerator: (req) => `chat_${(req as unknown).user?.uid || req.ip || 'anon'}`,
+  keyGenerator: (req) => `chat_${(req as unknown).user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
 });
