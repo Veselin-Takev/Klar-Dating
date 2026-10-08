@@ -45,7 +45,7 @@ async function removeAuthAndVerify(uid: string): Promise<void> {
       lastError = error;
     }
 
-    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 50 * (2 ** attempt)));
+    if (attempt < 5) await new Promise(resolve => setTimeout(resolve, 100 * (2 ** attempt)));
   }
   throw lastError instanceof Error ? lastError : new Error('auth_deletion_not_confirmed');
 }

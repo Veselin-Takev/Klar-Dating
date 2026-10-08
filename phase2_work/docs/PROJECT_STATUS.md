@@ -11,6 +11,14 @@
 - The latest Exact-Head CI run must still pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the final head before technical release gates are green.
 - **Production release remains NO-GO / NOT CONFIRMED.**
 
+### 2026-10-08 — Exact-head CI 37841110696: test suite reduced to two concrete blockers
+
+Exact-head Enterprise CI run `37841110696` on candidate `67a3bc48e3551bd9c9476b53ba08ec9292cb6602` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 2 failures; 964/966 tests passed. The remaining failures were isolated to the age-gate fixture, which still expected the wrong domain code, and the emulator-backed account-erasure journey, where Firebase Auth remained observable immediately after a successful delete call.
+
+The age fixture is aligned to the actual `UNDERAGE_RESTRICTION` mapping. Account erasure retains the provider postcondition check and extends only its bounded retry window from four attempts to six with exponential 100ms backoff. The durable job still fails closed when Auth absence cannot be confirmed; no completion is reported on an unverifiable provider state.
+
+The next exact-head CI run must prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance. **Production remains NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-08 — Exact-head CI 37839602957: five concrete test blockers isolated
 
 Exact-head Enterprise CI run `37839602957` on candidate `c18fb297f8353f19fa5210b6ad822963957aeb49` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 7 failures across 5 files. The failures were isolated to four stale fixture contracts and one production erasure postcondition: the account-age fixture expected the wrong locked-underage response, the referral configuration fixture incorrectly expected the distributed limiter to bypass Firestore, the Stripe emulator fixture omitted the canonical checkout-session ID, the recommendation test still asserted against the retired global storage key, and account erasure lacked positive verification that the Firebase Auth identity was actually gone before the durable workflow could advance.
