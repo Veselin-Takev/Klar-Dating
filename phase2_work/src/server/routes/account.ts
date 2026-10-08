@@ -4,7 +4,8 @@
  */
 import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { distributedRateLimit } from '../distributedRateLimiter';
+import { ipKeyGenerator } from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
 import { getAuth as getAdminAuth, type Auth } from 'firebase-admin/auth';
 import {
@@ -59,38 +60,38 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       return res.status(503).json({ error: 'Löschantrag derzeit nicht verfügbar.' });
     }
   };
-  const accountAlterLimiter = rateLimit({
+  const accountAlterLimiter = distributedRateLimit({
+    collection: 'rate_limit_account_alter',
     windowMs: 60 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8', legacyHeaders: false,
+    keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Altersprüfungen. Bitte später erneut versuchen.' },
   });
   const accountAlterSchema = z.object({
     geburtsdatum: z.string().trim().min(1).max(10).regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE_FORMAT'),
   }).strict();
-  const accountExportLimiter = rateLimit({
+  const accountExportLimiter = distributedRateLimit({
+    collection: 'rate_limit_account_export',
     windowMs: 24 * 60 * 60 * 1000,
     limit: 2,
     keyGenerator: (req) => {
       const uid = currentUserId(req);
-      return uid ? `account-export-${uid}` : `account-export-ip-${req.ip ?? 'unknown'}`;
+      return uid ? 'uid:' + uid : 'ip:' + (req.ip ?? 'unknown');
     },
-    standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Auskunftsanfragen. Bitte später erneut versuchen.' },
   });
-  const accountPreferencesLimiter = rateLimit({
+  const accountPreferencesLimiter = distributedRateLimit({
+    collection: 'rate_limit_account_preferences',
     windowMs: 15 * 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8', legacyHeaders: false,
+    keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einstellungsänderungen. Bitte später erneut versuchen.' },
   });
-  const consentWriteLimiter = rateLimit({
+  const consentWriteLimiter = distributedRateLimit({
+    collection: 'rate_limit_consent_write',
     windowMs: 15 * 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
-    standardHeaders: 'draft-8', legacyHeaders: false,
+    keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einwilligungsänderungen. Bitte später erneut versuchen.' },
   });
   router.post('/auth/logout', async (req, res) => {
