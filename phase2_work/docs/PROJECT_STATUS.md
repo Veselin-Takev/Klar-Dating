@@ -220,3 +220,14 @@ The release candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head
 A second source-level review identified remaining double escaping in the Chat regression guard's regex literals. The gate has now been rewritten with canonical JavaScript regular-expression literals for word boundaries, member-access dots and whitespace matching on candidate commit `555a2b89a23fc4449b5c2679be91f26db3d9c1a9`. This is CI/test infrastructure only; application runtime code is unchanged.
 
 **Evidence policy:** no release credit is assigned until the exact candidate head is executed by Enterprise CI and all dynamic gates complete successfully. Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-08 — Release-governance and CI surface consolidation
+
+The release candidate exposed an integration gap in its own Enterprise gates: the branch referenced a production `.github/workflows/release.yml` contract, but that workflow was absent. The candidate now restores a tag-only, protected-environment release-evidence workflow with immutable GHCR image digests, maximum Buildx provenance, SBOM generation, exact commit/tag identity checks, Functions build identity, deployment-manifest rendering, container-attestation verification and a complete SHA256 checksum ledger. Production promotion remains separate from artifact publication and still requires the outstanding operational/governance evidence.
+
+The deployment manifest validator was also removed from its historical `veselin8606-source` registry-owner assumption; it now validates the repository owner supplied by the release environment while retaining strict immutable-digest validation.
+
+The CI toolchain-pin gate now discovers the actual workflow surface rather than failing on obsolete hard-coded filenames. Deterministic tests remain separated from stochastic LLM security evaluation; the latter now has an explicit manual, opt-in workflow guarded by `KLAR_RUN_LLM_EVAL`.
+
+Current candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head Enterprise CI completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance, followed by independent operational and governance evidence.
