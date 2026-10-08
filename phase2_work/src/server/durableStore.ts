@@ -645,7 +645,7 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
         if (!fallbackActive && realDb) {
           try {
             return await realDb.runTransaction(async (realTx: Transaction) => {
-              const unwrap = (ref: DurableDocRef): DocumentReference => {
+              const unwrap = (ref: DurableDocRefLike): DocumentReference => {
                 const actual = realDocRef(ref);
                 if (!actual) throw new Error('Durable transaction reference is not backed by Firestore.');
                 return actual;
@@ -684,12 +684,28 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
 
         const stagedWrites: Array<() => Promise<void>> = [];
         const tx: DurableTransaction = {
-          get: ref => ref.get(),
-          getAll: async (...refs) => Promise.all(refs.map(ref => tx.get(ref))),
-          set: (ref, data, options) => { stagedWrites.push(() => ref.set(data, options)); return tx; },
-          create: (ref, data) => { stagedWrites.push(() => ref.set(data)); return tx; },
-          update: (ref, data) => { stagedWrites.push(() => ref.update(data)); return tx; },
-          delete: ref => { stagedWrites.push(() => ref.delete()); return tx; },
+          get: ref => toDurableDocRef(ref).get(),
+          getAll: async (...refs) => Promise.all(refs.map(ref => toDurableDocRef(ref).get())),
+          set: (ref, data, options) => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.set(data, options); });
+            return tx;
+          },
+          create: (ref, data) => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.set(data); });
+            return tx;
+          },
+          update: (ref, data) => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.update(data); });
+            return tx;
+          },
+          delete: ref => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.delete(); });
+            return tx;
+          },
         };
         const result = await updateFunction(tx);
         for (const write of stagedWrites) await write();
