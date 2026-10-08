@@ -108,7 +108,8 @@
     "check:onboarding-integrity": "node scripts/check-onboarding-integrity.mjs",
     "check:release-provenance": "node scripts/check-release-provenance.mjs",
     "check:firestore-boundary": "node scripts/check-firestore-boundary.mjs",
-    "check:rate-limit-distribution": "node scripts/check-rate-limit-distribution.mjs",\n    "check:chat-read-path": "node scripts/check-chat-read-path.mjs"
+    "check:rate-limit-distribution": "node scripts/check-rate-limit-distribution.mjs",
+    "check:chat-read-path": "node scripts/check-chat-read-path.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
