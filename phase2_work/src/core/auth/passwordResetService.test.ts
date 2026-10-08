@@ -80,7 +80,7 @@ describe('passwordResetService', () => {
 
     it('falls back to Firebase SDK when server fetch fails, suppressing user-not-found', async () => {
       globalThis.fetch = vi.fn().mockRejectedValueOnce(new Error('Network error'));
-      (sendPasswordResetEmail as unknown).mockRejectedValueOnce({ code: 'auth/user-not-found' });
+      vi.mocked(sendPasswordResetEmail).mockRejectedValueOnce({ code: 'auth/user-not-found' } as never);
 
       const result = await requestPasswordReset('unknown@klar.app');
       expect(result.success).toBe(true);
