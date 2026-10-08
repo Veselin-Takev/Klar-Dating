@@ -271,7 +271,7 @@ export async function submitDsaAppeal(
 
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
@@ -334,7 +334,7 @@ export async function submitDsaAppeal(
 }
 
 export async function reviewDsaAppeal(
-  firestore: MinimalFirestore,
+  firestore: Firestore,
   reportIdRaw: unknown,
   reviewerUid: string,
   outcome: 'upheld' | 'overturned',
@@ -353,7 +353,7 @@ export async function reviewDsaAppeal(
 
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
