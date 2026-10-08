@@ -5,6 +5,7 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from '../distributedRateLimiter';
+import { ipKeyGenerator } from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
 import { getAuth as getAdminAuth, type Auth } from 'firebase-admin/auth';
 import {
