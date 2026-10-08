@@ -144,7 +144,7 @@ export default function AdminDashboard() {
 
   const chartData = logs.filter(l => l.status === 'success').map((l) => ({
     name: new Date(l.timestamp).toLocaleTimeString(),
-    latency: l.latencyMs
+    latency: typeof l.latencyMs === 'number' ? l.latencyMs : 0
   })).slice(-20);
 
   const heatmapData = logs.filter(l => l.status === 'success').map((l, index) => ({
