@@ -11,6 +11,18 @@ import jsPDF from "jspdf";
 import { NotificationService } from "../services/notificationService";
 import { melde } from "../lib/fehler";
 
+type SpeechRecognitionEventLike = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 type DateEntry = {
   id: number;
   date: string;
@@ -122,7 +134,9 @@ export function DatingTimelineWidget() {
           };
 
     recognition.onresult = async (event: SpeechRecognitionEventLike) => {
-      const transcript = event.results[0][0].transcript;
+      const result = event.results[0]?.[0];
+      if (!result || typeof result.transcript !== 'string') return;
+      const transcript = result.transcript;
       setIsRecording(false);
 
       setNewEntry(prev => ({ ...prev, learning: "Zusammenfassung wird erstellt..." }));
