@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import AdminDashboard from './AdminDashboard';
@@ -8,7 +9,7 @@ vi.mock('recharts', () => {
   const Original = vi.importActual('recharts');
   return {
     ...Original,
-    ResponsiveContainer: ({ children }: unknown) => <div>{children}</div>,
+    ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
     LineChart: () => <div>LineChart</div>,
     ScatterChart: () => <div>ScatterChart</div>,
     Line: () => <div>Line</div>,
