@@ -13,7 +13,7 @@ export function DateMoodStreakWidget() {
     if (!saved) return;
     try {
       const parsed: unknown = JSON.parse(saved);
-      const reflections = Array.isArray(parsed) ? parsed.filter((value): value is { date?: unknown } => !!value && typeof value === 'object' && !Array.isArray(value)) : [];
+      const reflections = Array.isArray(parsed) ? parsed.filter((value): value is { date: string } => !!value && typeof value === 'object' && !Array.isArray(value) && typeof (value as Record<string, unknown>).date === 'string') : [];
       if (!Array.isArray(reflections) || reflections.length === 0) return;
 
       const parseDate = (d: string) => {
@@ -26,8 +26,8 @@ export function DateMoodStreakWidget() {
       };
 
       // Get unique dates sorted descending
-      const dates = [...new Set(reflections.map((r: unknown) => r.date).filter(Boolean))]
-        .map(d => parseDate(d as string))
+      const dates = [...new Set(reflections.map((r) => r.date).filter(Boolean))]
+        .map(d => parseDate(d))
         .filter(d => !isNaN(d.getTime()))
         .sort((a, b) => b.getTime() - a.getTime());
 
