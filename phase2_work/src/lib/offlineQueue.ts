@@ -279,7 +279,7 @@ export async function syncQueuedActions(options?: {
         type: 'SEND_MESSAGE',
         status: 'failed',
         latencyMs,
-        details: err?.message,
+        details: err instanceof Error ? err.message : 'network_error',
       });
     }
   }
