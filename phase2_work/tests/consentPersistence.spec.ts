@@ -32,7 +32,9 @@ describe('consent transactions with real Firestore emulator', { timeout: 20000 }
       invoke(handleEinwilligungWiderruf, uid, { zweck: 'fehlerberichte' }),
     ]);
     const user = getDb().collection('users').doc(uid);
-    const state = (await user.get()).data().einwilligung;
+    const userData = (await user.get()).data();
+    if (!userData) throw new Error('Expected persisted user consent state.');
+    const state = userData.einwilligung;
     expect(state.zwecke).toMatchObject({ notwendig: true, ki_auswertung: false, fehlerberichte: false });
     const snapshots = await user.collection('einwilligungen').get();
     expect(snapshots.size).toBe(3);
