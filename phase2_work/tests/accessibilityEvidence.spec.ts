@@ -43,7 +43,7 @@ describe('manual accessibility evidence validation', () => {
   it('rejects missing manual coverage even when conclusion says pass', () => {
     const evidence = validEvidence();
     evidence.checks = evidence.checks.filter(check => check.area !== 'screen_reader');
-    const result = validateAccessibilityManualEvidence(evidence, 'a'.repeat(40));
+    const result = validate(evidence);
     expect(result.passed).toBe(false);
     expect(result.errors.join(' ')).toContain('screen_reader');
   });
