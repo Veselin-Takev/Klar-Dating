@@ -10,7 +10,7 @@ type Dependencies = { requireAuth: RequestHandler; getDb: () => Firestore; enabl
 /** Mount before the global JSON parser, so oversized bodies never reach the 1 MB parser. */
 export function createAnalyticsRouter({ requireAuth, getDb, enabled }: Dependencies) {
   const router = Router();
-  router.use(rateLimit({ windowMs: 60_000, limit: 30, keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''), standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'Too many analytics requests' } }));
+  router.use(rateLimit({ windowMs: 60_000, limit: 30, keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''), standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'Too many analytics requests' } }));
   router.use(express.json({ limit: 10 * 1024, strict: true }));
   const parseError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error.type === 'entity.too.large' || error.type === 'entity.parse.failed') { res.status(400).json({ error: 'Invalid analytics payload (maximum 10 KB)' }); return; }
