@@ -20,6 +20,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     defaults:
       run:
         working-directory: phase2_work
@@ -67,6 +69,13 @@ jobs:
           digest="$(grep -m1 -Eo 'Digest: sha256:[0-9a-f]{64}' release/container-tag-inspect.txt | awk '{print $2}')"
           test -n "$digest"
           echo "KLAR_RELEASE_DIGEST=$digest" >> "$GITHUB_ENV"
+
+      - name: Generate GitHub container provenance attestation
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/klar-app
+          subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}
+          push-to-registry: true
 
       - name: Verify release identity
         run: node scripts/write-release-identity.mjs
