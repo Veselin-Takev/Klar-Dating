@@ -153,3 +153,10 @@ The exact-head Enterprise CI run #166 (37814479762) passed all Enterprise static
 The corrections are committed on candidate c2903822eafad3bf7a22e400cea585c70eef80a5. The IPv6-safe key-generator policy is unchanged and the deterministic cross-instance test remains intact. Documentation was updated in the same candidate lineage.
 
 The candidate remains NO-GO / NOT CONFIRMED until a new exact-head CI run is successful across all dynamic gates. Older run outcomes must not be substituted for current-head evidence.
+
+
+## Update 2026-10-08 — Server TypeScript declaration boundary repaired
+
+Enterprise CI #170 (`37815141084`) reached Typecheck after all static gates passed and failed because the dedicated `tsconfig.server.json` excluded `src/types/express.d.ts`. The fix explicitly includes declaration files in that server project so Express request augmentation remains authoritative across server compilation.
+
+Candidate: `deb5722030a6974caf97ae592e29bf6229174036`. Strict compiler settings remain unchanged. Production is **NO-GO / NOT CONFIRMED** until the new exact-head CI run completes all dynamic gates successfully.
