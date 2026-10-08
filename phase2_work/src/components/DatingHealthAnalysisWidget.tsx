@@ -30,9 +30,9 @@ export function DatingHealthAnalysisWidget() {
     let totalMatch = 0;
     const activityScores: Record<string, number> = {};
 
-    journals.forEach((j: unknown) => {
+    journals.forEach((j) => {
       const note = typeof j.note === 'string' ? j.note : '';
-      const vibes = Array.isArray(j.vibes) ? j.vibes.filter((v): v is string => typeof v === 'string') : [];
+      const vibes = Array.isArray(j.vibes) ? j.vibes.filter((v: unknown): v is string => typeof v === 'string') : [];
       const mood = typeof j.mood === 'string' ? j.mood : '';
       const text = note + " " + vibes.join(" ") + " " + mood;
 
