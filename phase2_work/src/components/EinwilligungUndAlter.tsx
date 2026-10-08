@@ -148,7 +148,11 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         throw new Error('Der gespeicherte Nachweis fehlt.');
       }
       const profile = await refreshProfile();
-      if (profile?.isAdult !== true || profile?.einwilligung?.evidenceId !== evidenceId) {
+      const persistedConsent = profile?.einwilligung;
+      const persistedEvidenceId = persistedConsent && typeof persistedConsent === 'object' && !Array.isArray(persistedConsent)
+        ? (persistedConsent as Record<string, unknown>).evidenceId
+        : undefined;
+      if (profile?.isAdult !== true || persistedEvidenceId !== evidenceId) {
         throw new Error('Der aktuelle Einwilligungsstand wurde nicht bestätigt.');
       }
       onFertig?.();
