@@ -23,7 +23,7 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
     users: new Map(Object.entries(seedData?.users ?? {})),
   };
 
-  const firestore: MinimalFirestore = {
+  const firestore = {
     collection: (name: string) => ({
       doc: (id: string) => ({
         id,
