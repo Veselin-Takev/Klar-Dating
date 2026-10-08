@@ -18,18 +18,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
 
   try {
     const decoded = await getAuth(getServerFirebaseApp()).verifyIdToken(token, false);
-    req.user = {
-      uid: decoded.uid,
-      email: decoded.email,
-      role: typeof decoded.role === 'string' ? decoded.role : undefined,
-      roles: Array.isArray(decoded.roles) ? decoded.roles.filter((role): role is string => typeof role === 'string') : undefined,
-      admin: decoded.admin === true,
-      moderator: decoded.moderator === true,
-      support: decoded.support === true,
-      trust_safety: decoded.trust_safety === true,
-      finance: decoded.finance === true,
-      super_admin: decoded.super_admin === true,
-    };
+    req.user = decoded;
     return next();
   } catch {
     return res.status(401).json({ error: 'Forbidden: Invalid token' });
