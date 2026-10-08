@@ -206,3 +206,10 @@ The implemented Chat list optimization is now protected by a deterministic Enter
 Exact-head Enterprise CI #173 (`37816110016`) failed during dependency installation because the newly added Chat regression gate was committed with literal escaped newline sequences inside `package.json` and its `.mjs` source. The implementation itself was not evaluated by CI. The package entry and gate script were corrected on the subsequent candidate lineage (`7afb93dd7e304fa096c5a9716bb3c5b7a0050457` and `2a3b3bc7cf3666e46afb696f990f9f64573e5322`).
 
 The correction restores valid JSON and normal JavaScript source newlines; no application runtime behavior or compiler relaxation was introduced. A new exact-head Enterprise run is required. Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-08 — Chat read-path gate regex hardening
+
+Exact-head review of the Chat read-path regression guard found a repository-integration defect in its regular-expression literals: word-boundary assertions had been persisted with an extra escape level, so the intended structural matcher was not reliably expressed. The gate was corrected on candidate commit `02c9c7e2516f763301615a14d6e4061ae21bf45f` without changing application runtime behavior.
+
+The release candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head Enterprise CI run proves the corrected gate and completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance. A static source inspection is not substituted for CI evidence.
