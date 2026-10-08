@@ -348,5 +348,29 @@
         "source": "European Commission"
       }
     }
+  },
+  "dashboardOnboarding": {
+    "steps": [
+      {
+        "title": "Welcome to Klar",
+        "content": "Klar supports conversations and real-life meetings with relevant suggestions."
+      },
+      {
+        "title": "The Klar principle",
+        "content": "Conversation first, not selection pressure. Clear intentions, verification and a calm interface guide you."
+      },
+      {
+        "title": "Your local start",
+        "content": "Choose your city so Klar can suggest relevant people nearby."
+      },
+      {
+        "title": "From contact to date",
+        "content": "Shared interests, conversation prompts and date planning guide the journey – without catalogue pressure."
+      }
+    ],
+    "progress": "Step {{step}} of {{total}}",
+    "skip": "Skip introduction",
+    "next": "Next",
+    "start": "Get started"
   }
 }
