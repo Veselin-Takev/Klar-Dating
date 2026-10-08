@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 // ═══════════════════════════════════════════════════════════════════════════
 // Tagesstimmung — der eigene Stimmungsverlauf, ohne Erfindung
 //
