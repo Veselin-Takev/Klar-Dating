@@ -1713,7 +1713,18 @@ Verbindung nicht gefunden</div>);
         {messages.map((msg, idx) => (
           <div key={idx} className={`relative z-10 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.isDateProposal && msg.proposalDetails ? (
-              <DateProposalMessage msg={msg} profileName={profile?.name || ''} />
+              <DateProposalMessage
+                msg={{
+                  role: msg.role,
+                  proposalDetails: {
+                    title: typeof msg.proposalDetails?.title === 'string' ? msg.proposalDetails.title : '',
+                    description: typeof msg.proposalDetails?.description === 'string' ? msg.proposalDetails.description : '',
+                    time: typeof msg.proposalDetails?.time === 'string' ? msg.proposalDetails.time : '',
+                  },
+                  isRead: msg.isRead,
+                }}
+                profileName={profile?.name || ''}
+              />
             ) : (
                             <MessageBubble msg={msg} />
             )}
