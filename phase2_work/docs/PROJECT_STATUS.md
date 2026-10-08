@@ -341,3 +341,12 @@ Supply-chain hardening now includes an automated maintenance path in addition to
 Current GitHub documentation lists Bun and GitHub Actions as supported Dependabot ecosystems and requires `.github/dependabot.yml` in the default-branch `.github` directory. citeturn111071search0turn111071search2turn111071search10
 
 Production remains **NO-GO / NOT CONFIRMED** pending the next exact-head CI run through all deterministic stages and independent production approval/operational evidence.
+
+
+### 2026-10-08 — Autonomous CI monitoring budget guardrail
+
+The repository work is now paired with an explicit execution-budget guardrail requested for the ongoing PR validation: autonomous GitHub Actions execution is capped at **300 minutes**. No unnecessary workflow runs or blind reruns are permitted. Once the 300-minute ceiling is reached, further GitHub Actions execution must stop and explicit approval for up to an additional 200 minutes must be obtained before continuing.
+
+A scheduled CI-monitoring automation was created for PR #1 to inspect completed validation runs, diagnose concrete failures, apply repository fixes, and keep this status document synchronized. The automation does not treat the absence of a CI result as success and retains the existing fail-closed production rule.
+
+Production remains **NO-GO / NOT CONFIRMED**.
