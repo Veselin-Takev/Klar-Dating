@@ -14,7 +14,9 @@ describe('identity and payment trust boundaries', () => {
   it.runIf(!!process.env.FIREBASE_AUTH_EMULATOR_HOST)('a valid registered account cannot self-verify', async () => {
     const signup = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: `verify-${crypto.randomUUID()}@example.test`, password: 'emulator-only-123!', returnSecureToken: true }) });
     expect(signup.status).toBe(200);
-    const { localId, idToken } = await signup.json(); accounts.push(localId);
+    const { localId, idToken } = await signup.json();
+    if (typeof localId !== 'string' || typeof idToken !== 'string') throw new Error('Expected Firebase emulator signup identifiers.');
+    accounts.push(localId);
     const user = getDb().collection('users').doc(localId);
     await user.set({ isAdult: true, isVerified: false });
     const response = await fetch('http://localhost:3000/api/verification/verify', { method: 'POST', headers: { authorization: `Bearer ${idToken}`, 'content-type': 'application/json' }, body: JSON.stringify({ isVerified: true }) });
