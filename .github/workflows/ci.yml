@@ -34,6 +34,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Dependency lock preflight
+        run: node scripts/check-dependency-locks.mjs
       - name: Install dependencies
         run: |
           bun install --lockfile-only
