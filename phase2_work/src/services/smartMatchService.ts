@@ -9,6 +9,6 @@ export function saveSmartMatchSettings(_userId?: string, _enabled?: boolean): vo
   // no-op persistence stub
 }
 
-export function checkNewProfilesForSmartMatches(_profiles?: unknown, _userId?: unknown, _interests?: unknown, _notified?: unknown): unknown[] {
+export function checkNewProfilesForSmartMatches(_profiles?: Profile[], _userId?: string, _interests?: string[], _notified?: Set<string>): Profile[] {
   return [];
 }
