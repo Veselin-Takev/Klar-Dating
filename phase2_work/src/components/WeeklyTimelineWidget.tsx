@@ -11,18 +11,35 @@ import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import type { PlannedDate } from "./UpcomingDateWidget";
 
+interface TimelineJournal {
+  date: string;
+  person?: string;
+}
+function isTimelineJournal(value: unknown): value is TimelineJournal {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.date === 'string' && (record.person === undefined || typeof record.person === 'string');
+}
+
 export function WeeklyTimelineWidget() {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay() || 7); // 1-7, 7 = Sunday
   const [dates, setDates] = useState<PlannedDate[]>([]);
-  const [journals, setJournals] = useState<unknown[]>([]);
+  const [journals, setJournals] = useState<TimelineJournal[]>([]);
 
   useEffect(() => {
     void fetchDatePlans().then(setDates).catch(() => setDates([]));
 
     const journalsRaw = klarStorage.getItem('klar_dating_journals');
-    if (journalsRaw) setJournals(JSON.parse(journalsRaw));
+    if (journalsRaw) {
+      try {
+        const parsed: unknown = JSON.parse(journalsRaw);
+        setJournals(Array.isArray(parsed) ? parsed.filter(isTimelineJournal) : []);
+      } catch {
+        setJournals([]);
+      }
+    }
   }, []);
 
   const getWeekDays = () => {
