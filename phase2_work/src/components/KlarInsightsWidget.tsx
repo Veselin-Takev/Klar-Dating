@@ -13,7 +13,13 @@ const GENERISCHE_TIPPS = [
 
 export function KlarInsightsWidget() {
   const { user } = useAuth();
-  const [data, setData] = useState<unknown>(null);
+  type InsightsData = {
+    connectionsMade: number;
+    icebreakerScore: number | null;
+    kiErlaubt: boolean;
+    icebreakerFeedback?: string | null;
+  };
+  const [data, setData] = useState<InsightsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -53,8 +59,24 @@ export function KlarInsightsWidget() {
         return res.json();
       })
       .then(result => {
+        const parsed: unknown = result;
+        if (!parsed || typeof parsed !== 'object') throw new Error("Ungültige Insight-Antwort");
+        const value = parsed as Record<string, unknown>;
+        if (
+          typeof value.connectionsMade !== 'number' ||
+          (value.icebreakerScore !== null && typeof value.icebreakerScore !== 'number') ||
+          typeof value.kiErlaubt !== 'boolean'
+        ) {
+          throw new Error("Ungültige Insight-Antwort");
+        }
+        const normalized: InsightsData = {
+          connectionsMade: value.connectionsMade,
+          icebreakerScore: value.icebreakerScore,
+          kiErlaubt: value.kiErlaubt,
+          icebreakerFeedback: typeof value.icebreakerFeedback === 'string' ? value.icebreakerFeedback : null,
+        };
         if (mounted) {
-          setData(result);
+          setData(normalized);
           setIsLoading(false);
         }
       })
