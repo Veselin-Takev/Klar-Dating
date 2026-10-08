@@ -5,7 +5,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
 import type { Request, Response } from 'express';
-import type { Firestore, Query } from 'firebase-admin/firestore';
+import type { Query } from 'firebase-admin/firestore';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
@@ -209,7 +209,9 @@ async function checkModeratorRole(req: Request): Promise<boolean> {
       return true;
     }
     const konto = await getAuth().getUser(userUid);
-    const claims = konto.customClaims ?? {};
+    const claims: Record<string, unknown> = konto.customClaims && typeof konto.customClaims === 'object'
+      ? konto.customClaims as Record<string, unknown>
+      : {};
     const role = typeof claims.role === 'string' ? claims.role : '';
     const roles = Array.isArray(claims.roles) ? (claims.roles as unknown[]).filter((val: unknown): val is string => typeof val === 'string') : [];
     return (
@@ -265,7 +267,7 @@ export async function handleReportAppeal(req: Request, res: Response): Promise<v
     const additionalEvidence = req.body?.additionalEvidence ? text(req.body?.additionalEvidence, 'additionalEvidence', 2000, false) : undefined;
 
     const appeal = await submitDsaAppeal(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       appellantUid,
       appealReason,
@@ -293,7 +295,7 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
     const rationale = text(req.body?.rationale, 'rationale', 2000);
 
     const updatedAppeal = await reviewDsaAppeal(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       reviewerUid,
       outcome,
@@ -314,7 +316,7 @@ export async function handleBlock(req: Request, res: Response): Promise<void> {
   try {
     const zielUid = text(req.body?.targetUid, 'targetUid', 128);
     if (zielUid === meineUid) throw new Error('Das eigene Konto lässt sich nicht blockieren.');
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
     await db.collection('blocks').doc(`${meineUid}_${zielUid}`).set(
       { blockerUid: meineUid, blockedUid: zielUid, at: FieldValue.serverTimestamp() },
       { merge: true },
@@ -369,7 +371,7 @@ export function buildDeletionAuditReceipt(bericht: {
 }
 
 async function loescheAbfrage(query: Query): Promise<number> {
-  const db = getFirestore() as unknown;
+  const db = getFirestore();
   let gesamt = 0;
   for (;;) {
     if (Date.now() > (deletionDeadline.getStore() ?? Infinity)) throw new Error('deletion_time_slice');
@@ -386,7 +388,7 @@ async function loescheAbfrage(query: Query): Promise<number> {
 /** Repeatable purge: orchestration, provider cleanup and authentication live in accountDeletion.ts. */
 export async function purgeAccountData(meineUid: string, deletionRequestId?: string) {
   return deletionDeadline.run(Date.now() + 45_000, async () => {
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
     const bericht = {
       chats: 0, nachrichten: 0, gateAntworten: 0, verbindungen: 0, kontakte: 0,
       eigeneMeldungen: 0, pseudonymisiert: 0,
@@ -464,7 +466,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
       const ueber = await db.collection('reports').where('reportedProfileId', '==', meineUid).limit(BATCH).get();
       if (ueber.empty) break;
       const batch = db.batch();
-      ueber.docs.forEach((d: unknown) => batch.update(d.ref, {
+      ueber.docs.forEach((d) => batch.update(d.ref, {
         reportedProfileId: FieldValue.delete(), reportedGeloeschtAm: FieldValue.serverTimestamp(),
       }));
       await batch.commit(); bericht.pseudonymisiert += ueber.size;
