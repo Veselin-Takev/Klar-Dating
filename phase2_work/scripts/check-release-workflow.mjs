@@ -67,7 +67,7 @@ if (!text.includes('docker buildx imagetools inspect --raw "$image" > release/co
 if (!text.includes('release/container-index.json') || !text.includes('release/deploy/*.json')) {
   failures.push("Container index attestation evidence must be covered by SHA256SUMS before publication.");
 }
-if (!text.includes('docker buildx imagetools inspect \"ghcr.io/${{ github.repository_owner }}/klar-app:${GITHUB_REF_NAME}\" > release/container-tag-inspect.txt') || !text.includes('node scripts/write-container-tag-binding.mjs')) {
+if (!text.includes('image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app:${GITHUB_REF_NAME}"') || !text.includes('docker buildx imagetools inspect "$image" > release/container-tag-inspect.txt') || !text.includes('node scripts/write-container-tag-binding.mjs')) {
   failures.push("Production release must bind the semver registry tag to the exact immutable image digest.");
 }
 if (!text.includes('release/container-tag-inspect.txt') || !text.includes('release/container-tag-binding.json')) {
