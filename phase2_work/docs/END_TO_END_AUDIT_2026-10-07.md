@@ -38,7 +38,7 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 | ID | Komponente / Modul | Befund / Risiko | Auswirkung | Handlungsempfehlung | TCO-Impact |
 |---|---|---|---|---|---|
 | BE-01 | Translation | Legacy-Direktpfad entfernt; produktiver Pfad sanitisiert und begrenzt | Medium | CI-Gate `check:legacy-translation-boundary` beibehalten | Positiv |
-| BE-02 | Chat list | Bis zu 50 Chats plus zusätzliche Access-/Profil-Leseoperationen | High | Batch-/Denormalisierungsstrategie anhand realer Traces prüfen | Potenziell hoch |
+| BE-02 | Chat list | Bis zu 50 Chats; Access-/Profil-State wird jetzt dedupliziert per Bulk-Read geladen | High | Runtime-Traces erheben und Firestore-Read-/Latency-Amplification vor vollständiger P1-Schließung messen | Potenziell hoch |
 | BE-03 | AI | Zentrale Budgetierung, Timeout und strukturierte Antworten vorhanden | Medium | CI mit echten Gemini-Metriken validieren | Positiv |
 | BE-04 | Rate limiting | Kritische Pfade besitzen verteilte Firestore-Limits; mehrere Read-/Admin-Limits sind process-local | Medium | Nur bei Multi-Instance-Risiko auf Shared Store migrieren; nicht pauschal ohne Lastnachweis | Mittel |
 
@@ -81,7 +81,7 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 
 | Maßnahme | ICE | Status |
 |---|---:|---|
-| Chat-Read-N+1 mit realen Traces quantifizieren und reduzieren | 9/8/6 = 432 | **OFFEN** |
+| Chat-Read-N+1 mit realen Traces quantifizieren und reduzieren | 9/8/6 = 432 | **IMPLEMENTIERT / RUNTIME-EVIDENZ OFFEN** |
 | Direkte Firestore-Transaction-Trace-Abdeckung auf 100% bringen | 8/8/6 = 384 | **OFFEN** |
 | Process-local Rate-Limits nur dort ersetzen, wo Multi-Instance-Schutz erforderlich ist | 8/7/5 = 280 | **OFFEN / Lastnachweis erforderlich** |
 
@@ -91,6 +91,12 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 - Restore-/Rollback-Drills mit gemessenen RTO/RPO-Werten durchführen.
 - SBOM + Dependency-Audit + CodeQL als revisionssichere Release-Evidence archivieren.
 - API-/Architekturdokumentation automatisch aus dem validierten Build-Artefakt erzeugen.
+
+## Update 2026-10-08 — Chat list bulk-read mitigation
+
+- `/api/chats` wurde von einer per-Chat-Transaktion plus individueller Profilabfrage auf eine deduplizierte Firestore-`getAll`-Ausführung umgestellt. Die autoritativen Block-, Account-Deletion- und Beispielprofil-Semantiken bleiben erhalten.
+- Der Fix zielt auf RPC-/Latenz-N+1 und reduziert die Anzahl separater Firestore-Aufrufe deutlich; die tatsächliche Read-/Kostenreduktion muss mit Runtime-Traces bestätigt werden, bevor der P1-Befund geschlossen wird.
+- Keine Denormalisierung oder speculative caching wurde eingeführt, um Staleness- und Datenschutzrisiken zu vermeiden.
 
 ## 4. Dokumentations-Updates
 

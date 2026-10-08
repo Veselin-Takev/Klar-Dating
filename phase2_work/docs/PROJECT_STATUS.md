@@ -1,27 +1,27 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `4b7ff4bc98a6152eab0a66217923d0ae3b826f9d`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `fbd45fd5066f653226faf2403acb47b4eef253d4`.
 
 ## Current authoritative status
 
-- The exact-head Typecheck blockers from `8c38df8ed4525f9922ab06d09b5e5df81e8dad67` were remediated on `541b3d37f4b5beb263dba08c08d5f0abacb41a51`: the speech-recognition `onend` contract was completed, the consent response was narrowed through an unknown-safe record boundary with a validated `evidenceId`, and the stale `Tips.tsx` import was removed.
-- Follow-up hardening on `564efb8e0efc6eadcc7a5534d74b5fe7b302bf99` adds process-lifetime Firestore transaction request/error metrics and an Enterprise `check:firestore-boundary` gate that rejects native `getFirestore` access outside `src/server/db.ts`.
-- Documentation is synchronized on the current candidate head `4b7ff4bc98a6152eab0a66217923d0ae3b826f9d`; the exact-head Enterprise CI run for this head is the authoritative dynamic release evidence.
-- The latest known CI listing has run #153 pending on this head while an earlier parent-head run is still in progress/candidate cancellation. No PASS is inferred until the current head completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance successfully.
-- The Chat `/api/chats` read-path N+1 remains **P1 / OPEN** pending real traces; no speculative batching has been introduced. Process-local rate limits remain **P1 / OPEN pending evidence**; critical chat message and gate-answer limits are already distributed.
-- **Production release remains NO-GO / NOT CONFIRMED.** Operational/governance evidence remains required after dynamic CI is green.
+- The current Exact-Head CI candidate is `fbd45fd5066f653226faf2403acb47b4eef253d4`. The immediately preceding completed gate exposed only the consent profile type-contract blocker; that was remediated before this head.
+- The Firestore observability boundary is enforced through the central `src/server/db.ts` acquisition path; its transaction request/error metrics and Enterprise boundary gate are committed.
+- The Chat `/api/chats` list path now performs one initial chat query followed by one deduplicated `getAll(...references)` bulk read for block/deletion/profile state instead of one transaction plus one profile read per chat. This removes the per-chat transaction/RPC amplification while preserving the existing access, block, deletion and example-profile semantics.
+- Runtime trace evidence is still required to quantify the resulting Firestore read/latency improvement before the Chat P1 can be closed as fully remediated.
+- Process-local rate limits remain **P1 / OPEN pending evidence**. Critical chat message and gate-answer paths remain distributed; broader migration is not introduced without demonstrated multi-instance risk.
+- **Production release remains NO-GO / NOT CONFIRMED.** The exact-head Enterprise CI must pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance, followed by the independent operational/governance gates.
 
-## Latest remediation — Typecheck and transaction observability
+## Latest remediation — Chat read-path hardening
 
-- `DatingTimelineWidget.tsx`: `SpeechRecognitionLike` declares `onend`, matching the assigned runtime callback.
-- `EinwilligungUndAlter.tsx`: consent JSON is treated as `unknown`, narrowed to a record, and `evidenceId` is validated before profile confirmation.
-- `Tips.tsx`: removed unused `UserCircle/Wind` import.
-- `observability.ts`: transaction starts/failures are counted without synthetic traffic and exported through the existing Prometheus endpoint.
-- `check-firestore-boundary.mjs`: production server code is statically constrained to the shared Firestore acquisition boundary in `src/server/db.ts`.
+- `routes/chat.ts` validates chat participant tuples before constructing access references.
+- Access checks and public profile reads are deduplicated by document path and issued through a single bounded `getAll` call. Up to 50 chats therefore avoid 50 individual transactions and 50 sequential profile requests.
+- The endpoint remains bounded at 50 conversations and continues to fail closed on account deletion, either block direction, invalid participant data and example profiles.
 
 ## Release evidence rule
 
 A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.
+
+---
 
 ---
 
