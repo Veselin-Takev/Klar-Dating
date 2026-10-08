@@ -263,3 +263,14 @@ The production release workflow now grants the additional `artifact-metadata: wr
 GitHub's current Attest documentation lists `id-token: write`, `attestations: write`, and `artifact-metadata: write` for attestation generation, with `packages: write` required for container registry publishing. citeturn0search1turn0search2
 
 Production remains **NO-GO / NOT CONFIRMED**. Dynamic exact-head CI and actual attestation verification are still required before release approval.
+
+
+### 2026-10-08 — Exact-head CI static-gate failure remediated
+
+The reported Klar Enterprise CI run `37818737668` failed in the `Enterprise static gates` step before typecheck, tests, build, smoke, or browser acceptance. Root cause analysis identified a malformed workflow-file discovery regex in `scripts/check-ci-toolchain-pins.mjs`: the escaped pattern matched the wrong literal form and therefore could resolve to an empty workflow surface. The gate was corrected to the canonical `/\\.ya?ml$/` regex.
+
+During the same fail-closed review, the release attestation permission condition in `check-release-workflow.mjs` was corrected from an operator-precedence-sensitive expression to an explicit OR check requiring all three permissions: `id-token: write`, `attestations: write`, and `artifact-metadata: write`. This prevents a future regression from being masked by JavaScript boolean precedence.
+
+The failing run's application validation stages were skipped because the static gate failed first; therefore no claim is made about typecheck/test/build status from that run. A fresh exact-head CI run is required for release evidence.
+
+Production remains **NO-GO / NOT CONFIRMED**.
