@@ -2,6 +2,12 @@
 
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
 
+### 2026-10-08 — Remediation commit: restore account-erasure test import
+
+The exact-head failure from CI run `37848439991` is corrected at the test boundary: `tests/accountErasure.spec.ts` now explicitly imports `purgeAccountData`, matching the existing production export used by the emulator purge journey. No production source, runtime behavior, compiler strictness, or security control is changed. The repository documentation is updated on the same candidate head so the next CI result is attributable to the complete remediation state.
+
+A fresh exact-head CI run is authoritative. **Production remains NO-GO / NOT CONFIRMED** until Typecheck, Tests, Build, Production Smoke and Browser Acceptance all pass on that exact head, followed by the outstanding independent operational/governance evidence.
+
 ### 2026-10-08 — Exact-head CI 37848439991: test import regression corrected
 
 Exact-head Enterprise CI run `37848439991` on candidate `31890a66fabf32c989ee8413f897135badbfd309` passed dependency-lock preflight, dependency installation and Enterprise static gates, then failed in Typecheck with one deterministic fixture error: `tests/accountErasure.spec.ts` referenced `purgeAccountData` after an import-cleanup commit had removed that required symbol. No production source defect was identified.
