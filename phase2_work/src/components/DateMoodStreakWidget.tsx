@@ -12,7 +12,8 @@ export function DateMoodStreakWidget() {
     const saved = klarStorage.getItem("klar_date_reflections");
     if (!saved) return;
     try {
-      const reflections = JSON.parse(saved);
+      const parsed: unknown = JSON.parse(saved);
+      const reflections = Array.isArray(parsed) ? parsed.filter((value): value is { date?: unknown } => !!value && typeof value === 'object' && !Array.isArray(value)) : [];
       if (!Array.isArray(reflections) || reflections.length === 0) return;
 
       const parseDate = (d: string) => {
