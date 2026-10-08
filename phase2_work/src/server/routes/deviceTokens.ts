@@ -19,7 +19,7 @@ export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceT
   const deviceTokenWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Geräte-Token-Anfragen. Bitte versuche es später erneut.' },
