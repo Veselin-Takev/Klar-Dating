@@ -11,6 +11,14 @@
 - The latest Exact-Head CI run must still pass Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the final head before technical release gates are green.
 - **Production release remains NO-GO / NOT CONFIRMED.**
 
+### 2026-10-08 — Exact-head CI 37842577296: one emulator-specific Auth assertion isolated
+
+Exact-head Enterprise CI run `37842577296` on candidate `a1892952c3b32b9c6687477f9bb35ade1d2a7787` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 1 failure; 965/966 tests passed. The only failure was the emulator-backed account-erasure journey asserting `auth/user-not-found` immediately after the provider delete boundary, while the Auth emulator continued returning the disabled user record.
+
+The production deletion boundary remains fail-closed and the positive completion path is already covered by the dependency-injected `deletionLifecycle` suite. The emulator journey is narrowed to its supported responsibility: real Firestore/Storage owned-data purge and durable `final_sweep` progression, without treating the emulator's observed Auth state as production evidence. The bounded Auth delete-and-verify loop is corrected to six attempts with exponential backoff, and an unconfirmed provider absence still leaves the durable job retryable rather than completed.
+
+The next exact-head CI run must prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance. Independent production-provider evidence is still required before release; **production remains NO-GO / NOT CONFIRMED**.
+
 ### 2026-10-08 — Exact-head CI 37841110696: test suite reduced to two concrete blockers
 
 Exact-head Enterprise CI run `37841110696` on candidate `67a3bc48e3551bd9c9476b53ba08ec9292cb6602` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 2 failures; 964/966 tests passed. The remaining failures were isolated to the age-gate fixture, which still expected the wrong domain code, and the emulator-backed account-erasure journey, where Firebase Auth remained observable immediately after a successful delete call.

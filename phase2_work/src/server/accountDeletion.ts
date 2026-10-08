@@ -29,7 +29,7 @@ async function ignoreMissing(action: () => Promise<unknown>) {
 async function removeAuthAndVerify(uid: string): Promise<void> {
   const auth = getAuth();
   let lastError: unknown;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
       await auth.deleteUser(uid);
     } catch (error) {
