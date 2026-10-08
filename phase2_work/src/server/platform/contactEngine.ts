@@ -90,10 +90,14 @@ export async function processContactRequest(
     }
 
     // Quota decision
+    const contactDayValue = typeof userData.contactDay === 'string' ? userData.contactDay : '';
+    const contactCountValue = typeof userData.contactCount === 'number' && Number.isFinite(userData.contactCount)
+      ? userData.contactCount
+      : 0;
     const e = entscheideKontakt(
       {
-        tag: userData.contactDay ?? '',
-        verbraucht: userData.contactCount ?? 0,
+        tag: contactDayValue,
+        verbraucht: contactCountValue,
         plan: userData.plan === 'plus' ? 'plus' : 'frei',
       },
       heute
