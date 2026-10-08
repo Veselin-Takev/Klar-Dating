@@ -1,11 +1,12 @@
 import express, { Router, type Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { LaunchCity } from '../platform/launchPlatform';
 
 export type LaunchRouterDeps = {
   currentUserId: (req: Request) => string | null;
   getFirestore: () => Firestore;
-  normalizeLaunchCity: (value: unknown) => string | null;
+  normalizeLaunchCity: (value: unknown) => LaunchCity | null;
   getLocalDensity: (db: Firestore, city: import('../platform/launchPlatform').LaunchCity) => Promise<{ city: string; activeUsers: number; verifiedUsers: number; band: string; threshold: number }>;
   referralCodeFor: (uid: string) => string;
   recordActivation: (db: Firestore, uid: string, eventName: string, eventId?: string, metadata?: Record<string, unknown>) => Promise<unknown>;
@@ -125,12 +126,12 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       if (inviterSnap.empty || inviterSnap.docs[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
       const userRef = db.collection('users').doc(uid);
       const inviterRef = inviterSnap.docs[0]?.ref;
-      await db.runTransaction(async (tx: unknown) => {
+      await db.runTransaction(async (tx: Transaction) => {
         const userSnap = await tx.get(userRef);
         if (!inviterRef) return;
-        const inviter = await tx.get(inviterRef) as unknown;
+        const inviter = await tx.get(inviterRef);
         if (userSnap.data()?.referredBy || inviter.data()?.referralCode !== code) return;
-        tx.set(userRef, { referredBy: (inviterRef as unknown).id, referralQualified: false }, { merge: true });
+        tx.set(userRef, { referredBy: inviterRef.id, referralQualified: false }, { merge: true });
         tx.set(db.collection('referral_events').doc(`${(inviterRef as unknown).id}_${uid}`), {
           inviterUid: (inviterRef as unknown).id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
         }, { merge: true });
@@ -153,7 +154,9 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       );
       return res.status(201).json(result);
     } catch (error: unknown) {
-      if (error?.code === 6 || String(error?.message).includes('Already exists')) return res.status(200).json({ duplicate: true });
+      const code = error && typeof error === 'object' && 'code' in error ? (error as { code?: unknown }).code : undefined;
+      const message = error instanceof Error ? error.message : '';
+      if (code === 6 || message.includes('Already exists')) return res.status(200).json({ duplicate: true });
       return res.status(400).json({ error: 'Ungültiges Aktivierungsereignis.' });
     }
   });
@@ -196,7 +199,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const snap = await deps.getFirestore().collection('activation_events').where('uid', '==', uid).limit(100).get();
-      const events: string[] = snap.docs.map((doc: unknown) => String(doc.data().eventName ?? ''));
+      const events: string[] = snap.docs.map((doc) => String(doc.data()?.eventName ?? ''));
       const unique = Array.from(new Set(events));
       return res.json({ ...deps.activationScore(unique), events: unique });
     } catch (error) {
