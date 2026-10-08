@@ -292,3 +292,14 @@ Fresh exact-head CI run `37820349100` reached the Enterprise static gates and fa
 The release gate was corrected to assert the canonical workflow contract actually used by the release job: the digest-bound GitHub Attest configuration and the tag inspection command operating on the explicitly constructed `$image` variable. No application runtime code was changed. Because typecheck, tests, build, smoke, and browser acceptance were skipped after the static gate failure, those stages remain unproven until a fresh run executes them.
 
 Production remains **NO-GO / NOT CONFIRMED** pending the next exact-head CI run and subsequent independent release/operational evidence.
+
+
+### 2026-10-08 — CI root-cause: duplicate nested workflow tree removed
+
+Exact-head CI run `37820930237` checked out synthetic merge commit `a6ca144…` and failed in the release-workflow static gate even though the repository-root release workflow contained the expected controls. Root-cause analysis showed that the CI job runs with `phase2_work` as its working directory, while `check-release-workflow.mjs`, `check-ci-toolchain-pins.mjs`, and `check-test-separation.mjs` previously resolved `.github/workflows/*` relative to that working directory. A legacy duplicate workflow tree at `phase2_work/.github/workflows` therefore shadowed the authoritative repository-root workflows.
+
+Remediation: all three gates now resolve the active workflow directory from `import.meta.url` and the repository root, independent of the current working directory. A new `check-workflow-layout.mjs` gate enforces a single workflow source of truth. The seven historical nested workflow files under `phase2_work/.github/workflows` were removed. The active GitHub Actions surface is now exclusively `.github/workflows` at repository root.
+
+This is intentionally a governance/control-plane fix, not an application workaround. It eliminates path ambiguity and prevents stale CI/release definitions from silently becoming release evidence inputs.
+
+Production remains **NO-GO / NOT CONFIRMED** until a fresh exact-head CI run passes all deterministic validation stages and the independent release/operational approval evidence is verified.
