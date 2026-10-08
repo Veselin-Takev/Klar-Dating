@@ -85,7 +85,7 @@ export function DateDiaryStatsWidget() {
             <span>{dataPoint.emoji}</span> {dataPoint.name}
           </p>
           <p className="text-xs text-stone-500 mt-1">
-            {payload[0]?.value ?? 0} Dates diesen Monat
+            {typeof payload[0]?.value === 'number' || typeof payload[0]?.value === 'string' ? payload[0].value : 0} Dates diesen Monat
           </p>
         </div>
       );
