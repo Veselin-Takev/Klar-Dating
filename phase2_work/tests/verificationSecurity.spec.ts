@@ -20,7 +20,10 @@ describe('identity and payment trust boundaries', () => {
     const user = getDb().collection('users').doc(localId);
     await user.set({ isAdult: true, isVerified: false });
     const response = await fetch('http://localhost:3000/api/verification/verify', { method: 'POST', headers: { authorization: `Bearer ${idToken}`, 'content-type': 'application/json' }, body: JSON.stringify({ isVerified: true }) });
-    expect(response.status).toBe(410); expect((await user.get()).data().isVerified).toBe(false);
+    expect(response.status).toBe(410);
+    const profile = (await user.get()).data();
+    if (!profile) throw new Error('Expected persisted verification profile.');
+    expect(profile.isVerified).toBe(false);
   });
   it('does not credit rewards for an arbitrary signature', async () => {
     expect(await verifyAndCreditAdMobSsv({ transaction_id: 'fake', user_id: 'victim', signature: 'any-text' })).toEqual({ ok: false, reason: 'SSV_SIGNATURE_VERIFIER_NOT_CONFIGURED' });
