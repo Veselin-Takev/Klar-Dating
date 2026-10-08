@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `08e8c42227651bdb5bd2ae8cc668d82e7a416519`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `6c5e639b989f715424dd80912467e2d9f166b0ac`.
 
 ## Current authoritative status
 
@@ -399,3 +399,11 @@ Remediation was performed without weakening strict TypeScript:
 Candidate `08e8c42227651bdb5bd2ae8cc668d82e7a416519` contains the complete remediation lineage. Static source review found the previously reported stale calls removed. A fresh exact-head CI result remains required; no success is inferred from source inspection alone.
 
 Production remains **NO-GO / NOT CONFIRMED** pending green Typecheck, Tests, Build, Production Smoke and Browser Acceptance on the same exact head, followed by independent operational/governance evidence.
+
+### 2026-10-08 — Offline queue test-boundary runtime correction
+
+The strict-test remediation exposed one additional environment-boundary defect in `clearQueueForUser()`: the function correctly scoped memory cleanup by authenticated owner UID, but its IndexedDB cleanup path was unconditional and therefore rejected in Node-based enterprise tests where IndexedDB is unavailable.
+
+Candidate `6c5e639b989f715424dd80912467e2d9f166b0ac` now preserves the user-scoped memory cleanup and invokes the persistent IndexedDB cleanup only when `indexedDB` is available. This is a defensive runtime-boundary correction; it does not introduce a global queue-clear capability and does not alter browser behavior.
+
+Production remains **NO-GO / NOT CONFIRMED** until fresh exact-head CI proves Typecheck, Tests, Build, Production Smoke and Browser Acceptance and independent operational/governance evidence is verified.
