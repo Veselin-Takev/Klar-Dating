@@ -46,7 +46,7 @@ function D3LatencyChart({ data }: { data: LatencyPoint[] }) {
       .range([margin.left, width - margin.right]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => (d.latency as number)) || 0]).nice()
+      .domain([0, d3.max(data, d => d.latency) || 0]).nice()
       .range([height - margin.bottom, margin.top]);
 
     const line = d3.line<LatencyPoint>()
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
     timeIndex: index % 10,
     deviceTypeIndex: DEVICE_TYPES.indexOf(l.type ?? 'Unbekannt'),
     deviceType: l.type ?? 'Unbekannt',
-    latency: l.latencyMs
+    latency: l.latencyMs ?? 0
   }));
 
   return (
