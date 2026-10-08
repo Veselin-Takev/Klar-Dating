@@ -94,7 +94,7 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
               setFehler(t("ageGate.errorService"));
               return;
             }
-            setFehler(daten?.error ?? t("ageGate.errorGeneric"));
+            setFehler(typeof daten.error === 'string' ? daten.error : t("ageGate.errorGeneric"));
             return;
         }
       }
