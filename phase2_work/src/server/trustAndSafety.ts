@@ -5,6 +5,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
 import type { Request, Response } from 'express';
+import type { Firestore, Query } from 'firebase-admin/firestore';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
@@ -34,7 +35,9 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function uid(req: Request): string {
-  return (req as unknown).user?.uid as string;
+  const value = req.user?.uid;
+  if (!value) throw new Error('Unauthorized');
+  return value;
 }
 
 function text(wert: unknown, feld: string, max: number, pflicht = true): string {
@@ -86,7 +89,7 @@ export async function handleReport(req: Request, res: Response): Promise<void> {
     if (!GRUENDE.has(grund)) throw new Error('Unbekannter Meldegrund.');
     if (zielUid === meineUid) throw new Error('Eine Meldung über das eigene Konto ist nicht vorgesehen.');
 
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
 
     let reportedMessageSnapshot: {
       messageId: string;
@@ -194,7 +197,7 @@ async function checkModeratorRole(req: Request): Promise<boolean> {
   const userUid = uid(req);
   if (!userUid) return false;
   try {
-    const tokenClaims = (req as unknown).user ?? {};
+    const tokenClaims = req.user ?? {};
     if (
       tokenClaims.moderator === true ||
       tokenClaims.admin === true ||
@@ -236,12 +239,12 @@ export async function handleReportDecision(req: Request, res: Response): Promise
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const restrictionType = text(req.body?.restrictionType, 'restrictionType', 64) as unknown;
-    const legalGround = text(req.body?.legalGround, 'legalGround', 64) as unknown;
+    const restrictionType = text(req.body?.restrictionType, 'restrictionType', 64);
+    const legalGround = text(req.body?.legalGround, 'legalGround', 64);
     const factsAndCircumstances = text(req.body?.factsAndCircumstances, 'factsAndCircumstances', 2000);
 
     const statement = await recordModerationDecision(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       moderatorUid,
       { restrictionType, legalGround, factsAndCircumstances }
@@ -249,7 +252,7 @@ export async function handleReportDecision(req: Request, res: Response): Promise
 
     res.json({ ok: true, statement });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler bei der Moderationsentscheidung.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler bei der Moderationsentscheidung.' });
   }
 }
 
@@ -271,7 +274,7 @@ export async function handleReportAppeal(req: Request, res: Response): Promise<v
 
     res.json({ ok: true, appeal });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler beim Einreichen der Beschwerde.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler beim Einreichen der Beschwerde.' });
   }
 }
 
@@ -286,7 +289,7 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const outcome = text(req.body?.outcome, 'outcome', 32) as unknown;
+    const outcome = text(req.body?.outcome, 'outcome', 32);
     const rationale = text(req.body?.rationale, 'rationale', 2000);
 
     const updatedAppeal = await reviewDsaAppeal(
@@ -299,7 +302,7 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
 
     res.json({ ok: true, appeal: updatedAppeal });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler bei der Beschwerdeprüfung.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler bei der Beschwerdeprüfung.' });
   }
 }
 
@@ -365,7 +368,7 @@ export function buildDeletionAuditReceipt(bericht: {
   };
 }
 
-async function loescheAbfrage(query: unknown): Promise<number> {
+async function loescheAbfrage(query: Query): Promise<number> {
   const db = getFirestore() as unknown;
   let gesamt = 0;
   for (;;) {
@@ -373,7 +376,7 @@ async function loescheAbfrage(query: unknown): Promise<number> {
     const snap = await query.limit(BATCH).get();
     if (snap.empty) return gesamt;
     const batch = db.batch();
-    snap.docs.forEach((d: unknown) => batch.delete(d.ref));
+    snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     gesamt += snap.size;
     if (snap.size < BATCH) return gesamt;
@@ -524,7 +527,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     try {
       await receiptRef.create({ ...receipt, completedAt: FieldValue.serverTimestamp() });
     } catch (error) {
-      if (!receiptId || (error as { code?: string }).code !== 6) throw error;
+      if (!receiptId || (error as { code?: unknown }).code !== 6) throw error;
       // A retry may observe ALREADY_EXISTS after the previous create actually
       // committed. The deterministic receipt ID makes the write idempotent.
     }
