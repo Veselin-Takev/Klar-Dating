@@ -140,3 +140,9 @@ The candidate was reduced from broad strict-TypeScript cascades to concrete pers
 The active candidate head is 96fd51fb098ff01b7b3392807220519921f92429. CI run 37805740362 is registered for this head but has not started its job yet. No dynamic PASS is inferred from a queued run.
 
 **Production remains NO-GO / NOT CONFIRMED.** Exact-head Typecheck, Tests, Build, Production Smoke and Browser Acceptance must all pass, followed by the independent operational/governance release evidence.
+
+### 2026-10-08 — Exact-head CI status refresh
+
+The release candidate advanced beyond the earlier type-contract remediation. Current PR head: c8b6bb87d3c8189a88d7c20d19339ff037699863. The corresponding Enterprise CI run is 37805805516 and is currently in progress; dependency installation has completed only partially in the latest job snapshot, so no Typecheck/Test/Build/Smoke/Browser result is inferred yet.
+
+The candidate remains **NO-GO / NOT CONFIRMED**. Static gates are necessary but never sufficient for production promotion, and queued/in-progress CI is not release evidence.
