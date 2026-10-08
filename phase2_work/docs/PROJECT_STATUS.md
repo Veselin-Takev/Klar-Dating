@@ -1,6 +1,6 @@
 # Current audit status — 8 October 2026
 
-**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `b09fc7e87620b418b529f8001b3742c70d53a9e5`.
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
 
 ## Current authoritative status
 
@@ -27,6 +27,14 @@
 ## Release evidence rule
 
 A static gate PASS does not compensate for a failed, skipped, cancelled, queued or otherwise incomplete dynamic gate. Only exact-head evidence from the release candidate is authoritative.
+
+### 2026-10-08 — Exact-head CI 37829759159: strict test fixtures aligned with production contracts
+
+Exact-head Enterprise CI run `37829759159` on base candidate `60c7767a17a26741627375812a9cecda95d65006` passed dependency-lock preflight, dependency installation and all Enterprise static gates, then failed at Typecheck. The remaining diagnostics were isolated to five stale enterprise test fixtures: accessibility evidence omitted the required environment field; two Firestore mock calls in the age/consent cascade tests crossed the `Firestore` boundary without the established test-only cast; recovery evidence still referenced removed rollback fields from an isolated-restore fixture; and the final Stripe persistence assertion accessed nullable Firestore snapshot data without narrowing.
+
+The remediation keeps production contracts strict and changes only test fixtures at their boundaries: fixtures now satisfy the version-2 accessibility schema, mock Firestore objects are explicitly cast only at the test boundary, the recovery regression test now asserts rollback evidence only for production evidence, and persisted Stripe data is narrowed before field access. No compiler relaxation or production `any` escape hatch is introduced.
+
+Production remains **NO-GO / NOT CONFIRMED**. The next exact-head CI run must prove Typecheck, Tests, Build, Production Smoke and Browser Acceptance before technical release gates can advance.
 
 ---
 

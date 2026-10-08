@@ -159,7 +159,7 @@ test('GDPR Art. 9: recordExplicitConsent & revokeExplicitConsent maintain tamper
 
   // 2. Revoke consent
   const revokeTime = new Date('2026-09-24T14:00:00Z');
-  const { ok, updatedState } = await revokeExplicitConsent(firestore, 'usr_carol', 'all', revokeTime);
+  const { ok, updatedState } = await revokeExplicitConsent(firestore as unknown as Firestore, 'usr_carol', 'all', revokeTime);
   assert.equal(ok, true);
   assert.equal(updatedState.purposes.art9_sexual_orientation, false);
   assert.equal(updatedState.withdrawnAt, '2026-09-24T14:00:00.000Z');

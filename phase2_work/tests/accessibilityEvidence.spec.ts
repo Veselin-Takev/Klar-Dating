@@ -17,6 +17,7 @@ function validEvidence(): AccessibilityManualEvidence {
     schemaVersion: 2,
     standard: 'WCAG 2.2 AA',
     buildSha: 'a'.repeat(40),
+    environment: 'staging',
     evaluatedAt: '2026-09-29T18:00:00Z',
     scope: { product: 'Klar web app', environments: ['Chrome + NVDA'], flows: ['chat'] },
     reviewer: { name: 'Reviewer', role: 'Accessibility specialist' },

@@ -264,7 +264,7 @@ test('GDPR Art. 9: revokeExplicitConsent cascades purge of sensitive data from u
   );
 
   // 2. Revoke selective purpose (sexual orientation)
-  const selectiveRevoke = await revokeExplicitConsent(firestore, userId, 'art9_sexual_orientation', fixedNow);
+  const selectiveRevoke = await revokeExplicitConsent(firestore as unknown as Firestore, userId, 'art9_sexual_orientation', fixedNow);
   assert.equal(selectiveRevoke.ok, true);
   assert.deepEqual(selectiveRevoke.purgedFields, ['sexualOrientation', 'seekingGender']);
 
@@ -280,7 +280,7 @@ test('GDPR Art. 9: revokeExplicitConsent cascades purge of sensitive data from u
   assert.equal(publicProfileAfterSelective.city, 'Hamburg');
 
   // 3. Revoke all remaining Art. 9 consent
-  const fullRevoke = await revokeExplicitConsent(firestore, userId, 'all', new Date('2026-09-25T16:00:00Z'));
+  const fullRevoke = await revokeExplicitConsent(firestore as unknown as Firestore, userId, 'all', new Date('2026-09-25T16:00:00Z'));
   assert.equal(fullRevoke.ok, true);
   assert.equal(fullRevoke.updatedState.purposes.art9_religious_philosophical, false);
   assert.equal(fullRevoke.updatedState.purposes.ai_personality_insights, false);

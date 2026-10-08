@@ -80,7 +80,9 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     const { uid, subscription, session } = await setup();
     await send('checkout.session.async_payment_succeeded', session);
     await send('customer.subscription.deleted', { id: subscription });
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('free');
+    const userAfterCancellation = (await getDb().doc('users/' + uid).get()).data();
+    if (!userAfterCancellation) throw new Error('Expected persisted user profile after cancellation.');
+    expect(userAfterCancellation.plan).toBe('free');
     const event = signedEvent('checkout.session.completed', session);
     await expect(handleStripeWebhook(Buffer.from('{}'), event.signature)).rejects.toThrow();
   });

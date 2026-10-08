@@ -56,8 +56,9 @@ describe('recovery drill evidence validation', () => {
     const e = valid(); e.smokeTests.playwright = 'failed';
     expect(validate(e).errors.join(' ')).toMatch(/Playwright/);
   });
-  it('rejects incomplete rollback evidence', () => {
-    const e = valid(); e.rollbackEvidence.trafficPercent = 50;
-    expect(validate(e).errors.join(' ')).toMatch(/100%/);
+  it('requires rollback evidence for production recovery evidence', () => {
+    const e = valid();
+    e.environment = 'production';
+    expect(validate(e).errors.join(' ')).toMatch(/production recovery evidence requires rollback evidence/);
   });
 });
