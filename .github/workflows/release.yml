@@ -82,10 +82,14 @@ jobs:
           push-to-registry: true
 
       - name: Verify release identity
-        run: node scripts/write-release-identity.mjs
+        run: |
+          node scripts/write-release-identity.mjs
+          test -s release/build-identity.json
 
       - name: Generate Functions release identity
-        run: node scripts/write-functions-release-identity.mjs
+        run: |
+          node scripts/write-functions-release-identity.mjs
+          test -s release/functions-build-identity.json
 
       - name: Generate CycloneDX 1.7 SBOM
         run: |
@@ -93,10 +97,14 @@ jobs:
           npx --yes @cyclonedx/cdxgen@12.8.5 -r -o release/sbom.cdx.json --spec-version 1.7 --validate
 
       - name: Bind release tag to immutable image
-        run: node scripts/write-container-tag-binding.mjs
+        run: |
+          node scripts/write-container-tag-binding.mjs
+          test -s release/container-tag-binding.json
 
       - name: Bind SBOM to exact release
-        run: node scripts/write-sbom-identity.mjs
+        run: |
+          node scripts/write-sbom-identity.mjs
+          test -s release/sbom-build-identity.json
 
       - name: Render immutable deployment manifests
         env:
