@@ -84,7 +84,6 @@ type JournalEntry = {
 };
 
 export default function AICoach() {
-  const [uiError, setUiError] = useState<string | null>(null);
 
 
   const [activeTab, setActiveTab] = useState<'chat' | 'planner' | 'calendar' | 'recap' | 'scenario' | 'goals' | 'bio' | 'analytics' | 'icebreakers'>('chat');
