@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
@@ -58,7 +58,7 @@ function text(wert: unknown, feld: string, max: number, pflicht = true): string 
 export const trustSafetyWriteLimiter = rateLimit({ validate: false,
   windowMs: 15 * 60 * 1000,
   limit: 20,
-  keyGenerator: (req) => uid(req) || req.ip || 'unknown',
+  keyGenerator: (req) => uid(req) || ipKeyGenerator(req.ip ?? ''),
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: 'Zu viele Trust-&-Safety-Aktionen. Bitte versuche es später erneut.' },
