@@ -7,7 +7,7 @@ import { melde } from "../lib/fehler";
 
 interface SituationalIcebreakerWidgetProps {
   userInterests: string[];
-  profiles?: Array<{ id: string; name: string; age: number; interests: string[] }>;
+  profiles?: Array<{ id: string; name: string; age: number; interests: string[]; bio?: string }>;
 }
 
 export function SituationalIcebreakerWidget({ userInterests, profiles = [] }: SituationalIcebreakerWidgetProps) {
@@ -48,7 +48,8 @@ export function SituationalIcebreakerWidget({ userInterests, profiles = [] }: Si
   useEffect(() => {
     // Select the first verbindung by default if available
     if (profiles && profiles.length > 0) {
-      setSelectedMatch(profiles[0]);
+      const firstProfile = profiles[0];
+      if (firstProfile) setSelectedMatch(firstProfile);
     }
   }, []);
 
