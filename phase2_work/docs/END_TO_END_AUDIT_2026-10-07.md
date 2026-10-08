@@ -144,3 +144,12 @@ Firebase CLI: 15.31.0
 Abweichungen sind ein Release-Blocker und müssen zuerst in package/CI/runtime metadata
 konsistent geändert und durch das Toolchain-Gate bestätigt werden.
 ```
+
+
+## Update 2026-10-08 — CI Typecheck remediation: distributed rate-limit module boundaries
+
+The exact-head Enterprise CI run #166 (37814479762) passed all Enterprise static gates but failed at Typecheck. Root causes were: missing ipKeyGenerator import in src/server/routes/account.ts, an incorrect relative import from src/server/distributedRateLimiter.test.ts, and an unused vi import.
+
+The corrections are committed on candidate c2903822eafad3bf7a22e400cea585c70eef80a5. The IPv6-safe key-generator policy is unchanged and the deterministic cross-instance test remains intact. Documentation was updated in the same candidate lineage.
+
+The candidate remains NO-GO / NOT CONFIRMED until a new exact-head CI run is successful across all dynamic gates. Older run outcomes must not be substituted for current-head evidence.
