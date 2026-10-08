@@ -231,3 +231,8 @@ The deployment manifest validator was also removed from its historical `veselin8
 The CI toolchain-pin gate now discovers the actual workflow surface rather than failing on obsolete hard-coded filenames. Deterministic tests remain separated from stochastic LLM security evaluation; the latter now has an explicit manual, opt-in workflow guarded by `KLAR_RUN_LLM_EVAL`.
 
 Current candidate remains **NO-GO / NOT CONFIRMED** until the new exact-head Enterprise CI completes Typecheck, Tests, Build, Production Smoke and Browser Acceptance, followed by independent operational and governance evidence.
+
+
+### 2026-10-08 — Release artifact assertion tightened
+
+The release-evidence workflow now explicitly asserts the generated `release/deploy/*.json` manifests before checksum verification. This closes a gate-to-artifact naming mismatch without changing deployment semantics.
