@@ -62,7 +62,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
   const accountAlterLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Altersprüfungen. Bitte später erneut versuchen.' },
   });
@@ -82,14 +82,14 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
   const accountPreferencesLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Einstellungsänderungen. Bitte später erneut versuchen.' },
   });
   const consentWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Einwilligungsänderungen. Bitte später erneut versuchen.' },
   });
