@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import express from 'express';
-import { distributedRateLimit } from '../src/server/distributedRateLimiter';
+import { distributedRateLimit } from './distributedRateLimiter';
 
 type Stored = { count: number; windowStartedAt: number; expiresAt: Date };
 
