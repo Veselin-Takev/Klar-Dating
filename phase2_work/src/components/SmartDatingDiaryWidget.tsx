@@ -98,7 +98,7 @@ export function SmartDatingDiaryWidget() {
       if (moodsSaved) {
         try { moods = JSON.parse(moodsSaved); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
       }
-      const newMoods = [...moods.filter((e: unknown) => e.date !== today), { date: today, mood }];
+      const newMoods = [...moods.filter((e: { date?: unknown }) => e.date !== today), { date: today, mood }];
       klarStorage.setItem('klar_dating_moods', JSON.stringify(newMoods));
     }
 
