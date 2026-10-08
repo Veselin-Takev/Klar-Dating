@@ -46,7 +46,7 @@ describe("recommendation interaction learning", () => {
     for (let index = 0; index < 205; index++) {
       recordInteraction(candidate(["Klettern"]), "nachricht");
     }
-    const stored = JSON.parse(localStorage.getItem("klar_interactions_nachricht") || "[]");
+    const stored = JSON.parse(klarStorage.getItem("klar_interactions_nachricht", "recommendation-test-user") || "[]");
     expect(stored).toHaveLength(200);
   });
 });
