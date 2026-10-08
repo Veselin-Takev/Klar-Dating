@@ -25,7 +25,7 @@ async function setup() {
   const uid = 'stripe-' + randomUUID(); const subscription = 'sub_' + randomUUID();
   docs.add('users/' + uid); docs.add('processed_stripe_events/subscription_' + subscription);
   await getDb().collection('users').doc(uid).set({ plan: 'free' });
-  return { uid, subscription, session: { mode: 'subscription', payment_status: 'paid', currency: 'eur', amount_total: 1199, metadata: { klarUserId: uid }, client_reference_id: uid, subscription, customer: 'cus_test' } };
+  return { uid, subscription, session: { id: 'cs_test_' + randomUUID(), mode: 'subscription', payment_status: 'paid', currency: 'eur', amount_total: 1199, metadata: { klarUserId: uid }, client_reference_id: uid, subscription, customer: 'cus_test' } };
 }
 afterEach(async () => {
   vi.restoreAllMocks(); vi.unstubAllEnvs();
