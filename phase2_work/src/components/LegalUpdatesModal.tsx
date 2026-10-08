@@ -25,6 +25,7 @@ interface LegalUpdatesModalProps {
 
 export function LegalUpdatesModal({ updates, onClose, onAcknowledge, acknowledgedIds }: LegalUpdatesModalProps) {
   const { t } = useTranslation();
+  const translate = t as unknown as (key: string) => string;
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,16 +109,16 @@ export function LegalUpdatesModal({ updates, onClose, onAcknowledge, acknowledge
                 <motion.article key={update.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`klar-card rounded-2xl p-5 transition-colors ${update.actionRequired && !isAcknowledged ? 'bg-accent-quiet/70 border-accent/40' : ''}`}>
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold text-ink text-base pr-4 leading-tight">{t(update.titleKey)}</h3>
-                      <p className="text-xs text-muted mt-1">v{update.version} · {t(update.categoryKey)}</p>
+                      <h3 className="font-semibold text-ink text-base pr-4 leading-tight">{translate(update.titleKey)}</h3>
+                      <p className="text-xs text-muted mt-1">v{update.version} · {translate(update.categoryKey)}</p>
                     </div>
                     {update.actionRequired && !isAcknowledged && <span className="shrink-0 bg-accent-quiet text-accent text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded-full">{t('legalUpdates.actionRequired')}</span>}
                     {isAcknowledged && <><CheckCircle2 aria-hidden="true" size={16} className="text-emerald-500 shrink-0" /><span className="sr-only">{t('legalUpdates.acknowledged')}</span></>}
                   </div>
-                  <p className="text-sm text-muted mb-3 leading-[1.65]">{t(update.descriptionKey)}</p>
+                  <p className="text-sm text-muted mb-3 leading-[1.65]">{translate(update.descriptionKey)}</p>
                   <div className="flex items-center justify-between mt-4 gap-3">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <span>{t('legalUpdates.published')}: {update.publishedAt}</span><span aria-hidden="true">•</span><span className="flex items-center gap-1"><ExternalLink size={10} aria-hidden="true" /> {t(update.sourceKey)}</span>
+                      <span>{t('legalUpdates.published')}: {update.publishedAt}</span><span aria-hidden="true">•</span><span className="flex items-center gap-1"><ExternalLink size={10} aria-hidden="true" /> {translate(update.sourceKey)}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <a href={update.sourceUrl} target="_blank" rel="noopener noreferrer" className="min-h-11 text-sm border border-line-ui px-3 py-2 rounded-xl font-medium hover:bg-accent-quiet">{t('legalUpdates.openSource')}</a>
