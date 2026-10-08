@@ -20,7 +20,7 @@ export function createBillingRouter(deps: BillingRouterDeps): Router {
   const checkoutCreationLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Checkout-Anfragen. Bitte versuche es später erneut.' },
