@@ -198,7 +198,7 @@ export function getArt9FieldsToPurge(purposeToRevoke?: Art9Purpose | 'all'): str
  * data from user and public_profiles documents, and appends withdrawal audit entry.
  */
 export async function revokeExplicitConsent(
-  firestore: unknown,
+  firestore: Firestore,
   userId: string,
   purposeToRevoke?: Art9Purpose | 'all',
   now: Date = new Date()
@@ -214,7 +214,7 @@ export async function revokeExplicitConsent(
 
   let nextState: Art9ConsentState;
 
-  await firestore.runTransaction(async (tx: unknown) => {
+  await firestore.runTransaction(async (tx: Transaction) => {
     const userDoc = await tx.get(userRef);
     const existingState: Art9ConsentState | undefined = userDoc.data()?.art9Consent;
 
