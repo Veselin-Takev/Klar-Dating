@@ -674,6 +674,7 @@ export default function ChatView() {
     const workers = Array.from({ length: Math.min(3, candidates.length) }, async () => {
       while (cursor < candidates.length) {
         const candidate = candidates[cursor++];
+        if (!candidate) continue;
         await translateOne(candidate);
       }
     });
@@ -792,8 +793,8 @@ Der Einstieg sollte kreativ, freundlich und auf eine Gemeinsamkeit oder etwas au
           currentY = 20;
         }
 
-        const sender = (msg as unknown).isMine ? "Ich" : (profile?.name || "Kontakt");
-        const time = new Date((msg as unknown).timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute:'2-digit' });
+        const sender = msg.role === "user" ? "Ich" : (profile?.name || "Kontakt");
+        const time = new Date(msg.createdAt ?? "").toLocaleTimeString('de-DE', { hour: '2-digit', minute:'2-digit' });
 
         doc.setFont("helvetica", "bold");
         doc.text(`${sender} (${time}):`, 14, currentY);
