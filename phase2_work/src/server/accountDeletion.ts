@@ -126,11 +126,39 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId);
     if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new Error('provider_more_pages');
     await deps.purge(uid, job.requestId);
+    // Provider deletion is irreversible. Re-read the authoritative job state
+    // immediately before the provider boundary so a worker that lost its lease
+    // cannot perform the final destructive identity deletion.
+    const activeJobRef = deps.db.doc(ref.path);
+    const leaseStillOwned = await runObservedTransaction(deps.db, 'accountDeletion.verifyLeaseBeforeAuthDeletion', async tx => {
+      const current = (await tx.get(activeJobRef)).data();
+      return current?.status === 'pending' && current?.lease === lease;
+    });
+    if (!leaseStillOwned) throw new Error('deletion_lease_lost');
     await deps.removeAuth(uid);
     // Old Storage ID tokens and requests already in flight can outlive revocation.
     // Final sweep only after the maximum token lifetime plus grace; never report completion early.
-    await runObservedTransaction(deps.db, 'accountDeletion.finalizeDeletion', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; if (job.phase === 'purge') tx.update(ref, { phase: 'final_sweep', nextAttemptAt: new Date(now + 61 * 60_000), leaseUntil: 0, lastError: null });
-      else tx.set(ref, { requestId: job.requestId, status: 'completed', completedAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000), nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
+    await runObservedTransaction(deps.db, 'accountDeletion.finalizeDeletion', async tx => {
+      const current = (await tx.get(activeJobRef)).data();
+      if (!current || current.status !== 'pending' || current.lease !== lease) return;
+      if (current.phase === 'purge') {
+        tx.update(activeJobRef, {
+          phase: 'final_sweep',
+          nextAttemptAt: new Date(now + 61 * 60_000),
+          leaseUntil: 0,
+          lastError: null,
+        });
+      } else if (current.phase === 'final_sweep') {
+        tx.set(activeJobRef, {
+          requestId: String(current.requestId ?? job.requestId),
+          status: 'completed',
+          completedAt: new Date(now),
+          expiresAt: new Date(now + 30 * 86400_000),
+          nextAttemptAt: new Date('9999-01-01'),
+          leaseUntil: 0,
+        });
+      }
+    });
   } catch {
     // No provider error bodies, email addresses, photos or raw identity data in logs/receipts.
     const attempts = typeof job.attempts === 'number' ? job.attempts : 0;

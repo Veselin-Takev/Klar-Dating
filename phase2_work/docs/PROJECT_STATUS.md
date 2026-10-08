@@ -2,6 +2,11 @@
 
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
 
+### 2026-10-08 — Exact-head CI 37843696268: account-erasure lease-state blocker
+
+Exact-head Enterprise CI run `37843696268` on the merge candidate containing `32fdaa7d3cca4e16d31901b750c67bfabc6a3a13` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck, then failed in Tests with 1 failure; 965/966 tests passed. The remaining failure was the emulator-backed account-erasure journey: owned-data purge completed, but the durable job remained in `purge` instead of advancing to `final_sweep`. The test does not treat Firebase Auth emulator deletion as production evidence.
+
+The remediation rebinds the finalization path to a fresh authoritative job reference, derives the transition from the current persisted phase, and verifies the worker lease immediately before irreversible Auth deletion. A stale/lost worker can no longer delete the provider identity or finalize a job it no longer owns. A deterministic regression test now covers lease loss during purge. **Production remains NO-GO / NOT CONFIRMED** pending a clean exact-head CI result through Tests, Build, Production Smoke and Browser Acceptance plus independent operational/governance evidence.
 ## Current authoritative status
 
 - Critical Multi-Instance rate limits are now backed by the shared Firestore transaction boundary for account/consent changes, billing checkout, device-token writes, launch/referral flows and Trust-&-Safety writes.

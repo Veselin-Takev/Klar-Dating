@@ -26,6 +26,19 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     expect(completed.status).toBe('completed'); expect(completed).not.toHaveProperty('customerId'); expect(completed).not.toHaveProperty('subscriptionId');
     expect(completed.expiresAt.toMillis()).toBeGreaterThan(completed.completedAt.toMillis());
   });
+  it('does not delete authentication after a worker loses its lease', async () => {
+    const { uid, ref, deps } = await setup();
+    vi.mocked(deps.purge).mockImplementationOnce(async () => {
+      await ref.update({ lease: 'another-worker', leaseUntil: Date.now() + 60_000 });
+    });
+    await runAccountDeletion(uid, deps);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    expect((await ref.get()).data()).toMatchObject({
+      status: 'pending',
+      lastError: 'retry_required',
+    });
+  });
+
   it('resumes provider and purge failures without deleting authentication prematurely', async () => {
     const { uid, ref, deps, advance } = await setup();
     vi.mocked(deps.eraseProvider).mockResolvedValueOnce(false);
