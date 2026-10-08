@@ -34,7 +34,7 @@ export function rateLimiter(options: RateLimitOptions) {
       : (req.user?.uid || req.ip || req.socket.remoteAddress || 'unknown');
     const now = Date.now();
 
-    const setHeader = (header: string, value: unknown) => {
+    const setHeader = (header: string, value: string | number | readonly string[]) => {
       if (typeof res.setHeader === 'function') {
         res.setHeader(header, value);
       }
