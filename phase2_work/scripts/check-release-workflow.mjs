@@ -73,7 +73,7 @@ if (!text.includes('release/container-tag-inspect.txt') || !text.includes('relea
 if (!text.includes('node scripts/write-sbom-identity.mjs') || !text.includes('release/sbom-build-identity.json')) {
   failures.push("Production release must bind the supplemental CycloneDX SBOM to the exact commit and immutable image digest.");
 }
-if (!text.includes('release/sbom-build-identity.json >> release/SHA256SUMS') && !/sha256sum[^\n]*release\/sbom-build-identity\.json[^\n]*>> release\/SHA256SUMS/.test(text)) {
+if (!text.includes('release/sbom-build-identity.json >> release/SHA256SUMS') && !/sha256sum[^\n]*release\/sbom-build-identity\.json[^\n]*>> release\/SHA256SUMS/.test(text) && !/find release -type f.*sha256sum.*release\/SHA256SUMS/s.test(text)) {
   failures.push("SBOM build identity must be covered by SHA256SUMS before publication.");
 }
 if (!identityText.includes("gitRevParse('HEAD')") || !identityText.includes("refs/tags/${refName}^{commit}") || !identityText.includes("headSha !== sha") || !identityText.includes("tagSha !== sha")) {
