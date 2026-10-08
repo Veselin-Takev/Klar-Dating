@@ -425,18 +425,26 @@ function createDurableQuery(
   };
 }
 
+function isWrappedDurableDocRef(value: DurableDocRefLike): value is DurableDocRef {
+  return isRecord(value) && typeof property(value, 'path') === 'string' && '_realDocRef' in value;
+}
+
+function toDurableDocRef(value: DurableDocRefLike): DurableDocRef {
+  return isWrappedDurableDocRef(value) ? value : createDurableDocRef(value.path);
+}
+
 function realDocRef(value: DurableDocRefLike): DocumentReference | null {
-  if (value._realDocRef) return value._realDocRef;
+  if (isWrappedDurableDocRef(value)) return value._realDocRef ?? null;
   if (
-    isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.path === 'string' &&
     typeof value.get === 'function' &&
     typeof value.set === 'function' &&
     typeof value.update === 'function' &&
-    property(value, 'parent') !== undefined
+    typeof value.delete === 'function' &&
+    typeof value.collection === 'function'
   ) {
-    return value as unknown as DocumentReference;
+    return value as DocumentReference;
   }
   return null;
 }
