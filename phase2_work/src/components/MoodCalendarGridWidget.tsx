@@ -13,13 +13,19 @@ import { Calendar } from 'lucide-react';
 // bietet keine Eingabe. Sie auszublenden nimmt also niemandem einen Weg.
 // (Bei Karten MIT Eingabe waere dasselbe ein Fehler: Wer nichts eingetragen
 // hat, kaeme nie an die Stelle, an der man etwas eintraegt.)
+type ReflectionLog = { date?: unknown; mood?: unknown };
+type MoodGridDay = { date: string; colorClass: string };
+function parseLogs(raw: string | null): ReflectionLog[] {
+  if (!raw) return [];
+  try { const parsed: unknown = JSON.parse(raw); return Array.isArray(parsed) ? parsed.filter((v): v is ReflectionLog => !!v && typeof v === 'object' && !Array.isArray(v)) : []; } catch { return []; }
+}
 export function MoodCalendarGridWidget() {
-  const [grid, setGrid] = useState<unknown[]>([]);
+  const [grid, setGrid] = useState<MoodGridDay[]>([]);
   const [hatDaten, setHatDaten] = useState(false);
 
   useEffect(() => {
     const saved = klarStorage.getItem('klar_reflection_logs');
-    const logs = saved ? JSON.parse(saved) : [];
+    const logs = parseLogs(saved);
 
     const newGrid = [];
     // Show last 30 days
@@ -28,13 +34,13 @@ export function MoodCalendarGridWidget() {
       d.setDate(d.getDate() - i);
       const dateStr = d.toLocaleDateString('de-DE');
 
-      const dayLogs = logs.filter((l: unknown) => new Date(l.date).toLocaleDateString('de-DE') === dateStr);
+      const dayLogs = logs.filter(l => { const rawDate=l.date; return (typeof rawDate==='string'||typeof rawDate==='number') && new Date(rawDate).toLocaleDateString('de-DE')===dateStr; });
       let colorClass = "bg-stone-100 dark:bg-stone-800"; // none
 
       if (dayLogs.length > 0) {
         // Average mood
         let score = 0;
-        dayLogs.forEach((l: unknown) => {
+        dayLogs.forEach((l) => {
           if (l.mood === 'good') score += 1;
           else if (l.mood === 'bad') score -= 1;
         });
