@@ -1,4 +1,21 @@
-# Current audit status — 7 October 2026
+# Current audit status — 8 October 2026
+
+**Current candidate:** PR #1 / `security/v149-autonomous-consolidation` at `33ef9eb3255919bec8b07d4132665754fa8ae930`.
+
+## Current authoritative status
+
+- The supplied CI run `37799221240` failed in **Typecheck**; static Enterprise gates passed and Tests/Build/Smoke/Browser steps were skipped.
+- Root cause identified: the v149 branch exposed `getDb()` and the durable Firestore adapter as `unknown` while the codebase consumes the Firestore contract structurally. This produced a cascading strict-TypeScript failure set (803 diagnostics in the historical run), dominated by `durableStore.ts`.
+- The remediation restores an explicit `JsonObject`/JSON value contract, a typed `Firestore` boundary in `db.ts`, and explicit Express request augmentation for authenticated/session/guest state. No strict compiler flag was weakened and no broad `any` escape hatch was introduced.
+- A new Enterprise CI run for the corrected head `33ef9eb...` is pending. The previous run on an intermediate head was automatically cancelled by GitHub concurrency and is not evidence of the corrected head.
+- **Production release remains NO-GO / NOT CONFIRMED.** No production promotion is authorized until the corrected exact-head CI passes TypeScript, tests, build, production smoke and browser acceptance, followed by the required operational/governance evidence.
+
+## Release evidence rule
+
+A static gate PASS does not compensate for a failed or cancelled dynamic gate. Only exact-head evidence from the release candidate is authoritative.
+
+---
+
 
 The v149 audit remediated the `/api/account/alter` contract, differentiated age-gate UI errors, hardened AuthClaims normalization and aligned browser security headers. Static verification passes where the dependency-free runner can execute it. Full typecheck/test/build/E2E and production promotion remain blocked until the locked dependency graph and protected CI/cloud evidence are available. Production release is **NOT confirmed**.
 
