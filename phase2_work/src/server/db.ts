@@ -4,8 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { resolveFirebaseRuntime } from './firebaseRuntime';
 import { createDurableDbProxy } from './durableStore';
+import { observeFirestoreTransaction } from './observability';
 
 export { FieldValue };
+
+export function runObservedTransaction<T>(db: Firestore, name: string, fn: (tx: import('firebase-admin/firestore').Transaction) => Promise<T>): Promise<T> {
+  return observeFirestoreTransaction(name, () => db.runTransaction(fn));
+}
 
 let realDbInstance: ReturnType<typeof getFirestore> | null = null;
 let proxyDbInstance: Firestore | null = null;
