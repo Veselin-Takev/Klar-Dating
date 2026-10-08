@@ -6,7 +6,7 @@ const RECEIPT_RETRY_BASE_MS = 60_000;
 const RECEIPT_RETRY_MAX_MS = 60 * 60_000;
 import express from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
-import { getDb } from './db';
+import { getDb, runObservedTransaction } from './db';
 import { processContractCancellation } from './contracts';
 import { runAccountDeletion } from './accountDeletion';
 
@@ -14,7 +14,7 @@ export async function deliverContractReceipt(id: string, db: Firestore = getDb()
   const apiKey = process.env.SENDGRID_API_KEY; const sender = process.env.SENDGRID_FROM_EMAIL;
   if (!apiKey || !sender) return;
   const ref = db.doc(`contract_requests/${id}`); const now = Date.now(); const lease = randomUUID();
-  const job = await db.runTransaction(async tx => {
+  const job = await runObservedTransaction(db, 'complianceJobs.acquireReceiptLease', async tx => {
     const data = (await tx.get(ref)).data();
     if (!data || data.mailStatus === 'accepted' || data.mailStatus === 'error' || ((typeof data.mailLeaseUntil?.toMillis === 'function' && data.mailLeaseUntil.toMillis() > now) || (typeof data.mailLeaseUntil === 'number' && data.mailLeaseUntil > now))) return null;
     const attempts = Number.isSafeInteger(data.mailAttempts) ? data.mailAttempts : 0;
@@ -36,11 +36,11 @@ export async function deliverContractReceipt(id: string, db: Firestore = getDb()
       error.status = response.status;
       throw error;
     }
-    await db.runTransaction(async tx => { const current = (await tx.get(ref)).data(); if (current?.mailLease !== lease) return; tx.update(ref, { mailStatus: 'accepted', mailAcceptedAt: new Date(), mailLeaseUntil: 0, mailNextAttemptAt: new Date('9999-01-01') }); });
+    await runObservedTransaction(db, 'complianceJobs.markReceiptAccepted', async tx => { const current = (await tx.get(ref)).data(); if (current?.mailLease !== lease) return; tx.update(ref, { mailStatus: 'accepted', mailAcceptedAt: new Date(), mailLeaseUntil: 0, mailNextAttemptAt: new Date('9999-01-01') }); });
   } catch (error: unknown) {
     const status = Number((error as { status?: number })?.status);
     const retryable = !Number.isFinite(status) || RECEIPT_RETRYABLE_HTTP.has(status) || status >= 500;
-    await db.runTransaction(async tx => {
+    await runObservedTransaction(db, 'complianceJobs.updateReceiptRetry', async tx => {
       const current = (await tx.get(ref)).data();
       if (current?.mailLease !== lease) return;
       const attempts = (Number.isSafeInteger(current.mailAttempts) ? current.mailAttempts : 0) + 1;
@@ -73,7 +73,7 @@ export function createComplianceJobsRouter(db: () => Firestore = getDb) {
     const firestore = db(); const lock = firestore.doc('system/compliance_worker'); const now = Date.now();
     try {
       const workerLease = randomUUID();
-      const acquired = await firestore.runTransaction(async tx => {
+      const acquired = await runObservedTransaction(firestore, 'complianceJobs.acquireWorkerLease', async tx => {
         const state = (await tx.get(lock)).data();
         if (state?.leaseUntil > now) return false;
         tx.set(lock, { lease: workerLease, leaseUntil: now + 180_000 }); return true;
@@ -91,9 +91,9 @@ export function createComplianceJobsRouter(db: () => Firestore = getDb) {
         for (const job of receipts.docs) await deliverContractReceipt(job.id, firestore);
         const deletions = await firestore.collection('account_deletions').where('nextAttemptAt', '<=', new Date(now)).limit(1).get();
         for (const job of deletions.docs) await runAccountDeletion(job.id);
-        await firestore.runTransaction(async tx => { const state = (await tx.get(lock)).data(); if (state?.lease !== workerLease) return; tx.set(lock, { leaseUntil: 0, lastSuccessAt: new Date() }, { merge: true }); });
+        await runObservedTransaction(firestore, 'complianceJobs.markWorkerSuccess', async tx => { const state = (await tx.get(lock)).data(); if (state?.lease !== workerLease) return; tx.set(lock, { leaseUntil: 0, lastSuccessAt: new Date() }, { merge: true }); });
         return res.json({ ok: true, deletionJobs: deletions.size });
-      } finally { await firestore.runTransaction(async tx => { const state = (await tx.get(lock)).data(); if (state?.lease !== workerLease) return; tx.set(lock, { leaseUntil: 0 }, { merge: true }); }); }
+      } finally { await runObservedTransaction(firestore, 'complianceJobs.releaseWorkerLease', async tx => { const state = (await tx.get(lock)).data(); if (state?.lease !== workerLease) return; tx.set(lock, { leaseUntil: 0 }, { merge: true }); }); }
     } catch { return res.status(503).json({ code: 'compliance_worker_unavailable' }); }
   });
   return router;
