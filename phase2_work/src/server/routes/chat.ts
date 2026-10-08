@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'node:crypto';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { DocumentReference, Firestore, Transaction } from 'firebase-admin/firestore';
 import { getDb } from '../db';
 import { currentUserId } from '../authorization';
 import { ChatAccessError, readChatAccess, validDocumentId } from '../chatAccess';
@@ -15,6 +15,58 @@ const CHAT_MESSAGE_RATE_LIMIT_MAX = 20;
 const CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION = 'chat_gate_answer_rate_limits';
 const CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS = 60_000;
 const CHAT_GATE_ANSWER_RATE_LIMIT_MAX = 10;
+
+async function loadChatListAccess(db: Firestore, snapshot: Awaited<ReturnType<ReturnType<Firestore['collection']>['get']>>, uid: string) {
+  type Entry = { docId: string; data: FirebaseFirestore.DocumentData; recipientId: string };
+  const entries: Entry[] = [];
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const participants = data.participants;
+    if (!Array.isArray(participants) || participants.length !== 2
+      || participants[0] === participants[1]
+      || !participants.every(validDocumentId)
+      || !participants.includes(uid)) continue;
+    const recipientId = participants.find((participant: string) => participant !== uid);
+    if (!recipientId) continue;
+    entries.push({ docId: doc.id, data, recipientId });
+  }
+
+  if (!entries.length) return [];
+  const references = new Map<string, DocumentReference>();
+  const addRef = (ref: DocumentReference) => references.set(ref.path, ref);
+  const ownDeletionRef = db.collection('account_deletions').doc(uid);
+  addRef(ownDeletionRef);
+
+  const profileRefs = new Map<string, DocumentReference>();
+  for (const entry of entries) {
+    addRef(db.collection('blocks').doc(`${uid}_${entry.recipientId}`));
+    addRef(db.collection('blocks').doc(`${entry.recipientId}_${uid}`));
+    addRef(db.collection('account_deletions').doc(entry.recipientId));
+    const profileRef = db.collection('public_profiles').doc(entry.recipientId);
+    addRef(profileRef);
+    profileRefs.set(entry.recipientId, profileRef);
+  }
+
+  const snapshots = await db.getAll(...references.values());
+  const byPath = new Map(snapshots.map(item => [item.ref.path, item]));
+  if (byPath.get(ownDeletionRef.path)?.exists) return [];
+
+  return entries.map(entry => {
+    const blockA = byPath.get(db.collection('blocks').doc(`${uid}_${entry.recipientId}`).path);
+    const blockB = byPath.get(db.collection('blocks').doc(`${entry.recipientId}_${uid}`).path);
+    const ownRecipientDeletion = byPath.get(db.collection('account_deletions').doc(entry.recipientId).path);
+    if (blockA?.exists || blockB?.exists || ownRecipientDeletion?.exists) return null;
+
+    const profile = byPath.get(profileRefs.get(entry.recipientId)!.path);
+    if (profile?.exists && profile.data()?.isExample === true) return null;
+    return {
+      ...entry.data,
+      id: entry.docId,
+      profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!) : null,
+    };
+  }).filter((chat): chat is NonNullable<typeof chat> => chat !== null);
+}
 
 async function distributedChatGateAnswerRateLimit(req: Request, res: Response, next: NextFunction) {
   const uid = currentUserId(req);
@@ -108,15 +160,8 @@ export function createChatRouter() {
     try {
       const db = getDb() as Firestore;
       const snapshot = await db.collection('chats').where('participants', 'array-contains', uid).limit(50).get();
-      const chats = await Promise.all(snapshot.docs.map(async doc => {
-        try {
-          const access = await db.runTransaction(tx => readChatAccess(db, tx, doc.id, uid));
-          const profile = await db.collection('public_profiles').doc(access.recipientId).get();
-          if (profile.exists && profile.data()?.isExample === true) return null;
-          return { ...access.data, id: doc.id, profile: profile.exists ? toPublicProfile(access.recipientId, profile.data()!) : null };
-        } catch (error) { if (error instanceof ChatAccessError) return null; throw error; }
-      }));
-      return res.json({ chats: chats.filter(Boolean) });
+      const chats = await loadChatListAccess(db, snapshot, uid);
+      return res.json({ chats });
     } catch { return res.status(503).json({ error: 'Gespräche konnten nicht geladen werden.' }); }
   });
   router.get('/chats/:chatId', chatDetailReadLimiter, async (req, res) => {
