@@ -70,8 +70,11 @@ const tracer = trace.getTracer(SERVICE_NAME, '1.0.0');
 export function extractTraceContext(traceparent: string | undefined): Context {
   if (typeof traceparent !== 'string') return ROOT_CONTEXT;
   const match = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i.exec(traceparent.trim());
-  if (!match || /^0{32}$/.test(match[1]) || /^0{16}$/.test(match[2])) return ROOT_CONTEXT;
-  const spanContext: SpanContext = { traceId: match[1].toLowerCase(), spanId: match[2].toLowerCase(), traceFlags: parseInt(match[3], 16), isRemote: true };
+  const traceId = match?.[1];
+  const spanId = match?.[2];
+  const traceFlags = match?.[3];
+  if (!traceId || !spanId || !traceFlags || /^0{32}$/.test(traceId) || /^0{16}$/.test(spanId)) return ROOT_CONTEXT;
+  const spanContext: SpanContext = { traceId: traceId.toLowerCase(), spanId: spanId.toLowerCase(), traceFlags: parseInt(traceFlags, 16), isRemote: true };
   return trace.setSpanContext(ROOT_CONTEXT, spanContext);
 }
 
