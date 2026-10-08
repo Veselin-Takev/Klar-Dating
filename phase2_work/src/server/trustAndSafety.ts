@@ -437,6 +437,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //     Eine neue Sammlung, die nicht in dieser Liste steht, überlebt die
     //     Löschung — deshalb gehört jede hier eingetragen.
     await loescheAbfrage(db.collection('users').doc(meineUid).collection('einwilligungen'));
+    await loescheAbfrage(db.collection('users').doc(meineUid).collection('legal_acknowledgements'));
     // 11.08.2026: Zwischenspeicher fuer KI-Auswertungen. Er haelt Aussagen
     // ueber diese Person hoechstens 36 Stunden — ohne diesen Eintrag aber
     // ueber die Kontoloeschung hinaus.
