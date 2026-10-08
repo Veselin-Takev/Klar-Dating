@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
+import type { Firestore } from 'firebase-admin/firestore';
 import { getDb } from "../db";
 import { InputError, requireString, optionalString } from '../pure';
 
@@ -106,7 +107,7 @@ export async function issueModerationDecision(
   reason: string,
   automated: boolean = false
 ): Promise<DsaModerationDecision> {
-  const db = getDb() as any;
+  const db: Firestore = getDb();
   const decisionRef = db.collection("dsa_decisions").doc();
 
   const now = new Date();
@@ -199,10 +200,7 @@ export async function recordModerationDecision(
     }
 
     const reportData = snap.data() ?? {};
-    const targetUid = reportData.reportedProfileId;
-    if (!targetUid) {
-      throw new InputError('Bericht enthält kein gemeldetes Profil.');
-    }
+    const targetUid = requireString(reportData.reportedProfileId, 'reportedProfileId', 128);
 
     const statement = buildStatementOfReasons(reportId, targetUid, moderatorUid, decision, now);
 
@@ -298,7 +296,10 @@ export async function submitDsaAppeal(
     }
 
     const reportData = snap.data() ?? {};
-    const dsaStatement: DsaStatementOfReasons | undefined = reportData.dsaStatement;
+    const rawStatement = reportData.dsaStatement;
+    const dsaStatement = rawStatement && typeof rawStatement === 'object'
+      ? rawStatement as unknown as DsaStatementOfReasons
+      : undefined;
     if (!dsaStatement) {
       throw new InputError('Zu diesem Bericht liegt noch keine begründete Entscheidung vor.');
     }
@@ -315,7 +316,11 @@ export async function submitDsaAppeal(
       throw new InputError('Die Frist für das interne Beschwerdeverfahren (180 Tage) ist abgelaufen.');
     }
 
-    if (reportData.dsaAppeal && reportData.dsaAppeal.status === 'pending') {
+    const rawAppeal = reportData.dsaAppeal;
+    const existingAppeal = rawAppeal && typeof rawAppeal === 'object'
+      ? rawAppeal as unknown as DsaAppeal
+      : undefined;
+    if (existingAppeal?.status === 'pending') {
       throw new InputError('Für diese Entscheidung ist bereits eine Beschwerde in Prüfung.');
     }
 
@@ -373,7 +378,10 @@ export async function reviewDsaAppeal(
     }
 
     const reportData = snap.data() ?? {};
-    const appeal: DsaAppeal | undefined = reportData.dsaAppeal;
+    const rawAppeal = reportData.dsaAppeal;
+    const appeal = rawAppeal && typeof rawAppeal === 'object'
+      ? rawAppeal as unknown as DsaAppeal
+      : undefined;
     if (!appeal) {
       throw new InputError('Keine offene Beschwerde zu diesem Bericht vorhanden.');
     }
@@ -399,7 +407,7 @@ export async function reviewDsaAppeal(
       { merge: true }
     );
 
-    if (outcome === 'overturned' && reportData.reportedProfileId) {
+    if (outcome === 'overturned' && typeof reportData.reportedProfileId === 'string' && reportData.reportedProfileId) {
       const userRef = firestore.collection('users').doc(reportData.reportedProfileId);
       t.set(
         userRef,
