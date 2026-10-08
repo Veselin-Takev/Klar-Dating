@@ -31,7 +31,7 @@ export function rateLimiter(options: RateLimitOptions) {
   return (req: Request, res: Response, next: NextFunction) => {
     const key = options.keyGenerator
       ? options.keyGenerator(req)
-      : ((req as unknown).user?.uid || req.ip || req.socket.remoteAddress || 'unknown');
+      : (req.user?.uid || req.ip || req.socket.remoteAddress || 'unknown');
     const now = Date.now();
 
     const setHeader = (header: string, value: unknown) => {
@@ -79,7 +79,7 @@ export const kiRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
   max: 15,
   message: 'KI-Ratenbegrenzung erreicht. Bitte warte kurz vor der nächsten Analyse.',
-  keyGenerator: (req) => `ki_${(req as unknown).user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
+  keyGenerator: (req) => `ki_${req.user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
 });
 
 /**
@@ -90,5 +90,5 @@ export const chatRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
   max: 30,
   message: 'Nachrichtenlimit erreicht. Bitte reduziere die Sendefrequenz.',
-  keyGenerator: (req) => `chat_${(req as unknown).user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
+  keyGenerator: (req) => `chat_${req.user?.uid || ipKeyGenerator(req.ip ?? '') || 'anon'}`,
 });
