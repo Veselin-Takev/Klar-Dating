@@ -73,7 +73,8 @@ describe('launch/referral/activation HTTP boundary', () => {
     const response = await fetch(ctx.base + '/referral');
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
-    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_generation');
   });
 
   it('maps duplicate activation writes to an idempotent 200 response', async () => {
