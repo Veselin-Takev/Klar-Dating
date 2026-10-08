@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { klarStorage } from '../src/lib/userScopedStorage';
 const sdk = vi.hoisted(() => ({ auth: { languageCode: '' }, reset: vi.fn(), send: vi.fn(), signIn: vi.fn(), isLink: vi.fn(), verify: vi.fn(), confirm: vi.fn() }));
 vi.mock('firebase/auth', () => ({ getAuth: () => sdk.auth, sendPasswordResetEmail: sdk.reset, sendSignInLinkToEmail: sdk.send, isSignInWithEmailLink: sdk.isLink, signInWithEmailLink: sdk.signIn, verifyPasswordResetCode: sdk.verify, confirmPasswordReset: sdk.confirm }));
 import i18n from '../src/i18n/config';
 import { completeMagicLinkSignIn, sendMagicLink, sendPasswordReset } from '../src/services/authRecovery';
-beforeEach(async () => { vi.resetAllMocks(); localStorage.clear(); history.replaceState(null, '', '/login?mode=signIn&oobCode=test&email=attacker@example.test'); sdk.isLink.mockReturnValue(true); await i18n.changeLanguage('en'); });
+beforeEach(async () => { vi.resetAllMocks(); localStorage.clear(); sessionStorage.clear(); klarStorage.removeItem('klar_magic_email'); history.replaceState(null, '', '/login?mode=signIn&oobCode=test&email=attacker@example.test'); sdk.isLink.mockReturnValue(true); await i18n.changeLanguage('en'); });
 describe('email recovery boundaries', () => {
   it('requires explicit email on a new device and never trusts URL email', async () => {
     expect(await completeMagicLinkSignIn()).toEqual({ success: false, needsEmail: true });
@@ -13,14 +14,14 @@ describe('email recovery boundaries', () => {
     expect(sdk.signIn).toHaveBeenCalledWith(sdk.auth, 'owner@example.test', location.href);
   });
   it('deduplicates simultaneous link redemption and removes stored email only after success', async () => {
-    localStorage.setItem('klar_magic_email', 'owner@example.test');
+    klarStorage.setItem('klar_magic_email', 'owner@example.test');
     let resolve!: (value: unknown) => void;
     sdk.signIn.mockReturnValue(new Promise(r => { resolve = r; }));
     const first = completeMagicLinkSignIn(); const second = completeMagicLinkSignIn();
     expect(sdk.signIn).toHaveBeenCalledTimes(1);
     resolve({ user: { uid: 'verified' } });
     expect((await Promise.all([first, second])).every(r => r.success)).toBe(true);
-    expect(localStorage.getItem('klar_magic_email')).toBeNull();
+    expect(klarStorage.getItem('klar_magic_email')).toBeNull();
   });
   it('handles expired links without exposing provider errors and permits retry', async () => {
     sdk.signIn.mockRejectedValueOnce(new Error('sensitive-provider-error')).mockResolvedValueOnce({ user: { uid: 'verified' } });

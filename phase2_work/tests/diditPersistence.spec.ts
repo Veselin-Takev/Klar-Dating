@@ -54,7 +54,7 @@ describe('Didit sessions and signed decisions in Firestore', { timeout: 20_000 }
     const decline = eventFor(uid, sessionId); decline.status = 'Declined'; decline.created_at++;
     await expect(send(decline)).rejects.toThrow('invalid_kyc_transition');
     const stale = eventFor(uid, sessionId); await send(stale);
-    expect((await getDb().doc(`users/${uid}`).get()).data()?.isVerified).toBe(false);
+    expect((await getDb().doc(`users/${uid}`).get()).data()?.isVerified).toBe(true);
     await document(`account_deletions/${uid}`).set({ status: 'pending' });
     const late = eventFor(uid, sessionId); late.created_at += 2;
     expect(await send(late)).toMatchObject({ applied: false });

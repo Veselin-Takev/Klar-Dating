@@ -64,7 +64,8 @@ describe('launch/referral/activation HTTP boundary', () => {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'bad' }),
     });
     expect(response.status).toBe(400);
-    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
 
   it('fails closed when the referral public origin is not configured', async () => {

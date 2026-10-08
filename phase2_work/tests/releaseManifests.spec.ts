@@ -17,7 +17,8 @@ afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recur
 describe('release manifest integrity', () => {
   it('renders both manifests with exactly the build digest and keeps operational limits', () => {
     const root = fixture(); const output = join(root, 'output');
-    const image = 'ghcr.io/veselin8606-source/klar-app@sha256:' + 'abcdef0123456789'.repeat(4);
+    const owner = process.env.GITHUB_REPOSITORY_OWNER ?? 'veselin8606-source';
+    const image = 'ghcr.io/' + owner + '/klar-app@sha256:' + 'abcdef0123456789'.repeat(4);
     const result = run(root, 'render', image, output); expect(result.status, result.stderr).toBe(0);
     for (const name of ['cloud-run', 'service']) {
       const manifest = JSON.parse(readFileSync(join(output, name + '.json'), 'utf8'));
@@ -27,7 +28,7 @@ describe('release manifest integrity', () => {
   });
   it.each([':latest', '@sha256:REPLACE_WITH_VERIFIED_DIGEST', '@sha256:1234'])(
     'rejects unresolved or mutable images: %s', suffix => {
-      const root = fixture(); expect(run(root, 'render', 'ghcr.io/veselin8606-source/klar-app' + suffix, join(root, 'out')).status).toBe(1);
+      const root = fixture(); expect(run(root, 'render', 'ghcr.io/' + (process.env.GITHUB_REPOSITORY_OWNER ?? 'veselin8606-source') + '/klar-app' + suffix, join(root, 'out')).status).toBe(1);
     },
   );
   it('blocks reintroduced placeholder manifests in CI', () => {

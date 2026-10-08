@@ -5,7 +5,7 @@ import type { Request, Response } from 'express';
 const mocks = vi.hoisted(() => ({
   assessSafetyMessage: vi.fn(),
   runTransaction: vi.fn(),
-  add: vi.fn(async () => ({ id: 'audit' })),
+  appendAuditLog: vi.fn(async () => ({ id: 'audit' })),
 }));
 
 vi.mock('../src/server/safetyService', () => ({ assessSafetyMessage: mocks.assessSafetyMessage }));
@@ -19,6 +19,7 @@ vi.mock('../src/server/db', () => ({
   }),
 }));
 vi.mock('../src/server/platform/launchPlatform', () => ({ recordActivation: vi.fn(async () => {}) }));
+vi.mock('../src/server/platform/auditLog', () => ({ appendAuditLog: mocks.appendAuditLog }));
 vi.mock('../src/server/chatAccess', () => ({
   ChatAccessError: class ChatAccessError extends Error { constructor(public status:number, public code:string, message:string){ super(message); } },
   validDocumentId: (v: unknown) => typeof v === 'string' && !!v,
@@ -48,7 +49,7 @@ describe('authoritative chat safety enforcement', () => {
     expect(result).toMatchObject({status:422,payload:{code:'message_flagged'}});
     // One transaction is the pre-AI authorization check; no write transaction follows.
     expect(mocks.runTransaction).toHaveBeenCalledTimes(1);
-    expect(mocks.add).toHaveBeenCalledWith(expect.objectContaining({type:'safety_message_blocked',userId:'user-1'}));
+    expect(mocks.appendAuditLog).toHaveBeenCalledWith(expect.anything(), { type: 'safety_message_blocked', actorUid: 'user-1' });
   });
 
   it('fails closed when safety assessment is unavailable', async () => {

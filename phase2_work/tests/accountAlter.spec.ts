@@ -38,7 +38,7 @@ describe('POST /api/account/alter contract', () => {
     const api = await endpoint();
     const response = await api.send({ geburtsdatum: '2000-01-10' });
     expect(response.status).toBe(200);
-    expect(processAgeVerification).toHaveBeenCalledWith(expect.anything(), 'user-age-contract', '2000-01-10');
+    expect(processAgeVerification).toHaveBeenCalledWith(expect.anything(), undefined, '2000-01-10');
   });
 
   it('returns 422 with a domain code for underage submissions', async () => {

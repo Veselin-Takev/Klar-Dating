@@ -30,11 +30,11 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     const { uid, ref, deps, advance } = await setup();
     vi.mocked(deps.eraseProvider).mockResolvedValueOnce(false);
     await runAccountDeletion(uid, deps); expect(deps.purge).not.toHaveBeenCalled(); expect(deps.removeAuth).not.toHaveBeenCalled();
-    advance(61_000); vi.mocked(deps.purge).mockRejectedValueOnce(new Error('PII provider failure'));
+    advance(121_000); vi.mocked(deps.purge).mockRejectedValueOnce(new Error('PII provider failure'));
     await runAccountDeletion(uid, deps); expect(deps.removeAuth).not.toHaveBeenCalled();
     expect((await ref.get()).data()).toMatchObject({ status: 'pending', lastError: 'retry_required' });
     expect(JSON.stringify((await ref.get()).data())).not.toContain('PII');
-    advance(61_000); await runAccountDeletion(uid, deps);
+    advance(241_000); await runAccountDeletion(uid, deps);
     expect((await ref.get()).data()?.phase).toBe('final_sweep');
   });
 });

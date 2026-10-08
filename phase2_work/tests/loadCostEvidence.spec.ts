@@ -44,7 +44,7 @@ describe('production load/cost evidence validation', () => {
     expect(validate(e, load()).errors.join(' ')).toMatch(/does not match/);
   });
   it('rejects measured cost above the approved envelope', () => {
-    const e = evidence(); e.approvedBudget.maxCostPer1000RequestsUsd = 0.2;
+    const e = evidence(); e.cost.totalCostUsd = 7.5; e.cost.costPer1000RequestsUsd = 0.75;
     expect(validate(e, load()).errors.join(' ')).toMatch(/exceeds/);
   });
   it('rejects placeholder records without billing evidence or approval', () => {

@@ -34,7 +34,7 @@ describe('Layout Component (UI Shell)', () => {
 
     expect(screen.getByTestId('test-content')).toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: /Hauptnavigation/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: /Hauptnavigation/i })).toHaveLength(2);
   });
 
   it('provides accessible skip-link to #inhalt', () => {

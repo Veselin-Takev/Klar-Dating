@@ -1,11 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-/**
- * Inventory contract: every legacy endpoint is explicitly represented in a
- * test surface. This does not claim behavioral coverage; routen-inventar.mjs
- * intentionally measures only path acknowledgement.
- */
 const legacyEndpointPaths = [
   '/api/auth/send-verification',
   '/api/legal-updates',
@@ -31,6 +26,10 @@ const legacyEndpointPaths = [
 describe('route inventory acknowledgement', () => {
   it('keeps every known legacy endpoint represented in the source contract', () => {
     const server = readFileSync('server.ts', 'utf8');
-    for (const path of legacyEndpointPaths) expect(server).toContain(path);
+    const legalUpdates = readFileSync('src/server/routes/legalUpdates.ts', 'utf8');
+    for (const path of legacyEndpointPaths.filter(path => !path.startsWith('/api/legal-updates'))) expect(server).toContain(path);
+    expect(server).toContain('createLegalUpdatesRouter');
+    expect(legalUpdates).toContain("router.get('/legal-updates'");
+    expect(legalUpdates).toContain("router.post('/legal-updates/:updateId/acknowledge'");
   });
 });

@@ -18,6 +18,7 @@ describe('contract declarations, confirmations and provider cancellation', { tim
   it('leaves an outage retryable and does not mark cancellation complete until Stripe confirms', async () => {
     const data = input(); const uid = 'contract-' + randomUUID(); paths.add(`users/${uid}`); paths.add(`subscriptions/${uid}`);
     await getDb().doc(`users/${uid}`).set({ subscriptionId: 'sub_test', stripeCustomerId: 'cus_test', plan: 'plus' });
+    await getDb().doc(`subscriptions/${uid}`).set({ plan: 'plus', subscriptionId: 'sub_test', stripeCustomerId: 'cus_test', autoRenew: true });
     await acceptDeclaration(getDb(), data, uid);
     const stripe = { subscriptions: { retrieve: vi.fn(async () => ({ customer: 'cus_test', status: 'active', ended_at: null })),
       update: vi.fn().mockRejectedValueOnce(new Error('outage')).mockResolvedValueOnce({ cancel_at: 1_900_000_000 }) } };

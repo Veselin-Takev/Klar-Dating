@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb, getServerFirebaseApp } from '../src/server/db';
+import { getDb } from '../src/server/db';
 import { getAppBucket } from '../src/server/storage';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
 import { deletionDependencies, runAccountDeletion } from '../src/server/accountDeletion';
@@ -10,7 +10,7 @@ import { deletionDependencies, runAccountDeletion } from '../src/server/accountD
 describe('account erasure including archived messages and photos', () => {
   it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('deletes owned data without recreating an analytics identity', async () => {
     const uid = `erase-${crypto.randomUUID()}`;
-    const db = getDb(); const auth = getAuth(getServerFirebaseApp());
+    const db = getDb(); const auth = getAuth();
     await auth.createUser({ uid });
     const chat = db.collection('chats').doc(uid);
     await db.collection('users').doc(uid).set({ name: 'Test' });
