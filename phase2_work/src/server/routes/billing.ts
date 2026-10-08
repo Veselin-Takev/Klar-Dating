@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { z } from 'zod';
 import { CheckoutConflictError } from '../stripeService';
 
@@ -20,7 +20,7 @@ export function createBillingRouter(deps: BillingRouterDeps): Router {
   const checkoutCreationLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => deps.currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => deps.currentUserId(req) ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Checkout-Anfragen. Bitte versuche es später erneut.' },
