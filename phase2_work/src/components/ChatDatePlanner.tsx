@@ -153,17 +153,6 @@ function leseUmfrage(w: unknown): UmfrageAntwort[] {
   );
 }
 
-function leseCheckliste(w: unknown): ChecklistenPunkt[] {
-  if (!Array.isArray(w)) return [];
-  return w.filter(
-    (e): e is ChecklistenPunkt =>
-      istObjekt(e) &&
-      typeof e["id"] === "string" &&
-      typeof e["text"] === "string" &&
-      typeof e["done"] === "boolean",
-  );
-}
-
 function leseHistorie(w: unknown): DateHistoryEntry[] {
   if (!Array.isArray(w)) return [];
   const raus: DateHistoryEntry[] = [];
