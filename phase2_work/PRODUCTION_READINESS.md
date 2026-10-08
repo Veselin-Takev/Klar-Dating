@@ -52,3 +52,12 @@ The 2026-10-07 enterprise audit found and corrected the following release-integr
 - A dedicated `check:legacy-translation-boundary` gate is part of `check:enterprise`.
 
 Static security/privacy/feature boundaries remain PASS. Full dynamic production certification remains blocked in this execution environment because the project dependency tree, Firebase CLI and Playwright browser/toolchain are not installed locally and registry access is unavailable.
+
+
+## Autonomous remediation — 2026-10-08 (CI gate #1)
+
+- GitHub repository access and PR #1 are now verified against the authoritative private repository.
+- First dynamic CI run (run #12) reached the enterprise static gates after successful Bun/npm dependency installation on Node.js 22.23.3.
+- The first blocking finding was the fail-closed deletion-cascade catalog: `legal_acknowledgements` and `legal_updates` were detected without explicit decisions.
+- Remediation: `legal_acknowledgements` is explicitly classified as user-scoped and deleted with account data; `legal_updates` is explicitly classified as system-wide legal publication data that does not belong to account deletion.
+- Production status remains **NO-GO** until the complete dynamic CI/test/build/smoke/browser evidence is green and all external production controls are verified.
