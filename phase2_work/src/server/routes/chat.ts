@@ -35,6 +35,9 @@ async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: s
   if (!entries.length) return [];
   const references = new Map<string, DocumentReference>();
   const addRef = (ref: DocumentReference) => references.set(ref.path, ref);
+  const chatRefs = new Map(snapshot.docs.map(doc => [doc.id, doc.ref] as const));
+  for (const ref of chatRefs.values()) addRef(ref);
+
   const ownDeletionRef = db.collection('account_deletions').doc(uid);
   addRef(ownDeletionRef);
 
@@ -48,24 +51,35 @@ async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: s
     profileRefs.set(entry.recipientId, profileRef);
   }
 
-  const snapshots = await db.getAll(...references.values());
-  const byPath = new Map(snapshots.map(item => [item.ref.path, item]));
-  if (byPath.get(ownDeletionRef.path)?.exists) return [];
+  return db.runTransaction(async tx => {
+    const snapshots = await tx.getAll(...references.values());
+    const byPath = new Map(snapshots.map(item => [item.ref.path, item]));
+    if (byPath.get(ownDeletionRef.path)?.exists) return [];
 
-  return entries.map(entry => {
-    const blockA = byPath.get(db.collection('blocks').doc(`${uid}_${entry.recipientId}`).path);
-    const blockB = byPath.get(db.collection('blocks').doc(`${entry.recipientId}_${uid}`).path);
-    const ownRecipientDeletion = byPath.get(db.collection('account_deletions').doc(entry.recipientId).path);
-    if (blockA?.exists || blockB?.exists || ownRecipientDeletion?.exists) return null;
+    return entries.map(entry => {
+      const chatSnapshot = byPath.get(chatRefs.get(entry.docId)!.path);
+      const chatData = chatSnapshot?.exists ? chatSnapshot.data() : undefined;
+      const participants = chatData?.participants;
+      const currentRecipientId = Array.isArray(participants) && participants.length === 2
+        && participants.every(validDocumentId) && participants.includes(uid)
+        ? participants.find((participant: string) => participant !== uid)
+        : undefined;
+      if (!chatSnapshot?.exists || !currentRecipientId || currentRecipientId !== entry.recipientId) return null;
 
-    const profile = byPath.get(profileRefs.get(entry.recipientId)!.path);
-    if (profile?.exists && profile.data()?.isExample === true) return null;
-    return {
-      ...entry.data,
-      id: entry.docId,
-      profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!) : null,
-    };
-  }).filter((chat): chat is NonNullable<typeof chat> => chat !== null);
+      const blockA = byPath.get(db.collection('blocks').doc(`${uid}_${entry.recipientId}`).path);
+      const blockB = byPath.get(db.collection('blocks').doc(`${entry.recipientId}_${uid}`).path);
+      const ownRecipientDeletion = byPath.get(db.collection('account_deletions').doc(entry.recipientId).path);
+      if (blockA?.exists || blockB?.exists || ownRecipientDeletion?.exists) return null;
+
+      const profile = byPath.get(profileRefs.get(entry.recipientId)!.path);
+      if (profile?.exists && profile.data()?.isExample === true) return null;
+      return {
+        ...chatData,
+        id: entry.docId,
+        profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!) : null,
+      };
+    }).filter((chat): chat is NonNullable<typeof chat> => chat !== null);
+  });
 }
 
 async function distributedChatGateAnswerRateLimit(req: Request, res: Response, next: NextFunction) {
