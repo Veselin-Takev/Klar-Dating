@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolveFirebaseRuntime } from './firebaseRuntime';
@@ -8,7 +8,7 @@ import { createDurableDbProxy } from './durableStore';
 export { FieldValue };
 
 let realDbInstance: ReturnType<typeof getFirestore> | null = null;
-let proxyDbInstance: unknown = null;
+let proxyDbInstance: Firestore | null = null;
 let initialization: Promise<void> | null = null;
 
 function durableFallbackAllowed(): boolean {
@@ -25,8 +25,8 @@ export function getServerFirebaseApp() {
   return getApps()[0] ?? initializeApp(projectId ? { projectId } : undefined);
 }
 
-/** Production must fail closed when Firestore is unavailable; local durable fallback is explicit and non-production only. */
-export function getDb(): unknown {
+/** Production fails closed when Firestore is unavailable; the explicit local durable adapter implements the Firestore subset used by Klar. */
+export function getDb(): Firestore {
   if (!proxyDbInstance) {
     try {
       const app = getServerFirebaseApp();
@@ -38,30 +38,24 @@ export function getDb(): unknown {
       }
       console.warn('Direct Firestore initialization failed; explicitly enabled non-production durable fallback is active:', err);
     }
-    // If initialization yielded no real Firestore instance, fail closed unless the
-    // caller explicitly enabled the non-production durable fallback.
     if (!realDbInstance && !durableFallbackAllowed()) {
       throw new Error('Firestore is unavailable; durable fallback is disabled.');
     }
-    // If realDbInstance is a mock double (e.g. in unit tests without runTransaction), return it directly.
-    if (realDbInstance && typeof realDbInstance.runTransaction !== 'function') {
-      proxyDbInstance = realDbInstance;
-    } else {
-      proxyDbInstance = createDurableDbProxy(realDbInstance);
-    }
+    proxyDbInstance = (realDbInstance && typeof realDbInstance.runTransaction !== 'function')
+      ? realDbInstance
+      : createDurableDbProxy(realDbInstance) as Firestore;
   }
   return proxyDbInstance;
 }
 
-export async function initServerDb() {
+export async function initServerDb(): Promise<Firestore> {
   const db = getDb();
   if (!initialization) {
     initialization = (async () => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const probeTarget = (realDbInstance && typeof realDbInstance.runTransaction !== 'function') ? realDbInstance : db;
         await Promise.race([
-          probeTarget.collection('system').doc('ping').get(),
+          db.collection('system').doc('ping').get(),
           new Promise<never>((_, reject) => {
             timer = setTimeout(() => reject(new Error('Firestore initialization timed out')), 10_000);
           }),
