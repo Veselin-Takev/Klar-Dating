@@ -274,3 +274,12 @@ During the same fail-closed review, the release attestation permission condition
 The failing run's application validation stages were skipped because the static gate failed first; therefore no claim is made about typecheck/test/build status from that run. A fresh exact-head CI run is required for release evidence.
 
 Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-08 — Enterprise static gate failure: release inspect assertion corrected
+
+The follow-up CI run `37819483838` reached dependency installation successfully but failed again in `Enterprise static gates`, with Typecheck, Tests, Build, Production smoke, and Browser acceptance skipped. Root-cause review of the exact-head workflow found a false-negative in `scripts/check-release-workflow.mjs`: the gate required a literal fully expanded `docker buildx imagetools inspect ghcr.io/...:<tag>` command, while the release workflow intentionally constructs and reuses the validated `$image` variable. The gate has been corrected to require the repository-scoped image assignment and the equivalent `imagetools inspect "$image"` command, preserving the immutable digest/tag-binding contract without coupling the test to shell interpolation syntax.
+
+This is a CI-gate correctness fix only; no application runtime behavior was changed. A fresh exact-head run is required before any downstream test or release evidence is considered valid.
+
+Production remains **NO-GO / NOT CONFIRMED**.
