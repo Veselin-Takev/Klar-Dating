@@ -1,6 +1,7 @@
 name: Klar Enterprise CI
 # v149 autonomous gate runner
 # refresh: corrected IPv6 gate
+# CI workflow intentionally remains pull_request/push based; see release evidence.
 
 on:
   push:
