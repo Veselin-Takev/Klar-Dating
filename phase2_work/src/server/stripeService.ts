@@ -10,7 +10,7 @@ export function getStripe(): Stripe {
   if (!stripeClient) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new Error('STRIPE_SECRET_KEY environment variable is required');
-    stripeClient = new Stripe(key, { apiVersion: '2026-08-26.dahlia' as unknown, timeout: 10_000, maxNetworkRetries: 1 });
+    stripeClient = new Stripe(key, { apiVersion: '2026-08-26.dahlia', timeout: 10_000, maxNetworkRetries: 1 });
   }
   return stripeClient;
 }
@@ -46,7 +46,10 @@ export async function reserveCheckout(userId: string, db: Firestore = getDb() as
   const userRef = db.collection('users').doc(userId);
   const subscriptionRef = db.collection('subscriptions').doc(userId);
   return db.runTransaction(async tx => {
-    const [userSnap, subscriptionSnap] = await tx.getAll(userRef, subscriptionRef);
+    const snapshots = await tx.getAll(userRef, subscriptionRef);
+    const userSnap = snapshots[0];
+    const subscriptionSnap = snapshots[1];
+    if (!userSnap || !subscriptionSnap) throw new Error('Checkout reservation state unavailable');
     const user = userSnap.data() ?? {};
     const subscription = subscriptionSnap.data() ?? {};
     if (user.plan === 'plus' || subscription.plan === 'plus') {
@@ -192,7 +195,9 @@ async function applyStripeEvent(event: Stripe.Event) {
       }
     } else if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+      const invoiceWithSubscription = invoice as unknown as { subscription?: string | Stripe.Subscription | null };
+      const subscription = invoiceWithSubscription.subscription;
+      const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id;
       if (subscriptionId) {
         const cancellation = await tx.get(db.collection('processed_stripe_events').doc(`subscription_${subscriptionId}`));
         if (!cancellation.exists) {
