@@ -199,3 +199,10 @@ The server TypeScript project now explicitly includes `src/**/*.d.ts` on candida
 ### 2026-10-08 — Chat read-path regression gate
 
 The implemented Chat list optimization is now protected by a deterministic Enterprise gate. `check:chat-read-path` requires `/api/chats` to use the bounded `loadChatListAccess` path, exactly one transaction and one `tx.getAll` in that loader, and no asynchronous per-entry profile reads. This blocks regression to the former N+1 access pattern without claiming production trace evidence.
+
+
+### 2026-10-08 — Chat read-path gate integration repair
+
+Exact-head Enterprise CI #173 (`37816110016`) failed during dependency installation because the newly added Chat regression gate was committed with literal escaped newline sequences inside `package.json` and its `.mjs` source. The implementation itself was not evaluated by CI. The package entry and gate script were corrected on the subsequent candidate lineage (`7afb93dd7e304fa096c5a9716bb3c5b7a0050457` and `2a3b3bc7cf3666e46afb696f990f9f64573e5322`).
+
+The correction restores valid JSON and normal JavaScript source newlines; no application runtime behavior or compiler relaxation was introduced. A new exact-head Enterprise run is required. Production remains **NO-GO / NOT CONFIRMED**.
