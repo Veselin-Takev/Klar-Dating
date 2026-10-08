@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'node:crypto';
-import type { DocumentReference, Firestore, Transaction } from 'firebase-admin/firestore';
+import type { DocumentReference, Firestore, QuerySnapshot, Transaction } from 'firebase-admin/firestore';
 import { getDb } from '../db';
 import { currentUserId } from '../authorization';
 import { ChatAccessError, readChatAccess, validDocumentId } from '../chatAccess';
@@ -16,8 +16,8 @@ const CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION = 'chat_gate_answer_rate_limits';
 const CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS = 60_000;
 const CHAT_GATE_ANSWER_RATE_LIMIT_MAX = 10;
 
-async function loadChatListAccess(db: Firestore, snapshot: Awaited<ReturnType<ReturnType<Firestore['collection']>['get']>>, uid: string) {
-  type Entry = { docId: string; data: FirebaseFirestore.DocumentData; recipientId: string };
+async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: string) {
+  type Entry = { docId: string; data: Record<string, unknown>; recipientId: string };
   const entries: Entry[] = [];
 
   for (const doc of snapshot.docs) {
