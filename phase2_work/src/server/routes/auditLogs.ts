@@ -30,7 +30,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
   const adminAuditReadLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Audit-Log-Abfragen. Bitte später erneut versuchen.' },
@@ -38,7 +38,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
   const complianceReadLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Compliance-Audit-Abfragen. Bitte später erneut versuchen.' },
@@ -46,7 +46,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
   const complianceCsvLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
-    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(ipKeyGenerator(req.ip ?? '') ?? ''),
+    keyGenerator: (req) => (req as Request & { user?: { uid?: string } }).user?.uid ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Compliance-CSV-Exporte. Bitte später erneut versuchen.' },
