@@ -46,7 +46,7 @@ if (!text.includes('run: node scripts/check-production-release-approval.mjs')) {
 if (!text.includes('node scripts/write-release-identity.mjs')) {
   failures.push("Production release must generate exact commit/tag/run/image identity evidence before publication.");
 }
-if (!text.includes('node scripts/write-release-identity.mjs') || !text.includes('path: release/')) {
+if (!text.includes('node scripts/write-release-identity.mjs') || !text.includes('path: phase2_work/release/')) {
   failures.push("Production release evidence must generate and upload release/build-identity.json with the release evidence directory.");
 }
 if (!text.includes('release/build-identity.json') || !text.includes('release/functions-build-identity.json') || !text.includes('release/SHA256SUMS')) {
