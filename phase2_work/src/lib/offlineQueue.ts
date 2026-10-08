@@ -165,7 +165,9 @@ export function retryDelayMs(attempts: number): number {
 export async function clearQueueForUser(ownerUid: string): Promise<void> {
   if (!ownerUid) return;
   memoryQueue = memoryQueue.filter((item) => item.payload.uid !== ownerUid);
-  await clearOfflineQueueForUser(ownerUid);
+  if (typeof indexedDB !== 'undefined') {
+    await clearOfflineQueueForUser(ownerUid);
+  }
 }
 
 export async function enqueueChatMessage(
