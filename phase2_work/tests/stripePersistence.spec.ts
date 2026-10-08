@@ -30,7 +30,9 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     const { uid, session } = await setup(); const event = signedEvent('checkout.session.completed', session);
     const result = await Promise.all([handleStripeWebhook(event.body, event.signature), handleStripeWebhook(event.body, event.signature)]);
     expect(result.filter(r => r.duplicate)).toHaveLength(1);
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('plus');
+    const user = (await getDb().doc('users/' + uid).get()).data();
+    if (!user) throw new Error('Expected persisted user entitlement.');
+    expect(user.plan).toBe('plus');
   });
   it('keeps a failed commit retryable instead of losing fulfillment', async () => {
     const { uid, session } = await setup(); const event = signedEvent('checkout.session.completed', session);
@@ -38,14 +40,18 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     await expect(handleStripeWebhook(event.body, event.signature)).rejects.toThrow('database unavailable');
     fail.mockRestore();
     expect(await handleStripeWebhook(event.body, event.signature)).toMatchObject({ duplicate: false, applied: true });
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('plus');
+    const user = (await getDb().doc('users/' + uid).get()).data();
+    if (!user) throw new Error('Expected persisted user entitlement.');
+    expect(user.plan).toBe('plus');
   });
   it('does not grant unpaid/wrong-product sessions or recreate deleted profiles', async () => {
     const { uid, session } = await setup();
     for (const change of [{ payment_status: 'unpaid' }, { mode: 'payment' }, { amount_total: 1 }, { currency: 'usd' }, { client_reference_id: 'other' }]) {
       expect(await send('checkout.session.completed', { ...session, ...change })).toMatchObject({ applied: false });
     }
-    expect((await getDb().doc('users/' + uid).get()).data().plan).toBe('free');
+    const user = (await getDb().doc('users/' + uid).get()).data();
+    if (!user) throw new Error('Expected persisted user profile.');
+    expect(user.plan).toBe('free');
     await getDb().doc('users/' + uid).delete();
     expect(await send('checkout.session.completed', session)).toMatchObject({ applied: false });
     expect((await getDb().doc('users/' + uid).get()).exists).toBe(false);
