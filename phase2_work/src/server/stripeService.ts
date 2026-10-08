@@ -100,7 +100,10 @@ export async function createCheckoutSession(userId: string, returnUrl: string, d
   const safeReturnUrl = validateReturnUrl(returnUrl);
   const requestId = await reserveCheckout(userId, db);
   const success = new URL(safeReturnUrl);
-  success.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+  const successHash = success.hash;
+  success.hash = '';
+  success.searchParams.delete('session_id');
+  const successUrl = success.toString() + (success.search ? '&' : '?') + 'session_id={CHECKOUT_SESSION_ID}' + successHash;
   const cancel = new URL(safeReturnUrl);
   cancel.searchParams.set('cancel', 'true');
   try {
@@ -118,7 +121,7 @@ export async function createCheckoutSession(userId: string, returnUrl: string, d
         },
         quantity: 1,
       }],
-      success_url: success.toString(),
+      success_url: successUrl,
       cancel_url: cancel.toString(),
     }, { idempotencyKey: `klar-checkout-${requestId}` });
     await finalizeCheckoutReservation(userId, requestId, session.id ?? null, db);
