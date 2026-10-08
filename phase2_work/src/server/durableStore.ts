@@ -10,7 +10,6 @@ import type {
   Query,
   QuerySnapshot,
   Transaction,
-  WriteBatch,
 } from 'firebase-admin/firestore';
 
 type DurableData = Record<string, unknown>;
@@ -556,7 +555,10 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
     const durableCol = createDurableCollectionRef(colPath);
     return {
       path: colPath,
-      doc: docId => wrapDocRef(realRef ? realRef.doc(docId || crypto.randomUUID()) : null, `${colPath}/${docId || crypto.randomUUID()}`),
+      doc: docId => {
+        const id = docId || crypto.randomUUID();
+        return wrapDocRef(realRef ? realRef.doc(id) : null, `${colPath}/${id}`);
+      },
       add: async data => {
         if (!fallbackActive && realRef) {
           try {
