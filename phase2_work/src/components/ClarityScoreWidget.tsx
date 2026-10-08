@@ -6,7 +6,8 @@ import { Activity } from "lucide-react";
 export function ClarityScoreWidget() {
   const [uiError, setUiError] = useState<string | null>(null);
 
-  const [data, setData] = useState<unknown[]>([]);
+  type ClarityPoint = { date: string; score: number; fullDate: string; hasDiary: boolean };
+  const [data, setData] = useState<ClarityPoint[]>([]);
   const [currentScore, setCurrentScore] = useState(0);
 
   useEffect(() => {
@@ -24,7 +25,10 @@ export function ClarityScoreWidget() {
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0] || '';
 
-      const hasDiary = diaries.some(entry => entry.date === dateStr);
+      const hasDiary = diaries.some(entry => {
+        if (!entry || typeof entry !== 'object') return false;
+        return (entry as { date?: unknown }).date === dateStr;
+      });
 
       // Random walk for authenticity, boosted by diary entries
       baseScore += (0 - 5);
@@ -92,8 +96,8 @@ export function ClarityScoreWidget() {
               }}
               labelStyle={{ color: '#57534e', fontWeight: 600, fontSize: '12px', marginBottom: '4px' }}
               itemStyle={{ color: '#8b5cf6', fontSize: '14px', fontWeight: 600 }}
-              formatter={(value: unknown, _name: unknown, props: unknown) => [
-                `${value} Punkte ${props.payload.hasDiary ? '✨' : ''}`,
+              formatter={(value: unknown, _name: unknown, props: { payload?: ClarityPoint }) => [
+                String(value) + " Punkte " + (props.payload?.hasDiary ? '✨' : ''),
                 "Score"
               ]}
             />
