@@ -12,9 +12,19 @@ export function DashboardDateBanner() {
 
   useEffect(() => {
     void fetchDatePlans().then(dates => {
-      const savedLogs = klarStorage.getItem('klar_reflection_logs'); const logs = savedLogs ? JSON.parse(savedLogs) : []; const now = new Date();
+      const savedLogs = klarStorage.getItem('klar_reflection_logs');
+      let logs: Array<{ date?: unknown }> = [];
+      if (savedLogs) {
+        try {
+          const parsed: unknown = JSON.parse(savedLogs);
+          logs = Array.isArray(parsed) ? parsed.filter((value): value is { date?: unknown } => !!value && typeof value === 'object' && !Array.isArray(value)) : [];
+        } catch {
+          logs = [];
+        }
+      }
+      const now = new Date();
       const past24hDates = dates.filter(d => (now.getTime() - new Date(d.date).getTime()) / (1000 * 60 * 60) > 24);
-      const unreflected = past24hDates.find(pd => !logs.some((l: unknown) => typeof l === 'object' && l !== null && 'date' in l && new Date(String((l as {date: string}).date)).toLocaleDateString() === new Date(pd.date).toLocaleDateString()));
+      const unreflected = past24hDates.find(pd => !logs.some(l => typeof l.date === 'string' && new Date(l.date).toLocaleDateString() === new Date(pd.date).toLocaleDateString()));
       if (unreflected && typeof unreflected.matchName === 'string') { setPastDate({ date: unreflected.date, matchName: unreflected.matchName }); setVisible(true); }
     }).catch(() => setUiError('Kalenderdaten konnten nicht geladen werden.'));
   }, []);
