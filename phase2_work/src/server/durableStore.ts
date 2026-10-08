@@ -40,6 +40,7 @@ type DurableQuerySnapshot = {
 };
 
 type DurableQuery = {
+  _realQuery?: Query | null;
   where: (field: string, op: string, val: unknown) => DurableQuery;
   orderBy: (field: string, dir?: 'asc' | 'desc') => DurableQuery;
   limit: (n: number) => DurableQuery;
@@ -59,9 +60,10 @@ type DurableCollectionRef = {
 };
 
 type DurableDocRefLike = DurableDocRef | DocumentReference;
+type DurableTransactionReadRef = DurableDocRefLike | DurableQuery;
 
 type DurableTransaction = {
-  get: (ref: DurableDocRefLike) => Promise<DurableDocSnapshot | DocumentSnapshot>;
+  get: (ref: DurableTransactionReadRef) => Promise<DurableDocSnapshot | DocumentSnapshot | DurableQuerySnapshot | QuerySnapshot>;
   getAll: (...refs: DurableDocRefLike[]) => Promise<Array<DurableDocSnapshot | DocumentSnapshot>>;
   set: (ref: DurableDocRefLike, data: unknown, options?: unknown) => DurableTransaction;
   create: (ref: DurableDocRefLike, data: unknown) => DurableTransaction;
@@ -546,6 +548,7 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
   };
 
   const wrapQuery = (realQuery: Query | null, durableQuery: DurableQuery): DurableQuery => ({
+    _realQuery: realQuery,
     where: (field, op, val) => wrapQuery(realQuery ? realQuery.where(field, op as never, val) : null, durableQuery.where(field, op, val)),
     orderBy: (field, dir = 'asc') => wrapQuery(realQuery ? realQuery.orderBy(field, dir) : null, durableQuery.orderBy(field, dir)),
     limit: n => wrapQuery(realQuery ? realQuery.limit(n) : null, durableQuery.limit(n)),
@@ -575,6 +578,8 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
       return durableQuery.get();
     },
   });
+
+  const isWrappedDurableQuery = (value: unknown): value is DurableQuery => isRecord(value) && '_realQuery' in value && typeof property(value, 'get') === 'function';
 
   const wrapColRef = (realRef: CollectionReference | null, colPath: string): DurableCollectionRef => {
     const durableCol = createDurableCollectionRef(colPath);
@@ -644,38 +649,55 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
       const execute = async (): Promise<T> => {
         if (!fallbackActive && realDb) {
           try {
-            return await realDb.runTransaction(async (realTx: Transaction) => {
+            let committedMirrorWrites: Array<() => Promise<void>> = [];
+            const result = await realDb.runTransaction(async (realTx: Transaction) => {
+              const mirrorWrites: Array<() => Promise<void>> = [];
               const unwrap = (ref: DurableDocRefLike): DocumentReference => {
                 const actual = realDocRef(ref);
                 if (!actual) throw new Error('Durable transaction reference is not backed by Firestore.');
                 return actual;
               };
+              const unwrapRead = (ref: DurableTransactionReadRef): DocumentReference | Query => {
+                if (isWrappedDurableQuery(ref)) {
+                  if (!ref._realQuery) throw new Error('Durable transaction query is not backed by Firestore.');
+                  return ref._realQuery;
+                }
+                return unwrap(ref);
+              };
               const wrappedTx: DurableTransaction = {
-                get: async ref => realTx.get(unwrap(ref)),
+                get: async ref => realTx.get(unwrapRead(ref) as never),
                 getAll: async (...refs) => realTx.getAll(...refs.map(unwrap)),
                 set: (ref, data, options) => {
-                  realTx.set(unwrap(ref), data as never, options as never);
-                  void createDurableDocRef(ref.path).set(data, options).catch(() => {});
+                  const actual = unwrap(ref);
+                  realTx.set(actual, data as never, options as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).set(data, options));
                   return wrappedTx;
                 },
                 create: (ref, data) => {
-                  realTx.create(unwrap(ref), data as never);
-                  void createDurableDocRef(ref.path).set(data).catch(() => {});
+                  const actual = unwrap(ref);
+                  realTx.create(actual, data as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).set(data));
                   return wrappedTx;
                 },
                 update: (ref, data) => {
-                  realTx.update(unwrap(ref), data as never);
-                  void createDurableDocRef(ref.path).update(data).catch(() => {});
+                  const actual = unwrap(ref);
+                  realTx.update(actual, data as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).update(data));
                   return wrappedTx;
                 },
                 delete: ref => {
-                  realTx.delete(unwrap(ref));
-                  void createDurableDocRef(ref.path).delete().catch(() => {});
+                  const actual = unwrap(ref);
+                  realTx.delete(actual);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).delete());
                   return wrappedTx;
                 },
               };
-              return updateFunction(wrappedTx);
+              const value = await updateFunction(wrappedTx);
+              committedMirrorWrites = mirrorWrites;
+              return value;
             });
+            await Promise.allSettled(committedMirrorWrites.map(write => write()));
+            return result;
           } catch (error: unknown) {
             if (allowFallback && isPermissionDenied(error)) fallbackActive = true;
             else throw error;
@@ -684,7 +706,7 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
 
         const stagedWrites: Array<() => Promise<void>> = [];
         const tx: DurableTransaction = {
-          get: ref => toDurableDocRef(ref).get(),
+          get: ref => isWrappedDurableQuery(ref) ? ref.get() as Promise<DurableQuerySnapshot> : toDurableDocRef(ref).get(),
           getAll: async (...refs) => Promise.all(refs.map(ref => toDurableDocRef(ref).get())),
           set: (ref, data, options) => {
             const durableRef = toDurableDocRef(ref);
