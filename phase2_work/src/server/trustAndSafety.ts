@@ -197,7 +197,7 @@ async function checkModeratorRole(req: Request): Promise<boolean> {
   const userUid = uid(req);
   if (!userUid) return false;
   try {
-    const tokenClaims = req.user ?? {};
+    const tokenClaims: Record<string, unknown> = req.user ? req.user as unknown as Record<string, unknown> : {};
     if (
       tokenClaims.moderator === true ||
       tokenClaims.admin === true ||
