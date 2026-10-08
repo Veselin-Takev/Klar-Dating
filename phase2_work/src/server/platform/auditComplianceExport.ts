@@ -28,14 +28,28 @@ function sha256(val: string): string {
   return createHash('sha256').update(val).digest('hex');
 }
 
+function stringValue(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function dateInput(value: unknown): string | number | Date {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  if (isRecord(value) && typeof value.toDate === 'function') {
+    const converted = value.toDate();
+    if (converted instanceof Date) return converted;
+  }
+  return '';
+}
+
 /**
  * Anonymisiert eine Kündigungs-/Widerrufserklärung gemäß DSGVO & § 312k BGB für Audit-Exporte.
  * Sämtliche direkten PII (Vollname, Klartext-E-Mail, IP) werden irreversibel maskiert/pseudonymisiert.
  */
 export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedComplianceRecord {
   const data = isRecord(raw) ? raw : {};
-  const reqId = data.requestId || id || 'unknown-request';
-  const received = data.receivedAt || data.createdAt || new Date().toISOString();
+  const reqId = stringValue(data.requestId, id || 'unknown-request');
+  const received = dateInput(data.receivedAt ?? data.createdAt ?? new Date());
   const receivedDate = new Date(received);
   const isValidDate = !isNaN(receivedDate.getTime());
 
@@ -60,19 +74,22 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
       ? 'Außerordentlich (§ 314 BGB)'
       : 'Ordentlich (Fristgemäß)';
 
-  const contract = (data.contract || 'Klar Plus').trim();
-  const requestedEndDate = data.requestedEnd && data.requestedEnd.trim() !== ''
-    ? data.requestedEnd
+  const contract = stringValue(data.contract, 'Klar Plus').trim();
+  const requestedEndCandidate = stringValue(data.requestedEnd).trim();
+  const requestedEndDate = requestedEndCandidate !== ''
+    ? requestedEndCandidate
     : 'Nächstmöglicher Termin (§ 312k Abs. 1)';
 
   // Gesetzliche Eingangsbestätigung (§ 312k Abs. 4 BGB)
-  const hasReceipt = Boolean(data.receipt && (data.receipt.text || data.receipt.id));
+  const receipt = isRecord(data.receipt) ? data.receipt : null;
+  const hasReceipt = Boolean(receipt && (typeof receipt.text === 'string' || typeof receipt.id === 'string'));
   const statutoryConfirmationStatus = hasReceipt
     ? 'Erteilt gem. § 312k Abs. 4 BGB'
     : 'Ausstehend';
 
-  const confirmationTimestamp = data.receipt?.receivedAt
-    ? new Date(data.receipt.receivedAt).toISOString()
+  const confirmationInput = receipt?.receivedAt;
+  const confirmationTimestamp = confirmationInput
+    ? new Date(dateInput(confirmationInput)).toISOString()
     : receivedAtUTC;
 
   const deliveryMethod =
