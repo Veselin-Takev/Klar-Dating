@@ -67,7 +67,8 @@ export async function handleAlter(req: Request, res: Response): Promise<void> {
             : outcome.code === 'invalid_birthdate_unplausibel'
               ? 'INVALID_BIRTHDATE_PLAUSIBILITY'
               : 'INVALID_BIRTHDATE';
-      return res.status(statusCode).json({ code, error: outcome.error || 'Altersprüfung fehlgeschlagen.' });
+      res.status(statusCode).json({ code, error: outcome.error || 'Altersprüfung fehlgeschlagen.' });
+      return;
     }
 
     res.json({ ok: true, alter: outcome.age, isAdult: true, evidenceDigest: outcome.evidenceDigest });
@@ -243,7 +244,7 @@ export async function handleEinwilligungLesen(req: Request, res: Response): Prom
 export async function handleExport(req: Request, res: Response): Promise<void> {
   const meineUid = uid(req);
   try {
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
 
     const profil = await db.collection('users').doc(meineUid).get();
 
@@ -284,7 +285,7 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
         chatId: c.id,
         beteiligte: c.data().participants,
         begonnenAm: c.data().createdAt ?? null,
-        eigeneNachrichten: nachrichten.docs.map((m: unknown) => ({
+        eigeneNachrichten: nachrichten.docs.map((m) => ({
           id: m.id, text: m.data().text, createdAt: m.data().createdAt,
         })),
         hinweis: 'Nachrichten der anderen Person sind deren Daten und deshalb nicht enthalten.',
@@ -296,12 +297,12 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
     for (const c of chatDocs) {
       const g = await c.ref.collection('gate_answers').get();
       g.docs
-        .filter((d: unknown) => d.data().uid === meineUid || d.id.startsWith(meineUid + '_'))
-        .forEach((d: unknown) => gateAntworten.push({ chatId: c.id, id: d.id, ...d.data() }));
+        .filter((d) => d.data().uid === meineUid || d.id.startsWith(meineUid + '_'))
+        .forEach((d) => gateAntworten.push({ chatId: c.id, id: d.id, ...d.data() }));
     }
 
     const sammeln = async (pfad: string, feld: string) =>
-      (await db.collection(pfad).where(feld, '==', meineUid).get()).docs.map((d: unknown) => ({ id: d.id, ...d.data() }));
+      (await db.collection(pfad).where(feld, '==', meineUid).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
 
     const [kontakteVon, kontakteAn, blockiert, meldungen, einwilligungen, quota,
            abo, verifizierung, altersversuche, kiZwischenspeicher, aiBudget] = await Promise.all([
@@ -337,15 +338,15 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
       gespraecheGesamt: chats.size,
       gateAntworten,
       abo: abo.exists ? abo.data() : null,
-      verifizierung: verifizierung.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
-      altersversuche: altersversuche.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
+      verifizierung: verifizierung.docs.map((d) => ({ id: d.id, ...d.data() })),
+      altersversuche: altersversuche.docs.map((d) => ({ id: d.id, ...d.data() })),
       kontakte: { ausgehend: kontakteVon, eingehend: kontakteAn },
       blockierungen: blockiert,
       eigeneMeldungen: meldungen,
-      einwilligungen: einwilligungen.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
-      kontingent: quota.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
-      kiZwischenspeicher: kiZwischenspeicher.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
-      aiBudget: aiBudget.docs.map((d: unknown) => ({ id: d.id, ...d.data() })),
+      einwilligungen: einwilligungen.docs.map((d) => ({ id: d.id, ...d.data() })),
+      kontingent: quota.docs.map((d) => ({ id: d.id, ...d.data() })),
+      kiZwischenspeicher: kiZwischenspeicher.docs.map((d) => ({ id: d.id, ...d.data() })),
+      aiBudget: aiBudget.docs.map((d) => ({ id: d.id, ...d.data() })),
       nichtEnthalten: [
         'Nachrichten anderer Personen — deren Daten.',
         'Die Vorschauzeile eines Gesprächs (lastMessage) — sie kann von der anderen Person stammen.',
