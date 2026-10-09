@@ -1,5 +1,13 @@
 # Post-merge validation and dependency triage — 2026-10-09
 
+### 2026-10-09 — PR #6 merged; main validation successful
+
+PR #6 merged as `aa56cfcbcd2b8327ddd7a716d45dba7dd7fc3111`. Its automatically triggered [main CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37967712697), job `113946151109`, completed successfully: all gates, TypeScript, Functions build, **157 files / 1,003 tests**, application build, production smoke and **26 browser tests** passed. This validates the merged onboarding/runtime changes and Phase 3 documents; it does **not** validate the later deletion-slice candidate.
+
+Runtime 17:38:36–17:48:25 UTC = **9m 49s**, rounded to **10 minutes**. Conservative incremental ledger: 72 + 10 = **82 of 200 minutes consumed, 118 remaining**. No active reservation or extra workflow initiated by this work. Billing remains authoritative.
+
+The next candidate is saved on `fix/deletion-slice-progress`, with local evidence and the still-open cumulative-receipt gap documented in [DB-01 follow-up](DELETION_PROGRESS_2026-10-09.md). It has no PR and has not been merged. Phase 3 pilot execution, production operational evidence and independent approvals remain open. **Production: NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — PR #6 exact-candidate remote validation passed
 
 The owner authorized one bounded remote validation exception for the prepared post-merge correction. [PR #6](https://github.com/Veselin-Takev/Klar-Dating/pull/6), candidate `efd5016e1c48ef08cfeaae283423f6ccdfcaf9d0`, passed [CI #337](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37965468398), job `113938603278`.

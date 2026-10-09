@@ -108,3 +108,13 @@ The owner authorized one bounded remote validation exception for the prepared po
 Job interval: 2026-10-09 17:19:42–17:30:02 UTC, **10m 20s**, rounded conservatively to **11 minutes**. Previous ledger 61 + 11 = **72 additional minutes consumed; 128 of 200 remain**. The 45-minute reservation is released. Billing remains authoritative; no second run was triggered for this result.
 
 PR #6 is conflict-free and GitHub reports `clean` at this snapshot. It has not been merged or deployed by this work. Phase 3 documentation is included in the PR; actual training, pilot measurements, organizational approvals and remaining operational/audit evidence are still open. **Production: NO-GO / NOT CONFIRMED.** This evidence is saved on a separate non-PR documentation branch to avoid another CI trigger.
+
+## Latest main validation snapshot
+
+### 2026-10-09 — PR #6 merged; main validation successful
+
+PR #6 merged as `aa56cfcbcd2b8327ddd7a716d45dba7dd7fc3111`. Its automatically triggered [main CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37967712697), job `113946151109`, completed successfully: all gates, TypeScript, Functions build, **157 files / 1,003 tests**, application build, production smoke and **26 browser tests** passed. This validates the merged onboarding/runtime changes and Phase 3 documents; it does **not** validate the later deletion-slice candidate.
+
+Runtime 17:38:36–17:48:25 UTC = **9m 49s**, rounded to **10 minutes**. Conservative incremental ledger: 72 + 10 = **82 of 200 minutes consumed, 118 remaining**. No active reservation or extra workflow initiated by this work. Billing remains authoritative.
+
+The next candidate is saved on `fix/deletion-slice-progress`, with local evidence and the still-open cumulative-receipt gap documented in [DB-01 follow-up](DELETION_PROGRESS_2026-10-09.md). It has no PR and has not been merged. Phase 3 pilot execution, production operational evidence and independent approvals remain open. **Production: NO-GO / NOT CONFIRMED.**
