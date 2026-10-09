@@ -1,3 +1,9 @@
+### 2026-10-09 — CI #327: partner administration JSX correction
+
+CI #327 (`37955984947`, candidate `2c8a7c6267c557c03e13da71313046fc7b7591a4`) passed dependency installation and Enterprise static gates but failed TypeScript parsing in `PartnerCampaignAdmin.tsx` at lines 138 and 199. Two conditional icon elements closed the JSX expression before closing the element. Both expressions now close the icon before the expression. No authorization, partner approval or rate-limit behavior changes.
+
+Validation: the subsequent exact-head CI must pass TypeScript, unit/rules tests, build, production smoke and browser acceptance. Those stages were skipped after the parser failure; their earlier results do not validate this candidate. Operational TTL, deletion scalability, measured load/cost, restore and independent approval gates remain open. **Production release: NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — Enterprise CI #325: Firestore collection inventory remediated (verification pending)
 
 Exact-head CI #325 (run `37948543686`, commit `aa13acacc19394e521b55d7e3103aa9eb0274556`) failed in `check:loeschkaskade`, after secrets, auth boundary, public Firestore rules, AI PII sanitizer and Art. 17 static gates had passed. The improved scanner discovered **16 additional distributed rate-limit collections** that had not been assigned retention decisions. This was a real inventory completeness failure, not a runtime deletion failure. All 16 are now explicitly classified as short-lived abuse-prevention state in `scripts/loeschkaskade.mjs`, with their `expiresAt`/Firestore TTL operational dependency documented. The shared limiter writes `expiresAt` on each new/continued window and hashes its identity key; it does not persist raw IP addresses in these records.

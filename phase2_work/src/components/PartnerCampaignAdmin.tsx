@@ -135,7 +135,7 @@ export function PartnerCampaignAdmin() {
 
       <form onSubmit={event => void submit(event)} className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-semibold flex items-center gap-2">{editingId ? <Pencil size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true"} /> {editingId ? 'Kampagne bearbeiten' : 'Partnerkampagne hinzufügen'}</h3>
+          <h3 className="font-semibold flex items-center gap-2">{editingId ? <Pencil size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />} {editingId ? 'Kampagne bearbeiten' : 'Partnerkampagne hinzufügen'}</h3>
           {editingId && <button type="button" onClick={resetForm} className="min-h-11 rounded-full border px-3 text-sm">Abbrechen</button>}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -196,7 +196,7 @@ export function PartnerCampaignAdmin() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-stone-300 dark:border-stone-600 px-3 py-1 text-xs">{campaign.status}</span>
-                <span className="rounded-full border border-stone-300 dark:border-stone-600 px-3 py-1 text-xs flex gap-1 items-center">{campaign.brandVerified ? <Check size={13} aria-hidden="true" /> : <CircleSlash size={13} aria-hidden="true"} /> {campaign.brandVerified ? 'Marke geprüft' : 'Nicht geprüft'}</span>
+                <span className="rounded-full border border-stone-300 dark:border-stone-600 px-3 py-1 text-xs flex gap-1 items-center">{campaign.brandVerified ? <Check size={13} aria-hidden="true" /> : <CircleSlash size={13} aria-hidden="true" />} {campaign.brandVerified ? 'Marke geprüft' : 'Nicht geprüft'}</span>
               </div>
             </div>
             <p className="text-sm break-all">{campaign.destinationUrl}</p>
