@@ -113,10 +113,20 @@ export async function authHeaders(page: Page) {
               });
               for (const record of records) {
                 if (!record || typeof record !== 'object') continue;
-                const value = (record as { value?: unknown }).value;
+                const rawValue = (record as { value?: unknown }).value;
+                let value: unknown = rawValue;
+                if (typeof rawValue === 'string') {
+                  try { value = JSON.parse(rawValue) as unknown; } catch { continue; }
+                }
                 if (!value || typeof value !== 'object') continue;
-                const accessToken = (value as { stsTokenManager?: { accessToken?: unknown } })
-                  .stsTokenManager?.accessToken;
+                const persisted = value as {
+                  stsTokenManager?: { accessToken?: unknown };
+                  value?: { stsTokenManager?: { accessToken?: unknown } } | string;
+                };
+                const nested = typeof persisted.value === 'string'
+                  ? (() => { try { return JSON.parse(persisted.value) as { stsTokenManager?: { accessToken?: unknown } }; } catch { return null; } })()
+                  : persisted.value;
+                const accessToken = persisted.stsTokenManager?.accessToken ?? nested?.stsTokenManager?.accessToken;
                 if (isJwt(accessToken)) return accessToken;
               }
             }
