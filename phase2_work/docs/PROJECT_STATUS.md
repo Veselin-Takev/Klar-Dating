@@ -516,3 +516,9 @@ The exact-head run on `b115513bcab5938f20695c5ea9a59c5cc8b768fb` passed dependen
 Candidate commit `2b57e8c817bd676c33685af389c6e531e3101679` adds `create()` to the durable document-reference contract. With real Firestore it delegates to native `DocumentReference.create()` and mirrors only successful writes; the explicitly enabled non-production fallback rejects an existing document with Firestore-compatible code `6` rather than silently overwriting it. This preserves create-only semantics and does not relax production fallback policy. A fresh exact-head CI run must validate the patch; Tests, Build, Production Smoke and Browser Acceptance are not yet confirmed green.
 
 **Production remains NO-GO / NOT CONFIRMED** pending all required exact-head dynamic gates and independent operational/governance evidence.
+
+### 2026-10-09 — Follow-up hardening: preserve create-only semantics in transactions
+
+A follow-up review of the `durableStore.ts` fix identified a second path with the same semantic risk: the transaction fallback's `create()` implementation staged a plain `set()`, which could overwrite an existing receipt, and the real transaction's mirror also used `set()`. Candidate commit `2aa2769cc7a43bbae720b07a0c4ad18b3d1f11f8` now mirrors successful transaction creates with create-only semantics and makes the explicitly enabled fallback reject an already-existing document with code `6`. This narrows the fix to the durable adapter and keeps Firestore's create-only contract consistent across direct and transactional calls. The check is still awaiting a fresh exact-head CI run; do not treat this code review as runtime validation.
+
+**Production remains NO-GO / NOT CONFIRMED** until all required CI/runtime gates and independent operational/governance evidence are green.
