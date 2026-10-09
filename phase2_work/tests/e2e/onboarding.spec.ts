@@ -22,6 +22,9 @@ test.describe('identity, onboarding, music, age and consent', () => {
     await page.getByLabel('E-Mail Adresse').fill(`e2e-${crypto.randomUUID()}@example.test`);
     await page.getByLabel('Passwort', { exact: true }).fill('Emulator-only-passphrase-123!');
     await page.getByRole('button', { name: 'Registrieren', exact: true }).click();
+    // Legal/age and consent gates are intentionally prior to profile onboarding.
+    await waitForAgeGate(page);
+    await completeAgeAndConsent(page, 'onboarding');
     await expect(page.getByRole('heading', {
       name: 'Echte Verbindungen statt endloses Suchen.',
     })).toBeVisible({ timeout: 15000 });
@@ -38,8 +41,6 @@ test.describe('identity, onboarding, music, age and consent', () => {
     await page.getByRole('button', { name: 'Weiter', exact: true }).click();
     await page.getByRole('button', { name: 'Profile entdecken' }).click();
     await page.getByRole('button', { name: 'Loslegen & Verifizieren' }).click();
-    await waitForAgeGate(page);
-    await completeAgeAndConsent(page);
     const exported = await page.request.get('/api/account/export', { headers: await authHeaders(page) });
     expect(exported.status()).toBe(200);
     expect((await exported.json()).profil.musicPreferences).toEqual({
