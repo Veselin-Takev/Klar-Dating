@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
+import { purgeAccountData } from '../src/server/trustAndSafety';
 import { DeletionPageComplete } from '../src/server/deletionProgress';
+const chatPaths: string[] = [];
+afterEach(async () => { for (const path of chatPaths.splice(0)) await getDb().recursiveDelete(getDb().doc(path)); });
 const paths: string[] = [];
 afterEach(async () => { for (const path of paths.splice(0)) await getDb().doc(path).delete(); });
 async function setup() {
@@ -110,5 +113,35 @@ describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
     await runAccountDeletion(uid, deps);
     expect((await ref.get()).data()).toMatchObject({ lease: 'replacement', completedPages: 7 });
     expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+});
+
+describe('real chat purge pagination', { timeout: 30_000 }, () => {
+  it('deletes two bounded pages with their messages and gate answers, preserving other chats', async () => {
+    const db = getDb();
+    const uid = 'purge-pages-' + randomUUID();
+    const batch = db.batch();
+    const owned = Array.from({ length: 51 }, (_, index) => db.collection('chats').doc(uid + '-' + index));
+    const unrelated = db.collection('chats').doc(uid + '-unrelated');
+    for (const ref of [...owned, unrelated]) {
+      chatPaths.push(ref.path);
+      batch.set(ref, { participants: ref.id.endsWith('-unrelated') ? ['another-user'] : [uid] });
+      for (const collection of ['messages', 'archived_messages', 'gate_answers']) {
+        batch.set(ref.collection(collection).doc('test'), { text: 'test data' });
+      }
+    }
+    await batch.commit();
+    for (const remaining of [26, 1]) {
+      await expect(purgeAccountData(uid)).rejects.toBeInstanceOf(DeletionPageComplete);
+      expect((await db.collection('chats').where('participants', 'array-contains', uid).get()).size).toBe(remaining);
+    }
+    const snapshots = await db.getAll(...owned);
+    for (const snapshot of snapshots.filter(item => !item.exists)) {
+      for (const collection of ['messages', 'archived_messages', 'gate_answers']) {
+        expect((await snapshot.ref.collection(collection).get()).empty).toBe(true);
+      }
+    }
+    expect((await unrelated.get()).exists).toBe(true);
+    expect((await unrelated.collection('messages').doc('test').get()).exists).toBe(true);
   });
 });

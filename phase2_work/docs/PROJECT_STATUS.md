@@ -748,3 +748,8 @@ Changes made on `security/v149-autonomous-consolidation`:
 - `.github/workflows/ci.yml`: browser report/trace artifacts are uploaded on completion for diagnosis.
 
 The contact limiter's 429 cause is **not yet established**; do not mark that issue fixed based on improved diagnostics. Latest CI for this fix batch is pending/running; only an exact-head green run can establish whether these changes resolve the reproduced failures. Production remains **NO-GO / NOT CONFIRMED**.
+
+
+### DB-01 emulator coverage extension
+
+The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
