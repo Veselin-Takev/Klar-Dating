@@ -1,3 +1,11 @@
+### 2026-10-09 — Enterprise end-to-end audit (baseline e78e76b25f75)
+
+Added `docs/ENTERPRISE_END_TO_END_AUDIT_2026-10-09.md` with the source-level audit, severity tables by domain, ICE-ranked actions, measured evidence boundaries and runbook/API updates. Baseline CI #312 (`37895590223`) passed dependency preflight, Enterprise static gates, TypeScript, 967 unit tests, build and production smoke, but failed Browser Acceptance (22 passed / 4 failed of 26). Failing flows: chat message not found after reload; chat gate answer absent after status retry; contact endpoint returned 429 where the test expected 409; registered onboarding could not find the Firebase token via the current test storage helper. No claim of zero critical bugs or production readiness is justified.
+
+The audit also found that explicit audit scripts for auth boundary, public Firestore rules, AI PII sanitizer and Art. 17 deletion existed but were not all invoked by the Enterprise gate. This commit wires them into `check:enterprise` and adds stable npm script aliases. The resulting CI must validate them before this remediation is considered closed. Other high-priority findings: Art. 17 chat purge is limited to 25 chats per worker attempt and can exhaust the 50-attempt retry ceiling; root and `phase2_work/` code/package/rules copies diverge; the secret scanner only checks a narrow set of secret patterns; production load/cost evidence is still a placeholder.
+
+**Release status remains NO-GO / NOT CONFIRMED.** See the audit document for evidence, assumptions and exit criteria.
+
 ### 2026-10-09 — Retired analytics/promo endpoints preserve their 410 contract
 
 The retired `POST /api/analytics/ab-test` and `POST /api/claim-launch-promo` handlers now sit immediately after the global `/api` rate limiter and before authentication, age/consent and AI middleware. The routes have no side effects and disclose no account data; evaluating downstream identity/provider gates for an operation that is permanently disabled provides no security benefit and can obscure the retirement response. The global API abuse limit remains first and unchanged. The E2E boundary test also logs status, response body and response headers on failure to identify a future 429 source rather than silently masking it.
