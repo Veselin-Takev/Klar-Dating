@@ -1,5 +1,4 @@
-import { DeletionPageComplete } from './deletionProgress';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { DeletionPageComplete, runDeletionSlice, checkDeletionSlice, recordDeletionProgress } from './deletionProgress';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
@@ -361,7 +360,6 @@ export async function handleBlock(req: Request, res: Response): Promise<void> {
 // ── P0-6: Löschung ─────────────────────────────────────────────────────────
 
 const BATCH = 400;
-const deletionDeadline = new AsyncLocalStorage<number>();
 
 export type DeletionAuditReceipt = {
   schemaVersion: 1;
@@ -395,12 +393,13 @@ async function loescheAbfrage(query: Query): Promise<number> {
   const db = getFirestore();
   let gesamt = 0;
   for (;;) {
-    if (Date.now() > (deletionDeadline.getStore() ?? Infinity)) throw new Error('deletion_time_slice');
+    checkDeletionSlice();
     const snap = await query.limit(BATCH).get();
     if (snap.empty) return gesamt;
     const batch = db.batch();
     snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
+    recordDeletionProgress();
     gesamt += snap.size;
     if (snap.size < BATCH) return gesamt;
   }
@@ -408,7 +407,7 @@ async function loescheAbfrage(query: Query): Promise<number> {
 
 /** Repeatable purge: orchestration, provider cleanup and authentication live in accountDeletion.ts. */
 export async function purgeAccountData(meineUid: string, deletionRequestId?: string) {
-  return deletionDeadline.run(Date.now() + 45_000, async () => {
+  return runDeletionSlice(async () => {
     const db = getFirestore();
     const bericht = {
       chats: 0, nachrichten: 0, gateAntworten: 0, verbindungen: 0, kontakte: 0,
@@ -426,10 +425,12 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //    ist, muss auch löschbar sein.
     const chats = await db.collection('chats').where('participants', 'array-contains', meineUid).limit(25).get();
     for (const chat of chats.docs) {
+      checkDeletionSlice();
       bericht.nachrichten += await loescheAbfrage(chat.ref.collection('messages'));
       bericht.nachrichten += await loescheAbfrage(chat.ref.collection('archived_messages'));
       bericht.gateAntworten += await loescheAbfrage(chat.ref.collection('gate_answers'));
       await chat.ref.delete();
+      recordDeletionProgress();
       bericht.chats += 1;
     }
 
@@ -484,13 +485,16 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //    meldenden Personen und der Nachweis für Moderationsentscheidungen
     //    (DSA Art. 17). Der Personenbezug wird entfernt.
     for (;;) {
+      checkDeletionSlice();
       const ueber = await db.collection('reports').where('reportedProfileId', '==', meineUid).limit(BATCH).get();
       if (ueber.empty) break;
       const batch = db.batch();
       ueber.docs.forEach((d) => batch.update(d.ref, {
         reportedProfileId: FieldValue.delete(), reportedGeloeschtAm: FieldValue.serverTimestamp(),
       }));
-      await batch.commit(); bericht.pseudonymisiert += ueber.size;
+      await batch.commit();
+      recordDeletionProgress();
+      bericht.pseudonymisiert += ueber.size;
     }
 
     // Abuse-prevention state is UID-derived and must not survive Art. 17 deletion.
@@ -535,11 +539,13 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     // Keep campaign text and aggregate counts, but scrub all HMAC admin references.
     for (const field of ['createdByRef', 'updatedByRef', 'verifiedByRef']) {
       for (;;) {
+        checkDeletionSlice();
         const refs = await db.collection('partner_campaigns').where(field, '==', partnerUidRef).limit(BATCH).get();
         if (refs.empty) break;
         const batch = db.batch();
         refs.docs.forEach(item => batch.update(item.ref, { [field]: FieldValue.delete() }));
         await batch.commit();
+        recordDeletionProgress();
         if (refs.size < BATCH) break;
       }
     }

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
-import { DeletionPageComplete } from './deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete } from './deletionProgress';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
@@ -161,15 +161,17 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       }
     });
   } catch (error) {
-    if (error instanceof DeletionPageComplete) {
-      // The deleted page itself is the checkpoint: the next query starts at
-      // the first remaining chat. Preserve the failure budget across pages.
+    if (error instanceof DeletionPageComplete || error instanceof DeletionTimeSliceComplete) {
+      // Acknowledged deletions are the checkpoint: subsequent queries only see
+      // remaining documents. Preserve genuine failures across bounded progress.
       await runObservedTransaction(deps.db, 'accountDeletion.continuePage', async tx => {
         const current = (await tx.get(ref)).data();
         if (current?.status !== 'pending' || current.lease !== lease) return;
         tx.update(ref, {
           attempts: Math.max(0, current.attempts - 1),
-          completedPages: (current.completedPages ?? 0) + 1,
+          ...(error instanceof DeletionPageComplete
+            ? { completedPages: (current.completedPages ?? 0) + 1 }
+            : { completedSlices: (current.completedSlices ?? 0) + 1 }),
           lastError: null,
           nextAttemptAt: new Date(deps.now() + 1_000),
           leaseUntil: 0,

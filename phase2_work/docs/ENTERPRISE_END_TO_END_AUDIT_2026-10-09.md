@@ -23,6 +23,10 @@ This evidence update is retained on a separate documentation branch without a pu
 
 Main CI `37963077381` failed the registered-account music export assertion after the successful PR run. The immediate export lacked synchronization with async persistence. A locally checked correction is prepared, but its browser execution remains pending. Refer to the [post-merge report](POST_MERGE_VALIDATION_2026-10-09.md). Earlier FE-03 acceptance evidence applies only to its recorded run; stable post-merge acceptance is not established. Production remains NO-GO.
 
+## DB-01 follow-up — bounded within-page progress
+
+A separate candidate now distinguishes acknowledged partial-slice progress from genuine failures. Emulator coverage completes all 51 real chats and checks idempotent repeat. Cumulative receipt totals remain unresolved. See [detailed evidence](DELETION_PROGRESS_2026-10-09.md); do not mark DB-01 fully closed.
+
 ## 1. Executive Summary
 
 ### Baseline assessment (superseded CI status; other findings remain open): **RED for production release**

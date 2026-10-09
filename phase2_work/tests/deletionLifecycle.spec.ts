@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { purgeAccountData } from '../src/server/trustAndSafety';
-import { DeletionPageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete } from '../src/server/deletionProgress';
 const chatPaths: string[] = [];
 afterEach(async () => { for (const path of chatPaths.splice(0)) await getDb().recursiveDelete(getDb().doc(path)); });
 const paths: string[] = [];
@@ -71,6 +71,20 @@ describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
     advance(62 * 60_000);
     await runAccountDeletion(uid, deps);
     expect((await ref.get()).data()?.status).toBe('completed');
+  });
+
+  it('preserves the failure budget for confirmed within-page progress without declaring a full page', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    await ref.update({ attempts: 2 });
+    vi.mocked(deps.purge).mockRejectedValue(new DeletionTimeSliceComplete());
+    for (let slice = 0; slice < 51; slice += 1) {
+      await runAccountDeletion(uid, deps);
+      advance(1_001);
+    }
+    const job = (await ref.get()).data();
+    expect(job).toMatchObject({ status: 'pending', attempts: 2, completedSlices: 51 });
+    expect(job).not.toHaveProperty('completedPages');
+    expect(deps.removeAuth).not.toHaveBeenCalled();
   });
 
   it('does not forgive real failures when a later page makes progress', async () => {

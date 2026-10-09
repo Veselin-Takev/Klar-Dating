@@ -1,3 +1,19 @@
+### 2026-10-09 — DB-01 within-page progress candidate
+
+PR #6 is merged as `aa56cfcbcd2b8327ddd7a716d45dba7dd7fc3111`. The next deletion candidate preserves retry budget for acknowledged within-page progress and records slices separately from completed chat pages. Four focused tests were red before implementation and green afterward. Final Firestore/Auth/Storage emulator regression: **3 files / 17 tests passed**, including full 51-chat cleanup and idempotent repeat; emulator orchestration exited 0. Enterprise gates and all three TypeScript projects PASS. See [implementation and evidence limits](DELETION_PROGRESS_2026-10-09.md).
+
+Cumulative deletion-receipt totals remain open; no full DB-01 closure or production approval is claimed. The candidate is retained on a non-PR branch without triggering additional CI.
+
+### 2026-10-09 — PR #6 exact-candidate remote validation passed
+
+The owner authorized one bounded remote validation exception for the prepared post-merge correction. [PR #6](https://github.com/Veselin-Takev/Klar-Dating/pull/6), candidate `efd5016e1c48ef08cfeaae283423f6ccdfcaf9d0`, passed [CI #337](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37965468398), job `113938603278`.
+
+**SUCCESS:** Enterprise gates (including Node/Docker 22.23.3 alignment), all TypeScript projects, Functions build, **157 test files / 1,003 tests**, application build, production smoke and **26 browser tests** passed. The corrected registered-account onboarding journey passed with exact music-preference export assertions before and after reload. Test orchestration exited 0. This is passing evidence for this candidate/run, not a claim that repeated-run stability or production readiness is universally proven.
+
+Job interval: 2026-10-09 17:19:42–17:30:02 UTC, **10m 20s**, rounded conservatively to **11 minutes**. Previous ledger 61 + 11 = **72 additional minutes consumed; 128 of 200 remain**. The 45-minute reservation is released. Billing remains authoritative; no second run was triggered for this result.
+
+PR #6 is conflict-free and GitHub reports `clean` at this snapshot. It has not been merged or deployed by this work. Phase 3 documentation is included in the PR; actual training, pilot measurements, organizational approvals and remaining operational/audit evidence are still open. **Production: NO-GO / NOT CONFIRMED.** This evidence is saved on a separate non-PR documentation branch to avoid another CI trigger.
+
 ### 2026-10-09 — Post-merge onboarding race and runtime gate correction
 
 Main CI `37963077381` failed one browser acceptance assertion (music preferences missing from an export read immediately after submit). The candidate orders export after confirmed onboarding completion and rechecks persistence after reload. Eight focused local tests passed. All three TypeScript projects and Enterprise gates passed on the corrected local candidate. The existing Node/Docker alignment gate is now included in Enterprise checks, preventing an otherwise green Node 26 dependency PR from bypassing the required 22.23.3 baseline. No application persistence or authorization rules were weakened.
