@@ -13,7 +13,7 @@ export default defineConfig({
   },
   webServer: {
     // Enable optional funnel analytics only inside E2E so consent enforcement can be verified.
-    command: 'NODE_ENV=test KLAR_TEST_SAFETY_MODE=allow ENABLE_FUNNEL_ANALYTICS=true npm run dev:lokal',
+    command: 'NODE_ENV=test KLAR_TEST_SAFETY_MODE=allow ENABLE_FUNNEL_ANALYTICS=true CONSENT_AUDIT_SECRET=playwright-only-consent-audit-secret-2026-not-for-production npm run dev:lokal',
     url: 'http://127.0.0.1:3000/api/health',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
