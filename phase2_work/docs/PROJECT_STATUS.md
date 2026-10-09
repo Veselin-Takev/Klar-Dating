@@ -1,3 +1,13 @@
+### 2026-10-09 — Exact-head CI 37891185116: Browser Acceptance regression triage
+
+Exact-head run `37891185116` on candidate `ab7e27703fb8e4f3162c9e610afd28c68dead413` passed the dependency/static/typecheck/unit-test/build/smoke stages and failed only in Browser Acceptance (8 failures). The failures cluster around (a) the password-recovery trigger's accessible name, (b) the chat gate and onboarding state, (c) a retired analytics endpoint returning HTTP 429 before its intended HTTP 410 contract, (d) legal-page return navigation, and (e) the privacy-settings post-withdrawal status label. These are being treated as real acceptance failures, not waived or hidden.
+
+A concrete accessibility mismatch was confirmed in `src/screens/Login.tsx`: a hard-coded `aria-label="Passwort zurücksetzen"` overrode the visible translated label `login.forgot`, so Playwright's role query for the visible “Passwort vergessen?” name could not find the control. The redundant overriding label has been removed; the visible button text is now its accessible name. This is a focused semantic fix, not a selector workaround. The next exact-head CI run must confirm it.
+
+The other seven browser failures remain open pending diagnosis and fixes. In particular, the global API limiter must not be weakened just to make a retired endpoint test pass; any resolution must preserve abuse controls and the endpoint's intended retirement semantics. Middleware order is material to this behavior (Express middleware is executed in registration order; see https://expressjs.com/en/guide/using-middleware/).
+
+**Release remains NO-GO / NOT CONFIRMED.** No production release is declared. Require all Enterprise CI gates green on the exact candidate head, then independent operational/governance approval and explicit official release confirmation.
+
 # Current audit status — 8 October 2026
 
 **Current candidate:** PR #1 / `security/v149-autonomous-consolidation` (latest remediation commit recorded in the active CI evidence below).
