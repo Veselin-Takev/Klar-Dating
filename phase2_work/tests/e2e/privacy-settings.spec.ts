@@ -20,7 +20,7 @@ test('product analytics consent gates collection before grant and after withdraw
     .getByRole('button', { name: 'Einführung überspringen' }).click();
   await page.getByRole('tab', { name: 'Einstellungen', exact: true }).click();
   const section = page.getByRole('region', { name: 'Datenschutz und Einwilligungen' });
-  const withdrawal = page.waitForResponse(response => new URL(response.url()).pathname === '/api/einwilligung/widerruf');
+  const withdrawal = page.waitForResponse(response => new URL(response.url()).pathname === '/api/einwilligung/zweck' && response.request().method() === 'POST' && response.request().postDataJSON()?.zweck === 'produktanalyse' && response.request().postDataJSON()?.erlaubt === false);
   await section.getByRole('button', { name: 'Produktanalyse widerrufen' }).click();
   expect((await withdrawal).status()).toBe(200);
   await expect(section.getByRole('status')).toHaveText('Einwilligung wurde widerrufen.');
