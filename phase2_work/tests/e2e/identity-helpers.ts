@@ -42,7 +42,7 @@ export async function enterGuestPreview(page: Page) {
   await waitForAgeGate(page);
 }
 
-export async function completeAgeAndConsent(page: Page) {
+export async function completeAgeAndConsent(page: Page, next: 'navigation' | 'onboarding' = 'navigation') {
   await page.getByLabel('Geburtsdatum').fill('1990-01-01');
   const ageResponse = page.waitForResponse(response =>
     new URL(response.url()).pathname === '/api/account/alter' && response.request().method() === 'POST',
@@ -59,7 +59,11 @@ export async function completeAgeAndConsent(page: Page) {
   const consent = await consentResponse;
   expect(consent.status()).toBe(200);
   expect((await consent.json()).evidenceId).toEqual(expect.any(String));
-  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible({ timeout: PERSISTED_UI_TIMEOUT_MS });
+  if (next === 'onboarding') {
+    await expect(page.getByRole('heading', { name: 'Echte Verbindungen statt endloses Suchen.' })).toBeVisible({ timeout: PERSISTED_UI_TIMEOUT_MS });
+  } else {
+    await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible({ timeout: PERSISTED_UI_TIMEOUT_MS });
+  }
 }
 
 export async function authHeaders(page: Page) {
