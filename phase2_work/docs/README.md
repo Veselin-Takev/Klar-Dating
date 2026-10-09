@@ -35,3 +35,8 @@ The reviewer verifies documentation together with code and test evidence.
 - [Solution Design — C4, RAG, data flows and security boundaries](architecture/SOLUTION_DESIGN.md)
 - [AI Governance RACI — risk and Human-in-the-Loop](governance/AI_GOVERNANCE_RACI.md)
 - [AI Budget & Telemetry — FinOps controls](finops/BUDGET_AND_TELEMETRY.md)
+
+## Enterprise AI Phase 3
+
+- [Change- und Adoption-Paket](phase3/README.md): ADKAR, Workflow-Auswirkungen, vierwöchiges Befähigungsprogramm, Kommunikationsvorlagen und Scorecard.
+- [Nachweisregister](phase3/EVIDENCE_REGISTER.json): Unterlagen vorbereitet; Durchführung, organisatorische Abnahme und nachhaltige Adoption noch nicht nachgewiesen.

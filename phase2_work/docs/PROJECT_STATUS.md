@@ -1,3 +1,27 @@
+### 2026-10-09 — Post-merge onboarding race and runtime gate correction
+
+Main CI `37963077381` failed one browser acceptance assertion (music preferences missing from an export read immediately after submit). The candidate orders export after confirmed onboarding completion and rechecks persistence after reload. Eight focused local tests passed. All three TypeScript projects and Enterprise gates passed on the corrected local candidate. The existing Node/Docker alignment gate is now included in Enterprise checks, preventing an otherwise green Node 26 dependency PR from bypassing the required 22.23.3 baseline. No application persistence or authorization rules were weakened.
+
+See [post-merge report and CI ledger](POST_MERGE_VALIDATION_2026-10-09.md) for dependency decisions and all ten observed runs. Conservative additional-budget consumption is 61 minutes, leaving 139 at this snapshot; this includes update-generation jobs and is not an authoritative billing export. No new CI run was initiated for these changes. Browser execution for the amended candidate is still unverified. **Production: NO-GO / NOT CONFIRMED.**
+
+### 2026-10-09 — Phase 3 change/adoption documentation delivered
+
+PR #1 was merged at `b9808179d26cd4bb21644c4d8f871a439ea09157`. The [Phase 3 package](phase3/README.md) now covers the supplied Pillar 3 requirements: ADKAR roadmap, persona/workflow changes and before/after scenarios, four-week enablement, prompt and feedback standards, announcement/workshop templates, adoption metrics and evidence-based acceptance gates. Planning assumptions are explicitly marked. Existing Phase 2 governance and incident controls remain authoritative.
+
+**Documentation prepared; business review, pilot execution and adoption evidence remain open.** No participant, training result, measured benefit or approval has been invented. G0–G5 remain not evidenced in the register. Production remains **NO-GO / NOT CONFIRMED**. Documentation is saved on a separate branch without opening a PR or starting another workflow.
+
+### 2026-10-09 — Authorized remote validation passed (CI #331)
+
+The owner explicitly approved one remote validation exception after disclosure of the local browser and process-orchestration limitations. PR #1 was fast-forwarded to candidate `0042bbff95e2092c804407fd8559aa6d8e3d37ed` and exactly one workflow ran: [CI #331](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37961300244), job `113924515032`.
+
+**Result: SUCCESS.** Scope regression tests, frozen dependency installation, Enterprise static gates, all TypeScript projects, Functions build, application tests (**156 files / 1,001 tests**), application build, production smoke and Chromium browser acceptance (**26 / 26 passed**) all passed. The test orchestration exited successfully (code 0); the earlier local parent-process limitation did not reproduce on this runner. npm and Bun/emulator download caches were saved successfully; a future cache-hit speedup has not yet been measured.
+
+Runner job: 2026-10-09 16:44:39–16:53:30 UTC (**8m 51s**). Conservative incremental ledger: **9 of 200 additional minutes consumed; 191 remain**, subject to GitHub's authoritative billing. The unused 45-minute reservation is released. No rerun, merge, release tag or deployment was initiated.
+
+This closes the previously failing browser-regression gate for this candidate, including FE-01, FE-02 and FE-03 acceptance evidence. It does not certify every audit finding as resolved: deletion/retention completeness, production load/cost evidence, restore-drill evidence and independent operational/governance approvals still require their own exit criteria. **Official production approval remains NO-GO / NOT CONFIRMED.**
+
+This evidence update is retained on a separate documentation branch without a pull request so it does not trigger a second Actions run. PR #1 remains on the successfully validated candidate above.
+
 ### 2026-10-09 — Local-first remediation and CI resource controls
 
 Baseline: PR #1 head `0ae8d0c38cce9c363324d8c9e4e5a1818349d357`, failed CI #330. The owner authorized **200 additional Actions minutes**, conditional on thorough local verification before remote workflows. No new Actions run was triggered during this remediation.

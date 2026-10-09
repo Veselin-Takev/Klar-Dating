@@ -51,8 +51,9 @@ Stop before the additional 200-minute allowance could be exceeded.
 
 ## Evidence limits
 
-The local changes have not been validated by a new GitHub workflow. Cache restore
-and upload behavior require the first authorized remote run. Selective checks must
+The owner explicitly approved one bounded remote validation exception after the
+local browser/environment limitations were disclosed. CI #331 validates candidate
+`0042bbff95e2092c804407fd8559aa6d8e3d37ed`; its final result is recorded below. Selective checks must
 not be used as release evidence for a changed application candidate.
 
 ## Local results on 2026-10-09
@@ -71,8 +72,27 @@ not be used as release evidence for a changed application candidate.
 - Browser acceptance did not run: pinned Chromium download returned an unavailable
   HTML page; installed Chrome 153.0.8010.36 failed to create a required local socket
   (`EPERM`). No browser security/sandbox restriction was disabled.
-- Additional Actions consumption during this work: **0 minutes**. Work is saved on
-  a separate branch without a pull request; the existing PR branch is unchanged.
+- Additional Actions consumption during the local preparation: **0 minutes**.
+  Following explicit owner approval, the prepared commit was promoted to PR #1
+  and triggered exactly one remote run (#331); no rerun was requested.
 
-The local prerequisite for a remote run remains incomplete. Do not silently
-substitute the above checks for browser acceptance or official release approval.
+The owner-approved exception applies only to this one remote run, with a
+45-minute job limit. It does not authorize automatic reruns or production release.
+
+## Authorized remote result and incremental ledger
+
+### 2026-10-09 — Authorized remote validation passed (CI #331)
+
+The owner explicitly approved one remote validation exception after disclosure of the local browser and process-orchestration limitations. PR #1 was fast-forwarded to candidate `0042bbff95e2092c804407fd8559aa6d8e3d37ed` and exactly one workflow ran: [CI #331](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37961300244), job `113924515032`.
+
+**Result: SUCCESS.** Scope regression tests, frozen dependency installation, Enterprise static gates, all TypeScript projects, Functions build, application tests (**156 files / 1,001 tests**), application build, production smoke and Chromium browser acceptance (**26 / 26 passed**) all passed. The test orchestration exited successfully (code 0); the earlier local parent-process limitation did not reproduce on this runner. npm and Bun/emulator download caches were saved successfully; a future cache-hit speedup has not yet been measured.
+
+Runner job: 2026-10-09 16:44:39–16:53:30 UTC (**8m 51s**). Conservative incremental ledger: **9 of 200 additional minutes consumed; 191 remain**, subject to GitHub's authoritative billing. The unused 45-minute reservation is released. No rerun, merge, release tag or deployment was initiated.
+
+This closes the previously failing browser-regression gate for this candidate, including FE-01, FE-02 and FE-03 acceptance evidence. It does not certify every audit finding as resolved: deletion/retention completeness, production load/cost evidence, restore-drill evidence and independent operational/governance approvals still require their own exit criteria. **Official production approval remains NO-GO / NOT CONFIRMED.**
+
+This evidence update is retained on a separate documentation branch without a pull request so it does not trigger a second Actions run. PR #1 remains on the successfully validated candidate above.
+
+## Superseding post-merge snapshot
+
+See [post-merge runtime ledger](POST_MERGE_VALIDATION_2026-10-09.md): all ten observed runs completed; conservative cumulative incremental usage is **61 minutes**, with **139 remaining**. The earlier 9/191 ledger is historical, before the user merge and dependency runs. No candidate rerun has been started.

@@ -7,9 +7,25 @@
 **Evidence:** [Enterprise CI #312](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37895590223)  
 **Audit mode:** source review + CI evidence; not a production penetration test or cost reconciliation.
 
+### 2026-10-09 — Authorized remote validation passed (CI #331)
+
+The owner explicitly approved one remote validation exception after disclosure of the local browser and process-orchestration limitations. PR #1 was fast-forwarded to candidate `0042bbff95e2092c804407fd8559aa6d8e3d37ed` and exactly one workflow ran: [CI #331](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37961300244), job `113924515032`.
+
+**Result: SUCCESS.** Scope regression tests, frozen dependency installation, Enterprise static gates, all TypeScript projects, Functions build, application tests (**156 files / 1,001 tests**), application build, production smoke and Chromium browser acceptance (**26 / 26 passed**) all passed. The test orchestration exited successfully (code 0); the earlier local parent-process limitation did not reproduce on this runner. npm and Bun/emulator download caches were saved successfully; a future cache-hit speedup has not yet been measured.
+
+Runner job: 2026-10-09 16:44:39–16:53:30 UTC (**8m 51s**). Conservative incremental ledger: **9 of 200 additional minutes consumed; 191 remain**, subject to GitHub's authoritative billing. The unused 45-minute reservation is released. No rerun, merge, release tag or deployment was initiated.
+
+This closes the previously failing browser-regression gate for this candidate, including FE-01, FE-02 and FE-03 acceptance evidence. It does not certify every audit finding as resolved: deletion/retention completeness, production load/cost evidence, restore-drill evidence and independent operational/governance approvals still require their own exit criteria. **Official production approval remains NO-GO / NOT CONFIRMED.**
+
+This evidence update is retained on a separate documentation branch without a pull request so it does not trigger a second Actions run. PR #1 remains on the successfully validated candidate above.
+
+## Post-merge update — unresolved browser stability
+
+Main CI `37963077381` failed the registered-account music export assertion after the successful PR run. The immediate export lacked synchronization with async persistence. A locally checked correction is prepared, but its browser execution remains pending. Refer to the [post-merge report](POST_MERGE_VALIDATION_2026-10-09.md). Earlier FE-03 acceptance evidence applies only to its recorded run; stable post-merge acceptance is not established. Production remains NO-GO.
+
 ## 1. Executive Summary
 
-### Overall signal: **RED for production release**
+### Baseline assessment (superseded CI status; other findings remain open): **RED for production release**
 
 This is not a claim that the whole application is insecure. It means release readiness has not been established: the latest completed CI on the audited baseline has four failing Browser Acceptance tests. Enterprise static gates, TypeScript, all 967 unit tests, build, and production smoke passed, but Browser Acceptance ended **22 passed / 4 failed of 26**. “Zero Critical Bugs” therefore cannot be certified.
 
@@ -185,4 +201,3 @@ Local evidence: Node 22.23.3, Bun 1.4.2, Java 21; three TypeScript projects PASS
 **Browser acceptance remains blocked by this execution environment**, not passed: Playwright's browser download returned an unavailable-site HTML page; the already-installed Chrome for Testing also failed before test execution because its required local socket was denied (`EPERM`). No sandbox restriction was disabled. These results do not close the previous browser acceptance findings.
 
 Changes are retained on a separate work branch without opening a PR or updating PR #1, because either would trigger remote validation before the owner's local prerequisite is fulfilled. Promotion requires either a successful browser run in a suitable local environment or an explicit exception for one bounded remote validation. Production measurements, retention/deletion completeness, restore evidence and independent release approvals remain open. **Production: NO-GO / NOT CONFIRMED.**
-
