@@ -540,3 +540,12 @@ After installing Chromium, CI run [37885595402](https://github.com/Veselin-Takev
 The Playwright web-server command now injects a clearly test-only, non-production secret with sufficient length. It is scoped to the E2E server process; production secrets remain provisioned independently and must never reuse this value. The workflow change and this test setup change still require a fresh exact-head run. The same run also reported an onboarding assertion that did not find its expected landing-page heading; investigate that separately after the consent API blocker is revalidated.
 
 **Production remains NO-GO / NOT CONFIRMED** pending a fresh exact-head CI run with all browser tests green and the independent operational/governance evidence approved.
+
+
+### 2026-10-09 — Exact-head CI 37886873675: browser auth helper used a retired token cache
+
+Exact-head PR CI run [37886873675](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37886873675) passed dependency-lock preflight, dependency installation, Enterprise static gates, Typecheck, Tests, Build, Production smoke and Chromium installation. Browser acceptance ran 26 cases: 14 passed and 12 failed. The dominant failure was in the E2E helper, which still read `localStorage.klar_auth_token`. The application no longer owns or persists credentials under that key: `authFetch` obtains the token from the authoritative Firebase Auth session, and guest login deliberately uses Firebase's session persistence. This made the test helper report a null token even when the browser had passed the age/consent UI gates.
+
+Candidate commit `96b019ac554c4bfc5f46345f2400356355b544cf` updates only the E2E helper to read the SDK-persisted Firebase user from session or local storage and validate the JWT-shaped access token before constructing API test headers. It does not add a production token cache, weaken API authentication, or change production code. One registered-account onboarding heading failure was also present in the same run and remains a separate investigation item; do not attribute it to the helper without a new run.
+
+A fresh exact-head CI run is required to validate the helper correction and determine the remaining browser failures. **Production remains NO-GO / NOT CONFIRMED** until all required exact-head gates are green and independent operational/governance evidence is approved.
