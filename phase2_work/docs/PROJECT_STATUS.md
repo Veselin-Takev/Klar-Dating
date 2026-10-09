@@ -1,3 +1,13 @@
+### 2026-10-09 — Exact-head CI 37892881623: consent status label fixed
+
+Browser Acceptance run `37892881623` on candidate `7080cb3dab61304b8fc49a1bc51684e40dd71c84` confirmed the login recovery trigger now resolves under its visible accessible name. The run still had 7 failures (19 passed), including the consent-settings assertion expecting a purpose-specific status such as `Produktanalyse: Nicht erlaubt`.
+
+Root cause: `ConsentSettings` displayed only the generic text `Status: Nicht erlaubt` after the purpose label was rendered in a separate element. That loses purpose context for screen-reader/automation consumers and does not match the visible acceptance contract. The live status now contains the associated purpose name (`Produktanalyse: Erlaubt/Nicht erlaubt`), and `tests/ConsentSettings.spec.tsx` explicitly asserts the contextual status. Server-confirmed withdrawal behavior, evidence checks, and fail-closed error handling remain unchanged.
+
+Commits: component fix `8e3f714957b43736ba57e7404dcf81003fffc5d3`; regression test `cd7e26dd6a2a38ca851e47d43bae2525b49abf1c`. A fresh exact-head CI is required to validate this correction. The other 6 browser acceptance failures remain open and will be triaged without relaxing security boundaries or altering tests merely to fit current behavior.
+
+**Release remains NO-GO / NOT CONFIRMED.** All Enterprise gates must pass on the final exact candidate head, followed by independent operational/governance review and explicit official production approval.
+
 ### 2026-10-09 — Exact-head CI 37891185116: Browser Acceptance regression triage
 
 Exact-head run `37891185116` on candidate `ab7e27703fb8e4f3162c9e610afd28c68dead413` passed the dependency/static/typecheck/unit-test/build/smoke stages and failed only in Browser Acceptance (8 failures). The failures cluster around (a) the password-recovery trigger's accessible name, (b) the chat gate and onboarding state, (c) a retired analytics endpoint returning HTTP 429 before its intended HTTP 410 contract, (d) legal-page return navigation, and (e) the privacy-settings post-withdrawal status label. These are being treated as real acceptance failures, not waived or hidden.
