@@ -702,7 +702,7 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
                 create: (ref, data) => {
                   const actual = unwrap(ref);
                   realTx.create(actual, data as never);
-                  mirrorWrites.push(() => createDurableDocRef(actual.path).set(data));
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).create(data));
                   return wrappedTx;
                 },
                 update: (ref, data) => {
@@ -741,7 +741,12 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
           },
           create: (ref, data) => {
             const durableRef = toDurableDocRef(ref);
-            stagedWrites.push(async () => { await durableRef.set(data); });
+            if (durableStore.getDoc(durableRef.path) !== null) {
+              const error = new Error('Document already exists.') as Error & { code: number };
+              error.code = 6;
+              throw error;
+            }
+            stagedWrites.push(async () => { await durableRef.create(data); });
             return tx;
           },
           update: (ref, data) => {
