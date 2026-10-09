@@ -678,3 +678,12 @@ Exact-head CI run [37890532339](https://github.com/Veselin-Takev/Klar-Dating/act
 The five retired `/api/verification/{verify,status,challenge,submit,decide}` paths are now explicitly exempted from the global authentication and age gates; they remain behind the global API rate limiter and return the existing fixed 410 response, with no identity or profile data disclosed. The regression test now checks both anonymous and registered-token requests and verifies the persisted `isVerified` flag remains false. Changes: `de0d90a7cb24248a5b8a0d4c77308789eb2560ad` and `e7877558429428a81b5f4d1c911d53d77cb96814`.
 
 The exact-head CI run for these changes is pending. This fix does not establish production readiness; **Production remains NO-GO / NOT CONFIRMED** until the complete exact-head pipeline passes, Browser Acceptance is green, and independent operational/governance approval is recorded.
+
+
+### 2026-10-09 — Exact-head validation update (PR #1 / v149)
+
+Latest completed Enterprise CI: [run 37908747359](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37908747359), candidate SHA `4435b837c24fc254fd920615a2ad656eca75c428`. Dependency lock preflight, dependency installation, Enterprise static gates, TypeScript, automated tests, build, production smoke, and Chromium installation passed. The `Browser acceptance` step failed. This run therefore does not satisfy the release gate.
+
+The available workflow metadata identifies the failing step but does not include individual Playwright failure messages or traces, and no Playwright HTML report artifact was uploaded. Do not infer that the earlier four browser failures are unchanged, and do not weaken assertions or disable browser tests. Next action: make the Playwright HTML report and failure traces available as a bounded CI artifact on failure, rerun Browser Acceptance on this exact candidate, then fix each reproduced application/fixture defect with a regression test. Preserve rate limits, auth/consent ordering, and deny-by-default behavior.
+
+**Release status: NO-GO / NOT CONFIRMED.** Do not merge or deploy based on the passing non-browser steps alone. Require a green full CI run on the exact candidate SHA plus independent operational, security/privacy, backup-restore and release approvals.
