@@ -522,3 +522,12 @@ Candidate commit `2b57e8c817bd676c33685af389c6e531e3101679` adds `create()` to t
 A follow-up review of the `durableStore.ts` fix identified a second path with the same semantic risk: the transaction fallback's `create()` implementation staged a plain `set()`, which could overwrite an existing receipt, and the real transaction's mirror also used `set()`. Candidate commit `2aa2769cc7a43bbae720b07a0c4ad18b3d1f11f8` now mirrors successful transaction creates with create-only semantics and makes the explicitly enabled fallback reject an already-existing document with code `6`. This narrows the fix to the durable adapter and keeps Firestore's create-only contract consistent across direct and transactional calls. The check is still awaiting a fresh exact-head CI run; do not treat this code review as runtime validation.
 
 **Production remains NO-GO / NOT CONFIRMED** until all required CI/runtime gates and independent operational/governance evidence are green.
+
+
+### 2026-10-09 — Exact-head CI 37885112283: Playwright browser provisioning gap
+
+Exact-head Enterprise CI run [37885112283](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37885112283) on candidate `1a39cf8d50c9e84d29effb91999c0968c927aaae` passed Dependency lock preflight, dependency installation, Enterprise static gates, Typecheck, Tests, Build and Production smoke. Browser acceptance then failed before executing test logic: all 26 Chromium cases could not launch because the expected Playwright Chromium headless-shell binary was not installed on the runner. This is a CI environment provisioning defect, not evidence that the browser assertions passed or failed.
+
+The workflow now explicitly installs the pinned Playwright project's Chromium browser and operating-system dependencies with `bunx playwright install --with-deps chromium` immediately before Browser acceptance. This follows Playwright's documented CI setup sequence and keeps the browser gate mandatory; no tests are skipped or relaxed. A fresh exact-head run must validate the workflow change. The install step itself and the new browser run are not yet verified.
+
+**Production remains NO-GO / NOT CONFIRMED** until exact-head Browser acceptance and all other required runtime gates pass, and the outstanding independent operational/governance evidence is approved.
