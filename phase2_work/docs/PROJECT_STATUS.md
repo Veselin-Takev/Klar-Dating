@@ -1,3 +1,9 @@
+### 2026-10-09 — Post-merge onboarding race and runtime gate correction
+
+Main CI `37963077381` failed one browser acceptance assertion (music preferences missing from an export read immediately after submit). The candidate orders export after confirmed onboarding completion and rechecks persistence after reload. Eight focused local tests passed. All three TypeScript projects and Enterprise gates passed on the corrected local candidate. The existing Node/Docker alignment gate is now included in Enterprise checks, preventing an otherwise green Node 26 dependency PR from bypassing the required 22.23.3 baseline. No application persistence or authorization rules were weakened.
+
+See [post-merge report and CI ledger](POST_MERGE_VALIDATION_2026-10-09.md) for dependency decisions and all ten observed runs. Conservative additional-budget consumption is 61 minutes, leaving 139 at this snapshot; this includes update-generation jobs and is not an authoritative billing export. No new CI run was initiated for these changes. Browser execution for the amended candidate is still unverified. **Production: NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — Phase 3 change/adoption documentation delivered
 
 PR #1 was merged at `b9808179d26cd4bb21644c4d8f871a439ea09157`. The [Phase 3 package](phase3/README.md) now covers the supplied Pillar 3 requirements: ADKAR roadmap, persona/workflow changes and before/after scenarios, four-week enablement, prompt and feedback standards, announcement/workshop templates, adoption metrics and evidence-based acceptance gates. Planning assumptions are explicitly marked. Existing Phase 2 governance and incident controls remain authoritative.

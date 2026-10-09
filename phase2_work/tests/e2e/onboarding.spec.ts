@@ -41,6 +41,9 @@ test.describe('identity, onboarding, music, age and consent', () => {
     await page.getByRole('button', { name: 'Weiter', exact: true }).click();
     await page.getByRole('button', { name: 'Profile entdecken' }).click();
     await page.getByRole('button', { name: 'Loslegen & Verifizieren' }).click();
+    // A click starts persistence; it does not await the async submit handler.
+    // AuthGate exposes navigation only after the server-confirmed profile update.
+    await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible({ timeout: 15000 });
     const exported = await page.request.get('/api/account/export', { headers: await authHeaders(page) });
     expect(exported.status()).toBe(200);
     expect((await exported.json()).profil.musicPreferences).toEqual({
@@ -49,6 +52,11 @@ test.describe('identity, onboarding, music, age and consent', () => {
     await page.reload();
     await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Was begeistert dich?' })).toHaveCount(0);
+    const reloaded = await page.request.get('/api/account/export', { headers: await authHeaders(page) });
+    expect(reloaded.status()).toBe(200);
+    expect((await reloaded.json()).profil.musicPreferences).toEqual({
+      genres: ['Jazz'], concertGoer: true, playingInstrument: true,
+    });
   });
 
   test('invalid credentials produce an announced error and remain on login', async ({ page }) => {
