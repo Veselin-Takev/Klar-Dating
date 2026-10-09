@@ -598,6 +598,13 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     "/api/auth/forgot-password",
     "/api/auth/verify-reset-token",
     "/api/auth/reset-password",
+    // Retired verification endpoints return a fixed, non-sensitive 410 response
+    // before authentication; this prevents stale clients from seeing misleading 401s.
+    "/api/verification/verify",
+    "/api/verification/status",
+    "/api/verification/challenge",
+    "/api/verification/submit",
+    "/api/verification/decide",
   ]);
 
   app.use("/api", (req, res, next) => {
@@ -661,6 +668,12 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     "/api/einwilligung",
     "/api/einwilligung/widerruf",
     "/api/referral/claim",
+    // Retired routes must consistently advertise deprecation, independent of account age.
+    "/api/verification/verify",
+    "/api/verification/status",
+    "/api/verification/challenge",
+    "/api/verification/submit",
+    "/api/verification/decide",
   ]);
 
   /** Endpunkte, die Nutzerinhalte an Google Gemini geben. Erhoben aus dem
