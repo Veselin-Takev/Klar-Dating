@@ -30,7 +30,9 @@ test('magic link signs in on another device without trusting an email in the URL
     await expect(receiver.getByLabel('E-Mail Adresse')).toBeEmpty();
     await receiver.getByLabel('E-Mail Adresse').fill(email);
     await receiver.getByRole('button', { name: 'Anmelden', exact: true }).click();
-    await expect(receiver.getByRole('heading', { name: 'Echte Verbindungen statt endloses Suchen.' })).toBeVisible({ timeout: 15000 });
+    // Email-link auth may create a new account; the mandatory age gate must run before onboarding.
+    await expect(receiver.getByRole('heading', { name: 'Wie alt bist du?' })).toBeVisible({ timeout: 15000 });
+    await expect(receiver.getByLabel('Geburtsdatum')).toBeVisible();
     expect(new URL(receiver.url()).search).toBe('');
   } finally { await otherDevice.close(); }
 });
