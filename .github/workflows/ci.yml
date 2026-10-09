@@ -62,5 +62,7 @@ jobs:
         run: bun run build
       - name: Production smoke
         run: bun run test:production
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
       - name: Browser acceptance
         run: bunx playwright test
