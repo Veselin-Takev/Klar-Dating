@@ -1,5 +1,4 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import type { Firestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { ipKeyGenerator } from 'express-rate-limit';
 import { distributedRateLimit } from '../distributedRateLimiter';

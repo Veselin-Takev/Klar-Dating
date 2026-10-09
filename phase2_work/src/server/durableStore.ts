@@ -73,6 +73,7 @@ type DurableTransaction = {
 };
 
 type DurableDbProxy = {
+  terminate: () => Promise<void>;
   collection: (colPath: string) => DurableCollectionRef;
   doc: (docPath: string) => DurableDocRef;
   runTransaction: <T>(updateFunction: (tx: DurableTransaction) => Promise<T>) => Promise<T>;
@@ -471,6 +472,7 @@ function realErrorMessage(error: unknown): string {
 export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
   const allowFallback = process.env.NODE_ENV === 'development' && process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true';
   let fallbackActive = !realDb && allowFallback;
+  let termination: Promise<void> | undefined;
 
   const isPermissionDenied = (error: unknown): boolean => {
     const code = realErrorCode(error);
@@ -790,6 +792,10 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
       };
       return batch;
     },
+    terminate: () => termination ??= (async () => {
+      await txQueue;
+      await realDb?.terminate();
+    })(),
     recursiveDelete: async ref => {
       const actual = realDocRef(ref);
       if (!fallbackActive && realDb && actual && typeof realDb.recursiveDelete === 'function') {

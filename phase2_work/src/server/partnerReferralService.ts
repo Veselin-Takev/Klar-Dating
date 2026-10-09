@@ -4,6 +4,7 @@ import { FieldValue } from './db';
 import { consentAuditSecret, signHmacAuditPayload } from './consentAudit';
 import {
   PartnerReferralError,
+  isAutomatedPartnerClick,
   parsePartnerCampaignInput,
   validatePartnerDestinationUrl,
   derivePartnerReferralToken,
@@ -238,7 +239,7 @@ export async function updatePartnerCampaign(
       throw new PartnerReferralError(409, 'separation_of_duties_required', 'Die erstellende Admin-Person darf die eigene Kampagne nicht selbst als geprüft freigeben.');
     }
     ensureActiveStatus(nextStatus, nextBrandVerified);
-    const update: Record<string, unknown> = {
+    const update: Partial<PartnerCampaignRecord> = {
       ...patch,
       updatedAt: now,
       updatedByRef: pseudonymousPartnerUid(actorUid, auditSecret(deps)),
@@ -293,7 +294,7 @@ export async function softDeletePartnerCampaign(
   return { id, status: 'deleted' };
 }
 
-function requirePartnerUserData(uid: string, data: Record<string, unknown> | undefined): { version: number } {
+function requirePartnerUserData(data: Record<string, unknown> | undefined): { version: number } {
   if (!data) throw new PartnerReferralError(404, 'account_not_found', 'Das Konto wurde nicht gefunden.');
   if (data.isAdult !== true) throw new PartnerReferralError(403, 'age_gate_required', 'Bitte schließe zuerst die Altersprüfung ab.');
   const version = Number.isSafeInteger(data.partnerReferralVersion) && Number(data.partnerReferralVersion) >= 1 ? Number(data.partnerReferralVersion) : 1;
@@ -303,7 +304,7 @@ function requirePartnerUserData(uid: string, data: Record<string, unknown> | und
 export async function getPartnerConsentState(deps: PartnerReferralServiceDeps, uid: string): Promise<{ allowed: boolean }> {
   const snapshot = await deps.getFirestore().collection('users').doc(uid).get();
   const data = snapshot.data();
-  requirePartnerUserData(uid, data);
+  requirePartnerUserData(data);
   return { allowed: data?.partnerReferralConsent === true };
 }
 
@@ -323,7 +324,7 @@ export async function setPartnerConsent(
     const deletionSnap = await tx.get(deletionRef);
     if (deletionSnap.exists) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
     const data = userSnap.data();
-    const current = requirePartnerUserData(uid, data);
+    const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
     let version = current.version;
     if (!allowed && currentlyAllowed) version += 1;
@@ -374,6 +375,9 @@ async function ensureReferralForCampaign(
   const now = nowIso(deps);
   const ready = await db.runTransaction(async tx => {
     const [referralSnap, campaignSnap, userSnap, deletionSnap] = await tx.getAll(referralRef, campaignRef, userRef, deletionRef);
+    if (!referralSnap || !campaignSnap || !userSnap || !deletionSnap) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
     if (deletionSnap.exists || !userSnap.exists || userSnap.data()?.isAdult !== true
       || userSnap.data()?.partnerReferralConsent !== true
       || (Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) ? Number(userSnap.data()?.partnerReferralVersion) : 1) !== userVersion
@@ -406,7 +410,7 @@ export async function listPartnerReferralLinks(
   const db = deps.getFirestore();
   const userSnap = await db.collection('users').doc(uid).get();
   const data = userSnap.data();
-  const userState = requirePartnerUserData(uid, data);
+  const userState = requirePartnerUserData(data);
   if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
   const origin = publicOrigin(deps);
   const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
@@ -442,7 +446,7 @@ export async function recordPartnerInteraction(
   const ledger = makeLedger(deps, 'referral_' + action, uid, { campaignId });
   const userSnap = await userRef.get();
   const data = userSnap.data();
-  const state = requirePartnerUserData(uid, data);
+  const state = requirePartnerUserData(data);
   if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
   const campaign = campaignFrom(await campaignRef.get());
   if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
@@ -452,6 +456,9 @@ export async function recordPartnerInteraction(
   const now = nowIso(deps);
   await db.runTransaction(async tx => {
     const [savedUser, savedCampaign, referral, deletion] = await tx.getAll(userRef, campaignRef, referralRef, db.collection('account_deletions').doc(uid));
+    if (!savedUser || !savedCampaign || !referral || !deletion) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
     const savedData = savedUser.data();
     if (deletion.exists || savedData?.partnerReferralConsent !== true
       || (Number.isSafeInteger(savedData?.partnerReferralVersion) ? Number(savedData?.partnerReferralVersion) : 1) !== state.version
@@ -520,6 +527,9 @@ export async function recordPartnerClick(
   const tracked = await db.runTransaction(async tx => {
     const deletionRef = db.collection('account_deletions').doc(ownerUid);
     const [savedReferral, savedCampaign, savedOwner, deletion] = await tx.getAll(referralRef, campaignRef, ownerRef, deletionRef);
+    if (!savedReferral || !savedCampaign || !savedOwner || !deletion) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
     const owner = savedOwner.data();
     const referral = savedReferral.data();
     if (deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
@@ -573,6 +583,9 @@ export async function recordPartnerConversion(
     const [referralSnap, campaignSnap, ownerSnap, buyerSnap, ownerDeletion, buyerDeletion, eventSnap, buyerClaimSnap] = await tx.getAll(
       referralRef, campaignRef, ownerRef, buyerRef, ownerDeletionRef, buyerDeletionRef, eventRef, buyerClaimRef,
     );
+    if (!referralSnap || !campaignSnap || !ownerSnap || !buyerSnap || !ownerDeletion || !buyerDeletion || !eventSnap || !buyerClaimSnap) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
     if (eventSnap.exists) return { duplicate: true as const };
     const referral = referralSnap.data();
     const campaign = campaignSnap.data();

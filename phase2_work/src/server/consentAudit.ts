@@ -31,7 +31,7 @@ export function canonicalizeAuditPayload(value: unknown): string {
 
 
 /** Shared canonical HMAC-SHA256 envelope for consent and adjacent privacy ledgers. */
-export function signHmacAuditPayload<T extends Record<string, unknown>>(
+export function signHmacAuditPayload<T extends object>(
   payload: T,
   secret: string,
 ): T & { signatureAlgorithm: 'HMAC-SHA256'; signature: string } {
@@ -61,7 +61,7 @@ export function signConsentAuditRecord(
   if (secret.length < 32) {
     throw new Error("CONSENT_AUDIT_SECRET must contain at least 32 characters");
   }
-  return signHmacAuditPayload(payload as unknown as Record<string, unknown>, secret) as SignedConsentAuditRecord;
+  return signHmacAuditPayload(payload, secret);
 }
 
 export function verifyConsentAuditRecord(

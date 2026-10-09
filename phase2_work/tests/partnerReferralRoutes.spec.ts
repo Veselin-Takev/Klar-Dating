@@ -40,7 +40,12 @@ async function requestAdmin(claims: Record<string, unknown>) {
   const getFirestore = vi.fn(() => makeDb());
   const app = express();
   app.use((req, _res, next) => {
-    (req as Request & { user?: Record<string, unknown> }).user = claims;
+    req.user = {
+      aud: 'demo-klar', auth_time: 1, exp: 2, iat: 1,
+      iss: 'https://securetoken.google.com/demo-klar', sub: String(claims.uid),
+      uid: String(claims.uid), firebase: { identities: {}, sign_in_provider: 'custom' },
+      ...claims,
+    };
     next();
   });
   app.use('/api', createPartnerReferralRouter({

@@ -1,3 +1,21 @@
+### 2026-10-09 — Local-first remediation and CI resource controls
+
+Baseline: PR #1 head `0ae8d0c38cce9c363324d8c9e4e5a1818349d357`, failed CI #330. The owner authorized **200 additional Actions minutes**, conditional on thorough local verification before remote workflows. No new Actions run was triggered during this remediation.
+
+Implemented locally:
+
+- Correct partner service imports, typed campaign updates and fail-closed checks for incomplete transaction snapshots. Preserve consent payload types through the generic HMAC signer instead of unsafe casts. Repair the decoded-token test fixture and remove unused imports.
+- Reconcile the Bun lockfile with the already-declared OpenTelemetry dependencies. Frozen `bun ci` now succeeds locally; CI no longer regenerates the lockfile.
+- Add local preflight, narrowly scoped narrative-document filtering with regression tests, npm/Bun/emulator download caches and deferred Java setup. Keep the required `validate` job and full validation for code, rules, workflow, unknown or mixed changes.
+- Use `node --import=tsx` for server startup. Correct the deletion test to use supported wrapper methods and supply a test-only consent secret in the erasure integration fixture.
+- Forward Firestore SDK termination through the database wrapper once, including failure propagation. Production smoke now requires clean shutdown, not merely successful startup followed by a forced kill.
+
+Local evidence: Node 22.23.3, Bun 1.4.2, Java 21; three TypeScript projects PASS; Enterprise gates PASS; naming and accessible button-label checks PASS; Functions build PASS; application build/bundle budget PASS; 155 application test files / 999 tests PASS; two additional shutdown tests PASS; three CI scope tests PASS. The full suite ran before the final shutdown implementation; focused regression and smoke results for that implementation are recorded in `docs/CI_RESOURCE_POLICY.md`. Production smoke including graceful shutdown PASS (exit 0). Final focused regression: seven files / 32 tests PASS. Vitest children exited 0, but the concurrently/emulator parent remained active and was interrupted; do not record the overall local `test:ci` command as exit-0.
+
+**Browser acceptance remains blocked by this execution environment**, not passed: Playwright's browser download returned an unavailable-site HTML page; the already-installed Chrome for Testing also failed before test execution because its required local socket was denied (`EPERM`). No sandbox restriction was disabled. These results do not close the previous browser acceptance findings.
+
+Changes are retained on a separate work branch without opening a PR or updating PR #1, because either would trigger remote validation before the owner's local prerequisite is fulfilled. Promotion requires either a successful browser run in a suitable local environment or an explicit exception for one bounded remote validation. Production measurements, retention/deletion completeness, restore evidence and independent release approvals remain open. **Production: NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — DB-01 partial remediation: deletion page progress and lease safety
 
 A completed 25-chat purge page now raises a typed internal continuation signal. The durable worker records `completedPages`, schedules the next page and restores the attempt consumed by acquisition. Already deleted documents are the durable checkpoint: subsequent queries select the first remaining page. Genuine provider/database/time-slice failures retain backoff and the failure budget; successful pages do not erase earlier failures. Manual review begins on the 50th failed attempt and cannot be automatically reacquired. Authentication deletion also requires an unexpired owned lease.

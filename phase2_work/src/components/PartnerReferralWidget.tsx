@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, Check, Copy, ExternalLink, Gift, Handshake, QrCode, Share2, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Copy, ExternalLink, Gift, Handshake, QrCode, Share2, ShieldCheck } from 'lucide-react';
 import { authFetch } from '../lib/authFetch';
 import qrcode from '../vendor/qrcode-generator.js';
 

@@ -17,10 +17,13 @@ try {
     assert.equal(res.headers.get('cache-control'), 'no-store');
     assert.match(res.headers.get('content-security-policy'), /default-src 'self'/);
   }
-  console.log('Production smoke passed: startup, readiness, SPA routes, CSP, no-store.');
 } finally {
   child.kill('SIGTERM');
-  const timer = setTimeout(() => child.kill('SIGKILL'), 3000);
+  const timer = setTimeout(() => child.kill('SIGKILL'), 30_000);
   if (child.exitCode === null) await new Promise(resolve => child.once('exit', resolve));
   clearTimeout(timer);
+  assert.equal(child.signalCode, null, 'Built server must stop without forced termination');
+  assert.equal(child.exitCode, 0, 'Built server must shut down successfully');
 }
+
+console.log('Production smoke passed: startup, readiness, SPA routes, CSP, no-store and graceful shutdown.');

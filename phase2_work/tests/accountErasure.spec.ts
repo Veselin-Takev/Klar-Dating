@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { getDb } from '../src/server/db';
@@ -8,6 +8,8 @@ import { handleDeleteAccount } from '../src/server/trustAndSafety';
 import { purgeAccountData } from '../src/server/trustAndSafety';
 
 describe('account erasure including archived messages and photos', () => {
+  beforeEach(() => vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-erasure-audit-key-not-for-production'));
+  afterEach(() => vi.unstubAllEnvs());
   it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('deletes owned data without recreating an analytics identity', async () => {
     const uid = `erase-${crypto.randomUUID()}`;
     const db = getDb(); const auth = getAuth();

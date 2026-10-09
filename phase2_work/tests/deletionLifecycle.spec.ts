@@ -135,7 +135,7 @@ describe('real chat purge pagination', { timeout: 30_000 }, () => {
       await expect(purgeAccountData(uid)).rejects.toBeInstanceOf(DeletionPageComplete);
       expect((await db.collection('chats').where('participants', 'array-contains', uid).get()).size).toBe(remaining);
     }
-    const snapshots = await db.getAll(...owned);
+    const snapshots = await Promise.all(owned.map(ref => ref.get()));
     for (const snapshot of snapshots.filter(item => !item.exists)) {
       for (const collection of ['messages', 'archived_messages', 'gate_answers']) {
         expect((await snapshot.ref.collection(collection).get()).empty).toBe(true);
