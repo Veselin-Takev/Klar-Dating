@@ -137,3 +137,22 @@ The CI workflow now uploads `phase2_work/playwright-report/` and `phase2_work/te
 ### Current decision
 
 **NO-GO / NOT CONFIRMED.** Next, inspect the report artifact from the first run containing this diagnostic step, reproduce each failing test, and fix the actual behavior or isolated fixture without weakening security assertions. Then require a complete green CI run on the exact release candidate, followed by production-equivalent load/cost evidence, a verified backup/restore drill, and independent operational/security/privacy approval. Do not infer production safety from successful static gates or unit tests alone.
+
+
+## Follow-up remediation log — 2026-10-09
+
+The failure output from CI [37908747359](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37908747359) identified the four current baseline browser failures (22/26 passed): chat message not visible after reload, chat answer UI not restored after status retry, contact flow receiving 429 instead of 409, and onboarding token helper returning null.
+
+Remediations committed to the audit branch:
+
+1. **Chat reload race:** `ChatView.tsx` now subscribes to Firebase Auth state changes before establishing the Firestore message listener. This removes the one-shot `auth.currentUser` initialization race on reload; message reads remain governed by Firestore rules.
+2. **Gate retry state:** `useChatGate.ts` preserves the same chat's existing gate state during a status refresh while still withholding the composer unless the gate is open. A successful retry updates the state from the server response.
+3. **Firebase test session:** the Playwright helper reads the SDK-managed persisted token from local/session storage or the existing Firebase IndexedDB store. It does not create an app-owned credential cache and does not alter production authentication.
+4. **Contact 429:** the assertion now emits response body and headers while retaining the expected 409 domain contract. Root cause remains unconfirmed; the limiter must not be loosened until the source is identified.
+5. **CI diagnostics:** HTML report and test-result/trace paths are uploaded on job completion with seven-day retention.
+
+### Validation status
+
+A new Enterprise CI run is required on the resulting exact head. These changes are hypotheses tied to observed failures, not yet proven fixes until the corresponding browser tests pass. If the contact case still returns 429, use the response headers/body to identify whether the global API limiter, contact limiter, or an upstream middleware is responsible; then add a targeted regression test and make the smallest safe correction. Do not suppress the browser test or relax abuse controls.
+
+**Release remains NO-GO / NOT CONFIRMED.** No verified production traffic/billing evidence, restore-drill result, independent penetration test, or formal operational/security/privacy approval is present in the reviewed repository evidence.
