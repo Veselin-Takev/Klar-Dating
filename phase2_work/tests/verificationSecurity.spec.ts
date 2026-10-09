@@ -19,7 +19,12 @@ describe('identity and payment trust boundaries', () => {
     accounts.push(localId);
     const user = getDb().collection('users').doc(localId);
     await user.set({ isAdult: true, isVerified: false });
-    const response = await fetch('http://localhost:3000/api/verification/verify', { method: 'POST', headers: { authorization: `Bearer ${idToken}`, 'content-type': 'application/json' }, body: JSON.stringify({ isVerified: true }) });
+    const endpoint = 'http://localhost:3000/api/verification/verify';
+    // The route is permanently retired and returns only a fixed 410 response,
+    // even when called without credentials or with a registered account token.
+    const anonymousResponse = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ isVerified: true }) });
+    expect(anonymousResponse.status).toBe(410);
+    const response = await fetch(endpoint, { method: 'POST', headers: { authorization: `Bearer ${idToken}`, 'content-type': 'application/json' }, body: JSON.stringify({ isVerified: true }) });
     expect(response.status).toBe(410);
     const profile = (await user.get()).data();
     if (!profile) throw new Error('Expected persisted verification profile.');
