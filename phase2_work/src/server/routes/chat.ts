@@ -94,7 +94,7 @@ async function distributedChatGateAnswerRateLimit(req: Request, res: Response, n
       const data = snap.exists ? snap.data() : undefined;
       const windowStartedAt = Number(data?.windowStartedAt) || now;
       const count = Number(data?.count) || 0;
-      if (now - windowStartedAt >= CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) {
+      if (!snap.exists || now - windowStartedAt >= CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) {
         tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) });
         return true;
       }
@@ -121,7 +121,7 @@ async function distributedChatMessageRateLimit(req: Request, res: Response, next
       const data = snap.exists ? snap.data() : undefined;
       const windowStartedAt = Number(data?.windowStartedAt) || now;
       const count = Number(data?.count) || 0;
-      if (now - windowStartedAt >= CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) {
+      if (!snap.exists || now - windowStartedAt >= CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) {
         tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) });
         return true;
       }
