@@ -1,3 +1,9 @@
+### 2026-10-09 — Cumulative deletion accounting candidate
+
+Counted Firestore mutations and their cumulative job counters now share transactions. The final receipt is published atomically with final-sweep completion instead of during each purge. New jobs use accounting version 2; older jobs with unprovable totals go to explicit manual review before provider/identity actions. See [accounting design, tests and rollout gate](DELETION_ACCOUNTING_2026-10-09.md).
+
+Local targeted evidence: four files / 26 tests passed with Firestore/Auth/Storage emulators and clean orchestrator exit; all three TypeScript projects and Enterprise gates passed. The complete application suite passed: 159 files / 1,018 tests (Vitest child exit 0). The local concurrently/emulator parent remained active after SIGTERM and was interrupted; the overall local test:ci command is not recorded as clean exit 0. This candidate is saved separately without a new Actions run. The last confirmed main remains `aa56cfcbcd2b8327ddd7a716d45dba7dd7fc3111`; its green result does not validate these new changes. Production legacy inventory and migration, staging/release validation and other operational approvals remain outstanding. **Production: NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — PR #6 merged; main validation successful
 
 PR #6 merged as `aa56cfcbcd2b8327ddd7a716d45dba7dd7fc3111`. Its automatically triggered [main CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37967712697), job `113946151109`, completed successfully: all gates, TypeScript, Functions build, **157 files / 1,003 tests**, application build, production smoke and **26 browser tests** passed. This validates the merged onboarding/runtime changes and Phase 3 documents; it does **not** validate the later deletion-slice candidate.

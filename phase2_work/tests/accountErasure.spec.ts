@@ -1,3 +1,4 @@
+import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 // @vitest-environment node
 import { createHash, randomUUID } from 'node:crypto';
 import { DeletionPageComplete } from '../src/server/deletionProgress';
@@ -47,12 +48,14 @@ describe('account erasure including archived messages and photos', () => {
     expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
     await job.delete();
   });
-  it.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('finishes a real 51-chat purge and repeats it without orphaning nested data or duplicating the receipt', async () => {
+  it.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('finishes a real 51-chat purge and repeats it without orphaning nested data or double-counting cumulative totals', async () => {
     const db = getDb();
     const uid = `erase-pages-${randomUUID()}`;
     const requestId = randomUUID();
     const receipt = db.collection('deletion_log').doc(createHash('sha256').update(`deletion-receipt:${requestId}`).digest('hex'));
     const profile = db.collection('users').doc(uid);
+    const job = db.doc(`account_deletions/${uid}`);
+    await job.set({ requestId, status: 'pending', accountingVersion: 2, deletedCounts: emptyDeletionCounts() });
     const owned = Array.from({ length: 51 }, (_, i) => db.collection('chats').doc(`${uid}-${i}`));
     const unrelated = db.collection('chats').doc(`${uid}-other`);
     try {
@@ -77,15 +80,18 @@ describe('account erasure including archived messages and photos', () => {
           expect((await ref.collection(child).get()).empty).toBe(true);
         }
       }
-      const firstReceipt = (await receipt.get()).data();
-      expect(firstReceipt).toMatchObject({ status: 'completed', schemaVersion: 1 });
+      const firstCounts = (await job.get()).data()?.deletedCounts;
+      expect(firstCounts).toMatchObject({ chats: 51, nachrichten: 102, gateAntworten: 51 });
+      expect((await receipt.get()).exists).toBe(false);
       await purgeAccountData(uid, requestId);
-      expect((await receipt.get()).data()).toEqual(firstReceipt);
+      expect((await job.get()).data()?.deletedCounts).toEqual(firstCounts);
+      expect((await receipt.get()).exists).toBe(false);
       expect((await unrelated.get()).exists).toBe(true);
       expect((await unrelated.collection('messages').doc('sample').get()).exists).toBe(true);
     } finally {
       for (const ref of [...owned, unrelated, profile]) await db.recursiveDelete(ref);
       await receipt.delete();
+      await job.delete();
     }
   }, 30_000);
 

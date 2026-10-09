@@ -1,3 +1,4 @@
+import { emptyDeletionCounts, readDeletionCounts, buildDeletionAuditReceipt, deletionReceiptId } from './deletionAccounting';
 import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -57,7 +58,7 @@ export async function requestAccountDeletion(uid: string, db: Firestore = getDb(
     if (existing!.exists) return { requestId: existing!.data()!.requestId as string };
     const requestId = randomUUID();
     tx.create(ref, { requestId, status: 'pending', phase: 'purge', createdAt: new Date(), nextAttemptAt: new Date(),
-      leaseUntil: 0, attempts: 0, hasDidit: kyc!.exists,
+      leaseUntil: 0, attempts: 0, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), hasDidit: kyc!.exists,
       subscriptionId: user!.data()?.subscriptionId ?? null, customerId: user!.data()?.stripeCustomerId ?? null });
     // Remove discoverability at the same instant the durable write barrier appears.
     tx.delete(db.doc(`public_profiles/${uid}`));
@@ -91,7 +92,7 @@ export async function eraseDiditPage(uid: string, _requestId: string, apiKey: st
 
 export type DeletionDependencies = {
   db: Firestore; now: () => number; disable: (uid: string) => Promise<void>; removeAuth: (uid: string) => Promise<void>;
-  purge: (uid: string, requestId?: string) => Promise<unknown>; eraseProvider: (uid: string, requestId: string) => Promise<boolean>;
+  purge: (uid: string, requestId: string, lease?: string) => Promise<unknown>; eraseProvider: (uid: string, requestId: string) => Promise<boolean>;
   cancelSubscription: (subscriptionId: string, customerId: string | null) => Promise<void>;
 };
 export function deletionDependencies(): DeletionDependencies {
@@ -119,6 +120,10 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       ? data.nextAttemptAt.getTime()
       : (data?.nextAttemptAt ? new Date(data.nextAttemptAt).getTime() : 0);
     if (!data || data.status !== 'pending' || data.leaseUntil > now || nextAttemptMs > now) return null;
+    try { readDeletionCounts(data); } catch {
+      tx.update(ref, { status: 'manual_review', lastError: 'accounting_migration_required', leaseUntil: 0 });
+      return null;
+    }
     tx.update(ref, { lease, leaseUntil: now + 10 * 60_000, attempts: data.attempts + 1 }); return data;
   });
   if (!job) return;
@@ -126,7 +131,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     await deps.disable(uid);
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId);
     if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new Error('provider_more_pages');
-    await deps.purge(uid, job.requestId);
+    await deps.purge(uid, job.requestId, lease);
     // Provider deletion is irreversible. Re-read the authoritative job state
     // immediately before the provider boundary so a worker that lost its lease
     // cannot perform the final destructive identity deletion.
@@ -141,7 +146,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     // Final sweep only after the maximum token lifetime plus grace; never report completion early.
     await runObservedTransaction(deps.db, 'accountDeletion.finalizeDeletion', async tx => {
       const current = (await tx.get(activeJobRef)).data();
-      if (!current || current.status !== 'pending' || current.lease !== lease) return;
+      if (!current || current.status !== 'pending' || current.lease !== lease || current.leaseUntil <= deps.now()) return;
       if (current.phase === 'purge') {
         tx.update(activeJobRef, {
           phase: 'final_sweep',
@@ -150,6 +155,10 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
           lastError: null,
         });
       } else if (current.phase === 'final_sweep') {
+        const counts = readDeletionCounts(current);
+        const receiptRef = deps.db.collection('deletion_log').doc(deletionReceiptId(String(current.requestId)));
+        // Both writes commit together. A conflicting legacy receipt blocks completion.
+        tx.create(receiptRef, buildDeletionAuditReceipt(counts, new Date(deps.now())));
         tx.set(activeJobRef, {
           requestId: String(current.requestId ?? job.requestId),
           status: 'completed',

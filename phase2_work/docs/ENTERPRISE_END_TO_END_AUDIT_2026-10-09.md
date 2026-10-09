@@ -27,6 +27,10 @@ Main CI `37963077381` failed the registered-account music export assertion after
 
 A separate candidate now distinguishes acknowledged partial-slice progress from genuine failures. Emulator coverage completes all 51 real chats and checks idempotent repeat. Cumulative receipt totals remain unresolved. See [detailed evidence](DELETION_PROGRESS_2026-10-09.md); do not mark DB-01 fully closed.
 
+## Latest DB-01 accounting candidate
+
+New jobs now persist cumulative deletion counts atomically with counted mutations and publish a final receipt with final-sweep job completion. Legacy jobs require an explicit migration decision; no historical totals are invented. See [accounting evidence and release conditions](DELETION_ACCOUNTING_2026-10-09.md). This is a local candidate, not deployed production evidence.
+
 ## 1. Executive Summary
 
 ### Baseline assessment (superseded CI status; other findings remain open): **RED for production release**

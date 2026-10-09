@@ -19,7 +19,11 @@ Async-local state isolates simultaneous accounts. The remaining Firestore docume
 - Enterprise static gates PASS. All three TypeScript projects PASS.
 - No remote validation run has been triggered for this candidate.
 
-## Remaining acceptance gaps
+## Follow-up candidate
+
+[Cumulative accounting](DELETION_ACCOUNTING_2026-10-09.md) now coordinates counted mutations with durable job totals and publishes receipts only at final-sweep completion. This supersedes the counter limitation below for new version-2 jobs; legacy migration and deployment validation remain open.
+
+## Historical acceptance gaps at the slice-only candidate
 
 DB-01 is **not fully closed**. Receipt counters still summarize the terminal invocation instead of all previous pages/slices. Do not present them as cumulative account totals. Correcting this requires durable, idempotent counter updates coordinated with destructive commits and defined final-sweep semantics; incrementing counters separately after a delete would lose or duplicate counts on failures.
 
