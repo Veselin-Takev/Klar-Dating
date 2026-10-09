@@ -11,6 +11,17 @@ async function createAccount(request: APIRequestContext) {
   const headers = { Authorization: `Bearer ${idToken}` };
   expect((await request.post('/api/account/alter', { headers, data: { geburtsdatum: '1990-01-01' } })).status()).toBe(200);
   expect((await request.post('/api/einwilligung', { headers, data: { zwecke: { ki_auswertung: false, fehlerberichte: false } } })).status()).toBe(200);
+  // These chat journeys start after mandatory age/consent gates. Seed a persisted
+  // profile interest so AuthGate can complete its real onboarding gate; never
+  // rely on the removed unscoped localStorage onboarding flag.
+  const profile = await request.patch(
+    `http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=interests`,
+    {
+      headers: { Authorization: 'Bearer owner' },
+      data: { fields: { interests: { arrayValue: { values: [{ stringValue: 'Musik' }] } } } },
+    },
+  );
+  expect(profile.status(), 'chat fixture should seed persisted onboarding completion').toBe(200);
   return { uid: uid as string, email, headers };
 }
 async function seedChat(request: APIRequestContext, participants: string[]) {
@@ -27,9 +38,6 @@ async function seedChat(request: APIRequestContext, participants: string[]) {
   expect(result.status()).toBe(200); return chatId;
 }
 async function signIn(page: Page, email: string, chatId: string) {
-  await page.addInitScript(() => {
-    localStorage.setItem('hasCompletedOnboarding', 'true');
-  });
   await page.goto(`/chat/${chatId}`);
   await page.getByLabel('E-Mail Adresse').fill(email);
   await page.getByLabel('Passwort', { exact: true }).fill(emulatorPassword);
