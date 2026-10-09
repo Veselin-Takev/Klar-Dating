@@ -9,6 +9,8 @@ import type { Query } from 'firebase-admin/firestore';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
+import { consentAuditSecret } from './consentAudit';
+import { pseudonymousPartnerUid } from './partnerReferralCore';
 import {
   recordModerationDecision,
   submitDsaAppeal,
@@ -512,6 +514,34 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     await loescheAbfrage(db.collection('referral_events').where('inviteeUid', '==', meineUid));
     await loescheAbfrage(db.collection('app_feedback').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('admob_rewards').where('userId', '==', meineUid));
+    // Klar & Partner Art. 17: remove account-bound referrals, verified claims and
+    // signed ledger entries using keyed pseudonyms. Contract metadata/aggregates remain.
+    const partnerUidRef = pseudonymousPartnerUid(meineUid, consentAuditSecret());
+    await loescheAbfrage(db.collection('partner_referrals').where('ownerUid', '==', meineUid));
+    for (const field of ['ownerRef', 'buyerRef']) {
+      await loescheAbfrage(db.collection('partner_referral_conversions').where(field, '==', partnerUidRef));
+    }
+    await loescheAbfrage(db.collection('partner_referral_buyer_claims').where('buyerRef', '==', partnerUidRef));
+    for (const field of ['actorRef', 'ownerRef', 'buyerRef']) {
+      await loescheAbfrage(db.collection('partner_referral_ledger').where(field, '==', partnerUidRef));
+    }
+    for (const collectionName of ['partner_referral_user_rate_limits', 'partner_referral_admin_rate_limits']) {
+      const key = crypto.createHash('sha256')
+        .update('klar-rate-limit:' + collectionName + ':uid:' + meineUid, 'utf8')
+        .digest('hex');
+      await db.collection(collectionName).doc(key).delete();
+    }
+    // Keep campaign text and aggregate counts, but scrub all HMAC admin references.
+    for (const field of ['createdByRef', 'updatedByRef', 'verifiedByRef']) {
+      for (;;) {
+        const refs = await db.collection('partner_campaigns').where(field, '==', partnerUidRef).limit(BATCH).get();
+        if (refs.empty) break;
+        const batch = db.batch();
+        refs.docs.forEach(item => batch.update(item.ref, { [field]: FieldValue.delete() }));
+        await batch.commit();
+        if (refs.size < BATCH) break;
+      }
+    }
     // Consent audit entries are append-only and pseudonymous at creation time.
     // No in-place mutation is permitted here; legacy pre-hardening entries that
     // still contain userId are handled by the documented Art. 17 migration job.

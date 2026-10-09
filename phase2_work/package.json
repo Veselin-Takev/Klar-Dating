@@ -115,7 +115,8 @@
     "check:rate-limit-distribution": "node scripts/check-rate-limit-distribution.mjs",
     "check:chat-read-path": "node scripts/check-chat-read-path.mjs",
     "check:workflow-layout": "node scripts/check-workflow-layout.mjs",
-    "check:dependabot-config": "node scripts/check-dependabot-config.mjs"
+    "check:dependabot-config": "node scripts/check-dependabot-config.mjs",
+    "test:partner": "vitest run tests/partnerReferralCore.spec.ts tests/partnerReferralRoutes.spec.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

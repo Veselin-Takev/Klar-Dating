@@ -130,6 +130,8 @@ import { createDatePlansRouter } from './src/server/routes/datePlans';
 import { createLegalUpdatesRouter } from './src/server/routes/legalUpdates';
 import { handleTranslation } from './src/server/platform/translationEngine';
 import { createLaunchRouter } from './src/server/routes/launch';
+import { createPartnerReferralPublicRouter, createPartnerReferralRouter } from './src/server/routes/partnerReferrals';
+import { consentAuditSecret } from './src/server/consentAudit';
 import { createBillingRouter } from './src/server/routes/billing';
 import { BUCHBAR } from './src/lib/klarPlus';
 import { createDeviceTokenRouter } from './src/server/routes/deviceTokens';
@@ -617,7 +619,9 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   ]);
 
   app.use("/api", (req, res, next) => {
-    if (OEFFENTLICH.has(req.baseUrl + req.path) || OEFFENTLICH.has(req.path)) return next();
+    const fullPath = req.baseUrl + req.path;
+    const publicPartnerEndpoint = fullPath.startsWith('/api/partner/click/') || fullPath.startsWith('/api/partner/webhook/');
+    if (OEFFENTLICH.has(fullPath) || OEFFENTLICH.has(req.path) || publicPartnerEndpoint) return next();
     return requireAuth(req, res, next);
   });
   // Compliance purge is public only at the routing layer; the endpoint itself requires
@@ -822,7 +826,8 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
 
   app.use("/api", async (req, res, next) => {
     const pfad = req.path.startsWith("/api") ? req.path : "/api" + req.path;
-    if (OEFFENTLICH.has(pfad) || OEFFENTLICH.has(req.path)) return next();
+    const publicPartnerEndpoint = pfad.startsWith('/api/partner/click/') || pfad.startsWith('/api/partner/webhook/');
+    if (OEFFENTLICH.has(pfad) || OEFFENTLICH.has(req.path) || publicPartnerEndpoint) return next();
     if (OHNE_ALTERSPRUEFUNG.has(pfad)) return next();
 
     const meineUid = req.user?.uid;
@@ -940,6 +945,26 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     serverTimestamp: () => FieldValue.serverTimestamp(),
     publicUrl: () => process.env.KLAR_PUBLIC_URL,
   }));
+  // Klar & Partner: signed callbacks and click redirects are public at the routing
+  // layer only; callback authenticity is enforced by campaign-specific HMAC.
+  const partnerReferralDeps = {
+    currentUserId,
+    getFirestore,
+    tokenSecret: () => process.env.PARTNER_REFERRAL_SECRET ?? '',
+    auditSecret: () => consentAuditSecret(),
+    publicUrl: () => process.env.KLAR_PUBLIC_URL,
+    webhookSecrets: () => {
+      try {
+        const parsed: unknown = JSON.parse(process.env.PARTNER_WEBHOOK_SECRETS_JSON ?? '{}');
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        return Object.fromEntries(Object.entries(parsed as Record<string, unknown>).filter(([slug, value]) =>
+          /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug) && typeof value === 'string' && value.length >= 32,
+        )) as Record<string, string>;
+      } catch { return {}; }
+    },
+  };
+  app.use('/api', createPartnerReferralPublicRouter(partnerReferralDeps));
+  app.use('/api', createPartnerReferralRouter(partnerReferralDeps));
   // Public feedback is intentionally anonymous and has its own strict payload boundary.
   app.use('/api', createFeedbackRouter({ getFirestore }));
 

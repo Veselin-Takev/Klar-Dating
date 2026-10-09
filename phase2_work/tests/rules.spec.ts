@@ -750,3 +750,26 @@ describe('Enterprise RBAC and append-only audit logs', () => {
     await assertFails(deleteDoc(doc(alsAdmin(ANNA), 'audit_logs/a3')));
   });
 });
+
+
+describe('Klar & Partner server-only collections', () => {
+  const partnerCollections = [
+    'partner_campaigns',
+    'partner_campaign_slugs',
+    'partner_referrals',
+    'partner_referral_ledger',
+    'partner_referral_conversions',
+    'partner_referral_buyer_claims',
+    'partner_referral_click_rate_limits',
+    'partner_referral_webhook_rate_limits',
+    'partner_referral_admin_rate_limits',
+    'partner_referral_user_rate_limits',
+  ] as const;
+
+  it.each(partnerCollections)('denies client reads and writes for %s even to admin claims', async collectionName => {
+    const adminDb = env.authenticatedContext(ANNA, { admin: true, roles: ['admin'] }).firestore();
+    const target = doc(adminDb, collectionName, 'test-record');
+    await assertFails(getDoc(target));
+    await assertFails(setDoc(target, { clientControlled: true }));
+  });
+});

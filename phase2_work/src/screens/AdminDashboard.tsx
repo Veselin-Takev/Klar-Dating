@@ -9,6 +9,7 @@ import { AdminI18nCoverageWidget } from '../components/AdminI18nCoverageWidget';
 import { AdminHealthStatusWidget } from '../components/AdminHealthStatusWidget';
 import { AdminLogViewerModal } from '../components/AdminLogViewerModal';
 import { AdminComplianceAuditWidget } from '../components/AdminComplianceAuditWidget';
+import { PartnerCampaignAdmin } from '../components/PartnerCampaignAdmin';
 
 const DEVICE_TYPES = ['Mobile iOS', 'Mobile Android', 'Desktop Web', 'Tablet', 'Unbekannt'];
 
@@ -113,7 +114,7 @@ function FailedApiLogWidget() { return null; }
 function AuthSessionDiagnosticWidget() { return null; }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n'>('system');
+  const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n' | 'partners'>('system');
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [averageLatency, setAverageLatency] = useState(0);
   const [functionRuntimes] = useState<FunctionRuntime[]>([]);
@@ -202,6 +203,13 @@ export default function AdminDashboard() {
           >
             i18n Coverage
           </button>
+          <button
+            onClick={() => setActiveTab('partners')}
+            id="tab-partner-campaigns"
+            className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === 'partners' ? 'border-brand text-brand dark:border-brand-light dark:text-brand-light' : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
+          >
+            Klar & Partner
+          </button>
         </div>
       </div>
 
@@ -224,6 +232,12 @@ export default function AdminDashboard() {
         {activeTab === 'i18n' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <AdminI18nCoverageWidget />
+          </div>
+        )}
+
+        {activeTab === 'partners' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <PartnerCampaignAdmin />
           </div>
         )}
 

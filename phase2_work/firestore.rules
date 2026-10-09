@@ -80,6 +80,19 @@ service cloud.firestore {
       );
     }
 
+    // Klar & Partner: all reads/writes are server-authoritative.
+    // Firebase Admin SDK bypasses client rules; client claims never grant access.
+    match /partner_campaigns/{campaignId} { allow read, write: if false; }
+    match /partner_campaign_slugs/{slug} { allow read, write: if false; }
+    match /partner_referrals/{referralId} { allow read, write: if false; }
+    match /partner_referral_ledger/{eventId} { allow read, write: if false; }
+    match /partner_referral_conversions/{conversionId} { allow read, write: if false; }
+    match /partner_referral_buyer_claims/{claimId} { allow read, write: if false; }
+    match /partner_referral_click_rate_limits/{key} { allow read, write: if false; }
+    match /partner_referral_webhook_rate_limits/{key} { allow read, write: if false; }
+    match /partner_referral_admin_rate_limits/{key} { allow read, write: if false; }
+    match /partner_referral_user_rate_limits/{key} { allow read, write: if false; }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       

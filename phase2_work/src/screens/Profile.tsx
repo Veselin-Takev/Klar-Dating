@@ -1,4 +1,5 @@
 import { ConsentSettings } from '../components/ConsentSettings';
+import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
 import { getUserStorageItem, setUserStorageItem, klarStorage, clearUserStorageForUid, clearSessionStorageForApp } from '../lib/userScopedStorage';
 import { BiometricsVerificationModal } from '../components/BiometricsVerificationModal';
 import { Heart, MessageSquare, Star } from 'lucide-react';
@@ -249,10 +250,11 @@ const CustomRadarTooltip = ({ active, payload }: RadarTooltipEigenschaften) => {
 
 // Die drei Bereiche. Reihenfolge: was andere sehen, wie es laeuft, wie die
 // App eingestellt ist — von aussen nach innen.
-type ReiterId = "profil" | "entwicklung" | "einstellungen";
+type ReiterId = "profil" | "entwicklung" | "partner" | "einstellungen";
 const PROFIL_REITER: readonly Reiter<ReiterId>[] = [
   { id: "profil", beschriftung: "Profil" },
   { id: "entwicklung", beschriftung: "Entwicklung" },
+  { id: "partner", beschriftung: "Klar & Partner" },
   { id: "einstellungen", beschriftung: "Einstellungen" },
 ];
 
@@ -1815,6 +1817,12 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         <PDFResumeGenerator userBio={userBio} userInterests={userInterests} />
         </div>
+        )}
+
+        {reiter === "partner" && (
+          <div role="tabpanel" id="profil-partner-inhalt" aria-labelledby="profil-partner" className="space-y-4">
+            <PartnerReferralWidget />
+          </div>
         )}
 
         {reiter === "einstellungen" && (

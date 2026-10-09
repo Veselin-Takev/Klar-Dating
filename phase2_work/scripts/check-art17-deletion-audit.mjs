@@ -14,6 +14,11 @@ for (const token of [
   'deletedChats: bericht.chats',
   'deletedMessages: bericht.nachrichten',
   'pseudonymizedReports: bericht.pseudonymisiert',
+  "db.collection('partner_referrals').where('ownerUid', '==', meineUid)",
+  "db.collection('partner_referral_conversions').where(field, '==', partnerUidRef)",
+  "db.collection('partner_referral_buyer_claims').where('buyerRef', '==', partnerUidRef)",
+  "db.collection('partner_referral_ledger').where(field, '==', partnerUidRef)",
+  "pseudonymousPartnerUid(meineUid, consentAuditSecret())",
 ]) if (!purge.includes(token)) failures.push(`missing deletion receipt control: ${token}`);
 
 for (const forbidden of ['meineUid', 'requestId', 'email', 'sessionId', 'provider']) {
