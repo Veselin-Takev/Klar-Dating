@@ -577,3 +577,8 @@ The cancellation receipt localization and consent test corrections are now commi
 ### 2026-10-09 — Spanish locale integrity gate repaired
 
 Exact-head CI run `37889956863` reached Enterprise static gates and failed at `check:i18n` before Typecheck or tests. The Spanish locale was missing the newly required `contracts.termination` key, so the cross-locale key parity gate correctly blocked the pipeline. Added a Spanish termination label and an explicit § 312k(5) BGB fallback phrase, keeping the German, English and Spanish cancellation receipt catalogs structurally aligned. This is a real translation-catalog defect; no static gate was bypassed. A fresh exact-head run is required to validate the complete candidate. **Production remains NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-09 — Authentication recovery entry point restored
+
+Review of the failed Browser Acceptance tests showed that the login screen's “Passwort vergessen?” control navigated directly to the password-only form, while the implemented accessible `AuthRecoveryModal` (including cross-device magic-link sign-in) was unreachable from the primary login UI. The control now opens the recovery modal, restoring the existing magic-link/password-recovery options and the modal's Escape/focus-return behavior. The dedicated `/passwort-vergessen` deep link remains supported. This preserves the generic recovery response for unknown accounts and does not read an email identity from URL parameters. Validation is pending on a fresh exact-head CI run. **Production remains NO-GO / NOT CONFIRMED.**
