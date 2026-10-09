@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "document_version": "1.0",
+  "as_of": "2026-10-09",
+  "repository_base_sha": "b9808179d26cd4bb21644c4d8f871a439ea09157",
+  "documentation_status": "prepared_pending_business_review",
+  "pilot_status": "not_started",
+  "production_approval": "not_confirmed",
+  "assumptions_require_confirmation": true,
+  "pilot_start": null,
+  "metrics": {
+    "baseline": null,
+    "pilot": null
+  },
+  "gates": [
+    {
+      "id": "G0",
+      "status": "not_evidenced",
+      "accountable_role": "Business Owner",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "G1",
+      "status": "not_evidenced",
+      "accountable_role": "Change Lead",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "G2",
+      "status": "not_evidenced",
+      "accountable_role": "Workflow Owner",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "G3",
+      "status": "not_evidenced",
+      "accountable_role": "QA",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "G4",
+      "status": "not_evidenced",
+      "accountable_role": "Business Owner",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "G5",
+      "status": "not_evidenced",
+      "accountable_role": "Change Lead / Sponsor",
+      "named_approver": null,
+      "approved_at": null,
+      "evidence_refs": []
+    }
+  ],
+  "requirements": [
+    {
+      "id": "ADKAR",
+      "artifact": "ADOPTION_PLAYBOOK.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    },
+    {
+      "id": "PERSONA_WORKFLOW",
+      "artifact": "ADOPTION_PLAYBOOK.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    },
+    {
+      "id": "FOUR_WEEK_ENABLEMENT",
+      "artifact": "ENABLEMENT_AND_TEMPLATES.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    },
+    {
+      "id": "PROMPT_FEEDBACK",
+      "artifact": "ENABLEMENT_AND_TEMPLATES.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    },
+    {
+      "id": "COMMUNICATION_WORKSHOPS",
+      "artifact": "ENABLEMENT_AND_TEMPLATES.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    },
+    {
+      "id": "ADOPTION_SCORECARD",
+      "artifact": "SCORECARD_AND_ACCEPTANCE.md",
+      "delivery_status": "documented",
+      "execution_status": "not_evidenced"
+    }
+  ],
+  "follow_up_reviews": [
+    {
+      "offset_days": 30,
+      "date": null,
+      "owner_role": "Change Lead",
+      "status": "not_scheduled",
+      "evidence_refs": []
+    },
+    {
+      "offset_days": 60,
+      "date": null,
+      "owner_role": "Change Lead",
+      "status": "not_scheduled",
+      "evidence_refs": []
+    },
+    {
+      "offset_days": 90,
+      "date": null,
+      "owner_role": "Change Lead",
+      "status": "not_scheduled",
+      "evidence_refs": []
+    }
+  ],
+  "execution_note": "No participants, measurements, approvals or completed workshops have been asserted. Schedule after G0; no automation has been configured."
+}
