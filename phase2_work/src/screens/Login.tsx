@@ -231,7 +231,6 @@ export default function Login() {
                       type="button"
                       onClick={() => setShowRecoveryModal(true)}
                       className="text-xs text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 transition-colors py-1 min-h-[32px] flex items-center"
-                      aria-label="Passwort zurücksetzen"
                     >
                       {t('login.forgot')}
                     </button>
