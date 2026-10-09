@@ -687,3 +687,18 @@ Latest completed Enterprise CI: [run 37908747359](https://github.com/Veselin-Tak
 The available workflow metadata identifies the failing step but does not include individual Playwright failure messages or traces, and no Playwright HTML report artifact was uploaded. Do not infer that the earlier four browser failures are unchanged, and do not weaken assertions or disable browser tests. Next action: make the Playwright HTML report and failure traces available as a bounded CI artifact on failure, rerun Browser Acceptance on this exact candidate, then fix each reproduced application/fixture defect with a regression test. Preserve rate limits, auth/consent ordering, and deny-by-default behavior.
 
 **Release status: NO-GO / NOT CONFIRMED.** Do not merge or deploy based on the passing non-browser steps alone. Require a green full CI run on the exact candidate SHA plus independent operational, security/privacy, backup-restore and release approvals.
+
+
+### 2026-10-09 — Browser acceptance follow-up fixes
+
+The failure diagnostics from CI [37908747359](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37908747359) confirmed four failures (22 passed / 4 failed): (1) persisted chat message not visible after reload, (2) gate answer UI not restored after a successful status retry, (3) contact request returned HTTP 429 instead of domain HTTP 409, and (4) registered onboarding helper could not find the Firebase session token.
+
+Changes made on `security/v149-autonomous-consolidation`:
+
+- `src/screens/ChatView.tsx`: chat subscription now listens for Firebase Auth state restoration and subscribes only once the SDK restores the authenticated user. This addresses the reload race where a one-time `auth.currentUser` check could see `null` and skip the Firestore listener for the whole mount.
+- `src/lib/useChatGate.ts`: a retry no longer transiently clears the current gate state to `lade`; the UI remains fail-closed while the request runs and the successful result can restore the answer form.
+- `tests/e2e/identity-helpers.ts`: token lookup now reads Firebase SDK-managed persistence from local/session storage and the existing Firebase IndexedDB store, without introducing an app-owned token cache or changing production auth behavior.
+- `tests/e2e/e2e-critical-flows.spec.ts`: contact 429 failures now include safe response body/headers so the specific limiter can be identified; the expected domain contract remains 409 and the rate limit has not been weakened.
+- `.github/workflows/ci.yml`: browser report/trace artifacts are uploaded on completion for diagnosis.
+
+The contact limiter's 429 cause is **not yet established**; do not mark that issue fixed based on improved diagnostics. Latest CI for this fix batch is pending/running; only an exact-head green run can establish whether these changes resolve the reproduced failures. Production remains **NO-GO / NOT CONFIRMED**.
