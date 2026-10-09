@@ -63,7 +63,29 @@ export async function completeAgeAndConsent(page: Page) {
 }
 
 export async function authHeaders(page: Page) {
-  const token = await page.evaluate(() => localStorage.getItem('klar_auth_token'));
-  expect(token).toBeTruthy();
+  // Firebase Auth is the source of truth. Guest sessions deliberately use
+  // browserSessionPersistence, so their SDK-managed credential is in
+  // sessionStorage (not the retired app-owned klar_auth_token key). Read the
+  // persisted Firebase user in either supported browser storage area without
+  // introducing an application token cache or changing production behavior.
+  const token = await page.evaluate(() => {
+    for (const storage of [window.sessionStorage, window.localStorage]) {
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (!key?.startsWith('firebase:authUser:')) continue;
+        try {
+          const user = JSON.parse(storage.getItem(key) || 'null');
+          const accessToken = user?.stsTokenManager?.accessToken;
+          if (typeof accessToken === 'string' && accessToken.split('.').length === 3) {
+            return accessToken;
+          }
+        } catch {
+          // Ignore unrelated or malformed Firebase persistence entries.
+        }
+      }
+    }
+    return null;
+  });
+  expect(token, 'Firebase Auth must persist an authenticated emulator session').toBeTruthy();
   return { Authorization: `Bearer ${token}` };
 }
