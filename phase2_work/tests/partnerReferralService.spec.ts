@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
-import { createPartnerCampaign, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
+import { createPartnerCampaign, openPartnerReferral, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
 import { pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
 import { verifyHmacAuditPayload } from '../src/server/consentAudit';
 
@@ -28,7 +28,7 @@ function makeFirestore(seed: Array<{ collection: string; id: string; data: Store
           get: async () => ({
             docs: [...store.entries()]
               .filter(([key]) => key.startsWith(collection + '/'))
-              .map(([key, value]) => ({ id: key.slice(collection.length + 1), data: () => structuredClone(value) })),
+              .map(([key, value]) => ({ id: key.slice(collection.length + 1), exists: true, data: () => structuredClone(value) })),
           }),
         }),
       }),
@@ -36,7 +36,7 @@ function makeFirestore(seed: Array<{ collection: string; id: string; data: Store
         get: async () => ({
           docs: [...store.entries()]
             .filter(([key]) => key.startsWith(collection + '/'))
-            .map(([key, value]) => ({ id: key.slice(collection.length + 1), data: () => structuredClone(value) })),
+            .map(([key, value]) => ({ id: key.slice(collection.length + 1), exists: true, data: () => structuredClone(value) })),
         }),
       }),
     }),
@@ -152,5 +152,32 @@ describe('Klar & Partner transactional service boundary', () => {
       record as Record<string, unknown> & { signatureAlgorithm: string; signature: string },
       auditSecret,
     ))).toBe(true);
+  });
+
+  it('opens a partner directly without counting the referrer’s own open as a tracked click', async () => {
+    const db = makeFirestore([{
+      collection: 'users',
+      id: 'uid-1',
+      data: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 },
+    }]);
+    const serviceDeps = deps(db);
+    const draft = await createPartnerCampaign(serviceDeps, 'admin-creator', campaignInput);
+    await updatePartnerCampaign(serviceDeps, 'admin-reviewer', draft.id, { brandVerified: true, status: 'active' });
+    await setPartnerConsent(serviceDeps, 'uid-1', true);
+
+    const opened = await openPartnerReferral(serviceDeps, 'uid-1', draft.id);
+    const destination = new URL(opened.url);
+    expect(destination.origin).toBe('https://partner.example');
+    expect(destination.pathname).toBe('/offer');
+    expect(destination.searchParams.get('klar_referral')).toMatch(/^[a-f0-9]{64}$/);
+    expect(opened.url).not.toContain('/api/partner/click/');
+
+    const referrals = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referrals/'));
+    expect(referrals).toHaveLength(1);
+    expect(referrals[0]?.[1].clickCount).toBe(0);
+    const ledger = [...db._store.entries()]
+      .filter(([key]) => key.startsWith('partner_referral_ledger/'))
+      .map(([, record]) => record);
+    expect(ledger.some(record => record.eventType === 'referral_open_link')).toBe(true);
   });
 });

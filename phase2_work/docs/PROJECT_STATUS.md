@@ -1,3 +1,13 @@
+### 2026-10-09 — Partner gate remediation: collection inventory and self-click exclusion
+
+Enterprise CI #324 (`37925640765`, candidate `59a7fda0ebebf62c471cc2a7ed13276ad5569af5`) failed only at `check:loeschkaskade`. The catalog checker did not recognize Firestore collection names provided through named constants, dynamic collection-name arrays, or the `collection:` option accepted by the shared distributed rate limiter; it reported five false positives even though those names were present in the campaign and rate-limit implementation. The scanner now indexes these patterns instead of weakening or exempting the policy. The Art. 17 catalog still requires every actual collection to have an explicit deletion/retention decision.
+
+The partner-open workflow also traversed `/api/partner/click/:token` after recording an authenticated open action, which could count a referrer’s own in-app opening as a tracked click. It now sends the authenticated user directly to the validated HTTPS campaign destination with the referral token attached and records the UI interaction separately in the signed ledger. Only shared URLs and QR-code links traverse the click-counting route. A service regression test asserts that the in-app open does not increment click totals.
+
+Finally, conversion event and buyer-claim document IDs now use the stable audit secret, not the campaign-specific webhook signing secret. Provider-key rotation therefore does not reset event deduplication or make a second reward possible for an already-claimed buyer/campaign.
+
+**Release remains NO-GO / NOT CONFIRMED.** CI #324 failed and does not validate these fixes. A fresh full exact-head run, including Enterprise static gates, typecheck, all unit tests, Firestore rules/emulator tests, build, smoke and browser acceptance, is required. Operational configuration, official partner agreements, privacy/legal review and governance approval remain production prerequisites.
+
 ### 2026-10-09 — Feedback rate-limit scope defect (CI #323)
 
 CI `37912966084` passed static gates, typecheck, all 967 unit tests, build and production smoke; Browser Acceptance failed three flows. The returned `429` carried the feedback-specific body and the `10-in-1min` quota. Root cause: the feedback router is mounted at `/api`, but `router.use(rateLimit(...))` applied the anonymous feedback bucket to every sibling API path. This is a middleware-scope defect, not justification to relax abuse protection. The limiter is now attached only to `POST /api/feedback`; a regression test exhausts the feedback bucket and verifies neighboring `/api/contact` requests remain independent. The exact-head CI must confirm the fix and re-run the prior chat acceptance cases.

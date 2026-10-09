@@ -475,8 +475,15 @@ export async function openPartnerReferral(
   const links = await listPartnerReferralLinks(deps, uid);
   const item = links.referrals.find(referral => referral.campaign.id === campaignId);
   if (!item) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
+  // Opening a partner from the signed-in profile must not traverse the
+  // click-counting redirect. Attach the same referral token directly to the
+  // validated partner destination and keep this UI action separately audited.
+  const token = new URL(item.url).pathname.split('/').pop();
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) {
+    throw new PartnerReferralError(503, 'referral_link_invalid', 'Der Partnerlink konnte nicht sicher geöffnet werden.');
+  }
   await recordPartnerInteraction(deps, uid, campaignId, 'open_link');
-  return { url: item.url };
+  return { url: trackedDestination(campaign.destinationUrl, token) };
 }
 
 export async function recordPartnerClick(
@@ -548,9 +555,12 @@ export async function recordPartnerConversion(
   const buyerRef = db.collection('users').doc(payload.buyerUid);
   const ownerDeletionRef = db.collection('account_deletions').doc(ownerUid);
   const buyerDeletionRef = db.collection('account_deletions').doc(payload.buyerUid);
-  const eventIdHash = partnerWebhookEventDocumentId(slug, payload.eventId, partnerSecret);
+  // Provider signing-key rotation must not reset idempotency. Event and buyer
+  // claim identifiers use the stable audit key, not the rotating campaign webhook key.
+  const idempotencySecret = auditSecret(deps);
+  const eventIdHash = partnerWebhookEventDocumentId(slug, payload.eventId, idempotencySecret);
   const eventRef = db.collection(CONVERSIONS).doc(eventIdHash);
-  const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, partnerSecret));
+  const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret));
   const now = nowIso(deps);
   const audit = makeLedger(deps, 'partner_conversion_verified', null, {
     ownerUid,

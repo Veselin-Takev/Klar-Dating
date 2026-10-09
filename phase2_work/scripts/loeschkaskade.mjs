@@ -130,12 +130,33 @@ function dateien(pfad, aus = []) {
 
 /** Alle Sammlungsnamen aus dem Servercode, Kommentare vorher entfernt. */
 const gefunden = new Map();
+function merkeSammlung(name, datei) {
+  if (!name) return;
+  if (!gefunden.has(name)) gefunden.set(name, new Set());
+  gefunden.get(name).add(datei);
+}
 for (const datei of [...dateien('server.ts'), ...dateien('src/server'), ...dateien('functions/src'), ...dateien('app/routes')]) {
   const text = ohneKommentare(readFileSync(datei, 'utf8'));
-  for (const m of text.matchAll(/(?:collection\(\s*['"]([a-z_]+)['"]|doc\(\s*[`'"]([a-z_]+)\/)/g)) {
-    const name = m[1] || m[2];
-    if (!gefunden.has(name)) gefunden.set(name, new Set());
-    gefunden.get(name).add(datei);
+  // Resolve named collection constants used as db.collection(CAMPAIGNS), not
+  // only inline string literals. This keeps the inventory robust after refactors.
+  const sammlungsKonstanten = new Map(
+    [...text.matchAll(/\bconst\s+([A-Z_][A-Z0-9_]*)\s*=\s*['"]([a-z_]+)['"]/g)]
+      .map(match => [match[1], match[2]]),
+  );
+  // Firestore API usage, URL path literals, and distributedRateLimit's
+  // { collection: '...' } option all identify real persisted collections.
+  const firestoreCalls = /(?:collection\(\s*(?:['"]([a-z_]+)['"]|([A-Z_][A-Z0-9_]*))|doc\(\s*[\x60'"]([a-z_]+)\/|\bcollection\s*:\s*['"]([a-z_]+)['"])/g;
+  for (const match of text.matchAll(firestoreCalls)) {
+    const name = match[1] || (match[2] ? sammlungsKonstanten.get(match[2]) : undefined) || match[3] || match[4];
+    merkeSammlung(name, datei);
+  }
+  // Account deletion and policy code intentionally iterate over literal
+  // collection-name arrays; count these only when the loop variable is used
+  // as a Firestore collection argument.
+  for (const loop of text.matchAll(/for\s*\(\s*(?:const|let)\s+([A-Za-z_$][\w$]*)\s+of\s*\[([^\]]*)\]\s*\)/g)) {
+    const variable = loop[1];
+    if (!new RegExp('\\.collection\\(\\s*' + variable + '\\s*\\)').test(text)) continue;
+    for (const value of loop[2].matchAll(/['"]([a-z_]+)['"]/g)) merkeSammlung(value[1], datei);
   }
 }
 
