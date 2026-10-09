@@ -215,7 +215,13 @@ export async function revokeExplicitConsent(
   let nextState: Art9ConsentState;
 
   await firestore.runTransaction(async (tx: Transaction) => {
-    const userDoc = await tx.get(userRef);
+    // Firestore requires every transactional read to finish before the first
+    // write. Read both the private and public profile before preparing any
+    // audit or purge writes, so the cascade is atomic and actually executes.
+    const [userDoc, publicProfileDoc] = await Promise.all([
+      tx.get(userRef),
+      tx.get(publicProfileRef),
+    ]);
     const existingState: Art9ConsentState | undefined = userDoc.data()?.art9Consent;
 
     const newPurposes = { ...(existingState?.purposes || {}) } as Record<Art9Purpose, boolean>;
@@ -263,8 +269,8 @@ export async function revokeExplicitConsent(
 
     tx.set(userRef, purgeUpdate, { merge: true });
 
-    // Also purge from public profile if present
-    const publicProfileDoc = await tx.get(publicProfileRef);
+    // Also purge from public profile if present. Its snapshot was read
+    // above before any writes, satisfying Firestore transaction ordering.
     if (publicProfileDoc.exists) {
       const pubPurgeUpdate: JsonObject = { updatedAt: timestampStr };
       for (const f of fieldsToPurge) {
