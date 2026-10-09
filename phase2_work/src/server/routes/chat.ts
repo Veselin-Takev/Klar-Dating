@@ -1,6 +1,6 @@
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import { Router } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import crypto from 'node:crypto';
+import { distributedRateLimit } from '../distributedRateLimiter';
 import type { DocumentReference, Firestore, QuerySnapshot, Transaction } from 'firebase-admin/firestore';
 import { getDb } from '../db';
 import { currentUserId } from '../authorization';
@@ -82,64 +82,22 @@ async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: s
   });
 }
 
-async function distributedChatGateAnswerRateLimit(req: Request, res: Response, next: NextFunction) {
-  const uid = currentUserId(req);
-  if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-  const key = crypto.createHash('sha256').update(`klar-chat-gate-answer:${uid}`).digest('hex');
-  const ref = getDb().collection(CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION).doc(key);
-  const now = Date.now();
-  try {
-    const allowed = await getDb().runTransaction(async tx => {
-      const snap = await tx.get(ref);
-      const data = snap.exists ? snap.data() : undefined;
-      const windowStartedAt = Number(data?.windowStartedAt) || now;
-      const count = Number(data?.count) || 0;
-      if (!snap.exists || now - windowStartedAt >= CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) {
-        tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) });
-        return true;
-      }
-      if (count >= CHAT_GATE_ANSWER_RATE_LIMIT_MAX) return false;
-      tx.update(ref, { count: count + 1, expiresAt: new Date(windowStartedAt + CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS) });
-      return true;
-    });
-    if (!allowed) return res.status(429).json({ error: 'Zu viele Gate-Antworten. Bitte kurz warten.' });
-    return next();
-  } catch {
-    return res.status(503).json({ error: 'Gate-Antwortlimit derzeit nicht verfügbar.' });
-  }
-}
-
-async function distributedChatMessageRateLimit(req: Request, res: Response, next: NextFunction) {
-  const uid = currentUserId(req);
-  if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-  const key = crypto.createHash('sha256').update(`klar-chat-message:${uid}`).digest('hex');
-  const ref = getDb().collection(CHAT_MESSAGE_RATE_LIMIT_COLLECTION).doc(key);
-  const now = Date.now();
-  try {
-    const allowed = await getDb().runTransaction(async tx => {
-      const snap = await tx.get(ref);
-      const data = snap.exists ? snap.data() : undefined;
-      const windowStartedAt = Number(data?.windowStartedAt) || now;
-      const count = Number(data?.count) || 0;
-      if (!snap.exists || now - windowStartedAt >= CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) {
-        tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) });
-        return true;
-      }
-      if (count >= CHAT_MESSAGE_RATE_LIMIT_MAX) return false;
-      tx.update(ref, { count: count + 1, expiresAt: new Date(windowStartedAt + CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS) });
-      return true;
-    });
-    if (!allowed) return res.status(429).json({ error: 'Zu viele Nachrichten. Bitte kurz warten.' });
-    return next();
-  } catch {
-    return res.status(503).json({ error: 'Nachrichtenlimit derzeit nicht verfügbar.' });
-  }
-}
-
 export function createChatRouter() {
   const router = Router();
-  const messageSendLimiter = distributedChatMessageRateLimit;
-  const gateAnswerLimiter = distributedChatGateAnswerRateLimit;
+  const messageSendLimiter = distributedRateLimit({
+    collection: CHAT_MESSAGE_RATE_LIMIT_COLLECTION,
+    windowMs: CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS,
+    limit: CHAT_MESSAGE_RATE_LIMIT_MAX,
+    keyGenerator: req => currentUserId(req) ?? '',
+    message: { error: 'Zu viele Nachrichten. Bitte kurz warten.' },
+  });
+  const gateAnswerLimiter = distributedRateLimit({
+    collection: CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION,
+    windowMs: CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS,
+    limit: CHAT_GATE_ANSWER_RATE_LIMIT_MAX,
+    keyGenerator: req => currentUserId(req) ?? '',
+    message: { error: 'Zu viele Gate-Antworten. Bitte kurz warten.' },
+  });
   const chatListReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 20,
