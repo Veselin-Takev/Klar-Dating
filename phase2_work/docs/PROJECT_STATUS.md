@@ -508,3 +508,11 @@ Exact-head CI `37837743093` on candidate `8aabaa7b05f3a25f6937f5e119aa4ed3a51d8e
 The correction removes the obsolete audit datastore mock because `appendAuditLog` is mocked at its authoritative boundary and restores the explicit Express/Node test imports. The incidental non-network assertion was removed as dead test noise.
 
 Production remains **NO-GO / NOT CONFIRMED** pending a clean Exact-Head run through Tests, Build, Production Smoke and Browser Acceptance.
+
+### 2026-10-09 — Exact-head CI 37849355156: durable Firestore proxy missing create()
+
+The exact-head run on `b115513bcab5938f20695c5ea9a59c5cc8b768fb` passed dependency-lock preflight, dependency installation, Enterprise static gates and Typecheck. Tests then failed in the emulator-backed account-erasure journey (966/967 tests passed): `purgeAccountData()` reached the deletion-receipt write and threw `TypeError: receiptRef.create is not a function`. The wrapped document-reference contract in `src/server/durableStore.ts` exposed `set/update/delete` but omitted Firestore's create-only method, even though production code correctly uses `DocumentReference.create()` for an idempotent, deterministic deletion receipt.
+
+Candidate commit `2b57e8c817bd676c33685af389c6e531e3101679` adds `create()` to the durable document-reference contract. With real Firestore it delegates to native `DocumentReference.create()` and mirrors only successful writes; the explicitly enabled non-production fallback rejects an existing document with Firestore-compatible code `6` rather than silently overwriting it. This preserves create-only semantics and does not relax production fallback policy. A fresh exact-head CI run must validate the patch; Tests, Build, Production Smoke and Browser Acceptance are not yet confirmed green.
+
+**Production remains NO-GO / NOT CONFIRMED** pending all required exact-head dynamic gates and independent operational/governance evidence.
