@@ -1,3 +1,4 @@
+import { DeletionPageComplete } from './deletionProgress';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from './distributedRateLimiter';
@@ -432,7 +433,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
       bericht.chats += 1;
     }
 
-    if (chats.size === 25) throw new Error('deletion_more_pages');
+    if (chats.size === 25) throw new DeletionPageComplete();
 
     // 2. Verbindungen in beide Richtungen.
     for (const feld of ['fromUid', 'toUid', 'userId', 'otherUserId']) {

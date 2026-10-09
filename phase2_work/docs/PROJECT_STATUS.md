@@ -1,3 +1,11 @@
+### 2026-10-09 — DB-01 partial remediation: deletion page progress and lease safety
+
+A completed 25-chat purge page now raises a typed internal continuation signal. The durable worker records `completedPages`, schedules the next page and restores the attempt consumed by acquisition. Already deleted documents are the durable checkpoint: subsequent queries select the first remaining page. Genuine provider/database/time-slice failures retain backoff and the failure budget; successful pages do not erase earlier failures. Manual review begins on the 50th failed attempt and cannot be automatically reacquired. Authentication deletion also requires an unexpired owned lease.
+
+Regression coverage added for 51 page continuations, retained real failures, the 50-failure boundary, expired leases and replacement leases. These tests exercise durable Firestore job state with an injected purge; they are **not** proof of purging 1,275 real chat documents. Full emulator-backed nested-chat pagination, within-page time-slice progress and cumulative deletion receipts remain follow-up work; DB-01 is not fully closed. Require the resulting CI before accepting this candidate.
+
+**Release remains NO-GO / NOT CONFIRMED.**
+
 ### 2026-10-09 — CI #327: partner administration JSX correction
 
 CI #327 (`37955984947`, candidate `2c8a7c6267c557c03e13da71313046fc7b7591a4`) passed dependency installation and Enterprise static gates but failed TypeScript parsing in `PartnerCampaignAdmin.tsx` at lines 138 and 199. Two conditional icon elements closed the JSX expression before closing the element. Both expressions now close the icon before the expression. No authorization, partner approval or rate-limit behavior changes.

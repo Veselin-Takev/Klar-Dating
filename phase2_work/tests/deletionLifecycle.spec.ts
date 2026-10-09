@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
+import { DeletionPageComplete } from '../src/server/deletionProgress';
 const paths: string[] = [];
 afterEach(async () => { for (const path of paths.splice(0)) await getDb().doc(path).delete(); });
 async function setup() {
@@ -48,5 +49,66 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     expect(JSON.stringify((await ref.get()).data())).not.toContain('PII');
     advance(241_000); await runAccountDeletion(uid, deps);
     expect((await ref.get()).data()?.phase).toBe('final_sweep');
+  });
+});
+
+describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
+  it('continues beyond 50 completed chat pages without consuming failure attempts', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.purge).mockImplementation(async () => { throw new DeletionPageComplete(); });
+    for (let page = 0; page < 51; page += 1) {
+      await runAccountDeletion(uid, deps);
+      advance(1_001);
+    }
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 0, completedPages: 51 });
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    vi.mocked(deps.purge).mockResolvedValue(undefined);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.phase).toBe('final_sweep');
+    advance(62 * 60_000);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.status).toBe('completed');
+  });
+
+  it('does not forgive real failures when a later page makes progress', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.purge).mockRejectedValueOnce(new Error('database unavailable'));
+    await runAccountDeletion(uid, deps);
+    advance(241_000);
+    vi.mocked(deps.purge).mockRejectedValueOnce(new DeletionPageComplete());
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 1, completedPages: 1 });
+  });
+
+  it('stops at 50 actual failures and never automatically acquires manual-review jobs', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    await ref.update({ attempts: 49 });
+    vi.mocked(deps.purge).mockRejectedValue(new Error('database unavailable'));
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ status: 'manual_review', attempts: 50 });
+    await ref.update({ nextAttemptAt: new Date(0) });
+    advance(3_600_000);
+    await runAccountDeletion(uid, deps);
+    expect(deps.purge).toHaveBeenCalledTimes(1);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
+  it('does not delete authentication after its lease expires', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.purge).mockImplementationOnce(async () => { advance(11 * 60_000); });
+    await runAccountDeletion(uid, deps);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    expect((await ref.get()).data()?.status).toBe('pending');
+  });
+
+  it('cannot overwrite a replacement lease when a page finishes', async () => {
+    const { uid, ref, deps } = await setup();
+    vi.mocked(deps.purge).mockImplementationOnce(async () => {
+      await ref.update({ lease: 'replacement', completedPages: 7 });
+      throw new DeletionPageComplete();
+    });
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ lease: 'replacement', completedPages: 7 });
+    expect(deps.removeAuth).not.toHaveBeenCalled();
   });
 });

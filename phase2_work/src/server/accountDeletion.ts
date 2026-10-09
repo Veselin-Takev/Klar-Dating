@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
+import { DeletionPageComplete } from './deletionProgress';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
@@ -117,7 +118,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       : typeof data?.nextAttemptAt?.getTime === 'function'
       ? data.nextAttemptAt.getTime()
       : (data?.nextAttemptAt ? new Date(data.nextAttemptAt).getTime() : 0);
-    if (!data || data.status === 'completed' || data.leaseUntil > now || nextAttemptMs > now) return null;
+    if (!data || data.status !== 'pending' || data.leaseUntil > now || nextAttemptMs > now) return null;
     tx.update(ref, { lease, leaseUntil: now + 10 * 60_000, attempts: data.attempts + 1 }); return data;
   });
   if (!job) return;
@@ -132,7 +133,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     const activeJobRef = deps.db.doc(ref.path);
     const leaseStillOwned = await runObservedTransaction(deps.db, 'accountDeletion.verifyLeaseBeforeAuthDeletion', async tx => {
       const current = (await tx.get(activeJobRef)).data();
-      return current?.status === 'pending' && current?.lease === lease;
+      return current?.status === 'pending' && current?.lease === lease && current.leaseUntil > deps.now();
     });
     if (!leaseStillOwned) throw new Error('deletion_lease_lost');
     await deps.removeAuth(uid);
@@ -159,9 +160,25 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
         });
       }
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DeletionPageComplete) {
+      // The deleted page itself is the checkpoint: the next query starts at
+      // the first remaining chat. Preserve the failure budget across pages.
+      await runObservedTransaction(deps.db, 'accountDeletion.continuePage', async tx => {
+        const current = (await tx.get(ref)).data();
+        if (current?.status !== 'pending' || current.lease !== lease) return;
+        tx.update(ref, {
+          attempts: Math.max(0, current.attempts - 1),
+          completedPages: (current.completedPages ?? 0) + 1,
+          lastError: null,
+          nextAttemptAt: new Date(deps.now() + 1_000),
+          leaseUntil: 0,
+        });
+      });
+      return;
+    }
     // No provider error bodies, email addresses, photos or raw identity data in logs/receipts.
-    const attempts = typeof job.attempts === 'number' ? job.attempts : 0;
+    const attempts = (typeof job.attempts === 'number' ? job.attempts : 0) + 1;
     const maxAttempts = 50;
     if (attempts >= maxAttempts) {
       await runObservedTransaction(deps.db, 'accountDeletion.markManualReview', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { status: 'manual_review', lastError: 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });

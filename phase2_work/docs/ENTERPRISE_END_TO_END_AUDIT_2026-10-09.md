@@ -156,3 +156,13 @@ Remediations committed to the audit branch:
 A new Enterprise CI run is required on the resulting exact head. These changes are hypotheses tied to observed failures, not yet proven fixes until the corresponding browser tests pass. If the contact case still returns 429, use the response headers/body to identify whether the global API limiter, contact limiter, or an upstream middleware is responsible; then add a targeted regression test and make the smallest safe correction. Do not suppress the browser test or relax abuse controls.
 
 **Release remains NO-GO / NOT CONFIRMED.** No verified production traffic/billing evidence, restore-drill result, independent penetration test, or formal operational/security/privacy approval is present in the reviewed repository evidence.
+
+
+### 2026-10-09 — DB-01 partial remediation: deletion page progress and lease safety
+
+A completed 25-chat purge page now raises a typed internal continuation signal. The durable worker records `completedPages`, schedules the next page and restores the attempt consumed by acquisition. Already deleted documents are the durable checkpoint: subsequent queries select the first remaining page. Genuine provider/database/time-slice failures retain backoff and the failure budget; successful pages do not erase earlier failures. Manual review begins on the 50th failed attempt and cannot be automatically reacquired. Authentication deletion also requires an unexpired owned lease.
+
+Regression coverage added for 51 page continuations, retained real failures, the 50-failure boundary, expired leases and replacement leases. These tests exercise durable Firestore job state with an injected purge; they are **not** proof of purging 1,275 real chat documents. Full emulator-backed nested-chat pagination, within-page time-slice progress and cumulative deletion receipts remain follow-up work; DB-01 is not fully closed. Require the resulting CI before accepting this candidate.
+
+**Release remains NO-GO / NOT CONFIRMED.**
+
