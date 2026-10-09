@@ -66,3 +66,13 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: Browser acceptance
         run: bunx playwright test
+      - name: Upload browser failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: browser-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            phase2_work/playwright-report/
+            phase2_work/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
