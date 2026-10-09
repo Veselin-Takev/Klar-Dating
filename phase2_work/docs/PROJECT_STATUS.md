@@ -1,3 +1,21 @@
+### 2026-10-09 — Chat rate-limit initialization defect corrected
+
+The chat browser failure was traced past the route handler: the custom Firestore limiters for message sends and icebreaker answers attempted `tx.update()` on a counter document that did not yet exist. Firestore correctly rejected this transaction, and the limiter failed closed with HTTP 503 before normal participant/gate authorization could run.
+
+Rather than keeping two bespoke counter implementations, `src/server/routes/chat.ts` now uses the existing `distributedRateLimit` implementation for both operations. That shared implementation creates the first counter with `tx.set()`, atomically increments existing counters, returns explicit rate-limit headers, and preserves fail-closed HTTP 503 behavior if the datastore is genuinely unavailable. The intended limits remain 20 message sends and 10 gate answers per account per 60 seconds. No authorization check or abuse control was bypassed.
+
+Refactor commit: `5d77d9177bd3a6cc5ba09d8e81e92c88058f54cf`. The existing `src/server/distributedRateLimiter.test.ts` covers initialization, account isolation, and threshold behavior; E2E chat security covers outsider denial and gated message sending. The full exact-head CI must confirm both paths.
+
+### E2E flow and legal navigation follow-up
+
+The browser test expectations were aligned with the existing security order: newly created password or email-link accounts must pass the age and consent gate before profile onboarding. The email-link flow continues to require explicit email entry on a different device and removes sensitive query parameters after completion, consistent with Firebase's documented email-link security guidance. The public legal screen return link now uses a same-origin document navigation so leaving its intentionally isolated unauthenticated route re-evaluates the root application route.
+
+Code commits: `21883a9288597ee580b21dcea653cee307414757`, `8c269ed841ac5d80233778e8cadbfb17bc8863bf`, `de2ebe34b0a1d84c7cc424f71090ace941fddea3`, and `d34422920f8b5f372e11d49002e25528739b7402`. These remain pending exact-head validation.
+
+The latest completed browser evidence is CI `37892881623` (7 failures / 19 passed) before these follow-up corrections. The retired analytics endpoint still returns 429 instead of 410 in the last completed evidence; that behavior remains open for diagnosis and must not be "fixed" by weakening the global rate limit. Consent status and legal return navigation fixes also need confirmation in a completed exact-head run.
+
+**Release remains NO-GO / NOT CONFIRMED.** Do not declare production readiness until every required Enterprise CI gate is green on the same final head and independent operational/governance approval is recorded.
+
 ### 2026-10-09 — Follow-up to Browser Acceptance CI 37892881623
 
 Further triage of the 7 failing Browser Acceptance checks identified two test-contract/order issues and one real navigation defect:
