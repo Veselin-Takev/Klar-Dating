@@ -1,3 +1,17 @@
+### 2026-10-09 — Follow-up to Browser Acceptance CI 37892881623
+
+Further triage of the 7 failing Browser Acceptance checks identified two test-contract/order issues and one real navigation defect:
+
+- **First-time account gates:** `AuthGate` deliberately requires age verification and explicit consent before showing the profile-onboarding flow. The magic-link test was incorrectly expecting the dashboard/onboarding heading immediately after creating a new account, and the registration journey expected profile onboarding before the legal gates. These E2E flows now assert the required age gate first and complete the age/consent transition before onboarding. The magic-link test still submits the actual email separately and checks that the query string is cleared; it does not trust the attacker-controlled email URL parameter. Firebase's documented email-link flow likewise requires the matching email when completing sign-in and warns against trusting an email embedded in the redirect URL (https://firebase.google.com/docs/auth/web/email-link-auth).
+- **Public legal navigation:** the legal pages are intentionally served through a separate conditional router so they remain accessible without waiting for authentication. Their “Zurück zur App” control used a client-side `Link`; navigation to `/` changed only the nested router while the parent path condition remained mounted. That return control is now a normal same-origin anchor, ensuring the document reloads and the root app route is re-evaluated. Legal text tabs remain client-side navigable.
+- **Consent state:** separately documented above, the status now includes the purpose name and has a regression assertion.
+
+Code commits: `21883a9288597ee580b21dcea653cee307414757` (magic-link gate expectation), `8c269ed841ac5d80233778e8cadbfb17bc8863bf` (shared E2E gate helper), `de2ebe34b0a1d84c7cc424f71090ace941fddea3` (registered-account flow order), and `d34422920f8b5f372e11d49002e25528739b7402` (legal return navigation). These changes align the tests with the existing gate contract or correct route behavior; they do not remove age/consent requirements.
+
+The latest completed Browser Acceptance evidence is run `37892881623` (7 failures / 19 passed). These follow-up changes have not yet been validated by a completed exact-head CI run. Remaining failures include chat access requests returning HTTP 503 instead of the expected authorization outcomes and the retired analytics endpoint returning HTTP 429 instead of its stable HTTP 410 retirement response. Those remain open, as does end-to-end validation of these changes.
+
+**Release remains NO-GO / NOT CONFIRMED.** Do not declare production readiness until all required gates pass on the exact final candidate and operational/governance approval is recorded.
+
 ### 2026-10-09 — Exact-head CI 37892881623: consent status label fixed
 
 Browser Acceptance run `37892881623` on candidate `7080cb3dab61304b8fc49a1bc51684e40dd71c84` confirmed the login recovery trigger now resolves under its visible accessible name. The run still had 7 failures (19 passed), including the consent-settings assertion expecting a purpose-specific status such as `Produktanalyse: Nicht erlaubt`.
