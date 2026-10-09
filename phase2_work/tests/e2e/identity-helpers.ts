@@ -67,12 +67,14 @@ export async function completeAgeAndConsent(page: Page, next: 'navigation' | 'on
 }
 
 export async function authHeaders(page: Page) {
-  // Firebase Auth is the source of truth. Guest sessions deliberately use
-  // browserSessionPersistence, so their SDK-managed credential is in
-  // sessionStorage (not the retired app-owned klar_auth_token key). Read the
-  // persisted Firebase user in either supported browser storage area without
-  // introducing an application token cache or changing production behavior.
-  const token = await page.evaluate(() => {
+  // Firebase Auth is the source of truth. Depending on the SDK persistence
+  // selected by the app, the user may be stored in IndexedDB, sessionStorage,
+  // or localStorage. Inspect SDK-owned persistence read-only; never add an
+  // application-owned token cache just to satisfy this test.
+  const token = await page.evaluate(async () => {
+    const isJwt = (value: unknown): value is string =>
+      typeof value === 'string' && value.split('.').length === 3;
+
     for (const storage of [window.sessionStorage, window.localStorage]) {
       for (let index = 0; index < storage.length; index += 1) {
         const key = storage.key(index);
@@ -80,11 +82,47 @@ export async function authHeaders(page: Page) {
         try {
           const user = JSON.parse(storage.getItem(key) || 'null');
           const accessToken = user?.stsTokenManager?.accessToken;
-          if (typeof accessToken === 'string' && accessToken.split('.').length === 3) {
-            return accessToken;
-          }
+          if (isJwt(accessToken)) return accessToken;
         } catch {
           // Ignore unrelated or malformed Firebase persistence entries.
+        }
+      }
+    }
+
+    // Firebase's default browserLocalPersistence uses this SDK-owned database.
+    // Check that it already exists before opening it, to avoid creating a
+    // database or changing the app's persistence behavior in the test.
+    if (typeof indexedDB.databases === 'function') {
+      const databases = await indexedDB.databases();
+      if (databases.some(database => database.name === 'firebaseLocalStorageDb')) {
+        const db = await new Promise<IDBDatabase | null>(resolve => {
+          const request = indexedDB.open('firebaseLocalStorageDb');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => resolve(null);
+          request.onblocked = () => resolve(null);
+        });
+        if (db) {
+          try {
+            if (db.objectStoreNames.contains('firebaseLocalStorage')) {
+              const records = await new Promise<unknown[]>(resolve => {
+                const transaction = db.transaction('firebaseLocalStorage', 'readonly');
+                const request = transaction.objectStore('firebaseLocalStorage').getAll();
+                request.onsuccess = () => resolve(request.result as unknown[]);
+                request.onerror = () => resolve([]);
+                transaction.onabort = () => resolve([]);
+              });
+              for (const record of records) {
+                if (!record || typeof record !== 'object') continue;
+                const value = (record as { value?: unknown }).value;
+                if (!value || typeof value !== 'object') continue;
+                const accessToken = (value as { stsTokenManager?: { accessToken?: unknown } })
+                  .stsTokenManager?.accessToken;
+                if (isJwt(accessToken)) return accessToken;
+              }
+            }
+          } finally {
+            db.close();
+          }
         }
       }
     }
