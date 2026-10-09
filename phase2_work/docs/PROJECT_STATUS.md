@@ -531,3 +531,12 @@ Exact-head Enterprise CI run [37885112283](https://github.com/Veselin-Takev/Klar
 The workflow now explicitly installs the pinned Playwright project's Chromium browser and operating-system dependencies with `bunx playwright install --with-deps chromium` immediately before Browser acceptance. This follows Playwright's documented CI setup sequence and keeps the browser gate mandatory; no tests are skipped or relaxed. A fresh exact-head run must validate the workflow change. The install step itself and the new browser run are not yet verified.
 
 **Production remains NO-GO / NOT CONFIRMED** until exact-head Browser acceptance and all other required runtime gates pass, and the outstanding independent operational/governance evidence is approved.
+
+
+### 2026-10-09 — Browser acceptance follow-up: isolated consent audit test secret
+
+After installing Chromium, CI run [37885595402](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37885595402) executed the browser suite (12 passed, 14 failed). Log inspection identified a deterministic test-environment configuration defect: the Playwright web server did not receive `CONSENT_AUDIT_SECRET`, so mandatory consent-evidence signing correctly failed closed and the consent API returned HTTP 503. This was not fixed by weakening the signing requirement.
+
+The Playwright web-server command now injects a clearly test-only, non-production secret with sufficient length. It is scoped to the E2E server process; production secrets remain provisioned independently and must never reuse this value. The workflow change and this test setup change still require a fresh exact-head run. The same run also reported an onboarding assertion that did not find its expected landing-page heading; investigate that separately after the consent API blocker is revalidated.
+
+**Production remains NO-GO / NOT CONFIRMED** pending a fresh exact-head CI run with all browser tests green and the independent operational/governance evidence approved.
