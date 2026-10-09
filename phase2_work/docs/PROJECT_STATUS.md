@@ -582,3 +582,8 @@ Exact-head CI run `37889956863` reached Enterprise static gates and failed at `c
 ### 2026-10-09 — Authentication recovery entry point restored
 
 Review of the failed Browser Acceptance tests showed that the login screen's “Passwort vergessen?” control navigated directly to the password-only form, while the implemented accessible `AuthRecoveryModal` (including cross-device magic-link sign-in) was unreachable from the primary login UI. The control now opens the recovery modal, restoring the existing magic-link/password-recovery options and the modal's Escape/focus-return behavior. The dedicated `/passwort-vergessen` deep link remains supported. This preserves the generic recovery response for unknown accounts and does not read an email identity from URL parameters. Validation is pending on a fresh exact-head CI run. **Production remains NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-09 — French locale parity gate repaired
+
+Exact-head CI run [37890290696](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37890290696) failed at the Enterprise static gate `check:i18n`: after the German, English and Spanish cancellation receipt updates, the French catalog was the remaining locale missing `contracts.termination`. Added the French termination label and localized the statutory no-date fallback with the German Civil Code reference, restoring the required catalog-key parity without changing or bypassing the gate. Commit: `c31992399cd2141a656e138f0b1f83aa5970e95e`. A fresh exact-head CI run must verify this correction and then exercise the downstream browser acceptance suite. **Production remains NO-GO / NOT CONFIRMED** until every required exact-head gate passes and independent operational/governance approval is recorded.
