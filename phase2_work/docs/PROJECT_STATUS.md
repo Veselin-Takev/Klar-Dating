@@ -587,3 +587,12 @@ Review of the failed Browser Acceptance tests showed that the login screen's “
 ### 2026-10-09 — French locale parity gate repaired
 
 Exact-head CI run [37890290696](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37890290696) failed at the Enterprise static gate `check:i18n`: after the German, English and Spanish cancellation receipt updates, the French catalog was the remaining locale missing `contracts.termination`. Added the French termination label and localized the statutory no-date fallback with the German Civil Code reference, restoring the required catalog-key parity without changing or bypassing the gate. Commit: `c31992399cd2141a656e138f0b1f83aa5970e95e`. A fresh exact-head CI run must verify this correction and then exercise the downstream browser acceptance suite. **Production remains NO-GO / NOT CONFIRMED** until every required exact-head gate passes and independent operational/governance approval is recorded.
+
+
+### 2026-10-09 — Retired verification endpoint contract made consistent
+
+Exact-head CI run [37890532339](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37890532339) passed Enterprise static gates but failed one of 967 tests: `tests/verificationSecurity.spec.ts` expected the permanently retired `POST /api/verification/verify` endpoint to return HTTP 410, but the global authentication gate returned 401 first. The route itself already emits only a fixed `verification_retired` response, so requiring authentication before advertising retirement is unnecessary and made the documented API contract dependent on token/emulator state.
+
+The five retired `/api/verification/{verify,status,challenge,submit,decide}` paths are now explicitly exempted from the global authentication and age gates; they remain behind the global API rate limiter and return the existing fixed 410 response, with no identity or profile data disclosed. The regression test now checks both anonymous and registered-token requests and verifies the persisted `isVerified` flag remains false. Changes: `de0d90a7cb24248a5b8a0d4c77308789eb2560ad` and `e7877558429428a81b5f4d1c911d53d77cb96814`.
+
+The exact-head CI run for these changes is pending. This fix does not establish production readiness; **Production remains NO-GO / NOT CONFIRMED** until the complete exact-head pipeline passes, Browser Acceptance is green, and independent operational/governance approval is recorded.
