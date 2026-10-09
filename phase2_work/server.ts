@@ -577,6 +577,15 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
 
   // Apply rate limiter to all /api routes
   app.use("/api/", apiLimiter); // Security: Befund 1 - Globale Rate-Limiting für /api (P0)
+  // Retired endpoints are inert contracts. Keep the global API limiter first,
+  // then return the stable 410 before auth, age, consent, or AI middleware.
+  // These handlers cannot read or mutate user state; all requests remain rate-limited.
+  app.post("/api/analytics/ab-test", (_req, res) => {
+    res.status(410).json({ error: "Legacy analytics endpoint removed" });
+  });
+  app.post("/api/claim-launch-promo", (_req, res) => {
+    res.status(410).json({ error: "Legacy launch promo removed" });
+  });
 
   // ── P0-3 ────────────────────────────────────────────────────────────────
   // BEFUND: `requireAuth` stand je Route und war an 5 von 60 Endpunkten
@@ -962,12 +971,6 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   });
   app.use('/api', createChecklistRouter({ currentUserId, getFirestore }));
   app.use('/api', createDatePlansRouter({ currentUserId, getFirestore }));
-
-  // Legacy promo retired: it promised a time-limited Klar+ gift but wrote plan=plus without an expiry.
-  // Founding status is handled by /api/launch/founding-claim without granting subscription entitlements.
-  app.post("/api/claim-launch-promo", (_req, res) => {
-    res.status(410).json({ error: "Legacy launch promo removed" });
-  });
 
   // ═══════════════════════════════════════════════════════════════════════
   // Klar — Kernmechanik (P1)
@@ -2017,11 +2020,6 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
   // configured. Never grant quota based on an unverified callback.
   app.get("/api/ads/callback", (_req, res) => {
     res.status(501).json({ error: "AdMob reward verification is not configured" });
-  });
-
-  // Legacy Klar+ experiment removed: it had no real random assignment and bypassed product-analytics consent.
-  app.post("/api/analytics/ab-test", (_req, res) => {
-    res.status(410).json({ error: "Legacy analytics endpoint removed" });
   });
 
   // Stripe webhook (Phase 1b — raw body mounted earlier via mountStripeRawBody)

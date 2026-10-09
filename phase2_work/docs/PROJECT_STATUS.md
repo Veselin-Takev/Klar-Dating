@@ -1,3 +1,11 @@
+### 2026-10-09 — Retired analytics/promo endpoints preserve their 410 contract
+
+The retired `POST /api/analytics/ab-test` and `POST /api/claim-launch-promo` handlers now sit immediately after the global `/api` rate limiter and before authentication, age/consent and AI middleware. The routes have no side effects and disclose no account data; evaluating downstream identity/provider gates for an operation that is permanently disabled provides no security benefit and can obscure the retirement response. The global API abuse limit remains first and unchanged. The E2E boundary test also logs status, response body and response headers on failure to identify a future 429 source rather than silently masking it.
+
+This narrows the contract to: normal requests get a stable HTTP 410; requests exceeding the global API limit may still receive HTTP 429. Both old late route registrations were removed so each route has exactly one handler. This is not a bypass around active data APIs, and the routes grant no entitlements and record no analytics.
+
+The full exact-head verification is pending for the route relocation and E2E fixture cleanup. Current release status remains **NO-GO / NOT CONFIRMED** until every required Enterprise gate passes on the exact resulting candidate head and the independent operational/governance approvals are recorded.
+
 ### 2026-10-09 — Browser follow-up: persist realistic chat fixtures and expose rate-limit evidence
 
 The chat E2E fixture still forced `localStorage.hasCompletedOnboarding`, but the production storage boundary intentionally scopes user-owned state under `klar:user:<uid>:`; the old unscoped key no longer completes the gate. The fixture now seeds an interest on the emulator-owned `users/<uid>` document and removes the obsolete client-side shortcut. This verifies that the chat tests progress via persisted profile state and the actual `AuthGate` behavior, not a stale localStorage assumption. The fixture PATCH is restricted to the loopback Firestore emulator and uses no production endpoint.
