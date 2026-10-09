@@ -58,7 +58,7 @@ export function QuickPreparationCountdownWidget() {
   }, []);
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isBreathing && breathingTimer > 0) {
       interval = setInterval(() => {
         setBreathingTimer(prev => prev - 1);

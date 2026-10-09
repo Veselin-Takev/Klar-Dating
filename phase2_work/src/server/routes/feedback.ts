@@ -17,14 +17,16 @@ export function createFeedbackRouter({ getFirestore, now = () => new Date() }: F
   const router = Router();
   // Anonymous feedback is intentionally public, but it is still a paid Firestore write.
   // Keep the business flow bounded independently of the broad /api limiter.
-  router.use(rateLimit({
+  const feedbackLimiter = rateLimit({
     windowMs: 60_000,
     limit: 10,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Zu viele Feedback-Anfragen. Bitte versuche es später erneut.' },
-  }));
-  router.post('/feedback', express.json({ limit: '10kb', strict: true }), async (req, res) => {
+  });
+  // This router is mounted at /api. Scope the quota to the actual write endpoint;
+  // router.use() here would consume feedback quota for every sibling /api route.
+  router.post('/feedback', feedbackLimiter, express.json({ limit: '10kb', strict: true }), async (req, res) => {
     const parsed = payloadSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Bitte gib eine Bewertung von 1 bis 5 an.' });

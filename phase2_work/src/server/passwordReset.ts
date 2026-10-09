@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { getDb } from './db';
 import { rateLimiter } from '../security/rateLimiter';
+import { ipKeyGenerator } from 'express-rate-limit';
 import { appendAuditLog } from './platform/auditLog';
 
 /**
@@ -62,7 +63,7 @@ export const forgotPasswordIpLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: 'Zu viele Anfragen für das Zurücksetzen von Passwörtern. Bitte versuche es in 15 Minuten erneut.',
-  keyGenerator: (req: Request) => req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown_ip',
+  keyGenerator: (req: Request) => ipKeyGenerator(req.ip ?? '') || (req.headers['x-forwarded-for'] as string) || 'unknown_ip',
 });
 
 function publicResetOrigin(): string {

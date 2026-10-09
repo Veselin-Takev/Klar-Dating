@@ -129,7 +129,7 @@ export function DatingWheelWidget() {
     }, 100);
   };
 
-  const openPopularIdea = (idea: unknown) => {
+  const openPopularIdea = (idea: DateIdea) => {
     setTask(idea);
     setCompleted(false);
     setIsModalOpen(true);

@@ -53,7 +53,7 @@ vi.mock('./lib/diagnostics', () => ({
 }));
 
 describe('App Routing & ErrorBoundary Test Suite', () => {
-  let consoleErrorSpy: unknown;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn> | undefined;
 
   beforeEach(() => {
     // Suppress expected React error boundary logs in test output

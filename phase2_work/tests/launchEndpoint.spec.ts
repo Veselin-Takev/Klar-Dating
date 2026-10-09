@@ -16,7 +16,7 @@ function baseDb() {
       doc: vi.fn((id: string) => ({ id, get: vi.fn(async () => ({ exists: true, data: () => ({ location: 'München', isAdult: true }) })), set: vi.fn(async () => undefined) })),
       where: vi.fn(() => ({ limit: vi.fn(() => ({ get: vi.fn(async () => ({ empty: true, docs: [] })) })) })),
     })),
-    runTransaction: vi.fn(),
+    runTransaction: vi.fn(async (fn: any) => fn({ get: vi.fn(async () => ({ exists: false, data: () => undefined })), set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() })),
   } as any;
 }
 
@@ -64,7 +64,8 @@ describe('launch/referral/activation HTTP boundary', () => {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'bad' }),
     });
     expect(response.status).toBe(400);
-    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
 
   it('fails closed when the referral public origin is not configured', async () => {
@@ -72,7 +73,8 @@ describe('launch/referral/activation HTTP boundary', () => {
     const response = await fetch(ctx.base + '/referral');
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
-    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_generation');
   });
 
   it('maps duplicate activation writes to an idempotent 200 response', async () => {

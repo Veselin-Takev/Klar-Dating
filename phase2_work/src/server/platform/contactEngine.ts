@@ -1,5 +1,9 @@
 import { DAILY_CONTACTS, InputError, contactDay, entscheideKontakt, requireString } from '../pure';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 export type ContactFailureReason = 'nicht_verifiziert' | 'bereits_kontaktiert' | 'limit' | 'self_contact';
 
 export interface ContactDecisionResult {
@@ -86,10 +90,14 @@ export async function processContactRequest(
     }
 
     // Quota decision
+    const contactDayValue = typeof userData.contactDay === 'string' ? userData.contactDay : '';
+    const contactCountValue = typeof userData.contactCount === 'number' && Number.isFinite(userData.contactCount)
+      ? userData.contactCount
+      : 0;
     const e = entscheideKontakt(
       {
-        tag: userData.contactDay ?? '',
-        verbraucht: userData.contactCount ?? 0,
+        tag: contactDayValue,
+        verbraucht: contactCountValue,
         plan: userData.plan === 'plus' ? 'plus' : 'frei',
       },
       heute
@@ -165,17 +173,17 @@ export async function processContactUndo(
       return false;
     }
 
-    const contactData = kSnap.data() ?? {};
+    const contactData = asRecord(kSnap.data());
+    const rawAt = contactData.at;
     let angelegt: Date | null = null;
-    if (contactData.at) {
-      if (typeof contactData.at.toDate === 'function') {
-        angelegt = contactData.at.toDate();
-      } else if (contactData.at instanceof Date) {
-        angelegt = contactData.at;
-      } else {
-        const parsed = new Date(contactData.at);
-        if (!Number.isNaN(parsed.getTime())) angelegt = parsed;
-      }
+    if (rawAt instanceof Date) {
+      angelegt = rawAt;
+    } else if (rawAt && typeof rawAt === 'object' && typeof (rawAt as { toDate?: unknown }).toDate === 'function') {
+      const parsedDate = (rawAt as { toDate: () => unknown }).toDate();
+      if (parsedDate instanceof Date) angelegt = parsedDate;
+    } else if (typeof rawAt === 'string' || typeof rawAt === 'number') {
+      const parsed = new Date(rawAt);
+      if (!Number.isNaN(parsed.getTime())) angelegt = parsed;
     }
 
     // 5-second server-enforced window
@@ -191,7 +199,7 @@ export async function processContactUndo(
     t.delete(chatRef);
     t.set(
       nutzerRef,
-      { contactCount: Math.max(0, (userData.contactCount ?? 1) - 1) },
+      { contactCount: Math.max(0, (typeof userData.contactCount === 'number' ? userData.contactCount : 1) - 1) },
       { merge: true }
     );
     return true;

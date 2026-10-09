@@ -7,7 +7,7 @@ import { melde } from "../lib/fehler";
 
 interface SituationalIcebreakerWidgetProps {
   userInterests: string[];
-  profiles?: Array<{ id: string; name: string; age: number; interests: string[] }>;
+  profiles?: Array<{ id: string; name: string; age: number; interests: string[]; bio?: string }>;
 }
 
 export function SituationalIcebreakerWidget({ userInterests, profiles = [] }: SituationalIcebreakerWidgetProps) {
@@ -23,7 +23,10 @@ export function SituationalIcebreakerWidget({ userInterests, profiles = [] }: Si
   useEffect(() => {
     const stored = klarStorage.getItem('klar_saved_icebreakers');
     if (stored) {
-      try { setSavedIcebreakers(JSON.parse(stored)); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+      try {
+        const parsed: unknown = JSON.parse(stored);
+        setSavedIcebreakers(Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []);
+      } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
   }, []);
 
@@ -39,16 +42,18 @@ export function SituationalIcebreakerWidget({ userInterests, profiles = [] }: Si
     klarStorage.setItem('klar_saved_icebreakers', JSON.stringify(updated));
   };
 
-  const [selectedMatch, setSelectedMatch] = useState<unknown>(null);
+  type MatchProfile = NonNullable<SituationalIcebreakerWidgetProps['profiles']>[number];
+  const [selectedMatch, setSelectedMatch] = useState<MatchProfile | null>(null);
 
   useEffect(() => {
     // Select the first verbindung by default if available
     if (profiles && profiles.length > 0) {
-      setSelectedMatch(profiles[0]);
+      const firstProfile = profiles[0];
+      if (firstProfile) setSelectedMatch(firstProfile);
     }
   }, []);
 
-  const generateIcebreaker = async (verbindung?: unknown) => {
+  const generateIcebreaker = async (verbindung?: MatchProfile) => {
     const currentMatch = verbindung || selectedMatch;
     if (!currentMatch) return;
 

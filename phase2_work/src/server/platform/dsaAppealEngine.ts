@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { getDb } from "../db";
 import { InputError, requireString, optionalString } from '../pure';
 
@@ -60,24 +61,6 @@ export interface ModerationDecisionInput {
   factsAndCircumstances: string;
 }
 
-export interface MinimalDocSnapshot {
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-}
-
-export interface MinimalTransaction {
-  get: (ref: unknown) => Promise<MinimalDocSnapshot>;
-  set: (ref: unknown, data: unknown, options?: unknown) => void;
-  delete?: (ref: unknown) => void;
-}
-
-export interface MinimalFirestore {
-  collection: (name: string) => {
-    doc: (id: string) => unknown;
-  };
-  runTransaction: <T>(updateFunction: (transaction: MinimalTransaction) => Promise<T>) => Promise<T>;
-}
-
 export interface DsaModerationDecision {
   decisionId: string;
   userId: string;
@@ -106,7 +89,7 @@ export async function issueModerationDecision(
   reason: string,
   automated: boolean = false
 ): Promise<DsaModerationDecision> {
-  const db = getDb() as any;
+  const db: Firestore = getDb();
   const decisionRef = db.collection("dsa_decisions").doc();
 
   const now = new Date();
@@ -183,7 +166,7 @@ export function buildStatementOfReasons(
 }
 
 export async function recordModerationDecision(
-  firestore: MinimalFirestore,
+  firestore: Firestore,
   reportIdRaw: unknown,
   moderatorUid: string,
   decision: ModerationDecisionInput,
@@ -192,17 +175,14 @@ export async function recordModerationDecision(
   const reportId = requireString(reportIdRaw, 'reportId', 128);
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
     const reportData = snap.data() ?? {};
-    const targetUid = reportData.reportedProfileId;
-    if (!targetUid) {
-      throw new InputError('Bericht enthält kein gemeldetes Profil.');
-    }
+    const targetUid = requireString(reportData.reportedProfileId, 'reportedProfileId', 128);
 
     const statement = buildStatementOfReasons(reportId, targetUid, moderatorUid, decision, now);
 
@@ -238,20 +218,34 @@ export async function recordModerationDecision(
   });
 }
 
+export function submitDsaAppeal(
+  firestore: Firestore,
+  reportId: unknown,
+  appellantUid: unknown,
+  appealReasonRaw: unknown,
+  additionalEvidenceRaw?: unknown,
+  now?: Date
+): Promise<DsaAppeal>;
+export function submitDsaAppeal(
+  decisionId: string,
+  userId: unknown,
+  appealStatement?: unknown,
+  now?: Date
+): Promise<{ ok: true; message: string }>;
 export async function submitDsaAppeal(
-  firestoreOrDecisionId: MinimalFirestore | string,
+  firestoreOrDecisionId: Firestore | string,
   reportIdOrUserId: unknown,
   appellantUidOrStatement?: unknown,
   appealReasonRaw?: unknown,
   additionalEvidenceRaw?: unknown,
   now: Date = new Date()
-): Promise<unknown> {
+): Promise<DsaAppeal | { ok: true; message: string }> {
   // Support both 3-arg simple call and 5-arg transactional call
   if (typeof firestoreOrDecisionId === 'string') {
     const decisionId = firestoreOrDecisionId;
     const userId = String(reportIdOrUserId ?? '');
     const appealStatement = String(appellantUidOrStatement ?? '');
-    const db = getDb() as any;
+    const db = getDb();
     const decisionDoc = await db.collection("dsa_decisions").doc(decisionId).get();
 
     if (!decisionDoc.exists) {
@@ -291,14 +285,17 @@ export async function submitDsaAppeal(
 
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
     const reportData = snap.data() ?? {};
-    const dsaStatement: DsaStatementOfReasons | undefined = reportData.dsaStatement;
+    const rawStatement = reportData.dsaStatement;
+    const dsaStatement = rawStatement && typeof rawStatement === 'object'
+      ? rawStatement as unknown as DsaStatementOfReasons
+      : undefined;
     if (!dsaStatement) {
       throw new InputError('Zu diesem Bericht liegt noch keine begründete Entscheidung vor.');
     }
@@ -315,7 +312,11 @@ export async function submitDsaAppeal(
       throw new InputError('Die Frist für das interne Beschwerdeverfahren (180 Tage) ist abgelaufen.');
     }
 
-    if (reportData.dsaAppeal && reportData.dsaAppeal.status === 'pending') {
+    const rawAppeal = reportData.dsaAppeal;
+    const existingAppeal = rawAppeal && typeof rawAppeal === 'object'
+      ? rawAppeal as unknown as DsaAppeal
+      : undefined;
+    if (existingAppeal?.status === 'pending') {
       throw new InputError('Für diese Entscheidung ist bereits eine Beschwerde in Prüfung.');
     }
 
@@ -347,7 +348,7 @@ export async function submitDsaAppeal(
 }
 
 export async function reviewDsaAppeal(
-  firestore: MinimalFirestore,
+  firestore: Firestore,
   reportIdRaw: unknown,
   reviewerUid: string,
   outcome: 'upheld' | 'overturned',
@@ -366,14 +367,17 @@ export async function reviewDsaAppeal(
 
   const reportRef = firestore.collection('reports').doc(reportId);
 
-  return firestore.runTransaction(async (t: MinimalTransaction) => {
+  return firestore.runTransaction(async (t: Transaction) => {
     const snap = await t.get(reportRef);
     if (!snap.exists) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
     const reportData = snap.data() ?? {};
-    const appeal: DsaAppeal | undefined = reportData.dsaAppeal;
+    const rawAppeal = reportData.dsaAppeal;
+    const appeal = rawAppeal && typeof rawAppeal === 'object'
+      ? rawAppeal as unknown as DsaAppeal
+      : undefined;
     if (!appeal) {
       throw new InputError('Keine offene Beschwerde zu diesem Bericht vorhanden.');
     }
@@ -399,7 +403,7 @@ export async function reviewDsaAppeal(
       { merge: true }
     );
 
-    if (outcome === 'overturned' && reportData.reportedProfileId) {
+    if (outcome === 'overturned' && typeof reportData.reportedProfileId === 'string' && reportData.reportedProfileId) {
       const userRef = firestore.collection('users').doc(reportData.reportedProfileId);
       t.set(
         userRef,

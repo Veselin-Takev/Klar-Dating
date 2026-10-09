@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 // ═══════════════════════════════════════════════════════════════════════════
 // Der Pausenplan — 7 Tage × 24 Stunden
 //

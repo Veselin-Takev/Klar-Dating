@@ -13,7 +13,7 @@ export const DatingRitualWidget: React.FC = () => {
       setPhase('idle');
       return;
     }
-    let timer: unknown;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (phase === 'idle') {
       setPhase('inhale');
       setTimeLeft(4);
@@ -37,7 +37,7 @@ export const DatingRitualWidget: React.FC = () => {
   }, [isActive, phase]);
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isActive && phase !== 'idle') {
       interval = setInterval(() => {
         setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));

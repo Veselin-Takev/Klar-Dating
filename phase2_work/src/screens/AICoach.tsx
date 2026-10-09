@@ -84,7 +84,6 @@ type JournalEntry = {
 };
 
 export default function AICoach() {
-  const [uiError, setUiError] = useState<string | null>(null);
 
 
   const [activeTab, setActiveTab] = useState<'chat' | 'planner' | 'calendar' | 'recap' | 'scenario' | 'goals' | 'bio' | 'analytics' | 'icebreakers'>('chat');
@@ -126,7 +125,7 @@ export default function AICoach() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [recognition, setRecognition] = useState<unknown>(null);
+  const [recognition, setRecognition] = useState<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)) {
@@ -144,9 +143,8 @@ export default function AICoach() {
       rec.onresult = (event) => {
         let finalTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
+          const result = event.results[i]?.[0];
+          if (result?.isFinal) finalTranscript += result.transcript;
         }
         if (finalTranscript) {
           setInput(prev => prev + (prev ? " " : "") + finalTranscript);
@@ -404,8 +402,6 @@ Halte es ermutigend und hilfreich.`;
 
   return (
     <div className="flex flex-col h-full bg-light-bg dark:bg-dark-bg">
-      {uiError && <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
-
       <div className="flex flex-col p-4 border-b border-stone-100 dark:border-stone-700 bg-white/80 dark:bg-black/80  sticky top-0 z-10 gap-4">
         <div className="flex items-center">
           <Sparkles size={24} className="text-brand dark:text-brand-light mr-3" />

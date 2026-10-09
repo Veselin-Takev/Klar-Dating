@@ -2,12 +2,13 @@ import { klarStorage } from '../lib/userScopedStorage';
 import { useState, useEffect } from "react";
 import { Award, MessageCircle, Compass, Zap, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
+import type { LucideIcon } from "lucide-react";
 
 interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: unknown;
+  icon: LucideIcon;
   color: string;
   progress: number;
   total: number;

@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Calendar } from 'lucide-react';
 
+type ReflectionRecord = { date?: unknown; mood?: unknown };
+function parseRecords(raw: string | null): ReflectionRecord[] { if (!raw) return []; try { const parsed: unknown=JSON.parse(raw); return Array.isArray(parsed)?parsed.filter((v): v is ReflectionRecord=>!!v&&typeof v==='object'&&!Array.isArray(v)):[]; } catch { return []; } }
 export function MoodHeatmapWidget() {
   const d3Container = useRef<HTMLDivElement>(null);
   const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     const rawLogs = klarStorage.getItem('klar_reflection_logs');
-    const logs = rawLogs ? JSON.parse(rawLogs) : [];
+    const logs = parseRecords(rawLogs);
 
     if (logs.length === 0 || !d3Container.current) {
       setHasData(false);
@@ -38,11 +40,12 @@ export function MoodHeatmapWidget() {
 
     const moodScore = { 'good': 3, 'neutral': 2, 'bad': 1 };
 
-    const dataByDate = new Map();
-    logs.forEach((l: unknown) => {
-      const d = new Date(l.date);
-      d.setHours(0,0,0,0);
-      dataByDate.set(d.getTime(), moodScore[l.mood as keyof typeof moodScore]);
+    const dataByDate = new Map<number, number>();
+    logs.forEach((l) => {
+      const rawDate=l.date; const rawMood=l.mood;
+      if ((typeof rawDate!=='string'&&typeof rawDate!=='number')||typeof rawMood!=='string') return;
+      const d=new Date(rawDate); if(Number.isNaN(d.getTime())) return; d.setHours(0,0,0,0);
+      const score=moodScore[rawMood as keyof typeof moodScore]; if(score!==undefined) dataByDate.set(d.getTime(),score);
     });
 
     const dataset = days.map(d => ({

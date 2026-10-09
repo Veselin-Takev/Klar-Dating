@@ -171,7 +171,7 @@
     "ordinary": "Résiliation ordinaire",
     "extraordinary": "Résiliation extraordinaire",
     "requestedEnd": "Date de fin souhaitée (facultatif)",
-    "earliest": "Sans date indiquée : à la première date possible.",
+    "earliest": "Sans date indiquée : à la première date possible conformément à l’article 312k, paragraphe 5, du Code civil allemand (BGB).",
     "reason": "Motif (obligatoire pour une résiliation extraordinaire, sinon facultatif)",
     "receipt": "Accusé de réception",
     "cancelDeclaration": "Je déclare la résiliation du contrat indiqué.",
@@ -183,7 +183,8 @@
     "error": "Déclaration non enregistrée",
     "invalid": "Vérifiez les champs obligatoires et indiquez le motif de la résiliation extraordinaire.",
     "back": "Utilisez la fonction Retour de votre navigateur pour corriger les informations.",
-    "unavailable": "Impossible d’enregistrer la déclaration. Envoyez-la à nouveau ; une répétition conserve l’accusé de réception initial confirmé."
+    "unavailable": "Impossible d’enregistrer la déclaration. Envoyez-la à nouveau ; une répétition conserve l’accusé de réception initial confirmé.",
+    "termination": "Date de résiliation"
   },
   "accountDeletion": {
     "pending": "Votre demande de suppression a été acceptée. Le traitement continue, y compris le nettoyage final. Référence : {{reference}}."
@@ -348,5 +349,29 @@
         "source": "Commission européenne"
       }
     }
+  },
+  "dashboardOnboarding": {
+    "steps": [
+      {
+        "title": "Bienvenue sur Klar",
+        "content": "Klar favorise les conversations et les rencontres réelles grâce à des suggestions pertinentes."
+      },
+      {
+        "title": "Le principe Klar",
+        "content": "La conversation d’abord, sans pression de sélection. Des intentions claires, la vérification et une interface calme vous accompagnent."
+      },
+      {
+        "title": "Votre départ local",
+        "content": "Choisissez votre ville pour que Klar puisse vous proposer des personnes pertinentes à proximité."
+      },
+      {
+        "title": "Du contact au rendez-vous",
+        "content": "Points communs, idées de conversation et préparation du rendez-vous accompagnent le parcours, sans logique de catalogue."
+      }
+    ],
+    "progress": "Étape {{step}} sur {{total}}",
+    "skip": "Passer l’introduction",
+    "next": "Suivant",
+    "start": "Commencer"
   }
 }

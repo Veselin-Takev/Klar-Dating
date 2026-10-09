@@ -13,7 +13,7 @@ export function BreathingExerciseWidget() {
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const filterNodeRef = useRef<BiquadFilterNode | null>(null);
-  const cycleTimeoutRef = useRef<unknown>(null);
+  const cycleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isActiveRef = useRef(isActive);
 
   useEffect(() => {
@@ -70,7 +70,13 @@ export function BreathingExerciseWidget() {
     setTimeLeft(60);
 
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as unknown).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) {
+        setUiError('Audio wird in diesem Browser nicht unterstützt.');
+        setIsActive(false);
+        return;
+      }
+      audioCtxRef.current = new AudioContextClass();
     }
 
     const ctx = audioCtxRef.current;
@@ -131,7 +137,7 @@ export function BreathingExerciseWidget() {
   };
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);

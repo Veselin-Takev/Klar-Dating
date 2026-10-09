@@ -171,7 +171,6 @@ import { MoodDiaryWidget } from "../components/MoodDiaryWidget";
 import { PopularDateIdeasWidget } from "../components/PopularDateIdeasWidget";
 import { DailyIcebreakerWidget } from "../components/DailyIcebreakerWidget";
 import { DailyCoachAffirmation } from "../components/DailyCoachAffirmation";
-import { AppTour } from "../components/AppTour";
 
 import { ActivityChartWidget } from "../components/ActivityChartWidget";
 // ENTFERNT 14.08.2026: EmailSummaryWidget — es verschickte eine Mail mit
@@ -818,7 +817,7 @@ export default function Dashboard() {
       if (highVerbindungen.length > 0) {
         // Mark them as notified
         const newNotified = new Set(notifiedHighVerbindungen);
-        highVerbindungen.forEach((p: unknown) => newNotified.add(p.id));
+        highVerbindungen.forEach((p) => newNotified.add(p.id));
         setNotifiedHighVerbindungen(newNotified);
 
         // If we have more than one, consolidate notification
@@ -1630,7 +1629,6 @@ const inspirationWidgets = useMemo(() => (
       className={`h-full flex flex-col p-4 relative transition-colors duration-1000 ${getBackgroundMilestoneClass()}`}
     >
       <LocalLaunchWidget />
-      <AppTour />
       <DailyCoachAffirmation />
       <DashboardDateBanner />
       <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl mb-4 shrink-0 relative z-10">

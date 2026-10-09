@@ -159,17 +159,16 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(records[1]?.receivedAtUTC).toBe('2026-09-01T10:00:00.000Z');
     });
 
-    it('falls back to seed compliance records gracefully if collection is empty or offline', async () => {
+    it('returns an honest empty export when the collection has no compliance records', async () => {
       const db = { collection: vi.fn(() => ({ limit: () => ({ get: async () => ({ empty: true }) }) })) };
       const records = await getAnonymizedComplianceAuditLogs(db as any);
-      expect(records.length).toBeGreaterThan(0);
-      expect(records[0]?.complianceStatus).toContain('§ 312k BGB');
+      expect(records).toEqual([]);
     });
 
     it('exports CSV directly with timestamped filename', async () => {
       const db = { collection: vi.fn(() => ({ limit: () => ({ get: async () => ({ empty: true }) }) })) };
       const { csv, filename, count } = await exportComplianceLogsAsCSV(db as any);
-      expect(count).toBeGreaterThan(0);
+      expect(count).toBe(0);
       expect(csv).toContain('Audit_ID');
       expect(filename).toMatch(/^klar_bgb_312k_compliance_audit_\d{8}_\d{6}\.csv$/);
     });

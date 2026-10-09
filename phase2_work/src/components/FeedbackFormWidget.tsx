@@ -31,7 +31,7 @@ export function FeedbackFormWidget() {
       }
       setZustand('erfolg');
     } catch(e: unknown) {
-      setErrorMsg(e.message || 'Senden fehlgeschlagen');
+      setErrorMsg(e instanceof Error ? e.message : 'Senden fehlgeschlagen');
       setZustand('fehler');
     }
   };

@@ -171,7 +171,8 @@
     "ordinary": "Cancelación ordinaria",
     "extraordinary": "Cancelación extraordinaria",
     "requestedEnd": "Fecha de finalización deseada (opcional)",
-    "earliest": "Sin fecha indicada: en la primera fecha posible.",
+    "termination": "Fecha de finalización",
+    "earliest": "Sin fecha indicada: en la primera fecha posible conforme al artículo 312k, apartado 5, del Código Civil alemán (BGB).",
     "reason": "Motivo (obligatorio para cancelación extraordinaria; en otro caso, opcional)",
     "receipt": "Acuse de recibo",
     "cancelDeclaration": "Declaro la cancelación del contrato indicado.",
@@ -348,5 +349,29 @@
         "source": "Comisión Europea"
       }
     }
+  },
+  "dashboardOnboarding": {
+    "steps": [
+      {
+        "title": "Te damos la bienvenida a Klar",
+        "content": "Klar facilita conversaciones y encuentros reales con sugerencias relevantes."
+      },
+      {
+        "title": "El principio de Klar",
+        "content": "Primero la conversación, no la presión de elegir. Intenciones claras, verificación y una interfaz tranquila te acompañan."
+      },
+      {
+        "title": "Tu inicio local",
+        "content": "Elige tu ciudad para que Klar pueda sugerirte personas relevantes cerca de ti."
+      },
+      {
+        "title": "Del contacto a la cita",
+        "content": "Intereses compartidos, ideas para conversar y planificación de citas acompañan el camino, sin mentalidad de catálogo."
+      }
+    ],
+    "progress": "Paso {{step}} de {{total}}",
+    "skip": "Saltar introducción",
+    "next": "Continuar",
+    "start": "Empezar"
   }
 }

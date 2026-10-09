@@ -34,7 +34,7 @@ export class CostTracker {
     if (!usage.tenantId || !usage.workflowId) throw new Error('AI_COST_SCOPE_REQUIRED');
     const key = `${usage.tenantId}:${usage.workflowId}`;
     const current = this.records.get(key) ?? { tenantId: usage.tenantId, workflowId: usage.workflowId, inputTokens: 0, outputTokens: 0, estimatedCost: 0, requests: 0 };
-    const rate = this.rates[usage.model] ?? this.rates.default;
+    const rate = this.rates[usage.model] ?? this.rates.default ?? { inputPerMillion: 0, outputPerMillion: 0 };
     current.inputTokens += usage.inputTokens;
     current.outputTokens += usage.outputTokens;
     current.estimatedCost += usage.inputTokens / 1_000_000 * rate.inputPerMillion + usage.outputTokens / 1_000_000 * rate.outputPerMillion;

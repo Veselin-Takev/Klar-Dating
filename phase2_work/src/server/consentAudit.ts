@@ -19,14 +19,39 @@ export interface SignedConsentAuditRecord extends ConsentAuditPayload {
   signature: string;
 }
 
-function stable(value: unknown): string {
+export function canonicalizeAuditPayload(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(canonicalizeAuditPayload).join(",")}]`;
 
   return `{${Object.entries(value as Record<string, unknown>)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, entry]) => `${JSON.stringify(key)}:${stable(entry)}`)
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalizeAuditPayload(entry)}`)
     .join(",")}}`;
+}
+
+
+/** Shared canonical HMAC-SHA256 envelope for consent and adjacent privacy ledgers. */
+export function signHmacAuditPayload<T extends object>(
+  payload: T,
+  secret: string,
+): T & { signatureAlgorithm: 'HMAC-SHA256'; signature: string } {
+  if (secret.length < 32) throw new Error('Audit HMAC secret must contain at least 32 characters');
+  const signature = crypto.createHmac('sha256', secret).update(canonicalizeAuditPayload(payload), 'utf8').digest('hex');
+  return { ...payload, signatureAlgorithm: 'HMAC-SHA256', signature };
+}
+
+export function verifyHmacAuditPayload(
+  record: Record<string, unknown> & { signatureAlgorithm?: unknown; signature?: unknown },
+  secret: string,
+): boolean {
+  try {
+    if (record.signatureAlgorithm !== 'HMAC-SHA256' || typeof record.signature !== 'string' || !/^[a-f0-9]{64}$/.test(record.signature)) return false;
+    const { signature, signatureAlgorithm, ...payload } = record;
+    const expected = signHmacAuditPayload(payload, secret).signature;
+    const actualBytes = Buffer.from(signature, 'hex');
+    const expectedBytes = Buffer.from(expected, 'hex');
+    return actualBytes.length === expectedBytes.length && crypto.timingSafeEqual(actualBytes, expectedBytes);
+  } catch { return false; }
 }
 
 export function signConsentAuditRecord(
@@ -36,17 +61,7 @@ export function signConsentAuditRecord(
   if (secret.length < 32) {
     throw new Error("CONSENT_AUDIT_SECRET must contain at least 32 characters");
   }
-
-  const signature = crypto
-    .createHmac("sha256", secret)
-    .update(stable(payload), "utf8")
-    .digest("hex");
-
-  return {
-    ...payload,
-    signatureAlgorithm: "HMAC-SHA256",
-    signature,
-  };
+  return signHmacAuditPayload(payload, secret);
 }
 
 export function verifyConsentAuditRecord(
@@ -54,19 +69,7 @@ export function verifyConsentAuditRecord(
   secret: string,
 ): boolean {
   try {
-    const { signature, signatureAlgorithm, ...payload } = record;
-    if (
-      signatureAlgorithm !== "HMAC-SHA256" ||
-      typeof signature !== "string" ||
-      !/^[a-f0-9]{64}$/.test(signature)
-    ) return false;
-    const expected = signConsentAuditRecord(payload, secret).signature;
-    const actualBuffer = Buffer.from(signature, "hex");
-    const expectedBuffer = Buffer.from(expected, "hex");
-    return (
-      actualBuffer.length === expectedBuffer.length &&
-      crypto.timingSafeEqual(actualBuffer, expectedBuffer)
-    );
+    return verifyHmacAuditPayload(record as unknown as Record<string, unknown> & { signatureAlgorithm?: unknown; signature?: unknown }, secret);
   } catch {
     return false;
   }

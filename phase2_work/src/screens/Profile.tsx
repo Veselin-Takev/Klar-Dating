@@ -1,4 +1,5 @@
 import { ConsentSettings } from '../components/ConsentSettings';
+import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
 import { getUserStorageItem, setUserStorageItem, klarStorage, clearUserStorageForUid, clearSessionStorageForApp } from '../lib/userScopedStorage';
 import { BiometricsVerificationModal } from '../components/BiometricsVerificationModal';
 import { Heart, MessageSquare, Star } from 'lucide-react';
@@ -249,10 +250,11 @@ const CustomRadarTooltip = ({ active, payload }: RadarTooltipEigenschaften) => {
 
 // Die drei Bereiche. Reihenfolge: was andere sehen, wie es laeuft, wie die
 // App eingestellt ist — von aussen nach innen.
-type ReiterId = "profil" | "entwicklung" | "einstellungen";
+type ReiterId = "profil" | "entwicklung" | "partner" | "einstellungen";
 const PROFIL_REITER: readonly Reiter<ReiterId>[] = [
   { id: "profil", beschriftung: "Profil" },
   { id: "entwicklung", beschriftung: "Entwicklung" },
+  { id: "partner", beschriftung: "Klar & Partner" },
   { id: "einstellungen", beschriftung: "Einstellungen" },
 ];
 
@@ -333,7 +335,7 @@ export default function Profile() {
   const [showBiometricsModal, setShowBiometricsModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const logoutTitleId = useId();
-  const { dialogRef: logoutDialogRef, onKeyDown: onLogoutKeyDown } = useModalAccessibility(() => setShowLogoutConfirm(false), showLogoutConfirm);
+  const { dialogRef: logoutDialogRef, onKeyDown: onLogoutKeyDown } = useModalAccessibility<HTMLDivElement>(() => setShowLogoutConfirm(false), showLogoutConfirm);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -354,7 +356,7 @@ export default function Profile() {
       updateProfileData({ photoURL: url });
     } catch(e: unknown) {
       melde('Profile/photo-upload', e);
-      alert("Fehler beim Hochladen des Profilfotos: " + e.message);
+      alert("Fehler beim Hochladen des Profilfotos: " + (e instanceof Error ? e.message : "Unbekannter Fehler"));
     }
   };
 
@@ -1817,6 +1819,12 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         )}
 
+        {reiter === "partner" && (
+          <div role="tabpanel" id="profil-partner-inhalt" aria-labelledby="profil-partner" className="space-y-4">
+            <PartnerReferralWidget />
+          </div>
+        )}
+
         {reiter === "einstellungen" && (
         <div role="tabpanel" id="profil-einstellungen-inhalt" aria-labelledby="profil-einstellungen" className="space-y-4">
         <ConsentSettings />
@@ -2038,7 +2046,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <span className="text-sm text-stone-700 dark:text-stone-300">{t('profileSafety.privacyPolicy')}</span>
               <ChevronRight size={18} className="text-stone-400" />
             </a>
-            <button onClick={() => { triggerHaptic('MEDIUM_TAP'); exportUserDataAsJSON().catch(e => alert(t('profileSafety.exportFailed', { error: e.message }))); }} className="w-full flex items-center justify-between p-3 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-xl transition-colors mb-2">
+            <button onClick={() => { triggerHaptic('MEDIUM_TAP'); exportUserDataAsJSON().catch(e => alert(t('profileSafety.exportFailed', { error: e instanceof Error ? e.message : 'Unbekannter Fehler' }))); }} className="w-full flex items-center justify-between p-3 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-xl transition-colors mb-2">
               <span className="text-sm text-stone-700 dark:text-stone-300">{t('profileSafety.exportData')}</span>
               <Download size={18} className="text-stone-400" />
             </button>

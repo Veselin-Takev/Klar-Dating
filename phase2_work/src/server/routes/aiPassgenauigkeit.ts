@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import { Type } from '@google/genai';
+import { Type, type GenerateContentParameters } from '@google/genai';
 import type { Antwort } from '../kiPolitik';
 
 const MAX_INTERESTS = 30;
@@ -26,7 +26,7 @@ export type AiPassgenauigkeitRouterDeps = {
     endpoint: string,
     call: (signal: AbortSignal) => Promise<{ text?: string | null }>,
   ) => Promise<Antwort>;
-  generate: (parameters: Record<string, unknown>) => Promise<{ text?: string | null }>;
+  generate: (parameters: GenerateContentParameters) => Promise<{ text?: string | null }>;
   modelName: () => string;
 };
 

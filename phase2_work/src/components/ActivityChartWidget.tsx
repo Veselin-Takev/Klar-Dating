@@ -18,7 +18,12 @@ export function ActivityChartWidget() {
         const parsed = JSON.parse(savedChats);
         if (Array.isArray(parsed)) {
           parsed.forEach((m: unknown) => {
-            if (m.timestamp) messageTimestamps.push(new Date(m.timestamp).getTime());
+            if (!m || typeof m !== 'object') return;
+            const timestamp = (m as { timestamp?: unknown }).timestamp;
+            if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+              const parsedTimestamp = new Date(timestamp).getTime();
+              if (Number.isFinite(parsedTimestamp)) messageTimestamps.push(parsedTimestamp);
+            }
           });
         }
       } catch {

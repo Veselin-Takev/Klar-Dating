@@ -19,6 +19,7 @@ import {
   Flower2,
   BookOpen,
   User,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface InAppNotificationMessage {
@@ -226,13 +227,17 @@ export function Layout({ children }: LayoutProps) {
       {!isChatView && (
         <nav className="hidden md:flex border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-4" aria-label={t('accessibility.mainNav', 'Hauptnavigation')}>
           <div className="mx-auto flex w-full max-w-5xl items-center justify-center gap-2 py-2">
-            {[
-              ['/','Entdecken',Compass], ['/chats','Gespräche',MessageCircle], ['/ai-coach','Coach',Sparkles],
-              ['/rituals','Rituale',Flower2], ['/tips','Tipps',BookOpen], ['/profile','Profil',User],
-            ].map(([to,label,Icon]) => {
-              const path = String(to);
+            {([
+              { to: '/', label: 'Entdecken', Icon: Compass },
+              { to: '/chats', label: 'Gespräche', Icon: MessageCircle },
+              { to: '/ai-coach', label: 'Coach', Icon: Sparkles },
+              { to: '/rituals', label: 'Rituale', Icon: Flower2 },
+              { to: '/tips', label: 'Tipps', Icon: BookOpen },
+              { to: '/profile', label: 'Profil', Icon: User },
+            ] satisfies ReadonlyArray<{ to: string; label: string; Icon: LucideIcon }>).map(({ to, label, Icon }) => {
+              const path = to;
               const active = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
-              const C = Icon as typeof Compass;
+              const C = Icon;
               return <Link key={path} to={path} onClick={() => hapticFeedback('light')} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${active ? 'bg-brand/10 text-brand dark:bg-brand-light/10 dark:text-brand-light' : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700'}`}><C size={18}/><span>{label}</span></Link>;
             })}
           </div>

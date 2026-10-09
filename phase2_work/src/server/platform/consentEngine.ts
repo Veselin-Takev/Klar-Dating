@@ -1,5 +1,4 @@
 /**
-import type { JsonObject } from '../../types/strict';
  * Klar Platform - GDPR Art. 9 Explicit Consent Ledger & Purpose-Bound Processing Engine
  * 
  * Implements legal mandates:
@@ -11,6 +10,8 @@ import type { JsonObject } from '../../types/strict';
  */
 
 import crypto from 'node:crypto';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { JsonObject } from '../../types/strict';
 
 export const ART9_PURPOSES = [
   'art9_sexual_orientation',
@@ -103,7 +104,7 @@ export function filterProfileSensitiveFields<T extends JsonObject>(
  * Records a new explicit consent grant in the tamper-evident audit ledger.
  */
 export async function recordExplicitConsent(
-  firestore: unknown,
+  firestore: Firestore,
   userId: string,
   declaredPurposes: Partial<Record<Art9Purpose, boolean>>,
   now: Date = new Date(),
@@ -137,7 +138,7 @@ export async function recordExplicitConsent(
   if (!consentAuditSecret || consentAuditSecret.length < 32) throw new Error('CONSENT_AUDIT_SECRET is required for append-only consent audit records');
   const subjectPseudonym = crypto.createHmac('sha256', consentAuditSecret).update(userId, 'utf8').digest('hex');
 
-  await firestore.runTransaction(async (tx: unknown) => {
+  await firestore.runTransaction(async (tx: Transaction) => {
     // 1. Write immutable audit log
     tx.set(auditLogRef, {
       subjectPseudonym,
@@ -197,7 +198,7 @@ export function getArt9FieldsToPurge(purposeToRevoke?: Art9Purpose | 'all'): str
  * data from user and public_profiles documents, and appends withdrawal audit entry.
  */
 export async function revokeExplicitConsent(
-  firestore: unknown,
+  firestore: Firestore,
   userId: string,
   purposeToRevoke?: Art9Purpose | 'all',
   now: Date = new Date()
@@ -213,8 +214,14 @@ export async function revokeExplicitConsent(
 
   let nextState: Art9ConsentState;
 
-  await firestore.runTransaction(async (tx: unknown) => {
-    const userDoc = await tx.get(userRef);
+  await firestore.runTransaction(async (tx: Transaction) => {
+    // Firestore requires every transactional read to finish before the first
+    // write. Read both the private and public profile before preparing any
+    // audit or purge writes, so the cascade is atomic and actually executes.
+    const [userDoc, publicProfileDoc] = await Promise.all([
+      tx.get(userRef),
+      tx.get(publicProfileRef),
+    ]);
     const existingState: Art9ConsentState | undefined = userDoc.data()?.art9Consent;
 
     const newPurposes = { ...(existingState?.purposes || {}) } as Record<Art9Purpose, boolean>;
@@ -262,8 +269,8 @@ export async function revokeExplicitConsent(
 
     tx.set(userRef, purgeUpdate, { merge: true });
 
-    // Also purge from public profile if present
-    const publicProfileDoc = await tx.get(publicProfileRef);
+    // Also purge from public profile if present. Its snapshot was read
+    // above before any writes, satisfying Firestore transaction ordering.
     if (publicProfileDoc.exists) {
       const pubPurgeUpdate: JsonObject = { updatedAt: timestampStr };
       for (const f of fieldsToPurge) {

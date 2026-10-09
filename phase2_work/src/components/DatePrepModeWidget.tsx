@@ -9,7 +9,7 @@ export function DatePrepModeWidget() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(t => t - 1);

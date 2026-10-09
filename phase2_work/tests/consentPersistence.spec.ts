@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
@@ -19,8 +19,10 @@ async function invoke(handler: (req: Request, res: Response) => Promise<void>, u
   expect(status, JSON.stringify(payload)).toBe(200);
   return payload;
 }
+beforeEach(() => { vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-consent-audit-secret-32-characters-minimum'); });
 afterEach(async () => {
   for (const uid of users.splice(0)) await getDb().recursiveDelete(getDb().collection('users').doc(uid));
+  vi.unstubAllEnvs();
 });
 
 describe('consent transactions with real Firestore emulator', { timeout: 20000 }, () => {
@@ -32,7 +34,9 @@ describe('consent transactions with real Firestore emulator', { timeout: 20000 }
       invoke(handleEinwilligungWiderruf, uid, { zweck: 'fehlerberichte' }),
     ]);
     const user = getDb().collection('users').doc(uid);
-    const state = (await user.get()).data().einwilligung;
+    const userData = (await user.get()).data();
+    if (!userData) throw new Error('Expected persisted user consent state.');
+    const state = userData.einwilligung;
     expect(state.zwecke).toMatchObject({ notwendig: true, ki_auswertung: false, fehlerberichte: false });
     const snapshots = await user.collection('einwilligungen').get();
     expect(snapshots.size).toBe(3);

@@ -10,6 +10,7 @@ const MINUTE_MS = 60_000;
 type MinuteBucket = { minute: number; requests: number; errors: number; latencyMs: number[]; geminiRequests: number; geminiInputTokens: number; geminiOutputTokens: number; geminiTotalTokens: number };
 const spans: ReadableSpan[] = [];
 const minuteBuckets = new Map<number, MinuteBucket>();
+const firestoreTransactions = new Map<string, { requests: number; errors: number }>();
 
 function bucketFor(timestamp = Date.now()): MinuteBucket {
   const minute = Math.floor(timestamp / MINUTE_MS) * MINUTE_MS;
@@ -70,8 +71,11 @@ const tracer = trace.getTracer(SERVICE_NAME, '1.0.0');
 export function extractTraceContext(traceparent: string | undefined): Context {
   if (typeof traceparent !== 'string') return ROOT_CONTEXT;
   const match = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i.exec(traceparent.trim());
-  if (!match || /^0{32}$/.test(match[1]) || /^0{16}$/.test(match[2])) return ROOT_CONTEXT;
-  const spanContext: SpanContext = { traceId: match[1].toLowerCase(), spanId: match[2].toLowerCase(), traceFlags: parseInt(match[3], 16), isRemote: true };
+  const traceId = match?.[1];
+  const spanId = match?.[2];
+  const traceFlags = match?.[3];
+  if (!traceId || !spanId || !traceFlags || /^0{32}$/.test(traceId) || /^0{16}$/.test(spanId)) return ROOT_CONTEXT;
+  const spanContext: SpanContext = { traceId: traceId.toLowerCase(), spanId: spanId.toLowerCase(), traceFlags: parseInt(traceFlags, 16), isRemote: true };
   return trace.setSpanContext(ROOT_CONTEXT, spanContext);
 }
 
@@ -84,12 +88,18 @@ export function runInSpan<T>(span: Span, fn: () => Promise<T>): Promise<T> {
 }
 
 export async function observeFirestoreTransaction<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  const metric = firestoreTransactions.get(name) ?? { requests: 0, errors: 0 };
+  metric.requests += 1;
+  firestoreTransactions.set(name, metric);
   const span = tracer.startSpan('firestore.transaction', { attributes: { 'db.system': 'firestore', 'db.operation.name': name } });
   try {
     const result = await context.with(trace.setSpan(context.active(), span), fn);
     span.setStatus({ code: SpanStatusCode.OK });
     return result;
   } catch (error) {
+    const failedMetric = firestoreTransactions.get(name) ?? { requests: 0, errors: 0 };
+    failedMetric.errors += 1;
+    firestoreTransactions.set(name, failedMetric);
     span.recordException(error as Error);
     span.setStatus({ code: SpanStatusCode.ERROR });
     throw error;
@@ -146,6 +156,10 @@ export function observabilityPrometheus(): string {
     '# HELP klar_gemini_minute_input_tokens Current UTC minute Gemini input tokens.', '# TYPE klar_gemini_minute_input_tokens gauge', `klar_gemini_minute_input_tokens ${latest.geminiInputTokens}`,
     '# HELP klar_gemini_minute_output_tokens Current UTC minute Gemini output tokens.', '# TYPE klar_gemini_minute_output_tokens gauge', `klar_gemini_minute_output_tokens ${latest.geminiOutputTokens}`,
     '# HELP klar_gemini_minute_total_tokens Current UTC minute Gemini total tokens.', '# TYPE klar_gemini_minute_total_tokens gauge', `klar_gemini_minute_total_tokens ${latest.geminiTotalTokens}`,
+    '# HELP klar_firestore_transactions_total Firestore transactions started in the process lifetime.', '# TYPE klar_firestore_transactions_total gauge',
+    ...[...firestoreTransactions.entries()].map(([operation, metric]) => `klar_firestore_transactions_total{operation="${operation.replaceAll('"', '')}"} ${metric.requests}`),
+    '# HELP klar_firestore_transaction_errors_total Firestore transaction failures in the process lifetime.', '# TYPE klar_firestore_transaction_errors_total gauge',
+    ...[...firestoreTransactions.entries()].map(([operation, metric]) => `klar_firestore_transaction_errors_total{operation="${operation.replaceAll('"', '')}"} ${metric.errors}`),
   ].join('\n') + '\n';
 }
 

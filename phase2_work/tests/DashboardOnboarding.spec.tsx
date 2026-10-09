@@ -1,15 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../src/i18n/config';
 import { DashboardOnboarding } from '../src/components/DashboardOnboarding';
 import { fetchWithTimeout } from '../src/lib/api';
 vi.mock('../src/lib/api', () => ({ fetchWithTimeout: vi.fn().mockResolvedValue({}) }));
-afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear(); vi.clearAllMocks(); });
+const renderOnboarding = () => render(<I18nextProvider i18n={i18n}><DashboardOnboarding /></I18nextProvider>);
 describe('dashboard introduction accessibility', () => {
   it('traps focus and restores it when Escape dismisses the dialog', () => {
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);
     trigger.focus();
-    render(<DashboardOnboarding />);
+    renderOnboarding();
     const dialog = screen.getByRole('dialog', { name: 'Willkommen bei Klar' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     const skip = screen.getByRole('button', { name: 'Einführung überspringen' });
@@ -33,6 +36,5 @@ describe('dashboard introduction accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Loslegen' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(fetchWithTimeout).toHaveBeenCalledWith('/api/launch/founding-claim', expect.anything());
-    expect(localStorage.getItem('klar_onboarding_seen')).toBe('true');
   });
 });

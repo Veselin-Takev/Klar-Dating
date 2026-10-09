@@ -4,6 +4,18 @@ import { motion, AnimatePresence } from "motion/react";
 import { askAICoach } from "../lib/api";
 import { melde } from "../lib/fehler";
 
+type SpeechRecognitionEventLike = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 export function VoiceJournalWidget({ onSave }: { onSave: (text: string, analysis: string) => void }) {
   const [uiError, setUiError] = useState<string | null>(null);
 
@@ -11,11 +23,12 @@ export function VoiceJournalWidget({ onSave }: { onSave: (text: string, analysis
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const recognitionRef = useRef<unknown>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const startRecording = () => {
     try {
-      const SpeechRecognition = (window as unknown).SpeechRecognition || (window as unknown).webkitSpeechRecognition;
+      const SpeechRecognition = (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition
+        || (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert("Speech Recognition wird von deinem Browser nicht unterstützt.");
         return;
@@ -26,10 +39,11 @@ export function VoiceJournalWidget({ onSave }: { onSave: (text: string, analysis
       recognition.continuous = true;
       recognition.interimResults = true;
 
-      recognition.onresult = (event: unknown) => {
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
         let currentTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
+          const result = event.results[i]?.[0];
+          if (result && typeof result.transcript === 'string') currentTranscript += result.transcript;
         }
         setTranscript(currentTranscript);
       };

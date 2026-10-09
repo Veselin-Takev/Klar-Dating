@@ -46,7 +46,7 @@ const datingTips = [
 
 const playSound = (type: 'start' | 'success') => {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
@@ -727,7 +727,7 @@ export function ProfileCheckWidget() {
                               </div>
                               <select
                                 value={tonality}
-                                onChange={(e) => setTonality(e.target.value as unknown)}
+                                onChange={(e) => setTonality(e.target.value as 'Ehrlich' | 'Humorvoll' | 'Professionell')}
                                 className="w-full text-xs bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 mb-4 text-stone-700 dark:text-stone-300 focus:outline-none focus:border-brand"
                               >
                                 <option value="Ehrlich">Ehrlich & Direkt</option>

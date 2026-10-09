@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {  onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signInAnonymously, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence  } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import type { DocumentSnapshot, FirestoreError } from 'firebase/firestore';
+import type { DocumentSnapshot } from 'firebase/firestore';
 import { clearOfflineQueueForUser } from './offlineQueue';
 import { auth, db } from './firebase';
 import { doc, getDocFromServer, onSnapshot, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [claims, setClaims] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const profileRequest = useRef(0);
-  const profileDataRef = useRef<unknown>(null);
+  const profileDataRef = useRef<UserProfileData | null>(null);
 
   const session = useMemo(() => {
     return loadAuthSession(user, profileData, claims, loading);
@@ -293,7 +293,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       try {
-        const idToken = await currentUser.getIdToken();
         if (!isCurrent()) return;
         try {
           if (typeof currentUser.getIdTokenResult === 'function') {

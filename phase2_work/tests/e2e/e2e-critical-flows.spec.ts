@@ -20,8 +20,12 @@ test('verified accounts can initiate contact, verify quota decrement, undo withi
     headers: unverified.headers,
     data: { targetUid: bob.uid },
   });
-  expect(unverifiedRes.status()).toBe(409);
-  expect((await unverifiedRes.json()).grund).toBe('nicht_verifiziert');
+  const unverifiedBody = await unverifiedRes.json();
+  expect(
+    unverifiedRes.status(),
+    `unverified contact should return the domain 409, got ${unverifiedRes.status()} body=${JSON.stringify(unverifiedBody)} headers=${JSON.stringify(unverifiedRes.headers())}`,
+  ).toBe(409);
+  expect(unverifiedBody.grund).toBe('nicht_verifiziert');
 
   // 2. Verified user Alice contacts Bob -> success, uebrig = 7, gesamt = 8
   const contactRes = await request.post('/api/contact', {

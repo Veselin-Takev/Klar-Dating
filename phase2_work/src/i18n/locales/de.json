@@ -171,7 +171,8 @@
     "ordinary": "Ordentliche Kündigung",
     "extraordinary": "Außerordentliche Kündigung",
     "requestedEnd": "Gewünschter Beendigungszeitpunkt (optional)",
-    "earliest": "Ohne Datumsangabe: zum frühestmöglichen Zeitpunkt.",
+    "termination": "Beendigungszeitpunkt",
+    "earliest": "frühestmöglichen Zeitpunkt gemäß § 312k Abs. 5 BGB",
     "reason": "Grund (bei außerordentlicher Kündigung erforderlich, sonst optional)",
     "receipt": "Eingangsbestätigung",
     "cancelDeclaration": "Ich erkläre hiermit die Kündigung des bezeichneten Vertrags.",
@@ -348,5 +349,29 @@
         "source": "Europäische Kommission"
       }
     }
+  },
+  "dashboardOnboarding": {
+    "steps": [
+      {
+        "title": "Willkommen bei Klar",
+        "content": "Klar unterstützt Gespräche und echte Begegnungen mit passenden Vorschlägen."
+      },
+      {
+        "title": "Das Klar-Prinzip",
+        "content": "Gespräch zuerst statt Auswahl-Druck. Klare Absichten, Verifizierung und ein ruhiges Interface begleiten dich."
+      },
+      {
+        "title": "Dein lokaler Start",
+        "content": "Wähle deine Stadt, damit Klar dir passende Kontakte in deiner Nähe vorschlagen kann."
+      },
+      {
+        "title": "Vom Kontakt zum Date",
+        "content": "Gemeinsamkeiten, Gesprächsimpulse und Date-Planung begleiten den Weg – ohne Katalog-Mentalität."
+      }
+    ],
+    "progress": "Schritt {{step}} von {{total}}",
+    "skip": "Einführung überspringen",
+    "next": "Weiter",
+    "start": "Loslegen"
   }
 }

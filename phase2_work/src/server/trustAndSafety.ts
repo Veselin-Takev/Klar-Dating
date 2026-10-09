@@ -1,17 +1,23 @@
+import { DeletionPageComplete } from './deletionProgress';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
-import rateLimit from 'express-rate-limit';
+import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
 import type { Request, Response } from 'express';
+import type { Query } from 'firebase-admin/firestore';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
+import { consentAuditSecret } from './consentAudit';
+import { pseudonymousPartnerUid } from './partnerReferralCore';
 import {
   recordModerationDecision,
   submitDsaAppeal,
   reviewDsaAppeal,
+  type DsaRestrictionType,
+  type DsaLegalGround,
 } from './platform/dsaAppealEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -33,8 +39,15 @@ import {
 //         Chatdokumente. Sie sieht nur so aus.
 // ═══════════════════════════════════════════════════════════════════════════
 
+const DSA_RESTRICTION_TYPES = ['content_removal', 'account_suspension', 'account_warning', 'account_termination', 'feature_restriction'] as const;
+const DSA_LEGAL_GROUNDS = ['harassment', 'hate_speech', 'underage', 'fraud_scam', 'unauthorized_commercial', 'impersonation', 'terms_violation'] as const;
+function isDsaRestrictionType(value: string): value is DsaRestrictionType { return (DSA_RESTRICTION_TYPES as readonly string[]).includes(value); }
+function isDsaLegalGround(value: string): value is DsaLegalGround { return (DSA_LEGAL_GROUNDS as readonly string[]).includes(value); }
+
 function uid(req: Request): string {
-  return (req as unknown).user?.uid as string;
+  const value = req.user?.uid;
+  if (!value) throw new Error('Unauthorized');
+  return value;
 }
 
 function text(wert: unknown, feld: string, max: number, pflicht = true): string {
@@ -55,12 +68,17 @@ function text(wert: unknown, feld: string, max: number, pflicht = true): string 
 // Keep these sensitive business flows bounded per authenticated UID rather than
 // relying only on the broad IP-based /api limiter. This also limits abuse when
 // a client rotates source IPs.
-export const trustSafetyWriteLimiter = rateLimit({ validate: false,
+export const trustSafetyWriteLimiter = distributedRateLimit({
+  collection: 'rate_limit_trust_safety_write',
   windowMs: 15 * 60 * 1000,
   limit: 20,
-  keyGenerator: (req) => uid(req) || req.ip || 'unknown',
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
+  keyGenerator: (req) => {
+    try {
+      return 'uid:' + uid(req);
+    } catch {
+      return '';
+    }
+  },
   message: { error: 'Zu viele Trust-&-Safety-Aktionen. Bitte versuche es später erneut.' },
 });
 
@@ -86,7 +104,7 @@ export async function handleReport(req: Request, res: Response): Promise<void> {
     if (!GRUENDE.has(grund)) throw new Error('Unbekannter Meldegrund.');
     if (zielUid === meineUid) throw new Error('Eine Meldung über das eigene Konto ist nicht vorgesehen.');
 
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
 
     let reportedMessageSnapshot: {
       messageId: string;
@@ -194,7 +212,7 @@ async function checkModeratorRole(req: Request): Promise<boolean> {
   const userUid = uid(req);
   if (!userUid) return false;
   try {
-    const tokenClaims = (req as unknown).user ?? {};
+    const tokenClaims: Record<string, unknown> = req.user ? req.user as unknown as Record<string, unknown> : {};
     if (
       tokenClaims.moderator === true ||
       tokenClaims.admin === true ||
@@ -206,7 +224,9 @@ async function checkModeratorRole(req: Request): Promise<boolean> {
       return true;
     }
     const konto = await getAuth().getUser(userUid);
-    const claims = konto.customClaims ?? {};
+    const claims: Record<string, unknown> = konto.customClaims && typeof konto.customClaims === 'object'
+      ? konto.customClaims as Record<string, unknown>
+      : {};
     const role = typeof claims.role === 'string' ? claims.role : '';
     const roles = Array.isArray(claims.roles) ? (claims.roles as unknown[]).filter((val: unknown): val is string => typeof val === 'string') : [];
     return (
@@ -236,12 +256,16 @@ export async function handleReportDecision(req: Request, res: Response): Promise
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const restrictionType = text(req.body?.restrictionType, 'restrictionType', 64) as unknown;
-    const legalGround = text(req.body?.legalGround, 'legalGround', 64) as unknown;
+    const restrictionTypeRaw = text(req.body?.restrictionType, 'restrictionType', 64);
+    const legalGroundRaw = text(req.body?.legalGround, 'legalGround', 64);
+    if (!isDsaRestrictionType(restrictionTypeRaw)) throw new Error('Ungültiger Einschränkungstyp.');
+    if (!isDsaLegalGround(legalGroundRaw)) throw new Error('Ungültiger Rechtsgrund.');
+    const restrictionType = restrictionTypeRaw;
+    const legalGround = legalGroundRaw;
     const factsAndCircumstances = text(req.body?.factsAndCircumstances, 'factsAndCircumstances', 2000);
 
     const statement = await recordModerationDecision(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       moderatorUid,
       { restrictionType, legalGround, factsAndCircumstances }
@@ -249,7 +273,7 @@ export async function handleReportDecision(req: Request, res: Response): Promise
 
     res.json({ ok: true, statement });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler bei der Moderationsentscheidung.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler bei der Moderationsentscheidung.' });
   }
 }
 
@@ -262,7 +286,7 @@ export async function handleReportAppeal(req: Request, res: Response): Promise<v
     const additionalEvidence = req.body?.additionalEvidence ? text(req.body?.additionalEvidence, 'additionalEvidence', 2000, false) : undefined;
 
     const appeal = await submitDsaAppeal(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       appellantUid,
       appealReason,
@@ -271,7 +295,7 @@ export async function handleReportAppeal(req: Request, res: Response): Promise<v
 
     res.json({ ok: true, appeal });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler beim Einreichen der Beschwerde.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler beim Einreichen der Beschwerde.' });
   }
 }
 
@@ -286,11 +310,13 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
 
   try {
     const reportId = text(req.body?.reportId, 'reportId', 128);
-    const outcome = text(req.body?.outcome, 'outcome', 32) as unknown;
+    const outcomeRaw = text(req.body?.outcome, 'outcome', 32);
+    if (outcomeRaw !== 'upheld' && outcomeRaw !== 'overturned') throw new Error('Ungültiges Beschwerdeergebnis.');
+    const outcome = outcomeRaw;
     const rationale = text(req.body?.rationale, 'rationale', 2000);
 
     const updatedAppeal = await reviewDsaAppeal(
-      getFirestore() as unknown,
+      getFirestore(),
       reportId,
       reviewerUid,
       outcome,
@@ -299,7 +325,7 @@ export async function handleAppealReview(req: Request, res: Response): Promise<v
 
     res.json({ ok: true, appeal: updatedAppeal });
   } catch (e: unknown) {
-    res.status(400).json({ error: e?.message || 'Fehler bei der Beschwerdeprüfung.' });
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Fehler bei der Beschwerdeprüfung.' });
   }
 }
 
@@ -311,7 +337,7 @@ export async function handleBlock(req: Request, res: Response): Promise<void> {
   try {
     const zielUid = text(req.body?.targetUid, 'targetUid', 128);
     if (zielUid === meineUid) throw new Error('Das eigene Konto lässt sich nicht blockieren.');
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
     await db.collection('blocks').doc(`${meineUid}_${zielUid}`).set(
       { blockerUid: meineUid, blockedUid: zielUid, at: FieldValue.serverTimestamp() },
       { merge: true },
@@ -365,15 +391,15 @@ export function buildDeletionAuditReceipt(bericht: {
   };
 }
 
-async function loescheAbfrage(query: unknown): Promise<number> {
-  const db = getFirestore() as unknown;
+async function loescheAbfrage(query: Query): Promise<number> {
+  const db = getFirestore();
   let gesamt = 0;
   for (;;) {
     if (Date.now() > (deletionDeadline.getStore() ?? Infinity)) throw new Error('deletion_time_slice');
     const snap = await query.limit(BATCH).get();
     if (snap.empty) return gesamt;
     const batch = db.batch();
-    snap.docs.forEach((d: unknown) => batch.delete(d.ref));
+    snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     gesamt += snap.size;
     if (snap.size < BATCH) return gesamt;
@@ -383,7 +409,7 @@ async function loescheAbfrage(query: unknown): Promise<number> {
 /** Repeatable purge: orchestration, provider cleanup and authentication live in accountDeletion.ts. */
 export async function purgeAccountData(meineUid: string, deletionRequestId?: string) {
   return deletionDeadline.run(Date.now() + 45_000, async () => {
-    const db = getFirestore() as unknown;
+    const db = getFirestore();
     const bericht = {
       chats: 0, nachrichten: 0, gateAntworten: 0, verbindungen: 0, kontakte: 0,
       eigeneMeldungen: 0, pseudonymisiert: 0,
@@ -407,7 +433,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
       bericht.chats += 1;
     }
 
-    if (chats.size === 25) throw new Error('deletion_more_pages');
+    if (chats.size === 25) throw new DeletionPageComplete();
 
     // 2. Verbindungen in beide Richtungen.
     for (const feld of ['fromUid', 'toUid', 'userId', 'otherUserId']) {
@@ -437,6 +463,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //     Eine neue Sammlung, die nicht in dieser Liste steht, überlebt die
     //     Löschung — deshalb gehört jede hier eingetragen.
     await loescheAbfrage(db.collection('users').doc(meineUid).collection('einwilligungen'));
+    await loescheAbfrage(db.collection('users').doc(meineUid).collection('legal_acknowledgements'));
     // 11.08.2026: Zwischenspeicher fuer KI-Auswertungen. Er haelt Aussagen
     // ueber diese Person hoechstens 36 Stunden — ohne diesen Eintrag aber
     // ueber die Kontoloeschung hinaus.
@@ -460,7 +487,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
       const ueber = await db.collection('reports').where('reportedProfileId', '==', meineUid).limit(BATCH).get();
       if (ueber.empty) break;
       const batch = db.batch();
-      ueber.docs.forEach((d: unknown) => batch.update(d.ref, {
+      ueber.docs.forEach((d) => batch.update(d.ref, {
         reportedProfileId: FieldValue.delete(), reportedGeloeschtAm: FieldValue.serverTimestamp(),
       }));
       await batch.commit(); bericht.pseudonymisiert += ueber.size;
@@ -488,6 +515,34 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     await loescheAbfrage(db.collection('referral_events').where('inviteeUid', '==', meineUid));
     await loescheAbfrage(db.collection('app_feedback').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('admob_rewards').where('userId', '==', meineUid));
+    // Klar & Partner Art. 17: remove account-bound referrals, verified claims and
+    // signed ledger entries using keyed pseudonyms. Contract metadata/aggregates remain.
+    const partnerUidRef = pseudonymousPartnerUid(meineUid, consentAuditSecret());
+    await loescheAbfrage(db.collection('partner_referrals').where('ownerUid', '==', meineUid));
+    for (const field of ['ownerRef', 'buyerRef']) {
+      await loescheAbfrage(db.collection('partner_referral_conversions').where(field, '==', partnerUidRef));
+    }
+    await loescheAbfrage(db.collection('partner_referral_buyer_claims').where('buyerRef', '==', partnerUidRef));
+    for (const field of ['actorRef', 'ownerRef', 'buyerRef']) {
+      await loescheAbfrage(db.collection('partner_referral_ledger').where(field, '==', partnerUidRef));
+    }
+    for (const collectionName of ['partner_referral_user_rate_limits', 'partner_referral_admin_rate_limits']) {
+      const key = crypto.createHash('sha256')
+        .update('klar-rate-limit:' + collectionName + ':uid:' + meineUid, 'utf8')
+        .digest('hex');
+      await db.collection(collectionName).doc(key).delete();
+    }
+    // Keep campaign text and aggregate counts, but scrub all HMAC admin references.
+    for (const field of ['createdByRef', 'updatedByRef', 'verifiedByRef']) {
+      for (;;) {
+        const refs = await db.collection('partner_campaigns').where(field, '==', partnerUidRef).limit(BATCH).get();
+        if (refs.empty) break;
+        const batch = db.batch();
+        refs.docs.forEach(item => batch.update(item.ref, { [field]: FieldValue.delete() }));
+        await batch.commit();
+        if (refs.size < BATCH) break;
+      }
+    }
     // Consent audit entries are append-only and pseudonymous at creation time.
     // No in-place mutation is permitted here; legacy pre-hardening entries that
     // still contain userId are handled by the documented Art. 17 migration job.
@@ -523,7 +578,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     try {
       await receiptRef.create({ ...receipt, completedAt: FieldValue.serverTimestamp() });
     } catch (error) {
-      if (!receiptId || (error as { code?: string }).code !== 6) throw error;
+      if (!receiptId || (error as { code?: unknown }).code !== 6) throw error;
       // A retry may observe ALREADY_EXISTS after the previous create actually
       // committed. The deterministic receipt ID makes the write idempotent.
     }

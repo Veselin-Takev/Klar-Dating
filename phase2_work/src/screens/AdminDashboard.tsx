@@ -9,6 +9,7 @@ import { AdminI18nCoverageWidget } from '../components/AdminI18nCoverageWidget';
 import { AdminHealthStatusWidget } from '../components/AdminHealthStatusWidget';
 import { AdminLogViewerModal } from '../components/AdminLogViewerModal';
 import { AdminComplianceAuditWidget } from '../components/AdminComplianceAuditWidget';
+import { PartnerCampaignAdmin } from '../components/PartnerCampaignAdmin';
 
 const DEVICE_TYPES = ['Mobile iOS', 'Mobile Android', 'Desktop Web', 'Tablet', 'Unbekannt'];
 
@@ -46,7 +47,7 @@ function D3LatencyChart({ data }: { data: LatencyPoint[] }) {
       .range([margin.left, width - margin.right]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => (d.latency as number)) || 0]).nice()
+      .domain([0, d3.max(data, d => d.latency) || 0]).nice()
       .range([height - margin.bottom, margin.top]);
 
     const line = d3.line<LatencyPoint>()
@@ -113,10 +114,10 @@ function FailedApiLogWidget() { return null; }
 function AuthSessionDiagnosticWidget() { return null; }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n'>('system');
+  const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n' | 'partners'>('system');
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [averageLatency, setAverageLatency] = useState(0);
-  const [functionRuntimes, setFunctionRuntimes] = useState<FunctionRuntime[]>([]);
+  const [functionRuntimes] = useState<FunctionRuntime[]>([]);
   const [showLogViewer, setShowLogViewer] = useState(false);
 
   useEffect(() => {
@@ -144,14 +145,14 @@ export default function AdminDashboard() {
 
   const chartData = logs.filter(l => l.status === 'success').map((l) => ({
     name: new Date(l.timestamp).toLocaleTimeString(),
-    latency: l.latencyMs
+    latency: typeof l.latencyMs === 'number' ? l.latencyMs : 0
   })).slice(-20);
 
   const heatmapData = logs.filter(l => l.status === 'success').map((l, index) => ({
     timeIndex: index % 10,
     deviceTypeIndex: DEVICE_TYPES.indexOf(l.type ?? 'Unbekannt'),
     deviceType: l.type ?? 'Unbekannt',
-    latency: l.latencyMs
+    latency: l.latencyMs ?? 0
   }));
 
   return (
@@ -202,6 +203,13 @@ export default function AdminDashboard() {
           >
             i18n Coverage
           </button>
+          <button
+            onClick={() => setActiveTab('partners')}
+            id="tab-partner-campaigns"
+            className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === 'partners' ? 'border-brand text-brand dark:border-brand-light dark:text-brand-light' : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
+          >
+            Klar & Partner
+          </button>
         </div>
       </div>
 
@@ -224,6 +232,12 @@ export default function AdminDashboard() {
         {activeTab === 'i18n' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <AdminI18nCoverageWidget />
+          </div>
+        )}
+
+        {activeTab === 'partners' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <PartnerCampaignAdmin />
           </div>
         )}
 

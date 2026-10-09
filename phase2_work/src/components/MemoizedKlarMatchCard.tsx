@@ -11,7 +11,7 @@ interface MemoizedKlarMatchCardProps {
   intro: string | undefined;
   loadingIntro: boolean;
   copiedIntro: boolean;
-  t: (key: string, defaultText: string) => string;
+  t: (key: string, defaultText?: string) => string;
   onProfileClick: (profile: Profile) => void;
   onGenerateWhy: (e: React.MouseEvent, profile: Profile) => void;
   onPreviewIntro: (e: React.MouseEvent, profile: Profile, intro: string) => void;

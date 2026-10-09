@@ -10,7 +10,7 @@ export enum UserRole {
 
 export function rbacGuard(requiredRole: UserRole) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const userRole = (req as unknown).user?.role || UserRole.GUEST;
+    const userRole = typeof req.user?.role === 'string' ? req.user.role : UserRole.GUEST;
 
     const roleHierarchy: Record<UserRole, number> = {
       [UserRole.GUEST]: 0,

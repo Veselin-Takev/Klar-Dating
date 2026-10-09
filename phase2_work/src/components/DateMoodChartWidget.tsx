@@ -49,9 +49,10 @@ export function DateMoodChartWidget() {
     setData(chartData.slice(-10)); // keep last 10
   }, []);
 
-  const CustomTooltip = ({ active, payload, label }: unknown) => {
+  type MoodTooltipProps = { active?: boolean; payload?: Array<{ value?: unknown }>; label?: React.ReactNode };
+  const CustomTooltip = ({ active, payload, label }: MoodTooltipProps) => {
     if (active && payload && payload.length) {
-      const moodValue = payload[0].value;
+      const moodValue = typeof payload?.[0]?.value === 'number' ? payload[0].value : 0;
       let moodText = "Ok";
       if (moodValue >= 4.5) moodText = "Super!";
       else if (moodValue >= 3.5) moodText = "Gut";

@@ -49,7 +49,7 @@ describe('audit log metadata boundary', () => {
     const body = await response.json();
     expect(body.logs).toEqual([{
       id: 'log-1',
-      userId: 'user-a',
+      actorPseudonym: null,
       type: 'ki_coach_interaction',
       timestamp: '2026-09-30T10:00:00.000Z',
       hasEncryptedPayload: true,

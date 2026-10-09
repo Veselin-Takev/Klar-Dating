@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { Firestore } from 'firebase-admin/firestore';
 import {
   validateBirthdate,
   computeAgeAttemptDigest,
@@ -145,7 +146,7 @@ test('Age Gate Zero-Tolerance: processAgeVerification locks underage account, pu
   });
 
   // Act: Submit 16-year-old birthdate
-  const outcome = await processAgeVerification(firestore, userId, '2010-03-15', {
+  const outcome = await processAgeVerification(firestore as unknown as Firestore, userId, '2010-03-15', {
     now: fixedNow,
     ipHash: 'ip_hash_minor',
   });
@@ -189,7 +190,7 @@ test('Age Gate Zero-Tolerance: processAgeVerification rejects subsequent attempt
   });
 
   // Act: Tampering attempt to submit adult birthdate on locked account
-  const outcome = await processAgeVerification(firestore, userId, '1995-04-20');
+  const outcome = await processAgeVerification(firestore as unknown as Firestore, userId, '1995-04-20');
 
   // Assert: Strict rejection without modifying state
   assert.equal(outcome.ok, false);
@@ -209,7 +210,7 @@ test('Age Gate: processAgeVerification successfully verifies adult and records a
   });
 
   // Act: Submit 26-year-old birthdate
-  const outcome = await processAgeVerification(firestore, userId, '2000-01-10', {
+  const outcome = await processAgeVerification(firestore as unknown as Firestore, userId, '2000-01-10', {
     now: fixedNow,
     ipHash: 'ip_hash_maya',
   });
@@ -252,7 +253,7 @@ test('GDPR Art. 9: revokeExplicitConsent cascades purge of sensitive data from u
 
   // 1. Grant initial consent
   await recordExplicitConsent(
-    firestore,
+    firestore as unknown as Firestore,
     userId,
     {
       art9_sexual_orientation: true,
@@ -263,7 +264,7 @@ test('GDPR Art. 9: revokeExplicitConsent cascades purge of sensitive data from u
   );
 
   // 2. Revoke selective purpose (sexual orientation)
-  const selectiveRevoke = await revokeExplicitConsent(firestore, userId, 'art9_sexual_orientation', fixedNow);
+  const selectiveRevoke = await revokeExplicitConsent(firestore as unknown as Firestore, userId, 'art9_sexual_orientation', fixedNow);
   assert.equal(selectiveRevoke.ok, true);
   assert.deepEqual(selectiveRevoke.purgedFields, ['sexualOrientation', 'seekingGender']);
 
@@ -279,7 +280,7 @@ test('GDPR Art. 9: revokeExplicitConsent cascades purge of sensitive data from u
   assert.equal(publicProfileAfterSelective.city, 'Hamburg');
 
   // 3. Revoke all remaining Art. 9 consent
-  const fullRevoke = await revokeExplicitConsent(firestore, userId, 'all', new Date('2026-09-25T16:00:00Z'));
+  const fullRevoke = await revokeExplicitConsent(firestore as unknown as Firestore, userId, 'all', new Date('2026-09-25T16:00:00Z'));
   assert.equal(fullRevoke.ok, true);
   assert.equal(fullRevoke.updatedState.purposes.art9_religious_philosophical, false);
   assert.equal(fullRevoke.updatedState.purposes.ai_personality_insights, false);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getQueuedActions,
-  clearQueue,
+  clearQueueForUser,
   enqueueChatMessage,
   getQueuedMessagesForChat,
   syncQueuedActions,
@@ -10,8 +10,10 @@ import {
   clearSyncLogs,
 } from '../../src/lib/offlineQueue.ts';
 
+const TEST_OWNERS = ['user-alice', 'user-1', 'user-sync'];
+
 test.beforeEach(async () => {
-  await clearQueue();
+  await Promise.all(TEST_OWNERS.map((uid) => clearQueueForUser(uid)));
   await clearSyncLogs();
 });
 

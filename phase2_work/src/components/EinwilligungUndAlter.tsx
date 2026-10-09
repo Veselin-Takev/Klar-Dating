@@ -66,7 +66,10 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         },
         body: JSON.stringify({ geburtsdatum }),
       });
-      const daten = await res.json().catch(() => ({}));
+      const rawData: unknown = await res.json().catch(() => ({}));
+      const daten = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+        ? rawData as Record<string, unknown>
+        : {};
 
       if (!res.ok) {
         switch (daten?.code) {
@@ -91,7 +94,7 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
               setFehler(t("ageGate.errorService"));
               return;
             }
-            setFehler(daten?.error ?? t("ageGate.errorGeneric"));
+            setFehler(typeof daten.error === 'string' ? daten.error : t("ageGate.errorGeneric"));
             return;
         }
       }
@@ -132,24 +135,32 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         },
         body: JSON.stringify({ zwecke: gewaehlt }),
       });
-      const daten = await res.json().catch(() => ({}));
+      const rawData: unknown = await res.json().catch(() => ({}));
+      const daten = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+        ? rawData as { ok?: unknown; evidenceId?: unknown; einwilligung?: unknown; error?: unknown }
+        : {};
+      const evidenceId = typeof daten.evidenceId === 'string' ? daten.evidenceId : null;
       if (!res.ok) {
-        setFehler(daten?.error ?? "Die Einwilligung konnte nicht gespeichert werden.");
+        setFehler(typeof daten.error === 'string' ? daten.error : "Die Einwilligung konnte nicht gespeichert werden.");
         return;
       }
-      if (daten?.ok !== true || typeof daten?.evidenceId !== 'string' || !daten?.einwilligung) {
+      if (daten.ok !== true || !evidenceId || !daten.einwilligung) {
         throw new Error('Der gespeicherte Nachweis fehlt.');
       }
       const profile = await refreshProfile();
-      if (profile?.isAdult !== true || profile?.einwilligung?.evidenceId !== daten.evidenceId) {
+      const persistedConsent = profile?.einwilligung;
+      const persistedEvidenceId = persistedConsent && typeof persistedConsent === 'object' && !Array.isArray(persistedConsent)
+        ? (persistedConsent as Record<string, unknown>).evidenceId
+        : undefined;
+      if (profile?.isAdult !== true || persistedEvidenceId !== evidenceId) {
         throw new Error('Der aktuelle Einwilligungsstand wurde nicht bestätigt.');
       }
       onFertig?.();
     } catch (err: unknown) {
-      if (err instanceof TypeError || (err?.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed to fetch')))) {
+      if (err instanceof TypeError || (err instanceof Error && /fetch|network|Failed to fetch/i.test(err.message))) {
         setFehler(t("ageGate.errorOffline"));
       } else {
-        setFehler(err?.message || "Die Einwilligung konnte nicht gespeichert werden.");
+        setFehler(err instanceof Error ? err.message : "Die Einwilligung konnte nicht gespeichert werden.");
       }
     } finally {
       setLaeuft(false);

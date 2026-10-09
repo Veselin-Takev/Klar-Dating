@@ -25,11 +25,17 @@ test('Klar+ stays non-bookable and legacy A/B analytics stays disabled', async (
       source: 'KlarPlus_Landing',
     },
   });
-  expect(legacy.status()).toBe(410);
+  expect(
+    legacy.status(),
+    `Retired analytics contract expected HTTP 410; got ${legacy.status()}, body=${await legacy.text()}, headers=${JSON.stringify(legacy.headers())}`,
+  ).toBe(410);
 
   const legacyPromo = await page.request.post('/api/claim-launch-promo', {
     headers,
     data: { userId: 'ignored' },
   });
-  expect(legacyPromo.status()).toBe(410);
+  expect(
+    legacyPromo.status(),
+    `Retired promo contract expected HTTP 410; got ${legacyPromo.status()}, body=${await legacyPromo.text()}, headers=${JSON.stringify(legacyPromo.headers())}`,
+  ).toBe(410);
 });

@@ -119,7 +119,7 @@ export async function handleSendVerification(req: Request, res: Response) {
 
     res.json({ ok: true });
   } catch (e: unknown) {
-    console.error('/api/auth/send-verification', e.message);
+    console.error('/api/auth/send-verification', e instanceof Error ? e.message : e);
     res.status(500).json({ error: 'Konnte Verifizierungs-Mail nicht vorbereiten.' });
   }
 }

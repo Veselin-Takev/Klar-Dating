@@ -1,6 +1,6 @@
 {
   "product": "Klar",
-  "releaseDate": "2026-09-15",
+  "releaseDate": "2026-10-08",
   "releaseType": "enterprise-production-candidate",
   "node": "22.23.3",
   "productionData": "no bundled sample profiles",
@@ -26,5 +26,22 @@
     "referral_shared",
     "referral_qualified"
   ],
-  "ciRequired": true
+  "ciRequired": true,
+  "sourceProvenance": {
+    "status": "remote-branch-consolidation",
+    "baseArtifact": "Klar_Enterprise_v149_Phase2_RuntimeRemediated_IPV6_2026-10-08.zip",
+    "baseArtifactSha256": "c2c77fd139adde32ad011fe9d00d9edafa33f98a5cd8d896f8056e3f44414365",
+    "remoteCommit": "a159e690afcbd77e20a992b77db3920d69709de9"
+  },
+  "releaseEvidence": {
+    "required": [
+      "gitCommitSha",
+      "artifactSha256",
+      "buildRun",
+      "sbomSha256",
+      "dynamicTestEvidence",
+      "attestation"
+    ],
+    "status": "pending-dynamic-ci-and-remote-sync"
+  }
 }

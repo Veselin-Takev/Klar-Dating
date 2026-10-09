@@ -28,14 +28,28 @@ function sha256(val: string): string {
   return createHash('sha256').update(val).digest('hex');
 }
 
+function stringValue(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function dateInput(value: unknown): string | number | Date {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  if (isRecord(value) && typeof value.toDate === 'function') {
+    const converted = value.toDate();
+    if (converted instanceof Date) return converted;
+  }
+  return '';
+}
+
 /**
  * Anonymisiert eine Kündigungs-/Widerrufserklärung gemäß DSGVO & § 312k BGB für Audit-Exporte.
  * Sämtliche direkten PII (Vollname, Klartext-E-Mail, IP) werden irreversibel maskiert/pseudonymisiert.
  */
 export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedComplianceRecord {
   const data = isRecord(raw) ? raw : {};
-  const reqId = data.requestId || id || 'unknown-request';
-  const received = data.receivedAt || data.createdAt || new Date().toISOString();
+  const reqId = stringValue(data.requestId, id || 'unknown-request');
+  const received = dateInput(data.receivedAt ?? data.createdAt ?? new Date());
   const receivedDate = new Date(received);
   const isValidDate = !isNaN(receivedDate.getTime());
 
@@ -60,19 +74,22 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
       ? 'Außerordentlich (§ 314 BGB)'
       : 'Ordentlich (Fristgemäß)';
 
-  const contract = (data.contract || 'Klar Plus').trim();
-  const requestedEndDate = data.requestedEnd && data.requestedEnd.trim() !== ''
-    ? data.requestedEnd
+  const contract = stringValue(data.contract, 'Klar Plus').trim();
+  const requestedEndCandidate = stringValue(data.requestedEnd).trim();
+  const requestedEndDate = requestedEndCandidate !== ''
+    ? requestedEndCandidate
     : 'Nächstmöglicher Termin (§ 312k Abs. 1)';
 
   // Gesetzliche Eingangsbestätigung (§ 312k Abs. 4 BGB)
-  const hasReceipt = Boolean(data.receipt && (data.receipt.text || data.receipt.id));
+  const receipt = isRecord(data.receipt) ? data.receipt : null;
+  const hasReceipt = Boolean(receipt && (typeof receipt.text === 'string' || typeof receipt.id === 'string'));
   const statutoryConfirmationStatus = hasReceipt
     ? 'Erteilt gem. § 312k Abs. 4 BGB'
     : 'Ausstehend';
 
-  const confirmationTimestamp = data.receipt?.receivedAt
-    ? new Date(data.receipt.receivedAt).toISOString()
+  const confirmationInput = receipt?.receivedAt;
+  const confirmationTimestamp = confirmationInput
+    ? new Date(dateInput(confirmationInput)).toISOString()
     : receivedAtUTC;
 
   const deliveryMethod =
@@ -94,11 +111,11 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
   // Pseudonyme für Prüfungszwecke
   const auditId = `AUDIT-312K-${sha256(reqId).substring(0, 12).toUpperCase()}`;
   const originalRequestIdMasked = `${reqId.substring(0, 8)}-****-****-****-${reqId.substring(Math.max(0, reqId.length - 4))}`;
-  const userPseudonym = raw.uid
-    ? `USR-ANON-${sha256(raw.uid).substring(0, 10).toUpperCase()}`
+  const userPseudonym = typeof data.uid === 'string'
+    ? `USR-ANON-${sha256(data.uid).substring(0, 10).toUpperCase()}`
     : 'GAST-ANON';
 
-  const fingerprint = raw.fingerprint || sha256(`${reqId}-${receivedAtUTC}`);
+  const fingerprint = typeof data.fingerprint === 'string' ? data.fingerprint : sha256(`${reqId}-${receivedAtUTC}`);
   const integrityHash = `${fingerprint.substring(0, 24)}...`;
 
   return {
@@ -201,16 +218,12 @@ export async function getAnonymizedComplianceAuditLogs(
 
   try {
     const colRef = db.collection('contract_requests');
-    let snapshot: unknown;
-
-    if (options?.kind && options.kind !== 'all') {
-      snapshot = await colRef.where('kind', '==', options.kind).limit(maxRecords).get();
-    } else {
-      snapshot = await colRef.limit(maxRecords).get();
-    }
+    const snapshot = options?.kind && options.kind !== 'all'
+      ? await colRef.where('kind', '==', options.kind).limit(maxRecords).get()
+      : await colRef.limit(maxRecords).get();
 
     if (snapshot && !snapshot.empty) {
-      snapshot.forEach((docSnap: unknown) => {
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data) {
           records.push(anonymizeContractRequest(data, docSnap.id));

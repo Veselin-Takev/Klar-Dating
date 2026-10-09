@@ -25,6 +25,18 @@ interface VibeWord {
   left: string;
 }
 
+type TextRecord = Record<string, unknown>;
+function parseRecords(raw: string | null): TextRecord[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is TextRecord => !!value && typeof value === 'object' && !Array.isArray(value))
+      : [];
+  } catch {
+    return [];
+  }
+}
 export const WeeklyVibesWidget: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [vibesData, setVibesData] = useState<{ summary: string; words: VibeWord[] } | null>(null);
@@ -58,11 +70,11 @@ export const WeeklyVibesWidget: React.FC = () => {
     setEmptyNotice(null);
     try {
       // Gather genuine user entries from all sources
-      const localReflections = JSON.parse(klarStorage.getItem('klar_date_reflections') || '[]');
-      const localLogs = JSON.parse(klarStorage.getItem('klar_reflection_logs') || '[]');
-      const localJournals = JSON.parse(klarStorage.getItem('klar_journal_entries') || '[]');
+      const localReflections = parseRecords(klarStorage.getItem('klar_date_reflections'));
+      const localLogs = parseRecords(klarStorage.getItem('klar_reflection_logs'));
+      const localJournals = parseRecords(klarStorage.getItem('klar_journal_entries'));
 
-      let firestoreMoods: unknown[] = [];
+      let firestoreMoods: TextRecord[] = [];
       if (auth.currentUser) {
         try {
           const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -76,20 +88,20 @@ export const WeeklyVibesWidget: React.FC = () => {
 
       // Collect all text notes
       const allTexts: string[] = [];
-      localReflections.forEach((r: unknown) => {
-        if (r.notes) allTexts.push(r.notes);
-        if (r.whatWentWell) allTexts.push(r.whatWentWell);
+      localReflections.forEach((r) => {
+        if (typeof r.notes === 'string') allTexts.push(r.notes);
+        if (typeof r.whatWentWell === 'string') allTexts.push(r.whatWentWell);
       });
-      localLogs.forEach((l: unknown) => {
-        if (l.notes) allTexts.push(l.notes);
-        if (l.text) allTexts.push(l.text);
+      localLogs.forEach((l) => {
+        if (typeof l.notes === 'string') allTexts.push(l.notes);
+        if (typeof l.text === 'string') allTexts.push(l.text);
       });
-      localJournals.forEach((j: unknown) => {
-        if (j.content) allTexts.push(j.content);
-        if (j.title) allTexts.push(j.title);
+      localJournals.forEach((j) => {
+        if (typeof j.content === 'string') allTexts.push(j.content);
+        if (typeof j.title === 'string') allTexts.push(j.title);
       });
-      firestoreMoods.forEach((m: unknown) => {
-        if (m.notes) allTexts.push(m.notes);
+      firestoreMoods.forEach((m) => {
+        if (typeof m.notes === 'string') allTexts.push(m.notes);
       });
 
       if (allTexts.length === 0) {
@@ -115,7 +127,7 @@ export const WeeklyVibesWidget: React.FC = () => {
 
       // Find actual words or positive traits found in real user text
       const matched = candidateWords.filter(cw => fullCorpus.includes(cw.text.toLowerCase()));
-      const selectedWords = matched.length >= 3 ? matched.slice(0, 6) : candidateWords.slice(0, Math.min(6, allTexts.length + 2));
+      const selectedWords = matched.slice(0, 6);
 
       const positions = [
         { top: '15%', left: '25%', size: 'text-2xl' },

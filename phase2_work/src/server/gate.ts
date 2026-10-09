@@ -10,8 +10,8 @@ type GateData = JsonObject & { participants: string[] };
 
 function gateResponse(data: GateData, actor: string) {
   const ichBinA = data.participants[0] === actor;
-  const antwortenA = Number.isSafeInteger(data.gateAntwortenA) ? Math.max(0, data.gateAntwortenA) : 0;
-  const antwortenB = Number.isSafeInteger(data.gateAntwortenB) ? Math.max(0, data.gateAntwortenB) : 0;
+  const antwortenA = typeof data.gateAntwortenA === 'number' && Number.isSafeInteger(data.gateAntwortenA) ? Math.max(0, data.gateAntwortenA) : 0;
+  const antwortenB = typeof data.gateAntwortenB === 'number' && Number.isSafeInteger(data.gateAntwortenB) ? Math.max(0, data.gateAntwortenB) : 0;
   return {
     zustand: gateZustand({ antwortenA, antwortenB }, ichBinA),
     benoetigt: GATE_FRAGEN,
@@ -43,7 +43,7 @@ export async function handleGateStatus(req: Request, res: Response): Promise<voi
   try {
     const chatId = requireString(req.query?.chatId, 'chatId', 128);
     const actor = actorId(req);
-    const firestore = getDb() as Firestore;
+    const firestore = getDb();
     const result = await firestore.runTransaction(async (tx: Transaction) => {
       const { data } = await readChatAccess(firestore, tx, chatId, actor);
       return gateResponse(data as GateData, actor);

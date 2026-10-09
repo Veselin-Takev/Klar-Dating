@@ -9,7 +9,7 @@ export function DatingFocusModeWidget() {
   const [timeLeft, setTimeLeft] = useState(60 * 60); // 1 hour in seconds
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => prev - 1);

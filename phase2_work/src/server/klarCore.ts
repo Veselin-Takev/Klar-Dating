@@ -1,6 +1,6 @@
 import { getAppBucket } from './storage';
 import { toPublicProfile } from './platform/launchPlatform';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT (Ab 500 Nutzer)
@@ -44,8 +44,12 @@ import {
 // das Limit eine Anzeige, keine Grenze.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const db = () => getFirestore() as unknown;
-const uid = (req: Request) => (req as unknown).user?.uid as string;
+const db = () => getFirestore();
+const uid = (req: Request): string => {
+  const value = req.user?.uid;
+  if (!value) throw new Error('Unauthorized');
+  return value;
+};
 
 function fehler(res: Response, e: unknown, wo: string) {
   if (e instanceof InputError) {
@@ -108,7 +112,7 @@ export async function handleContact(req: Request, res: Response): Promise<void> 
     const nutzer = firestore.collection('users').doc(meine);
     const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
 
-    const ergebnis = await firestore.runTransaction(async (t: unknown) => {
+    const ergebnis = await firestore.runTransaction(async (t: Transaction) => {
       const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
         t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
       if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
@@ -173,7 +177,7 @@ export async function handleContactUndo(req: Request, res: Response): Promise<vo
     const nutzer = firestore.collection('users').doc(meine);
     const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
 
-    const ok = await firestore.runTransaction(async (t: unknown) => {
+    const ok = await firestore.runTransaction(async (t: Transaction) => {
       const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
         t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
       if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
@@ -324,7 +328,7 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
  */
 export async function handleVerificationDecide(req: Request, res: Response): Promise<void> {
   try {
-    let claims = (req as unknown).user ?? {};
+    let claims: Record<string, unknown> = req.user ? req.user as unknown as Record<string, unknown> : {};
     try {
       const konto = await getAuth().getUser(uid(req));
       if (konto?.customClaims) {
@@ -423,8 +427,8 @@ export async function handleSubscriptionStatus(req: Request, res: Response): Pro
 async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'cancel' | 'withdraw') {
   try {
     const { randomUUID } = await import('node:crypto');
-    let email = (req as unknown).user?.email;
-    let name = (req as unknown).user?.name || uid(req);
+    let email = req.user?.email;
+    let name = req.user?.name || uid(req);
     try {
       const account = await getAuth().getUser(uid(req));
       if (account.email) email = account.email;
@@ -433,7 +437,7 @@ async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'c
       // Identity Toolkit API may be offline/disabled; fallback to token claims
     }
     if (!email) { res.status(400).json({ code: 'confirmation_email_required' }); return; }
-    const profile = (await db().collection('users').doc(uid(req)).get()).data();
+    const profile = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
     const subscription = await db().collection('subscriptions').doc(uid(req)).get();
     const subscriptionData = subscription.data() ?? {};
     if (kind === 'cancel' && subscriptionData.plan !== 'plus') { res.status(409).json({ code: 'no_active_subscription' }); return; }

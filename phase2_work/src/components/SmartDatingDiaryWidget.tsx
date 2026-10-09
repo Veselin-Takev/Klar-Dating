@@ -4,6 +4,24 @@ import { BookHeart, Sparkles, CheckCircle2, PenLine, ArrowRight, Activity, Calen
 import { motion, AnimatePresence } from "motion/react";
 
 type Mood = "excited" | "relaxed" | "neutral" | "nervous" | "frustrated";
+type DiaryEntry = {
+  id: string;
+  date: string;
+  reflection: string;
+  learning: string;
+  activity: string;
+  mood: Mood | null;
+  isArchived?: boolean;
+};
+function isDiaryEntry(value: unknown): value is DiaryEntry {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as Record<string, unknown>;
+  return typeof entry.id === 'string' && typeof entry.date === 'string' &&
+    typeof entry.reflection === 'string' && typeof entry.learning === 'string' &&
+    typeof entry.activity === 'string' &&
+    (entry.mood === null || typeof entry.mood === 'string') &&
+    (entry.isArchived === undefined || typeof entry.isArchived === 'boolean');
+}
 const MOODS: { id: Mood; label: string; emoji: string; color: string }[] = [
   { id: "excited", label: "Begeistert", emoji: "🤩", color: "bg-emerald-500 text-white" },
   { id: "relaxed", label: "Entspannt", emoji: "😌", color: "bg-blue-400 text-white" },
@@ -20,15 +38,16 @@ export function SmartDatingDiaryWidget() {
   const [learning, setLearning] = useState("");
   const [activity, setActivity] = useState("");
   const [mood, setMood] = useState<Mood | null>(null);
-  const [pastEntries, setPastEntries] = useState<unknown[]>([]);
+  const [pastEntries, setPastEntries] = useState<DiaryEntry[]>([]);
   const [historyTab, setHistoryTab] = useState<'active' | 'archived'>('active');
 
   const toggleArchive = (id: string) => {
     const diarySaved = klarStorage.getItem('klar_post_date_diary');
     if (diarySaved) {
       try {
-        const diaries = JSON.parse(diarySaved);
-        const updated = diaries.map((d: unknown) => d.id === id ? { ...d, isArchived: !d.isArchived } : d);
+        const parsed: unknown = JSON.parse(diarySaved);
+        const diaries = Array.isArray(parsed) ? parsed.filter(isDiaryEntry) : [];
+        const updated = diaries.map((d) => d.id === id ? { ...d, isArchived: !d.isArchived } : d);
         klarStorage.setItem('klar_post_date_diary', JSON.stringify(updated));
         loadEntries();
       } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
@@ -38,7 +57,11 @@ export function SmartDatingDiaryWidget() {
   const loadEntries = () => {
     const diarySaved = klarStorage.getItem('klar_post_date_diary');
     if (diarySaved) {
-      try { setPastEntries(JSON.parse(diarySaved).reverse()); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+      try {
+        const parsed: unknown = JSON.parse(diarySaved);
+        const entries = Array.isArray(parsed) ? parsed.filter(isDiaryEntry) : [];
+        setPastEntries(entries.reverse());
+      } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
   };
 
@@ -51,9 +74,12 @@ export function SmartDatingDiaryWidget() {
 
     // Save to diary
     const diarySaved = klarStorage.getItem('klar_post_date_diary');
-    let diaries = [];
+    let diaries: DiaryEntry[] = [];
     if (diarySaved) {
-      try { diaries = JSON.parse(diarySaved); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+      try {
+        const parsed: unknown = JSON.parse(diarySaved);
+        diaries = Array.isArray(parsed) ? parsed.filter(isDiaryEntry) : [];
+      } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
     diaries.push({
       id: Date.now().toString(),
@@ -61,7 +87,7 @@ export function SmartDatingDiaryWidget() {
       reflection,
       learning,
       activity,
-      mood
+      mood,
     });
     klarStorage.setItem('klar_post_date_diary', JSON.stringify(diaries));
 
@@ -72,7 +98,7 @@ export function SmartDatingDiaryWidget() {
       if (moodsSaved) {
         try { moods = JSON.parse(moodsSaved); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
       }
-      const newMoods = [...moods.filter((e: unknown) => e.date !== today), { date: today, mood }];
+      const newMoods = [...moods.filter((e: { date?: unknown }) => e.date !== today), { date: today, mood }];
       klarStorage.setItem('klar_dating_moods', JSON.stringify(newMoods));
     }
 

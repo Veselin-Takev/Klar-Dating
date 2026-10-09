@@ -2,7 +2,17 @@ import { useEffect, useRef } from 'react';
 import { X, MapPin, Briefcase, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export function ProfileDetailModal({ profile, onClose }: { profile: unknown, onClose: () => void }) {
+type ProfileDetail = {
+  photos?: string[];
+  name: string;
+  age?: number;
+  city?: string;
+  job?: string;
+  education?: string;
+  bio?: string;
+  interests?: string[];
+};
+export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetail | null, onClose: () => void }) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

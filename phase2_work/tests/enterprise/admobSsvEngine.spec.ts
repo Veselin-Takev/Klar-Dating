@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import type { Firestore } from 'firebase-admin/firestore';
 import {
   formatPublicKeyPem,
   getMessageToVerify,
@@ -136,7 +137,7 @@ test('AdMob SSV: Atomic reward processing, quota grant, and replay prevention', 
   params.signature = signer.sign(privateKey, 'base64url');
 
   // 1. First execution: Success, reward +3 contacts granted
-  const res1 = await processAdMobReward(firestore, params, rawQuery + `&signature=${params.signature}&key_id=key_google_1`, keysMap, fixedNow);
+  const res1 = await processAdMobReward(firestore as unknown as Firestore, params, rawQuery + `&signature=${params.signature}&key_id=key_google_1`, keysMap, fixedNow);
   assert.equal(res1.ok, true);
   assert.equal(res1.duplicate, false);
   assert.equal(res1.rewardAmount, 3);
@@ -147,7 +148,7 @@ test('AdMob SSV: Atomic reward processing, quota grant, and replay prevention', 
   assert.ok(store.has('admob_rewards/admob_tx_789012'), 'Reward ledger must record transaction');
 
   // 2. Second execution with identical transaction_id (Replay attack): Idempotent duplicate handled cleanly
-  const res2 = await processAdMobReward(firestore, params, rawQuery + `&signature=${params.signature}&key_id=key_google_1`, keysMap, fixedNow);
+  const res2 = await processAdMobReward(firestore as unknown as Firestore, params, rawQuery + `&signature=${params.signature}&key_id=key_google_1`, keysMap, fixedNow);
   assert.equal(res2.ok, true);
   assert.equal(res2.duplicate, true, 'Duplicate transaction must be flagged as duplicate');
 
@@ -169,7 +170,7 @@ test('AdMob SSV: Outdated timestamp outside 24-hour window is rejected', async (
     key_id: 'key_1',
   };
 
-  const res = await processAdMobReward(firestore, params, undefined, undefined, now);
+  const res = await processAdMobReward(firestore as unknown as Firestore, params, undefined, undefined, now);
   assert.equal(res.ok, false);
   assert.ok(res.error?.includes('acceptable window'));
 });

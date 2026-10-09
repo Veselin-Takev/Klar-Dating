@@ -2,27 +2,126 @@ import { observeFirestoreTransaction } from './observability';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import type {
+  CollectionReference,
+  DocumentReference,
+  DocumentSnapshot,
+  Firestore,
+  Query,
+  QuerySnapshot,
+  Transaction,
+} from 'firebase-admin/firestore';
 
-import type { JsonObject } from '../types/strict';
+type DurableData = Record<string, unknown>;
+
+type DurableDocSnapshot = {
+  id: string;
+  exists: boolean;
+  data: () => unknown;
+  ref: DurableDocRef;
+};
+
+type DurableDocRef = {
+  id: string;
+  path: string;
+  _realDocRef?: DocumentReference | null;
+  get: () => Promise<DurableDocSnapshot | DocumentSnapshot>;
+  set: (data: unknown, options?: unknown) => Promise<void>;
+  create: (data: unknown) => Promise<void>;
+  update: (data: unknown) => Promise<void>;
+  delete: () => Promise<void>;
+  collection: (subCol: string) => DurableCollectionRef;
+};
+
+type DurableQuerySnapshot = {
+  docs: DurableDocSnapshot[];
+  empty: boolean;
+  size: number;
+  forEach: (callback: (doc: DurableDocSnapshot) => void) => void;
+};
+
+type DurableQuery = {
+  _realQuery?: Query | null;
+  where: (field: string, op: string, val: unknown) => DurableQuery;
+  orderBy: (field: string, dir?: 'asc' | 'desc') => DurableQuery;
+  limit: (n: number) => DurableQuery;
+  startAfter: (...args: unknown[]) => DurableQuery;
+  get: () => Promise<DurableQuerySnapshot | QuerySnapshot>;
+};
+
+type DurableCollectionRef = {
+  path: string;
+  doc: (docId?: string) => DurableDocRef;
+  add: (data: unknown) => Promise<DurableDocRef>;
+  get: () => Promise<DurableQuerySnapshot | QuerySnapshot>;
+  where: (field: string, op: string, val: unknown) => DurableQuery;
+  orderBy: (field: string, dir?: 'asc' | 'desc') => DurableQuery;
+  limit: (n: number) => DurableQuery;
+  startAfter: (...args: unknown[]) => DurableQuery;
+};
+
+type DurableDocRefLike = DurableDocRef | DocumentReference;
+type DurableTransactionReadRef = DurableDocRefLike | DurableQuery;
+
+type DurableTransaction = {
+  get: (ref: DurableTransactionReadRef) => Promise<DurableDocSnapshot | DocumentSnapshot | DurableQuerySnapshot | QuerySnapshot>;
+  getAll: (...refs: DurableDocRefLike[]) => Promise<Array<DurableDocSnapshot | DocumentSnapshot>>;
+  set: (ref: DurableDocRefLike, data: unknown, options?: unknown) => DurableTransaction;
+  create: (ref: DurableDocRefLike, data: unknown) => DurableTransaction;
+  update: (ref: DurableDocRefLike, data: unknown) => DurableTransaction;
+  delete: (ref: DurableDocRefLike) => DurableTransaction;
+};
+
+type DurableDbProxy = {
+  terminate: () => Promise<void>;
+  collection: (colPath: string) => DurableCollectionRef;
+  doc: (docPath: string) => DurableDocRef;
+  runTransaction: <T>(updateFunction: (tx: DurableTransaction) => Promise<T>) => Promise<T>;
+  batch: () => {
+    set: (ref: DurableDocRef, data: unknown, options?: unknown) => void;
+    update: (ref: DurableDocRef, data: unknown) => void;
+    delete: (ref: DurableDocRef) => void;
+    commit: () => Promise<void>;
+  };
+  recursiveDelete: (ref: DurableDocRef) => Promise<void>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function property(value: unknown, key: string): unknown {
+  return isRecord(value) ? value[key] : undefined;
+}
+
+function callable(value: unknown, key: string): ((...args: unknown[]) => unknown) | undefined {
+  const member = property(value, key);
+  return typeof member === 'function' ? member.bind(value) : undefined;
+}
+
 export class DurableFirestoreStore {
   private filePath: string;
-  private data: Record<string, JsonObject> = {};
+  private data: Record<string, DurableData> = {};
   private isLoaded = false;
 
   constructor(storageDir = path.resolve(process.cwd(), '.data')) {
-    if (!fs.existsSync(storageDir)) {
-      fs.mkdirSync(storageDir, { recursive: true });
-    }
+    if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
     this.filePath = path.join(storageDir, 'durable-firestore.json');
     this.load();
   }
 
-  private load() {
+  private load(): void {
     if (this.isLoaded) return;
     try {
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, 'utf8');
-        this.data = JSON.parse(raw);
+        const parsed: unknown = JSON.parse(raw);
+        const entries: Array<[string, DurableData]> = isRecord(parsed)
+          ? Object.entries(parsed)
+              .filter(([, value]) => isRecord(value))
+              .map(([key, value]) => [key, value as DurableData])
+          : [];
+        this.data = Object.fromEntries(entries);
       } else {
         this.data = {
           'system/ping': { ok: true, at: new Date().toISOString() },
@@ -36,25 +135,26 @@ export class DurableFirestoreStore {
     this.isLoaded = true;
   }
 
-  private persistImmediate() {
+  private persistImmediate(): void {
     try {
       const tmpPath = `${this.filePath}.${Date.now()}.tmp`;
       fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 2), 'utf8');
       fs.renameSync(tmpPath, this.filePath);
-    } catch (e) {
-      console.warn('Durable store write failed:', e);
+    } catch (error: unknown) {
+      console.warn('Durable store write failed:', error);
     }
   }
 
-  public getDoc(fullPath: string): JsonObject | null {
+  public getDoc(fullPath: string): DurableData | null {
     this.load();
     const doc = this.data[fullPath];
-    return doc ? JSON.parse(JSON.stringify(doc)) : null;
+    return doc ? JSON.parse(JSON.stringify(doc)) as DurableData : null;
   }
 
-  public setDoc(fullPath: string, incoming: JsonObject, merge = false): void {
+  public setDoc(fullPath: string, incoming: unknown, merge = false): void {
     this.load();
     const processed = this.resolveFieldValues(incoming, this.data[fullPath]);
+    if (!isRecord(processed)) throw new Error('Durable Firestore document must be an object.');
     if (merge && this.data[fullPath]) {
       this.data[fullPath] = this.deepMerge(this.data[fullPath], processed);
     } else {
@@ -63,13 +163,12 @@ export class DurableFirestoreStore {
     this.persistImmediate();
   }
 
-  public updateDoc(fullPath: string, updates: JsonObject): void {
+  public updateDoc(fullPath: string, updates: unknown): void {
     this.load();
-    if (!this.data[fullPath]) {
-      this.data[fullPath] = {};
-    }
-    const processed = this.resolveFieldValues(updates, this.data[fullPath]);
-    this.data[fullPath] = this.deepMerge(this.data[fullPath], processed);
+    const current = this.data[fullPath] ?? {};
+    const processed = this.resolveFieldValues(updates, current);
+    if (!isRecord(processed)) throw new Error('Durable Firestore update must be an object.');
+    this.data[fullPath] = this.deepMerge(current, processed);
     this.persistImmediate();
   }
 
@@ -79,19 +178,18 @@ export class DurableFirestoreStore {
     this.persistImmediate();
   }
 
-  public queryCollection(colPrefix: string, filterFn?: (data: JsonObject) => boolean): Array<{ id: string; path: string; data: JsonObject }> {
+  public queryCollection(
+    colPrefix: string,
+    filterFn?: (data: DurableData) => boolean,
+  ): Array<{ id: string; path: string; data: DurableData }> {
     this.load();
-    const results: Array<{ id: string; path: string; data: JsonObject }> = [];
+    const results: Array<{ id: string; path: string; data: DurableData }> = [];
     const prefix = colPrefix.endsWith('/') ? colPrefix : `${colPrefix}/`;
-
     for (const [key, val] of Object.entries(this.data)) {
-      if (key.startsWith(prefix)) {
-        const remaining = key.substring(prefix.length);
-        if (!remaining.includes('/')) {
-          if (!filterFn || filterFn(val)) {
-            results.push({ id: remaining, path: key, data: JSON.parse(JSON.stringify(val)) });
-          }
-        }
+      if (!key.startsWith(prefix)) continue;
+      const remaining = key.substring(prefix.length);
+      if (!remaining.includes('/') && (!filterFn || filterFn(val))) {
+        results.push({ id: remaining, path: key, data: JSON.parse(JSON.stringify(val)) as DurableData });
       }
     }
     return results;
@@ -99,94 +197,108 @@ export class DurableFirestoreStore {
 
   private resolveFieldValues(obj: unknown, existing?: unknown): unknown {
     if (obj === null || obj === undefined) return obj;
-    if (obj instanceof Date) {
-      return { _isTimestamp: true, millis: obj.getTime(), iso: obj.toISOString() };
+    if (obj instanceof Date) return { _isTimestamp: true, millis: obj.getTime(), iso: obj.toISOString() };
+
+    const toMillis = callable(obj, 'toMillis');
+    if (toMillis) {
+      const ms = Number(toMillis());
+      if (Number.isFinite(ms)) return { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
     }
-    if (typeof obj.toMillis === 'function') {
-      const ms = obj.toMillis();
-      return { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
+
+    const toDate = callable(obj, 'toDate');
+    if (toDate) {
+      const date = toDate();
+      if (date instanceof Date) return { _isTimestamp: true, millis: date.getTime(), iso: date.toISOString() };
     }
-    if (typeof obj.toDate === 'function') {
-      const ms = obj.toDate().getTime();
-      return { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
-    }
+
     if (typeof obj !== 'object') return obj;
 
-    // Check for sentinel FieldValues
-    if (obj.constructor && obj.constructor.name === 'FieldValue') {
-      const now = Date.now();
-      return { _isTimestamp: true, millis: now, iso: new Date(now).toISOString() };
-    }
-    if (obj._methodName === 'serverTimestamp') {
+    const constructorName = typeof property(property(obj, 'constructor'), 'name') === 'string'
+      ? String(property(property(obj, 'constructor'), 'name'))
+      : '';
+    const methodName = property(obj, '_methodName') ?? property(obj, 'methodName');
+
+    if (constructorName === 'FieldValue' || constructorName.includes('ServerTimestamp') || methodName === 'serverTimestamp') {
       const now = Date.now();
       return { _isTimestamp: true, millis: now, iso: new Date(now).toISOString() };
     }
 
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.resolveFieldValues(item));
-    }
+    if (Array.isArray(obj)) return obj.map(item => this.resolveFieldValues(item));
 
-    const out: JsonObject = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (v && typeof v === 'object') {
-        if (v instanceof Date) {
-          out[k] = { _isTimestamp: true, millis: v.getTime(), iso: v.toISOString() };
+    if (!isRecord(obj)) return obj;
+    const existingRecord = isRecord(existing) ? existing : undefined;
+    const out: DurableData = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== null && typeof value === 'object') {
+        if (value instanceof Date) {
+          out[key] = { _isTimestamp: true, millis: value.getTime(), iso: value.toISOString() };
           continue;
         }
-        if (typeof (v as unknown).toMillis === 'function') {
-          const ms = (v as unknown).toMillis();
-          out[k] = { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
-          continue;
+
+        const nestedMillis = callable(value, 'toMillis');
+        if (nestedMillis) {
+          const ms = Number(nestedMillis());
+          if (Number.isFinite(ms)) {
+            out[key] = { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
+            continue;
+          }
         }
-        if (typeof (v as unknown).toDate === 'function') {
-          const ms = (v as unknown).toDate().getTime();
-          out[k] = { _isTimestamp: true, millis: ms, iso: new Date(ms).toISOString() };
-          continue;
+
+        const nestedDate = callable(value, 'toDate');
+        if (nestedDate) {
+          const date = nestedDate();
+          if (date instanceof Date) {
+            out[key] = { _isTimestamp: true, millis: date.getTime(), iso: date.toISOString() };
+            continue;
+          }
         }
-        const constrName = v.constructor ? v.constructor.name : '';
-        const methodName = (v as unknown)._methodName || (v as unknown).methodName;
-        if (constrName.includes('ServerTimestamp') || methodName === 'serverTimestamp') {
+
+        const nestedConstructorName = String(property(property(value, 'constructor'), 'name') ?? '');
+        const nestedMethodName = property(value, '_methodName') ?? property(value, 'methodName');
+
+        if (nestedConstructorName.includes('ServerTimestamp') || nestedMethodName === 'serverTimestamp') {
           const now = Date.now();
-          out[k] = { _isTimestamp: true, millis: now, iso: new Date(now).toISOString() };
+          out[key] = { _isTimestamp: true, millis: now, iso: new Date(now).toISOString() };
           continue;
         }
-        if (methodName === 'delete') {
+        if (nestedMethodName === 'delete') continue;
+
+        if (nestedMethodName === 'increment') {
+          const incrementValue = Number(property(value, '_operand') ?? property(value, 'operand') ?? 1);
+          const previousValue = existingRecord?.[key];
+          const previous = typeof previousValue === 'number' ? previousValue : 0;
+          out[key] = previous + (Number.isFinite(incrementValue) ? incrementValue : 1);
           continue;
         }
-        if (methodName === 'increment') {
-          const inc = (v as unknown)._operand || (v as unknown).operand || 1;
-          const prev = typeof existing?.[k] === 'number' ? existing[k] : 0;
-          out[k] = prev + inc;
+
+        if (nestedMethodName === 'arrayUnion') {
+          const rawElements = property(value, '_elements') ?? property(value, 'elements');
+          const elements = Array.isArray(rawElements) ? rawElements : [];
+          const previous = Array.isArray(existingRecord?.[key]) ? existingRecord[key] as unknown[] : [];
+          out[key] = Array.from(new Set([...previous, ...elements]));
           continue;
         }
-        if (methodName === 'arrayUnion') {
-          const elements = (v as unknown)._elements || (v as unknown).elements || [];
-          const prev = Array.isArray(existing?.[k]) ? existing[k] : [];
-          const set = new Set([...prev, ...elements]);
-          out[k] = Array.from(set);
-          continue;
-        }
-        if (methodName === 'arrayRemove') {
-          const elements = (v as unknown)._elements || (v as unknown).elements || [];
-          const prev = Array.isArray(existing?.[k]) ? existing[k] : [];
-          out[k] = prev.filter((item: unknown) => !elements.includes(item));
+
+        if (nestedMethodName === 'arrayRemove') {
+          const rawElements = property(value, '_elements') ?? property(value, 'elements');
+          const elements = Array.isArray(rawElements) ? rawElements : [];
+          const previous = Array.isArray(existingRecord?.[key]) ? existingRecord[key] as unknown[] : [];
+          out[key] = previous.filter(item => !elements.includes(item));
           continue;
         }
       }
-      out[k] = this.resolveFieldValues(v, existing?.[k]);
+      out[key] = this.resolveFieldValues(value, existingRecord?.[key]);
     }
     return out;
   }
 
-  private deepMerge(target: JsonObject, source: JsonObject): JsonObject {
-    const output = { ...target };
+  private deepMerge(target: DurableData, source: DurableData): DurableData {
+    const output: DurableData = { ...target };
     for (const [key, value] of Object.entries(source)) {
-      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-        if (target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
-          output[key] = this.deepMerge(target[key], value);
-        } else {
-          output[key] = value;
-        }
+      if (isRecord(value)) {
+        const targetValue = output[key];
+        output[key] = isRecord(targetValue) ? this.deepMerge(targetValue, value) : value;
       } else {
         output[key] = value;
       }
@@ -199,87 +311,60 @@ export const durableStore = new DurableFirestoreStore();
 
 export function wrapDurableData(data: unknown): unknown {
   if (data === null || data === undefined) return data;
-  if (typeof data !== 'object') return data;
-  if (data._isTimestamp && typeof data.millis === 'number') {
-    const ms = data.millis;
-    return {
-      toDate: () => new Date(ms),
-      toMillis: () => ms,
-      getTime: () => ms,
-      toISOString: () => data.iso || new Date(ms).toISOString(),
-      valueOf: () => ms,
-      toString: () => data.iso || new Date(ms).toISOString(),
-    };
-  }
   if (data instanceof Date) {
     const ms = data.getTime();
-    return {
-      toDate: () => new Date(ms),
-      toMillis: () => ms,
-      getTime: () => ms,
-      toISOString: () => data.toISOString(),
-      valueOf: () => ms,
-      toString: () => data.toISOString(),
-    };
+    return { toDate: () => new Date(ms), toMillis: () => ms, getTime: () => ms, toISOString: () => data.toISOString(), valueOf: () => ms, toString: () => data.toISOString() };
   }
-  if (typeof data.toMillis === 'function') {
-    const ms = data.toMillis();
-    return {
-      toDate: () => new Date(ms),
-      toMillis: () => ms,
-      getTime: () => ms,
-      toISOString: () => new Date(ms).toISOString(),
-      valueOf: () => ms,
-      toString: () => new Date(ms).toISOString(),
-    };
+  if (isRecord(data) && data._isTimestamp === true && typeof data.millis === 'number') {
+    const ms = data.millis;
+    const iso = typeof data.iso === 'string' ? data.iso : new Date(ms).toISOString();
+    return { toDate: () => new Date(ms), toMillis: () => ms, getTime: () => ms, toISOString: () => iso, valueOf: () => ms, toString: () => iso };
+  }
+  const toMillis = callable(data, 'toMillis');
+  if (toMillis) {
+    const ms = Number(toMillis());
+    if (Number.isFinite(ms)) return { toDate: () => new Date(ms), toMillis: () => ms, getTime: () => ms, toISOString: () => new Date(ms).toISOString(), valueOf: () => ms, toString: () => new Date(ms).toISOString() };
   }
   if (Array.isArray(data)) return data.map(wrapDurableData);
-  const out: JsonObject = {};
-  for (const [k, v] of Object.entries(data)) {
-    out[k] = wrapDurableData(v);
-  }
+  if (!isRecord(data)) return data;
+  const out: DurableData = {};
+  for (const [key, value] of Object.entries(data)) out[key] = wrapDurableData(value);
   return out;
 }
 
-export function createDurableDocRef(fullPath: string): unknown {
+export function createDurableDocRef(fullPath: string): DurableDocRef {
   const parts = fullPath.split('/');
-  const docId = parts[parts.length - 1];
-
+  const docId = parts[parts.length - 1] ?? '';
   return {
     id: docId,
     path: fullPath,
     get: async () => {
       const data = durableStore.getDoc(fullPath);
-      return {
-        id: docId,
-        exists: data !== null,
-        data: () => (data ? wrapDurableData(data) : undefined),
-        ref: createDurableDocRef(fullPath),
-      };
+      return { id: docId, exists: data !== null, data: () => (data ? wrapDurableData(data) : undefined), ref: createDurableDocRef(fullPath) };
     },
-    set: async (data: JsonObject, options?: { merge?: boolean }) => {
-      durableStore.setDoc(fullPath, data, options?.merge ?? false);
+    set: async (data: unknown, options?: unknown) => {
+      const merge = isRecord(options) && options.merge === true;
+      durableStore.setDoc(fullPath, data, merge);
     },
-    update: async (data: JsonObject) => {
-      durableStore.updateDoc(fullPath, data);
+    create: async (data: unknown) => {
+      if (durableStore.getDoc(fullPath) !== null) {
+        const error = new Error('Document already exists.') as Error & { code: number };
+        error.code = 6;
+        throw error;
+      }
+      durableStore.setDoc(fullPath, data);
     },
-    delete: async () => {
-      durableStore.deleteDoc(fullPath);
-    },
-    collection: (subCol: string) => {
-      return createDurableCollectionRef(`${fullPath}/${subCol}`);
-    },
+    update: async (data: unknown) => durableStore.updateDoc(fullPath, data),
+    delete: async () => { durableStore.deleteDoc(fullPath); },
+    collection: (subCol: string) => createDurableCollectionRef(`${fullPath}/${subCol}`),
   };
 }
 
-export function createDurableCollectionRef(colPath: string): unknown {
+export function createDurableCollectionRef(colPath: string): DurableCollectionRef {
   return {
     path: colPath,
-    doc: (docId?: string) => {
-      const id = docId || crypto.randomUUID();
-      return createDurableDocRef(`${colPath}/${id}`);
-    },
-    add: async (data: JsonObject) => {
+    doc: (docId?: string) => createDurableDocRef(`${colPath}/${docId || crypto.randomUUID()}`),
+    add: async (data: unknown) => {
       const id = crypto.randomUUID();
       const ref = createDurableDocRef(`${colPath}/${id}`);
       await ref.set(data);
@@ -287,128 +372,111 @@ export function createDurableCollectionRef(colPath: string): unknown {
     },
     get: async () => {
       const docsData = durableStore.queryCollection(colPath);
-      const docs = docsData.map(d => ({
-        id: d.id,
-        exists: true,
-        data: () => wrapDurableData(d.data),
-        ref: createDurableDocRef(d.path),
-      }));
+      const docs = docsData.map(d => ({ id: d.id, exists: true, data: () => wrapDurableData(d.data), ref: createDurableDocRef(d.path) }));
       return {
         docs,
         empty: docs.length === 0,
         size: docs.length,
-        forEach: (callback: (doc: unknown) => void) => docs.forEach(callback),
+        forEach: (callback: (doc: DurableDocSnapshot) => void) => docs.forEach(callback),
       };
     },
-    where: (field: string, op: string, val: unknown) => {
-      return createDurableQuery(colPath, (d) => {
-        const itemVal = d[field];
-        if (op === '==' || op === '===') return itemVal === val;
-        if (op === '!=') return itemVal !== val;
-        if (op === '>') return itemVal > val;
-        if (op === '>=') return itemVal >= val;
-        if (op === '<') return itemVal < val;
-        if (op === '<=') return itemVal <= val;
-        if (op === 'in' && Array.isArray(val)) return val.includes(itemVal);
-        if (op === 'array-contains' && Array.isArray(itemVal)) return itemVal.includes(val);
-        return true;
-      });
-    },
-    orderBy: (field: string, dir?: 'asc' | 'desc') => {
-      return createDurableQuery(colPath, undefined, undefined, field, dir);
-    },
-    limit: (limitCount: number) => {
-      return createDurableQuery(colPath, undefined, limitCount);
-    },
-    startAfter: (cursor: unknown) => {
-      return createDurableQuery(colPath, undefined, undefined, undefined, undefined, cursor);
-    },
+    where: (field, op, val) => createDurableQuery(colPath, d => compare(d[field], op, val)),
+    orderBy: (field, dir = 'asc') => createDurableQuery(colPath, undefined, undefined, field, dir),
+    limit: n => createDurableQuery(colPath, undefined, n),
+    startAfter: (...args) => createDurableQuery(colPath, undefined, undefined, undefined, undefined, args[0]),
   };
+}
+
+function compare(left: unknown, op: string, right: unknown): boolean {
+  if (op === '==' || op === '===') return left === right;
+  if (op === '!=') return left !== right;
+  if (op === '>') return typeof left === 'number' && typeof right === 'number' ? left > right : String(left) > String(right);
+  if (op === '>=') return typeof left === 'number' && typeof right === 'number' ? left >= right : String(left) >= String(right);
+  if (op === '<') return typeof left === 'number' && typeof right === 'number' ? left < right : String(left) < String(right);
+  if (op === '<=') return typeof left === 'number' && typeof right === 'number' ? left <= right : String(left) <= String(right);
+  if (op === 'in' && Array.isArray(right)) return right.includes(left);
+  return op === 'array-contains' && Array.isArray(left) ? left.includes(right) : true;
 }
 
 function createDurableQuery(
   colPath: string,
-  filterFn?: (data: JsonObject) => boolean,
+  filterFn?: (data: DurableData) => boolean,
   limitCount?: number,
   orderField?: string,
   orderDir?: 'asc' | 'desc',
   startAfterCursor?: unknown,
-): unknown {
+): DurableQuery {
   return {
-    where: (field: string, op: string, val: unknown) => {
-      const newFilter = (d: JsonObject) => {
-        if (filterFn && !filterFn(d)) return false;
-        const itemVal = d[field];
-        if (op === '==' || op === '===') return itemVal === val;
-        if (op === '!=') return itemVal !== val;
-        if (op === '>') return itemVal > val;
-        if (op === '>=') return itemVal >= val;
-        if (op === '<') return itemVal < val;
-        if (op === '<=') return itemVal <= val;
-        if (op === 'in' && Array.isArray(val)) return val.includes(itemVal);
-        if (op === 'array-contains' && Array.isArray(itemVal)) return itemVal.includes(val);
-        return true;
-      };
-      return createDurableQuery(colPath, newFilter, limitCount, orderField, orderDir, startAfterCursor);
-    },
-    orderBy: (field: string, dir: 'asc' | 'desc' = 'asc') => {
-      return createDurableQuery(colPath, filterFn, limitCount, field, dir, startAfterCursor);
-    },
-    limit: (n: number) => {
-      return createDurableQuery(colPath, filterFn, n, orderField, orderDir, startAfterCursor);
-    },
-    startAfter: (cursor: unknown) => {
-      return createDurableQuery(colPath, filterFn, limitCount, orderField, orderDir, cursor);
-    },
+    where: (field, op, val) => createDurableQuery(colPath, d => (filterFn ? filterFn(d) : true) && compare(d[field], op, val), limitCount, orderField, orderDir, startAfterCursor),
+    orderBy: (field, dir = 'asc') => createDurableQuery(colPath, filterFn, limitCount, field, dir, startAfterCursor),
+    limit: n => createDurableQuery(colPath, filterFn, n, orderField, orderDir, startAfterCursor),
+    startAfter: (...args) => createDurableQuery(colPath, filterFn, limitCount, orderField, orderDir, args[0]),
     get: async () => {
       let docsData = durableStore.queryCollection(colPath, filterFn);
       if (orderField) {
         docsData.sort((a, b) => {
           const va = a.data[orderField];
           const vb = b.data[orderField];
-          if (va < vb) return orderDir === 'desc' ? 1 : -1;
-          if (va > vb) return orderDir === 'desc' ? -1 : 1;
-          return 0;
+          return compare(va, orderDir === 'desc' ? '>' : '<', vb) ? (orderDir === 'desc' ? -1 : 1) : 0;
         });
       }
-      if (startAfterCursor) {
-        const cursorId = typeof startAfterCursor === 'object' && startAfterCursor !== null && 'id' in startAfterCursor
-          ? startAfterCursor.id
-          : String(startAfterCursor);
+      if (startAfterCursor !== undefined) {
+        const cursorId = isRecord(startAfterCursor) && typeof startAfterCursor.id === 'string' ? startAfterCursor.id : String(startAfterCursor);
         const idx = docsData.findIndex(d => d.id === cursorId);
-        if (idx !== -1) {
-          docsData = docsData.slice(idx + 1);
-        }
+        if (idx !== -1) docsData = docsData.slice(idx + 1);
       }
-      if (typeof limitCount === 'number' && limitCount >= 0) {
-        docsData = docsData.slice(0, limitCount);
-      }
-      const docs = docsData.map(d => ({
-        id: d.id,
-        exists: true,
-        data: () => wrapDurableData(d.data),
-        ref: createDurableDocRef(d.path),
-      }));
+      if (typeof limitCount === 'number' && limitCount >= 0) docsData = docsData.slice(0, limitCount);
+      const docs = docsData.map(d => ({ id: d.id, exists: true, data: () => wrapDurableData(d.data), ref: createDurableDocRef(d.path) }));
       return {
         docs,
         empty: docs.length === 0,
         size: docs.length,
-        forEach: (callback: (doc: unknown) => void) => docs.forEach(callback),
+        forEach: (callback: (doc: DurableDocSnapshot) => void) => docs.forEach(callback),
       };
     },
   };
 }
 
-let txQueue: Promise<unknown> = Promise.resolve();
+function isWrappedDurableDocRef(value: DurableDocRefLike): value is DurableDocRef {
+  return isRecord(value) && typeof property(value, 'path') === 'string' && '_realDocRef' in value;
+}
 
-export function createDurableDbProxy(realDb: unknown): unknown {
+function toDurableDocRef(value: DurableDocRefLike): DurableDocRef {
+  return isWrappedDurableDocRef(value) ? value : createDurableDocRef(value.path);
+}
+
+function realDocRef(value: DurableDocRefLike): DocumentReference | null {
+  if (isWrappedDurableDocRef(value)) return value._realDocRef ?? null;
+  if (
+    typeof value.id === 'string' &&
+    typeof value.path === 'string' &&
+    typeof value.get === 'function' &&
+    typeof value.set === 'function' &&
+    typeof value.update === 'function' &&
+    typeof value.delete === 'function' &&
+    typeof value.collection === 'function'
+  ) {
+    return value as DocumentReference;
+  }
+  return null;
+}
+
+function realErrorCode(error: unknown): unknown {
+  return property(error, 'code') ?? (typeof property(error, 'status') === 'number' ? property(error, 'status') : undefined);
+}
+
+function realErrorMessage(error: unknown): string {
+  return String(property(error, 'message') ?? property(error, 'details') ?? '');
+}
+
+export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
   const allowFallback = process.env.NODE_ENV === 'development' && process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true';
   let fallbackActive = !realDb && allowFallback;
+  let termination: Promise<void> | undefined;
 
-  const isPermissionDenied = (err: unknown) => {
-    if (!err) return false;
-    const code = err.code ?? (typeof err.status === 'number' ? err.status : undefined);
-    const msg = String(err.message || err.details || '');
+  const isPermissionDenied = (error: unknown): boolean => {
+    const code = realErrorCode(error);
+    const msg = realErrorMessage(error);
     return code === 7 || code === 403 || code === 16 || code === 14 || code === 4 || code === 5 ||
       msg.includes('PERMISSION_DENIED') || msg.includes('Missing or insufficient permissions') ||
       msg.includes('credentials') || msg.includes('UNAUTHENTICATED') || msg.includes('UNAVAILABLE') ||
@@ -416,312 +484,332 @@ export function createDurableDbProxy(realDb: unknown): unknown {
       msg.includes('NOT_FOUND') || msg.includes('network') || msg.includes('timed out');
   };
 
-  const wrapDocRef = (realDocRef: unknown, fullPath: string): unknown => {
+  const wrapDocRef = (realRef: DocumentReference | null, fullPath: string): DurableDocRef => {
     const durableDoc = createDurableDocRef(fullPath);
     return {
-      _realDocRef: realDocRef,
-      id: durableDoc.id,
-      path: fullPath,
+      ...durableDoc,
+      _realDocRef: realRef,
       get: async () => {
-        if (!fallbackActive && realDocRef) {
+        if (!fallbackActive && realRef) {
           try {
-            return await realDocRef.get();
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+            return await realRef.get();
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
               return durableDoc.get();
             }
-            throw e;
+            throw error;
           }
         }
         return durableDoc.get();
       },
-      set: async (data: unknown, options?: unknown) => {
-        if (!fallbackActive && realDocRef) {
+      set: async (data, options) => {
+        if (!fallbackActive && realRef) {
           try {
-            await realDocRef.set(data, options);
-            durableDoc.set(data, options).catch(() => {});
+            await realRef.set(data as never, options as never);
+            void durableDoc.set(data, options).catch(() => {});
             return;
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
-              return durableDoc.set(data, options);
+              await durableDoc.set(data, options);
+              return;
             }
-            throw e;
+            throw error;
           }
         }
-        return durableDoc.set(data, options);
+        await durableDoc.set(data, options);
       },
-      update: async (data: unknown) => {
-        if (!fallbackActive && realDocRef) {
+      create: async data => {
+        if (!fallbackActive && realRef) {
           try {
-            await realDocRef.update(data);
-            durableDoc.update(data).catch(() => {});
+            await realRef.create(data as never);
+            void durableDoc.create(data).catch(() => {});
             return;
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
-              return durableDoc.update(data);
+              await durableDoc.create(data);
+              return;
             }
-            throw e;
+            throw error;
           }
         }
-        return durableDoc.update(data);
+        await durableDoc.create(data);
+      },
+      update: async data => {
+        if (!fallbackActive && realRef) {
+          try {
+            await realRef.update(data as never);
+            void durableDoc.update(data).catch(() => {});
+            return;
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
+              fallbackActive = true;
+              await durableDoc.update(data);
+              return;
+            }
+            throw error;
+          }
+        }
+        await durableDoc.update(data);
       },
       delete: async () => {
-        if (!fallbackActive && realDocRef) {
+        if (!fallbackActive && realRef) {
           try {
-            await realDocRef.delete();
-            durableDoc.delete().catch(() => {});
+            await realRef.delete();
+            void durableDoc.delete().catch(() => {});
             return;
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
-              return durableDoc.delete();
+              await durableDoc.delete();
+              return;
             }
-            throw e;
+            throw error;
           }
         }
-        return durableDoc.delete();
+        await durableDoc.delete();
       },
-      collection: (subCol: string) => wrapColRef(realDocRef ? realDocRef.collection(subCol) : null, `${fullPath}/${subCol}`),
+      collection: subCol => wrapColRef(realRef ? realRef.collection(subCol) : null, `${fullPath}/${subCol}`),
     };
   };
 
-  const wrapColRef = (realColRef: unknown, colPath: string): unknown => {
+  const wrapQuery = (realQuery: Query | null, durableQuery: DurableQuery): DurableQuery => ({
+    _realQuery: realQuery,
+    where: (field, op, val) => wrapQuery(realQuery ? realQuery.where(field, op as never, val) : null, durableQuery.where(field, op, val)),
+    orderBy: (field, dir = 'asc') => wrapQuery(realQuery ? realQuery.orderBy(field, dir) : null, durableQuery.orderBy(field, dir)),
+    limit: n => wrapQuery(realQuery ? realQuery.limit(n) : null, durableQuery.limit(n)),
+    startAfter: (...args) => {
+      if (realQuery) {
+        try {
+          const startAfter = (realQuery.startAfter as unknown as (...values: unknown[]) => Query)(...args);
+          return wrapQuery(startAfter, durableQuery.startAfter(...args));
+        } catch {
+          // The durable query remains the deterministic fallback cursor implementation.
+        }
+      }
+      return wrapQuery(null, durableQuery.startAfter(...args));
+    },
+    get: async () => {
+      if (!fallbackActive && realQuery) {
+        try {
+          return await realQuery.get();
+        } catch (error: unknown) {
+          if (allowFallback && isPermissionDenied(error)) {
+            fallbackActive = true;
+            return durableQuery.get();
+          }
+          throw error;
+        }
+      }
+      return durableQuery.get();
+    },
+  });
+
+  const isWrappedDurableQuery = (value: unknown): value is DurableQuery => isRecord(value) && '_realQuery' in value && typeof property(value, 'get') === 'function';
+
+  const wrapColRef = (realRef: CollectionReference | null, colPath: string): DurableCollectionRef => {
     const durableCol = createDurableCollectionRef(colPath);
-
-    const wrapQuery = (realQ: unknown, durableQ: unknown): unknown => ({
-      where: (f: string, o: string, v: unknown) =>
-        wrapQuery(realQ ? realQ.where(f, o, v) : null, durableQ.where(f, o, v)),
-      orderBy: (f: string, d?: unknown) =>
-        wrapQuery(realQ ? realQ.orderBy(f, d) : null, durableQ.orderBy(f, d)),
-      limit: (n: number) =>
-        wrapQuery(realQ ? realQ.limit(n) : null, durableQ.limit(n)),
-      startAfter: (...args: unknown[]) => {
-        let nextRealQ: unknown = null;
-        if (realQ && typeof realQ.startAfter === 'function') {
-          try {
-            nextRealQ = realQ.startAfter(...args);
-          } catch {
-            nextRealQ = null;
-          }
-        }
-        return wrapQuery(nextRealQ, durableQ.startAfter(...args));
-      },
-      get: async () => {
-        if (!fallbackActive && realQ) {
-          try {
-            return await realQ.get();
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
-              fallbackActive = true;
-              return durableQ.get();
-            }
-            throw e;
-          }
-        }
-        return durableQ.get();
-      },
-    });
-
     return {
       path: colPath,
-      doc: (docId?: string) => {
+      doc: docId => {
         const id = docId || crypto.randomUUID();
-        return wrapDocRef(realColRef ? realColRef.doc(id) : null, `${colPath}/${id}`);
+        return wrapDocRef(realRef ? realRef.doc(id) : null, `${colPath}/${id}`);
       },
-      add: async (data: unknown) => {
-        if (!fallbackActive && realColRef) {
+      add: async data => {
+        if (!fallbackActive && realRef) {
           try {
-            const res = await realColRef.add(data);
-            durableCol.doc(res.id).set(data).catch(() => {});
+            const res = await realRef.add(data as never);
+            void durableCol.doc(res.id).set(data).catch(() => {});
             return wrapDocRef(res, `${colPath}/${res.id}`);
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
               return durableCol.add(data);
             }
-            throw e;
+            throw error;
           }
         }
         return durableCol.add(data);
       },
       get: async () => {
-        if (!fallbackActive && realColRef) {
+        if (!fallbackActive && realRef) {
           try {
-            return await realColRef.get();
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
+            return await realRef.get();
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
               fallbackActive = true;
               return durableCol.get();
             }
-            throw e;
+            throw error;
           }
         }
         return durableCol.get();
       },
-      where: (field: string, op: string, val: unknown) =>
-        wrapQuery(realColRef ? realColRef.where(field, op, val) : null, durableCol.where(field, op, val)),
-      orderBy: (field: string, dir?: unknown) =>
-        wrapQuery(realColRef ? realColRef.orderBy(field, dir) : null, durableCol.orderBy(field, dir)),
-      limit: (n: number) =>
-        wrapQuery(realColRef ? realColRef.limit(n) : null, durableCol.limit(n)),
-      startAfter: (...args: unknown[]) =>
-        wrapQuery(realColRef && typeof realColRef.startAfter === 'function' ? realColRef.startAfter(...args) : null, durableCol.startAfter(...args)),
+      where: (field, op, val) => wrapQuery(realRef ? realRef.where(field, op as never, val) : null, durableCol.where(field, op, val)),
+      orderBy: (field, dir = 'asc') => wrapQuery(realRef ? realRef.orderBy(field, dir) : null, durableCol.orderBy(field, dir)),
+      limit: n => wrapQuery(realRef ? realRef.limit(n) : null, durableCol.limit(n)),
+      startAfter: (...args) => {
+        if (realRef) {
+          try {
+            const startAfter = (realRef.startAfter as unknown as (...values: unknown[]) => Query)(...args);
+            return wrapQuery(startAfter, durableCol.startAfter(...args));
+          } catch {
+            // Fall through to durable cursor.
+          }
+        }
+        return wrapQuery(null, durableCol.startAfter(...args));
+      },
     };
   };
 
   return {
-    collection: (colPath: string) => wrapColRef(realDb ? realDb.collection(colPath) : null, colPath),
-    doc: (docPath: string) => {
+    collection: colPath => wrapColRef(realDb ? realDb.collection(colPath) : null, colPath),
+    doc: docPath => {
       const lastSlash = docPath.lastIndexOf('/');
-      if (lastSlash === -1) {
-        throw new Error(`Invalid docPath: ${docPath}`);
-      }
+      if (lastSlash === -1 || lastSlash === docPath.length - 1) throw new Error(`Invalid docPath: ${docPath}`);
       const colPath = docPath.slice(0, lastSlash);
       const docId = docPath.slice(lastSlash + 1);
       return wrapColRef(realDb ? realDb.collection(colPath) : null, colPath).doc(docId);
     },
-    runTransaction: async (updateFunction: (tx: unknown) => Promise<unknown>) => {
-      const execute = async () => {
+    runTransaction: async <T>(updateFunction: (tx: DurableTransaction) => Promise<T>): Promise<T> => {
+      const execute = async (): Promise<T> => {
         if (!fallbackActive && realDb) {
           try {
-            return await realDb.runTransaction(async (realTx: unknown) => {
-              const wrappedTx = {
-                get: async (ref: unknown) => {
-                  const unwrapped = ref?._realDocRef || ref;
-                  return await realTx.get(unwrapped);
-                },
-                getAll: async (...refs: unknown[]) => {
-                  const unwrapped = refs.map((ref: unknown) => ref?._realDocRef || ref);
-                  if (typeof realTx.getAll === 'function') {
-                    return await realTx.getAll(...unwrapped);
-                  }
-                  return await Promise.all(unwrapped.map((r: unknown) => realTx.get(r)));
-                },
-                set: (ref: unknown, data: unknown, options?: unknown) => {
-                  const unwrapped = ref?._realDocRef || ref;
-                  realTx.set(unwrapped, data, options);
-                  if (ref?.path) {
-                    createDurableDocRef(ref.path).set(data, options).catch(() => {});
-                  }
+            let committedMirrorWrites: Array<() => Promise<void>> = [];
+            const result = await realDb.runTransaction(async (realTx: Transaction) => {
+              const mirrorWrites: Array<() => Promise<void>> = [];
+              const unwrap = (ref: DurableDocRefLike): DocumentReference => {
+                const actual = realDocRef(ref);
+                if (!actual) throw new Error('Durable transaction reference is not backed by Firestore.');
+                return actual;
+              };
+              const unwrapRead = (ref: DurableTransactionReadRef): DocumentReference | Query => {
+                if (isWrappedDurableQuery(ref)) {
+                  if (!ref._realQuery) throw new Error('Durable transaction query is not backed by Firestore.');
+                  return ref._realQuery;
+                }
+                return unwrap(ref);
+              };
+              const wrappedTx: DurableTransaction = {
+                get: async ref => realTx.get(unwrapRead(ref) as never) as unknown as Promise<DurableDocSnapshot | DocumentSnapshot | DurableQuerySnapshot | QuerySnapshot>,
+                getAll: async (...refs) => realTx.getAll(...refs.map(unwrap)),
+                set: (ref, data, options) => {
+                  const actual = unwrap(ref);
+                  realTx.set(actual, data as never, options as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).set(data, options));
                   return wrappedTx;
                 },
-                create: (ref: unknown, data: unknown) => {
-                  const unwrapped = ref?._realDocRef || ref;
-                  realTx.create(unwrapped, data);
-                  if (ref?.path) {
-                    createDurableDocRef(ref.path).set(data).catch(() => {});
-                  }
+                create: (ref, data) => {
+                  const actual = unwrap(ref);
+                  realTx.create(actual, data as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).create(data));
                   return wrappedTx;
                 },
-                update: (ref: unknown, data: unknown) => {
-                  const unwrapped = ref?._realDocRef || ref;
-                  realTx.update(unwrapped, data);
-                  if (ref?.path) {
-                    createDurableDocRef(ref.path).update(data).catch(() => {});
-                  }
+                update: (ref, data) => {
+                  const actual = unwrap(ref);
+                  realTx.update(actual, data as never);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).update(data));
                   return wrappedTx;
                 },
-                delete: (ref: unknown) => {
-                  const unwrapped = ref?._realDocRef || ref;
-                  realTx.delete(unwrapped);
-                  if (ref?.path) {
-                    createDurableDocRef(ref.path).delete().catch(() => {});
-                  }
+                delete: ref => {
+                  const actual = unwrap(ref);
+                  realTx.delete(actual);
+                  mirrorWrites.push(() => createDurableDocRef(actual.path).delete());
                   return wrappedTx;
                 },
               };
-              return await updateFunction(wrappedTx);
+              const value = await updateFunction(wrappedTx);
+              committedMirrorWrites = mirrorWrites;
+              return value;
             });
-          } catch (e: unknown) {
-            if (allowFallback && isPermissionDenied(e)) {
-              fallbackActive = true;
-            } else {
-              throw e;
-            }
+            await Promise.allSettled(committedMirrorWrites.map(write => write()));
+            return result;
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) fallbackActive = true;
+            else throw error;
           }
         }
+
         const stagedWrites: Array<() => Promise<void>> = [];
-        const tx = {
-          get: async (ref: unknown) => ref.get(),
-          getAll: async (...refs: unknown[]) => {
-            return await Promise.all(refs.map((r: unknown) => tx.get(r)));
-          },
-          set: (ref: unknown, data: unknown, options?: unknown) => {
-            stagedWrites.push(() => ref.set(data, options));
+        const tx: DurableTransaction = {
+          get: ref => isWrappedDurableQuery(ref) ? ref.get() as Promise<DurableQuerySnapshot> : toDurableDocRef(ref).get(),
+          getAll: async (...refs) => Promise.all(refs.map(ref => toDurableDocRef(ref).get())),
+          set: (ref, data, options) => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.set(data, options); });
             return tx;
           },
-          create: (ref: unknown, data: unknown) => {
-            stagedWrites.push(() => ref.set(data));
+          create: (ref, data) => {
+            const durableRef = toDurableDocRef(ref);
+            if (durableStore.getDoc(durableRef.path) !== null) {
+              const error = new Error('Document already exists.') as Error & { code: number };
+              error.code = 6;
+              throw error;
+            }
+            stagedWrites.push(async () => { await durableRef.create(data); });
             return tx;
           },
-          update: (ref: unknown, data: unknown) => {
-            stagedWrites.push(() => ref.update(data));
+          update: (ref, data) => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.update(data); });
             return tx;
           },
-          delete: (ref: unknown) => {
-            stagedWrites.push(() => ref.delete());
+          delete: ref => {
+            const durableRef = toDurableDocRef(ref);
+            stagedWrites.push(async () => { await durableRef.delete(); });
             return tx;
           },
         };
         const result = await updateFunction(tx);
-        for (const write of stagedWrites) {
-          await write();
-        }
+        for (const write of stagedWrites) await write();
         return result;
       };
 
-      const prev = txQueue;
-      let resolveNext: (val?: unknown) => void;
-      txQueue = new Promise((resolve) => {
-        resolveNext = resolve;
-      });
-
+      const previous = txQueue;
+      let resolveNext!: () => void;
+      txQueue = new Promise<void>(resolve => { resolveNext = resolve; });
       try {
-        await prev;
+        await previous;
         return await observeFirestoreTransaction('runTransaction', execute);
       } finally {
-        resolveNext!();
+        resolveNext();
       }
     },
     batch: () => {
       const operations: Array<() => Promise<void>> = [];
-      return {
-        set: (ref: unknown, data: unknown, options?: unknown) => {
-          operations.push(() => ref.set(data, options));
-        },
-        update: (ref: unknown, data: unknown) => {
-          operations.push(() => ref.update(data));
-        },
-        delete: (ref: unknown) => {
-          operations.push(() => ref.delete());
-        },
-        commit: async () => {
-          for (const op of operations) {
-            await op();
-          }
-        },
+      const batch: {
+        set: (ref: DurableDocRef, data: unknown, options?: unknown) => void;
+        update: (ref: DurableDocRef, data: unknown) => void;
+        delete: (ref: DurableDocRef) => void;
+        commit: () => Promise<void>;
+      } = {
+        set: (ref, data, options) => { operations.push(() => ref.set(data, options)); },
+        update: (ref, data) => { operations.push(() => ref.update(data)); },
+        delete: ref => { operations.push(() => ref.delete()); },
+        commit: async () => { for (const operation of operations) await operation(); },
       };
+      return batch;
     },
-    recursiveDelete: async (ref: unknown) => {
-      const unwrapped = ref?._realDocRef || ref;
-      if (!fallbackActive && realDb && typeof realDb.recursiveDelete === 'function' && unwrapped && typeof unwrapped.get === 'function') {
+    terminate: () => termination ??= (async () => {
+      await txQueue;
+      await realDb?.terminate();
+    })(),
+    recursiveDelete: async ref => {
+      const actual = realDocRef(ref);
+      if (!fallbackActive && realDb && actual && typeof realDb.recursiveDelete === 'function') {
         try {
-          return await realDb.recursiveDelete(unwrapped);
-        } catch (e: unknown) {
-          if (allowFallback && isPermissionDenied(e)) {
-            fallbackActive = true;
-          } else {
-            throw e;
-          }
+          await realDb.recursiveDelete(actual);
+          return;
+        } catch (error: unknown) {
+          if (allowFallback && isPermissionDenied(error)) fallbackActive = true;
+          else throw error;
         }
       }
-      const targetPath = ref?.path;
-      if (targetPath) {
-        durableStore.deleteDoc(targetPath);
-      }
+      durableStore.deleteDoc(ref.path);
     },
   };
 }
+
+let txQueue: Promise<void> = Promise.resolve();

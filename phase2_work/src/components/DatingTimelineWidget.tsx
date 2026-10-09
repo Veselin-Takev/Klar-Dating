@@ -11,6 +11,19 @@ import jsPDF from "jspdf";
 import { NotificationService } from "../services/notificationService";
 import { melde } from "../lib/fehler";
 
+type SpeechRecognitionEventLike = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 type DateEntry = {
   id: number;
   date: string;
@@ -107,7 +120,8 @@ export function DatingTimelineWidget() {
   };
 
   const startRecording = () => {
-    const SpeechRecognition = (window as unknown).SpeechRecognition || (window as unknown).webkitSpeechRecognition;
+    const SpeechRecognition = (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition
+      || (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Spracherkennung wird in diesem Browser nicht unterstützt.");
       return;
@@ -120,8 +134,10 @@ export function DatingTimelineWidget() {
       setIsRecording(true);
           };
 
-    recognition.onresult = async (event: unknown) => {
-      const transcript = event.results[0][0].transcript;
+    recognition.onresult = async (event: SpeechRecognitionEventLike) => {
+      const result = event.results[0]?.[0];
+      if (!result || typeof result.transcript !== 'string') return;
+      const transcript = result.transcript;
       setIsRecording(false);
 
       setNewEntry(prev => ({ ...prev, learning: "Zusammenfassung wird erstellt..." }));

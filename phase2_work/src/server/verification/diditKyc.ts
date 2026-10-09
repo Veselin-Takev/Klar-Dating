@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Router, text, type Request } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
@@ -369,14 +369,20 @@ async function distributedKycStartRateLimit(deps: KycDependencies, req: Request,
 export function createKycRouter(deps: KycDependencies) {
   const router = Router();
   const kycStartLimiter = (req: Request, res: import('express').Response, next: () => void) => distributedKycStartRateLimit(deps, req, res, next);
+  const requireRecentKycAuthentication = (req: Request, res: import('express').Response, next: () => void) => {
+    const user = actor(req);
+    if (!user || user.firebase?.sign_in_provider === 'anonymous') return res.status(401).json({ code: 'account_required' });
+    if (!hasRecentAuthentication(user.auth_time)) return res.status(401).json({ code: 'recent_login_required', error: 'Bitte vor der Identitätsprüfung erneut anmelden.' });
+    return next();
+  };
   const kycStatusReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 30,
-    keyGenerator: (req) => actor(req)?.uid ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => actor(req)?.uid ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele KYC-Statusabfragen. Bitte kurz warten.' },
   });
-  router.post('/start', kycStartLimiter, async (req, res) => {
+  router.post('/start', requireRecentKycAuthentication, kycStartLimiter, async (req, res) => {
     const user = actor(req);
     if (!user || user.firebase?.sign_in_provider === 'anonymous') return res.status(401).json({ code: 'account_required' });
     if (!hasRecentAuthentication(user.auth_time)) return res.status(401).json({ code: 'recent_login_required', error: 'Bitte vor der Identitätsprüfung erneut anmelden.' });

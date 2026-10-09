@@ -46,47 +46,51 @@ class PerformanceMetrics {
 
 export const perfTracker = new PerformanceMetrics();
 
-// Safe auto-instrumentation of Firestore reads in client runtime
+// Safe auto-instrumentation of Firestore reads in client runtime.
 if (typeof window !== 'undefined') {
-  import('firebase/firestore').then((firestoreModule: unknown) => {
+  type InstrumentableFn = ((...args: never[]) => Promise<unknown>) & { __instrumented?: boolean };
+  type InstrumentableModule = {
+    getDoc: InstrumentableFn;
+    getDocs: InstrumentableFn;
+    onSnapshot: ((...args: never[]) => unknown) & { __instrumented?: boolean };
+  };
+
+  import('firebase/firestore').then((module) => {
+    const firestoreModule = module as unknown as InstrumentableModule;
     try {
       const origGetDoc = firestoreModule.getDoc;
-      if (origGetDoc && !origGetDoc.__instrumented) {
-        const wrappedGetDoc = async function (this: unknown, ...args: unknown[]) {
+      if (!origGetDoc.__instrumented) {
+        const wrappedGetDoc = async (...args: never[]) => {
           perfTracker.incrementFirestoreReads(1);
-          return origGetDoc.apply(this, args);
+          return origGetDoc(...args);
         };
         wrappedGetDoc.__instrumented = true;
-        try {
-          firestoreModule.getDoc = wrappedGetDoc;
-        } catch {}
+        try { firestoreModule.getDoc = wrappedGetDoc; } catch {}
       }
 
       const origGetDocs = firestoreModule.getDocs;
-      if (origGetDocs && !origGetDocs.__instrumented) {
-        const wrappedGetDocs = async function (this: unknown, ...args: unknown[]) {
-          const res = await origGetDocs.apply(this, args);
-          perfTracker.incrementFirestoreReads(res?.size || 1);
-          return res;
+      if (!origGetDocs.__instrumented) {
+        const wrappedGetDocs = async (...args: never[]) => {
+          const result = await origGetDocs(...args);
+          const size = typeof result === 'object' && result !== null && 'size' in result && typeof result.size === 'number'
+            ? result.size
+            : 1;
+          perfTracker.incrementFirestoreReads(size || 1);
+          return result;
         };
         wrappedGetDocs.__instrumented = true;
-        try {
-          firestoreModule.getDocs = wrappedGetDocs;
-        } catch {}
+        try { firestoreModule.getDocs = wrappedGetDocs; } catch {}
       }
 
       const origOnSnapshot = firestoreModule.onSnapshot;
-      if (origOnSnapshot && !origOnSnapshot.__instrumented) {
-        const wrappedOnSnapshot = function (this: unknown, ...args: unknown[]) {
+      if (!origOnSnapshot.__instrumented) {
+        const wrappedOnSnapshot = (...args: never[]) => {
           perfTracker.incrementFirestoreReads(1);
-          return origOnSnapshot.apply(this, args);
+          return origOnSnapshot(...args);
         };
         wrappedOnSnapshot.__instrumented = true;
-        try {
-          firestoreModule.onSnapshot = wrappedOnSnapshot;
-        } catch {}
+        try { firestoreModule.onSnapshot = wrappedOnSnapshot; } catch {}
       }
     } catch {}
   }).catch(() => {});
 }
-

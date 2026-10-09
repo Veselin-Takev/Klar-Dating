@@ -1,3 +1,5 @@
+import type { Profile } from '../data';
+
 /**
  * Smart Match Service Implementierung (Synchron für UI-State)
  */
@@ -9,6 +11,6 @@ export function saveSmartMatchSettings(_userId?: string, _enabled?: boolean): vo
   // no-op persistence stub
 }
 
-export function checkNewProfilesForSmartMatches(_profiles?: unknown, _userId?: unknown, _interests?: unknown, _notified?: unknown): unknown[] {
+export function checkNewProfilesForSmartMatches(_profiles?: Profile[], _interests?: string[], _notified?: Set<string>): Profile[] {
   return [];
 }

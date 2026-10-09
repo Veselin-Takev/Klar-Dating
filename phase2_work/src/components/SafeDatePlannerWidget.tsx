@@ -22,17 +22,26 @@ export function SafeDatePlannerWidget() {
   useEffect(() => {
     const saved = klarStorage.getItem('klar_safe_timer');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.endTime > Date.now()) {
-        setActiveTimer(parsed);
-      } else {
+      try {
+        const parsed: unknown = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const value = parsed as Record<string, unknown>;
+          if (typeof value.endTime === 'number' && (value.type === 'arrival' || value.type === 'home') && typeof value.person === 'string') {
+            if (value.endTime > Date.now()) setActiveTimer({ endTime: value.endTime, type: value.type, person: value.person });
+            else klarStorage.removeItem('klar_safe_timer');
+          } else {
+            klarStorage.removeItem('klar_safe_timer');
+          }
+        }
+      } catch {
         klarStorage.removeItem('klar_safe_timer');
       }
+      /* legacy state handled above */
     }
   }, []);
 
   useEffect(() => {
-    let interval: unknown;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (activeTimer) {
       interval = setInterval(() => {
         const now = Date.now();

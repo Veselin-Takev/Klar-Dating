@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 // ═══════════════════════════════════════════════════════════════════════════
 // Client-Seite der Kernmechanik. Alle Zustände kommen vom Server —
 // nichts davon wird im klarStorage gespiegelt. Ein zwischengespeicherter

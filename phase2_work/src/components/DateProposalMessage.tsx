@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { CalendarDays, Clock, CheckCheck, Bell } from "lucide-react";
 
+interface DateProposalDetails { title: string; description: string; time: string }
+interface DateProposalMessageData { role: string; proposalDetails: DateProposalDetails; isRead?: boolean }
 interface DateProposalMessageProps {
-  msg: unknown;
+  msg: DateProposalMessageData;
   profileName: string;
 }
 

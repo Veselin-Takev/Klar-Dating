@@ -29,7 +29,7 @@ export function ReflectionLogWidget() {
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [voiceRecognition, setVoiceRecognition] = useState<unknown>(null);
+  const [voiceRecognition, setVoiceRecognition] = useState<{ stop: () => void; start: () => void } | null>(null);
 
   useEffect(() => {
     interface SpeechRecognitionResultEventLike {
@@ -61,7 +61,9 @@ export function ReflectionLogWidget() {
       recognition.lang = 'de-DE';
 
       recognition.onresult = async (event: SpeechRecognitionResultEventLike) => {
-        const transcript = event.results[0][0].transcript;
+        const result = event.results[0]?.[0];
+        if (!result || typeof result.transcript !== 'string') return;
+        const transcript = result.transcript;
         setIsRecording(false);
         await processVoiceInput(transcript);
       };

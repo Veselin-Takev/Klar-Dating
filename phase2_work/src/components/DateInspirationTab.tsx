@@ -34,7 +34,8 @@ import { auth } from '../lib/firebase';
 export const DateInspirationTab: React.FC<{ userInterests?: string[], userCoords?: {lat: number, lng: number} | null }> = ({ userInterests = [], userCoords }) => {
   const [uiError, setUiError] = useState<string | null>(null);
 
-  const [ideas, setIdeas] = useState<unknown[]>([]);
+  type DateIdea = { title: string; description: string; category: string; whyItWorks: string };
+  const [ideas, setIdeas] = useState<DateIdea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [city, setCity] = useState<string>("Deinem Standort");
 
@@ -51,7 +52,8 @@ export const DateInspirationTab: React.FC<{ userInterests?: string[], userCoords
       if (!interestsToUse || interestsToUse.length === 0) {
         const saved = getUserStorageItem('userInterests');
         if (saved) {
-           try { interestsToUse = JSON.parse(saved); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+           try { const parsed: unknown = JSON.parse(saved);
+           interestsToUse = Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []; } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
         }
       }
 
@@ -66,17 +68,17 @@ export const DateInspirationTab: React.FC<{ userInterests?: string[], userCoords
       });
       if (!res.ok) throw new Error("API failed");
       const data = await res.text().then(text => text ? JSON.parse(text) : {});
-      setIdeas(data.ideas || []);
+      const rawIdeas: unknown = data?.ideas;
+      const parsedIdeas: DateIdea[] = Array.isArray(rawIdeas) ? rawIdeas.filter((item): item is DateIdea => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+        const value = item as Record<string, unknown>;
+        return typeof value.title === 'string' && typeof value.description === 'string' && typeof value.category === 'string' && typeof value.whyItWorks === 'string';
+      }) : [];
+      setIdeas(parsedIdeas);
     } catch (err) {
       console.error("Failed to load date inspiration", err);
-      setIdeas([
-        {
-          title: "Kaffee & Spaziergang",
-          description: "Ein klassisches Date, das immer funktioniert. Holt euch einen Kaffee und geht durch den Park.",
-          category: "Casual",
-          whyItWorks: "Bietet eine entspannte Atmosphäre zum Reden."
-        }
-      ]);
+      setIdeas([]);
+      setUiError('Date-Ideen konnten nicht geladen werden.');
     } finally {
       setIsLoading(false);
     }

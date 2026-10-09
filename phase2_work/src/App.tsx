@@ -105,7 +105,7 @@ const SafetySkeleton = () => (
   </div>
 );
 
-export const LazyRoute = ({ component: Component, fallback }: { component: React.ComponentType<unknown>, fallback?: React.ReactNode }) => (
+export const LazyRoute = ({ component: Component, fallback }: { component: React.ComponentType, fallback?: React.ReactNode }) => (
   <ErrorBoundary>
     <Suspense fallback={fallback || <Ladepunkt />}>
       <PageWrapper>

@@ -143,7 +143,7 @@ export class InMemoryFirestore {
 
   doc(docPath: string): MemoryDocumentReference {
     const parts = docPath.replace(/^\/+|\/+$/g, '').split('/');
-    const docId = parts[parts.length - 1];
+    const docId = parts[parts.length - 1] ?? '';
     const colPath = parts.slice(0, -1).join('/');
 
     return {

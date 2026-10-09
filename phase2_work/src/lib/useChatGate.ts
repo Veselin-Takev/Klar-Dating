@@ -14,16 +14,26 @@ export function useChatGate(chatId: string | undefined, uid: string | undefined)
     const current = ++generation.current;
     const controller = new AbortController();
     setSubmitting(false);
-    setState({ key, status: 'lade', data: null, error: null });
     if (!chatId || !uid) {
       setState({ key, status: 'fehler', data: null, error: 'Das Gespräch konnte nicht bestätigt werden.' });
       return () => { ++generation.current; };
     }
+    // Do not clear the previous status to "lade" when refreshing the same
+    // chat. That transient state hides the gate-answer UI and can make a
+    // successful retry appear stuck. The derived visible state still hides
+    // any status belonging to a different chat/user key.
+    setState(previous => previous.key === key
+      ? { ...previous, error: null }
+      : { key, status: 'lade', data: null, error: null });
     gateStatus(chatId, controller.signal).then(data => {
       if (generation.current === current) setState({ key, status: data.zustand, data, error: null });
     }).catch(() => {
-      if (generation.current === current) setState({ key, status: 'fehler', data: null,
-        error: 'Der Gesprächsstatus konnte nicht geladen werden. Bitte erneut prüfen.' });
+      if (generation.current === current) setState(previous => ({
+        key,
+        status: previous.key === key && previous.data ? previous.status : 'fehler',
+        data: previous.key === key ? previous.data : null,
+        error: 'Der Gesprächsstatus konnte nicht geladen werden. Bitte erneut prüfen.',
+      }));
     });
     return () => { ++generation.current; controller.abort(); };
   }, [chatId, uid, key, attempt]);

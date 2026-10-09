@@ -1,22 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { Firestore } from 'firebase-admin/firestore';
 import {
   buildStatementOfReasons,
   recordModerationDecision,
   submitDsaAppeal,
   reviewDsaAppeal,
-  type MinimalFirestore,
-  type MinimalTransaction,
-  type MinimalDocSnapshot,
 } from '../../src/server/platform/dsaAppealEngine';
 
 interface InMemoryDb {
   reports: Map<string, any>;
   users: Map<string, any>;
 }
+interface MockDocSnapshot {
+  exists: boolean;
+  data: () => any;
+}
+
+interface MockTransaction {
+  get: (ref: any) => Promise<MockDocSnapshot>;
+  set: (ref: any, data: any, options?: any) => void;
+}
+
 
 function createMockFirestore(seedData?: { reports?: Record<string, any>; users?: Record<string, any> }): {
-  firestore: MinimalFirestore;
+  firestore: Firestore;
   db: InMemoryDb;
 } {
   const db: InMemoryDb = {
@@ -24,18 +32,18 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
     users: new Map(Object.entries(seedData?.users ?? {})),
   };
 
-  const firestore: MinimalFirestore = {
+  const firestore = {
     collection: (name: string) => ({
       doc: (id: string) => ({
         id,
         collectionName: name,
       }),
     }),
-    runTransaction: async <T>(updateFunction: (transaction: MinimalTransaction) => Promise<T>): Promise<T> => {
+    runTransaction: async <T>(updateFunction: (transaction: MockTransaction) => Promise<T>): Promise<T> => {
       const stagedSets: Array<{ collection: string; id: string; data: any; merge?: boolean }> = [];
 
-      const transaction: MinimalTransaction = {
-        get: async (ref: any): Promise<MinimalDocSnapshot> => {
+      const transaction: MockTransaction = {
+        get: async (ref: any): Promise<MockDocSnapshot> => {
           const col = db[ref.collectionName as keyof InMemoryDb];
           const item = col?.get(ref.id);
           return {
@@ -71,7 +79,7 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
     },
   };
 
-  return { firestore, db };
+  return { firestore: firestore as unknown as Firestore, db };
 }
 
 test('DSA Engine: buildStatementOfReasons enforces valid inputs and sets DSA Art. 20 guarantees', () => {

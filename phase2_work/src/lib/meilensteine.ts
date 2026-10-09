@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 // ═══════════════════════════════════════════════════════════════════════════
 // Meilensteine — EINE Liste, aus echten Daten
 //

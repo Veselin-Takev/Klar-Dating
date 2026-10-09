@@ -5,11 +5,20 @@ import { Activity } from 'lucide-react';
 
 export function DateSuccessRadarWidget() {
   const [expanded, setExpanded] = useState(false);
-  const [data, setData] = useState<unknown[]>([]);
+  type RadarPoint = { subject: string; A: number; B: number; fullMark: number };
+  type ReflectionLog = { date: string | number; tags?: string[] };
+  const [data, setData] = useState<RadarPoint[]>([]);
 
   useEffect(() => {
     const saved = klarStorage.getItem('klar_reflection_logs');
-    const logs = saved ? JSON.parse(saved) : [];
+    let parsed: unknown = [];
+    try { parsed = saved ? JSON.parse(saved) : []; } catch { parsed = []; }
+    const logs: ReflectionLog[] = Array.isArray(parsed) ? parsed.filter((item): item is ReflectionLog => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+      const value = item as Record<string, unknown>;
+      return (typeof value.date === 'string' || typeof value.date === 'number') &&
+        (value.tags === undefined || (Array.isArray(value.tags) && value.tags.every((tag): tag is string => typeof tag === 'string')));
+    }) : [];
 
     const tagsThisWeek: Record<string, number> = {};
     const tagsLastMonth: Record<string, number> = {};
@@ -18,7 +27,7 @@ export function DateSuccessRadarWidget() {
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    logs.forEach((log: unknown) => {
+    logs.forEach((log) => {
       const logDate = new Date(log.date);
       if (log.tags) {
         log.tags.forEach((tag: string) => {
@@ -31,7 +40,7 @@ export function DateSuccessRadarWidget() {
       }
     });
 
-    const allTags = Array.from(new Set([...Object.keys(tagsThisWeek), ...Object.keys(tagsLastMonth), 'Humor', 'Tiefe', 'Leichtigkeit', 'Respekt']));
+    const allTags = Array.from(new Set([...Object.keys(tagsThisWeek), ...Object.keys(tagsLastMonth)]));
 
     const radarData = allTags.slice(0, 6).map(tag => ({
       subject: tag,

@@ -42,7 +42,7 @@ describe('Didit sessions and signed decisions in Firestore', { timeout: 20_000 }
   it('never verifies incomplete feature results, wrong environment or another account', async () => {
     const { uid, sessionId } = await setup(); const event = eventFor(uid, sessionId);
     event.decision.face_matches = [];
-    expect(await send(event)).toMatchObject({ applied: true });
+    await expect(send(event)).rejects.toThrow('incomplete_approval');
     expect((await getDb().doc(`users/${uid}`).get()).data()?.isVerified).toBe(false);
     const wrong = eventFor(uid, sessionId); wrong.environment = 'live';
     await expect(send(wrong)).rejects.toThrow('invalid_context');
@@ -52,9 +52,9 @@ describe('Didit sessions and signed decisions in Firestore', { timeout: 20_000 }
   it('prevents stale decisions and late webhooks from restoring deleted identities', async () => {
     const { uid, sessionId } = await setup(); const approval = eventFor(uid, sessionId); await send(approval);
     const decline = eventFor(uid, sessionId); decline.status = 'Declined'; decline.created_at++;
-    await send(decline);
+    await expect(send(decline)).rejects.toThrow('invalid_kyc_transition');
     const stale = eventFor(uid, sessionId); await send(stale);
-    expect((await getDb().doc(`users/${uid}`).get()).data()?.isVerified).toBe(false);
+    expect((await getDb().doc(`users/${uid}`).get()).data()?.isVerified).toBe(true);
     await document(`account_deletions/${uid}`).set({ status: 'pending' });
     const late = eventFor(uid, sessionId); late.created_at += 2;
     expect(await send(late)).toMatchObject({ applied: false });

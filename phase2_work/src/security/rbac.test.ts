@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { rbacGuard, UserRole } from './rbac';
 import type { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest } from '../core/auth/authMiddleware';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 describe('rbacGuard middleware', () => {
   let res: Partial<Response>;
@@ -17,7 +18,7 @@ describe('rbacGuard middleware', () => {
 
   it('should allow access if user role meets or exceeds required role', () => {
     const req: Partial<AuthenticatedRequest> = {
-      user: { role: UserRole.ADMIN } as unknown,
+      user: { role: UserRole.ADMIN } as unknown as DecodedIdToken,
     };
 
     const guard = rbacGuard(UserRole.USER);
@@ -29,7 +30,7 @@ describe('rbacGuard middleware', () => {
 
   it('should deny access with 403 if user role is below required role', () => {
     const req: Partial<AuthenticatedRequest> = {
-      user: { role: UserRole.GUEST } as unknown,
+      user: { role: UserRole.GUEST } as unknown as DecodedIdToken,
     };
 
     const guard = rbacGuard(UserRole.VERIFIED);

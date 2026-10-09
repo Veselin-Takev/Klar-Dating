@@ -102,9 +102,10 @@ export function extractCleanJson(rawResponse: string): string {
  * Validates AI Coach response schema.
  */
 export function validateAiCoachOutput(parsed: unknown): parsed is AICoachOutput {
-  if (!parsed || typeof parsed !== 'object') return false;
-  if (typeof parsed.text !== 'string' || !parsed.text.trim()) return false;
-  if (parsed.preferences !== undefined && typeof parsed.preferences !== 'string') return false;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+  const value = parsed as Record<string, unknown>;
+  if (typeof value.text !== 'string' || !value.text.trim()) return false;
+  if (value.preferences !== undefined && typeof value.preferences !== 'string') return false;
   return true;
 }
 
@@ -114,9 +115,10 @@ export function validateAiCoachOutput(parsed: unknown): parsed is AICoachOutput 
 export function validateDateIdeasOutput(parsed: unknown): parsed is DateIdeaOutput[] {
   if (!Array.isArray(parsed)) return false;
   for (const item of parsed) {
-    if (!item || typeof item !== 'object') return false;
-    if (typeof item.title !== 'string' || !item.title.trim()) return false;
-    if (typeof item.description !== 'string' || !item.description.trim()) return false;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+    const value = item as Record<string, unknown>;
+    if (typeof value.title !== 'string' || !value.title.trim()) return false;
+    if (typeof value.description !== 'string' || !value.description.trim()) return false;
   }
   return true;
 }
@@ -125,9 +127,10 @@ export function validateDateIdeasOutput(parsed: unknown): parsed is DateIdeaOutp
  * Validates Reflection Analysis output schema.
  */
 export function validateReflectionAnalysisOutput(parsed: unknown): parsed is ReflectionAnalysisOutput {
-  if (!parsed || typeof parsed !== 'object') return false;
-  if (typeof parsed.mood !== 'string' || !parsed.mood.trim()) return false;
-  if (!Array.isArray(parsed.tags)) return false;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+  const value = parsed as Record<string, unknown>;
+  if (typeof value.mood !== 'string' || !value.mood.trim()) return false;
+  if (!Array.isArray(value.tags) || !value.tags.every((tag): tag is string => typeof tag === 'string')) return false;
   return true;
 }
 

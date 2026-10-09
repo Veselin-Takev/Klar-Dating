@@ -6,8 +6,23 @@ import { melde } from "../lib/fehler";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
+type MoodRecord = Record<string, unknown>;
+type MoodPoint = { dateStr: string; shortLabel: string; moodScore: number; count: number };
+
+function parseRecords(raw: string | null): MoodRecord[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is MoodRecord => !!value && typeof value === 'object' && !Array.isArray(value))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export function WeeklyMoodSummaryWidget() {
-  const [data, setData] = useState<unknown[]>([]);
+  const [data, setData] = useState<MoodPoint[]>([]);
   const [hasEntries, setHasEntries] = useState(false);
 
   useEffect(() => {
@@ -16,15 +31,16 @@ export function WeeklyMoodSummaryWidget() {
         // Aggregate from reflection logs and local date reflections
         const savedLogs = klarStorage.getItem('klar_reflection_logs');
         const savedReflections = klarStorage.getItem('klar_date_reflections');
-        const logs: unknown[] = savedLogs ? JSON.parse(savedLogs) : [];
-        const reflections: unknown[] = savedReflections ? JSON.parse(savedReflections) : [];
+        const logs = parseRecords(savedLogs);
+        const reflections = parseRecords(savedReflections);
 
-        let firestoreMoods: unknown[] = [];
+        let firestoreMoods: MoodRecord[] = [];
         if (auth.currentUser) {
           try {
             const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
             if (userDoc.exists() && Array.isArray(userDoc.data().moodHistory)) {
-              firestoreMoods = userDoc.data().moodHistory;
+              const rawHistory: unknown = userDoc.data().moodHistory;
+              firestoreMoods = Array.isArray(rawHistory) ? rawHistory.filter((value): value is MoodRecord => !!value && typeof value === 'object' && !Array.isArray(value)) : [];
             }
           } catch {
             // offline fallback
@@ -45,8 +61,10 @@ export function WeeklyMoodSummaryWidget() {
 
         let totalCount = 0;
 
-        logs.forEach((log: unknown) => {
-          const dateStr = new Date(log.date).toLocaleDateString('de-DE');
+        logs.forEach((log) => {
+          const rawDate = log.date;
+          if (typeof rawDate !== 'string' && typeof rawDate !== 'number') return;
+          const dateStr = new Date(rawDate).toLocaleDateString('de-DE');
           const day = last7Days.find(d => d.dateStr === dateStr);
           if (day) {
             day.count++;
@@ -56,25 +74,31 @@ export function WeeklyMoodSummaryWidget() {
           }
         });
 
-        reflections.forEach((ref: unknown) => {
-          const dateStr = new Date(ref.date).toLocaleDateString('de-DE');
+        reflections.forEach((ref) => {
+          const rawDate = ref.date;
+          if (typeof rawDate !== 'string' && typeof rawDate !== 'number') return;
+          const dateStr = new Date(rawDate).toLocaleDateString('de-DE');
           const day = last7Days.find(d => d.dateStr === dateStr);
           if (day) {
             day.count++;
             totalCount++;
-            if (ref.rating >= 4) day.moodScore += 1;
-            else if (ref.rating <= 2) day.moodScore -= 1;
+            const rating = typeof ref.rating === 'number' ? ref.rating : Number(ref.rating);
+            if (rating >= 4) day.moodScore += 1;
+            else if (rating <= 2) day.moodScore -= 1;
           }
         });
 
-        firestoreMoods.forEach((m: unknown) => {
-          const dateStr = new Date(m.date).toLocaleDateString('de-DE');
+        firestoreMoods.forEach((m) => {
+          const rawDate = m.date;
+          if (typeof rawDate !== 'string' && typeof rawDate !== 'number') return;
+          const dateStr = new Date(rawDate).toLocaleDateString('de-DE');
           const day = last7Days.find(d => d.dateStr === dateStr);
           if (day) {
             day.count++;
             totalCount++;
-            if (m.score > 0) day.moodScore += 1;
-            else if (m.score < 0) day.moodScore -= 1;
+            const score = typeof m.score === 'number' ? m.score : Number(m.score);
+            if (score > 0) day.moodScore += 1;
+            else if (score < 0) day.moodScore -= 1;
           }
         });
 
@@ -118,8 +142,9 @@ export function WeeklyMoodSummaryWidget() {
               <Tooltip
                 cursor={{fill: 'rgba(0,0,0,0.05)'}}
                 formatter={(value: unknown) => {
-                    if (value > 0.3) return ['Gut', 'Stimmung'];
-                    if (value < -0.3) return ['Schlecht', 'Stimmung'];
+                    const numericValue = typeof value === 'number' ? value : Number(value);
+                    if (numericValue > 0.3) return ['Gut', 'Stimmung'];
+                    if (numericValue < -0.3) return ['Schlecht', 'Stimmung'];
                     return ['Neutral', 'Stimmung'];
                 }}
               />

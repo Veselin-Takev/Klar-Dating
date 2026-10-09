@@ -80,3 +80,16 @@ Der zweite Befehl muss für alle neun Collection Groups den aktiven TTL-Zustand 
 ### Kündigungsnachweise nach § 312k BGB
 
 `subscription_events` bleibt als Nachweiskategorie für Kündigungs-/Widerrufsvorgänge erhalten. Die Kündigungs-Request-Dokumente unter `contract_requests` enthalten die Erklärung, den Eingangszeitpunkt, den Verarbeitungsstatus und den Bestätigungsbeleg. **[ANNAHME]** Die konkrete fachliche Aufbewahrungsdauer dieser Vertragsnachweise ist vor Produktionsfreigabe anhand der Vertrags-/Streitvorsorgeanforderungen final zu bestätigen.
+
+
+## 11. Klar & Partner — Referral-Daten, Ledger und Rate Limits
+
+- **Personalisierte Zuordnungen** (`partner_referrals`) werden bei Art.-17-Kontolöschung gelöscht. Der rohe Referral-Token wird nicht gespeichert; die Dokument-ID ist ein SHA-256-Derivat.
+- **Conversion-Claims und signierte Ereignisse** (`partner_referral_conversions`, `partner_referral_buyer_claims`, `partner_referral_ledger`) enthalten keine Drittanbieter-E-Mail, Provider-Kunden-ID, rohe UID, IP-Adresse oder User-Agent. UID-Bezüge sind HMAC-SHA256-pseudonymisiert und werden bei Löschung des jeweiligen Kontos entfernt.
+- **Kampagnenverträge und Summenzähler** bleiben als unternehmensbezogene Informationen erhalten. HMAC-Adminreferenzen (`createdByRef`, `updatedByRef`, `verifiedByRef`) werden bei Löschung des Admin-Kontos entfernt. Slugs bleiben reserviert.
+- **Kurzlebige Rate-Limit-Zähler** nutzen ein Feld `expiresAt` und ein 60-Sekunden-Fenster. Diese TTL-Policies müssen je Zielumgebung explizit aktiviert werden; das Feld allein aktiviert Firestore-TTL nicht:
+  - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_click_rate_limits --enable-ttl`
+  - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_webhook_rate_limits --enable-ttl`
+  - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_admin_rate_limits --enable-ttl`
+  - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_user_rate_limits --enable-ttl`
+- **Retention offen vor Produktivbetrieb:** Die verbindliche Aufbewahrungsdauer für nicht personenbezogene Kampagnen-/Conversion-Belege muss anhand des Partnervertrags und mit Datenschutz-/Rechtsreview festgelegt werden. Keine TTL für notwendige Vertrags-/Finanznachweise ohne diese Entscheidung setzen.

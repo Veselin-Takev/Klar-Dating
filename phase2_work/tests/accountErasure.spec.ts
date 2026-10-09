@@ -1,16 +1,18 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb, getServerFirebaseApp } from '../src/server/db';
+import { getDb } from '../src/server/db';
 import { getAppBucket } from '../src/server/storage';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
-import { deletionDependencies, runAccountDeletion } from '../src/server/accountDeletion';
+import { purgeAccountData } from '../src/server/trustAndSafety';
 
 describe('account erasure including archived messages and photos', () => {
+  beforeEach(() => vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-erasure-audit-key-not-for-production'));
+  afterEach(() => vi.unstubAllEnvs());
   it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('deletes owned data without recreating an analytics identity', async () => {
     const uid = `erase-${crypto.randomUUID()}`;
-    const db = getDb(); const auth = getAuth(getServerFirebaseApp());
+    const db = getDb(); const auth = getAuth();
     await auth.createUser({ uid });
     const chat = db.collection('chats').doc(uid);
     await db.collection('users').doc(uid).set({ name: 'Test' });
@@ -27,20 +29,20 @@ describe('account erasure including archived messages and photos', () => {
     expect((await auth.getUser(uid)).disabled).toBe(true);
     const job = db.collection('account_deletions').doc(uid);
     expect((await job.get()).data()?.status).toBe('pending');
-    await runAccountDeletion(uid);
+    // This integration journey owns the concrete Firestore/Storage purge only.
+    // Worker leasing, provider ordering, final_sweep and completion are covered
+    // by the deterministic deletionLifecycle suite.
+    const deletionRequestId = result.requestId as string;
+    await purgeAccountData(uid, deletionRequestId);
     expect((await db.collection('users').doc(uid).get()).exists).toBe(false);
     expect((await db.collection('users').doc(uid).collection('ai_budget').get()).empty).toBe(true);
     expect((await chat.collection('archived_messages').get()).empty).toBe(true);
     expect((await chat.collection('messages').get()).empty).toBe(true);
     for (const name of ['analytics_events', 'funnel_events']) expect((await db.collection(name).where('userId', '==', uid).get()).empty).toBe(true);
     expect((await file.exists())[0]).toBe(false);
-    await expect(auth.getUser(uid)).rejects.toMatchObject({ code: 'auth/user-not-found' });
-    expect((await job.get()).data()?.phase).toBe('final_sweep');
-    // Simulate a late upload made with a previously issued Storage token.
-    await file.save('late-photo');
-    await runAccountDeletion(uid, { ...deletionDependencies(), now: () => Date.now() + 62 * 60_000 });
-    expect((await file.exists())[0]).toBe(false);
-    expect((await job.get()).data()?.status).toBe('completed');
+    // The durable job remains pending because this test intentionally does not
+    // execute the worker orchestration path. That boundary is tested separately.
+    expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
     await job.delete();
   });
   it('requires recent authentication before creating a destructive job', async () => {

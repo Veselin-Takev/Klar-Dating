@@ -4,6 +4,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { Activity, CalendarDays } from "lucide-react";
 
 type Mood = "excited" | "relaxed" | "neutral" | "nervous" | "frustrated";
+type DiaryEntry = { date?: unknown; mood?: unknown };
+type MoodChartPoint = { name: string; emoji: string; value: number; color: string };
+type TooltipProps = { active?: boolean; payload?: Array<{ value?: unknown; payload?: MoodChartPoint }> };
+type XAxisTickProps = { x?: number; y?: number; payload?: { value?: unknown } };
 
 const MOODS = [
   { id: "excited", label: "Begeistert", emoji: "🤩", color: "#10b981" },
@@ -16,14 +20,19 @@ const MOODS = [
 export function DateDiaryStatsWidget() {
   const [uiError, setUiError] = useState<string | null>(null);
 
-  const [data, setData] = useState<unknown[]>([]);
+  const [data, setData] = useState<MoodChartPoint[]>([]);
   const [currentMonth, setCurrentMonth] = useState("");
 
   useEffect(() => {
     const saved = klarStorage.getItem("klar_post_date_diary");
-    let diaries: unknown[] = [];
+    let diaries: DiaryEntry[] = [];
     if (saved) {
-      try { diaries = JSON.parse(saved); } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
+      try {
+        const parsed: unknown = JSON.parse(saved);
+        diaries = Array.isArray(parsed)
+          ? parsed.filter((entry): entry is DiaryEntry => !!entry && typeof entry === 'object')
+          : [];
+      } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
     }
 
     // Get current month string
@@ -34,7 +43,7 @@ export function DateDiaryStatsWidget() {
     const currentMonthPrefix = now.toISOString().substring(0, 7); // YYYY-MM
 
     // Filter diaries for this month
-    const thisMonthDiaries = diaries.filter(d => d.date && d.date.startsWith(currentMonthPrefix));
+    const thisMonthDiaries = diaries.filter(d => typeof d.date === 'string' && d.date.startsWith(currentMonthPrefix));
 
     // Aggregate by mood
     const aggregated: Record<string, number> = {
@@ -46,8 +55,9 @@ export function DateDiaryStatsWidget() {
     };
 
     thisMonthDiaries.forEach(d => {
-      if (d.mood) {
-        aggregated[d.mood] = (aggregated[d.mood] || 0) + 1;
+      if (typeof d.mood === 'string' && d.mood in aggregated) {
+        const mood = d.mood as Mood;
+        aggregated[mood] = (aggregated[mood] || 0) + 1;
       }
     });
 
@@ -56,16 +66,17 @@ export function DateDiaryStatsWidget() {
     const chartData = MOODS.map(m => ({
       name: m.label,
       emoji: m.emoji,
-      value: hasData ? aggregated[m.id as Mood] : 0,
+      value: hasData ? (aggregated[m.id as Mood] ?? 0) : 0,
       color: m.color
     }));
 
     setData(chartData);
   }, []);
 
-  const CustomTooltip = ({ active, payload }: unknown) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
-      const dataPoint = payload[0].payload;
+      const dataPoint = payload[0]?.payload;
+      if (!dataPoint) return null;
       return (
         <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-3 rounded-xl shadow-lg">
       {uiError && <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
@@ -74,7 +85,7 @@ export function DateDiaryStatsWidget() {
             <span>{dataPoint.emoji}</span> {dataPoint.name}
           </p>
           <p className="text-xs text-stone-500 mt-1">
-            {payload[0].value} Dates diesen Monat
+            {typeof payload[0]?.value === 'number' || typeof payload[0]?.value === 'string' ? payload[0].value : 0} Dates diesen Monat
           </p>
         </div>
       );
@@ -82,8 +93,8 @@ export function DateDiaryStatsWidget() {
     return null;
   };
 
-  const CustomXAxisTick = ({ x, y, payload }: unknown) => {
-    const dataPoint = data.find(d => d.name === payload.value);
+  const CustomXAxisTick = ({ x = 0, y = 0, payload }: XAxisTickProps) => {
+    const dataPoint = data.find(d => d.name === String(payload?.value ?? ''));
     return (
       <g transform={`translate(${x},${y})`}>
         <text x={0} y={0} dy={16} textAnchor="middle" fill="#666" fontSize="16px">

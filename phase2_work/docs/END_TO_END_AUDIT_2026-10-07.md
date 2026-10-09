@@ -38,7 +38,7 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 | ID | Komponente / Modul | Befund / Risiko | Auswirkung | Handlungsempfehlung | TCO-Impact |
 |---|---|---|---|---|---|
 | BE-01 | Translation | Legacy-Direktpfad entfernt; produktiver Pfad sanitisiert und begrenzt | Medium | CI-Gate `check:legacy-translation-boundary` beibehalten | Positiv |
-| BE-02 | Chat list | Bis zu 50 Chats plus zusätzliche Access-/Profil-Leseoperationen | High | Batch-/Denormalisierungsstrategie anhand realer Traces prüfen | Potenziell hoch |
+| BE-02 | Chat list | Bis zu 50 Chats; Access-/Profil-State wird jetzt dedupliziert per Bulk-Read geladen | High | Runtime-Traces erheben und Firestore-Read-/Latency-Amplification vor vollständiger P1-Schließung messen | Potenziell hoch |
 | BE-03 | AI | Zentrale Budgetierung, Timeout und strukturierte Antworten vorhanden | Medium | CI mit echten Gemini-Metriken validieren | Positiv |
 | BE-04 | Rate limiting | Kritische Pfade besitzen verteilte Firestore-Limits; mehrere Read-/Admin-Limits sind process-local | Medium | Nur bei Multi-Instance-Risiko auf Shared Store migrieren; nicht pauschal ohne Lastnachweis | Mittel |
 
@@ -81,9 +81,9 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 
 | Maßnahme | ICE | Status |
 |---|---:|---|
-| Chat-Read-N+1 mit realen Traces quantifizieren und reduzieren | 9/8/6 = 432 | **OFFEN** |
+| Chat-Read-N+1 mit realen Traces quantifizieren und reduzieren | 9/8/6 = 432 | **IMPLEMENTIERT / RUNTIME-EVIDENZ OFFEN** |
 | Direkte Firestore-Transaction-Trace-Abdeckung auf 100% bringen | 8/8/6 = 384 | **OFFEN** |
-| Process-local Rate-Limits nur dort ersetzen, wo Multi-Instance-Schutz erforderlich ist | 8/7/5 = 280 | **OFFEN / Lastnachweis erforderlich** |
+| Process-local Rate-Limits nur dort ersetzen, wo Multi-Instance-Schutz erforderlich ist | 8/7/5 = 280 | **KRITISCHE PFADE ERLEDIGT / REST EVIDENZBASIERT OFFEN** |
 
 ### P2 — Enterprise Excellence
 
@@ -91,6 +91,26 @@ Ohne reale Traffic-, Firestore-Read-, Gemini- und Hosting-Rechnungsdaten werden 
 - Restore-/Rollback-Drills mit gemessenen RTO/RPO-Werten durchführen.
 - SBOM + Dependency-Audit + CodeQL als revisionssichere Release-Evidence archivieren.
 - API-/Architekturdokumentation automatisch aus dem validierten Build-Artefakt erzeugen.
+
+## Update 2026-10-08 — Chat list bulk-read mitigation
+
+- `/api/chats` wurde von einer per-Chat-Transaktion plus individueller Profilabfrage auf eine deduplizierte Firestore-`getAll`-Ausführung umgestellt. Die autoritativen Block-, Account-Deletion- und Beispielprofil-Semantiken bleiben erhalten.
+- Der Fix zielt auf RPC-/Latenz-N+1 und reduziert die Anzahl separater Firestore-Aufrufe deutlich; die tatsächliche Read-/Kostenreduktion muss mit Runtime-Traces bestätigt werden, bevor der P1-Befund geschlossen wird.
+- Keine Denormalisierung oder speculative caching wurde eingeführt, um Staleness- und Datenschutzrisiken zu vermeiden.
+
+## Update 2026-10-08 — Critical rate-limit distribution hardening
+
+Cloud Run allows up to 10 instances in the current deployment template. Critical abuse-sensitive and cost-sensitive paths therefore cannot rely on in-process counters alone.
+
+The following paths now use an atomic Firestore-backed rate-limit counter: account/consent writes, Klar+ checkout creation, device-token writes, launch/referral flows and Trust-&-Safety writes.
+
+The limiter fails closed when shared state is unavailable, exposes standard remaining/reset metadata, and is guarded by a static Enterprise regression check.
+
+Lower-risk read/anonymous rate limits remain local to avoid turning every read into a Firestore dependency; they are not considered the authoritative multi-instance abuse control.
+
+## Update 2026-10-08 — Final P1 consolidation
+
+The candidate now contains the critical P1 implementation set: Chat list access is collapsed into one bounded read transaction, and security-/cost-sensitive rate limits use atomic Firestore-backed counters suitable for a Cloud Run service scaled to up to 10 instances. Runtime traces and complete CI remain required before the release gates can be closed.
 
 ## 4. Dokumentations-Updates
 
@@ -124,3 +144,33 @@ Firebase CLI: 15.31.0
 Abweichungen sind ein Release-Blocker und müssen zuerst in package/CI/runtime metadata
 konsistent geändert und durch das Toolchain-Gate bestätigt werden.
 ```
+
+
+## Update 2026-10-08 — CI Typecheck remediation: distributed rate-limit module boundaries
+
+The exact-head Enterprise CI run #166 (37814479762) passed all Enterprise static gates but failed at Typecheck. Root causes were: missing ipKeyGenerator import in src/server/routes/account.ts, an incorrect relative import from src/server/distributedRateLimiter.test.ts, and an unused vi import.
+
+The corrections are committed on candidate c2903822eafad3bf7a22e400cea585c70eef80a5. The IPv6-safe key-generator policy is unchanged and the deterministic cross-instance test remains intact. Documentation was updated in the same candidate lineage.
+
+The candidate remains NO-GO / NOT CONFIRMED until a new exact-head CI run is successful across all dynamic gates. Older run outcomes must not be substituted for current-head evidence.
+
+
+## Update 2026-10-08 — Server TypeScript declaration boundary repaired
+
+Enterprise CI #170 (`37815141084`) reached Typecheck after all static gates passed and failed because the dedicated `tsconfig.server.json` excluded `src/types/express.d.ts`. The fix explicitly includes declaration files in that server project so Express request augmentation remains authoritative across server compilation.
+
+Candidate: `deb5722030a6974caf97ae592e29bf6229174036`. Strict compiler settings remain unchanged. Production is **NO-GO / NOT CONFIRMED** until the new exact-head CI run completes all dynamic gates successfully.
+
+
+## Update 2026-10-08 — Chat list regression guard
+
+The Chat list optimization is now backed by a dedicated static Enterprise boundary check. The gate enforces one bounded Firestore transaction with one batched `tx.getAll`, verifies that `/api/chats` calls the loader, and rejects per-entry profile reads or async per-entry mapping.
+
+This is a regression-control improvement, not runtime certification. Real Firestore traces are still required before the Chat P1 is closed quantitatively.
+
+
+## Update 2026-10-08 — Chat gate integration failure corrected
+
+Enterprise CI #173 (`37816110016`) failed before static gates because the newly added Chat read-path gate contained escaped newline text rather than actual newlines. This was a repository-format/integration defect, not a runtime authorization finding.
+
+The gate is now stored as valid JSON/script source on candidate `2a3b3bc7cf3666e46afb696f990f9f64573e5322`. The release state remains **NO-GO / NOT CONFIRMED** pending exact-head dynamic evidence.

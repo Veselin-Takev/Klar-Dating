@@ -1,3 +1,4 @@
+import type { Firestore } from 'firebase-admin/firestore';
 export type RiskSignals = {
   accountAgeDays?: number;
   reportCount?: number;
@@ -29,7 +30,7 @@ export function assessRisk(s: RiskSignals): RiskDecision {
 }
 
 export async function evaluateAccountRisk(
-  db: unknown,
+  db: Firestore,
   uid: string,
   extraSignals: Partial<RiskSignals> = {}
 ): Promise<RiskDecision> {

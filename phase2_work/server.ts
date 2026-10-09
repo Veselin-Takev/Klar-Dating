@@ -71,7 +71,7 @@ import { createVerificationStoragePurgeRouter } from './src/server/routes/compli
 import helmet from "helmet";
 import path from "path";
 
-import { Type } from "@google/genai";
+import { Type, type GenerateContentParameters } from "@google/genai";
 import { aiRequest, createBudgetedAI } from "./src/server/aiBudget";
 // 11.08.2026 — der eine Weg, auf dem ein KI-Aufruf stattfindet.
 // Befund: src/server/kiPolitik.ts hatte bis heute null Aufrufer im
@@ -82,7 +82,7 @@ import { beantworte, ausfall, ohneSchluessel, schluesselFehlt } from "./src/serv
 // welche vier Pflichten mit dieser neuen Ablage entstanden sind.
 
 import { NOGO_VORSCHLAEGE, BIO_WERTE_HINWEISE, kuratierteCoachAntwort } from "./src/server/kuratiert";
-import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import {
   istGast, gastDarf, GAST_KI_GRENZE,
   CODE_KONTO_ERFORDERLICH, TEXT_KONTO_ERFORDERLICH,
@@ -93,7 +93,7 @@ import { getServerFirebaseApp, initServerDb } from './src/server/db';
 import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
-import { extractTraceContext, startHttpSpan, runInSpan, observabilityPrometheus } from './src/server/observability';
+import { extractTraceContext, startHttpSpan, runInSpan } from './src/server/observability';
 import { appendAuditLog } from './src/server/platform/auditLog';
 
 
@@ -112,7 +112,7 @@ import { parseBoundedText, parseOptionalBoundedText } from './src/server/platfor
 import { parseSafetyMessage, serializeSafetyAuditOutput } from './src/server/platform/safetyBoundary';
 import { createAuditLogRouter } from './src/server/routes/auditLogs';
 import { createChatRouter } from './src/server/routes/chat';
-import { activationScore, getLocalDensity, getRecommendations, normalizeLaunchCity, recordActivation, referralCodeFor, toPublicProfile } from './src/server/platform/launchPlatform';
+import { activationScore, getLocalDensity, getRecommendations, normalizeLaunchCity, recordActivation, referralCodeFor, toPublicProfile, type LaunchCity } from './src/server/platform/launchPlatform';
 import { validateFeatureFlagConfiguration } from './src/server/platform/featureFlags';
 // SEC-03: Die Pruefung der Bild-Herkunft liegt in pure.ts — abhaengigkeitsfrei
 // und damit ohne Firebase und ohne Express nachrechenbar.
@@ -130,6 +130,8 @@ import { createDatePlansRouter } from './src/server/routes/datePlans';
 import { createLegalUpdatesRouter } from './src/server/routes/legalUpdates';
 import { handleTranslation } from './src/server/platform/translationEngine';
 import { createLaunchRouter } from './src/server/routes/launch';
+import { createPartnerReferralPublicRouter, createPartnerReferralRouter } from './src/server/routes/partnerReferrals';
+import { consentAuditSecret } from './src/server/consentAudit';
 import { createBillingRouter } from './src/server/routes/billing';
 import { BUCHBAR } from './src/lib/klarPlus';
 import { createDeviceTokenRouter } from './src/server/routes/deviceTokens';
@@ -475,7 +477,7 @@ const nurModeration: express.RequestHandler = requireRole("moderator", "trust_sa
 const adminHealthCheckLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   limit: 6,
-  keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+  keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { error: 'Zu viele Health-Check-Anfragen. Bitte später erneut versuchen.' },
@@ -577,6 +579,15 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
 
   // Apply rate limiter to all /api routes
   app.use("/api/", apiLimiter); // Security: Befund 1 - Globale Rate-Limiting für /api (P0)
+  // Retired endpoints are inert contracts. Keep the global API limiter first,
+  // then return the stable 410 before auth, age, consent, or AI middleware.
+  // These handlers cannot read or mutate user state; all requests remain rate-limited.
+  app.post("/api/analytics/ab-test", (_req, res) => {
+    res.status(410).json({ error: "Legacy analytics endpoint removed" });
+  });
+  app.post("/api/claim-launch-promo", (_req, res) => {
+    res.status(410).json({ error: "Legacy launch promo removed" });
+  });
 
   // ── P0-3 ────────────────────────────────────────────────────────────────
   // BEFUND: `requireAuth` stand je Route und war an 5 von 60 Endpunkten
@@ -598,10 +609,19 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     "/api/auth/forgot-password",
     "/api/auth/verify-reset-token",
     "/api/auth/reset-password",
+    // Retired verification endpoints return a fixed, non-sensitive 410 response
+    // before authentication; this prevents stale clients from seeing misleading 401s.
+    "/api/verification/verify",
+    "/api/verification/status",
+    "/api/verification/challenge",
+    "/api/verification/submit",
+    "/api/verification/decide",
   ]);
 
   app.use("/api", (req, res, next) => {
-    if (OEFFENTLICH.has(req.baseUrl + req.path) || OEFFENTLICH.has(req.path)) return next();
+    const fullPath = req.baseUrl + req.path;
+    const publicPartnerEndpoint = fullPath.startsWith('/api/partner/click/') || fullPath.startsWith('/api/partner/webhook/');
+    if (OEFFENTLICH.has(fullPath) || OEFFENTLICH.has(req.path) || publicPartnerEndpoint) return next();
     return requireAuth(req, res, next);
   });
   // Compliance purge is public only at the routing layer; the endpoint itself requires
@@ -661,6 +681,12 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     "/api/einwilligung",
     "/api/einwilligung/widerruf",
     "/api/referral/claim",
+    // Retired routes must consistently advertise deprecation, independent of account age.
+    "/api/verification/verify",
+    "/api/verification/status",
+    "/api/verification/challenge",
+    "/api/verification/submit",
+    "/api/verification/decide",
   ]);
 
   /** Endpunkte, die Nutzerinhalte an Google Gemini geben. Erhoben aus dem
@@ -800,7 +826,8 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
 
   app.use("/api", async (req, res, next) => {
     const pfad = req.path.startsWith("/api") ? req.path : "/api" + req.path;
-    if (OEFFENTLICH.has(pfad) || OEFFENTLICH.has(req.path)) return next();
+    const publicPartnerEndpoint = pfad.startsWith('/api/partner/click/') || pfad.startsWith('/api/partner/webhook/');
+    if (OEFFENTLICH.has(pfad) || OEFFENTLICH.has(req.path) || publicPartnerEndpoint) return next();
     if (OHNE_ALTERSPRUEFUNG.has(pfad)) return next();
 
     const meineUid = req.user?.uid;
@@ -821,7 +848,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
       });
     }
 
-    if (KI_ENDPUNKTE.has(pfad) && !zweckErlaubt(daten?.einwilligung ?? null, "ki_auswertung")) {
+    if (KI_ENDPUNKTE.has(pfad) && !zweckErlaubt((daten?.einwilligung as import('./src/server/pure').Einwilligung | null | undefined) ?? null, "ki_auswertung")) {
       return res.status(401).json({
         error: "Für diese Funktion fehlt deine Einwilligung zur KI-Auswertung. Du kannst sie in den Einstellungen erteilen.",
         code: "einwilligung_fehlt",
@@ -911,13 +938,33 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     currentUserId,
     getFirestore,
     normalizeLaunchCity,
-    getLocalDensity,
+    getLocalDensity: (db, city: LaunchCity) => getLocalDensity(db, city),
     referralCodeFor,
     recordActivation,
     activationScore,
     serverTimestamp: () => FieldValue.serverTimestamp(),
     publicUrl: () => process.env.KLAR_PUBLIC_URL,
   }));
+  // Klar & Partner: signed callbacks and click redirects are public at the routing
+  // layer only; callback authenticity is enforced by campaign-specific HMAC.
+  const partnerReferralDeps = {
+    currentUserId,
+    getFirestore,
+    tokenSecret: () => process.env.PARTNER_REFERRAL_SECRET ?? '',
+    auditSecret: () => consentAuditSecret(),
+    publicUrl: () => process.env.KLAR_PUBLIC_URL,
+    webhookSecrets: () => {
+      try {
+        const parsed: unknown = JSON.parse(process.env.PARTNER_WEBHOOK_SECRETS_JSON ?? '{}');
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        return Object.fromEntries(Object.entries(parsed as Record<string, unknown>).filter(([slug, value]) =>
+          /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug) && typeof value === 'string' && value.length >= 32,
+        )) as Record<string, string>;
+      } catch { return {}; }
+    },
+  };
+  app.use('/api', createPartnerReferralPublicRouter(partnerReferralDeps));
+  app.use('/api', createPartnerReferralRouter(partnerReferralDeps));
   // Public feedback is intentionally anonymous and has its own strict payload boundary.
   app.use('/api', createFeedbackRouter({ getFirestore }));
 
@@ -950,12 +997,6 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   app.use('/api', createChecklistRouter({ currentUserId, getFirestore }));
   app.use('/api', createDatePlansRouter({ currentUserId, getFirestore }));
 
-  // Legacy promo retired: it promised a time-limited Klar+ gift but wrote plan=plus without an expiry.
-  // Founding status is handled by /api/launch/founding-claim without granting subscription entitlements.
-  app.post("/api/claim-launch-promo", (_req, res) => {
-    res.status(410).json({ error: "Legacy launch promo removed" });
-  });
-
   // ═══════════════════════════════════════════════════════════════════════
   // Klar — Kernmechanik (P1)
   // Begriff: gezaehlt werden KONTAKTE, also erste Nachrichten an neue
@@ -965,21 +1006,21 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   const contactWriteLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 10,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Kontaktanfragen. Bitte kurz warten.' },
   });
   const contactUndoLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 20,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Rücknahmeversuche. Bitte kurz warten.' },
   });
   const contractMutationLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: 3,
-    keyGenerator: (req) => currentUserId(req) ?? req.ip ?? 'unknown',
+    keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
     standardHeaders: 'draft-8', legacyHeaders: false,
     message: { error: 'Zu viele Vertragsänderungsanfragen. Bitte später erneut versuchen.' },
   });
@@ -1053,7 +1094,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
   app.use('/api', createAiPassgenauigkeitRouter({
     currentUserId,
     answer: beantworte,
-    generate: parameters => ai.models.generateContent(parameters),
+    generate: (parameters: GenerateContentParameters) => ai.models.generateContent(parameters),
     modelName: () => process.env.GEMINI_MODEL || 'gemini-3.8-flash',
   }));
 
@@ -1207,7 +1248,8 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
       // Protokolleintrag darf eine geglueckte Antwort nicht verderben.
       if (antwort.koerper["herkunft"] === "ki") {
         try {
-          const userId = req.user.uid;
+          const userId = currentUserId(req);
+          if (!userId) return res.status(401).json({ error: 'Unauthorized' });
           const db = getFirestore();
           const inputDigest = crypto.createHash('sha256').update(String(message), 'utf8').digest('hex');
           const outputDigest = crypto.createHash('sha256').update(serializeSafetyAuditOutput(antwort.koerper), 'utf8').digest('hex');
@@ -1755,7 +1797,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
         return res.status(400).json({ error: "Ungültige oder zu große Smart-Audit-Daten." });
       }
       const { bio, values, profileImageUrl } = input;
-      const promptParts: string[] = [
+      const promptParts: Array<string | { inlineData: { data: string; mimeType: string } }> = [
         `Evaluiere die folgende Dating-Profil-Bio, das hochgeladene Profilbild (falls vorhanden) und die Werte. Gleiche sie gegen Deep-Verbindung Kriterien ab. Mache 3 konkrete, umsetzbare Vorschläge zur Optimierung der 'Werte-Radar' Ausprägung für bessere Deep-Verbindunges.\nBio: ${bio}\nWerte: ${values.join(", ")}`
       ];
 
@@ -2003,11 +2045,6 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
   // configured. Never grant quota based on an unverified callback.
   app.get("/api/ads/callback", (_req, res) => {
     res.status(501).json({ error: "AdMob reward verification is not configured" });
-  });
-
-  // Legacy Klar+ experiment removed: it had no real random assignment and bypassed product-analytics consent.
-  app.post("/api/analytics/ab-test", (_req, res) => {
-    res.status(410).json({ error: "Legacy analytics endpoint removed" });
   });
 
   // Stripe webhook (Phase 1b — raw body mounted earlier via mountStripeRawBody)

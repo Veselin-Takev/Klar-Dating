@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { DsaAppeal } from '../../src/server/platform/dsaAppealEngine';
 import { processAgeVerification } from '../../src/server/platform/ageGateEngine';
 import { recordExplicitConsent, revokeExplicitConsent } from '../../src/server/platform/consentEngine';
 import { processContactRequest } from '../../src/server/platform/contactEngine';
@@ -193,7 +194,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // ── PHASE 4: DSA Internal Appeal (Art. 20) & Moderator Review ────────────
   // 7. Sarah submits internal appeal
   const appealTime = new Date('2026-09-25T12:00:00Z');
-  const appealResult = await submitDsaAppeal(
+  const appealResult: DsaAppeal = await submitDsaAppeal(
     firestore,
     reportId,
     userA,

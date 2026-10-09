@@ -20,7 +20,9 @@ describe('distributed AI budget with real Firestore transactions', { timeout: 20
     const results = await Promise.allSettled(Array.from({ length: 3 }, () => reserveAiBudget(getDb(), uid, 10, { user: 20, global: 100 }, now)));
     expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(2);
     expect(results.filter(r => r.status === 'rejected')).toHaveLength(1);
-    expect((await getDb().collection('system').doc('ai_budget_2091-01-01').get()).data().reservedUnits).toBe(20);
+    const budget = (await getDb().collection('system').doc('ai_budget_2091-01-01').get()).data();
+    if (!budget) throw new Error('Expected persisted AI budget.');
+    expect(budget.reservedUnits).toBe(20);
   });
   it('enforces the global cap across accounts and fails closed on corrupt counters', async () => {
     const first = await account(); const second = await account();

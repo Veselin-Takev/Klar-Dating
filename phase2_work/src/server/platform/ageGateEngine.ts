@@ -10,6 +10,7 @@
 
 import crypto from 'node:crypto';
 import { alterInJahren } from '../pure';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 
 export const MINIMUM_AGE = 18;
 export const MAXIMUM_PLAUSIBLE_AGE = 120;
@@ -144,7 +145,7 @@ export interface AgeProcessOutcome {
  * - Adult submissions record verified status with tamper-evident audit evidence.
  */
 export async function processAgeVerification(
-  firestore: unknown,
+  firestore: Firestore,
   userId: string,
   birthdateStr: unknown,
   options?: { now?: Date; ipHash?: string }
@@ -158,7 +159,7 @@ export async function processAgeVerification(
 
   let outcome: AgeProcessOutcome;
 
-  await firestore.runTransaction(async (tx: unknown) => {
+  await firestore.runTransaction(async (tx: Transaction) => {
     const userDoc = await tx.get(userRef);
     const userData = userDoc.data() || {};
 

@@ -1,12 +1,21 @@
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const file = ".github/workflows/release.yml";
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "../..");
+const workflowDir = path.join(repoRoot, ".github", "workflows");
+const file = path.join(workflowDir, "release.yml");
 const text = fs.readFileSync(file, "utf8");
-const identityText = fs.readFileSync("scripts/write-release-identity.mjs", "utf8");
+const identityText = fs.readFileSync(path.join(scriptDir, "write-release-identity.mjs"), "utf8");
 const failures = [];
-const workflowFiles = fs.readdirSync(".github/workflows").filter(name => /\.ya?ml$/.test(name));
+const releaseImage = 'ghcr.io/${{ github.repository_owner }}/klar-app';
+if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !text.includes("uses: actions/attest@7d8b1cacecb65f487779b3b98fd5296a018d1a1b") || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
+  failures.push("Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.");
+}
+const workflowFiles = fs.readdirSync(workflowDir).filter(name => /\.ya?ml$/.test(name));
 for (const workflowFile of workflowFiles) {
-  const workflowText = fs.readFileSync(`.github/workflows/${workflowFile}`, "utf8");
+  const workflowText = fs.readFileSync(path.join(workflowDir, workflowFile), "utf8");
   const matches = workflowText.match(/^\s*-?\s*uses:\s*[^@\s]+@([^\s#]+)(?:\s+#.*)?$/gm) ?? [];
   for (const match of matches) {
     const ref = match.match(/@([^\s#]+)/)?.[1] ?? "";
@@ -37,7 +46,7 @@ if (!text.includes('run: node scripts/check-production-release-approval.mjs')) {
 if (!text.includes('node scripts/write-release-identity.mjs')) {
   failures.push("Production release must generate exact commit/tag/run/image identity evidence before publication.");
 }
-if (!text.includes('node scripts/write-release-identity.mjs') || !text.includes('path: release/')) {
+if (!text.includes('node scripts/write-release-identity.mjs') || !text.includes('path: phase2_work/release/')) {
   failures.push("Production release evidence must generate and upload release/build-identity.json with the release evidence directory.");
 }
 if (!text.includes('release/build-identity.json') || !text.includes('release/functions-build-identity.json') || !text.includes('release/SHA256SUMS')) {
@@ -52,10 +61,10 @@ if (!text.includes('node scripts/check-release-artifact-hygiene.mjs')) {
 if (!text.includes('node scripts/write-functions-release-identity.mjs')) {
   failures.push("Production release must generate an exact Firebase Functions build identity after the Functions build.");
 }
-if (!text.includes("provenance: mode=max")) {
+if (!text.includes("provenance: mode=max") && !text.includes("--provenance=mode=max")) {
   failures.push("Production container builds must enable maximum Buildx provenance attestation.");
 }
-if (!text.includes("sbom: true")) {
+if (!text.includes("sbom: true") && !text.includes("--sbom=true")) {
   failures.push("Production container builds must enable SBOM attestation.");
 }
 if (!text.includes('docker buildx imagetools inspect --raw "$image" > release/container-index.json') || !text.includes('node scripts/check-container-attestations.mjs release/container-index.json')) {
@@ -64,7 +73,7 @@ if (!text.includes('docker buildx imagetools inspect --raw "$image" > release/co
 if (!text.includes('release/container-index.json') || !text.includes('release/deploy/*.json')) {
   failures.push("Container index attestation evidence must be covered by SHA256SUMS before publication.");
 }
-if (!text.includes('docker buildx imagetools inspect \"ghcr.io/${{ github.repository_owner }}/klar-app:${GITHUB_REF_NAME}\" > release/container-tag-inspect.txt') || !text.includes('node scripts/write-container-tag-binding.mjs')) {
+if (!text.includes('image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app:${GITHUB_REF_NAME}"') || !text.includes('docker buildx imagetools inspect "$image" > release/container-tag-inspect.txt') || !text.includes('node scripts/write-container-tag-binding.mjs')) {
   failures.push("Production release must bind the semver registry tag to the exact immutable image digest.");
 }
 if (!text.includes('release/container-tag-inspect.txt') || !text.includes('release/container-tag-binding.json')) {
@@ -73,7 +82,7 @@ if (!text.includes('release/container-tag-inspect.txt') || !text.includes('relea
 if (!text.includes('node scripts/write-sbom-identity.mjs') || !text.includes('release/sbom-build-identity.json')) {
   failures.push("Production release must bind the supplemental CycloneDX SBOM to the exact commit and immutable image digest.");
 }
-if (!text.includes('release/sbom-build-identity.json >> release/SHA256SUMS') && !/sha256sum[^\n]*release\/sbom-build-identity\.json[^\n]*>> release\/SHA256SUMS/.test(text)) {
+if (!text.includes('release/sbom-build-identity.json >> release/SHA256SUMS') && !/sha256sum[^\n]*release\/sbom-build-identity\.json[^\n]*>> release\/SHA256SUMS/.test(text) && !/find release -type f.*sha256sum.*release\/SHA256SUMS/s.test(text)) {
   failures.push("SBOM build identity must be covered by SHA256SUMS before publication.");
 }
 if (!identityText.includes("gitRevParse('HEAD')") || !identityText.includes("refs/tags/${refName}^{commit}") || !identityText.includes("headSha !== sha") || !identityText.includes("tagSha !== sha")) {

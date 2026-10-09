@@ -19,7 +19,7 @@ export async function executeWithResilience<T>(
 
   let attempt = 0;
   while (attempt <= retries) {
-    let timer: unknown = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const result = await Promise.race([
         primaryAction(),

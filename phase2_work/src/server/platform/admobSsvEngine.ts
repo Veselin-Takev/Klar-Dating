@@ -11,8 +11,9 @@
 
 import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
-import { getDb } from './db';
+import { getDb } from '../db';
 import { contactDay } from '../pure';
+import type { Firestore, Transaction } from 'firebase-admin/firestore';
 
 export const GOOGLE_ADMOB_KEYS_URL = 'https://gstatic.com/admob/reward/verifier-keys.json';
 export const DEFAULT_REWARD_CONTACTS = 3;
@@ -209,7 +210,7 @@ export function verifyAdMobSignature(
  * Core business transaction: Verifies the callback, prevents replays, and credits the user.
  */
 export async function processAdMobReward(
-  firestore: unknown,
+  firestore: Firestore,
   params: AdMobCallbackParams,
   rawQueryString?: string,
   injectedKeys?: Map<string, string>,
@@ -249,7 +250,7 @@ export async function processAdMobReward(
   const rewardRef = firestore.collection('admob_rewards').doc(transaction_id);
   const userRef = firestore.collection('users').doc(user_id);
 
-  return await firestore.runTransaction(async (tx: unknown) => {
+  return await firestore.runTransaction(async (tx: Transaction) => {
     const existingReward = await tx.get(rewardRef);
     if (existingReward.exists) {
       return {
@@ -326,7 +327,7 @@ export async function handleAdMobCallback(req: Request, res: Response): Promise<
       key_id: req.query.key_id as string,
     };
 
-    const firestore = getFirestore();
+    const firestore = getDb();
     const result = await processAdMobReward(firestore, params, rawQueryString);
 
     if (!result.ok) {

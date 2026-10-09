@@ -1,0 +1,44 @@
+name: Klar LLM Security Evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_evaluation:
+        description: 'Explicitly opt in to stochastic LLM security evaluation'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    if: ${{ inputs.run_evaluation == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: phase2_work
+    env:
+      KLAR_RUN_LLM_EVAL: ${{ inputs.run_evaluation }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.3'
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.2'
+
+      - name: Install dependencies
+        run: |
+          bun install --lockfile-only
+          bun ci
+
+      - name: Run opt-in stochastic security evaluation
+        run: |
+          test "$KLAR_RUN_LLM_EVAL" = "true"
+          bun run eval:llm-security

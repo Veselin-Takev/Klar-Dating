@@ -52,3 +52,21 @@ The 2026-10-07 enterprise audit found and corrected the following release-integr
 - A dedicated `check:legacy-translation-boundary` gate is part of `check:enterprise`.
 
 Static security/privacy/feature boundaries remain PASS. Full dynamic production certification remains blocked in this execution environment because the project dependency tree, Firebase CLI and Playwright browser/toolchain are not installed locally and registry access is unavailable.
+
+
+## Autonomous remediation — 2026-10-08 (CI gate #1)
+
+- GitHub repository access and PR #1 are now verified against the authoritative private repository.
+- First dynamic CI run (run #12) reached the enterprise static gates after successful Bun/npm dependency installation on Node.js 22.23.3.
+- The first blocking finding was the fail-closed deletion-cascade catalog: `legal_acknowledgements` and `legal_updates` were detected without explicit decisions.
+- Remediation: `legal_acknowledgements` is explicitly classified as user-scoped and deleted with account data; `legal_updates` is explicitly classified as system-wide legal publication data that does not belong to account deletion.
+- Follow-up hardening: the deletion cascade now explicitly purges `users/{uid}/legal_acknowledgements` before deleting the user document, so the static catalog and runtime deletion path are aligned without relying on implicit recursive cleanup.
+- Production status remains **NO-GO** until the complete dynamic CI/test/build/smoke/browser evidence is green and all external production controls are verified.
+
+
+## 2026-10-08 — Autonomous CI remediation
+
+- Enterprise static gates: all checks through dependency/toolchain/release gates passed in CI run #16 before the IPv6 regression gate.
+- Remaining blocker: the first IPv6 regression detector produced false positives because its source-expression matcher was too broad.
+- Remediation: the gate was tightened to validate the actual keyGenerator expression and require explicit ipKeyGenerator(req.ip ...) normalization whenever req.ip is used.
+- Production status: **NO-GO** until a subsequent CI run proves the corrected gate, followed by typecheck, tests, build, production smoke, browser acceptance, and release provenance evidence.

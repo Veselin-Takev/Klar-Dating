@@ -7,12 +7,12 @@ export const ProfileCompletionWidget: React.FC = () => {
   const [uiError, setUiError] = useState<string | null>(null);
 
   const [completionScore, setCompletionScore] = useState(0);
-  const [missingFields, setMissingFields] = useState<{ id: string; label: string; icon: React.FC<unknown>; actionText: string }[]>([]);
+  const [missingFields, setMissingFields] = useState<{ id: string; label: string; icon: React.ComponentType<{ size?: number }>; actionText: string }[]>([]);
 
   useEffect(() => {
     const calculateScore = () => {
       let score = 0;
-      const missing = [];
+      const missing: { id: string; label: string; icon: React.ComponentType<{ size?: number }>; actionText: string }[] = [];
 
       // 1. Bio (30%)
       const bio = getUserStorageItem('klar_user_bio') || '';

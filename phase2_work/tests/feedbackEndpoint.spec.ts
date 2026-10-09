@@ -23,11 +23,13 @@ async function endpoint(options: { fail?: boolean } = {}) {
     getFirestore: () => db,
     now: () => new Date('2026-09-30T10:00:00Z'),
   }));
+  app.post('/api/contact', (_req, res) => res.status(409).json({ code: 'contact_unverified' }));
 
   const server = app.listen(0, '127.0.0.1');
   servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
-  const url = 'http://127.0.0.1:' + (server.address() as AddressInfo).port + '/api/feedback';
+  const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+  const url = origin + '/api/feedback';
 
   return {
     add,
@@ -36,6 +38,7 @@ async function endpoint(options: { fail?: boolean } = {}) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
+    sendOther: () => fetch(origin + '/api/contact', { method: 'POST' }),
   };
 }
 
@@ -74,5 +77,16 @@ describe('public feedback HTTP boundary', () => {
     const response = await api.send({ rating: 4, text: 'ok' });
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain('private storage detail');
+  });
+
+  it('limits only POST /api/feedback and never throttles a sibling API route', async () => {
+    const api = await endpoint();
+    for (let i = 0; i < 10; i += 1) {
+      expect((await api.send({ rating: 5, text: 'bounded request ' + i })).status).toBe(200);
+    }
+    expect((await api.send({ rating: 5, text: 'over quota' })).status).toBe(429);
+    for (let i = 0; i < 12; i += 1) {
+      expect((await api.sendOther()).status, 'feedback quota must not leak to /api/contact').toBe(409);
+    }
   });
 });

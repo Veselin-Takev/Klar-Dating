@@ -3,7 +3,7 @@ import { getDb } from './db';
 
 export async function sendPushNotification(userId: string, title: string, body: string) {
   try {
-    const db = getDb() as any;
+    const db = getDb();
     const tokensSnapshot = await db.collection('users').doc(userId).collection('fcmTokens').get();
 
     if (tokensSnapshot.empty) return;

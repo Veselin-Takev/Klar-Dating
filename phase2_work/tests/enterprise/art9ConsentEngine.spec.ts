@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { Firestore } from 'firebase-admin/firestore';
 import {
   computeConsentEvidenceHash,
   evaluateArt9Consent,
@@ -136,7 +137,7 @@ test('GDPR Art. 9: recordExplicitConsent & revokeExplicitConsent maintain tamper
 
   // 1. Grant consent
   const state = await recordExplicitConsent(
-    firestore,
+    firestore as unknown as Firestore,
     'usr_carol',
     { art9_sexual_orientation: true, art9_religious_philosophical: true },
     fixedNow,
@@ -158,7 +159,7 @@ test('GDPR Art. 9: recordExplicitConsent & revokeExplicitConsent maintain tamper
 
   // 2. Revoke consent
   const revokeTime = new Date('2026-09-24T14:00:00Z');
-  const { ok, updatedState } = await revokeExplicitConsent(firestore, 'usr_carol', 'all', revokeTime);
+  const { ok, updatedState } = await revokeExplicitConsent(firestore as unknown as Firestore, 'usr_carol', 'all', revokeTime);
   assert.equal(ok, true);
   assert.equal(updatedState.purposes.art9_sexual_orientation, false);
   assert.equal(updatedState.withdrawnAt, '2026-09-24T14:00:00.000Z');

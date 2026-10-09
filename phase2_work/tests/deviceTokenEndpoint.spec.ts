@@ -18,7 +18,7 @@ async function endpoint(options: { uid?: string | null; fail?: boolean } = {}) {
   const tokenCollection = vi.fn(() => ({ doc: tokenDoc }));
   const userDoc = vi.fn(() => ({ collection: tokenCollection }));
   const usersCollection = vi.fn(() => ({ doc: userDoc }));
-  const db = { collection: usersCollection };
+  const db = { collection: usersCollection, runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }) };
 
   const app = express();
   app.use(express.json());

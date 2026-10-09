@@ -33,8 +33,9 @@ export function SuccessDashboardWidget() {
       let successful = 0;
       if (savedHistory) {
         try {
-          const historyList = JSON.parse(savedHistory);
-          successful = historyList.filter((entry: unknown) => entry.rating || entry.note).length;
+          const parsed: unknown = JSON.parse(savedHistory);
+          const historyList = Array.isArray(parsed) ? parsed.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry)) : [];
+          successful = historyList.filter(entry => Boolean(entry.rating || entry.note)).length;
         } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
       }
 

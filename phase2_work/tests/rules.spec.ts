@@ -264,6 +264,8 @@ describe('Profile', () => {
 describe('Öffentliches Profil', () => {
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/anna'), { isAdult: true }, { merge: true });
+      await setDoc(doc(ctx.firestore(), 'users/bea'), { isAdult: true }, { merge: true });
       await setDoc(doc(ctx.firestore(), 'public_profiles/bea'), {
         uid: BEA, name: 'Bea', age: 31, ort: 'Leipzig', bio: 'kurz', isVerified: true,
       });
@@ -625,7 +627,7 @@ describe('Gastzugang', () => {
     // nirgendwohin. Anlegen ja, Aendern nein — siehe naechster Test.
     await assertSucceeds(
       setDoc(doc(alsGast(GAST), `users/${GAST}`), {
-        uid: GAST, createdAt: '2026-08-14', updatedAt: '2026-08-14', name: 'Gast',
+        uid: GAST, createdAt: '2026-08-14', updatedAt: '2026-08-14', name: 'Gast', bio: '', interests: [], goal: 'undecided',
       }),
     );
   });
@@ -746,5 +748,28 @@ describe('Enterprise RBAC and append-only audit logs', () => {
     await assertFails(setDoc(doc(alsAdmin(ANNA), 'audit_logs/a3'), { schemaVersion: 1 }));
     await assertFails(updateDoc(doc(alsAdmin(ANNA), 'audit_logs/a3'), { type: 'test.changed' }));
     await assertFails(deleteDoc(doc(alsAdmin(ANNA), 'audit_logs/a3')));
+  });
+});
+
+
+describe('Klar & Partner server-only collections', () => {
+  const partnerCollections = [
+    'partner_campaigns',
+    'partner_campaign_slugs',
+    'partner_referrals',
+    'partner_referral_ledger',
+    'partner_referral_conversions',
+    'partner_referral_buyer_claims',
+    'partner_referral_click_rate_limits',
+    'partner_referral_webhook_rate_limits',
+    'partner_referral_admin_rate_limits',
+    'partner_referral_user_rate_limits',
+  ] as const;
+
+  it.each(partnerCollections)('denies client reads and writes for %s even to admin claims', async collectionName => {
+    const adminDb = env.authenticatedContext(ANNA, { admin: true, roles: ['admin'] }).firestore();
+    const target = doc(adminDb, collectionName, 'test-record');
+    await assertFails(getDoc(target));
+    await assertFails(setDoc(target, { clientControlled: true }));
   });
 });

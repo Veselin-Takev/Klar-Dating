@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { Firestore } from 'firebase-admin/firestore';
 import { compatibilityScore } from '../../src/server/platform/compatibility';
 import { assessRisk, evaluateAccountRisk } from '../../src/server/platform/riskEngine';
 import { sanitizePromptInput } from '../../src/server/platform/privacySanitizer';
@@ -55,7 +56,7 @@ test('evaluateAccountRisk escalates and writes flag for high-risk accounts', asy
     }
   };
 
-  const decision = await evaluateAccountRisk(mockDb, 'bad-actor-1', {
+  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'bad-actor-1', {
     outboundMessages24h: 120,
     externalPaymentMentions: 2
   });
@@ -98,7 +99,7 @@ test('evaluateAccountRisk keeps benign accounts clean without update', async () 
     }
   };
 
-  const decision = await evaluateAccountRisk(mockDb, 'good-user-1', {});
+  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'good-user-1', {});
   assert.equal(decision.level, 'low');
   assert.equal(writtenData, null);
 });
@@ -127,7 +128,7 @@ test('evaluateAccountRisk escalates on multiple blocks and message velocity', as
     }
   };
 
-  const decision = await evaluateAccountRisk(mockDb, 'blocked-user-1', { repeatedMessageRatio: 0.9, outboundMessages24h: 110 });
+  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'blocked-user-1', { repeatedMessageRatio: 0.9, outboundMessages24h: 110 });
   assert.equal(decision.level, 'high');
   assert.ok(writtenData);
   assert.equal(writtenData.requiresSafetyReview, true);

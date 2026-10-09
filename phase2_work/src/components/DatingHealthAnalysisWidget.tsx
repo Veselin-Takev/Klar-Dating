@@ -14,7 +14,10 @@ export function DatingHealthAnalysisWidget() {
 
   useEffect(() => {
     const journalsRaw = klarStorage.getItem("klar_dating_journals");
-    const journals = journalsRaw ? JSON.parse(journalsRaw) : [];
+    const parsed: unknown = journalsRaw ? JSON.parse(journalsRaw) : [];
+    const journals = Array.isArray(parsed) ? parsed.filter((value): value is { note?: unknown; vibes?: unknown; mood?: unknown } =>
+      !!value && typeof value === 'object' && !Array.isArray(value)
+    ) : [];
 
     let positive = 0;
     let reflective = 0;
@@ -27,8 +30,11 @@ export function DatingHealthAnalysisWidget() {
     let totalMatch = 0;
     const activityScores: Record<string, number> = {};
 
-    journals.forEach((j: unknown) => {
-      const text = (j.note || "") + " " + (j.vibes ? j.vibes.join(" ") : "") + " " + (j.mood || "");
+    journals.forEach((j) => {
+      const note = typeof j.note === 'string' ? j.note : '';
+      const vibes = Array.isArray(j.vibes) ? j.vibes.filter((v: unknown): v is string => typeof v === 'string') : [];
+      const mood = typeof j.mood === 'string' ? j.mood : '';
+      const text = note + " " + vibes.join(" ") + " " + mood;
 
       let isPositive = false;
       let found = false;
@@ -36,21 +42,21 @@ export function DatingHealthAnalysisWidget() {
       reflectiveWords.forEach(w => { if (text.includes(w)) { reflective++; found = true; } });
       stressfulWords.forEach(w => { if (text.includes(w)) { stressful++; found = true; } });
 
-      if (j.mood === 'excited' || j.mood === 'relaxed') {
+      if (mood === 'excited' || mood === 'relaxed') {
         positive++; found = true; isPositive = true;
       }
-      if (j.mood === 'nervous' || j.mood === 'frustrated') {
+      if (mood === 'nervous' || mood === 'frustrated') {
         stressful++; found = true;
       }
-      if (j.mood === 'neutral') {
+      if (mood === 'neutral') {
         reflective++; found = true;
       }
 
       if (found) totalMatch++;
 
       // Track activities for positive experiences
-      if (isPositive && j.note) {
-        const activityMatch = j.note.match(/Aktivität:\s*([^.]+)\./);
+      if (isPositive && note) {
+        const activityMatch = note.match(/Aktivität:\s*([^.]+)\./);
         if (activityMatch && activityMatch[1]) {
            const act = activityMatch[1].trim();
            if (act && act !== "null") {
@@ -61,10 +67,9 @@ export function DatingHealthAnalysisWidget() {
     });
 
     if (totalMatch === 0) {
-      positive = 3;
-      reflective = 2;
-      stressful = 1;
-      totalMatch = 6;
+      positive = 0;
+      reflective = 0;
+      stressful = 0;
     }
 
     setHealthData({

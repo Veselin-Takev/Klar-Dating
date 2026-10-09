@@ -32,7 +32,7 @@ export function ConsentSettings() {
     <ul className="space-y-4">{purposes.map(([key, label, description]) => {
       const allowed = zweckErlaubt(profileData?.einwilligung, key);
       return <li key={key} className="rounded-xl border border-line-ui p-4 flex items-center justify-between gap-4">
-        <div><p className="font-medium">{label}</p><p className="text-xs text-ink-muted mt-1">{description}</p><p className="text-xs mt-2" aria-live="polite">Status: {allowed ? 'Erlaubt' : 'Nicht erlaubt'}</p></div>
+        <div><p className="font-medium">{label}</p><p className="text-xs text-ink-muted mt-1">{description}</p><p className="text-xs mt-2" aria-live="polite">{label}: {allowed ? 'Erlaubt' : 'Nicht erlaubt'}</p></div>
         <button type="button" disabled={busy !== null} aria-pressed={allowed} aria-label={`${label} ${allowed ? 'widerrufen' : 'erlauben'}`} onClick={() => void change(key, !allowed)} className="shrink-0 rounded-full border px-3 py-2 text-sm disabled:opacity-50">{busy === key ? 'Speichere …' : allowed ? 'Widerrufen' : 'Erlauben'}</button>
       </li>;
     })}</ul>

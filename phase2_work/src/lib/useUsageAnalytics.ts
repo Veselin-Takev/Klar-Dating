@@ -1,4 +1,3 @@
-import { klarStorage } from '../lib/userScopedStorage';
 import { useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
