@@ -1,3 +1,17 @@
+### 2026-10-09 — Browser follow-up: persist realistic chat fixtures and expose rate-limit evidence
+
+The chat E2E fixture still forced `localStorage.hasCompletedOnboarding`, but the production storage boundary intentionally scopes user-owned state under `klar:user:<uid>:`; the old unscoped key no longer completes the gate. The fixture now seeds an interest on the emulator-owned `users/<uid>` document and removes the obsolete client-side shortcut. This verifies that the chat tests progress via persisted profile state and the actual `AuthGate` behavior, not a stale localStorage assumption. The fixture PATCH is restricted to the loopback Firestore emulator and uses no production endpoint.
+
+The legacy analytics/promo test still has an unexplained HTTP 429 in the last completed acceptance evidence. Rather than weakening the global API rate limiter or pre-emptively bypassing authorization middleware, its failure assertion now reports the returned body and response headers so the specific limiter and counter can be identified in the next CI log.
+
+Commits: `75eac77bd0d3664f8b0958fb37350beb9ffc0eaf` (persisted chat fixture) and `00f365eab4059dc9f74d3898446c996188208910` (retired-route rate-limit diagnostics).
+
+### 2026-10-09 — Validation state after browser remediation batch
+
+The last completed Browser Acceptance run remains CI `37892881623` on older candidate `7080cb3dab61304b8fc49a1bc51684e40dd71c84` (7 failed / 19 passed). Later fixes cover contextual consent status, correct age/consent-before-onboarding order, the isolated legal-page return navigation, and first-use initialization of the distributed chat rate limit. CI `37894874032` was still in progress on earlier head `0ee0eadfb533bea73d0606bfabc9b3ac65d6c3d0`; therefore it is not evidence for the subsequent fixture and diagnostic changes. CI run `37895348262` was cancelled during the subsequent pushes. The current head requires a fresh non-cancelled full validation run.
+
+**Release remains NO-GO / NOT CONFIRMED.** A completed green exact-head run is still required for static gates, typecheck, tests, build, production smoke and browser acceptance. Independent operational/governance approval and official release confirmation remain outstanding.
+
 ### 2026-10-09 — Chat rate-limit initialization defect corrected
 
 The chat browser failure was traced past the route handler: the custom Firestore limiters for message sends and icebreaker answers attempted `tx.update()` on a counter document that did not yet exist. Firestore correctly rejected this transaction, and the limiter failed closed with HTTP 503 before normal participant/gate authorization could run.
