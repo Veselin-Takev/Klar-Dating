@@ -45,6 +45,7 @@ import { useChatGate } from "../lib/useChatGate";
 import { melde } from "../lib/fehler";
 import { meldeKontoErforderlich, sollGateZeigen } from "../lib/gastGrenze";
 import { auth } from "../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { hapticFeedback } from "../lib/haptics";
@@ -981,39 +982,61 @@ Der Einstieg sollte kreativ, freundlich und auf eine Gemeinsamkeit oder etwas au
 
   /* eslint-disable react-hooks/set-state-in-effect -- Firestore is an external subscription; incoming snapshots must update local view state. */
   useEffect(() => {
-    if (!id || !auth.currentUser || gateZustand !== 'offen') return;
-    const viewer = auth.currentUser.uid;
-    const messagesRef = query(collection(db, `chats/${id}/messages`), orderBy('createdAt', 'desc'), limit(100));
+    if (!id || gateZustand !== 'offen') return;
     let active = true;
-    const unsubscribe = onSnapshot(messagesRef, snapshot => {
-      if (!active || auth.currentUser?.uid !== viewer) return;
-      const unreadIds: string[] = [];
-      const persisted: ChatMessage[] = snapshot.docs.slice().reverse().map(message => {
-        const data = message.data();
-        if (data.senderId !== viewer && data.isRead !== true) unreadIds.push(message.id);
-        return {
-          id: message.id,
-          role: data.senderId === viewer ? 'user' : 'verbindung',
-          text: typeof data.text === 'string' ? data.text : '',
-          isRead: data.isRead === true,
-          ...(typeof data.originalText === 'string' ? { originalText: data.originalText } : {}),
-          ...(typeof data.createdAt === 'string' || typeof data.createdAt === 'number' || data.createdAt instanceof Date
-            ? { createdAt: data.createdAt }
-            : {}),
-        };
-      });
-      setMessages(persisted);
-      if (unreadIds.length) {
-        auth.currentUser.getIdToken().then(token => fetch('/api/messages/mark-read', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ chatId: id, messageIds: unreadIds }),
-        })).catch(() => { /* Read receipts never acknowledge unsaved messages. */ });
+    let unsubscribeMessages: (() => void) | null = null;
+
+    // Firebase Auth restores persisted sessions asynchronously on a page reload.
+    // Reading auth.currentUser once here can see null and permanently skip the
+    // Firestore subscription because no auth state change was observed by this effect.
+    // Subscribe to the SDK's auth state so the persisted chat is loaded as soon as
+    // the restored user is available, without introducing a second token cache.
+    const unsubscribeAuth = onAuthStateChanged(auth, user => {
+      unsubscribeMessages?.();
+      unsubscribeMessages = null;
+      if (!active) return;
+      if (!user) {
+        setMessages([]);
+        return;
       }
-    }, error => {
-      if (active) setSendError('Nachrichten konnten nicht geladen werden. Bitte lade das Gespräch erneut.');
-      melde('ChatView.tsx', error);
+
+      const viewer = user.uid;
+      const messagesRef = query(collection(db, `chats/${id}/messages`), orderBy('createdAt', 'desc'), limit(100));
+      unsubscribeMessages = onSnapshot(messagesRef, snapshot => {
+        if (!active || auth.currentUser?.uid !== viewer) return;
+        const unreadIds: string[] = [];
+        const persisted: ChatMessage[] = snapshot.docs.slice().reverse().map(message => {
+          const data = message.data();
+          if (data.senderId !== viewer && data.isRead !== true) unreadIds.push(message.id);
+          return {
+            id: message.id,
+            role: data.senderId === viewer ? 'user' : 'verbindung',
+            text: typeof data.text === 'string' ? data.text : '',
+            isRead: data.isRead === true,
+            ...(typeof data.originalText === 'string' ? { originalText: data.originalText } : {}),
+            ...(typeof data.createdAt === 'string' || typeof data.createdAt === 'number' || data.createdAt instanceof Date
+              ? { createdAt: data.createdAt }
+              : {}),
+          };
+        });
+        setMessages(persisted);
+        if (unreadIds.length) {
+          user.getIdToken().then(token => fetch('/api/messages/mark-read', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ chatId: id, messageIds: unreadIds }),
+          })).catch(() => { /* Read receipts never acknowledge unsaved messages. */ });
+        }
+      }, error => {
+        if (active) setSendError('Nachrichten konnten nicht geladen werden. Bitte lade das Gespräch erneut.');
+        melde('ChatView.tsx', error);
+      });
     });
-    return () => { active = false; unsubscribe(); };
+
+    return () => {
+      active = false;
+      unsubscribeAuth();
+      unsubscribeMessages?.();
+    };
   }, [id, gateZustand]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
