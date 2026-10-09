@@ -1,5 +1,15 @@
 # Post-merge validation and dependency triage — 2026-10-09
 
+### 2026-10-09 — PR #6 exact-candidate remote validation passed
+
+The owner authorized one bounded remote validation exception for the prepared post-merge correction. [PR #6](https://github.com/Veselin-Takev/Klar-Dating/pull/6), candidate `efd5016e1c48ef08cfeaae283423f6ccdfcaf9d0`, passed [CI #337](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37965468398), job `113938603278`.
+
+**SUCCESS:** Enterprise gates (including Node/Docker 22.23.3 alignment), all TypeScript projects, Functions build, **157 test files / 1,003 tests**, application build, production smoke and **26 browser tests** passed. The corrected registered-account onboarding journey passed with exact music-preference export assertions before and after reload. Test orchestration exited 0. This is passing evidence for this candidate/run, not a claim that repeated-run stability or production readiness is universally proven.
+
+Job interval: 2026-10-09 17:19:42–17:30:02 UTC, **10m 20s**, rounded conservatively to **11 minutes**. Previous ledger 61 + 11 = **72 additional minutes consumed; 128 of 200 remain**. The 45-minute reservation is released. Billing remains authoritative; no second run was triggered for this result.
+
+PR #6 is conflict-free and GitHub reports `clean` at this snapshot. It has not been merged or deployed by this work. Phase 3 documentation is included in the PR; actual training, pilot measurements, organizational approvals and remaining operational/audit evidence are still open. **Production: NO-GO / NOT CONFIRMED.** This evidence is saved on a separate non-PR documentation branch to avoid another CI trigger.
+
 ## Confirmed observations
 
 Main commit `b9808179d26cd4bb21644c4d8f871a439ea09157` failed [CI 37963077381](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37963077381) in Browser acceptance: the registered-account onboarding export expected music preferences but received `undefined`. The earlier PR candidate passed all 26 browser tests. The new result supersedes any assumption that the merged state is consistently green; it does not negate the historical passing run.
