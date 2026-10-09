@@ -7,9 +7,11 @@ vi.mock('../src/lib/AuthContext', () => ({ useAuth: () => ({ profileData: { einw
 vi.mock('../src/lib/authFetch', () => ({ authFetch: hooks.request }));
 beforeEach(() => { vi.clearAllMocks(); hooks.refreshProfile.mockResolvedValue({}); });
 describe('accessible consent withdrawal', () => {
-  it('announces success only after the server returns evidence', async () => {
+  it('renders purpose-specific status with explicit context and announces success only after server evidence', async () => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
-    render(<ConsentSettings />); fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
+    render(<ConsentSettings />);
+    expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('wurde widerrufen'));
     expect(hooks.refreshProfile).toHaveBeenCalledOnce();
   });
