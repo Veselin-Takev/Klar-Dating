@@ -124,3 +124,16 @@ ICE = Impact × Confidence × Ease; each factor is 1–10, maximum score 1,000. 
 - Production provider/secret readiness, centralized telemetry and alert test.
 - Current backup/restore-drill record including measured RPO/RTO.
 - Operations/security/privacy approvals, canary observation, and explicit production release confirmation.
+
+
+## Validation addendum — 2026-10-09, PR #1 candidate
+
+The latest completed run inspected after this audit was [Enterprise CI #313](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37908747359), on candidate `4435b837c24fc254fd920615a2ad656eca75c428`. Dependency preflight/install, Enterprise static gates, typecheck, tests, build, production smoke, and Chromium installation passed; **Browser acceptance failed**. The run metadata exposed only the failed step, not individual test output or traces, and no report artifact was available. Therefore, the previous four-test failure list is historical baseline evidence and must not be assumed to be the same current failure set.
+
+### Diagnostic remediation
+
+The CI workflow now uploads `phase2_work/playwright-report/` and `phase2_work/test-results/` after the Browser acceptance step using an `always()` condition, with a seven-day retention period. This change preserves HTML reports and failure traces where Playwright generated them. It does not fix the failing browser journey and must itself be validated by a new CI run.
+
+### Current decision
+
+**NO-GO / NOT CONFIRMED.** Next, inspect the report artifact from the first run containing this diagnostic step, reproduce each failing test, and fix the actual behavior or isolated fixture without weakening security assertions. Then require a complete green CI run on the exact release candidate, followed by production-equivalent load/cost evidence, a verified backup/restore drill, and independent operational/security/privacy approval. Do not infer production safety from successful static gates or unit tests alone.
