@@ -27,6 +27,7 @@ type DurableDocRef = {
   _realDocRef?: DocumentReference | null;
   get: () => Promise<DurableDocSnapshot | DocumentSnapshot>;
   set: (data: unknown, options?: unknown) => Promise<void>;
+  create: (data: unknown) => Promise<void>;
   update: (data: unknown) => Promise<void>;
   delete: () => Promise<void>;
   collection: (subCol: string) => DurableCollectionRef;
@@ -344,6 +345,14 @@ export function createDurableDocRef(fullPath: string): DurableDocRef {
       const merge = isRecord(options) && options.merge === true;
       durableStore.setDoc(fullPath, data, merge);
     },
+    create: async (data: unknown) => {
+      if (durableStore.getDoc(fullPath) !== null) {
+        const error = new Error('Document already exists.') as Error & { code: number };
+        error.code = 6;
+        throw error;
+      }
+      durableStore.setDoc(fullPath, data);
+    },
     update: async (data: unknown) => durableStore.updateDoc(fullPath, data),
     delete: async () => { durableStore.deleteDoc(fullPath); },
     collection: (subCol: string) => createDurableCollectionRef(`${fullPath}/${subCol}`),
@@ -508,6 +517,23 @@ export function createDurableDbProxy(realDb: Firestore | null): DurableDbProxy {
           }
         }
         await durableDoc.set(data, options);
+      },
+      create: async data => {
+        if (!fallbackActive && realRef) {
+          try {
+            await realRef.create(data as never);
+            void durableDoc.create(data).catch(() => {});
+            return;
+          } catch (error: unknown) {
+            if (allowFallback && isPermissionDenied(error)) {
+              fallbackActive = true;
+              await durableDoc.create(data);
+              return;
+            }
+            throw error;
+          }
+        }
+        await durableDoc.create(data);
       },
       update: async data => {
         if (!fallbackActive && realRef) {
