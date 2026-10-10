@@ -43,10 +43,40 @@ describe('production control audit', () => {
 
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
-      [{ displayName: 'Klar API burn rate 1h', enabled: true }],
-      [{ enabled: true, verificationStatus: 'VERIFIED' }],
+      [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
+      [{ name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' }],
       ['Klar API burn rate 1h'],
     ).passed).toBe(true);
     expect(auditMonitoring([], [{ enabled: true, verificationStatus: 'UNVERIFIED' }], ['Klar API burn rate 1h']).passed).toBe(false);
   });
+  it('rejects unrelated global notification channels not attached to the required policy', () => {
+    const policy = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/missing'] }];
+    const channels = [{ name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' }];
+    expect(auditMonitoring(policy, channels, ['Klar API burn rate 1h']).passed).toBe(false);
+  });
+
+  it('rejects unknown verification, missing channel identity, and disabled channels', () => {
+    const policy = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }];
+    for (const channel of [
+      { name: 'projects/p/notificationChannels/pager', enabled: true },
+      { name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'UNVERIFIED' },
+      { name: 'projects/p/notificationChannels/pager', enabled: false, verificationStatus: 'VERIFIED' },
+      { enabled: true, verificationStatus: 'VERIFIED' },
+    ]) {
+      expect(auditMonitoring(policy, [channel], ['Klar API burn rate 1h']).passed).toBe(false);
+    }
+  });
+
+  it('rejects policies without explicitly enabled status or with invalid configuration', () => {
+    const channels = [{ name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const policy of [
+      { displayName: 'Klar API burn rate 1h', notificationChannels: ['projects/p/notificationChannels/pager'] },
+      { displayName: 'Klar API burn rate 1h', enabled: false, notificationChannels: ['projects/p/notificationChannels/pager'] },
+      { displayName: 'Klar API burn rate 1h', enabled: true, validity: { code: 3 }, notificationChannels: ['projects/p/notificationChannels/pager'] },
+      { displayName: 'Klar API burn rate 1h', enabled: true },
+    ]) {
+      expect(auditMonitoring([policy], channels, ['Klar API burn rate 1h']).passed).toBe(false);
+    }
+  });
+
 });
