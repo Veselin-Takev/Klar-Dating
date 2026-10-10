@@ -69,4 +69,16 @@ describe('operational control exercise evidence', () => {
     }
   });
 
+  it('fails closed for malformed JSON field types instead of throwing', () => {
+    const e = valid();
+    const malformed = {
+      ...e,
+      secretRotation: { ...e.secretRotation, secretName: 123 },
+      alertDelivery: { ...e.alertDelivery, recipient: { private: 'value' }, policyName: 77, channelType: true },
+    };
+    expect(() => validate(malformed)).not.toThrow();
+    expect(validate(malformed).passed).toBe(false);
+    expect(validateOperationalControlEvidence(e, 'a'.repeat(40), 'production', undefined as unknown as string[], '2026-09-29T00:00:00Z').passed).toBe(false);
+  });
+
 });
