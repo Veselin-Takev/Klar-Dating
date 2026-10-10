@@ -102,4 +102,28 @@ describe('offline replay authentication transition', () => {
     expect(result).toEqual({ sent: 0, failed: 0, remaining: 1, deadLettered: 0 });
     expect(message.attempts).toBe(0);
   });
+  it('preserves the warning count for previously dead-lettered messages after another sync', async () => {
+    const dead = { ...queued(), status: 'dead_letter' as const };
+    mocks.readOwner.mockResolvedValue([dead]);
+    const fetcher = vi.fn();
+    const result = await flushOfflineQueue({
+      ownerUid: 'alice', token: 'token', fetcher: fetcher as unknown as typeof fetch,
+    });
+    expect(result).toEqual({ sent: 0, failed: 0, remaining: 0, deadLettered: 1 });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('counts existing dead letters while leaving future retries untouched', async () => {
+    const dead = { ...queued(), id: 'message:alice:old', status: 'dead_letter' as const };
+    const deferred = { ...queued(), nextAttemptAt: Number.MAX_SAFE_INTEGER };
+    mocks.readOwner.mockResolvedValue([dead, deferred]);
+    const fetcher = vi.fn();
+    const result = await flushOfflineQueue({
+      ownerUid: 'alice', token: 'token', now: 500,
+      fetcher: fetcher as unknown as typeof fetch,
+    });
+    expect(result).toEqual({ sent: 0, failed: 0, remaining: 1, deadLettered: 1 });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
 });
