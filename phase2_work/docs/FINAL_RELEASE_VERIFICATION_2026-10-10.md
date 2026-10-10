@@ -43,3 +43,9 @@ Updated both root and `phase2_work` copies of `RELEASE_MANIFEST.json` and `RELEA
 **Actually executed locally:** isolated Node regression suite, 21 PASS / 0 FAIL (119 ms) under existing Node 22.16.0. Bash syntax of the newly added nvm command sequence: PASS. These checks are **not** a test of the complete Codespaces bootstrap.
 
 **Connectivity and gate state:** `git ls-remote https://github.com/Veselin-Takev/Klar-Dating.git HEAD` still fails with DNS `Could not resolve host: github.com`; no full checkout, no Bun, and no Node 22.23.3 in this executor. Therefore exact-SHA clean-checkout preflight BLOCKED; TypeScript aggregate/Firebase emulator/Playwright and live cloud security tests NOT RUN. No production access has been established; do not represent tests as passing. R2 exact SHA remains unchanged. No Actions minutes used, no merge, no deployment, formal status **NO-GO**.
+
+## 2026-10-10 — Bootstrap syntax gate hardening
+
+Detected a real coverage gap in `scripts/check-codespaces-bootstrap.mjs`: textual pin checks alone did not reject malformed Bash. Added `spawnSync('bash', ['-n', absoluteBootstrapPath])` and fail-closed handling of nonzero status or process error (commit `fb497fe59fe5cc0e280b56964efb5db42462cf0f`). Existing exact-version, lock and root Codespaces entry-point checks remain in place.
+
+**Evidence boundary:** patch accepted by GitHub; source inspected. Full new check was **NOT RUN on a complete repository checkout** in the current executor (github.com DNS unavailable, Bun and pinned Node missing). The prior isolated diagnostic tests do not validate this code change. An authorized networked runner must execute the gate and the full exact-SHA preflight. No CI minutes, merge, deployment or R2 mutation; production **NO-GO**.
