@@ -48,7 +48,7 @@ try {
   for (const script of ['check:enterprise', 'typecheck', 'check:functions', 'test:ci', 'build', 'test:production']) {
     run(script, 'bun', ['run', script]);
   }
-  run('Browser acceptance', 'bunx', ['playwright', 'test']);
+  run('Browser acceptance', 'bun', ['run', 'playwright', 'test']);
   const finalSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (finalSha !== report.gitSha) throw new Error('Git HEAD changed during local preflight.');
   report.status = 'PASS';
