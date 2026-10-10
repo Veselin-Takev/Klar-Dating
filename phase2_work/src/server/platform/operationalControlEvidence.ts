@@ -61,7 +61,7 @@ function rejectUnexpectedFields(value: unknown, allowed: readonly string[], labe
     return;
   }
   for (const key of Object.keys(value)) {
-    if (!allowed.includes(key)) errors.push(label + ' contains unexpected field ' + key);
+    if (!allowed.includes(key)) errors.push(label + ' contains an unexpected field');
   }
 }
 
