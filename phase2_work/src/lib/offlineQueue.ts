@@ -376,12 +376,10 @@ export async function flushOfflineQueue(options: {
       .filter(item => item.status !== 'dead_letter')
       .sort((a, b) => a.queuedAt - b.queuedAt);
 
-    let deadLettered = 0;
     for (const item of items) {
       if (!mayReplay()) break;
       if (item.attempts >= MAX_ATTEMPTS) {
         await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: item.lastError ?? 'retry_limit_reached' });
-        deadLettered += 1;
         continue;
       }
       if (item.nextAttemptAt > now) continue;
@@ -406,14 +404,12 @@ export async function flushOfflineQueue(options: {
         if (!retryableStatus(res.status)) {
           failed += 1;
           await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         failed += 1;
         const attempts = item.attempts + 1;
         if (attempts >= MAX_ATTEMPTS) {
           await putItem(db, { ...item, attempts, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         await putItem(db, { ...item, attempts, status: 'pending', nextAttemptAt: now + retryDelayMs(attempts), lastError: error });
@@ -426,14 +422,17 @@ export async function flushOfflineQueue(options: {
         const error = err instanceof Error ? err.message : 'network_error';
         if (attempts >= MAX_ATTEMPTS) {
           await putItem(db, { ...item, attempts, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         await putItem(db, { ...item, attempts, status: 'pending', nextAttemptAt: now + retryDelayMs(attempts), lastError: error });
         break;
       }
     }
-    const remaining = (await queueItemsForOwner<PendingQueueItem>(db, STORE_NAME, options.ownerUid)).filter(item => item.status !== 'dead_letter').length;
+    const current = await queueItemsForOwner<PendingQueueItem>(db, STORE_NAME, options.ownerUid);
+    const remaining = current.filter(item => item.status !== 'dead_letter').length;
+    // Include previously dead-lettered actions so later sync runs cannot
+    // erase the user's unresolved message delivery warning.
+    const deadLettered = current.filter(item => item.status === 'dead_letter').length;
     return { sent, failed, remaining, deadLettered };
   } finally { db.close(); }
 }
