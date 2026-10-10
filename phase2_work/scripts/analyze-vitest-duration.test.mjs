@@ -53,3 +53,10 @@ test('rejects truncated and contradictory reports', () => {
 test('clearly exposes overall failure without reporting a PASS', () => {
   assert.equal(analyzeVitestReport(input).overallStatus, 'FAIL');
 });
+
+test('rejects contradictory global failure counters', () => {
+  const successful = { success: true, numTotalTests: 1, numFailedTests: 1, testResults: [{ name: 'x', status: 'passed', assertionResults: [{}], startTime: 1, endTime: 2 }] };
+  assert.throws(() => analyzeVitestReport(successful), /Inconsistent/);
+  assert.throws(() => analyzeVitestReport({ ...successful, numFailedTests: -1 }), /Invalid/);
+  assert.throws(() => analyzeVitestReport({ ...successful, numFailedTests: 2 }), /Invalid/);
+});
