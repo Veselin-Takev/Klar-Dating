@@ -94,3 +94,9 @@ Downloaded/inspected the current development-branch guard, bootstrap and root de
 **Finding:** Despite earlier CI and local preflight consolidation, `package.json` scripts `test:all` and `release:verify` still ended with `npx playwright test`, which could resolve a different executable/package than the Bun-locked project. **Fix:** both now use `bun run playwright test` (development-branch commit `dd011ab28cb00d48f5665974349f4299840446cc`). The existing `verify:local` and CI direct Playwright calls already use the project-local Bun execution route.
 
 **Verification performed:** retrieved current `package.json`, parsed its JSON successfully, asserted the two original `npx` script occurrences, replaced them, serialized and parsed the modified JSON, and received GitHub commit confirmation. **Not performed:** a complete pinned-Node/Bun install, TypeScript/Firebase/Playwright tests or live security preflight. R2 remains frozen; this change is not part of R2. No Actions usage, merge or deployment. Production status **NO-GO**.
+
+## 2026-10-10 — Remaining npx execution drift removed
+
+**Source observation:** `package.json` scripts `metrics:evaluate` and `funnel:audit` still invoked `npx tsx`. In the Bun-locked root environment this is an alternate command resolver and can unexpectedly consult a registry. Both were replaced with `bun run tsx` to follow the project's installed dependency graph (development commit `19f931d3511ac858bf23f8e1f895165f4bd87c08`). JSON was parsed, reserialized and reparsed successfully, and **no `npx` references remain among package scripts** at the time of that check.
+
+**Scope:** script configuration validated, **not** the runtime behavior of either analytics task (no full checkout, exact Node/Bun pins or network). Do not infer that the metrics or funnel calculations passed. Full TypeScript, Firebase, Playwright and live production security gates remain NOT RUN. R2 untouched; no Actions jobs, merges or deployments. **NO-GO**.
