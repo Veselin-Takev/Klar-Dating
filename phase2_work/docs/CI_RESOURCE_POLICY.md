@@ -125,3 +125,19 @@ The runner fails closed on missing/wrong Node 22.23.3, Bun 1.4.2 or Java 21; run
 **Verification performed:** nine dependency-free structural assertions passed on the fetched candidate script and the manually triggered LLM workflow. These assertions are **not** an actual local application suite, browser suite or pinned-toolchain execution. Complete local acceptance remains `PENDING`; accordingly no PR / main push / remote CI was triggered.
 
 Next measured optimization: compare local per-stage durations with Actions job timings before selecting any further cache or path-filter changes. Continue to reserve remote minutes under the owner's latest **100-minute** limit.
+
+
+## 2026-10-10 — Measured CI bottlenecks and offline duration analysis
+
+[Successful main CI run 38036361126](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38036361126), job `114167501415`, completed 2026-10-10 08:00–08:10 UTC. Step durations read from GitHub job metadata (rounded to whole seconds): tests/emulators **258 s**, browser acceptance **148 s**, dependency installation **101 s**, typecheck **59 s**, Chromium installation **23 s**, production smoke **16 s**, cache restore **10 s**. These are step wall-clock durations, **not billable-minutes accounting**; they may vary between runs. Focus future improvements on repeatable local reproduction and measured bottlenecks, not disabling required security and browser gates.
+
+New zero-dependency read-only command to analyze a previously downloaded GitHub Actions job JSON payload locally:
+
+```sh
+node --test scripts/analyze-ci-duration.test.mjs
+node scripts/analyze-ci-duration.mjs /private/path/to/github-jobs.json
+```
+
+The analyzer reads the `jobs` array with `steps` returned by GitHub's workflow-run jobs REST endpoint, prints the 12 slowest steps and status, and never launches CI or publishes input data. Do not commit raw job JSON, because it may contain sensitive metadata. Unit tests include duration ordering, malformed timestamps and dropping unrelated sensitive fields. **Local evidence:** 3 isolated node:test checks passed and `node --check` succeeded in the available local interpreter. This does not certify full project acceptance under pinned Node 22.23.3; `verify:local` remains required before PR or merge.
+
+No remote workflow was initiated for these analytical changes. The **100-minute incremental cap** remains in force, with billing reconciliation required before further remote actions. Production status: **NO-GO**.
