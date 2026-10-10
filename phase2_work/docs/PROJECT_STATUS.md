@@ -1,3 +1,9 @@
+## Offline-Queue-Retry und Dead-Letter-Warnungen — 2026-10-10
+
+Auf dem Entwicklungsbranch wurde ein P1-Resilienzfehler korrigiert: verbleibende Offline-Nachrichten erhalten bei stabiler Online-Verbindung einen einzelnen, nach 60 Sekunden ausgelösten weiteren Synchronisationsversuch, ohne Idle-Polling. Retry-Timer werden bei Logout, Auth-/Offline-Wechsel und Unmount entfernt. Die Warnung für bereits gespeicherte Dead-Letter-Nachrichten bleibt über spätere Sync-Läufe hinweg sichtbar. Frühe CI-Regression und zwei reguläre Vitest-Fälle ergänzt. **14/14 statische GitHub-Quellcodebedingungen bestätigt; Ausführung der neuen Tests, echte Browser-/Firebase-Tests und gepinnter Enterprise-Preflight stehen aus.** Siehe [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). **NO-GO**, R2 unverändert.
+
+---
+
 ## Chat-Sendeautorisierung und Offline-Replay – 2026-10-10
 
 **Dev-Branch-Fix:** Der Server nutzt verifizierte Firebase-Token-UID und prüft Chat-Zugehörigkeit vor und während des Nachrichtenwrites. Widersprüchliche `uid`/`ownerUid`/`senderId`-Angaben werden neuerdings mit `403 sender_mismatch` verweigert. Der Offline-Replay im Client unterstützt Abbruch bei Authwechsel, Verbindungsabbruch und Logout-Start; Fehler werden im Sync-Banner behandelt. Automatisierte Negativtests zu Konto-/Tokenwechsel und Replay-Abbruch ergänzt. **Statische GitHub-Prüfung 13/13 erfüllt, keine vollständige Testausführung.** Detaillierte Evidenz: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert, offizielle Freigabe **NO-GO**.
