@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { isAbsolute, join, relative, resolve, dirname } from 'node:path';
+import { isAbsolute, join, relative, resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
 
@@ -13,14 +13,14 @@ function ensureExternalReportPath() {
   const root = realpathSync(resolve(cwd, '..'));
   const parent = realpathSync(dirname(reportPath));
   const rel = relative(root, parent);
-  if (rel === '' || (!rel.startsWith('..' + (process.platform === 'win32' ? '\\\\' : '/')) && rel !== '..' && !isAbsolute(rel))) {
+  if (rel === '' || (!rel.startsWith('..' + sep) && rel !== '..' && !isAbsolute(rel))) {
     throw new Error('Preflight report must be stored outside the repository.');
   }
 }
 function persist() {
   report.finishedAt = new Date().toISOString();
   ensureExternalReportPath();
-  writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
+  writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   console.log('Local validation evidence: ' + reportPath);
 }
 function run(label, command, args, options = {}) {
