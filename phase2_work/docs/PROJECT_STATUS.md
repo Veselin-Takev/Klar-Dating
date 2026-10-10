@@ -1,3 +1,11 @@
+## Current enterprise release decision — 2026-10-10: NO-GO
+
+The historical browser-CI findings below refer to earlier candidates and must **not** be mistaken for the current exact development-branch or frozen R2 release status. Current production blockers are tracked in [FINAL_RELEASE_VERIFICATION_2026-10-10.md](FINAL_RELEASE_VERIFICATION_2026-10-10.md), the root `GO_LIVE_CHECKLIST.md`, and [GitHub Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8).
+
+**Newest verified development-branch remediation:** Cloud Run secret aliases are resolved to real Secret Manager resources before IAM lookup; ambiguous duplicate required secret variables and conditional-only accessor grants no longer yield audit PASS. Monitoring alerts must refer to verified delivery channels. Targeted original-source checks passed locally, but no full checkout on Node 22.23.3/Bun 1.4.2, live production controls, alarm delivery, or human approval has been completed for these changes. **Do not merge, publish or claim GO.** Frozen R2 remains a separate immutable candidate.
+
+---
+
 ## SEC-SCAN-01 candidate hardening — 2026-10-10
 
 The secret scanner now recognizes ten credential-pattern families, restricts the
