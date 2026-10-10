@@ -23,7 +23,7 @@ function run(label, command, args, options = {}) {
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' }, timeout: 15 * 60_000, killSignal: 'SIGTERM', ...options });
   const durationMs = Number((process.hrtime.bigint() - time) / 1000000n);
   const passed = !result.error && result.status === 0;
-  report.steps.push({ label, durationMs, status: passed ? 'PASS' : 'FAIL', exitCode: result.status ?? null, signal: result.signal ?? null });
+  report.steps.push({ label, durationMs, status: passed ? 'PASS' : 'FAIL', exitCode: result.status ?? null, signal: result.signal ?? null, timedOut: result.error?.code === 'ETIMEDOUT', errorCode: result.error?.code ?? null });
   if (result.error) console.error(result.error.message);
   if (!passed) throw new Error('Local preflight failed at ' + label);
 }
