@@ -20,7 +20,7 @@ test('reject missing or invalid duration fields', () => {
   assert.throws(() => analyzeVitestReport({ success: false, numTotalTests: 1, testResults: [{ name: 'bad', status: 'failed', assertionResults: [{}], perfStats: { start: 8, end: 7 } }] }), /invalid/);
 });
 test('accept top-level times when perfStats are absent', () => {
-  assert.equal(analyzeVitestReport({ success: true, numTotalTests: 1, testResults: [{ name: 'sample', status: 'passed', assertionResults: [{}], startTime: 10, endTime: 20 }] }).slowest[0].durationMs, 10);
+  assert.equal(analyzeVitestReport({ success: true, numTotalTests: 1, testResults: [{ name: 'sample', status: 'passed', assertionResults: [{ status: 'passed' }], startTime: 10, endTime: 20 }] }).slowest[0].durationMs, 10);
 });
 
 test('handles official Jest-compatible Vitest JSON reporter shape', () => {
@@ -55,8 +55,16 @@ test('clearly exposes overall failure without reporting a PASS', () => {
 });
 
 test('rejects contradictory global failure counters', () => {
-  const successful = { success: true, numTotalTests: 1, numFailedTests: 1, testResults: [{ name: 'x', status: 'passed', assertionResults: [{}], startTime: 1, endTime: 2 }] };
+  const successful = { success: true, numTotalTests: 1, numFailedTests: 1, testResults: [{ name: 'x', status: 'passed', assertionResults: [{ status: 'passed' }], startTime: 1, endTime: 2 }] };
   assert.throws(() => analyzeVitestReport(successful), /Inconsistent/);
   assert.throws(() => analyzeVitestReport({ ...successful, numFailedTests: -1 }), /Invalid/);
   assert.throws(() => analyzeVitestReport({ ...successful, numFailedTests: 2 }), /Invalid/);
+});
+
+test('omits absolute workspace paths and rejects false PASS assertions', () => {
+  const success = { success: true, numTotalTests: 1, numFailedTests: 0, testResults: [{ name: '/home/private-user/work/tests/check.spec.ts', status: 'passed', startTime: 1, endTime: 2, assertionResults: [{ status: 'passed' }] }] };
+  const result = analyzeVitestReport(success);
+  assert.equal(result.slowest[0].suite, 'check.spec.ts');
+  assert.equal(JSON.stringify(result).includes('private-user'), false);
+  assert.throws(() => analyzeVitestReport({ ...success, testResults: [{ ...success.testResults[0], assertionResults: [{ status: 'failed' }] }] }), /Inconsistent Vitest assertion/);
 });
