@@ -46,3 +46,10 @@ npx tsx scripts/validate-operational-control-evidence.ts /private/controls.json 
 ```
 
 **Current validation boundary:** source-level correction; no real production evidence was retrieved, no cloud-side secret rotation or alert drill was executed, and the full local pinned-toolchain test suite remains unrun. A schema PASS alone is not release authorization; the security and SRE owners must still attest evidence authenticity and provenance. The release remains NO-GO; no new GitHub Actions minutes were used.
+
+
+## 2026-10-10 — Strict timestamp and evidence URL safety
+
+The domain validator `src/server/platform/operationalControlEvidence.ts` has been tightened: exercise timestamps and the `evidenceNotBefore` threshold must use complete ISO-8601 datetimes with an explicit `Z` or offset, rather than relying on permissive `Date.parse()` coercion of date-only or natural-language input. Evidence URLs now reject embedded usernames, passwords, URL fragments, or empty hosts; approved-host allowlisting and exact build-SHA checks remain mandatory. Added two Vitest regression cases in `tests/operationalControlEvidence.spec.ts` to verify these rules.
+
+**Status:** Source changes and regression tests have been committed on the isolated candidate branch. A full local test execution under Node 22.23.3 / Bun 1.4.2 and an actual production evidence review remain PENDING. This is no claim of a passed test suite or operational approval. No new Actions workflows or deployments were initiated. Release remains **NO-GO** and the incremental 100-minute Actions limit remains binding.
