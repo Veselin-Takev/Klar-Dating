@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
+import { isAbsolute, join, relative, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
 
@@ -9,9 +9,17 @@ const cwd = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = new Date().toISOString();
 const report = { schemaVersion: 1, startedAt: started, status: 'FAIL', steps: [] };
 const reportPath = resolve(process.env.KLAR_LOCAL_PREFLIGHT_REPORT || join(tmpdir(), 'klar-local-preflight-' + process.pid + '.json'));
+function ensureExternalReportPath() {
+  const root = realpathSync(resolve(cwd, '..'));
+  const parent = realpathSync(dirname(reportPath));
+  const rel = relative(root, parent);
+  if (rel === '' || (!rel.startsWith('..' + (process.platform === 'win32' ? '\\\\' : '/')) && rel !== '..' && !isAbsolute(rel))) {
+    throw new Error('Preflight report must be stored outside the repository.');
+  }
+}
 function persist() {
   report.finishedAt = new Date().toISOString();
-  mkdirSync(dirname(reportPath), { recursive: true });
+  ensureExternalReportPath();
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
   console.log('Local validation evidence: ' + reportPath);
 }
@@ -26,6 +34,7 @@ function run(label, command, args, options = {}) {
   if (!passed) throw new Error('Local preflight failed at ' + label);
 }
 try {
+  ensureExternalReportPath();
   report.gitSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8' });
