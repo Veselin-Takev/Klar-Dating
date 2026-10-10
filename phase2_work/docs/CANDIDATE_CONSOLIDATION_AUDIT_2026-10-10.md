@@ -119,3 +119,20 @@ Review of `local-preflight.mjs` found the previously added `report.toolchain.jav
 The evidence timestamp parser previously accepted UTC offsets up to `±23:59`, despite those offsets lying outside the expected ISO 8601 timezone range. Tightened to `±14:00` maximum (if hour 14, minute must be 00) and added a Vitest regression with three invalid and two valid boundary examples. This protects audit chronology against implausible timezone offsets.
 
 **Executed:** five isolated Node.js offset boundary assertions passed (not the repository's complete Vitest suite). The complete candidate preflight under Node v22.23.3, Bun v1.4.2 and Java 21 remains **NOT RUN**, and cloud control evidence and independent release approval remain open. No GitHub Actions job, merge or deployment. Production **NO-GO**; incremental 100-minute Actions budget still applies.
+
+
+## 2026-10-10 — Integration freeze and explicit P0 release blockers
+
+Authenticated GitHub comparison of the working branch against `main` now reports **107 commits ahead, 0 behind, 18 changed files** prior to this documentation commit. The development candidate is **not frozen or jointly validated**. The growing series of isolated edits is itself a release risk; do not treat previously executed narrow snippets or old green `main` CI as acceptance of the branch.
+
+**Change-control decision:** stop adding incidental hardening patches to this candidate until it has been cloned at an immutable, independently recorded full commit SHA and exercised as one unit. Exception: a reproduced blocking failure may be fixed with a focused test and full rerun on the resulting new SHA. Release management must verify the selected commit against the review artifact; a SHA derived from the local checkout is not independent approval.
+
+**Mandatory ordered closure:**
+1. Fetch an exact, complete branch checkout; pin and independently record release SHA; verify clean tree and installed Node 22.23.3, Bun 1.4.2, Java 21.
+2. Execute the real, committed `verify:local` preflight and preserve the write-once report outside the checkout, with SHA/toolchain identity and each test's exit code; investigate any failure instead of bypassing a stage.
+3. Audit candidate-to-main scope, dependency locks, TypeScript all configs, enterprise/security gates, Firestore emulators, integration/unit tests, built server, Chromium and Playwright. Distinguish `PASS` from `NOT RUN` at each gate.
+4. Only after a complete local PASS, reconcile **actual** remaining GitHub Actions usage against the user-authorized incremental ceiling of **100 minutes**, then run one lean remote validation on the exact candidate SHA if within budget.
+5. Obtain and independently inspect issue #8's real infrastructure/security evidence (IAM, secret lifecycle, alert delivery, monitoring, KYC/deletion flows, rollback) and explicit accountable human release signoffs. Record deployment SHA and rollback.
+6. Keep production **NO-GO** unless all previous gates are evidenced and authorized. No merger, CI consumption, or deployment was carried out during this audit update.
+
+**Execution limitation in this session:** a complete clean repository checkout and the required pinned Node/Bun runtime are not available, so the full candidate preflight cannot truthfully be marked complete here.
