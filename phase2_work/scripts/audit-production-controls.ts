@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { verifyLocalProvenance } from './verify-local-provenance.mjs';
 import {
   auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPolicies,
 } from '../src/server/platform/productionControls';
@@ -32,7 +34,8 @@ async function main() {
   const requiredAlertPolicies = csv('KLAR_REQUIRED_ALERT_POLICIES');
   const expectedBuildSha = required('KLAR_EXPECTED_SHA');
   if (!/^[0-9a-f]{40}$/.test(expectedBuildSha)) throw new Error('KLAR_EXPECTED_SHA must be a full lowercase 40-character commit SHA.');
-  const actualBuildSha = execFileSync('git', ['rev-parse', '--verify', 'HEAD^{commit}'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+  const actualBuildSha = verifyLocalProvenance(repositoryRoot);
   if (actualBuildSha !== expectedBuildSha) throw new Error('Production controls audit checkout does not match KLAR_EXPECTED_SHA.');
 
   const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? 'production-evidence/controls.json');
