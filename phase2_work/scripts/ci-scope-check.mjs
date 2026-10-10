@@ -14,3 +14,16 @@ test('empty change sets and all main pushes require full validation', () => {
   assert.equal(requiresFullValidation([], 'pull_request'), true);
   assert.equal(requiresFullValidation(['phase2_work/docs/PROJECT_STATUS.md'], 'push'), true);
 });
+
+test('security evidence and bootstrap updates always request full CI validation', () => {
+  for (const file of [
+    'phase2_work/scripts/audit-production-controls.ts',
+    'phase2_work/scripts/report-path.mjs',
+    'phase2_work/scripts/production-audit-evidence-check.test.mjs',
+    'phase2_work/scripts/check-codespaces-bootstrap.mjs',
+    'phase2_work/scripts/local-preflight.mjs',
+    '.devcontainer/devcontainer.json',
+  ]) {
+    assert.equal(requiresFullValidation([file], 'pull_request'), true, `${file} must not skip full CI`);
+  }
+});
