@@ -114,3 +114,14 @@ CI and tag releases now perform the dependency-free runtime check before setup a
 - Local validation: workflow YAML parsed and nine structural/guardrail assertions passed in an isolated workspace. The available local Node interpreter is 22.16.0 (not required 22.23.3); dependencies, emulator and browser suite were not available here. **Not a full local acceptance PASS.** Consequently no PR, push to main, Actions run, release or deployment has been initiated.
 
 Next: run `bun run verify:local` on an approved Node 22.23.3 / Bun 1.4.2 / Java 21 environment, then review the isolated workflow diff and commit SHA. Before any CI-triggering promotion, check account billing and reserve runner minutes within the new 100-minute allowance. Production remains NO-GO.
+
+
+## 2026-10-10 — Measurable local release preflight
+
+The existing `verify:local` entry point now records **each stage duration, exit status, and failure point** in a local JSON report. By default it writes to the OS temporary directory (`klar-local-preflight-<pid>.json`); operators can set `KLAR_LOCAL_PREFLIGHT_REPORT` to an approved private path. The file is created with permission mode `0600` where supported. No environment-variable values, command output or credentials are copied into the report. The report documents results only; it does not approve a production release.
+
+The runner fails closed on missing/wrong Node 22.23.3, Bun 1.4.2 or Java 21; runs frozen installations, the scope classifier, runtime-alignment gate, Enterprise static controls, all TypeScript projects, Functions, emulator tests, build, production smoke and browser acceptance. On failed stages it records `FAIL`, stops, and exits nonzero. The generated report can identify expensive local stages without consuming GitHub Actions minutes. It must not be considered a substitute for required exact-commit CI or cloud operational evidence.
+
+**Verification performed:** nine dependency-free structural assertions passed on the fetched candidate script and the manually triggered LLM workflow. These assertions are **not** an actual local application suite, browser suite or pinned-toolchain execution. Complete local acceptance remains `PENDING`; accordingly no PR / main push / remote CI was triggered.
+
+Next measured optimization: compare local per-stage durations with Actions job timings before selecting any further cache or path-filter changes. Continue to reserve remote minutes under the owner's latest **100-minute** limit.
