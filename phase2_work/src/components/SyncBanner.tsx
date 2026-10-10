@@ -54,6 +54,8 @@ export const SyncBanner: React.FC = () => {
     const handleOffline = () => {
       setIsOnline(false);
       active?.controller.abort();
+      active = null;
+      if (!disposed) setIsSyncing(false);
     };
 
     const unsubscribeAuth = onAuthStateChanged(auth, user => {
