@@ -271,3 +271,10 @@ Re-ran `node --test /mnt/data/klar-report-guard/*.test.mjs` with local Node v22.
 - `scripts/report-path.test.mjs`: `87670c14ae2c71b25d8a4605107a6bc7505e3944`
 
 These exact candidate files passed six regression cases. This establishes **component-specific exact-file evidence**, not a successful whole-branch `verify:local`. Runtime still differs from pinned Node 22.23.3 and Bun 1.4.2 is unavailable; no emulator, browser, or full clean-checkout integration pass has been demonstrated. No Actions runs were initiated; the 100-minute incremental cap and release **NO-GO** remain in effect.
+
+
+### Additional exact-blob provenance recheck (same date)
+
+The local `klar-provenance` module and tests match the two current GitHub blob SHAs `b80932018c561776931e3021112963e3918fa938` and `8cf3606a1a301cec55bc740babe9c0cf11a1861c`. Re-running `node --test /mnt/data/klar-provenance/*.test.mjs` yielded **6 passed / 0 failed** (Node v22.16.0).
+
+The isolated `klar-ci-diagnostics` folder yielded **4 passed / 0 failed**, but the local Vitest analyzer files do **not** match the latest GitHub blob hashes; treat those four results as **non-authoritative older-copy smoke evidence**. This distinction prevents counting outdated tests as candidate verification. The mandated full pinned-toolchain validation is still PENDING, and release remains NO-GO.
