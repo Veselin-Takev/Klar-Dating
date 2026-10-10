@@ -1,3 +1,9 @@
+## Offline-Zustellbestätigung und CI-Schutz — 2026-10-10
+
+**P0-Fix auf Entwicklungsbranch:** Keine Queue darf eine Nachricht auf Basis des HTTP-Status allein löschen. Legacy- und IndexedDB-Pfade verlangen nun explizites `success: true`; bei einer uneindeutigen 2xx-Antwort erfolgt ein begrenzter idempotenter Retry mit derselben Nachrichten-ID. Zusätzlich wurde eine veraltete CI-Import-Assertion korrigiert. **Lokal tatsächlich getestet:** 10/10 Receipt-Funktionsfälle PASS unter Node 22.16.0, isolierte strenge TypeScript-Prüfung PASS, originale GitHub-Quellcode-Bedingungen 6/6 bestätigt. Neue Vitest- und CI-Fälle sind committed, aber der vollständige gepinnte Preflight wurde nicht ausgeführt. Weitere Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert; **NO-GO**.
+
+---
+
 ## Offline-Queue-Retry und Dead-Letter-Warnungen — 2026-10-10
 
 Auf dem Entwicklungsbranch wurde ein P1-Resilienzfehler korrigiert: verbleibende Offline-Nachrichten erhalten bei stabiler Online-Verbindung einen einzelnen, nach 60 Sekunden ausgelösten weiteren Synchronisationsversuch, ohne Idle-Polling. Retry-Timer werden bei Logout, Auth-/Offline-Wechsel und Unmount entfernt. Die Warnung für bereits gespeicherte Dead-Letter-Nachrichten bleibt über spätere Sync-Läufe hinweg sichtbar. Frühe CI-Regression und zwei reguläre Vitest-Fälle ergänzt. **14/14 statische GitHub-Quellcodebedingungen bestätigt; Ausführung der neuen Tests, echte Browser-/Firebase-Tests und gepinnter Enterprise-Preflight stehen aus.** Siehe [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). **NO-GO**, R2 unverändert.
