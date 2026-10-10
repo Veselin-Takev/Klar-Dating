@@ -142,3 +142,9 @@ TAP result **9 tests PASS, 0 FAIL**, duration **382.419442 ms**. The six report-
 **Resource cleanup:** local preflight previously included `report-path.test.mjs` in its `CI diagnostic unit tests` block and again in `Production evidence path and disclosure regression`. Removed the first invocation; the complete path test suite still runs with the production audit source checks in the dedicated pre-install step (development commit `1f6c1a7b71135704db24626aa49674dab9900d27`).
 
 **Verification:** inspected GitHub source and exact replacement anchors; both commits confirmed. **Not claimed:** executing changed CI or exact-repository tests, complete Node/Bun preflight, Firebase/Playwright/cloud security. R2 frozen; no Actions consumed, merge or deployment. **NO-GO**.
+
+## 2026-10-10 — Explicit CI scope regression for security controls
+
+**Finding:** The CI scope policy already defaults to full validation for non-allowlisted files, but its tests did not explicitly enumerate the recently modified production-audit, report-path, bootstrap and devcontainer security surfaces. **Fix:** extended `scripts/ci-scope-check.mjs` with a table-driven test verifying that PR modifications to each of six critical files trigger full CI (development commit `578277ddf53c73d604dfa7fd3444b18c855ed7d2`). This prevents silent expansion of the cheap narrative-only lane to these files.
+
+**Verification:** code inspected and committed; remote CI not run, and full pinned-toolchain clean-checkout testing remains pending. This is a regression-hardening change, not evidence of passed full enterprise gates. Frozen R2 untouched, no Actions minutes/merge/deploy, **NO-GO**.
