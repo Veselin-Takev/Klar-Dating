@@ -39,7 +39,7 @@ test('legacy replay requires owner and bearer token before network requests', ()
 });
 
 test('logout clears both queues, and legacy logs are owner-scoped', () => {
-  assert.match(auth, /import \{ clearQueueForUser \} from '\.\/offlineQueue'/);
+  assert.match(auth, /import\s+\{\s*clearQueueForUser\b[^}]*\}\s+from '\.\/offlineQueue'/);
   assert.match(auth, /await clearQueueForUser\(uid\)/);
   assert.match(queue, /memorySyncLogs = memorySyncLogs\.filter\(entry => entry\.ownerUid !== ownerUid\)/);
   const log = queue.slice(queue.indexOf('export function getSyncLogs('));
