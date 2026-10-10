@@ -222,3 +222,12 @@ Found and corrected a reporting integrity defect: the read-only Actions duration
 **Executed local evidence:** the standalone Actions timing analyzer and its regression test were updated in an isolated local copy and run under available Node **22.16.0**. `node --check` succeeded and `node --test scripts/analyze-ci-duration.test.mjs` returned **4 passed / 0 failed** (process exit 0), including the new missing-timestamps regressions. The updated local script matches the replacement logic committed on the candidate branch, but this does **not** certify a complete local checkout or the mandated Node 22.23.3/Bun 1.4.2/Java 21 application suite. The exact-code branch-wide `verify:local` remains PENDING.
 
 No Actions run or production deployment was initiated; the new 100-minute authorization limit remains intact and the release stays **NO-GO**.
+
+
+## 2026-10-10 — Exact-commit local evidence gate
+
+The candidate `verify:local` preflight now checks `git rev-parse --verify HEAD` against a full 40-character SHA and requires `git status --porcelain --untracked-files=normal` to be empty before any installation or application validation. The result JSON records `gitSha`; dirty, untracked or invalid Git state blocks the preflight. This makes test evidence attributable to a specific checkout instead of an unspecified working copy. The dependency-free provenance gate regression is executed early alongside the diagnostic tests.
+
+**Local evidence:** the exact standalone module and its four regression fixtures were exercised on Node v22.16.0 in an isolated temporary directory: **4 PASS / 0 FAIL**, and JavaScript syntax validation passed. The full GitHub repository checkout, required Node v22.23.3 / Bun v1.4.2 suite, emulator integration and browser acceptance have **not** been executed here; those gates remain PENDING. Note: the clean-checkout guard may require removing generated/untracked build reports before a new validation attempt, without discarding any user data. This is not a production approval.
+
+No new GitHub Actions run, merge, tag or deployment was triggered. Enforce the owner's **100 additional Actions minutes maximum**; verify actual consumption before any remote run and ask for explicit authorization prior to an additional 200 minutes. Production: **NO-GO**.
