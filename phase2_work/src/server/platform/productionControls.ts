@@ -30,28 +30,60 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
     errors.push('Default compute/runtime service account is not allowed');
   }
 
-  const env = containers.flatMap(container => records(container.env));
-  const byName = new Map(
-    env
-      .filter(item => typeof item.name === 'string')
-      .map(item => [item.name as string, item]),
-  );
-
-  for (const secret of input.requiredSecrets) {
-    const item = byName.get(secret);
-    if (!item) {
-      errors.push('Required secret env is missing: ' + secret);
-      continue;
-    }
-    if ('value' in item && item.value != null) errors.push('Secret must not be configured as plaintext: ' + secret);
-    const valueFrom = isRecord(item.valueFrom) ? item.valueFrom : {};
-    const secretKeyRef = isRecord(valueFrom.secretKeyRef) ? valueFrom.secretKeyRef : {};
-    if (typeof secretKeyRef.name !== 'string' || !secretKeyRef.name) {
-      errors.push('Secret Manager reference is missing: ' + secret);
+  // In Cloud Run v1, secretKeyRef.name may be a template-local alias. The
+  // run.googleapis.com/secrets annotation resolves the alias to its *actual*
+  // Secret Manager resource (which can belong to another project).
+  const metadata = isRecord(template.metadata) ? template.metadata : {};
+  const annotations = isRecord(metadata.annotations) ? metadata.annotations : {};
+  const rawAliases = annotations['run.googleapis.com/secrets'];
+  const aliases = new Map<string, string>();
+  const bareSecret = /^[A-Za-z0-9_-]{1,255}$/;
+  const resourceSecret = /^projects\/[A-Za-z0-9][A-Za-z0-9._-]*\/secrets\/[A-Za-z0-9_-]{1,255}$/;
+  if (rawAliases !== undefined) {
+    if (typeof rawAliases !== 'string' || !rawAliases.trim()) {
+      errors.push('Cloud Run Secret Manager alias annotation is invalid');
+    } else {
+      for (const entry of rawAliases.split(',')) {
+        const separator = entry.indexOf(':');
+        const alias = separator >= 0 ? entry.slice(0, separator).trim() : '';
+        const resource = separator >= 0 ? entry.slice(separator + 1).trim() : '';
+        if (!bareSecret.test(alias) || !resourceSecret.test(resource) || aliases.has(alias)) {
+          errors.push('Cloud Run Secret Manager alias annotation contains invalid or duplicate entries');
+        } else {
+          aliases.set(alias, resource);
+        }
+      }
     }
   }
 
-  return { serviceAccount, requiredSecrets: input.requiredSecrets, passed: errors.length === 0, errors };
+  // Flattening into a Map would hide a plaintext or conflicting definition in
+  // another container. Any duplicate required env variable is ambiguous.
+  const env = containers.flatMap(container => records(container.env));
+  const secretReferences: Record<string, string> = Object.create(null);
+  for (const secret of input.requiredSecrets) {
+    const entries = env.filter(item => item.name === secret);
+    if (!entries.length) {
+      errors.push('Required secret env is missing: ' + secret);
+      continue;
+    }
+    if (entries.length !== 1) {
+      errors.push('Required secret env has ambiguous duplicate definitions: ' + secret);
+      continue;
+    }
+    const item = entries[0];
+    if ('value' in item && item.value != null) errors.push('Secret must not be configured as plaintext: ' + secret);
+    const valueFrom = isRecord(item.valueFrom) ? item.valueFrom : {};
+    const secretKeyRef = isRecord(valueFrom.secretKeyRef) ? valueFrom.secretKeyRef : {};
+    const refName = secretKeyRef.name;
+    if (typeof refName !== 'string' || !bareSecret.test(refName) && !resourceSecret.test(refName)) {
+      errors.push('Secret Manager reference is missing or invalid: ' + secret);
+      continue;
+    }
+    // Resolve real resources, not environment variable names or alias strings.
+    secretReferences[secret] = aliases.get(refName) ?? refName;
+  }
+
+  return { serviceAccount, requiredSecrets: input.requiredSecrets, secretReferences, passed: errors.length === 0, errors };
 }
 
 export function auditProjectRoles(policy: unknown, serviceAccount: string) {
