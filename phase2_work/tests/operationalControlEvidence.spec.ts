@@ -138,4 +138,23 @@ describe('operational control exercise evidence', () => {
     }
   });
 
+  it('rejects future-dated operational events and a future acceptance floor', () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const fields = [
+      'newVersionCreatedAt',
+      'workloadObservedNewVersionAt',
+    ] as const;
+    for (const field of fields) {
+      const record = valid();
+      record.secretRotation[field] = tomorrow;
+      expect(validate(record).errors.join(' ')).toMatch(/must not be in the future/);
+    }
+    for (const field of ['exerciseStartedAt', 'notificationReceivedAt', 'acknowledgedAt'] as const) {
+      const record = valid();
+      record.alertDelivery[field] = tomorrow;
+      expect(validate(record).errors.join(' ')).toMatch(/must not be in the future/);
+    }
+    expect(validateOperationalControlEvidence(valid(), 'a'.repeat(40), 'production', ['evidence.invalid'], tomorrow).errors.join(' ')).toMatch(/evidenceNotBefore must not be in the future/);
+  });
+
 });
