@@ -104,3 +104,10 @@ The evidence timestamp parser now checks real calendar boundaries, leap-year Feb
 The prior strict timestamp parser used `Date.UTC(year, month, 0)` to compute the month's last day. JavaScript rewrites years 0 through 99 as 1900 through 1999 in this constructor, causing incorrect leap-day handling for some four-digit ISO years. The candidate replaces the calculation with direct Gregorian leap-year and month-length rules, avoiding this coercion. A Vitest regression covers early-year leap dates and 100/400-year century exceptions.
 
 **Executed local check:** a nine-case standalone Node v22.16.0 assertion harness evaluated the corrected Gregorian month-length calculation; all nine passed. This does **not** constitute a passed Vitest suite or an exact-branch full enterprise preflight. The new repository test has been committed but not run under the required pinned Node 22.23.3/Bun 1.4.2 toolchain. Production gate remains NO-GO; no new GitHub Actions or deployments occurred.
+
+
+## 2026-10-10 — Future-dated evidence fails closed
+
+Source review identified that chronological ordering alone could accept a full set of events scheduled in the future as if a secret rotation or alert-delivery drill had already occurred. The candidate now rejects any of the five event timestamps and the `evidenceNotBefore` threshold more than **five minutes ahead of validation time** (bounded clock-skew tolerance). A Vitest regression covers both secret rotation timestamps, all three alert-delivery timestamps and the threshold.
+
+**Execution boundary:** a small standalone Node v22.16.0 five-case check passed for the 5-minute clock-skew rule, but the exact updated domain-module Vitest test and full candidate branch preflight under pinned Node 22.23.3 / Bun 1.4.2 remain PENDING. Live cloud evidence and human signoff remain mandatory, and green schema checks cannot prove event authenticity. No new GitHub Actions run, merge or deployment was initiated. Production decision remains **NO-GO**; incremental Actions budget ceiling remains 100 minutes.
