@@ -155,3 +155,21 @@ node scripts/analyze-vitest-duration.mjs /private/path/to/vitest-report.json
 To produce the input on an isolated local environment, run Vitest with its JSON reporter under the same Auth/Firestore/Storage emulator conditions as `test:ci`. Preserve test coverage, test-run exit status, and the JSON file privately; do not commit raw test reports. The profiler reports the 15 slowest suites and explicitly distinguishes summed suite times from wall-clock time or billable runner minutes.
 
 **Evidence:** Syntax check and all three unit tests passed locally with Node 22.16.0. No full pinned Node 22.23.3, Java/Firebase emulator or browser run was performed here. No PR, main push, Actions run or deployment was initiated. Continue the latest 100-minute cap and NO-GO status. Only propose isolated test-performance changes after profiling real suite timings and demonstrating unchanged correctness.
+
+
+## 2026-10-10 — Verified Vitest reporter contract and safe profiling command
+
+Vitest's documented `json` reporter emits Jest-compatible `testResults[]` entries with `name`, `startTime`, `endTime`, `status` and `assertionResults`. The profiler supports these fields; its regression suite now includes an official-shape fixture and verifies that failure messages and assertion bodies are not passed into the summary.
+
+Recommended **isolated local** profiling invocation inside the existing Auth/Firestore/Storage emulators (not alongside a concurrently running test suite):
+
+```sh
+# From phase2_work/ after frozen install; use only the approved local test environment:
+firebase emulators:exec --project demo-klar --only auth,firestore,storage \
+  'bunx vitest run --reporter=default --reporter=json --outputFile=/private/approved/path/vitest-report.json'
+node scripts/analyze-vitest-duration.mjs /private/approved/path/vitest-report.json
+```
+
+Keep the original test process exit status as the authoritative result; profiler output never promotes a failed test run to PASS. Use a private absolute report path (the example is illustrative), and do not commit raw test results. Do not modify `fileParallelism: false` until database-isolated concurrent tests are proven. The complete required `bun run verify:local` remains a separate prerequisite for remote promotion.
+
+**Validation distinction:** the documented reporter shape was checked against the official Vitest reporter documentation; a regression fixture was added to the candidate. Full local test execution was not performed in the available environment and remains pending. No Actions run requested; 100-minute authorization cap unchanged. Production remains NO-GO.
