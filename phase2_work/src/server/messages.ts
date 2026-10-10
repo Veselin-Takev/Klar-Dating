@@ -19,6 +19,14 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
   const uid = currentUserId(req);
   if (!uid) { res.status(401).json({ error: 'Bitte anmelden.' }); return; }
   const { chatId, text, clientMessageId } = req.body ?? {};
+  // Derive sender identity solely from the verified Firebase token. Reject
+  // conflicting legacy/offline sender claims rather than silently attributing
+  // another account's queued content to the currently signed-in account.
+  const body = req.body ?? {};
+  if ([body.uid, body.ownerUid, body.senderId].some(claim => claim !== undefined && claim !== uid)) {
+    res.status(403).json({ error: 'Absender gehört nicht zur angemeldeten Sitzung.', code: 'sender_mismatch' });
+    return;
+  }
   if (!validDocumentId(chatId) || typeof text !== 'string' || !text.trim() || text.length > 4000
     || (clientMessageId !== undefined && (typeof clientMessageId !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(clientMessageId)))) {
     res.status(400).json({ error: 'Ungültige Nachricht.' }); return;
