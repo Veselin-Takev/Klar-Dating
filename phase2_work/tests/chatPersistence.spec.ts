@@ -5,6 +5,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { handleSendMessage } from '../src/server/messages';
+import { assessSafetyMessage } from '../src/server/safetyService';
 import { handleGateAnswer, handleGateStatus } from '../src/server/gate';
 
 // Use real emulator transactions in a separate database: rule suites clear the
@@ -86,6 +87,46 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
     const retry = await invoke(handleSendMessage, alice, body);
     expect(first.status).toBe(200); expect(retry.payload.messageId).toBe(first.payload.messageId);
     expect((await invoke(handleSendMessage, alice, { ...body, text: 'different' })).status).toBe(409);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('acknowledges a persisted retry even if the AI provider later becomes unavailable', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const safety = vi.mocked(assessSafetyMessage);
+    const original = safety.getMockImplementation();
+    const body = { text: 'already committed', clientMessageId: randomUUID() };
+    try {
+      const first = await invoke(handleSendMessage, alice, body);
+      expect(first).toMatchObject({ status: 200, payload: { success: true } });
+      const callsBeforeRetry = safety.mock.calls.length;
+      // This provider outage happens *after* Firestore has committed the message.
+      safety.mockResolvedValue({ checked: false, status: 503, code: 'safety_unavailable' });
+      const retry = await invoke(handleSendMessage, alice, body);
+      expect(retry).toMatchObject({ status: 200, payload: {
+        success: true, messageId: first.payload.messageId, messageHash: first.payload.messageHash,
+      } });
+      expect(safety.mock.calls.length).toBe(callsBeforeRetry);
+      expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+      const fresh = await invoke(handleSendMessage, alice, {
+        text: 'not yet committed', clientMessageId: randomUUID(),
+      });
+      expect(fresh).toMatchObject({ status: 503, payload: { code: 'safety_unavailable' } });
+    } finally {
+      if (original) safety.mockImplementation(original);
+      safety.mockClear();
+    }
+  });
+
+  it('rejects conflicting reuse of a stored message ID without another provider call', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const safety = vi.mocked(assessSafetyMessage);
+    const body = { text: 'immutable original', clientMessageId: randomUUID() };
+    const first = await invoke(handleSendMessage, alice, body);
+    expect(first.status).toBe(200);
+    const callsBeforeConflict = safety.mock.calls.length;
+    const conflict = await invoke(handleSendMessage, alice, { ...body, text: 'tampered retry' });
+    expect(conflict).toMatchObject({ status: 409, payload: { code: 'message_conflict' } });
+    expect(safety.mock.calls.length).toBe(callsBeforeConflict);
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
   });
 
