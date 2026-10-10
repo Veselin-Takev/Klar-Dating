@@ -357,8 +357,14 @@ export async function flushOfflineQueue(options: {
   token: string;
   fetcher?: typeof fetch;
   now?: number;
+  signal?: AbortSignal;
+  isCurrentUser?: () => boolean;
 }): Promise<{ sent: number; failed: number; remaining: number; deadLettered: number }> {
   if (!options.ownerUid || !options.token) return { sent: 0, failed: 0, remaining: 0, deadLettered: 0 };
+  // Logout/account-switch cancellation is independent of network delivery.
+  // The sender must remain the active account before each attempted replay.
+  const mayReplay = () => !options.signal?.aborted && (options.isCurrentUser?.() ?? true);
+  if (!mayReplay()) return { sent: 0, failed: 0, remaining: 0, deadLettered: 0 };
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now();
   const db = await openDatabase();
@@ -371,6 +377,7 @@ export async function flushOfflineQueue(options: {
 
     let deadLettered = 0;
     for (const item of items) {
+      if (!mayReplay()) break;
       if (item.attempts >= MAX_ATTEMPTS) {
         await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: item.lastError ?? 'retry_limit_reached' });
         deadLettered += 1;
@@ -382,8 +389,13 @@ export async function flushOfflineQueue(options: {
           method: item.method,
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${options.token}` },
           body: JSON.stringify(item.payload),
+          signal: options.signal,
         });
+        // A completed request is not permission to process another user's
+        // queue after auth changed while awaiting the network response.
+        if (!mayReplay()) break;
         const body = await res.json().catch(() => null) as { success?: unknown; error?: unknown; code?: unknown } | null;
+        if (!mayReplay()) break;
         if (res.ok && body?.success === true) {
           await deleteItem(db, item.id);
           sent += 1;
@@ -406,6 +418,8 @@ export async function flushOfflineQueue(options: {
         await putItem(db, { ...item, attempts, status: 'pending', nextAttemptAt: now + retryDelayMs(attempts), lastError: error });
         break;
       } catch (err: unknown) {
+        // Cancellation must not increase retry counts or dead-letter a message.
+        if (!mayReplay()) break;
         failed += 1;
         const attempts = item.attempts + 1;
         const error = err instanceof Error ? err.message : 'network_error';
