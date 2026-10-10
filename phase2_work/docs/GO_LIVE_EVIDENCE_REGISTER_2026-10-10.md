@@ -76,3 +76,17 @@ The operational evidence validator now explicitly requires URL entries to be non
 Source audit found that `links()` accepted a bare allowlisted hostname (e.g. `https://evidence.invalid/`) as supporting evidence. A trusted portal's homepage does not identify a concrete proof item and cannot support an auditable release decision. The candidate now rejects URLs lacking an object-specific path for both HTTPS and Google Storage `gs://` references. Added a regression that rejects HTTPS/GS host roots and retains the existing valid example.
 
 **Boundary:** This is a committed code change and regression fixture; no completed pinned-toolchain test run is claimed. A well-formed deep link is still **not** proof of authenticity, retention, signer, or access control. Operational owners must independently verify the records against the exact candidate SHA and witness live cloud controls. Production remains NO-GO. No remote Actions runs were intentionally initiated, preserving the 100-minute incremental budget limit.
+
+
+## 2026-10-10 — Consolidation gate: local environment and release-candidate acceptance
+
+The working environment was checked explicitly: `node -v` reports **v22.16.0**, `java -version` reports **21.0.12.1**, and `bun` is **not available** on PATH. Only individual diagnostic copies are present in `/mnt/data`; there is no full checked-out `Klar-Dating` application tree. Hence **the exact candidate release validation cannot be completed in this runtime**. Never present targeted tests on copied files as branch-wide production qualification.
+
+**Mandatory acceptance sequence for the current unmerged candidate:**
+1. Prepare one clean, complete checkout of the exact candidate Git SHA on an authorized machine; install Node **22.23.3**, Bun **1.4.2**, Java **21**, the approved browser dependencies, and Firebase emulator prerequisites. Do not bypass the clean-root/source-SHA or report-outside-repository protections.
+2. From `phase2_work`, run `bun run verify:local`. Retain its private report with exact `gitSha`, exit codes, elapsed stage timings and full failing-test diagnostics outside source control. Resolve every failure locally first; if code changes, repeat from the new exact SHA.
+3. Separately confirm the operational-evidence validator test suite and its CLI contract (exact SHA, environment, host allowlist, ISO evidence floor). Evidence template success must not be treated as a real alert or rotation exercise.
+4. When fully green, reconcile the remaining **100-minute incremental GitHub Actions allowance** from actual usage records, and only then consider one tightly scoped remote validation. A green run does not close issue #8.
+5. Require independently witnessed production security, secret rotation, alarm delivery/acknowledgement, privacy, canary/rollback and signed approvals. Production **NO-GO** until all records reference the exact promoted build.
+
+**Current state:** no full local preflight, no new remote Actions run, no merge, no deployment, no production operational evidence. The separate candidate and issue #8 remain open; no production authorization inferred.
