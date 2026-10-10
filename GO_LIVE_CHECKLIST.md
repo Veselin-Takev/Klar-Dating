@@ -43,3 +43,33 @@ Die App ist als Single-Page Application (React/Vite) mit einem Express-Backend u
 - [ ] **Soft-Launch (Beta):** Freigabe an eine geschlossene Gruppe.
 - [ ] **Wartungsmodus:** Verifizieren, dass der Wartungsmodus über das Firestore-Dokument `config/maintenance` in Echtzeit (ohne Neuladen) gesteuert werden kann.
 - [ ] **Marketing & App-Store:** Bereitstellung von Screenshots und Metadaten für den Release.
+
+
+---
+
+## 3. Evidenzbasierte Release-Verifikation (10.10.2026)
+
+**Entscheidung: NO-GO / Freigabe ausstehend.** Referenz-Commit auf `main`: `3f0fc4b70551e1d580040e9dd7722931fe87e83d`. Der [CI-Lauf 38036361126](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38036361126) ist erfolgreich (Static Gates, Typecheck, Functions Build, Tests, Build, Production Smoke und Browser Acceptance). Die Tests belegen **keine** fertig konfigurierte Live-Umgebung. Die Checkboxen oben bleiben unverändert, bis der einzelne Prüfpunkt mit belastbarer Evidenz bestätigt wurde.
+
+### Produktionskontrollen – verbindliche Abnahme
+
+- [ ] Im realen Produktionsprojekt den read-only Audit `npm run audit:production-controls` mit `KLAR_PROJECT_ID`, `KLAR_REGION`, `KLAR_SERVICE`, `KLAR_EXPECTED_SERVICE_ACCOUNT`, `KLAR_REQUIRED_SECRETS` und `KLAR_REQUIRED_ALERT_POLICIES` durchführen. `production-evidence/controls.json` mit Commit-SHA und Zeitbezug revisionssicher außerhalb des öffentlichen Repositories ablegen.
+- [ ] Cloud Run Service Account, Least Privilege, referenzierte Secret-Manager-Secrets und effektive IAM-Policies manuell bestätigen. Kein Klartext-Geheimnis in Commits oder Audit-Ausgaben.
+- [ ] Secret-Rotation tatsächlich erproben; neue Version vom Workload beobachtet, Smoke-Test erfolgreich, alte Version deaktiviert. `docs/operational-control-evidence.template.json` verwenden und `npx tsx scripts/validate-operational-control-evidence.ts path/to/evidence.json <exact-40-char-build-sha>` ausführen.
+- [ ] Cloud Monitoring: erforderliche aktivierte Policies, verifizierte Empfänger, zugestellte Testalarmierung und On-Call-Bestätigung belegen.
+- [ ] OTLP-Export und Dashboard-Ingestion (HTTP-P95, Fehlerquote, Gemini-Tokens, Firestore-Transaktionen) am produktiven Dienst messen. Authentifizierung von `/api/metrics`, PII-Redaktion und Sentry-Consent überprüfen. Der statische `check:observability`-Gate allein genügt nicht.
+- [ ] Staging-Lasttest und realer kontrollierter Canary-Betrieb mit dokumentierten SLOs; Rückrollfähigkeit anhand konkreter Revision verifizieren.
+
+### Laufzeit-, Compliance- und Releasekontrollen
+
+- [ ] Firestore-Regeltests `npm run test:rules`; Datenlöschung, Einwilligung, KYC, Vertragskündigung, CSP und Missbrauchsbegrenzung mit prüfbarer Test- und Reviewevidenz bestätigen.
+- [ ] UX-Akzeptanz auf gedrosseltem Netz, Offline-Betrieb, vier Sprachen, Übergängen und Wartungsmodus dokumentieren.
+- [ ] Produktions-Secrets im Cloud-Ziel validieren, `npm run build` und `npm run groesse` mit versionierter Bundle-Evidenz prüfen; niemals produktive Geheimnisse in `.env.production` committen.
+- [ ] Beta-Freigabe, Store-Metadaten, Datenschutz-/AGB-Erreichbarkeit und Verantwortliche abzeichnen.
+- [ ] Release nur vom exakten erfolgreichen `main`-SHA mit verifiziertem Artefakt und geschützter Produktionsumgebung genehmigen. `KLAR_PRODUCTION_RELEASE_APPROVED=true` erst nach ausdrücklicher menschlicher Freigabe setzen.
+
+### Governance, Budget und Entscheidungsnachweis
+
+- GitHub-Issue [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) sammelt ausstehende Produktions-Evidenz.
+- GitHub-Actions-Budget ab dieser Beauftragung: **maximal 100 zusätzliche verbrauchte Minuten**. Ohne verlässlichen Verbrauchsnachweis keine neue workflow-auslösende Aktion; bei Erreichen des Limits stoppen und vor weiteren 200 Minuten um ausdrückliche Genehmigung bitten. Dieses Dokumentations-Update löst keine Action auf `main` aus.
+- Jede Abzeichnung erfordert **Prüfpunkt, exakten Build-SHA, Umgebung, UTC-Zeit, Prüfer, Ergebnis und dauerhaft zugängliche Evidenz**. `PASS` nicht aus implementierten Skripten ableiten. Unbekannt = `PENDING`, fehlgeschlagen = `FAIL`. Produktion bleibt `NO-GO`, solange ein verpflichtender Punkt `PENDING` oder `FAIL` ist.
