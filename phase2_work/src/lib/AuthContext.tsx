@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import {  onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signInAnonymously, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence  } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import { clearQueueForUser } from './offlineQueue';
+import { clearQueueForUser, OFFLINE_REPLAY_CANCEL_EVENT } from './offlineQueue';
 import { auth, db } from './firebase';
 import { doc, getDocFromServer, onSnapshot, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
 import { meldeKontoErforderlich, sollGateZeigen } from './gastGrenze';
@@ -409,6 +409,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setDiagnosticsConsent(false);
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+    // Cancel in-flight offline replay before awaiting the revocation endpoint:
+    // the Firebase auth-state event occurs only after server revocation.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(OFFLINE_REPLAY_CANCEL_EVENT));
+    }
 
     // Revoke server-side first. A network/server failure must never strand the
     // user in the authenticated UI: local sign-out and cleanup still proceed.
