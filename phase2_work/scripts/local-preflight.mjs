@@ -1,25 +1,18 @@
 import { spawnSync } from 'node:child_process';
-import { realpathSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { isAbsolute, join, relative, resolve, dirname, sep } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
+import { validateExternalReportPath } from './report-path.mjs';
 
 const cwd = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = new Date().toISOString();
 const report = { schemaVersion: 1, startedAt: started, status: 'FAIL', steps: [] };
 const reportPath = resolve(process.env.KLAR_LOCAL_PREFLIGHT_REPORT || join(tmpdir(), 'klar-local-preflight-' + process.pid + '.json'));
-function ensureExternalReportPath() {
-  const root = realpathSync(resolve(cwd, '..'));
-  const parent = realpathSync(dirname(reportPath));
-  const rel = relative(root, parent);
-  if (rel === '' || (!rel.startsWith('..' + sep) && rel !== '..' && !isAbsolute(rel))) {
-    throw new Error('Preflight report must be stored outside the repository.');
-  }
-}
 function persist() {
   report.finishedAt = new Date().toISOString();
-  ensureExternalReportPath();
+  validateExternalReportPath(resolve(cwd, '..'), reportPath);
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   console.log('Local validation evidence: ' + reportPath);
 }
@@ -34,7 +27,7 @@ function run(label, command, args, options = {}) {
   if (!passed) throw new Error('Local preflight failed at ' + label);
 }
 try {
-  ensureExternalReportPath();
+  validateExternalReportPath(resolve(cwd, '..'), reportPath);
   report.gitSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8' });
@@ -42,7 +35,7 @@ try {
   const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
 
-  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs']);
+  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
