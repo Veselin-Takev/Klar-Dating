@@ -49,13 +49,13 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   else if (evidence.buildSha !== expectedBuildSha) errors.push('buildSha must match the exact evaluated build');
   if (!['staging','production'].includes(String(evidence.environment ?? ''))) errors.push('environment must be staging or production');
   if (evidence.environment !== expectedEnvironment) errors.push('environment must match the expected evidence environment');
-  const approvedHosts = new Set(approvedEvidenceHosts.map((host) => host.trim().toLowerCase()).filter(Boolean));
+  const approvedHosts = new Set(Array.isArray(approvedEvidenceHosts) ? approvedEvidenceHosts.filter((host): host is string => typeof host === 'string').map((host) => host.trim().toLowerCase()).filter(Boolean) : []);
   const evidenceFloor = typeof evidenceNotBefore === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(evidenceNotBefore) ? Date.parse(evidenceNotBefore) : Number.NaN;
   if (!Number.isFinite(evidenceFloor)) errors.push('evidenceNotBefore must be a valid ISO date/time and is required');
   if (approvedHosts.size === 0) errors.push('at least one approved evidence host is required');
 
   const rotation = evidence.secretRotation;
-  if (!rotation?.secretName?.trim()) errors.push('secretRotation.secretName is required');
+  if (typeof rotation?.secretName !== 'string' || !rotation.secretName.trim()) errors.push('secretRotation.secretName is required');
   const created = iso(rotation?.newVersionCreatedAt, 'secretRotation.newVersionCreatedAt', errors);
   const observed = iso(rotation?.workloadObservedNewVersionAt, 'secretRotation.workloadObservedNewVersionAt', errors);
   if (Number.isFinite(created) && Number.isFinite(observed) && observed < created) errors.push('workloadObservedNewVersionAt cannot precede newVersionCreatedAt');
@@ -65,9 +65,9 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   links(rotation?.evidenceLinks, 'secretRotation.evidenceLinks', errors, approvedHosts);
 
   const alert = evidence.alertDelivery;
-  if (!alert?.policyName?.trim()) errors.push('alertDelivery.policyName is required');
-  if (!alert?.recipient?.trim()) errors.push('alertDelivery.recipient is required');
-  if (!alert?.channelType?.trim()) errors.push('alertDelivery.channelType is required');
+  if (typeof alert?.policyName !== 'string' || !alert.policyName.trim()) errors.push('alertDelivery.policyName is required');
+  if (typeof alert?.recipient !== 'string' || !alert.recipient.trim()) errors.push('alertDelivery.recipient is required');
+  if (typeof alert?.channelType !== 'string' || !alert.channelType.trim()) errors.push('alertDelivery.channelType is required');
   const started = iso(alert?.exerciseStartedAt, 'alertDelivery.exerciseStartedAt', errors);
   const received = iso(alert?.notificationReceivedAt, 'alertDelivery.notificationReceivedAt', errors);
   const ack = iso(alert?.acknowledgedAt, 'alertDelivery.acknowledgedAt', errors);
