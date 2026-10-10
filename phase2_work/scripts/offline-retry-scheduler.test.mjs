@@ -41,3 +41,10 @@ test('logout cancels even if online connection has not changed', () => {
   assert.match(banner, /if \(!user \|\| disposed \|\| pausedUid === user\.uid\) return/);
   assert.match(banner, /window\.removeEventListener\(OFFLINE_REPLAY_CANCEL_EVENT, cancelReplay\)/);
 });
+
+
+test('existing dead letters continue to be reported on every later sync', () => {
+  assert.match(queue, /const current = await queueItemsForOwner<PendingQueueItem>\(db, STORE_NAME, options\.ownerUid\)/);
+  assert.match(queue, /const deadLettered = current\.filter\(item => item\.status === 'dead_letter'\)\.length/);
+  assert.match(queue, /const remaining = current\.filter\(item => item\.status !== 'dead_letter'\)\.length/);
+});
