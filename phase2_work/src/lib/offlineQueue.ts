@@ -1,5 +1,6 @@
 import { klarStorage, getUserStorageItem, setUserStorageItem, removeUserStorageItem } from '../lib/userScopedStorage';
 import { queueItemById, queueItemsForOwner } from './offlineQueueIndexedReads';
+import { isAcknowledgedOfflineWrite } from './offlineDeliveryReceipt';
 export const OFFLINE_REPLAY_CANCEL_EVENT = 'klar:offline-replay-cancel';
 const DB_NAME = "klar_offline_queue_db";
 const IDBKeyRange = globalThis.IDBKeyRange;
@@ -253,8 +254,9 @@ export async function syncQueuedActions(options: {
       });
 
       const latencyMs = Date.now() - startTime;
+      const receipt = (await res.json().catch(() => null)) as { success?: unknown; error?: unknown; code?: unknown } | null;
 
-      if (res.ok) {
+      if (res.ok && isAcknowledgedOfflineWrite(receipt)) {
         action.status = 'success';
         succeeded++;
         memoryQueue = memoryQueue.filter((a) => a.id !== action.id);
@@ -268,14 +270,16 @@ export async function syncQueuedActions(options: {
           latencyMs,
         });
       } else {
-        const body = (await res.json().catch(() => null)) as { error?: unknown; code?: unknown } | null;
-        const errMsg = responseError(res, body);
+        // A 2xx without the explicit acknowledgement is an ambiguous write:
+        // preserve its clientMessageId for an idempotent retry, not an early
+        // success/deletion or immediate permanent failure.
+        const errMsg = res.ok ? 'message_acknowledgement_missing' : responseError(res, receipt);
 
         failed++;
         action.retryCount = (action.retryCount || 0) + 1;
         action.lastError = errMsg;
 
-        if (!retryableStatus(res.status) || action.retryCount >= MAX_ATTEMPTS) {
+        if ((!res.ok && !retryableStatus(res.status)) || action.retryCount >= MAX_ATTEMPTS) {
           action.status = 'dead_letter';
         } else {
           action.status = 'failed';
@@ -395,13 +399,13 @@ export async function flushOfflineQueue(options: {
         if (!mayReplay()) break;
         const body = await res.json().catch(() => null) as { success?: unknown; error?: unknown; code?: unknown } | null;
         if (!mayReplay()) break;
-        if (res.ok && body?.success === true) {
+        if (res.ok && isAcknowledgedOfflineWrite(body)) {
           await deleteItem(db, item.id);
           sent += 1;
           continue;
         }
-        const error = responseError(res, body);
-        if (!retryableStatus(res.status)) {
+        const error = res.ok ? 'message_acknowledgement_missing' : responseError(res, body);
+        if (!res.ok && !retryableStatus(res.status)) {
           failed += 1;
           await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
           continue;
