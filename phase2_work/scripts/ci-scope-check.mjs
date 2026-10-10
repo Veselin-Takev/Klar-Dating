@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { requiresFullValidation } from './ci-scope.mjs';
 
 test('only explicit narrative files avoid application validation on PRs', () => {
@@ -26,4 +27,10 @@ test('security evidence and bootstrap updates always request full CI validation'
   ]) {
     assert.equal(requiresFullValidation([file], 'pull_request'), true, `${file} must not skip full CI`);
   }
+});
+
+test('scope diff subprocess is bounded and errors fall back to full validation', () => {
+  const source = readFileSync(new URL('./ci-scope.mjs', import.meta.url), 'utf8');
+  assert.match(source, /execFileSync\('git',[\s\S]*?timeout:\s*15_000,\s*maxBuffer:\s*1024 \* 1024/);
+  assert.match(source, /catch\s*\{[\s\S]*?full validation required/);
 });
