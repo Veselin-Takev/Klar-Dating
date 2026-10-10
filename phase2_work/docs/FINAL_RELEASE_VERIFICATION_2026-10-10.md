@@ -148,3 +148,9 @@ TAP result **9 tests PASS, 0 FAIL**, duration **382.419442 ms**. The six report-
 **Finding:** The CI scope policy already defaults to full validation for non-allowlisted files, but its tests did not explicitly enumerate the recently modified production-audit, report-path, bootstrap and devcontainer security surfaces. **Fix:** extended `scripts/ci-scope-check.mjs` with a table-driven test verifying that PR modifications to each of six critical files trigger full CI (development commit `578277ddf53c73d604dfa7fd3444b18c855ed7d2`). This prevents silent expansion of the cheap narrative-only lane to these files.
 
 **Verification:** code inspected and committed; remote CI not run, and full pinned-toolchain clean-checkout testing remains pending. This is a regression-hardening change, not evidence of passed full enterprise gates. Frozen R2 untouched, no Actions minutes/merge/deploy, **NO-GO**.
+
+## 2026-10-10 — Four CI scope policy regression tests executed locally
+
+Executed the four test cases from `scripts/ci-scope-check.mjs` in an isolated local reconstruction of the fetched `scripts/ci-scope.mjs` on **Node v22.16.0**: `node --test /mnt/data/klar-scope-check/ci-scope-check.mjs`. TAP result **4 PASS, 0 FAIL**, approximately **253 ms**. Verified the narrative allowlist, code/rules/workflow mixed-change escalation, push/empty fallback to full validation, and six security/bootstrap paths requiring full validation on pull requests.
+
+**Provenance boundary:** isolated files were manually reconstructed from inspected source; no byte-identical full Git checkout or GitHub CI run occurred. Exact pinned Node 22.23.3/Bun 1.4.2, TypeScript/Firebase/Playwright and live GCP production controls remain **NOT RUN**. This iteration changes no product code, consumes no Actions minutes and does not change R2. **NO-GO**.
