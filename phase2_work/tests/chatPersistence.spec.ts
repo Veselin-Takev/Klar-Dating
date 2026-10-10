@@ -130,6 +130,31 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
   });
 
+  it('commits only one message when identical client requests arrive concurrently', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const body = { text: 'one logical send', clientMessageId: randomUUID() };
+    const [first, overlapping] = await Promise.all([
+      invoke(handleSendMessage, alice, body),
+      invoke(handleSendMessage, alice, body),
+    ]);
+    expect(first.status).toBe(200);
+    expect(overlapping.status).toBe(200);
+    expect(overlapping.payload.messageId).toBe(first.payload.messageId);
+    expect(overlapping.payload.messageHash).toBe(first.payload.messageHash);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('never returns a stored receipt after the chat is blocked', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const body = { text: 'earlier valid send', clientMessageId: randomUUID() };
+    const first = await invoke(handleSendMessage, alice, body);
+    expect(first.status).toBe(200);
+    await db.collection('blocks').doc(`${bob}_${alice}`).set({ blockerUid: bob, blockedUid: alice });
+    const repeat = await invoke(handleSendMessage, alice, body);
+    expect(repeat).toMatchObject({ status: 403 });
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
   it('rejects conflicting client-side sender and owner claims before persistence', async () => {
     await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
     for (const claim of [{ senderId: alice }, { uid: alice }, { ownerUid: alice }]) {
