@@ -134,3 +134,11 @@ TAP result **9 tests PASS, 0 FAIL**, duration **382.419442 ms**. The six report-
 **Actual command:** `node --test /mnt/data/klar-production-evidence-test/*.test.mjs` under local **Node v22.16.0**. **10 PASS, 0 FAIL**, approximately **236 ms**. This extends the prior nine isolated tests with the `gcloud` timeout/maxBuffer source assertion added in the development branch. The local test fixture was manually updated to mirror the new `execFileSync` options.
 
 **Important limit:** The local `audit-production-controls.ts` remains a **shortened manually reconstructed fixture**, not the complete byte-identical GitHub file or a clean checkout. These tests **do not validate actual TypeScript compilation, Firebase, Playwright, Cloud Run APIs, IAM policies or the production configuration**. No further product code was changed in this iteration. Full frozen-SHA preflight remains blocked by missing complete checkout, exact Node 22.23.3, Bun 1.4.2 and working GitHub DNS. R2 remains frozen; GitHub Actions additional consumption **0 this iteration**, no merge/deployment. Official decision **NO-GO**.
+
+## 2026-10-10 — Production evidence regressions now wired into CI
+
+**Confirmed coverage gap:** GitHub `.github/workflows/ci.yml` did not invoke `scripts/report-path.test.mjs` or `scripts/production-audit-evidence-check.test.mjs` as its own pre-install gate, although local preflight did. Added `Production audit evidence regressions` to the full-scope CI path before lockfile/dependency installation (development commit `d88428e68afe50b4a41a4e532220b605655f3904`).
+
+**Resource cleanup:** local preflight previously included `report-path.test.mjs` in its `CI diagnostic unit tests` block and again in `Production evidence path and disclosure regression`. Removed the first invocation; the complete path test suite still runs with the production audit source checks in the dedicated pre-install step (development commit `1f6c1a7b71135704db24626aa49674dab9900d27`).
+
+**Verification:** inspected GitHub source and exact replacement anchors; both commits confirmed. **Not claimed:** executing changed CI or exact-repository tests, complete Node/Bun preflight, Firebase/Playwright/cloud security. R2 frozen; no Actions consumed, merge or deployment. **NO-GO**.
