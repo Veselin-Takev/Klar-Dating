@@ -19,6 +19,8 @@ if ! command -v nvm >/dev/null 2>&1; then
 fi
 
 nvm install 22.23.3
+# A postCreateCommand runs in its own shell: persist the pin for later terminals.
+nvm alias default 22.23.3
 nvm use 22.23.3
 [[ "$(node -v)" == 'v22.23.3' ]] || { echo 'Node 22.23.3 required' >&2; exit 1; }
 
