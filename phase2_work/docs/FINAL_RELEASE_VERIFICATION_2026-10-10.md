@@ -160,3 +160,9 @@ Executed the four test cases from `scripts/ci-scope-check.mjs` in an isolated lo
 **Confirmed source issue:** `scripts/ci-scope.mjs` invoked `git diff --name-only ...` synchronously without a timeout/output bound. A stalled or unexpectedly large diff could block the CI scope gate. **Fix:** `execFileSync('git', ...)` now has `timeout: 15_000` and `maxBuffer: 1024 * 1024`; its existing catch retains the fail-closed default `full=true` on subprocess failure (development commit `36d4fcd1454c9fbb5e9302b05dc743ed954b55bd`). Regression source assertion added to `scripts/ci-scope-check.mjs` (development commit `cb49fab3ea0af40597989b0ecad336e4765d49fe`).
 
 **Verification boundary:** reviewed actual repository files and confirmed GitHub updates. The amended test and entire CI workflow **have not been executed** in a complete clean checkout or on Actions; pathological git execution was not simulated. R2 frozen, no Actions minutes, merge or deploy; production remains **NO-GO**.
+
+## 2026-10-10 — Bounded CI scope regression checked in isolation
+
+Executed `node --test ci-scope-check.mjs` against a manually reconstructed current five-test CI-scope fixture under Node **v22.16.0** (`/mnt/data/klar-ci-scope-current`). TAP: **5 PASS, 0 FAIL**, elapsed approximately **297 ms**. The fifth test checked the `git diff` subprocess timeout/output bounds and fail-closed source pattern; prior cases checked narrative allowlist, mixed changes, push/empty fallback, and six security/bootstrap files.
+
+**Provenance caveat:** This was a manually reconstructed source fixture, **not** a byte-for-byte verified checkout of the branch and not the required exact toolchain. No full CI job, TypeScript, Firebase, Playwright, or live production cloud audit was performed. There were no further product changes this iteration. Frozen R2 remains unchanged and official production status is **NO-GO**; 0 additional GitHub Actions minutes, no merge/deploy.
