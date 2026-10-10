@@ -16,6 +16,67 @@ describe('production control audit', () => {
     expect(result.passed).toBe(true);
   });
 
+  it('resolves a Cloud Run secret alias to the actual Secret Manager resource', () => {
+    const resource = 'projects/123456789/secrets/stripe-live-key';
+    const result = auditCloudRunService({
+      expectedServiceAccount: sa,
+      requiredSecrets: ['STRIPE_SECRET_KEY'],
+      service: { spec: { template: {
+        metadata: { annotations: { 'run.googleapis.com/secrets': 'stripe-alias:' + resource } },
+        spec: { serviceAccountName: sa, containers: [
+          { env: [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'stripe-alias', key: 'latest' } } }] },
+        ] },
+      } } },
+    });
+    expect(result.passed).toBe(true);
+    expect(result.secretReferences).toEqual({ STRIPE_SECRET_KEY: resource });
+  });
+
+  it('rejects ambiguous duplicate required env vars across containers', () => {
+    const result = auditCloudRunService({
+      expectedServiceAccount: sa,
+      requiredSecrets: ['STRIPE_SECRET_KEY'],
+      service: { spec: { template: { spec: { serviceAccountName: sa, containers: [
+        { env: [{ name: 'STRIPE_SECRET_KEY', value: 'plaintext' }] },
+        { env: [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'safe-alias' } } }] },
+      ] } } } },
+    });
+    expect(result.passed).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/duplicate|multiple|ambiguous/i);
+  });
+
+  it('rejects malformed and conflicting Cloud Run secret aliases', () => {
+    for (const annotation of [
+      'alias:projects/prod/secrets/real,alias:projects/prod/secrets/other',
+      'alias:projects/prod/secrets/real,bad-record',
+      'alias:projects/prod/secrets/real,alias:projects/prod/secrets/real',
+    ]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: ['STRIPE_SECRET_KEY'],
+        service: { spec: { template: {
+          metadata: { annotations: { 'run.googleapis.com/secrets': annotation } },
+          spec: { serviceAccountName: sa, containers: [
+            { env: [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'alias' } } }] },
+          ] },
+        } } },
+      });
+      expect(result.passed).toBe(false);
+    }
+  });
+
+  it('rejects invalid secret reference names and does not return them for IAM lookup', () => {
+    const result = auditCloudRunService({
+      expectedServiceAccount: sa,
+      requiredSecrets: ['STRIPE_SECRET_KEY'],
+      service: { spec: { template: { spec: { serviceAccountName: sa, containers: [
+        { env: [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: '../unapproved' } } }] },
+      ] } } } },
+    });
+    expect(result.passed).toBe(false);
+    expect(result.secretReferences).toEqual({});
+  });
+
   it('rejects plaintext secrets and unexpected runtime identity', () => {
     const result = auditCloudRunService({
       expectedServiceAccount: sa,
