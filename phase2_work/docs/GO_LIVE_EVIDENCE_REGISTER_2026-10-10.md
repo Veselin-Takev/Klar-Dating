@@ -60,3 +60,12 @@ The domain validator `src/server/platform/operationalControlEvidence.ts` has bee
 Review found that `operationalControlEvidence.ts` used optional calls such as `secretName?.trim()` and `recipient?.trim()`. If the operational evidence JSON supplies a number, object, or boolean instead of a string, these operations could throw instead of returning the structured validation errors expected by the release gate. A malformed host allowlist could likewise throw during `.map()`. The candidate now explicitly checks string types and safely rejects invalid host-list inputs. A Vitest regression covers malformed JSON fields and absent host allowlists.
 
 **Verification:** committed source-level correction and new regression fixture only; the complete pinned local tests have not been executed. The operational evidence itself has not been collected or independently verified. Do not construe this hardening as operational signoff; the release decision remains **NO-GO**. No GitHub Actions runs, merges or deployments were initiated and the incremental 100-minute budget limit continues.
+
+
+## 2026-10-10 — Evidence-link exfiltration guard
+
+The operational evidence validator now explicitly requires URL entries to be nonempty strings and refuses query strings and nondefault/custom ports in addition to previously rejected embedded credentials and fragments. This reduces the risk of storing token-bearing signed URLs in audit records or sending operators to alternative services on an otherwise approved hostname. Added targeted Vitest regression cases covering query parameters, port overrides, null, numeric and object URL values.
+
+**Trade-off:** signed evidence links using query parameters intentionally fail validation. Store durable records in an approved private evidence system and reference stable access-controlled HTTPS/GS object identifiers without query secrets. Never weaken the host allowlist to make a temporary signed URL pass.
+
+**Verification status:** source and regression fixtures committed, but full pinned Node 22.23.3 / Bun 1.4.2 and real-cloud evidence checks remain pending. No GitHub Actions minutes spent in this change. All production gates remain NO-GO until independently verified.
