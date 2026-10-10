@@ -1,3 +1,9 @@
+## Chat-Sendeautorisierung und Offline-Replay – 2026-10-10
+
+**Dev-Branch-Fix:** Der Server nutzt verifizierte Firebase-Token-UID und prüft Chat-Zugehörigkeit vor und während des Nachrichtenwrites. Widersprüchliche `uid`/`ownerUid`/`senderId`-Angaben werden neuerdings mit `403 sender_mismatch` verweigert. Der Offline-Replay im Client unterstützt Abbruch bei Authwechsel, Verbindungsabbruch und Logout-Start; Fehler werden im Sync-Banner behandelt. Automatisierte Negativtests zu Konto-/Tokenwechsel und Replay-Abbruch ergänzt. **Statische GitHub-Prüfung 13/13 erfüllt, keine vollständige Testausführung.** Detaillierte Evidenz: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert, offizielle Freigabe **NO-GO**.
+
+---
+
 ## P1 FE-02 IndexedDB Offline-Queue: Indexed Reads — 2026-10-10
 
 Die bisherige globale `getAll()`-Abfrage wurde für Benutzer-Queue-Einträge durch `ownerUid`-Indexabfragen ersetzt. Checklisten verwenden direkte Primärschlüssel-Abfragen mit zusätzlicher Owner-Kontrolle. Hilfsmodul und gezielte funktionale Regression lokal unter Node 22.16.0 geprüft (2/2 PASS; Original-Helper per SHA bestätigt). CI-Regressionsprüfung vor Dependency-Installation integriert. **Keine vollständige Browser-/Emulator-/gepinnten Toolchain-Abnahme**. Separat offen: Legacy-`memoryQueue` mit nicht durchgehend UID-spezifischer Deduplizierung und Synchronisierung. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Release **NO-GO**; R2 unverändert.
