@@ -261,3 +261,13 @@ Review of the final Git cleanliness gate found an edge case: `KLAR_LOCAL_PREFLIG
 The inline preflight report path check is extracted to `scripts/report-path.mjs` and validated by `scripts/report-path.test.mjs`. It requires an existing external parent directory outside the canonical repository root; rejects symlinked directories pointing back into the repository; and rejects an existing target (including dangling symlinks) before starting expensive tests. The preflight runs these unit tests in its early diagnostics gate and checks the path again before exclusive, mode-0600 report creation (`wx`). Operators should use a unique fresh filename outside the checkout, preferably in a private directory.
 
 **Executed evidence:** the six exact standalone regression fixtures were run locally under Node v22.16.0: **6 PASS, 0 FAIL**. This is *not* the pinned Node v22.23.3/Bun v1.4.2/Java 21 whole-project acceptance. The race between the preflight check and output creation is covered by exclusive `wx`, which rejects newly occupied targets. CI usage from this change: zero new runs. The unmerged candidate and production release remain **NO-GO**.
+
+
+## 2026-10-10 — Exact Git-blob validation for report path controls
+
+Re-ran `node --test /mnt/data/klar-report-guard/*.test.mjs` with local Node v22.16.0: **6 passed, 0 failed** (TAP, exit 0). Unlike earlier smoke tests, the executed module and test fixture were verified byte-for-byte against the **current candidate branch** via `git hash-object` and the GitHub file blob SHAs:
+
+- `scripts/report-path.mjs`: `996ae47d5a78a24bdfcb01a9c40a86b92cf0009c`
+- `scripts/report-path.test.mjs`: `87670c14ae2c71b25d8a4605107a6bc7505e3944`
+
+These exact candidate files passed six regression cases. This establishes **component-specific exact-file evidence**, not a successful whole-branch `verify:local`. Runtime still differs from pinned Node 22.23.3 and Bun 1.4.2 is unavailable; no emulator, browser, or full clean-checkout integration pass has been demonstrated. No Actions runs were initiated; the 100-minute incremental cap and release **NO-GO** remain in effect.
