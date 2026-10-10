@@ -102,6 +102,13 @@ describe('production control audit', () => {
     expect(auditSecretPolicies({ stripe: { bindings: [] } }, sa, ['stripe']).passed).toBe(false);
   });
 
+  it('does not count conditional Secret Manager grants as guaranteed workload access', () => {
+    const grant = { role: 'roles/secretmanager.secretAccessor', members: ['serviceAccount:' + sa] };
+    const conditional = { ...grant, condition: { title: 'expired', expression: 'request.time < timestamp("2020-01-01T00:00:00Z")' } };
+    expect(auditSecretPolicies({ stripe: { bindings: [conditional] } }, sa, ['stripe']).passed).toBe(false);
+    expect(auditSecretPolicies({ stripe: { bindings: [conditional, grant] } }, sa, ['stripe']).passed).toBe(true);
+  });
+
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
       [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
