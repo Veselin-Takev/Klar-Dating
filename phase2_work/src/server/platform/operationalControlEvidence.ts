@@ -55,10 +55,21 @@ function links(values: unknown, label: string, errors: string[], approvedHosts: 
   }
 }
 
+function rejectUnexpectedFields(value: unknown, allowed: readonly string[], label: string, errors: string[]) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push(label + ' must be an object');
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) errors.push(label + ' contains unexpected field ' + key);
+  }
+}
+
 export function validateOperationalControlEvidence(value: unknown, expectedBuildSha: string, expectedEnvironment: OperationalControlEvidence['environment'], approvedEvidenceHosts: string[], evidenceNotBefore?: string) {
   const errors: string[] = [];
   const latestAcceptableEvidenceTime = Date.now() + 5 * 60 * 1000;
   if (!value || typeof value !== 'object') return { passed: false, errors: ['Evidence must be an object'] };
+  rejectUnexpectedFields(value, ['schemaVersion', 'buildSha', 'environment', 'secretRotation', 'alertDelivery'], 'evidence', errors);
   const evidence = value as Partial<OperationalControlEvidence>;
   if (evidence.schemaVersion !== 1) errors.push('schemaVersion must be 1');
   if (!/^[0-9a-f]{40}$/.test(String(evidence.buildSha ?? ''))) errors.push('buildSha must be a full 40-character lowercase Git SHA');
@@ -73,6 +84,7 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   if (approvedHosts.size === 0) errors.push('at least one approved evidence host is required');
 
   const rotation = evidence.secretRotation;
+  rejectUnexpectedFields(rotation, ['secretName', 'oldVersionDisabled', 'newVersionCreatedAt', 'workloadObservedNewVersionAt', 'smokeTest', 'evidenceLinks'], 'secretRotation', errors);
   if (typeof rotation?.secretName !== 'string' || !rotation.secretName.trim()) errors.push('secretRotation.secretName is required');
   const created = iso(rotation?.newVersionCreatedAt, 'secretRotation.newVersionCreatedAt', errors);
   const observed = iso(rotation?.workloadObservedNewVersionAt, 'secretRotation.workloadObservedNewVersionAt', errors);
@@ -86,6 +98,7 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   links(rotation?.evidenceLinks, 'secretRotation.evidenceLinks', errors, approvedHosts);
 
   const alert = evidence.alertDelivery;
+  rejectUnexpectedFields(alert, ['policyName', 'exerciseStartedAt', 'notificationReceivedAt', 'acknowledgedAt', 'recipient', 'channelType', 'evidenceLinks'], 'alertDelivery', errors);
   if (typeof alert?.policyName !== 'string' || !alert.policyName.trim()) errors.push('alertDelivery.policyName is required');
   if (typeof alert?.recipient !== 'string' || !alert.recipient.trim()) errors.push('alertDelivery.recipient is required');
   if (typeof alert?.channelType !== 'string' || !alert.channelType.trim()) errors.push('alertDelivery.channelType is required');
