@@ -57,6 +57,7 @@ function links(values: unknown, label: string, errors: string[], approvedHosts: 
 
 export function validateOperationalControlEvidence(value: unknown, expectedBuildSha: string, expectedEnvironment: OperationalControlEvidence['environment'], approvedEvidenceHosts: string[], evidenceNotBefore?: string) {
   const errors: string[] = [];
+  const latestAcceptableEvidenceTime = Date.now() + 5 * 60 * 1000;
   if (!value || typeof value !== 'object') return { passed: false, errors: ['Evidence must be an object'] };
   const evidence = value as Partial<OperationalControlEvidence>;
   if (evidence.schemaVersion !== 1) errors.push('schemaVersion must be 1');
@@ -68,12 +69,16 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   const approvedHosts = new Set(Array.isArray(approvedEvidenceHosts) ? approvedEvidenceHosts.filter((host): host is string => typeof host === 'string').map((host) => host.trim().toLowerCase()).filter(Boolean) : []);
   const evidenceFloor = parseStrictIso(evidenceNotBefore);
   if (!Number.isFinite(evidenceFloor)) errors.push('evidenceNotBefore must be a valid ISO date/time and is required');
+  if (Number.isFinite(evidenceFloor) && evidenceFloor > latestAcceptableEvidenceTime) errors.push('evidenceNotBefore must not be in the future');
   if (approvedHosts.size === 0) errors.push('at least one approved evidence host is required');
 
   const rotation = evidence.secretRotation;
   if (typeof rotation?.secretName !== 'string' || !rotation.secretName.trim()) errors.push('secretRotation.secretName is required');
   const created = iso(rotation?.newVersionCreatedAt, 'secretRotation.newVersionCreatedAt', errors);
   const observed = iso(rotation?.workloadObservedNewVersionAt, 'secretRotation.workloadObservedNewVersionAt', errors);
+  for (const [label, ms] of [['secretRotation.newVersionCreatedAt', created], ['secretRotation.workloadObservedNewVersionAt', observed]] as const) {
+    if (Number.isFinite(ms) && ms > latestAcceptableEvidenceTime) errors.push(label + ' must not be in the future');
+  }
   if (Number.isFinite(created) && Number.isFinite(observed) && observed < created) errors.push('workloadObservedNewVersionAt cannot precede newVersionCreatedAt');
   if (Number.isFinite(evidenceFloor) && Number.isFinite(created) && created < evidenceFloor) errors.push('secret rotation evidence must not predate evidenceNotBefore');
   if (rotation?.oldVersionDisabled !== true) errors.push('old secret version must be disabled after successful rotation');
@@ -87,6 +92,9 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   const started = iso(alert?.exerciseStartedAt, 'alertDelivery.exerciseStartedAt', errors);
   const received = iso(alert?.notificationReceivedAt, 'alertDelivery.notificationReceivedAt', errors);
   const ack = iso(alert?.acknowledgedAt, 'alertDelivery.acknowledgedAt', errors);
+  for (const [label, ms] of [['alertDelivery.exerciseStartedAt', started], ['alertDelivery.notificationReceivedAt', received], ['alertDelivery.acknowledgedAt', ack]] as const) {
+    if (Number.isFinite(ms) && ms > latestAcceptableEvidenceTime) errors.push(label + ' must not be in the future');
+  }
   if (Number.isFinite(started) && Number.isFinite(received) && received < started) errors.push('notificationReceivedAt cannot precede exerciseStartedAt');
   if (Number.isFinite(evidenceFloor) && Number.isFinite(started) && started < evidenceFloor) errors.push('alert exercise evidence must not predate evidenceNotBefore');
   if (Number.isFinite(received) && Number.isFinite(ack) && ack < received) errors.push('acknowledgedAt cannot precede notificationReceivedAt');
