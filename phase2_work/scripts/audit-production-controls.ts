@@ -45,15 +45,20 @@ async function main() {
   validateExternalReportPath(repositoryRoot, output);
 
   const serviceJson = gcloud(['run','services','describe',service,'--project',project,'--region',region,'--format=json']);
+  // Resolve Cloud Run's lookup aliases before querying Secret Manager IAM.
+  // An env variable's NAME is not proof of which actual secret it reads.
+  const cloudRun = auditCloudRunService({ service: serviceJson, expectedServiceAccount, requiredSecrets });
   const iamJson = gcloud(['projects','get-iam-policy',project,'--format=json']);
   const secretPolicies: Record<string, unknown> = {};
-  for (const secret of requiredSecrets) {
-    secretPolicies[secret] = gcloud(['secrets','get-iam-policy',secret,'--project',project,'--format=json']);
+  for (const envName of requiredSecrets) {
+    const reference = cloudRun.secretReferences[envName];
+    if (reference) {
+      secretPolicies[envName] = gcloud(['secrets','get-iam-policy',reference,'--project',project,'--format=json']);
+    }
   }
   const alertPolicies = gcloud(['monitoring','policies','list','--project',project,'--format=json']);
   const channels = gcloud(['monitoring','channels','list','--project',project,'--format=json']);
 
-  const cloudRun = auditCloudRunService({ service: serviceJson, expectedServiceAccount, requiredSecrets });
   const iam = auditProjectRoles(iamJson, expectedServiceAccount);
   const secrets = auditSecretPolicies(secretPolicies, expectedServiceAccount, requiredSecrets);
   const monitoring = auditMonitoring(alertPolicies, channels, requiredAlertPolicies);
