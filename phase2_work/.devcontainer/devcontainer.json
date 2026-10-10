@@ -1,6 +1,5 @@
 {
-  // Node 20+ ist Pflicht: vite@6, firebase-admin@14, react-router und tsx
-  // schliessen aeltere Versionen aus. Ohne diese Datei raet der Codespace.
+  // Exact Node/Bun pins are enforced by scripts/setup-codespace.sh.
   "name": "Klar",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   "features": {
@@ -9,7 +8,7 @@
     // (Warnung bei jedem Emulatorlauf, Stand 09.08.2026).
     "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": false, "installGradle": false }
   },
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "bash phase2_work/scripts/setup-codespace.sh",
   "forwardPorts": [3000, 4000, 8080, 9099, 9199],
   "portsAttributes": {
     "3000": { "label": "Klar (Vite + API)" },
