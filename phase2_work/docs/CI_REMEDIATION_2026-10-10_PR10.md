@@ -33,3 +33,9 @@ The latest observed validate job 114304624097 moved past the earlier offline-rep
 Both corrections were committed to this PR branch; **the resulting exact SHA has not been validated with the complete frozen toolchain**. The last CI result is therefore not proof of a successful release. No manual Actions rerun, merge or deployment was requested. Automatic PR-triggered runs, if any, still count toward the user's hard **100-minute cumulative cap**; actual billed consumption and remaining authorized balance must be independently reconciled before initiating further runs.
 
 Keep **NO-GO** pending full preflight, live operational controls (issue #8), and explicit accountable approval.
+
+## Follow-up: strict TypeScript indexed access (2026-10-10)
+
+CI run `38084712603` at SHA `005fb2ce43859138c1a0d3e77d87c416da788a3f` failed at Typecheck on four `TS2532` diagnostics in `tests/aiPiiSanitizer.spec.ts:45-48`. The test file now uses optional index access for these assertions under `noUncheckedIndexedAccess`, preserving all four expected values including the unmodified source and encoded inline media. Change commit `5f6df3ada270de3f2a18ae82b0acab89b84793d0`.
+
+The fix is **committed, not yet proven by a full exact-head preflight**. CI results for a different SHA cannot release this candidate. No manual remote rerun, merge or deployment authorized; reconcile cumulative GitHub Actions usage against the user's strict 100-minute cap before initiating further jobs. Production remains **NO-GO** pending complete gates and independent operational signoff.
