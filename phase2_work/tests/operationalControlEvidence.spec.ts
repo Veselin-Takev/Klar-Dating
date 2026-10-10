@@ -95,4 +95,13 @@ describe('operational control exercise evidence', () => {
     }
   });
 
+  it('rejects evidence links pointing only to a trusted host root', () => {
+    for (const link of ['https://evidence.invalid', 'https://evidence.invalid/', 'gs://evidence.invalid/']) {
+      const record = valid();
+      record.alertDelivery.evidenceLinks = [link];
+      expect(validate(record).errors.join(' ')).toMatch(/specific evidence record/);
+    }
+    expect(validate(valid()).passed).toBe(true);
+  });
+
 });
