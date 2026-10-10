@@ -55,14 +55,6 @@ jobs:
         if: steps.scope.outputs.full == 'true'
         with:
           bun-version: '1.4.2'
-      - name: Restore dependency downloads
-        if: steps.scope.outputs.full == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: |
-            ~/.bun/install/cache
-            ~/.cache/firebase/emulators
-          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock') }}
       - name: Codespaces bootstrap regression
         if: steps.scope.outputs.full == 'true'
         run: |
@@ -74,6 +66,14 @@ jobs:
       - name: Dependency lock preflight
         if: steps.scope.outputs.full == 'true'
         run: node scripts/check-dependency-locks.mjs
+      - name: Restore dependency downloads
+        if: steps.scope.outputs.full == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.cache/firebase/emulators
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock') }}
       - name: Install dependencies
         if: steps.scope.outputs.full == 'true'
         run: |
