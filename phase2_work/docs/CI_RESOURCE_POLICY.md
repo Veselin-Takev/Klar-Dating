@@ -231,3 +231,12 @@ The candidate `verify:local` preflight now checks `git rev-parse --verify HEAD` 
 **Local evidence:** the exact standalone module and its four regression fixtures were exercised on Node v22.16.0 in an isolated temporary directory: **4 PASS / 0 FAIL**, and JavaScript syntax validation passed. The full GitHub repository checkout, required Node v22.23.3 / Bun v1.4.2 suite, emulator integration and browser acceptance have **not** been executed here; those gates remain PENDING. Note: the clean-checkout guard may require removing generated/untracked build reports before a new validation attempt, without discarding any user data. This is not a production approval.
 
 No new GitHub Actions run, merge, tag or deployment was triggered. Enforce the owner's **100 additional Actions minutes maximum**; verify actual consumption before any remote run and ask for explicit authorization prior to an additional 200 minutes. Production: **NO-GO**.
+
+
+## 2026-10-10 — Repository-root provenance hardening
+
+The local preflight Git provenance verifier now additionally resolves `git rev-parse --show-toplevel` and requires that its canonical filesystem location equal the expected repository root. This prevents test evidence from being attributed to an accidental parent or unrelated Git checkout. It also resolves `HEAD^{commit}` rather than trusting ambiguous symbolic output. A clean tracked/untracked working tree remains mandatory.
+
+**Executed local evidence:** exact updated verifier and six companion regression tests executed using Node v22.16.0 in an isolated local directory. Results: **6 passed, 0 failed**; `node --check` passed. Covered clean root, unexpected root, modified and untracked files, invalid commit identity, command failure and symlink-canonical paths. This is targeted component evidence only; a full `verify:local` under required Node 22.23.3 / Bun 1.4.2 / Java 21 remains **PENDING**. The candidate remains unmerged.
+
+No GitHub Actions workflow, release or production deployment was started. Respect the current 100-minute incremental Actions cap and preserve **NO-GO** until the complete operational release checklist has been evidenced and explicitly approved.
