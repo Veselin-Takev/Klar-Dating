@@ -164,7 +164,8 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
   try {
     const adminApp = getServerFirebaseApp();
     const authInstance = getAuth(adminApp);
-    const decodedToken = await authInstance.verifyIdToken(idToken, false);
+    // Check Firebase revocation/disabled-user state on every protected request.
+    const decodedToken = await authInstance.verifyIdToken(idToken, true);
 
     if (decodedToken.uid && (await getFirestore().collection('account_deletions').doc(decodedToken.uid).get()).exists) {
       return res.status(409).json({ code: 'account_deletion_pending' });
@@ -173,8 +174,8 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     req.user = decodedToken;
     req.session = session;
     next();
-  } catch (error: unknown) {
-    console.warn('Auth token verification failed:', error instanceof Error ? error.message : error);
+  } catch {
+    console.warn('Auth token verification failed');
     return res.status(401).json({ error: 'Forbidden: Invalid token' });
   }
 };
@@ -2207,3 +2208,4 @@ export async function startServer() {
 if (process.env.KLAR_NICHT_STARTEN !== "1") {
   startServer();
 }
+

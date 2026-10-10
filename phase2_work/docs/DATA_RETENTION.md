@@ -51,7 +51,7 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 ## 9. Gelöschte Konten / Deletion Logs (`/deletion_log`)
 - **Inhalt:** ausschließlich aggregierte Löschzähler, Status, Schema-Version und technische Zeitstempel; keine UID, E-Mail, Session-ID, Request-ID oder Provider-ID.
 - **Feld:** `expiresAt`
-- **Frist:** 30 Tage. Kaskadierende Löschvorgänge schreiben ein Audit-Log, um im Fehlerfall Inkonsistenzen aufzuspüren.
+- **Frist:** 30 Tage nach erfolgreichem finalem Kontrolllauf. Schema 2 wird atomar mit dem Abschluss des Löschauftrags geschrieben. Laufende Zähler bleiben im bestehenden `account_deletions`-Auftrag; sie erhalten dessen Aufbewahrung. Ältere Belege werden nicht nachträglich als vollständige Zählung ausgegeben.
 - **Setup:** `gcloud firestore fields ttls update expiresAt --collection-group=deletion_log --enable-ttl`
 
 ## 10. Verifizierungsfotos (Storage)

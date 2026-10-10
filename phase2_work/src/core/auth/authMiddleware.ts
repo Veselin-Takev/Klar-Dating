@@ -5,7 +5,8 @@ import { getServerFirebaseApp } from '../../server/db';
 export type AuthenticatedRequest = Request;
 /**
  * Verify Firebase ID tokens with the Admin SDK. Never decode JWT payloads
- * locally and never substitute a fixed/test identity in a runtime boundary.
+ * locally; enforce revocation and disabled-user checks on every request.
+ * Never substitute a fixed/test identity in a runtime boundary.
  */
 export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -17,10 +18,11 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
   if (!token) return res.status(401).json({ error: 'Unauthorized: Missing or malformed token' });
 
   try {
-    const decoded = await getAuth(getServerFirebaseApp()).verifyIdToken(token, false);
+    const decoded = await getAuth(getServerFirebaseApp()).verifyIdToken(token, true);
     req.user = decoded;
     return next();
   } catch {
     return res.status(401).json({ error: 'Forbidden: Invalid token' });
   }
 }
+

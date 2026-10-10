@@ -15,7 +15,7 @@ RUN bun run build
 RUN rm -rf node_modules \
   && bun install --frozen-lockfile --production
 
-FROM node:26.10.0-bookworm-slim@sha256:3ffc19ea878019d9e9ae8971732ad4a03cda44f167107173174b60ed7c65bed3 AS runtime
+FROM node:22.23.3-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -30,3 +30,4 @@ USER node
 EXPOSE 8080
 
 CMD ["node", "dist/server.cjs"]
+

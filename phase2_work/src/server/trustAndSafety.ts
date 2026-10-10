@@ -1,5 +1,5 @@
-import { DeletionPageComplete } from './deletionProgress';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { deletionAccounting, type DeletionCounter } from './deletionAccounting';
+import { DeletionPageComplete, DeletionStoragePageComplete, runDeletionSlice, checkDeletionSlice, recordDeletionProgress } from './deletionProgress';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
@@ -361,55 +361,39 @@ export async function handleBlock(req: Request, res: Response): Promise<void> {
 // ── P0-6: Löschung ─────────────────────────────────────────────────────────
 
 const BATCH = 400;
-const deletionDeadline = new AsyncLocalStorage<number>();
-
-export type DeletionAuditReceipt = {
-  schemaVersion: 1;
-  status: 'completed';
-  completedAt: Date;
-  expiresAt: Date;
-  deletedChats: number;
-  deletedMessages: number;
-  deletedGateAnswers: number;
-  deletedConnections: number;
-  deletedContacts: number;
-  deletedOwnReports: number;
-  pseudonymizedReports: number;
-};
-
-export function buildDeletionAuditReceipt(bericht: {
-  chats: number; nachrichten: number; gateAntworten: number; verbindungen: number;
-  kontakte: number; eigeneMeldungen: number; pseudonymisiert: number;
-}, completedAt = new Date()): DeletionAuditReceipt {
-  return {
-    schemaVersion: 1, status: 'completed', completedAt,
-    expiresAt: new Date(completedAt.getTime() + 30 * 86_400_000),
-    deletedChats: bericht.chats, deletedMessages: bericht.nachrichten,
-    deletedGateAnswers: bericht.gateAntworten, deletedConnections: bericht.verbindungen,
-    deletedContacts: bericht.kontakte, deletedOwnReports: bericht.eigeneMeldungen,
-    pseudonymizedReports: bericht.pseudonymisiert,
-  };
-}
 
 async function loescheAbfrage(query: Query): Promise<number> {
   const db = getFirestore();
   let gesamt = 0;
   for (;;) {
-    if (Date.now() > (deletionDeadline.getStore() ?? Infinity)) throw new Error('deletion_time_slice');
+    checkDeletionSlice();
     const snap = await query.limit(BATCH).get();
     if (snap.empty) return gesamt;
     const batch = db.batch();
     snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
+    recordDeletionProgress();
     gesamt += snap.size;
     if (snap.size < BATCH) return gesamt;
   }
 }
 
 /** Repeatable purge: orchestration, provider cleanup and authentication live in accountDeletion.ts. */
-export async function purgeAccountData(meineUid: string, deletionRequestId?: string) {
-  return deletionDeadline.run(Date.now() + 45_000, async () => {
+export async function purgeAccountData(meineUid: string, deletionRequestId: string, lease?: string) {
+  return runDeletionSlice(async () => {
     const db = getFirestore();
+    const accounting = deletionAccounting(db, meineUid, deletionRequestId, lease);
+    await accounting.verify();
+    const loescheGezaehlt = async (query: Query, counter: DeletionCounter) => {
+      let total = 0;
+      for (;;) {
+        checkDeletionSlice();
+        const count = await accounting.deleteQuery(query, counter);
+        if (count > 0) recordDeletionProgress();
+        total += count;
+        if (count < BATCH) return total;
+      }
+    };
     const bericht = {
       chats: 0, nachrichten: 0, gateAntworten: 0, verbindungen: 0, kontakte: 0,
       eigeneMeldungen: 0, pseudonymisiert: 0,
@@ -426,19 +410,22 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //    ist, muss auch löschbar sein.
     const chats = await db.collection('chats').where('participants', 'array-contains', meineUid).limit(25).get();
     for (const chat of chats.docs) {
-      bericht.nachrichten += await loescheAbfrage(chat.ref.collection('messages'));
-      bericht.nachrichten += await loescheAbfrage(chat.ref.collection('archived_messages'));
-      bericht.gateAntworten += await loescheAbfrage(chat.ref.collection('gate_answers'));
-      await chat.ref.delete();
-      bericht.chats += 1;
+      checkDeletionSlice();
+      const chatRef = db.doc(chat.ref.path);
+      bericht.nachrichten += await loescheGezaehlt(chatRef.collection('messages'), 'nachrichten');
+      bericht.nachrichten += await loescheGezaehlt(chatRef.collection('archived_messages'), 'nachrichten');
+      bericht.gateAntworten += await loescheGezaehlt(chatRef.collection('gate_answers'), 'gateAntworten');
+      const count = await accounting.deleteChat(chatRef);
+      if (count > 0) recordDeletionProgress();
+      bericht.chats += count;
     }
 
     if (chats.size === 25) throw new DeletionPageComplete();
 
     // 2. Verbindungen in beide Richtungen.
     for (const feld of ['fromUid', 'toUid', 'userId', 'otherUserId']) {
-      bericht.verbindungen += await loescheAbfrage(
-        db.collection('connections').where(feld, '==', meineUid),
+      bericht.verbindungen += await loescheGezaehlt(
+        db.collection('connections').where(feld, '==', meineUid), 'verbindungen',
       );
     }
 
@@ -447,8 +434,8 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     //     Dokumentkennung ist `${von}_${nach}`, die Felder heissen `fromUid`
     //     und `toUid` — die Auskunft liest genau diese beiden.
     for (const feld of ['fromUid', 'toUid']) {
-      bericht.kontakte += await loescheAbfrage(
-        db.collection('contacts').where(feld, '==', meineUid),
+      bericht.kontakte += await loescheGezaehlt(
+        db.collection('contacts').where(feld, '==', meineUid), 'kontakte',
       );
     }
 
@@ -476,21 +463,19 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     await loescheAbfrage(db.collection('blocks').where('blockedUid', '==', meineUid));
 
     // 5. Eigene Meldungen: weg.
-    bericht.eigeneMeldungen += await loescheAbfrage(
-      db.collection('reports').where('reporterId', '==', meineUid),
+    bericht.eigeneMeldungen += await loescheGezaehlt(
+      db.collection('reports').where('reporterId', '==', meineUid), 'eigeneMeldungen',
     );
 
     // 6. Meldungen ÜBER diese Person bleiben — sie sind die Daten der
     //    meldenden Personen und der Nachweis für Moderationsentscheidungen
     //    (DSA Art. 17). Der Personenbezug wird entfernt.
     for (;;) {
-      const ueber = await db.collection('reports').where('reportedProfileId', '==', meineUid).limit(BATCH).get();
-      if (ueber.empty) break;
-      const batch = db.batch();
-      ueber.docs.forEach((d) => batch.update(d.ref, {
-        reportedProfileId: FieldValue.delete(), reportedGeloeschtAm: FieldValue.serverTimestamp(),
-      }));
-      await batch.commit(); bericht.pseudonymisiert += ueber.size;
+      checkDeletionSlice();
+      const count = await accounting.pseudonymizeReports(db.collection('reports').where('reportedProfileId', '==', meineUid));
+      if (count === 0) break;
+      recordDeletionProgress();
+      bericht.pseudonymisiert += count;
     }
 
     // Abuse-prevention state is UID-derived and must not survive Art. 17 deletion.
@@ -505,7 +490,8 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     await loescheAbfrage(db.collection('app_feedback').where('uid', '==', meineUid));
     for (const field of ['inviterUid', 'inviteeUid']) await loescheAbfrage(db.collection('referral_events').where(field, '==', meineUid));
     for (const field of ['userA', 'userB']) await loescheAbfrage(db.collection('matches').where(field, '==', meineUid));
-    await deleteAccountPhotos(getAppBucket(), meineUid);
+    checkDeletionSlice();
+    if (!await deleteAccountPhotos(getAppBucket(), meineUid)) throw new DeletionStoragePageComplete();
     await loescheAbfrage(db.collection('mail_queue').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_requests').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_events').where('uid', '==', meineUid));
@@ -535,11 +521,13 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     // Keep campaign text and aggregate counts, but scrub all HMAC admin references.
     for (const field of ['createdByRef', 'updatedByRef', 'verifiedByRef']) {
       for (;;) {
+        checkDeletionSlice();
         const refs = await db.collection('partner_campaigns').where(field, '==', partnerUidRef).limit(BATCH).get();
         if (refs.empty) break;
         const batch = db.batch();
         refs.docs.forEach(item => batch.update(item.ref, { [field]: FieldValue.delete() }));
         await batch.commit();
+        recordDeletionProgress();
         if (refs.size < BATCH) break;
       }
     }
@@ -565,23 +553,8 @@ export async function purgeAccountData(meineUid: string, deletionRequestId?: str
     // All nested profile data, including future subcollections, is owned by this account.
     await db.recursiveDelete(db.collection('users').doc(meineUid));
 
-    // Art. 5 Abs. 2 DSGVO / Accountability: keep only a minimal, non-user-identifying
-    // deletion receipt. It deliberately contains no UID, email, session ID, request ID,
-    // provider identifier or raw personal data. TTL removes the receipt after 30 days.
-    const receipt = buildDeletionAuditReceipt(bericht);
-    const receiptId = deletionRequestId
-      ? crypto.createHash('sha256').update(`deletion-receipt:${deletionRequestId}`, 'utf8').digest('hex')
-      : undefined;
-    const receiptRef = receiptId
-      ? db.collection('deletion_log').doc(receiptId)
-      : db.collection('deletion_log').doc();
-    try {
-      await receiptRef.create({ ...receipt, completedAt: FieldValue.serverTimestamp() });
-    } catch (error) {
-      if (!receiptId || (error as { code?: unknown }).code !== 6) throw error;
-      // A retry may observe ALREADY_EXISTS after the previous create actually
-      // committed. The deterministic receipt ID makes the write idempotent.
-    }
+    // Cumulative counters stay in the durable job. Only the worker's final
+    // sweep transaction may publish the final receipt and complete the job.
     return bericht;
   });
 }
@@ -599,3 +572,4 @@ export async function handleDeleteAccount(req: Request, res: Response): Promise<
     res.status(503).json({ error: 'Löschauftrag derzeit nicht bestätigbar. Bitte erneut versuchen.' });
   }
 }
+

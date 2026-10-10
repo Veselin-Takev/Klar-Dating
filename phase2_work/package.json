@@ -52,11 +52,11 @@
     "check:csp": "node scripts/csp-direktiven.mjs server.ts",
     "check:aeusserungen": "node scripts/erfundene-aeusserungen.mjs src 0",
     "check:guardrails": "node scripts/check-guardrails.mjs",
-    "check:secrets": "node scripts/check-secrets.mjs",
-    "check:auth-boundary": "node scripts/check-auth-boundary.mjs",
+    "check:secrets": "node --test scripts/secrets-check.mjs && node scripts/check-secrets.mjs",
+    "check:auth-boundary": "node scripts/check-auth-boundary.mjs && node --test scripts/auth-boundary-check.mjs",
     "check:public-firestore-rules": "node scripts/check-public-firestore-rules.mjs",
     "check:ai-pii-sanitizer": "node scripts/check-ai-pii-sanitizer.mjs",
-    "check:art17-deletion-audit": "node scripts/check-art17-deletion-audit.mjs 0",
+    "check:art17-deletion-audit": "node scripts/check-art17-deletion-audit.mjs 0 && node --test scripts/deletion-storage-check.mjs",
     "test:all": "npm run typecheck && npm run test:ci && npx playwright test",
     "release:verify": "npm run check:enterprise && npm run check:functions && npm run typecheck && npm run test:ci && npm run build && npm run test:production && npx playwright test",
     "test:enterprise": "npm run test:launch && node --import=tsx --test tests/enterprise/platform.spec.ts",
@@ -207,3 +207,4 @@
   },
   "packageManager": "bun@1.4.2"
 }
+

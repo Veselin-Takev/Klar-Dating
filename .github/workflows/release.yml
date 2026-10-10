@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      actions: read
       packages: write
       id-token: write
       attestations: write
@@ -35,6 +36,11 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Runtime policy preflight
+        run: |
+          node scripts/check-runtime-node-alignment.mjs
+          node --test scripts/runtime-node-alignment-check.mjs
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.23.3'
@@ -46,13 +52,18 @@ jobs:
       - name: Production release approval
         run: node scripts/check-production-release-approval.mjs
 
+      - name: Verify exact-commit CI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-release-ci.mjs
+
       - name: Dependency lock preflight
         run: node scripts/check-dependency-locks.mjs
 
       - name: Install application dependencies
         run: |
-          bun install --lockfile-only
           bun ci
+          git diff --exit-code -- package.json bun.lock
 
       - name: Install Functions dependencies
         run: npm ci --prefix functions --ignore-scripts --no-audit --no-fund
@@ -133,3 +144,4 @@ jobs:
           path: phase2_work/release/
           if-no-files-found: error
           retention-days: 30
+

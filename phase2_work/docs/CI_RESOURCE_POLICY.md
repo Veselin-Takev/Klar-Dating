@@ -96,3 +96,7 @@ This evidence update is retained on a separate documentation branch without a pu
 ## Superseding post-merge snapshot
 
 See [post-merge runtime ledger](POST_MERGE_VALIDATION_2026-10-09.md): all ten observed runs completed; conservative cumulative incremental usage is **61 minutes**, with **139 remaining**. The earlier 9/191 ledger is historical, before the user merge and dependency runs. No candidate rerun has been started.
+
+## 2026-10-10 — Runtime preflight candidate
+
+CI and tag releases now perform the dependency-free runtime check before setup and installation. Six runtime/scope regressions and targeted structural gates passed under Node 24.19.0. Full local validation under Node 22.23.3 remains pending. No Actions run was initiated. See AUDIT_REMEDIATION_2026-10-10.md; older budget balances above remain historical snapshots.

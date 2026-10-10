@@ -1,3 +1,81 @@
+## SEC-SCAN-01 candidate hardening — 2026-10-10
+
+The secret scanner now recognizes ten credential-pattern families, restricts the
+existing public Firebase exception to its exact field/path/project/value, and fails
+closed on incomplete scans. It no longer exempts scanner/test filenames or entire
+Firebase config files. Fifteen new dependency-free regressions passed on Node 24.19.0.
+See [scope, evidence and remaining security gates](SECRET_SCANNER_2026-10-10.md).
+This addresses SEC-01 in the 2026-10-09 audit, distinct from the later SEC-01 release-CI fix.
+Only a partial local working-tree scan was available. Full-repository/history scanning,
+dedicated tooling, production key restrictions and exact-candidate validation remain open.
+No CI trigger or deployment. Production remains **NO-GO / NOT CONFIRMED**.
+
+## DB-02 candidate implementation — 2026-10-10
+
+Provider pages with confirmed deletions and bounded account-photo pages now preserve
+the existing failure budget. Storage deletes use generation preconditions and require
+an empty-prefix confirmation; holds, conflicts and no-progress responses remain failures.
+49 dependency-free regressions and the static deletion gate passed on Node 24.19.0.
+Updated provider/lifecycle/erasure Vitest scenarios are not executed here.
+See [DB-02 behavior, limits and release gates](DELETION_PROVIDER_STORAGE_2026-10-10.md).
+Full Node 22.23.3 validation, production storage-policy inventory, SDK latency/retry
+verification, DB-01 legacy rollout and independent approval remain open.
+No new CI trigger or deployment. Production remains **NO-GO / NOT CONFIRMED**.
+This supersedes earlier statements that provider pagination always consumes the failure budget.
+
+## DB-01 candidate integration — 2026-10-10
+
+Cumulative deletion accounting and atomic final-sweep receipts are now integrated
+from source commit `31363ebeb4251d788f877c008c12c5f7d7583e83` into the existing
+INF-01 / SEC-01 / BE-01 remediation branch. No earlier correction is overwritten.
+The static deletion gate, 42 existing dependency-free regressions and four direct
+slice-behavior checks passed under Node 24.19.0. Eight TypeScript files passed
+syntax transformation; this is not typechecking or emulator validation.
+Historical emulator results are explicitly separated from current evidence.
+Legacy-job inventory, migration decisions and full Node 22.23.3 validation remain open.
+See [integration evidence and rollout runbook](DELETION_CONSOLIDATION_2026-10-10.md).
+No PR, main push, release tag or workflow dispatch was initiated.
+Production remains **NO-GO / NOT CONFIRMED**. Next separate issue: DB-02 provider/storage progress.
+This section supersedes earlier statements describing DB-01 as not yet integrated.
+
+## BE-01 candidate update — 2026-10-10
+
+Both API authentication entry points now enable Firebase Admin token revocation checks.
+The previously contrary static gate is corrected and four regression checks are wired into Enterprise validation.
+42 dependency-free checks passed under Node 24.19.0; the added real-emulator logout/relogin/disabled-account
+journey is not yet executed. Full Node 22.23.3 validation, merge and production approval remain pending.
+No Actions run was initiated. See [auth revocation evidence](AUTH_REVOCATION_2026-10-10.md).
+This supersedes earlier BE-01 implementation status only. Production remains NO-GO / NOT CONFIRMED.
+Next P0: DB-01 cumulative final deletion receipts.
+
+## SEC-01 candidate update — 2026-10-10
+
+Release CI binding and frozen lockfile installation are implemented on the remediation branch.
+38 dependency-free tests passed under Node 24.19.0. Full validation under Node 22.23.3,
+merge and production approval remain pending. No Actions run was initiated.
+This supersedes the earlier statement that SEC-01 is unimplemented, not the release NO-GO.
+See [release CI binding](RELEASE_CI_BINDING_2026-10-10.md) for exact checks and evidence limits.
+Next: BE-01 token revocation, then DB-01 cumulative/final deletion receipts.
+
+## Current remediation — 2026-10-10
+
+Baseline: `476c808cb5689aaca178b1d8ad6c607fb9017103`. This section supersedes older current-state statements below; historical results remain tied to their original SHA.
+
+**INF-01: candidate implementation complete; full validation and merge pending.**
+[Main CI 37978229573](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37978229573)
+failed on Docker Node 26.10.0 versus the approved Node 22.23.3 policy.
+The active Dockerfile now uses the exact approved image. CI and release perform the dependency-free runtime check
+and three regression tests before toolchain setup and dependency installation.
+
+Six runtime/scope regressions and targeted structural gates passed locally under **Node 24.19.0**.
+This is not full validation under Node 22.23.3. No application/browser/emulator/container PASS is asserted.
+No PR, main push, release tag, deployment or new Actions run was initiated.
+Historical remaining-minute figures are not a current budget balance.
+
+Production: **NO-GO / NOT CONFIRMED**. SEC-01 release validation binding, BE-01 revocation,
+DB-01 cumulative/final deletion receipts and operational/governance evidence remain open.
+See [remediation record](AUDIT_REMEDIATION_2026-10-10.md).
+
 ### 2026-10-09 — Post-merge onboarding race and runtime gate correction
 
 Main CI `37963077381` failed one browser acceptance assertion (music preferences missing from an export read immediately after submit). The candidate orders export after confirmed onboarding completion and rechecks persistence after reload. Eight focused local tests passed. All three TypeScript projects and Enterprise gates passed on the corrected local candidate. The existing Node/Docker alignment gate is now included in Enterprise checks, preventing an otherwise green Node 26 dependency PR from bypassing the required 22.23.3 baseline. No application persistence or authorization rules were weakened.
@@ -795,3 +873,4 @@ The contact limiter's 429 cause is **not yet established**; do not mark that iss
 ### DB-01 emulator coverage extension
 
 The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
+

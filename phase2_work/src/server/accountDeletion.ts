@@ -1,3 +1,4 @@
+import { emptyDeletionCounts, readDeletionCounts, buildDeletionAuditReceipt, deletionReceiptId } from './deletionAccounting';
 import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -5,7 +6,7 @@ import { z } from 'zod';
 import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
-import { DeletionPageComplete } from './deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionProviderPageComplete, DeletionStoragePageComplete } from './deletionProgress';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
@@ -57,7 +58,7 @@ export async function requestAccountDeletion(uid: string, db: Firestore = getDb(
     if (existing!.exists) return { requestId: existing!.data()!.requestId as string };
     const requestId = randomUUID();
     tx.create(ref, { requestId, status: 'pending', phase: 'purge', createdAt: new Date(), nextAttemptAt: new Date(),
-      leaseUntil: 0, attempts: 0, hasDidit: kyc!.exists,
+      leaseUntil: 0, attempts: 0, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), hasDidit: kyc!.exists,
       subscriptionId: user!.data()?.subscriptionId ?? null, customerId: user!.data()?.stripeCustomerId ?? null });
     // Remove discoverability at the same instant the durable write barrier appears.
     tx.delete(db.doc(`public_profiles/${uid}`));
@@ -77,12 +78,18 @@ export async function eraseDiditPage(uid: string, _requestId: string, apiKey: st
   const listing = await call(`https://verification.didit.me/v3/sessions/?vendor_data=${encodeURIComponent(uid)}&session_kind=user&limit=5`, { method: 'GET' });
   if (!listing.ok) throw new Error('didit_erasure_unavailable');
   const page = z.object({ results: z.array(z.object({ session_id: z.string().uuid(), vendor_data: z.literal(uid) })).max(100) }).parse(await readDiditJson(listing));
+  let deleted = 0;
   for (const session of page.results.slice(0, 5)) {
     const response = await call(`https://verification.didit.me/v3/session/${session.session_id}/delete/`, { method: 'DELETE' });
     if (response.status === 404) continue;
     if (response.status !== 204) throw new Error('didit_erasure_unavailable');
+    deleted++;
   }
-  if (page.results.length) return false;
+  if (page.results.length) {
+    // A stale listing returning only 404s must not grant unlimited free retries.
+    if (!deleted) throw new Error('didit_erasure_no_progress');
+    return false;
+  }
   const response = await call('https://verification.didit.me/v3/users/delete/', { method: 'POST', body: JSON.stringify({ vendor_data_list: [uid] }) });
   if (!response.ok) throw new Error('didit_erasure_unavailable');
   z.object({ deleted: z.number().int().min(0).max(1) }).parse(await readDiditJson(response));
@@ -91,7 +98,7 @@ export async function eraseDiditPage(uid: string, _requestId: string, apiKey: st
 
 export type DeletionDependencies = {
   db: Firestore; now: () => number; disable: (uid: string) => Promise<void>; removeAuth: (uid: string) => Promise<void>;
-  purge: (uid: string, requestId?: string) => Promise<unknown>; eraseProvider: (uid: string, requestId: string) => Promise<boolean>;
+  purge: (uid: string, requestId: string, lease?: string) => Promise<unknown>; eraseProvider: (uid: string, requestId: string) => Promise<boolean>;
   cancelSubscription: (subscriptionId: string, customerId: string | null) => Promise<void>;
 };
 export function deletionDependencies(): DeletionDependencies {
@@ -119,14 +126,18 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       ? data.nextAttemptAt.getTime()
       : (data?.nextAttemptAt ? new Date(data.nextAttemptAt).getTime() : 0);
     if (!data || data.status !== 'pending' || data.leaseUntil > now || nextAttemptMs > now) return null;
+    try { readDeletionCounts(data); } catch {
+      tx.update(ref, { status: 'manual_review', lastError: 'accounting_migration_required', leaseUntil: 0 });
+      return null;
+    }
     tx.update(ref, { lease, leaseUntil: now + 10 * 60_000, attempts: data.attempts + 1 }); return data;
   });
   if (!job) return;
   try {
     await deps.disable(uid);
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId);
-    if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new Error('provider_more_pages');
-    await deps.purge(uid, job.requestId);
+    if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new DeletionProviderPageComplete();
+    await deps.purge(uid, job.requestId, lease);
     // Provider deletion is irreversible. Re-read the authoritative job state
     // immediately before the provider boundary so a worker that lost its lease
     // cannot perform the final destructive identity deletion.
@@ -141,7 +152,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     // Final sweep only after the maximum token lifetime plus grace; never report completion early.
     await runObservedTransaction(deps.db, 'accountDeletion.finalizeDeletion', async tx => {
       const current = (await tx.get(activeJobRef)).data();
-      if (!current || current.status !== 'pending' || current.lease !== lease) return;
+      if (!current || current.status !== 'pending' || current.lease !== lease || current.leaseUntil <= deps.now()) return;
       if (current.phase === 'purge') {
         tx.update(activeJobRef, {
           phase: 'final_sweep',
@@ -150,6 +161,10 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
           lastError: null,
         });
       } else if (current.phase === 'final_sweep') {
+        const counts = readDeletionCounts(current);
+        const receiptRef = deps.db.collection('deletion_log').doc(deletionReceiptId(String(current.requestId)));
+        // Both writes commit together. A conflicting legacy receipt blocks completion.
+        tx.create(receiptRef, buildDeletionAuditReceipt(counts, new Date(deps.now())));
         tx.set(activeJobRef, {
           requestId: String(current.requestId ?? job.requestId),
           status: 'completed',
@@ -161,15 +176,21 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       }
     });
   } catch (error) {
-    if (error instanceof DeletionPageComplete) {
-      // The deleted page itself is the checkpoint: the next query starts at
-      // the first remaining chat. Preserve the failure budget across pages.
+    if (error instanceof DeletionPageComplete || error instanceof DeletionTimeSliceComplete || error instanceof DeletionProviderPageComplete || error instanceof DeletionStoragePageComplete) {
+      // Acknowledged deletions are the checkpoint: subsequent queries only see
+      // remaining documents. Preserve genuine failures across bounded progress.
       await runObservedTransaction(deps.db, 'accountDeletion.continuePage', async tx => {
         const current = (await tx.get(ref)).data();
-        if (current?.status !== 'pending' || current.lease !== lease) return;
+        if (current?.status !== 'pending' || current.lease !== lease || current.leaseUntil <= deps.now()) return;
         tx.update(ref, {
           attempts: Math.max(0, current.attempts - 1),
-          completedPages: (current.completedPages ?? 0) + 1,
+          ...(error instanceof DeletionPageComplete
+            ? { completedPages: (current.completedPages ?? 0) + 1 }
+            : error instanceof DeletionProviderPageComplete
+            ? { completedProviderPages: (current.completedProviderPages ?? 0) + 1 }
+            : error instanceof DeletionStoragePageComplete
+            ? { completedStoragePages: (current.completedStoragePages ?? 0) + 1 }
+            : { completedSlices: (current.completedSlices ?? 0) + 1 }),
           lastError: null,
           nextAttemptAt: new Date(deps.now() + 1_000),
           leaseUntil: 0,
@@ -188,3 +209,4 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     }
   }
 }
+

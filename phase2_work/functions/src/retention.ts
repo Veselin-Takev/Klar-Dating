@@ -3,7 +3,6 @@ type Metadata = { timeCreated?: string; generation?: string | number; temporaryH
 type Photo = { getMetadata(): Promise<[Metadata, ...unknown[]]>; delete(options: { ifGenerationMatch: string | number }): Promise<unknown> };
 type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
-  deleteFiles(options: { prefix: string }): Promise<unknown>;
 };
 
 export const PHOTO_RETENTION_MS = 30 * 86_400_000;
@@ -29,10 +28,36 @@ export async function deleteExpiredPhotoPage(bucket: Bucket, now: Date, pageToke
   return { deleted, scanned: files.length, nextPageToken: next?.pageToken };
 }
 
-/** Prefix includes the trailing slash so another account's files cannot match. */
-export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<void> {
+/** One bounded page per prefix; false means acknowledged progress, not completion.
+ * Re-list from the beginning because deleted objects disappear. Never skip a hold
+ * or generation conflict and then declare the account's storage empty.
+ */
+export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<boolean> {
   if (!uid || uid.includes('/') || uid === '.' || uid === '..') throw new Error('Invalid storage owner');
+  let deleted = 0;
+  let listed = 0;
+  let more = false;
   for (const prefix of [`verification/${uid}/`, `profiles/${uid}/`]) {
-    await bucket.deleteFiles({ prefix });
+    const [files, next] = await bucket.getFiles({ prefix, maxResults: 100, autoPaginate: false });
+    if (files.length > 100) throw new Error('storage_page_limit_exceeded');
+    listed += files.length;
+    more ||= Boolean(next?.pageToken);
+    for (const file of files) {
+      try {
+        const [metadata] = await file.getMetadata();
+        if (metadata.temporaryHold || metadata.eventBasedHold) throw new Error('storage_object_held');
+        if (!metadata.generation) throw new Error('Photo generation missing');
+        await file.delete({ ifGenerationMatch: metadata.generation });
+        deleted++;
+      } catch (error) {
+        // Concurrent deletion is harmless, but is not evidence of our progress.
+        // Conflicts (412), holds and service failures retain the failure budget.
+        if ((error as { code?: number }).code !== 404) throw error;
+      }
+    }
   }
+  if (!listed && !more) return true;
+  if (!deleted) throw new Error('storage_erasure_no_progress');
+  return false;
 }
+

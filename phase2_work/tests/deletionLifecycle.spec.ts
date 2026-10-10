@@ -1,10 +1,11 @@
 // @vitest-environment node
+import { emptyDeletionCounts, deletionReceiptId } from '../src/server/deletionAccounting';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { purgeAccountData } from '../src/server/trustAndSafety';
-import { DeletionPageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
 const chatPaths: string[] = [];
 afterEach(async () => { for (const path of chatPaths.splice(0)) await getDb().recursiveDelete(getDb().doc(path)); });
 const paths: string[] = [];
@@ -12,7 +13,8 @@ afterEach(async () => { for (const path of paths.splice(0)) await getDb().doc(pa
 async function setup() {
   const uid = 'deletion-' + randomUUID(); const ref = getDb().doc(`account_deletions/${uid}`); paths.push(ref.path);
   let now = Date.now();
-  await ref.set({ requestId: randomUUID(), status: 'pending', phase: 'purge', nextAttemptAt: new Date(now), leaseUntil: 0, attempts: 0, hasDidit: true, subscriptionId: 'sub_test', customerId: 'cus_test' });
+  const requestId = randomUUID(); paths.push('deletion_log/' + deletionReceiptId(requestId));
+  await ref.set({ requestId, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), status: 'pending', phase: 'purge', nextAttemptAt: new Date(now), leaseUntil: 0, attempts: 0, hasDidit: true, subscriptionId: 'sub_test', customerId: 'cus_test' });
   const deps: DeletionDependencies = { db: getDb(), now: () => now, disable: vi.fn(async () => {}), removeAuth: vi.fn(async () => {}),
     purge: vi.fn(async () => {}), eraseProvider: vi.fn(async () => true), cancelSubscription: vi.fn(async () => {}) };
   return { uid, ref, deps, advance: (ms: number) => { now += ms; } };
@@ -30,6 +32,48 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     expect(completed.status).toBe('completed'); expect(completed).not.toHaveProperty('customerId'); expect(completed).not.toHaveProperty('subscriptionId');
     expect(completed.expiresAt.toMillis()).toBeGreaterThan(completed.completedAt.toMillis());
   });
+  it('publishes cumulative totals only with final-sweep job completion', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    const requestId = (await ref.get()).data()!.requestId as string;
+    const receipt = getDb().doc('deletion_log/' + deletionReceiptId(requestId));
+    vi.mocked(deps.purge).mockImplementationOnce(async () => {
+      await ref.update({ deletedCounts: { ...emptyDeletionCounts(), chats: 51, nachrichten: 102 } });
+    }).mockImplementationOnce(async () => {
+      await ref.update({ deletedCounts: { ...emptyDeletionCounts(), chats: 52, nachrichten: 103 } });
+    });
+    await runAccountDeletion(uid, deps);
+    expect((await receipt.get()).exists).toBe(false);
+    advance(62 * 60_000);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.status).toBe('completed');
+    const finalReceipt = (await receipt.get()).data();
+    expect(finalReceipt).toMatchObject({ schemaVersion: 2, deletedChats: 52, deletedMessages: 103, status: 'completed' });
+    await runAccountDeletion(uid, deps);
+    expect((await receipt.get()).data()).toEqual(finalReceipt);
+  });
+
+  it('cannot complete the job or overwrite an existing receipt when publication conflicts', async () => {
+    const { uid, ref, deps } = await setup();
+    await ref.update({ phase: 'final_sweep' });
+    const requestId = (await ref.get()).data()!.requestId as string;
+    const receipt = getDb().doc('deletion_log/' + deletionReceiptId(requestId));
+    await receipt.create({ schemaVersion: 1, status: 'completed', marker: 'legacy' });
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', lastError: 'retry_required' });
+    expect((await receipt.get()).data()).toEqual({ schemaVersion: 1, status: 'completed', marker: 'legacy' });
+  });
+
+  it('routes legacy accounting to manual review before provider or identity actions', async () => {
+    const { uid, ref, deps } = await setup();
+    await ref.update({ accountingVersion: 1 });
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ status: 'manual_review', lastError: 'accounting_migration_required' });
+    expect(deps.disable).not.toHaveBeenCalled();
+    expect(deps.eraseProvider).not.toHaveBeenCalled();
+    expect(deps.purge).not.toHaveBeenCalled();
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
   it('does not delete authentication after a worker loses its lease', async () => {
     const { uid, ref, deps } = await setup();
     vi.mocked(deps.purge).mockImplementationOnce(async () => {
@@ -56,6 +100,44 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
 });
 
 describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
+  it.each(['provider', 'storage'] as const)('preserves real failures across 51 %s progress pages without completing', async kind => {
+    const { uid, ref, deps, advance } = await setup();
+    await ref.update({ attempts: 2 });
+    if (kind === 'provider') vi.mocked(deps.eraseProvider).mockResolvedValue(false);
+    else vi.mocked(deps.purge).mockRejectedValue(new DeletionStoragePageComplete());
+    for (let page = 0; page < 51; page++) {
+      await runAccountDeletion(uid, deps); advance(1_001);
+    }
+    const job = (await ref.get()).data()!;
+    expect(job).toMatchObject({ status: 'pending', phase: 'purge', attempts: 2 });
+    expect(job[kind === 'provider' ? 'completedProviderPages' : 'completedStoragePages']).toBe(51);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    expect((await getDb().doc('deletion_log/' + deletionReceiptId(job.requestId)).get()).exists).toBe(false);
+    vi.mocked(deps.eraseProvider).mockResolvedValue(true);
+    vi.mocked(deps.purge).mockResolvedValue(undefined);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.phase).toBe('final_sweep');
+  });
+
+  it('counts provider errors as failures even after acknowledged progress', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.eraseProvider).mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('didit_erasure_no_progress'));
+    await runAccountDeletion(uid, deps); advance(1_001);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ attempts: 1, completedProviderPages: 1, lastError: 'retry_required' });
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
+  it('does not publish progress for an expired provider lease', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.eraseProvider).mockImplementationOnce(async () => { advance(11 * 60_000); return false; });
+    await runAccountDeletion(uid, deps);
+    const job = (await ref.get()).data()!;
+    expect(job.attempts).toBe(1);
+    expect(job).not.toHaveProperty('completedProviderPages');
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
   it('continues beyond 50 completed chat pages without consuming failure attempts', async () => {
     const { uid, ref, deps, advance } = await setup();
     vi.mocked(deps.purge).mockImplementation(async () => { throw new DeletionPageComplete(); });
@@ -71,6 +153,20 @@ describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
     advance(62 * 60_000);
     await runAccountDeletion(uid, deps);
     expect((await ref.get()).data()?.status).toBe('completed');
+  });
+
+  it('preserves the failure budget for confirmed within-page progress without declaring a full page', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    await ref.update({ attempts: 2 });
+    vi.mocked(deps.purge).mockRejectedValue(new DeletionTimeSliceComplete());
+    for (let slice = 0; slice < 51; slice += 1) {
+      await runAccountDeletion(uid, deps);
+      advance(1_001);
+    }
+    const job = (await ref.get()).data();
+    expect(job).toMatchObject({ status: 'pending', attempts: 2, completedSlices: 51 });
+    expect(job).not.toHaveProperty('completedPages');
+    expect(deps.removeAuth).not.toHaveBeenCalled();
   });
 
   it('does not forgive real failures when a later page makes progress', async () => {
@@ -120,6 +216,9 @@ describe('real chat purge pagination', { timeout: 30_000 }, () => {
   it('deletes two bounded pages with their messages and gate answers, preserving other chats', async () => {
     const db = getDb();
     const uid = 'purge-pages-' + randomUUID();
+    const requestId = randomUUID();
+    const job = db.doc(`account_deletions/${uid}`); paths.push(job.path);
+    await job.set({ requestId, status: 'pending', accountingVersion: 2, deletedCounts: emptyDeletionCounts() });
     const batch = db.batch();
     const owned = Array.from({ length: 51 }, (_, index) => db.collection('chats').doc(uid + '-' + index));
     const unrelated = db.collection('chats').doc(uid + '-unrelated');
@@ -132,7 +231,7 @@ describe('real chat purge pagination', { timeout: 30_000 }, () => {
     }
     await batch.commit();
     for (const remaining of [26, 1]) {
-      await expect(purgeAccountData(uid)).rejects.toBeInstanceOf(DeletionPageComplete);
+      await expect(purgeAccountData(uid, requestId)).rejects.toBeInstanceOf(DeletionPageComplete);
       expect((await db.collection('chats').where('participants', 'array-contains', uid).get()).size).toBe(remaining);
     }
     const snapshots = await Promise.all(owned.map(ref => ref.get()));
@@ -145,3 +244,4 @@ describe('real chat purge pagination', { timeout: 30_000 }, () => {
     expect((await unrelated.collection('messages').doc('test').get()).exists).toBe(true);
   });
 });
+
