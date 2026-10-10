@@ -194,3 +194,10 @@ No CI run or deployment was started; the 100-minute incremental Actions limit an
 An additional review found that Vitest profiler summaries disclosed absolute test-suite workspace paths, potentially containing a developer name or host-specific directory. The summary now emits only normalized suite basenames for both POSIX and Windows-style paths. Test report input remains private and is never committed. The profiler additionally rejects reports declaring overall success when any assertion status is not `passed`.
 
 Changes: `scripts/analyze-vitest-duration.mjs` and accompanying privacy/contradiction regressions. A targeted **local Node 22.16.0 path-normalization smoke test** passed for POSIX and Windows paths. A full test execution of the exact repository branch under required Node 22.23.3 / Bun 1.4.2 / Java 21 **has not been performed**, so release validation remains `PENDING`. No GitHub Actions runs, deployment or production approval were initiated. Keep the 100-minute incremental Actions cap and NO-GO decision.
+
+
+## 2026-10-10 — Fail-fast local diagnostics integration
+
+The local `bun run verify:local` preflight now executes `node --test scripts/analyze-ci-duration.test.mjs scripts/analyze-vitest-duration.test.mjs` **before dependency installations**. A regression failure therefore blocks further setup and produces an explicit failed stage in the private preflight JSON report, avoiding unnecessary installs and potentially expensive emulator/browser stages. Existing exact runtime checks and every production-relevant test step remain intact; no tests were removed or bypassed.
+
+**Evidence and limitation:** Verified the candidate source updates and repository paths through GitHub; the available isolated runtime reports Node v22.16.0 and cannot access the private GitHub repository from the local container. Therefore the exact fetched files could not be run locally from a full checkout here. This is **not** a local test PASS, and the full pinned Node 22.23.3/Bun 1.4.2/Java 21 `verify:local` remains mandatory. No remote GitHub Actions jobs were started. The current 100-minute limit and production NO-GO hold remain unchanged.
