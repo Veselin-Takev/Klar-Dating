@@ -38,7 +38,7 @@ async function invoke(text='hello') {
 describe('authoritative chat safety enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.runTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({}));
+    mocks.runTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({ get: async () => ({ exists: false }) }));
   });
 
   it('blocks a flagged message before the persistence transaction', async () => {

@@ -43,5 +43,30 @@
       "attestation"
     ],
     "status": "pending-dynamic-ci-and-remote-sync"
+  },
+  "releaseGovernance": {
+    "decision": "NO-GO",
+    "decisionDate": "2026-10-10",
+    "productionApproved": false,
+    "reviewCandidateSha": "286a991e776885199bb1028d380e239821de88ac",
+    "candidateVerified": false,
+    "fullPreflight": "BLOCKED",
+    "productionOperationalEvidence": "pending-issue-8",
+    "scopeNote": "This governance annotation is on the development branch; the R2 candidate excludes later development changes. Existing sourceProvenance fields are historical.",
+    "firebaseTests": "NOT_RUN",
+    "playwrightTests": "NOT_RUN",
+    "productionSecurityPreflight": "NOT_RUN",
+    "codespacesConfiguration": "NODE_DEFAULT_PIN_FIXED_NOT_END_TO_END_VALIDATED",
+    "localDiagnostics": "21_PASS_0_FAIL_NODE_22.16.0_ISOLATED_COPIES",
+    "blockers": [
+      "full clean checkout unavailable",
+      "Node 22.23.3 unavailable; Node 22.16.0 installed",
+      "Bun 1.4.2 unavailable",
+      "github.com DNS unavailable from local executor",
+      "no verified live production access or operational attestation"
+    ],
+    "budgetPolicy": "max 100 additional GitHub Actions minutes; none spent in this iteration",
+    "lastVerificationDate": "2026-10-10",
+    "networkCheckout": "DNS_BLOCKED"
   }
 }

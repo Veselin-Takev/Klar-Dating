@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Activity, ShieldAlert, CheckCircle2, AlertCircle, Clock, Server, Download, Terminal } from 'lucide-react';
 import { getSyncLogs, clearSyncLogs, type SyncLogEntry } from '../lib/offlineQueue';
+import { useAuth } from '../lib/AuthContext';
 import { CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis } from 'recharts';
 import * as d3 from 'd3';
 import { SyncBanner } from '../components/SyncBanner';
@@ -114,6 +115,7 @@ function FailedApiLogWidget() { return null; }
 function AuthSessionDiagnosticWidget() { return null; }
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n' | 'partners'>('system');
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [averageLatency, setAverageLatency] = useState(0);
@@ -123,7 +125,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const storedLogs = await getSyncLogs();
+        const storedLogs = user?.uid ? getSyncLogs(user.uid) : [];
         setLogs(storedLogs);
         if (storedLogs.length > 0) {
           const avg = storedLogs.reduce((acc, l) => acc + (l.latencyMs ?? 0), 0) / storedLogs.length;
@@ -135,7 +137,7 @@ export default function AdminDashboard() {
     };
     fetchLogs();
 
-  }, []);
+  }, [user?.uid]);
 
   const handleClearLogs = async () => {
     await clearSyncLogs();

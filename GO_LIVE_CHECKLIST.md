@@ -1,5 +1,24 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## Aktueller Release-Status (10.10.2026) – NO-GO
+
+**Entwicklungsbranch:** `ci/optimize-llm-evaluation-frozen-install-2026-10-10`. Der eingefrorene Release-Kandidat `release/candidate-preflight-2026-10-10-r2` darf nicht verändert, automatisch veröffentlicht oder ohne ausdrückliche technische und operative Freigabe gemergt werden. Die historische Statusbeschreibung vom 08.09.2026 weiter unten ersetzt **keinen** aktuellen Go-Live-Nachweis.
+
+**P0 Cloud Run/Secret Manager – Quellcodekorrektur, keine Produktionsfreigabe:** Der read-only Audit ermittelt die tatsächlichen Secret-Manager-Ressourcen über Cloud-Run-`run.googleapis.com/secrets`-Aliasse, statt IAM-Abfragen ungeprüft auf Variablennamen zu richten. Mehrdeutige doppelte Secret-Umgebungsvariablen, ungültige Aliasse und rein bedingte IAM-Bindings führen fail-closed zum fehlenden Freigabenachweis. Erforderliche Monitoring-Policies müssen einen ausdrücklich verifizierten Benachrichtigungskanal referenzieren. Siehe `phase2_work/docs/PRODUCTION_CONTROLS_AUDIT.md` und `phase2_work/docs/FINAL_RELEASE_VERIFICATION_2026-10-10.md`.
+
+**Offene Produktionsnachweise (nicht abgehakt):**
+
+- [ ] Vollständige Enterprise-Pipeline auf exakt geprüftem Commit mit Node 22.23.3, Bun 1.4.2, Java 21, TypeScript, Firebase-Emulator, Playwright und Security-Gates.
+- [ ] Cloud Run/Secret-Manager-Read-only-Audit mit echten Projekt-Zugangsdaten und exakt verifizierter Build-SHA; private externe unveränderliche Auditdatei im freigegebenen Evidence-Speicher.
+- [ ] Tatsächliche Secret-Rotation, Produktions-Smoketest und Rechte-Nachweis am *referenzierten* Secret; menschliche Least-Privilege-Freigabe insbesondere bei projektübergreifenden oder bedingten IAM-Bindings.
+- [ ] Produktiver Test der Alarmzustellung, verifizierter Zielkanal, On-Call-Empfang/Acknowledgement, Monitoring-/OTLP-/P95-Kontrollen mit datenschutzkonformer Evidenz.
+- [ ] Finale Risikoentscheidung, Rollback-/Canary-Plan, Schutzregeln und explizite Zustimmung der verantwortlichen Personen.
+
+**Entscheidung:** **NO-GO** bis alle erforderlichen technischen und operativen Freigaben mit echter Evidenz dokumentiert sind. Lokale isolierte Regressionstests sind dafür kein Ersatz.
+
+---
+
+
 ## 1. Status-Report (08.09.2026)
 
 ### Aktueller Entwicklungsstand

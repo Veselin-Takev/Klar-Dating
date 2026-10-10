@@ -179,3 +179,42 @@ Review found `scripts/audit-production-controls.ts` previously compared `git rev
 **Executed locally:** `node --test /mnt/data/klar-provenance/verify-local-provenance.test.mjs /mnt/data/klar-release-sha/expected-sha.test.mjs` → **11 PASS, 0 FAIL**, Node v22.16.0. These tests are isolated copies of the provenance and release-SHA helpers, not an execution of the modified TypeScript GCP audit. The complete pinned-toolchain preflight and the genuine production audit remain **NOT RUN**.
 
 **Candidate policy:** the frozen reference `release/candidate-preflight-2026-10-10` still targets `297c7d0982dd22c9eb71d6cea4e7e8e2c87d8472` and intentionally excludes this fix. A newer candidate requires exact-SHA pinning and full validation. Issue #8 remains open and production **NO-GO**. No GitHub Actions run, merge or deployment; 100 additional Actions-minute cap still applies.
+
+
+## 2026-10-10 — Second immutable-SHA candidate handoff (unvalidated)
+
+Direct executor recheck: Node **v22.16.0**, Java **21.0.12.1**, no Bun, and `git ls-remote` could not resolve github.com. The only local artifacts are isolated diagnostics; a full checkout and `verify:local` **were not executed**. This is a blocked infrastructure step, not a passing code result.
+
+GitHub comparison verified the development branch was **identical** to full SHA `286a991e776885199bb1028d380e239821de88ac` before creation of this documentation update. Created the separate **UNVALIDATED** candidate ref `release/candidate-preflight-2026-10-10-r2` at that SHA, leaving previous r1 ref `release/candidate-preflight-2026-10-10` at `297c7d0982dd22c9eb71d6cea4e7e8e2c87d8472`. The r2 candidate includes recent production-audit provenance controls; the documentation-only update following snapshot creation is not part of r2. The complete 40-character SHA, not either mutable branch name, is the exact review identity.
+
+**Required real runner command**, after independently approving the r2 SHA and checking out the full repository:
+```sh
+cd phase2_work
+KLAR_EXPECTED_SHA=286a991e776885199bb1028d380e239821de88ac bun run verify:local
+```
+Run only with Node **22.23.3**, Bun **1.4.2**, Java **21** and all emulator/browser dependencies. Preserve the external report and audit failure details; on code remediation cut a **new** candidate and retest. Do not infer production control attestation from local tests. No remote Actions, merge or deployment; the additional **100 GitHub Actions minutes** authorization remains the hard limit and production stays **NO-GO**.
+
+
+## 2026-10-10 — Private, write-once production controls audit evidence
+
+Source audit of `scripts/audit-production-controls.ts` identified the production controls JSON was written with default filesystem permissions and could overwrite existing audit evidence. The development branch now creates this report with `writeFile(..., { encoding: 'utf8', mode: 0o600, flag: 'wx' })`. A reused filename fails with `EEXIST` rather than replacing an earlier record. Operators must use a new pathname for each evidence capture and protect access to the containing directory; a restrictive file mode does not guarantee security on every filesystem/platform.
+
+**Executed local Node v22.16.0 isolated behavior check:** **3/3 PASS** (permissions 0600 on POSIX, second write rejected with EEXIST, original content unchanged). These checks verified Node filesystem semantics, **not** the full candidate TypeScript script or actual Google Cloud queries.
+
+The already-frozen R2 SHA `286a991e776885199bb1028d380e239821de88ac` was **not modified**; this patch is on the development branch only and requires a new SHA-based candidate after full local validation. The environment still lacks full checkout, Node 22.23.3 and Bun 1.4.2. No GitHub Actions, merge or deployment; Issue #8 and production approval remain **NO-GO**.
+
+
+## 2026-10-10 — R2 comparison and actual local gate rerun
+
+The actual local shell environment was checked again: Node **v22.16.0** (required v22.23.3), Java **21.0.12.1** (acceptable major version), Bun **absent**, no complete checkout under `/mnt/data`; read-only `git ls-remote https://github.com/Veselin-Takev/Klar-Dating.git HEAD` failed because `github.com` DNS could not be resolved. A full preflight was therefore **BLOCKED**, not passed or failed by application code.
+
+Actually ran `node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs /mnt/data/klar-release-sha/*.test.mjs` with **21 PASS, 0 FAIL (124.7 ms)**. These are isolated diagnostic copies, **not** the application test suite or the recent TypeScript production-audit change.
+
+Authenticated GitHub comparison of `release/candidate-preflight-2026-10-10-r2` to the development branch found **3 commits ahead, 0 behind, 2 changed files**: `scripts/audit-production-controls.ts` and this consolidation audit. **R2 remains unmodified and unvalidated**. Do not issue R3 or approve deployment merely on these checks. Resume aggregate candidate validation on an authorized networked runner at the exact, independently reviewed SHA, with Node 22.23.3, Bun 1.4.2, Java 21, emulators and browser prerequisites. No new Actions jobs, merge or deployment were initiated, and the incremental **100 Actions-minute ceiling** remains binding. Production **NO-GO**.
+
+
+## 2026-10-10 — Governance framework applied to release artifacts
+
+Found conflicting historical release language: both root and `phase2_work/RELEASE_NOTES.md` stated that v0.2.0 Enterprise was finalized and approved for deployment, while the real release decision is **NO-GO**. Prepended an explicit current-governance correction to both notes without deleting the historical narrative. Both corresponding `RELEASE_MANIFEST.json` files now carry a machine-readable `releaseGovernance` object with `decision: "NO-GO"`, `productionApproved: false`, reviewed R2 SHA `286a991e776885199bb1028d380e239821de88ac`, `candidateVerified: false`, and unfulfilled full-preflight/operational evidence gates. Original historical `sourceProvenance` is preserved rather than falsely updated to a candidate that has not been validated.
+
+**Validation performed:** both updated manifest JSON payloads were successfully parsed/serialized before commit; GitHub returned success for all four release-artifact updates. **Not performed:** complete typecheck, Firebase/emulator/Playwright, release gate suite or live production controls; these remain blocked or pending. The frozen R2 reference was not altered. Release artifacts are *status documentation*, not proof of successful tests or approval. No remote CI, merge or deployment; incremental GitHub Actions cap **100 minutes**. Production **NO-GO**.

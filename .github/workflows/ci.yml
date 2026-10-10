@@ -34,6 +34,9 @@ jobs:
         run: node scripts/ci-scope.mjs
       - name: Scope regression tests
         run: node --test scripts/ci-scope-check.mjs
+      - name: Preflight timeout regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/local-preflight-timeout.test.mjs
       - name: Runtime policy preflight
         if: steps.scope.outputs.full == 'true'
         run: |
@@ -46,12 +49,27 @@ jobs:
         if: steps.scope.outputs.full == 'true'
         with:
           node-version: '22.23.3'
-          cache: npm
-          cache-dependency-path: phase2_work/functions/package-lock.json
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         if: steps.scope.outputs.full == 'true'
         with:
           bun-version: '1.4.2'
+      - name: Codespaces bootstrap regression
+        if: steps.scope.outputs.full == 'true'
+        run: |
+          node --test scripts/check-codespaces-bootstrap.test.mjs
+          node scripts/check-codespaces-bootstrap.mjs
+      - name: Production audit evidence regressions
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/report-path.test.mjs scripts/production-audit-evidence-check.test.mjs scripts/validate-load-cost-cli.test.mjs scripts/check-compliance-retry-config.test.mjs
+      - name: Offline queue index regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --experimental-strip-types --test scripts/offline-queue-index.test.mjs scripts/legacy-queue-isolation.test.mjs scripts/offline-replay-auth.test.mjs scripts/offline-retry-scheduler.test.mjs scripts/offline-delivery-receipt.test.mjs
+      - name: Chat retry idempotency regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/chat-replay-idempotency.test.mjs
+      - name: Dependency lock preflight
+        if: steps.scope.outputs.full == 'true'
+        run: node scripts/check-dependency-locks.mjs
       - name: Restore dependency downloads
         if: steps.scope.outputs.full == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -59,10 +77,8 @@ jobs:
           path: |
             ~/.bun/install/cache
             ~/.cache/firebase/emulators
-          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock') }}
-      - name: Dependency lock preflight
-        if: steps.scope.outputs.full == 'true'
-        run: node scripts/check-dependency-locks.mjs
+            ~/.npm
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock', 'phase2_work/functions/package-lock.json') }}
       - name: Install dependencies
         if: steps.scope.outputs.full == 'true'
         run: |
@@ -96,10 +112,10 @@ jobs:
         run: bun run test:production
       - name: Install Playwright Chromium
         if: steps.scope.outputs.full == 'true'
-        run: bunx playwright install --with-deps chromium
+        run: bun run playwright install --with-deps chromium
       - name: Browser acceptance
         if: steps.scope.outputs.full == 'true'
-        run: bunx playwright test
+        run: bun run playwright test
       - name: Upload browser failure diagnostics
         if: failure() && steps.scope.outputs.full == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

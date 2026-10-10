@@ -1,3 +1,21 @@
+## 2026-10-10 — Single-iteration enterprise release verification
+
+**NO-GO.** The Codespaces bootstrap was source reviewed but could not be run as a complete environment; the local executor has Node 22.16.0 (not 22.23.3), Java 21, no Bun 1.4.2, no full checkout, and no github.com DNS. Actual isolated CI/provenance diagnostic tests: **21 PASS / 0 FAIL**. Firebase, Playwright, TypeScript aggregate validation, full preflight and live production security checks are **NOT RUN**. R2 stays pinned to `286a991e776885199bb1028d380e239821de88ac`; production operational evidence and human signoff remain open in issue #8. No Actions jobs, merge or deployment; 100 additional Actions-minute limit still applies. Full gate report: `phase2_work/docs/FINAL_RELEASE_VERIFICATION_2026-10-10.md`.
+
+---
+
+# Current release governance — 2026-10-10
+
+**Release decision: NO-GO (not approved for production).** Previous statements below that the application was finalized, ready for deployment, or approved are historical drafts and **do not constitute current authorization**.
+
+- Release candidate R2: `286a991e776885199bb1028d380e239821de88ac` (not fully validated); later work exists on the development branch and is **not included** in R2.
+- Required verification: exact-SHA clean checkout with Node 22.23.3, Bun 1.4.2, Java 21; complete enterprise preflight including TypeScript, tests, Firebase emulators, build and Playwright.
+- Environment blocker: current executor has no full checkout or Bun, and cannot run a complete pinned-toolchain preflight.
+- Production evidence: issue #8 remains open for IAM, alert delivery, secret lifecycle, observability, privacy, rollback and accountable human approvals.
+- GitHub Actions: no remote CI initiated by this governance update; additional authorized usage limited to 100 minutes.
+
+---
+
 # v149 Security Hardening — 2026-10-08
 
 - Centralized Gemini prompt-security boundary with XML-delimited untrusted data, PII sanitization, output leakage guardrails and strict JSON-schema validation.

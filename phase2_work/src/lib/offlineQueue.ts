@@ -1,4 +1,7 @@
-import { klarStorage } from '../lib/userScopedStorage';
+import { klarStorage, getUserStorageItem, setUserStorageItem, removeUserStorageItem } from '../lib/userScopedStorage';
+import { queueItemById, queueItemsForOwner } from './offlineQueueIndexedReads';
+import { isAcknowledgedOfflineWrite } from './offlineDeliveryReceipt';
+export const OFFLINE_REPLAY_CANCEL_EVENT = 'klar:offline-replay-cancel';
 const DB_NAME = "klar_offline_queue_db";
 const IDBKeyRange = globalThis.IDBKeyRange;
 const STORE_NAME = "pending_writes";
@@ -35,6 +38,7 @@ export interface QueuedAction {
 }
 
 export interface SyncLogEntry {
+  ownerUid: string;
   timestamp: string;
   action: string;
   status: 'pending' | 'success' | 'failed';
@@ -84,7 +88,8 @@ export async function loadQueuedDatePrepChecklist(ownerUid: string): Promise<Rec
   if (!ownerUid || typeof indexedDB === 'undefined') return null;
   const db = await openDatabase();
   try {
-    const item = (await allItems(db)).find(candidate => candidate.ownerUid === ownerUid && candidate.id === generateChecklistQueueId(ownerUid));
+    const candidate = await queueItemById<PendingQueueItem>(db, STORE_NAME, generateChecklistQueueId(ownerUid));
+    const item = candidate?.ownerUid === ownerUid ? candidate : undefined;
     const payload = item?.payload;
     if (!payload || !('checklist' in payload) || !payload.checklist || typeof payload.checklist !== 'object') return null;
     return { ...DATE_PREP_CHECKLIST_DEFAULTS, ...(payload.checklist as Record<string, boolean>) };
@@ -106,7 +111,8 @@ export async function flushDatePrepChecklist(options: { ownerUid: string; token:
   const now = options.now ?? Date.now();
   const db = await openDatabase();
   try {
-    const item = (await allItems(db)).find(candidate => candidate.ownerUid === options.ownerUid && candidate.id === generateChecklistQueueId(options.ownerUid));
+    const candidate = await queueItemById<PendingQueueItem>(db, STORE_NAME, generateChecklistQueueId(options.ownerUid));
+    const item = candidate?.ownerUid === options.ownerUid ? candidate : undefined;
     if (!item || item.nextAttemptAt > now || !('checklist' in item.payload)) return { synced: false, remaining: Boolean(item) };
     try {
       const res = await fetcher(item.url, { method: item.method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${options.token}` }, body: JSON.stringify(item.payload) });
@@ -132,10 +138,6 @@ function request<T>(factory: () => IDBRequest<T>): Promise<T> {
   });
 }
 
-async function allItems(db: IDBDatabase): Promise<PendingQueueItem[]> {
-  const tx = db.transaction(STORE_NAME, "readonly");
-  return request(() => tx.objectStore(STORE_NAME).getAll());
-}
 
 
 function transactionComplete(tx: IDBTransaction): Promise<void> {
@@ -165,8 +167,16 @@ export function retryDelayMs(attempts: number): number {
 export async function clearQueueForUser(ownerUid: string): Promise<void> {
   if (!ownerUid) return;
   memoryQueue = memoryQueue.filter((item) => item.payload.uid !== ownerUid);
+  memorySyncLogs = memorySyncLogs.filter(entry => entry.ownerUid !== ownerUid);
+  removeUserStorageItem('klar_sync_logs', ownerUid);
   if (typeof indexedDB !== 'undefined') {
     await clearOfflineQueueForUser(ownerUid);
+  }
+}
+
+function requireLegacyQueueOwner(ownerUid: string): void {
+  if (typeof ownerUid !== 'string' || !ownerUid.trim()) {
+    throw new Error('legacy_queue_owner_required');
   }
 }
 
@@ -176,13 +186,18 @@ export async function enqueueChatMessage(
   clientMessageId: string,
   uid: string
 ): Promise<QueuedAction> {
-  const existing = memoryQueue.find(
-    (item) => item.payload.clientMessageId === clientMessageId
-  );
-  if (existing) {
-    return existing;
+  requireLegacyQueueOwner(uid);
+  if (!validMessagePayload({ chatId, text, clientMessageId })) {
+    throw new Error('invalid_legacy_offline_message');
   }
+  const existing = memoryQueue.find(
+    (item) => item.payload.uid === uid && item.payload.clientMessageId === clientMessageId
+  );
+  if (existing) return existing;
 
+  if (memoryQueue.filter(item => item.payload.uid === uid).length >= MAX_ITEMS_PER_USER) {
+    throw new Error('offline_queue_full');
+  }
   const action: QueuedAction = {
     id: `message:${uid}:${clientMessageId}`,
     type: 'SEND_MESSAGE',
@@ -196,24 +211,31 @@ export async function enqueueChatMessage(
   return action;
 }
 
-export async function getQueuedActions(): Promise<QueuedAction[]> {
-  return [...memoryQueue];
+export async function getQueuedActions(ownerUid: string): Promise<QueuedAction[]> {
+  requireLegacyQueueOwner(ownerUid);
+  return memoryQueue.filter(item => item.payload.uid === ownerUid);
 }
 
-export async function getQueuedMessagesForChat(chatId: string): Promise<QueuedAction[]> {
+export async function getQueuedMessagesForChat(chatId: string, ownerUid: string): Promise<QueuedAction[]> {
+  requireLegacyQueueOwner(ownerUid);
   return memoryQueue.filter(
-    (item) => item.payload.chatId === chatId && item.status !== 'dead_letter'
+    item => item.payload.uid === ownerUid && item.payload.chatId === chatId && item.status !== 'dead_letter'
   );
 }
 
-export async function syncQueuedActions(options?: {
-  authToken?: string;
+export async function syncQueuedActions(options: {
+  ownerUid: string;
+  authToken: string;
   fetchFn?: typeof fetch;
 }): Promise<{ total: number; succeeded: number; failed: number }> {
-  const fetcher = options?.fetchFn ?? (typeof fetch !== 'undefined' ? fetch : undefined);
+  requireLegacyQueueOwner(options.ownerUid);
+  if (typeof options.authToken !== 'string' || !options.authToken.trim()) {
+    throw new Error('legacy_queue_auth_required');
+  }
+  const fetcher = options.fetchFn ?? (typeof fetch !== 'undefined' ? fetch : undefined);
   if (!fetcher) return { total: 0, succeeded: 0, failed: 0 };
 
-  const actions = [...memoryQueue];
+  const actions = memoryQueue.filter(item => item.payload.uid === options.ownerUid);
   let succeeded = 0;
   let failed = 0;
 
@@ -226,19 +248,21 @@ export async function syncQueuedActions(options?: {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(options?.authToken ? { Authorization: `Bearer ${options.authToken}` } : {}),
+          Authorization: `Bearer ${options.authToken}`,
         },
         body: JSON.stringify(action.payload),
       });
 
       const latencyMs = Date.now() - startTime;
+      const receipt = (await res.json().catch(() => null)) as { success?: unknown; error?: unknown; code?: unknown } | null;
 
-      if (res.ok) {
+      if (res.ok && isAcknowledgedOfflineWrite(receipt)) {
         action.status = 'success';
         succeeded++;
         memoryQueue = memoryQueue.filter((a) => a.id !== action.id);
 
         addSyncLog({
+          ownerUid: options.ownerUid,
           timestamp: new Date().toISOString(),
           action: 'SEND_MESSAGE',
           type: 'SEND_MESSAGE',
@@ -246,20 +270,23 @@ export async function syncQueuedActions(options?: {
           latencyMs,
         });
       } else {
-        const body = (await res.json().catch(() => null)) as { error?: unknown; code?: unknown } | null;
-        const errMsg = responseError(res, body);
+        // A 2xx without the explicit acknowledgement is an ambiguous write:
+        // preserve its clientMessageId for an idempotent retry, not an early
+        // success/deletion or immediate permanent failure.
+        const errMsg = res.ok ? 'message_acknowledgement_missing' : responseError(res, receipt);
 
         failed++;
         action.retryCount = (action.retryCount || 0) + 1;
         action.lastError = errMsg;
 
-        if (!retryableStatus(res.status) || action.retryCount >= MAX_ATTEMPTS) {
+        if ((!res.ok && !retryableStatus(res.status)) || action.retryCount >= MAX_ATTEMPTS) {
           action.status = 'dead_letter';
         } else {
           action.status = 'failed';
         }
 
         addSyncLog({
+          ownerUid: options.ownerUid,
           timestamp: new Date().toISOString(),
           action: 'SEND_MESSAGE',
           type: 'SEND_MESSAGE',
@@ -276,6 +303,7 @@ export async function syncQueuedActions(options?: {
       action.lastError = err instanceof Error ? err.message : 'network_error';
 
       addSyncLog({
+          ownerUid: options.ownerUid,
         timestamp: new Date().toISOString(),
         action: 'SEND_MESSAGE',
         type: 'SEND_MESSAGE',
@@ -334,23 +362,28 @@ export async function flushOfflineQueue(options: {
   token: string;
   fetcher?: typeof fetch;
   now?: number;
+  signal?: AbortSignal;
+  isCurrentUser?: () => boolean;
 }): Promise<{ sent: number; failed: number; remaining: number; deadLettered: number }> {
   if (!options.ownerUid || !options.token) return { sent: 0, failed: 0, remaining: 0, deadLettered: 0 };
+  // Logout/account-switch cancellation is independent of network delivery.
+  // The sender must remain the active account before each attempted replay.
+  const mayReplay = () => !options.signal?.aborted && (options.isCurrentUser?.() ?? true);
+  if (!mayReplay()) return { sent: 0, failed: 0, remaining: 0, deadLettered: 0 };
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now();
   const db = await openDatabase();
   let sent = 0;
   let failed = 0;
   try {
-    const items = (await allItems(db))
-      .filter(item => item.ownerUid === options.ownerUid && item.status !== 'dead_letter')
+    const items = (await queueItemsForOwner<PendingQueueItem>(db, STORE_NAME, options.ownerUid))
+      .filter(item => item.status !== 'dead_letter')
       .sort((a, b) => a.queuedAt - b.queuedAt);
 
-    let deadLettered = 0;
     for (const item of items) {
+      if (!mayReplay()) break;
       if (item.attempts >= MAX_ATTEMPTS) {
         await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: item.lastError ?? 'retry_limit_reached' });
-        deadLettered += 1;
         continue;
       }
       if (item.nextAttemptAt > now) continue;
@@ -359,43 +392,51 @@ export async function flushOfflineQueue(options: {
           method: item.method,
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${options.token}` },
           body: JSON.stringify(item.payload),
+          signal: options.signal,
         });
+        // A completed request is not permission to process another user's
+        // queue after auth changed while awaiting the network response.
+        if (!mayReplay()) break;
         const body = await res.json().catch(() => null) as { success?: unknown; error?: unknown; code?: unknown } | null;
-        if (res.ok && body?.success === true) {
+        if (!mayReplay()) break;
+        if (res.ok && isAcknowledgedOfflineWrite(body)) {
           await deleteItem(db, item.id);
           sent += 1;
           continue;
         }
-        const error = responseError(res, body);
-        if (!retryableStatus(res.status)) {
+        const error = res.ok ? 'message_acknowledgement_missing' : responseError(res, body);
+        if (!res.ok && !retryableStatus(res.status)) {
           failed += 1;
           await putItem(db, { ...item, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         failed += 1;
         const attempts = item.attempts + 1;
         if (attempts >= MAX_ATTEMPTS) {
           await putItem(db, { ...item, attempts, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         await putItem(db, { ...item, attempts, status: 'pending', nextAttemptAt: now + retryDelayMs(attempts), lastError: error });
         break;
       } catch (err: unknown) {
+        // Cancellation must not increase retry counts or dead-letter a message.
+        if (!mayReplay()) break;
         failed += 1;
         const attempts = item.attempts + 1;
         const error = err instanceof Error ? err.message : 'network_error';
         if (attempts >= MAX_ATTEMPTS) {
           await putItem(db, { ...item, attempts, status: 'dead_letter', deadLetteredAt: now, lastError: error, nextAttemptAt: Number.MAX_SAFE_INTEGER });
-          deadLettered += 1;
           continue;
         }
         await putItem(db, { ...item, attempts, status: 'pending', nextAttemptAt: now + retryDelayMs(attempts), lastError: error });
         break;
       }
     }
-    const remaining = (await allItems(db)).filter(item => item.ownerUid === options.ownerUid && item.status !== 'dead_letter').length;
+    const current = await queueItemsForOwner<PendingQueueItem>(db, STORE_NAME, options.ownerUid);
+    const remaining = current.filter(item => item.status !== 'dead_letter').length;
+    // Include previously dead-lettered actions so later sync runs cannot
+    // erase the user's unresolved message delivery warning.
+    const deadLettered = current.filter(item => item.status === 'dead_letter').length;
     return { sent, failed, remaining, deadLettered };
   } finally { db.close(); }
 }
@@ -421,23 +462,37 @@ export async function clearOfflineQueueForUser(ownerUid: string): Promise<void> 
   } finally { db.close(); }
 }
 
+function isOwnedSyncLog(value: unknown, ownerUid: string): value is SyncLogEntry {
+  return typeof value === 'object' && value !== null &&
+    (value as { ownerUid?: unknown }).ownerUid === ownerUid;
+}
+
 function addSyncLog(entry: SyncLogEntry): void {
   memorySyncLogs.push(entry);
-  if (typeof klarStorage !== 'undefined') {
-    try {
-      klarStorage.setItem('klar_sync_logs', JSON.stringify(memorySyncLogs));
-    } catch {}
+  // Bound in-memory history independently of the number of accounts
+  // that have used this browser session.
+  if (memorySyncLogs.length > 1000) memorySyncLogs = memorySyncLogs.slice(-1000);
+  try {
+    const previous = getUserStorageItem('klar_sync_logs', entry.ownerUid);
+    const parsed: unknown = previous ? JSON.parse(previous) : [];
+    const owned = Array.isArray(parsed) ? parsed.filter(item => isOwnedSyncLog(item, entry.ownerUid)) : [];
+    owned.push(entry);
+    setUserStorageItem('klar_sync_logs', JSON.stringify(owned.slice(-100)), entry.ownerUid);
+  } catch {
+    // Diagnostics are best-effort; never block the message send path.
   }
 }
 
-export function getSyncLogs(): SyncLogEntry[] {
-  if (typeof klarStorage !== 'undefined') {
-    try {
-      const raw = klarStorage.getItem('klar_sync_logs');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-  }
-  return [...memorySyncLogs];
+export function getSyncLogs(ownerUid: string): SyncLogEntry[] {
+  requireLegacyQueueOwner(ownerUid);
+  try {
+    const raw = getUserStorageItem('klar_sync_logs', ownerUid);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(item => isOwnedSyncLog(item, ownerUid));
+    }
+  } catch {}
+  return memorySyncLogs.filter(entry => entry.ownerUid === ownerUid);
 }
 
 export function clearSyncLogs(): void {

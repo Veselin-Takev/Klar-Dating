@@ -30,15 +30,47 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
     errors.push('Default compute/runtime service account is not allowed');
   }
 
-  const env = containers.flatMap(container => records(container.env));
-  const byName = new Map(
-    env
-      .filter(item => typeof item.name === 'string')
-      .map(item => [item.name as string, item]),
-  );
+  // In Cloud Run v1, secretKeyRef.name may be a template-local alias. The
+  // run.googleapis.com/secrets annotation resolves the alias to its *actual*
+  // Secret Manager resource (which can belong to another project).
+  const metadata = isRecord(template.metadata) ? template.metadata : {};
+  const annotations = isRecord(metadata.annotations) ? metadata.annotations : {};
+  const rawAliases = annotations['run.googleapis.com/secrets'];
+  const aliases = new Map<string, string>();
+  const bareSecret = /^[A-Za-z0-9_-]{1,255}$/;
+  const resourceSecret = /^projects\/[A-Za-z0-9][A-Za-z0-9._-]*\/secrets\/[A-Za-z0-9_-]{1,255}$/;
+  if (rawAliases !== undefined) {
+    if (typeof rawAliases !== 'string' || !rawAliases.trim()) {
+      errors.push('Cloud Run Secret Manager alias annotation is invalid');
+    } else {
+      for (const entry of rawAliases.split(',')) {
+        const separator = entry.indexOf(':');
+        const alias = separator >= 0 ? entry.slice(0, separator).trim() : '';
+        const resource = separator >= 0 ? entry.slice(separator + 1).trim() : '';
+        if (!bareSecret.test(alias) || !resourceSecret.test(resource) || aliases.has(alias)) {
+          errors.push('Cloud Run Secret Manager alias annotation contains invalid or duplicate entries');
+        } else {
+          aliases.set(alias, resource);
+        }
+      }
+    }
+  }
 
+  // Flattening into a Map would hide a plaintext or conflicting definition in
+  // another container. Any duplicate required env variable is ambiguous.
+  const env = containers.flatMap(container => records(container.env));
+  const secretReferences: Record<string, string> = Object.create(null);
   for (const secret of input.requiredSecrets) {
-    const item = byName.get(secret);
+    const entries = env.filter(item => item.name === secret);
+    if (!entries.length) {
+      errors.push('Required secret env is missing: ' + secret);
+      continue;
+    }
+    if (entries.length !== 1) {
+      errors.push('Required secret env has ambiguous duplicate definitions: ' + secret);
+      continue;
+    }
+    const item = entries[0];
     if (!item) {
       errors.push('Required secret env is missing: ' + secret);
       continue;
@@ -46,12 +78,16 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
     if ('value' in item && item.value != null) errors.push('Secret must not be configured as plaintext: ' + secret);
     const valueFrom = isRecord(item.valueFrom) ? item.valueFrom : {};
     const secretKeyRef = isRecord(valueFrom.secretKeyRef) ? valueFrom.secretKeyRef : {};
-    if (typeof secretKeyRef.name !== 'string' || !secretKeyRef.name) {
-      errors.push('Secret Manager reference is missing: ' + secret);
+    const refName = secretKeyRef.name;
+    if (typeof refName !== 'string' || !bareSecret.test(refName) && !resourceSecret.test(refName)) {
+      errors.push('Secret Manager reference is missing or invalid: ' + secret);
+      continue;
     }
+    // Resolve real resources, not environment variable names or alias strings.
+    secretReferences[secret] = aliases.get(refName) ?? refName;
   }
 
-  return { serviceAccount, requiredSecrets: input.requiredSecrets, passed: errors.length === 0, errors };
+  return { serviceAccount, requiredSecrets: input.requiredSecrets, secretReferences, passed: errors.length === 0, errors };
 }
 
 export function auditProjectRoles(policy: unknown, serviceAccount: string) {
@@ -80,6 +116,7 @@ export function auditSecretPolicies(
     const bindings = records(secretPolicy.bindings);
     const accessor = bindings.some(binding =>
       binding.role === 'roles/secretmanager.secretAccessor' &&
+      binding.condition == null &&
       Array.isArray(binding.members) &&
       binding.members.includes(member),
     );
@@ -91,14 +128,35 @@ export function auditSecretPolicies(
 export function auditMonitoring(policies: unknown, channels: unknown, requiredPolicyNames: string[]) {
   const policyList = records(policies);
   const channelList = records(channels);
-  const enabledChannels = channelList.filter(channel => channel.enabled !== false && channel.verificationStatus !== 'UNVERIFIED');
-  const enabledPolicyNames = policyList
-    .filter(policy => policy.enabled !== false)
+  // Only explicit verification proves the stated production control. Channels
+  // without a resource name cannot be correlated with an alert policy.
+  const enabledChannels = channelList.filter(channel =>
+    channel.enabled !== false &&
+    channel.verificationStatus === 'VERIFIED' &&
+    typeof channel.name === 'string' && channel.name.length > 0,
+  );
+  const channelNames = new Set(enabledChannels.map(channel => channel.name));
+  // Cloud Monitoring list/get results populate enabled; missing state is not
+  // evidence that a required policy can trigger notifications.
+  const usablePolicies = policyList.filter(policy =>
+    policy.enabled === true && policy.validity == null,
+  );
+  const enabledPolicyNames = usablePolicies
     .map(policy => typeof policy.displayName === 'string' ? policy.displayName : '');
   const errors: string[] = [];
-  if (!enabledChannels.length) errors.push('No enabled/verified monitoring notification channel found');
+  if (!enabledChannels.length) errors.push('No explicitly verified, enabled monitoring notification channel found');
   for (const name of requiredPolicyNames) {
-    if (!enabledPolicyNames.includes(name)) errors.push('Required enabled alert policy is missing: ' + name);
+    const policies = usablePolicies.filter(policy => policy.displayName === name);
+    if (!policies.length) {
+      errors.push('Required enabled and valid alert policy is missing: ' + name);
+      continue;
+    }
+    if (!policies.some(policy =>
+      Array.isArray(policy.notificationChannels) &&
+      policy.notificationChannels.some(channel => typeof channel === 'string' && channelNames.has(channel)),
+    )) {
+      errors.push('Required alert policy has no linked enabled/verified notification channel: ' + name);
+    }
   }
   return { enabledChannelCount: enabledChannels.length, enabledPolicyNames, passed: errors.length === 0, errors };
 }

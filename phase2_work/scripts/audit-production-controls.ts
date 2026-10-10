@@ -1,8 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
+import { validateExternalReportPath } from './report-path.mjs';
 import {
   auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPolicies,
 } from '../src/server/platform/productionControls';
@@ -21,7 +23,7 @@ function csv(name: string): string[] {
 }
 
 function gcloud(args: string[]): unknown {
-  const output = execFileSync('gcloud', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const output = execFileSync('gcloud', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
   return JSON.parse(output || 'null');
 }
 
@@ -38,18 +40,25 @@ async function main() {
   const actualBuildSha = verifyLocalProvenance(repositoryRoot);
   if (actualBuildSha !== expectedBuildSha) throw new Error('Production controls audit checkout does not match KLAR_EXPECTED_SHA.');
 
-  const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? 'production-evidence/controls.json');
+  const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? join(tmpdir(), `klar-production-controls-${process.pid}.json`));
+  // Enforce existing external, write-once evidence policy before making cloud requests.
+  validateExternalReportPath(repositoryRoot, output);
 
   const serviceJson = gcloud(['run','services','describe',service,'--project',project,'--region',region,'--format=json']);
+  // Resolve Cloud Run's lookup aliases before querying Secret Manager IAM.
+  // An env variable's NAME is not proof of which actual secret it reads.
+  const cloudRun = auditCloudRunService({ service: serviceJson, expectedServiceAccount, requiredSecrets });
   const iamJson = gcloud(['projects','get-iam-policy',project,'--format=json']);
   const secretPolicies: Record<string, unknown> = {};
-  for (const secret of requiredSecrets) {
-    secretPolicies[secret] = gcloud(['secrets','get-iam-policy',secret,'--project',project,'--format=json']);
+  for (const envName of requiredSecrets) {
+    const reference = cloudRun.secretReferences[envName];
+    if (reference) {
+      secretPolicies[envName] = gcloud(['secrets','get-iam-policy',reference,'--project',project,'--format=json']);
+    }
   }
   const alertPolicies = gcloud(['monitoring','policies','list','--project',project,'--format=json']);
   const channels = gcloud(['monitoring','channels','list','--project',project,'--format=json']);
 
-  const cloudRun = auditCloudRunService({ service: serviceJson, expectedServiceAccount, requiredSecrets });
   const iam = auditProjectRoles(iamJson, expectedServiceAccount);
   const secrets = auditSecretPolicies(secretPolicies, expectedServiceAccount, requiredSecrets);
   const monitoring = auditMonitoring(alertPolicies, channels, requiredAlertPolicies);
@@ -68,9 +77,8 @@ async function main() {
       'IAM review must still confirm each non-primitive role is required by the workload.',
     ],
   };
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, JSON.stringify(report, null, 2) + '\n', 'utf8');
-  console.log(JSON.stringify(report, null, 2));
+  await writeFile(output, JSON.stringify(report, null, 2) + '\n', { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+  console.log(`Production controls audit ${report.passed ? 'PASS' : 'FAIL'}; evidence: ${output}`);
   if (!report.passed) process.exitCode = 1;
 }
 

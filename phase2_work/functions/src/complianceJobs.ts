@@ -8,7 +8,7 @@ export const retryComplianceJobsCron = onSchedule({ region: 'europe-west3', sche
   memory: '256MiB', timeoutSeconds: 180, maxInstances: 1, retryCount: 3, secrets: [secret],
 }, async () => {
   const value = endpoint.value();
-  if (!value) return; // Deployment gate requires a real endpoint and a verified successful run.
+  if (!value) throw new Error('COMPLIANCE_API_ORIGIN is required: compliance queue retry must not be silently skipped');
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.origin !== value || secret.value().length < 32) throw new Error('Invalid compliance worker configuration');
   const body = JSON.stringify({ timestamp: Date.now() });

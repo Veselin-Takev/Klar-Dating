@@ -5,6 +5,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { handleSendMessage } from '../src/server/messages';
+import { assessSafetyMessage } from '../src/server/safetyService';
 import { handleGateAnswer, handleGateStatus } from '../src/server/gate';
 
 // Use real emulator transactions in a separate database: rule suites clear the
@@ -87,6 +88,122 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
     expect(first.status).toBe(200); expect(retry.payload.messageId).toBe(first.payload.messageId);
     expect((await invoke(handleSendMessage, alice, { ...body, text: 'different' })).status).toBe(409);
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('acknowledges a persisted retry even if the AI provider later becomes unavailable', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const safety = vi.mocked(assessSafetyMessage);
+    const original = safety.getMockImplementation();
+    const body = { text: 'already committed', clientMessageId: randomUUID() };
+    try {
+      const first = await invoke(handleSendMessage, alice, body);
+      expect(first).toMatchObject({ status: 200, payload: { success: true } });
+      const callsBeforeRetry = safety.mock.calls.length;
+      // This provider outage happens *after* Firestore has committed the message.
+      safety.mockResolvedValue({ checked: false, status: 503, code: 'safety_unavailable' });
+      const retry = await invoke(handleSendMessage, alice, body);
+      expect(retry).toMatchObject({ status: 200, payload: {
+        success: true, messageId: first.payload.messageId, messageHash: first.payload.messageHash,
+      } });
+      expect(safety.mock.calls.length).toBe(callsBeforeRetry);
+      expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+      const fresh = await invoke(handleSendMessage, alice, {
+        text: 'not yet committed', clientMessageId: randomUUID(),
+      });
+      expect(fresh).toMatchObject({ status: 503, payload: { code: 'safety_unavailable' } });
+    } finally {
+      if (original) safety.mockImplementation(original);
+      safety.mockClear();
+    }
+  });
+
+  it('rejects conflicting reuse of a stored message ID without another provider call', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const safety = vi.mocked(assessSafetyMessage);
+    const body = { text: 'immutable original', clientMessageId: randomUUID() };
+    const first = await invoke(handleSendMessage, alice, body);
+    expect(first.status).toBe(200);
+    const callsBeforeConflict = safety.mock.calls.length;
+    const conflict = await invoke(handleSendMessage, alice, { ...body, text: 'tampered retry' });
+    expect(conflict).toMatchObject({ status: 409, payload: { code: 'message_conflict' } });
+    expect(safety.mock.calls.length).toBe(callsBeforeConflict);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('commits only one message when identical client requests arrive concurrently', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const body = { text: 'one logical send', clientMessageId: randomUUID() };
+    const [first, overlapping] = await Promise.all([
+      invoke(handleSendMessage, alice, body),
+      invoke(handleSendMessage, alice, body),
+    ]);
+    expect(first.status).toBe(200);
+    expect(overlapping.status).toBe(200);
+    expect(overlapping.payload.messageId).toBe(first.payload.messageId);
+    expect(overlapping.payload.messageHash).toBe(first.payload.messageHash);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('never returns a stored receipt after the chat is blocked', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const body = { text: 'earlier valid send', clientMessageId: randomUUID() };
+    const first = await invoke(handleSendMessage, alice, body);
+    expect(first.status).toBe(200);
+    await db.collection('blocks').doc(`${bob}_${alice}`).set({ blockerUid: bob, blockedUid: alice });
+    const repeat = await invoke(handleSendMessage, alice, body);
+    expect(repeat).toMatchObject({ status: 403 });
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
+  });
+
+  it('rejects conflicting client-side sender and owner claims before persistence', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    for (const claim of [{ senderId: alice }, { uid: alice }, { ownerUid: alice }]) {
+      const response = await invoke(handleSendMessage, bob, {
+        text: 'spoofed-payload', clientMessageId: randomUUID(), ...claim,
+      });
+      expect(response).toMatchObject({ status: 403, payload: { code: 'sender_mismatch' } });
+    }
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).empty).toBe(true);
+  });
+
+  it('accepts matching legacy UID but always persists the verified identity', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const response = await invoke(handleSendMessage, bob, {
+      text: 'auth-identity-only', clientMessageId: 'same-identity',
+      senderId: bob, uid: bob, ownerUid: bob,
+    });
+    expect(response).toMatchObject({ status: 200, payload: { success: true } });
+    const saved = await db.collection('chats').doc(chatId).collection('messages')
+      .doc(response.payload.messageId).get();
+    expect(saved.data()?.senderId).toBe(bob);
+  });
+
+  it('never lets a third party bypass chat membership by supplying a participant UID', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const response = await invoke(handleSendMessage, 'not-a-participant', {
+      text: 'impersonated-send', clientMessageId: 'spoof-owner-2',
+      senderId: alice, uid: alice, ownerUid: alice,
+    });
+    expect(response).toMatchObject({ status: 403, payload: { code: 'sender_mismatch' } });
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).empty).toBe(true);
+    expect((await invoke(handleSendMessage, 'not-a-participant', {
+      text: 'chat-forbidden', clientMessageId: 'spoof-owner-3',
+    }))).toMatchObject({ status: 403, payload: { code: 'chat_forbidden' } });
+  });
+
+  it('isolates idempotent clientMessageId by verified server-side UID', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const clientMessageId = 'shared-client-id';
+    const first = await invoke(handleSendMessage, alice, {
+      text: 'from-alice', clientMessageId,
+    });
+    const second = await invoke(handleSendMessage, bob, {
+      text: 'from-bob', clientMessageId, uid: bob,
+    });
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.payload.messageId).not.toBe(second.payload.messageId);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(2);
   });
 
   it('never acknowledges a failed transaction', async () => {

@@ -1,3 +1,47 @@
+## P0: Idempotente Chat-Bestätigung trotz KI-Ausfall — 2026-10-10
+
+**Entwicklungsbranch-Fix:** Der Chat-Sendepfad prüft nach authentifizierter Chat-Zugehörigkeit eine bereits gespeicherte Kombination `uid + clientMessageId` vor einem erneuten externen KI-Safety-Aufruf. Derselbe Nachrichteninhalt erhält die vorhandene Quittung; Konflikte bleiben 409. Neue Nachrichten werden weiterhin vollständig KI-geprüft und innerhalb einer Firestore-Transaktion autorisiert/geschrieben. **3/3 lokale Node-Quellregressionen tatsächlich ausgeführt und bestanden** (beide getesteten Dateien byteidentisch zu GitHub), aber unter Node 20.20.2 statt der gepinnten Enterprise-Toolchain. **Vier neue Firestore-Emulator-Testfälle** (Provider-Ausfall nach Write, Konflikt, gleichzeitige identische Sends, Block nach Write) committed, **nicht ausgeführt**. Früher CI- und lokaler Preflight-Gate ergänzt. TCO-Vorteil bei Duplikaten und zusätzlicher Firestore-Leseaufwand bei neuen Sends noch nicht gemessen. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 eingefroren, keine manuell gestartete CI, **NO-GO**.
+
+---
+
+## Offline-Zustellbestätigung und CI-Schutz — 2026-10-10
+
+**P0-Fix auf Entwicklungsbranch:** Keine Queue darf eine Nachricht auf Basis des HTTP-Status allein löschen. Legacy- und IndexedDB-Pfade verlangen nun explizites `success: true`; bei einer uneindeutigen 2xx-Antwort erfolgt ein begrenzter idempotenter Retry mit derselben Nachrichten-ID. Zusätzlich wurde eine veraltete CI-Import-Assertion korrigiert. **Lokal tatsächlich getestet:** 10/10 Receipt-Funktionsfälle PASS unter Node 22.16.0, isolierte strenge TypeScript-Prüfung PASS, originale GitHub-Quellcode-Bedingungen 6/6 bestätigt. Neue Vitest- und CI-Fälle sind committed, aber der vollständige gepinnte Preflight wurde nicht ausgeführt. Weitere Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert; **NO-GO**.
+
+---
+
+## Offline-Queue-Retry und Dead-Letter-Warnungen — 2026-10-10
+
+Auf dem Entwicklungsbranch wurde ein P1-Resilienzfehler korrigiert: verbleibende Offline-Nachrichten erhalten bei stabiler Online-Verbindung einen einzelnen, nach 60 Sekunden ausgelösten weiteren Synchronisationsversuch, ohne Idle-Polling. Retry-Timer werden bei Logout, Auth-/Offline-Wechsel und Unmount entfernt. Die Warnung für bereits gespeicherte Dead-Letter-Nachrichten bleibt über spätere Sync-Läufe hinweg sichtbar. Frühe CI-Regression und zwei reguläre Vitest-Fälle ergänzt. **14/14 statische GitHub-Quellcodebedingungen bestätigt; Ausführung der neuen Tests, echte Browser-/Firebase-Tests und gepinnter Enterprise-Preflight stehen aus.** Siehe [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). **NO-GO**, R2 unverändert.
+
+---
+
+## Chat-Sendeautorisierung und Offline-Replay – 2026-10-10
+
+**Dev-Branch-Fix:** Der Server nutzt verifizierte Firebase-Token-UID und prüft Chat-Zugehörigkeit vor und während des Nachrichtenwrites. Widersprüchliche `uid`/`ownerUid`/`senderId`-Angaben werden neuerdings mit `403 sender_mismatch` verweigert. Der Offline-Replay im Client unterstützt Abbruch bei Authwechsel, Verbindungsabbruch und Logout-Start; Fehler werden im Sync-Banner behandelt. Automatisierte Negativtests zu Konto-/Tokenwechsel und Replay-Abbruch ergänzt. **Statische GitHub-Prüfung 13/13 erfüllt, keine vollständige Testausführung.** Detaillierte Evidenz: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert, offizielle Freigabe **NO-GO**.
+
+---
+
+## P1 FE-02 IndexedDB Offline-Queue: Indexed Reads — 2026-10-10
+
+Die bisherige globale `getAll()`-Abfrage wurde für Benutzer-Queue-Einträge durch `ownerUid`-Indexabfragen ersetzt. Checklisten verwenden direkte Primärschlüssel-Abfragen mit zusätzlicher Owner-Kontrolle. Hilfsmodul und gezielte funktionale Regression lokal unter Node 22.16.0 geprüft (2/2 PASS; Original-Helper per SHA bestätigt). CI-Regressionsprüfung vor Dependency-Installation integriert. **Keine vollständige Browser-/Emulator-/gepinnten Toolchain-Abnahme**. Separat offen: Legacy-`memoryQueue` mit nicht durchgehend UID-spezifischer Deduplizierung und Synchronisierung. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Release **NO-GO**; R2 unverändert.
+
+---
+
+## End-to-End Enterprise Audit — 2026-10-10 (NO-GO)
+
+Aktueller Domain-Audit und priorisierte ICE-Maßnahmen: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Neu korrigiert auf dem Entwicklungsbranch: PII-Sanitizer für generische `data`-Felder, unabhängige achtteilige Load/Cost-Freigabe-CLI und fail-closed Compliance-Retry bei fehlender API-Konfiguration. Lokale Targeted-Checks (2 + 3 + 2) bestanden; der gepinnte Voll-Lauf, echte Cloud-/Billing-/Alarmzustellung und Human Release Approval bleiben offen. R2 unverändert, **NO-GO**.
+
+---
+
+## Current enterprise release decision — 2026-10-10: NO-GO
+
+The historical browser-CI findings below refer to earlier candidates and must **not** be mistaken for the current exact development-branch or frozen R2 release status. Current production blockers are tracked in [FINAL_RELEASE_VERIFICATION_2026-10-10.md](FINAL_RELEASE_VERIFICATION_2026-10-10.md), the root `GO_LIVE_CHECKLIST.md`, and [GitHub Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8).
+
+**Newest verified development-branch remediation:** Cloud Run secret aliases are resolved to real Secret Manager resources before IAM lookup; ambiguous duplicate required secret variables and conditional-only accessor grants no longer yield audit PASS. Monitoring alerts must refer to verified delivery channels. Targeted original-source checks passed locally, but no full checkout on Node 22.23.3/Bun 1.4.2, live production controls, alarm delivery, or human approval has been completed for these changes. **Do not merge, publish or claim GO.** Frozen R2 remains a separate immutable candidate.
+
+---
+
 ## SEC-SCAN-01 candidate hardening — 2026-10-10
 
 The secret scanner now recognizes ten credential-pattern families, restricts the

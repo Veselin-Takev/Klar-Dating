@@ -20,17 +20,18 @@ export function sanitizeAiText(value: string): string {
   return sanitized;
 }
 
-export function sanitizeAiPayload<T>(value: T, key?: string): T {
+export function sanitizeAiPayload<T>(value: T, key?: string, parentKey?: string): T {
   if (typeof value === 'string') {
-    // Inline media payloads are base64, not natural-language prompt data.
-    if (key === 'data') return value;
+    // Only inlineData.data is encoded media; arbitrary fields named "data"
+    // can contain human text and must not bypass the provider PII boundary.
+    if (key === 'data' && parentKey === 'inlineData') return value;
     return sanitizeAiText(value) as T;
   }
-  if (Array.isArray(value)) return value.map(item => sanitizeAiPayload(item, key)) as T;
+  if (Array.isArray(value)) return value.map(item => sanitizeAiPayload(item, key, parentKey)) as T;
   if (value && typeof value === 'object') {
     const output: Record<string, unknown> = {};
     for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
-      output[childKey] = sanitizeAiPayload(childValue, childKey);
+      output[childKey] = sanitizeAiPayload(childValue, childKey, key);
     }
     return output as T;
   }

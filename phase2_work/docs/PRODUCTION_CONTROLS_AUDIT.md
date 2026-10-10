@@ -10,20 +10,22 @@ Required environment variables:
 - `KLAR_EXPECTED_SERVICE_ACCOUNT`
 - `KLAR_REQUIRED_SECRETS` — comma-separated environment-variable names that must be backed by Secret Manager references in Cloud Run
 - `KLAR_REQUIRED_ALERT_POLICIES` — comma-separated exact Monitoring policy display names that must be enabled
+- `KLAR_EXPECTED_SHA` — exact full Git commit SHA of the local audited checkout, mandatory to prevent cross-build evidence
+- `KLAR_PRODUCTION_CONTROLS_OUTPUT` — optional absolute path **outside** the repository for private, write-once audit evidence
 
 The audit checks:
 
 1. Cloud Run uses the expected non-default runtime service account.
 2. Required secret environment variables use Secret Manager references rather than plaintext values.
 3. The runtime principal does not hold primitive project Owner/Editor roles.
-4. The runtime principal has `roles/secretmanager.secretAccessor` on every declared secret.
-5. At least one enabled/verified notification channel exists and every declared alert policy is enabled.
+4. The runtime principal has `roles/secretmanager.secretAccessor` on the **actual Secret Manager resource resolved from each required environment variable**, not on a secret guessed from the environment-variable name. In Cloud Run v1, `valueFrom.secretKeyRef.name` may be a lookup alias defined by the template's `run.googleapis.com/secrets` annotation (`alias:projects/PROJECT_NUMBER/secrets/ACTUAL_SECRET`). The collector reads the alias mapping first, then invokes the IAM lookup on the resolved resource. Direct same-project secret references remain supported. Malformed/duplicate alias entries, unsafe reference names and duplicate required environment variables (including across containers) cause audit failure.
+5. Every required Monitoring alert policy is explicitly enabled, has no API-reported `validity` error, and is **linked via `notificationChannels`** to a named, non-disabled channel whose `verificationStatus` is explicitly `VERIFIED`. An unrelated verified channel does not satisfy a required policy. Missing status, `UNVERIFIED`, or unspecified/exempt status does not constitute *explicit verification evidence* for this automated release check; operator-led delivery evidence is still required.
 
-The report is written to `production-evidence/controls.json` unless `KLAR_PRODUCTION_CONTROLS_OUTPUT` overrides the path.
+By default the audit creates a private, write-once JSON report in the operating system's temporary directory (`klar-production-controls-<pid>.json`). Set `KLAR_PRODUCTION_CONTROLS_OUTPUT` to an approved external evidence path when durable archiving is required. **Repository-internal output paths are rejected**, and existing output files are never overwritten. Do not commit audit evidence or credentials to Git. Save the file in the approved evidence vault and record its exact build SHA, creation time, reviewer and controlled link in the release checklist.
 
 ## Limits
 
-This is configuration evidence, not operational proof. Production readiness still requires a documented secret-rotation exercise and an alert-delivery test that reaches the responsible on-call destination. Non-primitive IAM roles also require human least-privilege review; the audit deliberately does not invent an application-specific allowlist.
+This is configuration evidence, not operational proof. **[ANNAHME]** For multiple Cloud Run containers, a required secret variable must be defined unambiguously exactly once across the inspected revision; otherwise the collector fails closed pending explicit review of which container consumes it. Cross-project secret references are supported only insofar as `gcloud secrets get-iam-policy` can read their IAM policy with the caller's credentials; missing permissions stop the audit. The collector does not prove the secret's current payload, that Cloud Run has successfully read it, or that its version has been rotated. Production readiness still requires a documented secret-rotation exercise and an alert-delivery test that reaches the responsible on-call destination. Non-primitive IAM roles also require human least-privilege review; the audit deliberately does not invent an application-specific allowlist.
 
 ## Operational exercise evidence
 

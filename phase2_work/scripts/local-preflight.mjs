@@ -20,10 +20,10 @@ function persist() {
 function run(label, command, args, options = {}) {
   const time = process.hrtime.bigint();
   console.log('\nPreflight: ' + label);
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' }, ...options });
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' }, timeout: 15 * 60_000, killSignal: 'SIGTERM', ...options });
   const durationMs = Number((process.hrtime.bigint() - time) / 1000000n);
   const passed = !result.error && result.status === 0;
-  report.steps.push({ label, durationMs, status: passed ? 'PASS' : 'FAIL', exitCode: result.status ?? null, signal: result.signal ?? null });
+  report.steps.push({ label, durationMs, status: passed ? 'PASS' : 'FAIL', exitCode: result.status ?? null, signal: result.signal ?? null, timedOut: result.error?.code === 'ETIMEDOUT', errorCode: result.error?.code ?? null });
   if (result.error) console.error(result.error.message);
   if (!passed) throw new Error('Local preflight failed at ' + label);
 }
@@ -32,16 +32,22 @@ try {
   report.gitSha = verifyLocalProvenance(resolve(cwd, '..'));
   assertExpectedReleaseSha(report.gitSha, process.env.KLAR_EXPECTED_SHA);
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
-  const bun = spawnSync('bun', ['--version'], { encoding: 'utf8' });
-  if (bun.status !== 0 || bun.stdout.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
-  const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
-  if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
+  const bun = spawnSync('bun', ['--version'], { encoding: 'utf8', timeout: 15_000 });
+  if (bun.error || bun.status !== 0 || bun.stdout?.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
+  const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 15_000 });
+  if (java.error || java.status !== 0 || !/version \"21[.\"]/.test((java.stdout ?? '') + (java.stderr ?? ''))) throw new Error('Use Java 21 before preflight.');
   // Record toolchain identity in the exact-SHA preflight evidence after validation.
-  const javaVersion = (java.stdout + java.stderr).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
+  const javaVersion = ((java.stdout ?? '') + (java.stderr ?? '')).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
   if (!javaVersion) throw new Error('Java 21 version could not be extracted for audit evidence.');
-  report.toolchain = { node: process.versions.node, bun: bun.stdout.trim(), java: javaVersion };
+  report.toolchain = { node: process.versions.node, bun: bun.stdout?.trim(), java: javaVersion };
 
-  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs', 'scripts/expected-sha.test.mjs']);
+  run('Preflight timeout regression', 'node', ['--test', 'scripts/local-preflight-timeout.test.mjs']);
+  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/expected-sha.test.mjs']);
+  run('Codespaces bootstrap regression tests', 'node', ['--test', 'scripts/check-codespaces-bootstrap.test.mjs']);
+  run('Codespaces bootstrap invariants', 'node', ['scripts/check-codespaces-bootstrap.mjs']);
+  run('Production evidence path and disclosure regression', 'node', ['--test', 'scripts/report-path.test.mjs', 'scripts/production-audit-evidence-check.test.mjs', 'scripts/validate-load-cost-cli.test.mjs', 'scripts/check-compliance-retry-config.test.mjs']);
+  run('Offline queue index regression', 'node', ['--experimental-strip-types', '--test', 'scripts/offline-queue-index.test.mjs', 'scripts/legacy-queue-isolation.test.mjs', 'scripts/offline-replay-auth.test.mjs', 'scripts/offline-retry-scheduler.test.mjs', 'scripts/offline-delivery-receipt.test.mjs']);
+  run('Chat retry idempotency regression', 'node', ['--test', 'scripts/chat-replay-idempotency.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
@@ -53,7 +59,7 @@ try {
     run(script, 'bun', ['run', script]);
   }
   // CI installs Chromium before Playwright. Mirror browser provisioning locally.
-  run('Install Playwright Chromium', 'bun', ['run', 'playwright', 'install', 'chromium']);
+  run('Install Playwright Chromium', 'bun', ['run', 'playwright', 'install', '--with-deps', 'chromium']);
   run('Browser acceptance', 'bun', ['run', 'playwright', 'test']);
   const finalSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (finalSha !== report.gitSha) throw new Error('Git HEAD changed during local preflight.');
