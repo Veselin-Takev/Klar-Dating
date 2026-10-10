@@ -112,3 +112,10 @@ The candidate local preflight now runs `bun run playwright install chromium` thr
 Review of `local-preflight.mjs` found the previously added `report.toolchain.java` assignment used `?? '21'`. This fallback could label an unparseable Java version as Java 21 even though that version string was not extracted. The preflight now requires an actual captured Java 21 version token and fails closed if that extraction unexpectedly fails. No unverified substitute version is written to a release evidence report.
 
 **Actual local rerun:** `node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs /mnt/data/klar-release-sha/*.test.mjs` returned **21 passed / 0 failed** (135 ms; Node v22.16.0). These are isolated diagnostics; they **do not** test the just-modified Java extraction nor the full repository. The candidate needs a clean checkout and pinned Node v22.23.3/Bun v1.4.2/Java 21 full preflight. No remote Actions runs, merge or deployment. Production **NO-GO**, remaining 100-minute incremental Actions budget unchanged.
+
+
+## 2026-10-10 — ISO timestamp offset boundaries
+
+The evidence timestamp parser previously accepted UTC offsets up to `±23:59`, despite those offsets lying outside the expected ISO 8601 timezone range. Tightened to `±14:00` maximum (if hour 14, minute must be 00) and added a Vitest regression with three invalid and two valid boundary examples. This protects audit chronology against implausible timezone offsets.
+
+**Executed:** five isolated Node.js offset boundary assertions passed (not the repository's complete Vitest suite). The complete candidate preflight under Node v22.23.3, Bun v1.4.2 and Java 21 remains **NOT RUN**, and cloud control evidence and independent release approval remain open. No GitHub Actions job, merge or deployment. Production **NO-GO**; incremental 100-minute Actions budget still applies.
