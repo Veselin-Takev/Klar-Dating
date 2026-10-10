@@ -1,0 +1,20 @@
+{
+  "name": "Klar Enterprise (pinned)",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": false,
+      "installGradle": false
+    }
+  },
+  "postCreateCommand": "bash phase2_work/scripts/setup-codespace.sh",
+  "forwardPorts": [
+    3000,
+    4000,
+    8080,
+    9099,
+    9199
+  ],
+  "remoteUser": "node"
+}
