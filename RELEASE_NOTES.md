@@ -1,3 +1,15 @@
+# Current release governance — 2026-10-10
+
+**Release decision: NO-GO (not approved for production).** Previous statements below that the application was finalized, ready for deployment, or approved are historical drafts and **do not constitute current authorization**.
+
+- Release candidate R2: `286a991e776885199bb1028d380e239821de88ac` (not fully validated); later work exists on the development branch and is **not included** in R2.
+- Required verification: exact-SHA clean checkout with Node 22.23.3, Bun 1.4.2, Java 21; complete enterprise preflight including TypeScript, tests, Firebase emulators, build and Playwright.
+- Environment blocker: current executor has no full checkout or Bun, and cannot run a complete pinned-toolchain preflight.
+- Production evidence: issue #8 remains open for IAM, alert delivery, secret lifecycle, observability, privacy, rollback and accountable human approvals.
+- GitHub Actions: no remote CI initiated by this governance update; additional authorized usage limited to 100 minutes.
+
+---
+
 # v149 Security Hardening — 2026-10-08
 
 - Centralized Gemini prompt-security boundary with XML-delimited untrusted data, PII sanitization, output leakage guardrails and strict JSON-schema validation.
