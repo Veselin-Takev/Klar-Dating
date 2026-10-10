@@ -28,3 +28,16 @@ GitHub's authenticated `compare_commits` result for `main...ci/optimize-llm-eval
 Use a full clean checkout at the then-current candidate SHA with Node 22.23.3, Bun 1.4.2, Java 21. Run `cd phase2_work && bun run verify:local`, preserve the exclusive private report outside the repository and audit every failing stage. Apply code fixes on the candidate branch, repeat tests on the new SHA. Do **not** start an Actions run unless local validation is clean and the remaining incremental **100-minute limit** has been reconciled using billing/job evidence. Then obtain authorized real-environment evidence under issue #8, explicit human review, and release approval.
 
 Do not call these records "production validated" until their source, runtime, environment, SHA and accountable reviewer are verified.
+
+
+## 2026-10-10 — Consolidated scope and isolated test rerun
+
+Authenticated comparison to main now reports **84 commits ahead, 0 behind, 16 files changed** (after this document was added). This changes the previously recorded 83/15 inventory. Treat the diff as a moving candidate until a single immutable SHA is frozen.
+
+**Actual available local test command:**
+```sh
+node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs
+```
+Observed: **16 pass, 0 fail, exit 0, 92.7 ms**, Node v22.16.0. These are *isolated local copies* and are not sufficient evidence that the full current candidate passes. The TypeScript operational evidence validator and its Vitest suite were not run as a genuine checkout. The correct remediation is to obtain a clean checkout of the frozen branch SHA with Node v22.23.3 / Bun v1.4.2 / Java 21, run complete `verify:local`, and preserve exact-SHA results. Do not consume remote Actions minutes until the full local acceptance succeeds.
+
+This audit deliberately introduces **no new production changes** while complete integration testing is unavailable. Existing code changes remain unmerged. Operational controls and final sign-off are still **NO-GO**.
