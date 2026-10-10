@@ -166,3 +166,9 @@ Executed the four test cases from `scripts/ci-scope-check.mjs` in an isolated lo
 Executed `node --test ci-scope-check.mjs` against a manually reconstructed current five-test CI-scope fixture under Node **v22.16.0** (`/mnt/data/klar-ci-scope-current`). TAP: **5 PASS, 0 FAIL**, elapsed approximately **297 ms**. The fifth test checked the `git diff` subprocess timeout/output bounds and fail-closed source pattern; prior cases checked narrative allowlist, mixed changes, push/empty fallback, and six security/bootstrap files.
 
 **Provenance caveat:** This was a manually reconstructed source fixture, **not** a byte-for-byte verified checkout of the branch and not the required exact toolchain. No full CI job, TypeScript, Firebase, Playwright, or live production cloud audit was performed. There were no further product changes this iteration. Frozen R2 remains unchanged and official production status is **NO-GO**; 0 additional GitHub Actions minutes, no merge/deploy.
+
+## 2026-10-10 — CI rename/deletion safety regression
+
+Inspected `scripts/ci-scope.mjs`: the existing `git diff --name-only --no-renames` deliberately reports deletions and additions separately, so a code-file rename into an allowlisted narrative path must still trigger full CI. Added a dedicated regression case in `scripts/ci-scope-check.mjs` covering source/destination and deletion semantics, plus a source assertion that `--no-renames` remains present (development commit `ec73e41a1b9d5e56b7b824c6a0a392239e4cb2f6`). **No exploit was identified in the current implementation**; this is prevention of a future policy regression.
+
+**Limits:** Current policy source checked and test committed; complete clean-checkout execution, CI and production security checks remain pending. No Actions, merge, deployment or R2 modification. Official **NO-GO**.
