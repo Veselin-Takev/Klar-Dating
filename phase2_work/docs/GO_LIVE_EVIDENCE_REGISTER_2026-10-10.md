@@ -124,3 +124,10 @@ Observed Node **v22.16.0**, TAP **12 tests / 12 PASS / 0 FAIL**, process exit **
 **Scope limitation:** these were existing isolated working copies. No exact current candidate Git-blob identity was re-established during this run, and the current operational-control validator / its Vitest tests were not available in this local checkout. Therefore **do not credit these tests against the unmerged candidate's complete acceptance**, or claim a live production audit. The runtime is not the pinned Node 22.23.3 and Bun 1.4.2 is unavailable. The full `verify:local` remains blocked pending an actual complete clean checkout and pinned toolchain. A GitHub Actions run cannot substitute for mandatory local preflight.
 
 No remote workflow, merge, or deployment was initiated. Production remains **NO-GO** pending exact-SHA technical and separately authenticated operational evidence; the incremental Actions cap remains **100 minutes**.
+
+
+## 2026-10-10 — Critical ISO regex escaping defect corrected
+
+Inspection of the *actual GitHub source bytes* found that `parseStrictIso` contained literal double backslashes before the `d` digit class and literal dot escape inside a regex literal. This makes otherwise valid ISO date-time strings fail pattern matching, effectively blocking positive operational-evidence validation. The candidate fix normalizes these to single regex escapes (one backslash before `d` and `.`) and adds a regression that checks valid UTC and explicit-offset ISO timestamps.
+
+**Executed targeted check:** Node v22.16.0 ran five pattern cases: three supported timestamps accepted, two incomplete/natural-language dates rejected; process exited 0. Source blob commit: `fa9380a4176fc89c908d69a448c9e14216e74f98`. This is *regex-specific*, not a Vitest run of the complete TypeScript module. The regression has been committed, but full validation at Node 22.23.3 / Bun 1.4.2 remains PENDING. **No release approval**, no remote Actions run, no merge or deployment; current release remains **NO-GO** with 100-minute incremental Actions limit.
