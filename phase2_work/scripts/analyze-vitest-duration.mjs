@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export function analyzeVitestReport(report) {
@@ -18,8 +18,11 @@ export function analyzeVitestReport(report) {
     const end = suite.perfStats?.end ?? suite.endTime;
     const duration = Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null;
     if (!Number.isFinite(duration)) throw new Error('Missing or invalid suite timing.');
+    if (report.success && suite.assertionResults.some(a => a?.status !== 'passed')) {
+      throw new Error('Inconsistent Vitest assertion statuses.');
+    }
     return {
-      suite: String(suite.name ?? 'unknown'),
+      suite: basename(suite.name.replaceAll('\\\\', '/')),
       durationMs: Math.round(duration),
       tests: Array.isArray(suite.assertionResults) ? suite.assertionResults.length : 0,
       status: String(suite.status ?? 'unknown'),
