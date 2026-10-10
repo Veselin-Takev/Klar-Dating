@@ -181,4 +181,14 @@ describe('operational control exercise evidence', () => {
     expect(validate(valid()).passed).toBe(true);
   });
 
+  it('does not echo attacker-controlled unknown property names into logs', () => {
+    const poisonedKey = 'secret\\nFORGED PASS\\u001b[31m';
+    const record = { ...valid(), [poisonedKey]: 'irrelevant' };
+    const result = validate(record);
+    expect(result.passed).toBe(false);
+    expect(result.errors.join(' ')).toMatch(/unexpected field/);
+    expect(result.errors.join(' ')).not.toContain('FORGED PASS');
+    expect(result.errors.join(' ')).not.toContain('\\u001b');
+  });
+
 });
