@@ -23,7 +23,7 @@ export type OperationalControlEvidence = {
 
 function parseStrictIso(value: unknown): number {
   if (typeof value !== 'string') return Number.NaN;
-  const parts = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d{1,3})?(Z|([+-])(\\d{2}):(\\d{2}))$/.exec(value);
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
   if (!parts) return Number.NaN;
   const [, year, month, day, hour, minute, second, , , offsetHour, offsetMinute] = parts;
   const y = Number(year), m = Number(month), d = Number(day);
