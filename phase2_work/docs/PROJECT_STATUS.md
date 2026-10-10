@@ -1,3 +1,15 @@
+## SEC-SCAN-01 candidate hardening — 2026-10-10
+
+The secret scanner now recognizes ten credential-pattern families, restricts the
+existing public Firebase exception to its exact field/path/project/value, and fails
+closed on incomplete scans. It no longer exempts scanner/test filenames or entire
+Firebase config files. Fifteen new dependency-free regressions passed on Node 24.19.0.
+See [scope, evidence and remaining security gates](SECRET_SCANNER_2026-10-10.md).
+This addresses SEC-01 in the 2026-10-09 audit, distinct from the later SEC-01 release-CI fix.
+Only a partial local working-tree scan was available. Full-repository/history scanning,
+dedicated tooling, production key restrictions and exact-candidate validation remain open.
+No CI trigger or deployment. Production remains **NO-GO / NOT CONFIRMED**.
+
 ## DB-02 candidate implementation — 2026-10-10
 
 Provider pages with confirmed deletions and bounded account-photo pages now preserve
