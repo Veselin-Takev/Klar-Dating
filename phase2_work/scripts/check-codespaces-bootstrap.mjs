@@ -1,0 +1,33 @@
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const read = path => readFileSync(resolve(repositoryRoot, path), 'utf8');
+const configuration = JSON.parse(read('.devcontainer/devcontainer.json'));
+const script = read('phase2_work/scripts/setup-codespace.sh');
+const failures = [];
+
+if (configuration.postCreateCommand !== 'bash phase2_work/scripts/setup-codespace.sh') {
+  failures.push('Root Codespaces postCreateCommand must invoke the pinned bootstrap.');
+}
+if (configuration.features?.['ghcr.io/devcontainers/features/java:1']?.version !== '21') {
+  failures.push('The root devcontainer must install Java 21.');
+}
+for (const [pattern, label] of [
+  [/\bnvm install 22\.23\.3\b/, 'Node 22.23.3 installation'],
+  [/\bnvm alias default 22\.23\.3\b/, 'Node 22.23.3 default persistence'],
+  [/\bnvm use 22\.23\.3\b/, 'Node 22.23.3 activation'],
+  [/\bbun@1\.4\.2\b/, 'Bun 1.4.2 installation'],
+  [/\bbun ci\b/, 'frozen Bun root install'],
+  [/\bnpm ci --prefix functions\b/, 'frozen Functions install'],
+  [/\bcheck-dependency-locks\.mjs\b/, 'lockfile policy validation'],
+]) {
+  if (!pattern.test(script)) failures.push('Missing Codespaces bootstrap invariant: ' + label);
+}
+if (failures.length) {
+  console.error(failures.join('\n'));
+  process.exitCode = 1;
+} else {
+  console.log('Codespaces bootstrap invariants PASS.');
+}
