@@ -198,11 +198,12 @@ test('same message id on separate accounts must not deduplicate or reveal the ot
 test('legacy send processes only its authenticated owner and never another queued user', async () => {
   await enqueueChatMessage('chat-common', 'Alice private', 'alice-only', 'user-alice');
   await enqueueChatMessage('chat-common', 'Bob private', 'bob-only', 'user-bob');
-  const sent = [];
-  const fetchFn = async (_url, options) => {
-    sent.push(JSON.parse(options.body));
-    assert.equal(options.headers.Authorization, 'Bearer alice-token');
-    return { ok: true, status: 200, json: async () => ({ success: true }) };
+  const sent: Array<{ uid: string }> = [];
+  const fetchFn: typeof fetch = async (_url, options) => {
+    const parsed = JSON.parse(String(options?.body)) as { uid: string };
+    sent.push(parsed);
+    assert.equal((options?.headers as Record<string, string>)?.Authorization, 'Bearer alice-token');
+    return { ok: true, status: 200, json: async () => ({ success: true }) } as unknown as Response;
   };
   const result = await syncQueuedActions({ ownerUid: 'user-alice', authToken: 'alice-token', fetchFn });
   assert.deepEqual([result.total, result.succeeded, result.failed], [1, 1, 0]);
@@ -215,7 +216,7 @@ test('legacy reads and sending reject missing owner or auth token', async () => 
   await assert.rejects(getQueuedActions(''), /owner/i);
   await assert.rejects(getQueuedMessagesForChat('chat-test', ''), /owner/i);
   let called = 0;
-  const fetchFn = async () => { called += 1; throw new Error('must not send'); };
+  const fetchFn: typeof fetch = async () => { called += 1; throw new Error('must not send'); };
   await assert.rejects(syncQueuedActions({ ownerUid: 'user-alice', authToken: '', fetchFn }), /auth/i);
   await assert.rejects(syncQueuedActions({ ownerUid: '', authToken: 'alice-token', fetchFn }), /owner/i);
   assert.equal(called, 0);
@@ -233,7 +234,7 @@ test('clearing one owner leaves the other owners queued messages untouched', asy
 test('legacy sync logs never expose entries owned by another user', async () => {
   await enqueueChatMessage('chat-alice', 'Alice only', 'log-alice', 'user-alice');
   await enqueueChatMessage('chat-bob', 'Bob only', 'log-bob', 'user-bob');
-  const fetchFn = async () => ({ ok: false, status: 503, json: async () => ({ code: 'temporary_down' }) });
+  const fetchFn: typeof fetch = async () => ({ ok: false, status: 503, json: async () => ({ code: 'temporary_down' }) } as unknown as Response);
   await syncQueuedActions({ ownerUid: 'user-alice', authToken: 'alice-token', fetchFn });
   await syncQueuedActions({ ownerUid: 'user-bob', authToken: 'bob-token', fetchFn });
   const aliceLogs = getSyncLogs('user-alice');
