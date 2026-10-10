@@ -160,12 +160,12 @@ describe('operational control exercise evidence', () => {
   it('accepts genuine ISO digit syntax in UTC and offset timestamps', () => {
     const record = valid();
     expect(validate(record)).toEqual({ passed: true, errors: [] });
-    record.secretRotation.newVersionCreatedAt = '2026-10-10T12:45:00+02:00';
-    record.secretRotation.workloadObservedNewVersionAt = '2026-10-10T13:00:00+02:00';
-    record.alertDelivery.exerciseStartedAt = '2026-10-10T12:00:00Z';
-    record.alertDelivery.notificationReceivedAt = '2026-10-10T12:01:00Z';
-    record.alertDelivery.acknowledgedAt = '2026-10-10T12:02:00Z';
-    // Use a future-safe fixture by asserting ISO parsing, not a fixed wall-clock assumption.
+    record.secretRotation.newVersionCreatedAt = '2026-09-29T12:45:00+02:00';
+    record.secretRotation.workloadObservedNewVersionAt = '2026-09-29T13:00:00+02:00';
+    record.alertDelivery.exerciseStartedAt = '2026-09-29T12:00:00Z';
+    record.alertDelivery.notificationReceivedAt = '2026-09-29T12:01:00Z';
+    record.alertDelivery.acknowledgedAt = '2026-09-29T12:02:00Z';
+    // Historical timestamps keep this ISO format test independent of the test-run clock.
     const errors = validate(record).errors;
     expect(errors.filter(message => message.includes('ISO date/time'))).toEqual([]);
   });
