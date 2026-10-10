@@ -1,3 +1,16 @@
+## DB-02 candidate implementation — 2026-10-10
+
+Provider pages with confirmed deletions and bounded account-photo pages now preserve
+the existing failure budget. Storage deletes use generation preconditions and require
+an empty-prefix confirmation; holds, conflicts and no-progress responses remain failures.
+49 dependency-free regressions and the static deletion gate passed on Node 24.19.0.
+Updated provider/lifecycle/erasure Vitest scenarios are not executed here.
+See [DB-02 behavior, limits and release gates](DELETION_PROVIDER_STORAGE_2026-10-10.md).
+Full Node 22.23.3 validation, production storage-policy inventory, SDK latency/retry
+verification, DB-01 legacy rollout and independent approval remain open.
+No new CI trigger or deployment. Production remains **NO-GO / NOT CONFIRMED**.
+This supersedes earlier statements that provider pagination always consumes the failure budget.
+
 ## DB-01 candidate integration — 2026-10-10
 
 Cumulative deletion accounting and atomic final-sweep receipts are now integrated

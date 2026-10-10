@@ -21,11 +21,11 @@ describe('Didit account erasure', () => {
     expect(fetcher.mock.calls[1]?.[1]).not.toHaveProperty('body');
   });
 
-  it('treats a missing session as already deleted and retries remaining pages safely', async () => {
+  it('charges a stale page containing only missing sessions to the retry budget', async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(response(200, { results: [{ session_id: '22222222-2222-4222-8222-222222222222', vendor_data: 'uid-2' }] }))
       .mockResolvedValueOnce(response(404));
-    expect(await eraseDiditPage('uid-2', 'request-2', 'api-key', fetcher as typeof fetch)).toBe(false);
+    await expect(eraseDiditPage('uid-2', 'request-2', 'api-key', fetcher as typeof fetch)).rejects.toThrow('didit_erasure_no_progress');
   });
 
   it('fails closed on unexpected provider status', async () => {
@@ -35,3 +35,4 @@ describe('Didit account erasure', () => {
     await expect(eraseDiditPage('uid-3', 'request-3', 'api-key', fetcher as typeof fetch)).rejects.toThrow('didit_erasure_unavailable');
   });
 });
+

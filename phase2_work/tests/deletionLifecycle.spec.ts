@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { purgeAccountData } from '../src/server/trustAndSafety';
-import { DeletionPageComplete, DeletionTimeSliceComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
 const chatPaths: string[] = [];
 afterEach(async () => { for (const path of chatPaths.splice(0)) await getDb().recursiveDelete(getDb().doc(path)); });
 const paths: string[] = [];
@@ -100,6 +100,44 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
 });
 
 describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
+  it.each(['provider', 'storage'] as const)('preserves real failures across 51 %s progress pages without completing', async kind => {
+    const { uid, ref, deps, advance } = await setup();
+    await ref.update({ attempts: 2 });
+    if (kind === 'provider') vi.mocked(deps.eraseProvider).mockResolvedValue(false);
+    else vi.mocked(deps.purge).mockRejectedValue(new DeletionStoragePageComplete());
+    for (let page = 0; page < 51; page++) {
+      await runAccountDeletion(uid, deps); advance(1_001);
+    }
+    const job = (await ref.get()).data()!;
+    expect(job).toMatchObject({ status: 'pending', phase: 'purge', attempts: 2 });
+    expect(job[kind === 'provider' ? 'completedProviderPages' : 'completedStoragePages']).toBe(51);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    expect((await getDb().doc('deletion_log/' + deletionReceiptId(job.requestId)).get()).exists).toBe(false);
+    vi.mocked(deps.eraseProvider).mockResolvedValue(true);
+    vi.mocked(deps.purge).mockResolvedValue(undefined);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.phase).toBe('final_sweep');
+  });
+
+  it('counts provider errors as failures even after acknowledged progress', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.eraseProvider).mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('didit_erasure_no_progress'));
+    await runAccountDeletion(uid, deps); advance(1_001);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ attempts: 1, completedProviderPages: 1, lastError: 'retry_required' });
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
+  it('does not publish progress for an expired provider lease', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    vi.mocked(deps.eraseProvider).mockImplementationOnce(async () => { advance(11 * 60_000); return false; });
+    await runAccountDeletion(uid, deps);
+    const job = (await ref.get()).data()!;
+    expect(job.attempts).toBe(1);
+    expect(job).not.toHaveProperty('completedProviderPages');
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+  });
+
   it('continues beyond 50 completed chat pages without consuming failure attempts', async () => {
     const { uid, ref, deps, advance } = await setup();
     vi.mocked(deps.purge).mockImplementation(async () => { throw new DeletionPageComplete(); });
@@ -206,3 +244,4 @@ describe('real chat purge pagination', { timeout: 30_000 }, () => {
     expect((await unrelated.collection('messages').doc('test').get()).exists).toBe(true);
   });
 });
+

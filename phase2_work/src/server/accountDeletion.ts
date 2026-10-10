@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
-import { DeletionPageComplete, DeletionTimeSliceComplete } from './deletionProgress';
+import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionProviderPageComplete, DeletionStoragePageComplete } from './deletionProgress';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
@@ -78,12 +78,18 @@ export async function eraseDiditPage(uid: string, _requestId: string, apiKey: st
   const listing = await call(`https://verification.didit.me/v3/sessions/?vendor_data=${encodeURIComponent(uid)}&session_kind=user&limit=5`, { method: 'GET' });
   if (!listing.ok) throw new Error('didit_erasure_unavailable');
   const page = z.object({ results: z.array(z.object({ session_id: z.string().uuid(), vendor_data: z.literal(uid) })).max(100) }).parse(await readDiditJson(listing));
+  let deleted = 0;
   for (const session of page.results.slice(0, 5)) {
     const response = await call(`https://verification.didit.me/v3/session/${session.session_id}/delete/`, { method: 'DELETE' });
     if (response.status === 404) continue;
     if (response.status !== 204) throw new Error('didit_erasure_unavailable');
+    deleted++;
   }
-  if (page.results.length) return false;
+  if (page.results.length) {
+    // A stale listing returning only 404s must not grant unlimited free retries.
+    if (!deleted) throw new Error('didit_erasure_no_progress');
+    return false;
+  }
   const response = await call('https://verification.didit.me/v3/users/delete/', { method: 'POST', body: JSON.stringify({ vendor_data_list: [uid] }) });
   if (!response.ok) throw new Error('didit_erasure_unavailable');
   z.object({ deleted: z.number().int().min(0).max(1) }).parse(await readDiditJson(response));
@@ -130,7 +136,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
   try {
     await deps.disable(uid);
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId);
-    if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new Error('provider_more_pages');
+    if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new DeletionProviderPageComplete();
     await deps.purge(uid, job.requestId, lease);
     // Provider deletion is irreversible. Re-read the authoritative job state
     // immediately before the provider boundary so a worker that lost its lease
@@ -170,16 +176,20 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
       }
     });
   } catch (error) {
-    if (error instanceof DeletionPageComplete || error instanceof DeletionTimeSliceComplete) {
+    if (error instanceof DeletionPageComplete || error instanceof DeletionTimeSliceComplete || error instanceof DeletionProviderPageComplete || error instanceof DeletionStoragePageComplete) {
       // Acknowledged deletions are the checkpoint: subsequent queries only see
       // remaining documents. Preserve genuine failures across bounded progress.
       await runObservedTransaction(deps.db, 'accountDeletion.continuePage', async tx => {
         const current = (await tx.get(ref)).data();
-        if (current?.status !== 'pending' || current.lease !== lease) return;
+        if (current?.status !== 'pending' || current.lease !== lease || current.leaseUntil <= deps.now()) return;
         tx.update(ref, {
           attempts: Math.max(0, current.attempts - 1),
           ...(error instanceof DeletionPageComplete
             ? { completedPages: (current.completedPages ?? 0) + 1 }
+            : error instanceof DeletionProviderPageComplete
+            ? { completedProviderPages: (current.completedProviderPages ?? 0) + 1 }
+            : error instanceof DeletionStoragePageComplete
+            ? { completedStoragePages: (current.completedStoragePages ?? 0) + 1 }
             : { completedSlices: (current.completedSlices ?? 0) + 1 }),
           lastError: null,
           nextAttemptAt: new Date(deps.now() + 1_000),
@@ -199,3 +209,4 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     }
   }
 }
+

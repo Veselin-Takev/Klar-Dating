@@ -1,5 +1,5 @@
 import { deletionAccounting, type DeletionCounter } from './deletionAccounting';
-import { DeletionPageComplete, runDeletionSlice, checkDeletionSlice, recordDeletionProgress } from './deletionProgress';
+import { DeletionPageComplete, DeletionStoragePageComplete, runDeletionSlice, checkDeletionSlice, recordDeletionProgress } from './deletionProgress';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
@@ -490,7 +490,8 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     await loescheAbfrage(db.collection('app_feedback').where('uid', '==', meineUid));
     for (const field of ['inviterUid', 'inviteeUid']) await loescheAbfrage(db.collection('referral_events').where(field, '==', meineUid));
     for (const field of ['userA', 'userB']) await loescheAbfrage(db.collection('matches').where(field, '==', meineUid));
-    await deleteAccountPhotos(getAppBucket(), meineUid);
+    checkDeletionSlice();
+    if (!await deleteAccountPhotos(getAppBucket(), meineUid)) throw new DeletionStoragePageComplete();
     await loescheAbfrage(db.collection('mail_queue').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_requests').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_events').where('uid', '==', meineUid));
@@ -571,3 +572,4 @@ export async function handleDeleteAccount(req: Request, res: Response): Promise<
     res.status(503).json({ error: 'Löschauftrag derzeit nicht bestätigbar. Bitte erneut versuchen.' });
   }
 }
+

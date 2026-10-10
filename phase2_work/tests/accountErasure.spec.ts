@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -36,6 +36,7 @@ describe('account erasure including archived messages and photos', () => {
     // Worker leasing, provider ordering, final_sweep and completion are covered
     // by the deterministic deletionLifecycle suite.
     const deletionRequestId = result.requestId as string;
+    await expect(purgeAccountData(uid, deletionRequestId)).rejects.toBeInstanceOf(DeletionStoragePageComplete);
     await purgeAccountData(uid, deletionRequestId);
     expect((await db.collection('users').doc(uid).get()).exists).toBe(false);
     expect((await db.collection('users').doc(uid).collection('ai_budget').get()).empty).toBe(true);
@@ -103,3 +104,4 @@ describe('account erasure including archived messages and photos', () => {
     expect((await getDb().doc('account_deletions/stale-session').get()).exists).toBe(false);
   });
 });
+

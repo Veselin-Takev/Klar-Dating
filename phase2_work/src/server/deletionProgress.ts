@@ -1,5 +1,13 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+export class DeletionProviderPageComplete extends Error {
+  constructor() { super('deletion_provider_progress'); this.name = 'DeletionProviderPageComplete'; }
+}
+
+export class DeletionStoragePageComplete extends Error {
+  constructor() { super('deletion_storage_progress'); this.name = 'DeletionStoragePageComplete'; }
+}
+
 /** A completed destructive page is durable progress, not a failed attempt. */
 export class DeletionPageComplete extends Error {
   constructor() {
@@ -34,3 +42,4 @@ export function checkDeletionSlice(): void {
   if (slice.progressed) throw new DeletionTimeSliceComplete();
   throw new Error('deletion_time_slice');
 }
+
