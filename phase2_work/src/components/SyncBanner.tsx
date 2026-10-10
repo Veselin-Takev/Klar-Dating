@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { flushOfflineQueue } from "../lib/offlineQueue";
+import { flushOfflineQueue, OFFLINE_REPLAY_CANCEL_EVENT } from "../lib/offlineQueue";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -12,8 +12,9 @@ export const SyncBanner: React.FC = () => {
   useEffect(() => {
     let disposed = false;
     let active: { uid: string; controller: AbortController } | null = null;
+    let pausedUid: string | null = null;
     const syncForUser = async (user: typeof auth.currentUser) => {
-      if (!user || disposed) return;
+      if (!user || disposed || pausedUid === user.uid) return;
       // Auth listener and initial online event may fire together. Never
       // concurrently replay the same queue, and cancel old-account work.
       if (active?.uid === user.uid) return;
@@ -58,7 +59,15 @@ export const SyncBanner: React.FC = () => {
       if (!disposed) setIsSyncing(false);
     };
 
+    const cancelReplay = () => {
+      pausedUid = auth.currentUser?.uid ?? null;
+      active?.controller.abort();
+      active = null;
+      if (!disposed) setIsSyncing(false);
+    };
+
     const unsubscribeAuth = onAuthStateChanged(auth, user => {
+      if (user?.uid !== pausedUid) pausedUid = null;
       if (active && active.uid !== user?.uid) {
         active.controller.abort();
         active = null;
@@ -72,6 +81,7 @@ export const SyncBanner: React.FC = () => {
       }
     });
     // The auth listener initiates the first sync. Avoid a duplicate kick-off.
+    window.addEventListener(OFFLINE_REPLAY_CANCEL_EVENT, cancelReplay);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
@@ -79,6 +89,7 @@ export const SyncBanner: React.FC = () => {
       disposed = true;
       active?.controller.abort();
       unsubscribeAuth();
+      window.removeEventListener(OFFLINE_REPLAY_CANCEL_EVENT, cancelReplay);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
