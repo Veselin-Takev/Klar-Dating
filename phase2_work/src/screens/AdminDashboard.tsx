@@ -115,7 +115,7 @@ function FailedApiLogWidget() { return null; }
 function AuthSessionDiagnosticWidget() { return null; }
 
 export default function AdminDashboard() {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'sync' | 'system' | 'compliance' | 'i18n' | 'partners'>('system');
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [averageLatency, setAverageLatency] = useState(0);
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const storedLogs = currentUser?.uid ? getSyncLogs(currentUser.uid) : [];
+        const storedLogs = user?.uid ? getSyncLogs(user.uid) : [];
         setLogs(storedLogs);
         if (storedLogs.length > 0) {
           const avg = storedLogs.reduce((acc, l) => acc + (l.latencyMs ?? 0), 0) / storedLogs.length;
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
     };
     fetchLogs();
 
-  }, [currentUser?.uid]);
+  }, [user?.uid]);
 
   const handleClearLogs = async () => {
     await clearSyncLogs();
