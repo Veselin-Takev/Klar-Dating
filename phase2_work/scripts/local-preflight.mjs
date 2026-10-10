@@ -48,11 +48,16 @@ try {
   const finalSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (finalSha !== report.gitSha) throw new Error('Git HEAD changed during local preflight.');
   report.status = 'PASS';
-  console.log('Local preflight PASS. This is not production approval.');
 } catch (error) {
   report.error = error instanceof Error ? error.message : String(error);
   console.error(report.error);
   process.exitCode = 1;
 } finally {
-  persist();
+  try {
+    persist();
+    if (report.status === 'PASS') console.log('Local preflight PASS. This is not production approval.');
+  } catch (error) {
+    process.exitCode = 1;
+    console.error('Local preflight evidence could not be stored:', error instanceof Error ? error.message : String(error));
+  }
 }
