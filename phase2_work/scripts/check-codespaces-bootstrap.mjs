@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,6 +8,8 @@ const read = path => readFileSync(resolve(repositoryRoot, path), 'utf8');
 const configuration = JSON.parse(read('.devcontainer/devcontainer.json'));
 const script = read('phase2_work/scripts/setup-codespace.sh');
 const failures = [];
+const syntax = spawnSync('bash', ['-n', resolve(repositoryRoot, 'phase2_work/scripts/setup-codespace.sh')], { encoding: 'utf8' });
+if (syntax.error || syntax.status !== 0) failures.push('Codespaces bootstrap Bash syntax failed: ' + (syntax.stderr || syntax.error?.message || 'unknown error'));
 
 if (configuration.postCreateCommand !== 'bash phase2_work/scripts/setup-codespace.sh') {
   failures.push('Root Codespaces postCreateCommand must invoke the pinned bootstrap.');
