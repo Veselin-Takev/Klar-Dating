@@ -21,3 +21,10 @@ test('audit avoids serializing the full report to console', () => {
 test('gcloud audit commands have bounded time and output', () => {
  assert.match(script, /execFileSync\('gcloud', args, \{[^\n]*timeout:\s*30_000,\s*maxBuffer:\s*2 \* 1024 \* 1024/);
 });
+
+test('audit looks up Secret Manager IAM by resolved Cloud Run resources, not env var names', () => {
+  assert.match(script, /const cloudRun = auditCloudRunService\(\{ service: serviceJson, expectedServiceAccount, requiredSecrets \}\)/);
+  assert.match(script, /const reference = cloudRun\.secretReferences\[envName\]/);
+  assert.match(script, /get-iam-policy',reference,'--project',project/);
+  assert.doesNotMatch(script, /get-iam-policy',secret,'--project',project/);
+});
