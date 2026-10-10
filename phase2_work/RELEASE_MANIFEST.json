@@ -56,7 +56,7 @@
     "firebaseTests": "NOT_RUN",
     "playwrightTests": "NOT_RUN",
     "productionSecurityPreflight": "NOT_RUN",
-    "codespacesConfiguration": "SOURCE_REVIEWED_NOT_EXECUTED",
+    "codespacesConfiguration": "NODE_DEFAULT_PIN_FIXED_NOT_END_TO_END_VALIDATED",
     "localDiagnostics": "21_PASS_0_FAIL_NODE_22.16.0_ISOLATED_COPIES",
     "blockers": [
       "full clean checkout unavailable",
@@ -66,6 +66,7 @@
       "no verified live production access or operational attestation"
     ],
     "budgetPolicy": "max 100 additional GitHub Actions minutes; none spent in this iteration",
-    "lastVerificationDate": "2026-10-10"
+    "lastVerificationDate": "2026-10-10",
+    "networkCheckout": "DNS_BLOCKED"
   }
 }
