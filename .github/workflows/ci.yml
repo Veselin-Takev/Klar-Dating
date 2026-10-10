@@ -64,6 +64,9 @@ jobs:
       - name: Offline queue index regression
         if: steps.scope.outputs.full == 'true'
         run: node --experimental-strip-types --test scripts/offline-queue-index.test.mjs scripts/legacy-queue-isolation.test.mjs scripts/offline-replay-auth.test.mjs scripts/offline-retry-scheduler.test.mjs scripts/offline-delivery-receipt.test.mjs
+      - name: Chat retry idempotency regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/chat-replay-idempotency.test.mjs
       - name: Dependency lock preflight
         if: steps.scope.outputs.full == 'true'
         run: node scripts/check-dependency-locks.mjs
