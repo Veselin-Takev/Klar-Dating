@@ -24,7 +24,7 @@ test('missing executable yields ENOENT without stdout and cannot satisfy toolcha
     encoding: 'utf8', timeout: 1000,
   });
   assert.equal(missing.error?.code, 'ENOENT');
-  assert.equal(missing.stdout, null);
+  assert.equal(missing.stdout == null, true, 'stdout is absent (null or undefined)');
   assert.notEqual(missing.status, 0);
 });
 
