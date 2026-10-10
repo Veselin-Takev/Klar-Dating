@@ -131,3 +131,10 @@ No remote workflow, merge, or deployment was initiated. Production remains **NO-
 Inspection of the *actual GitHub source bytes* found that `parseStrictIso` contained literal double backslashes before the `d` digit class and literal dot escape inside a regex literal. This makes otherwise valid ISO date-time strings fail pattern matching, effectively blocking positive operational-evidence validation. The candidate fix normalizes these to single regex escapes (one backslash before `d` and `.`) and adds a regression that checks valid UTC and explicit-offset ISO timestamps.
 
 **Executed targeted check:** Node v22.16.0 ran five pattern cases: three supported timestamps accepted, two incomplete/natural-language dates rejected; process exited 0. Source blob commit: `fa9380a4176fc89c908d69a448c9e14216e74f98`. This is *regex-specific*, not a Vitest run of the complete TypeScript module. The regression has been committed, but full validation at Node 22.23.3 / Bun 1.4.2 remains PENDING. **No release approval**, no remote Actions run, no merge or deployment; current release remains **NO-GO** with 100-minute incremental Actions limit.
+
+
+## 2026-10-10 — Remove wall-clock dependence from positive ISO regression
+
+The existing valid ISO-with-offset regression used October 10, 2026 midday timestamps. Because the validator correctly rejects events more than five minutes in the future, running that test before its hard-coded event time could fail for reasons unrelated to parsing. Replaced those five ISO fixture timestamps with September 29, 2026 historical values (maintaining offset and event-order coverage) and clarified the test comment.
+
+**Executed check:** 8 Node v22.16.0 assertions passed on the fixture values (five parseable dates, chronological relationships, and no future timestamps; isolated script, not Vitest). The actual repository Vitest suite and complete pinned-toolchain preflight have **not** been executed here. No GitHub Actions runs, merge, or deployment. Operational evidence remains pending and production remains **NO-GO**.
