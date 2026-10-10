@@ -22,7 +22,7 @@ export function analyzeVitestReport(report) {
       throw new Error('Inconsistent Vitest assertion statuses.');
     }
     return {
-      suite: basename(suite.name.replaceAll('\\\\', '/')),
+      suite: basename(suite.name.split(String.fromCharCode(92)).join('/')),
       durationMs: Math.round(duration),
       tests: Array.isArray(suite.assertionResults) ? suite.assertionResults.length : 0,
       status: String(suite.status ?? 'unknown'),
