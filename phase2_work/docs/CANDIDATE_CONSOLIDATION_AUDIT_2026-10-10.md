@@ -136,3 +136,12 @@ Authenticated GitHub comparison of the working branch against `main` now reports
 6. Keep production **NO-GO** unless all previous gates are evidenced and authorized. No merger, CI consumption, or deployment was carried out during this audit update.
 
 **Execution limitation in this session:** a complete clean repository checkout and the required pinned Node/Bun runtime are not available, so the full candidate preflight cannot truthfully be marked complete here.
+
+
+## 2026-10-10 — Full-preflight execution feasibility: blocked, verified in actual executor
+
+The release acceptance was attempted at the environment-readiness stage, not silently marked green. The local `/mnt/data` workspace contains **only isolated diagnostic directories** (`klar-ci`, `klar-ci-diagnostics`, `klar-provenance`, `klar-release-sha`, `klar-report-guard`) and no full repository checkout. Actual shell inspection found Node **v22.16.0**, Java **21.0.12.1**, and **no Bun executable**. A read-only `git ls-remote https://github.com/Veselin-Takev/Klar-Dating.git HEAD` failed with **Could not resolve host: github.com**. Thus the executor cannot fetch the complete candidate, satisfy the mandated Node 22.23.3/Bun 1.4.2 toolchain, or run the real `verify:local` gate. This is an **environment/infrastructure BLOCKED** state, **not a code PASS or test failure**.
+
+**Handoff to a networked local CI runner:** acquire a clean full checkout of the reviewed SHA, install exact pinned versions (Node 22.23.3, Bun 1.4.2, Java 21), provision compatible OS browser libraries and service emulators, export the pre-reviewed `KLAR_EXPECTED_SHA`, then run `cd phase2_work && bun run verify:local` and preserve the write-once report outside the checkout. Confirm SHA, toolchain, all step exit codes and the external report. If any test fails, produce a reproducible failure report and patch that specific defect before rerunning on the new SHA. Never claim the browser, Firebase or production safety gates have been exercised in this executor.
+
+**Budget and release guardrails:** no GitHub Actions job was started, no merge or deployment performed; cumulative authorized *additional* Actions limit remains **100 minutes**. Production remains **NO-GO** pending complete technical, operational and accountable human approval.
