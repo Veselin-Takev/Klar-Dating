@@ -10,6 +10,8 @@ Required environment variables:
 - `KLAR_EXPECTED_SERVICE_ACCOUNT`
 - `KLAR_REQUIRED_SECRETS` — comma-separated environment-variable names that must be backed by Secret Manager references in Cloud Run
 - `KLAR_REQUIRED_ALERT_POLICIES` — comma-separated exact Monitoring policy display names that must be enabled
+- `KLAR_EXPECTED_SHA` — exact full Git commit SHA of the local audited checkout, mandatory to prevent cross-build evidence
+- `KLAR_PRODUCTION_CONTROLS_OUTPUT` — optional absolute path **outside** the repository for private, write-once audit evidence
 
 The audit checks:
 
@@ -17,9 +19,9 @@ The audit checks:
 2. Required secret environment variables use Secret Manager references rather than plaintext values.
 3. The runtime principal does not hold primitive project Owner/Editor roles.
 4. The runtime principal has `roles/secretmanager.secretAccessor` on every declared secret.
-5. At least one enabled/verified notification channel exists and every declared alert policy is enabled.
+5. Every required Monitoring alert policy is explicitly enabled, has no API-reported `validity` error, and is **linked via `notificationChannels`** to a named, non-disabled channel whose `verificationStatus` is explicitly `VERIFIED`. An unrelated verified channel does not satisfy a required policy. Missing status, `UNVERIFIED`, or unspecified/exempt status does not constitute *explicit verification evidence* for this automated release check; operator-led delivery evidence is still required.
 
-The report is written to `production-evidence/controls.json` unless `KLAR_PRODUCTION_CONTROLS_OUTPUT` overrides the path.
+By default the audit creates a private, write-once JSON report in the operating system's temporary directory (`klar-production-controls-<pid>.json`). Set `KLAR_PRODUCTION_CONTROLS_OUTPUT` to an approved external evidence path when durable archiving is required. **Repository-internal output paths are rejected**, and existing output files are never overwritten. Do not commit audit evidence or credentials to Git. Save the file in the approved evidence vault and record its exact build SHA, creation time, reviewer and controlled link in the release checklist.
 
 ## Limits
 
