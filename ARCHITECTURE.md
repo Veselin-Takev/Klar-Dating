@@ -45,19 +45,19 @@ The Klar platform consists of a React client, Express/Node API, Firebase Auth/Fi
 
 ## AI architecture
 
-See [Phase-2 Solution Design](docs/architecture/SOLUTION_DESIGN.md) for the C4 model, data flows, RAG boundary and failure behavior.
+See [Phase-2 Solution Design](phase2_work/docs/architecture/SOLUTION_DESIGN.md) for the C4 model, data flows, RAG boundary and failure behavior.
 
 ## Governance
 
-See [AI Governance RACI](docs/governance/AI_GOVERNANCE_RACI.md) for lifecycle ownership, risk classes and human approval thresholds.
+See [AI Governance RACI](phase2_work/docs/governance/AI_GOVERNANCE_RACI.md) for lifecycle ownership, risk classes and human approval thresholds.
 
 ## FinOps
 
-See [Budget & Telemetry](docs/finops/BUDGET_AND_TELEMETRY.md) and `config/ai-budget.json` for cost controls.
+See [Budget & Telemetry](phase2_work/docs/finops/BUDGET_AND_TELEMETRY.md) and `phase2_work/config/ai-budget.json` for cost controls.
 
 ## Existing provider gateway
 
-The Phase-2 orchestration layer complements the existing server-side AI gateway in `src/server/aiBudget.ts` and prompt-security implementation in `src/server/platform/aiPromptSecurity.ts`. It does not authorize direct browser-to-provider access.
+The Phase-2 orchestration layer complements the existing server-side AI gateway in `phase2_work/src/server/aiBudget.ts` and prompt-security implementation in `phase2_work/src/server/platform/aiPromptSecurity.ts`. It does not authorize direct browser-to-provider access.
 
 ## Production status
 
