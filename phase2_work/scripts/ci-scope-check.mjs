@@ -44,3 +44,16 @@ test('renamed or deleted code paths cannot qualify as narrative-only', () => {
   const source = readFileSync(new URL('./ci-scope.mjs', import.meta.url), 'utf8');
   assert.match(source, /'--no-renames'/);
 });
+
+test('dependency caches are restored only after cheap validation gates', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const codespaces = workflow.indexOf('      - name: Codespaces bootstrap regression');
+  const evidence = workflow.indexOf('      - name: Production audit evidence regressions');
+  const locks = workflow.indexOf('      - name: Dependency lock preflight');
+  const cache = workflow.indexOf('      - name: Restore dependency downloads');
+  const install = workflow.indexOf('      - name: Install dependencies');
+  assert.ok(codespaces >= 0 && codespaces < evidence && evidence < locks && locks < cache && cache < install);
+  assert.doesNotMatch(workflow, /^\s*cache:\s*npm\s*$/m);
+  assert.match(workflow, /~\/\.npm/);
+  assert.match(workflow, /hashFiles\('phase2_work\/bun\.lock', 'phase2_work\/functions\/package-lock\.json'\)/);
+});
