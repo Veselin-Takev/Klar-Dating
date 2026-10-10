@@ -34,6 +34,7 @@ function links(values: unknown, label: string, errors: string[], approvedHosts: 
     if (typeof raw !== 'string' || !raw.trim()) { errors.push(label + ' contains an invalid link'); continue; }
     try { const url = new URL(raw); if (!['https:','gs:'].includes(url.protocol)) errors.push(label + ' links must use https or gs');
       if (url.username || url.password || url.hash || url.search || url.port || !url.hostname) errors.push(label + ' links must not contain credentials, query strings, fragments, custom ports or empty hosts');
+      if (!url.pathname || url.pathname === '/' || url.pathname.split('/').filter(Boolean).length === 0) errors.push(label + ' must reference a specific evidence record, not a host root');
           const host = url.hostname.toLowerCase();
       if (approvedHosts.size > 0 && !approvedHosts.has(host)) errors.push(label + ' link host is not an approved evidence source'); }
     catch { errors.push(label + ' contains an invalid link'); }
