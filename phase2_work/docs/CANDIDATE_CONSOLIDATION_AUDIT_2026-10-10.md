@@ -83,3 +83,16 @@ KLAR_EXPECTED_SHA="$(git rev-parse --verify HEAD^{commit})" bun run verify:local
 Review of `scripts/local-preflight.mjs` identified that the final browser acceptance command still used `bunx playwright test` even after the early Vitest invocation was changed to use the frozen project installation. The application declares `@playwright/test` in its package manifest. The candidate preflight now invokes `bun run playwright test`, resolving the installed local binary from the frozen `bun ci` dependencies and avoiding an implicit remote version resolution.
 
 **Review performed:** verified the changed preflight command against the repository manifest (`@playwright/test` declared) and ensured the browser step remains mandatory and positioned after the production smoke gate. **No full browser test was executed in this runtime**; Node 22.23.3, Bun 1.4.2 and full checkout are still required. No GitHub Actions, merge or deployment. Release remains **NO-GO** with the user's 100-minute additional Actions budget limit intact.
+
+
+## 2026-10-10 — Executed 21 local diagnostic tests and explicit toolchain evidence
+
+Actually executed in the available container:
+```sh
+node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs /mnt/data/klar-release-sha/*.test.mjs
+```
+Observed **21 PASS / 0 FAIL / exit code 0**, duration ~115 ms, Node v22.16.0. This covers isolated report-path, Git provenance, CI diagnostics and expected-SHA checks; **the isolated files are not a verified complete candidate checkout** and no Bun is available.
+
+A separate source improvement now places the successfully validated Node, Bun and Java version strings into `report.toolchain` alongside the exact `report.gitSha` and step results. This makes the future local result easier to audit against mandated Node 22.23.3, Bun 1.4.2 and Java 21. The new report-field change itself has **not** passed a complete pinned-toolchain preflight.
+
+Maintain **NO-GO**: a clean 21/21 isolated diagnostic suite cannot replace the full application tests, Firebase/Playwright runs, signed operational evidence, or human approval. No new GitHub Actions run, merge or deployment; 100-minute incremental Actions ceiling remains binding.
