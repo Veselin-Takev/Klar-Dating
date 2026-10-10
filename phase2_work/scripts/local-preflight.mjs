@@ -50,6 +50,8 @@ try {
   for (const script of ['check:enterprise', 'typecheck', 'check:functions', 'test:ci', 'build', 'test:production']) {
     run(script, 'bun', ['run', script]);
   }
+  // CI installs Chromium before Playwright. Mirror browser provisioning locally.
+  run('Install Playwright Chromium', 'bun', ['run', 'playwright', 'install', 'chromium']);
   run('Browser acceptance', 'bun', ['run', 'playwright', 'test']);
   const finalSha = verifyLocalProvenance(resolve(cwd, '..'));
   if (finalSha !== report.gitSha) throw new Error('Git HEAD changed during local preflight.');
