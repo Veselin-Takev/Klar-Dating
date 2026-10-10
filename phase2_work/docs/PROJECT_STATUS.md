@@ -1,3 +1,9 @@
+## P1 FE-02 IndexedDB Offline-Queue: Indexed Reads — 2026-10-10
+
+Die bisherige globale `getAll()`-Abfrage wurde für Benutzer-Queue-Einträge durch `ownerUid`-Indexabfragen ersetzt. Checklisten verwenden direkte Primärschlüssel-Abfragen mit zusätzlicher Owner-Kontrolle. Hilfsmodul und gezielte funktionale Regression lokal unter Node 22.16.0 geprüft (2/2 PASS; Original-Helper per SHA bestätigt). CI-Regressionsprüfung vor Dependency-Installation integriert. **Keine vollständige Browser-/Emulator-/gepinnten Toolchain-Abnahme**. Separat offen: Legacy-`memoryQueue` mit nicht durchgehend UID-spezifischer Deduplizierung und Synchronisierung. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Release **NO-GO**; R2 unverändert.
+
+---
+
 ## End-to-End Enterprise Audit — 2026-10-10 (NO-GO)
 
 Aktueller Domain-Audit und priorisierte ICE-Maßnahmen: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Neu korrigiert auf dem Entwicklungsbranch: PII-Sanitizer für generische `data`-Felder, unabhängige achtteilige Load/Cost-Freigabe-CLI und fail-closed Compliance-Retry bei fehlender API-Konfiguration. Lokale Targeted-Checks (2 + 3 + 2) bestanden; der gepinnte Voll-Lauf, echte Cloud-/Billing-/Alarmzustellung und Human Release Approval bleiben offen. R2 unverändert, **NO-GO**.
