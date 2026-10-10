@@ -238,3 +238,9 @@ Ran `node --test local-preflight-timeout.test.mjs` in `/mnt/data/klar-timeout-re
 **Actual final execution:** Refreshed both local files to byte-identical GitHub blobs: test SHA **`063148f3610e9a41d5d4d4b4b4bb2df941d57911`**, preflight SHA **`aeb376046793f52b43b509d028ad60b653f15ab1`**, confirmed with `git hash-object`. `node --test local-preflight-timeout.test.mjs` yielded **4 PASS, 0 FAIL**, ~**244 ms** on Node 22.16.0. These are genuine original-file targeted tests, **not** full pinned-toolchain validation.
 
 **Remaining gates:** full clean checkout, Node 22.23.3/Bun 1.4.2, TypeScript/Firebase/Playwright, live Cloud Run/IAM/monitoring audit and human approval NOT RUN. Frozen R2 untouched; 0 Actions minutes, no merge/deployment. **NO-GO**.
+
+## 2026-10-10 — Cache restore after cheap fail-fast checks
+
+**Verified CI ordering inefficiency:** GitHub `.github/workflows/ci.yml` restored npm/Bun/Firebase dependency caches *before* running the dependency lockfile gate and Codespaces/production-evidence source regressions. These cheap security checks should fail fast before cache actions are incurred. **Fix:** Moved the existing `Restore dependency downloads` step to immediately after `Dependency lock preflight`, before `Install dependencies` (development commit `8860280ae24566c87d211bb3cda220de89cf28da`). Cache key and paths remain unchanged. Source order now: Codespaces regression → production evidence regressions → dependency lock gate → restore downloads → install.
+
+**Verification:** fetched and modified current CI YAML source, GitHub accepted commit; no remote workflow execution or measured minute savings. Root R2 remains frozen, no Actions minutes, merge or deployment. Full exact-SHA TypeScript/Firebase/Playwright/security verification remains outstanding; official **NO-GO**.
