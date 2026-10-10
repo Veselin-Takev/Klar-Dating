@@ -103,7 +103,7 @@ test('syncQueuedActions successfully sends messages, logs latency and clears que
   const remaining = await getQueuedActions('user-sync');
   assert.equal(remaining.length, 0);
 
-  const logs = await getSyncLogs();
+  const logs = await getSyncLogs('user-sync');
   assert.equal(logs.length, 1);
   assert.equal(logs[0]!.type, 'SEND_MESSAGE');
   assert.equal(logs[0]!.status, 'success');
@@ -228,4 +228,22 @@ test('clearing one owner leaves the other owners queued messages untouched', asy
   await clearQueueForUser('user-alice');
   assert.deepEqual(await getQueuedActions('user-alice'), []);
   assert.equal((await getQueuedActions('user-bob')).length, 1);
+});
+
+test('legacy sync logs never expose entries owned by another user', async () => {
+  await enqueueChatMessage('chat-alice', 'Alice only', 'log-alice', 'user-alice');
+  await enqueueChatMessage('chat-bob', 'Bob only', 'log-bob', 'user-bob');
+  const fetchFn = async () => ({ ok: false, status: 503, json: async () => ({ code: 'temporary_down' }) });
+  await syncQueuedActions({ ownerUid: 'user-alice', authToken: 'alice-token', fetchFn });
+  await syncQueuedActions({ ownerUid: 'user-bob', authToken: 'bob-token', fetchFn });
+  const aliceLogs = getSyncLogs('user-alice');
+  const bobLogs = getSyncLogs('user-bob');
+  assert.equal(aliceLogs.length, 1);
+  assert.equal(bobLogs.length, 1);
+  assert.ok(aliceLogs.every(entry => entry.ownerUid === 'user-alice'));
+  assert.ok(bobLogs.every(entry => entry.ownerUid === 'user-bob'));
+  await clearQueueForUser('user-alice');
+  assert.equal(getSyncLogs('user-alice').length, 0);
+  assert.equal(getSyncLogs('user-bob').length, 1);
+  assert.throws(() => getSyncLogs(''), /owner/i);
 });
