@@ -41,6 +41,8 @@ try {
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
   run('CI scope regression', 'node', ['--test', 'scripts/ci-scope-check.mjs']);
   run('Runtime alignment', 'node', ['scripts/check-runtime-node-alignment.mjs']);
+  // Fast, emulator-free production-evidence regressions before expensive integration suites.
+  run('Operational evidence regression', 'bunx', ['vitest', 'run', 'tests/operationalControlEvidence.spec.ts']);
   for (const script of ['check:enterprise', 'typecheck', 'check:functions', 'test:ci', 'build', 'test:production']) {
     run(script, 'bun', ['run', script]);
   }
