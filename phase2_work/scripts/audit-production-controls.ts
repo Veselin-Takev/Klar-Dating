@@ -23,7 +23,7 @@ function csv(name: string): string[] {
 }
 
 function gcloud(args: string[]): unknown {
-  const output = execFileSync('gcloud', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const output = execFileSync('gcloud', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
   return JSON.parse(output || 'null');
 }
 
