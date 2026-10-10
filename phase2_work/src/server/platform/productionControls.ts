@@ -112,6 +112,7 @@ export function auditSecretPolicies(
     const bindings = records(secretPolicy.bindings);
     const accessor = bindings.some(binding =>
       binding.role === 'roles/secretmanager.secretAccessor' &&
+      binding.condition == null &&
       Array.isArray(binding.members) &&
       binding.members.includes(member),
     );
