@@ -76,3 +76,10 @@ KLAR_EXPECTED_SHA="$(git rev-parse --verify HEAD^{commit})" bun run verify:local
 **Important:** for genuine independent release approval, the value must be pinned in advance by the release process and cross-checked against the artifact/deployment record, not merely derived from whatever happens to be checked out.
 
 **Executed narrow tests:** the new `scripts/expected-sha.test.mjs` ran under local Node 22.16.0: **5/5 passed, 0 failures**. Existing diagnostic tests previously passed 16/16. These are isolated test copies; full exact candidate `verify:local` with Node 22.23.3/Bun 1.4.2/Java 21 remains **PENDING**. No new remote GitHub Actions runs, merge or deployment. Production **NO-GO**; 100-minute incremental Actions limit unchanged.
+
+
+## 2026-10-10 — Browser acceptance uses frozen local Playwright dependency
+
+Review of `scripts/local-preflight.mjs` identified that the final browser acceptance command still used `bunx playwright test` even after the early Vitest invocation was changed to use the frozen project installation. The application declares `@playwright/test` in its package manifest. The candidate preflight now invokes `bun run playwright test`, resolving the installed local binary from the frozen `bun ci` dependencies and avoiding an implicit remote version resolution.
+
+**Review performed:** verified the changed preflight command against the repository manifest (`@playwright/test` declared) and ensured the browser step remains mandatory and positioned after the production smoke gate. **No full browser test was executed in this runtime**; Node 22.23.3, Bun 1.4.2 and full checkout are still required. No GitHub Actions, merge or deployment. Release remains **NO-GO** with the user's 100-minute additional Actions budget limit intact.
