@@ -5,6 +5,8 @@ export default mergeConfig(viteConfig({} as any), defineConfig({
   test: {
     exclude: [
       '**/node_modules/**',
+      // Node's built-in test suites are run explicitly via node --test.
+      '**/scripts/*.test.mjs',
       '**/e2e/**',
       '**/tests/e2e/**',
       '**/rules-diagnose.spec.ts',
