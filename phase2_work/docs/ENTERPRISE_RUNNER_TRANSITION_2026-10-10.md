@@ -57,3 +57,9 @@ Independent security and operations owners must verify, in the real intended pro
 - R2 does **not** incorporate later Codespaces modifications or this document. Do not treat them as validated in R2.
 - Blocking issue: #8. Runner owner must record provisioning ticket, tested DNS reachability, exact repository SHA, full preflight log, failures, CI minutes consumed, and independent reviewer approval before any status transition.
 - If runner prerequisites remain unavailable, **NO-GO**; no fabricated check results or auto approval.
+
+## E. Codespaces discovery correction — 2026-10-10
+
+**Verified source defect:** previously the only devcontainer configuration lived under `phase2_work/.devcontainer/devcontainer.json`; the GitHub repository root lacked both `.devcontainer/devcontainer.json` and `.devcontainer.json`. A default repository-root Codespace therefore had no reliably discoverable project configuration. **Remediated on the development branch:** added root `.devcontainer/devcontainer.json`, which invokes `bash phase2_work/scripts/setup-codespace.sh`, uses Node 22/Java 21 devcontainer features and exposes the existing app/emulator ports. The exact Node 22.23.3 and Bun 1.4.2 pins are enforced by the bootstrap; the base image's broad Node 22 tag alone is not an exact pin. The nested configuration is retained for compatibility, not treated as the primary root entry point.
+
+**Local verification:** the root JSON was constructed with `JSON.stringify` and validated with `JSON.parse`; the existing setup script and preflight were inspected against the instructions. **Not verified:** actual Codespaces creation, network egress, full checkout and enterprise integration tests. This fix is not in frozen R2; use the development branch only when verifying the new Codespaces wiring, and retain separately approved full SHAs for official release verification. Operational status remains **NO-GO**.
