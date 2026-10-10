@@ -173,3 +173,10 @@ node scripts/analyze-vitest-duration.mjs /private/approved/path/vitest-report.js
 Keep the original test process exit status as the authoritative result; profiler output never promotes a failed test run to PASS. Use a private absolute report path (the example is illustrative), and do not commit raw test results. Do not modify `fileParallelism: false` until database-isolated concurrent tests are proven. The complete required `bun run verify:local` remains a separate prerequisite for remote promotion.
 
 **Validation distinction:** the documented reporter shape was checked against the official Vitest reporter documentation; a regression fixture was added to the candidate. Full local test execution was not performed in the available environment and remains pending. No Actions run requested; 100-minute authorization cap unchanged. Production remains NO-GO.
+
+
+## 2026-10-10 — Fail-closed Vitest report hardening
+
+The offline `analyze-vitest-duration.mjs` profiler now rejects missing global success flags, invalid reported test counts, malformed suite objects, unrecognized suite statuses, and inconsistent/truncated test totals. Its JSON summary includes an explicit `overallStatus`; the CLI exits nonzero for a failing test run. This is important: a performance-profile generation must **never** be presented as passing test evidence when Vitest failed.
+
+Regression fixtures have been extended for truncated/malformed input, contradictory status and privacy-safe failure data. **Implementation committed to the isolated candidate branch; full pinned-toolchain execution remains PENDING.** No claim of full local acceptance or official release approval is made. No Actions workflow was intentionally triggered. GitHub Actions limit remains 100 newly authorized minutes subject to actual billing reconciliation; production remains NO-GO.
