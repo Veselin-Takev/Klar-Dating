@@ -193,3 +193,12 @@ cd phase2_work
 KLAR_EXPECTED_SHA=286a991e776885199bb1028d380e239821de88ac bun run verify:local
 ```
 Run only with Node **22.23.3**, Bun **1.4.2**, Java **21** and all emulator/browser dependencies. Preserve the external report and audit failure details; on code remediation cut a **new** candidate and retest. Do not infer production control attestation from local tests. No remote Actions, merge or deployment; the additional **100 GitHub Actions minutes** authorization remains the hard limit and production stays **NO-GO**.
+
+
+## 2026-10-10 — Private, write-once production controls audit evidence
+
+Source audit of `scripts/audit-production-controls.ts` identified the production controls JSON was written with default filesystem permissions and could overwrite existing audit evidence. The development branch now creates this report with `writeFile(..., { encoding: 'utf8', mode: 0o600, flag: 'wx' })`. A reused filename fails with `EEXIST` rather than replacing an earlier record. Operators must use a new pathname for each evidence capture and protect access to the containing directory; a restrictive file mode does not guarantee security on every filesystem/platform.
+
+**Executed local Node v22.16.0 isolated behavior check:** **3/3 PASS** (permissions 0600 on POSIX, second write rejected with EEXIST, original content unchanged). These checks verified Node filesystem semantics, **not** the full candidate TypeScript script or actual Google Cloud queries.
+
+The already-frozen R2 SHA `286a991e776885199bb1028d380e239821de88ac` was **not modified**; this patch is on the development branch only and requires a new SHA-based candidate after full local validation. The environment still lacks full checkout, Node 22.23.3 and Bun 1.4.2. No GitHub Actions, merge or deployment; Issue #8 and production approval remain **NO-GO**.
