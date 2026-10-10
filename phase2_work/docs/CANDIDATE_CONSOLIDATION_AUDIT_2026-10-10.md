@@ -202,3 +202,12 @@ Source audit of `scripts/audit-production-controls.ts` identified the production
 **Executed local Node v22.16.0 isolated behavior check:** **3/3 PASS** (permissions 0600 on POSIX, second write rejected with EEXIST, original content unchanged). These checks verified Node filesystem semantics, **not** the full candidate TypeScript script or actual Google Cloud queries.
 
 The already-frozen R2 SHA `286a991e776885199bb1028d380e239821de88ac` was **not modified**; this patch is on the development branch only and requires a new SHA-based candidate after full local validation. The environment still lacks full checkout, Node 22.23.3 and Bun 1.4.2. No GitHub Actions, merge or deployment; Issue #8 and production approval remain **NO-GO**.
+
+
+## 2026-10-10 — R2 comparison and actual local gate rerun
+
+The actual local shell environment was checked again: Node **v22.16.0** (required v22.23.3), Java **21.0.12.1** (acceptable major version), Bun **absent**, no complete checkout under `/mnt/data`; read-only `git ls-remote https://github.com/Veselin-Takev/Klar-Dating.git HEAD` failed because `github.com` DNS could not be resolved. A full preflight was therefore **BLOCKED**, not passed or failed by application code.
+
+Actually ran `node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs /mnt/data/klar-release-sha/*.test.mjs` with **21 PASS, 0 FAIL (124.7 ms)**. These are isolated diagnostic copies, **not** the application test suite or the recent TypeScript production-audit change.
+
+Authenticated GitHub comparison of `release/candidate-preflight-2026-10-10-r2` to the development branch found **3 commits ahead, 0 behind, 2 changed files**: `scripts/audit-production-controls.ts` and this consolidation audit. **R2 remains unmodified and unvalidated**. Do not issue R3 or approve deployment merely on these checks. Resume aggregate candidate validation on an authorized networked runner at the exact, independently reviewed SHA, with Node 22.23.3, Bun 1.4.2, Java 21, emulators and browser prerequisites. No new Actions jobs, merge or deployment were initiated, and the incremental **100 Actions-minute ceiling** remains binding. Production **NO-GO**.
