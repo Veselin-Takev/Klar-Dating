@@ -105,3 +105,10 @@ Compared the actual `.github/workflows/ci.yml` with `scripts/local-preflight.mjs
 The candidate local preflight now runs `bun run playwright install chromium` through the frozen project installation before `bun run playwright test`. This installs browser binaries without deliberately invoking OS-level package-manager changes. **Operator prerequisite:** platform libraries required by Playwright must already be present; on a fresh Linux machine, independently provision them according to the project's approved OS image or Playwright setup. If system libraries are absent, the preflight must fail rather than silently bypass tests. Browser downloads may require network access; keep browser versions locked to the project dependency.
 
 **Validation boundary:** compared CI command with actual current source and committed the local step; full pinned-toolchain/browser acceptance has not been executed here (local Node v22.16.0 and Bun unavailable). No new remote CI, merge or deployment was triggered. Production remains **NO-GO**, incremental GitHub Actions limit **100 minutes**.
+
+
+## 2026-10-10 — Toolchain evidence must not fabricate Java versions
+
+Review of `local-preflight.mjs` found the previously added `report.toolchain.java` assignment used `?? '21'`. This fallback could label an unparseable Java version as Java 21 even though that version string was not extracted. The preflight now requires an actual captured Java 21 version token and fails closed if that extraction unexpectedly fails. No unverified substitute version is written to a release evidence report.
+
+**Actual local rerun:** `node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs /mnt/data/klar-ci-diagnostics/*.test.mjs /mnt/data/klar-release-sha/*.test.mjs` returned **21 passed / 0 failed** (135 ms; Node v22.16.0). These are isolated diagnostics; they **do not** test the just-modified Java extraction nor the full repository. The candidate needs a clean checkout and pinned Node v22.23.3/Bun v1.4.2/Java 21 full preflight. No remote Actions runs, merge or deployment. Production **NO-GO**, remaining 100-minute incremental Actions budget unchanged.
