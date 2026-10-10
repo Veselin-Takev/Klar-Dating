@@ -20,3 +20,9 @@ test('does not include GitHub job environment, token or URLs in output', () => {
   assert.equal(JSON.stringify(result).includes('sensitive'), false);
   assert.equal(JSON.stringify(result).includes('not-for-report'), false);
 });
+
+test('rejects partial timestamps and empty measured runs', () => {
+  assert.throws(() => analyzeJobs([{ name: 'validate', steps: [{ name: 'test', started_at: '2026-10-10T10:00:00Z' }] }]), /Incomplete step timestamps/);
+  assert.throws(() => analyzeJobs([{ name: 'validate', steps: [{ name: 'test', conclusion: 'success' }] }]), /Missing step timestamps/);
+  assert.throws(() => analyzeJobs([{ name: 'validate', steps: [{ name: 'skipped', conclusion: 'skipped' }] }]), /No completed steps/);
+});
