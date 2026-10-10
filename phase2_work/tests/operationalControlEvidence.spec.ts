@@ -170,4 +170,15 @@ describe('operational control exercise evidence', () => {
     expect(errors.filter(message => message.includes('ISO date/time'))).toEqual([]);
   });
 
+  it('rejects unexpected fields that might contain secret material', () => {
+    const record = valid();
+    const extraTopLevel = { ...record, accessToken: 'must-not-be-here' };
+    const extraRotation = { ...record, secretRotation: { ...record.secretRotation, secretValue: 'must-not-be-here' } };
+    const extraAlert = { ...record, alertDelivery: { ...record.alertDelivery, credential: 'must-not-be-here' } };
+    for (const candidate of [extraTopLevel, extraRotation, extraAlert]) {
+      expect(validate(candidate).errors.join(' ')).toMatch(/unexpected field/);
+    }
+    expect(validate(valid()).passed).toBe(true);
+  });
+
 });
