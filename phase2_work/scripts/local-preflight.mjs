@@ -36,6 +36,8 @@ try {
   if (bun.status !== 0 || bun.stdout.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
   const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
+  // Record toolchain identity in the exact-SHA preflight evidence after validation.
+  report.toolchain = { node: process.versions.node, bun: bun.stdout.trim(), java: (java.stdout + java.stderr).match(/version "([^"]+)"/)?.[1] ?? '21' };
 
   run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs', 'scripts/expected-sha.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
