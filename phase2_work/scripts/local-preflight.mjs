@@ -35,7 +35,7 @@ try {
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8', timeout: 15_000 });
   if (bun.error || bun.status !== 0 || bun.stdout?.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
   const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 15_000 });
-  if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
+  if (java.error || java.status !== 0 || !/version \"21[.\"]/.test((java.stdout ?? '') + (java.stderr ?? ''))) throw new Error('Use Java 21 before preflight.');
   // Record toolchain identity in the exact-SHA preflight evidence after validation.
   const javaVersion = ((java.stdout ?? '') + (java.stderr ?? '')).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
   if (!javaVersion) throw new Error('Java 21 version could not be extracted for audit evidence.');
