@@ -42,10 +42,10 @@ describe('AI PII sanitizer', () => {
       ] }],
     };
     const output = sanitizeAiPayload(payload);
-    expect(output.contents[0].parts[0]).toEqual({ data: 'Kontakt: [EMAIL_REDACTED]' });
-    expect(output.contents[0].parts[1]).toEqual({ metadata: { data: 'Telefon [PHONE_REDACTED]' } });
-    expect(output.contents[0].parts[2]).toEqual({ inlineData: { mimeType: 'image/jpeg', data: 'DE8912345678901234567890' } });
-    expect(payload.contents[0].parts[0]).toEqual({ data: 'Kontakt: private@example.org' });
+    expect(output.contents[0]?.parts[0]).toEqual({ data: 'Kontakt: [EMAIL_REDACTED]' });
+    expect(output.contents[0]?.parts[1]).toEqual({ metadata: { data: 'Telefon [PHONE_REDACTED]' } });
+    expect(output.contents[0]?.parts[2]).toEqual({ inlineData: { mimeType: 'image/jpeg', data: 'DE8912345678901234567890' } });
+    expect(payload.contents[0]?.parts[0]).toEqual({ data: 'Kontakt: private@example.org' });
   });
 
   it('does not redact unformatted ordinary numeric identifiers', () => {
