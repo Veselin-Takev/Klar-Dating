@@ -1,3 +1,12 @@
+## SEC-01 candidate update — 2026-10-10
+
+Release CI binding and frozen lockfile installation are implemented on the remediation branch.
+38 dependency-free tests passed under Node 24.19.0. Full validation under Node 22.23.3,
+merge and production approval remain pending. No Actions run was initiated.
+This supersedes the earlier statement that SEC-01 is unimplemented, not the release NO-GO.
+See [release CI binding](RELEASE_CI_BINDING_2026-10-10.md) for exact checks and evidence limits.
+Next: BE-01 token revocation, then DB-01 cumulative/final deletion receipts.
+
 ## Current remediation — 2026-10-10
 
 Baseline: `476c808cb5689aaca178b1d8ad6c607fb9017103`. This section supersedes older current-state statements below; historical results remain tied to their original SHA.
@@ -814,3 +823,4 @@ The contact limiter's 429 cause is **not yet established**; do not mark that iss
 ### DB-01 emulator coverage extension
 
 The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
+

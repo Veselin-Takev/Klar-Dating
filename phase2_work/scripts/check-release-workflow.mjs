@@ -92,6 +92,19 @@ if (!text.includes('node scripts/write-release-identity.mjs')) {
   failures.push("Release identity verification script must run in the production release before publication.");
 }
 
+const ciGateBlock = text.split('      - name: Verify exact-commit CI\n')[1]?.split('\n      - ')[0] ?? '';
+if (!ciGateBlock.includes('run: node scripts/check-release-ci.mjs') || /\n\s+if:/.test(ciGateBlock) ||
+    !ciGateBlock.includes('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}') ||
+    !text.includes('      actions: read') ||
+    text.indexOf('run: node scripts/check-release-ci.mjs') > text.indexOf('bun ci')) {
+  failures.push('Release must unconditionally verify exact-commit CI with read-only Actions access before dependency installation.');
+}
+if (text.includes('bun install --lockfile-only') || !text.includes('git diff --exit-code -- package.json bun.lock')) {
+  failures.push('Release must preserve the committed application dependency graph.');
+}
+const ciText = fs.readFileSync(path.join(workflowDir, 'ci.yml'), 'utf8');
+if (!ciText.includes('run: node --test scripts/release-ci-check.mjs')) failures.push('CI must execute release-policy regression tests.');
+
 if (failures.length) {
   console.error("Production release workflow check FAILED:");
   for (const failure of failures) console.error(`- ${failure}`);
@@ -99,3 +112,4 @@ if (failures.length) {
 }
 
 console.log("Production release workflow check PASS: tag-only trigger, immutable action pins, and repository-scoped immutable image verification are enforced.");
+

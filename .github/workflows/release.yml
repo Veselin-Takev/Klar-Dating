@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      actions: read
       packages: write
       id-token: write
       attestations: write
@@ -51,13 +52,18 @@ jobs:
       - name: Production release approval
         run: node scripts/check-production-release-approval.mjs
 
+      - name: Verify exact-commit CI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-release-ci.mjs
+
       - name: Dependency lock preflight
         run: node scripts/check-dependency-locks.mjs
 
       - name: Install application dependencies
         run: |
-          bun install --lockfile-only
           bun ci
+          git diff --exit-code -- package.json bun.lock
 
       - name: Install Functions dependencies
         run: npm ci --prefix functions --ignore-scripts --no-audit --no-fund

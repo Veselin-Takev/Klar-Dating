@@ -1,3 +1,7 @@
+> Historical INF-01 implementation record. The subsequent SEC-01 correction is documented in
+> [RELEASE_CI_BINDING_2026-10-10.md](RELEASE_CI_BINDING_2026-10-10.md).
+> Statements below that SEC-01 is unchanged describe the earlier candidate only.
+
 # Runtime policy remediation — 2026-10-10
 
 ## Scope
@@ -73,3 +77,4 @@ Production remains NO-GO / NOT CONFIRMED.
 4. Branch protection and production operational/governance evidence.
 
 No other finding is marked resolved by this change.
+
