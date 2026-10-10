@@ -230,3 +230,11 @@ Ran `node --test local-preflight-timeout.test.mjs` in `/mnt/data/klar-timeout-re
 **Verified risk in current source:** Node `spawnSync` may produce `error.code='ENOENT'` and `stdout=null` when `bun` or `java` does not exist. The local preflight now guards those values but lacked direct regression coverage for that failure. Extended the existing `scripts/local-preflight-timeout.test.mjs` with a real subprocess test of a deliberately nonexistent executable and source assertions for guarded Bun/Java probes (development commit `3aa2912edd0819c4781af60d403b94bd6a440ac4`). Existing CI and local preflight already invoke this test file, so no additional CI workflow step was needed.
 
 **Evidence boundary:** inspected original development-branch code and committed regression coverage; the amended tests have **not yet been executed** in a byte-identical clean checkout or on the pinned Node 22.23.3/Bun 1.4.2 runner. Full TypeScript/Firebase/Playwright/production IAM and Cloud controls remain NOT RUN. R2 frozen, no Actions/merge/deploy, production **NO-GO**.
+
+## 2026-10-10 — ENOENT regression test fixed and executed with original source
+
+**Actual detected test defect:** The newly added missing-executable test asserted `missing.stdout === null`, while local Node **22.16.0** returns `undefined` for this ENOENT case. First run: **2 PASS / 2 FAIL**; the second failure came from a stale local `local-preflight.mjs` fixture missing the current Java guard. **Fixed** the test to accept nullish missing stdout (`missing.stdout == null`), development commit `6b04619becb8039e4081d1dd77a6695237ffdeb7`.
+
+**Actual final execution:** Refreshed both local files to byte-identical GitHub blobs: test SHA **`063148f3610e9a41d5d4d4b4b4bb2df941d57911`**, preflight SHA **`aeb376046793f52b43b509d028ad60b653f15ab1`**, confirmed with `git hash-object`. `node --test local-preflight-timeout.test.mjs` yielded **4 PASS, 0 FAIL**, ~**244 ms** on Node 22.16.0. These are genuine original-file targeted tests, **not** full pinned-toolchain validation.
+
+**Remaining gates:** full clean checkout, Node 22.23.3/Bun 1.4.2, TypeScript/Firebase/Playwright, live Cloud Run/IAM/monitoring audit and human approval NOT RUN. Frozen R2 untouched; 0 Actions minutes, no merge/deployment. **NO-GO**.
