@@ -26,5 +26,15 @@
     "referral_shared",
     "referral_qualified"
   ],
-  "ciRequired": true
+  "ciRequired": true,
+  "releaseGovernance": {
+    "decision": "NO-GO",
+    "decisionDate": "2026-10-10",
+    "productionApproved": false,
+    "reviewCandidateSha": "286a991e776885199bb1028d380e239821de88ac",
+    "candidateVerified": false,
+    "fullPreflight": "blocked-in-current-executor",
+    "productionOperationalEvidence": "pending-issue-8",
+    "scopeNote": "This governance annotation is on the development branch; the R2 candidate excludes later development changes. Existing sourceProvenance fields are historical."
+  }
 }
