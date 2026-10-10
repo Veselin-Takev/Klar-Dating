@@ -100,3 +100,17 @@ See [post-merge runtime ledger](POST_MERGE_VALIDATION_2026-10-09.md): all ten ob
 ## 2026-10-10 — Runtime preflight candidate
 
 CI and tag releases now perform the dependency-free runtime check before setup and installation. Six runtime/scope regressions and targeted structural gates passed under Node 24.19.0. Full local validation under Node 22.23.3 remains pending. No Actions run was initiated. See AUDIT_REMEDIATION_2026-10-10.md; older budget balances above remain historical snapshots.
+
+
+## 2026-10-10 — Superseding 100-minute cap and isolated LLM CI optimization
+
+**Current owner instruction supersedes the historical 200-minute allowance:** no more than **100 incremental GitHub Actions minutes** may be consumed under this authorization. Stop at the cap; obtain **explicit authorization** before using any additional 200 minutes. Historical figures above are not a current billing balance. Do not initiate remote jobs if remaining authorized capacity cannot be established conservatively.
+
+**Implemented on isolated candidate branch** `ci/optimize-llm-evaluation-frozen-install-2026-10-10`:
+- In the manually triggered LLM security-evaluation workflow, eliminate the redundant `bun install --lockfile-only` (which could resolve/rewrite the dependency graph); use the committed frozen lockfile via `bun ci` and a post-install clean-lockfile assertion.
+- Add a lock-integrity preflight and a pinned Bun download cache keyed by OS, architecture, Bun version and `bun.lock`. Do not cache `node_modules`, credentials or evaluation output.
+- Preserve manual opt-in, workflow permissions, action SHA pinning and the 30-minute job timeout.
+- **No expansion of path skipping:** PR validation still fails closed for every path except the existing documented narrative allowlist; pushes to main always run full gates for exact-SHA release evidence.
+- Local validation: workflow YAML parsed and nine structural/guardrail assertions passed in an isolated workspace. The available local Node interpreter is 22.16.0 (not required 22.23.3); dependencies, emulator and browser suite were not available here. **Not a full local acceptance PASS.** Consequently no PR, push to main, Actions run, release or deployment has been initiated.
+
+Next: run `bun run verify:local` on an approved Node 22.23.3 / Bun 1.4.2 / Java 21 environment, then review the isolated workflow diff and commit SHA. Before any CI-triggering promotion, check account billing and reserve runner minutes within the new 100-minute allowance. Production remains NO-GO.
