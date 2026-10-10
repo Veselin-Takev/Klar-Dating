@@ -60,7 +60,7 @@ jobs:
           node scripts/check-codespaces-bootstrap.mjs
       - name: Production audit evidence regressions
         if: steps.scope.outputs.full == 'true'
-        run: node --test scripts/report-path.test.mjs scripts/production-audit-evidence-check.test.mjs scripts/validate-load-cost-cli.test.mjs
+        run: node --test scripts/report-path.test.mjs scripts/production-audit-evidence-check.test.mjs scripts/validate-load-cost-cli.test.mjs scripts/check-compliance-retry-config.test.mjs
       - name: Dependency lock preflight
         if: steps.scope.outputs.full == 'true'
         run: node scripts/check-dependency-locks.mjs
