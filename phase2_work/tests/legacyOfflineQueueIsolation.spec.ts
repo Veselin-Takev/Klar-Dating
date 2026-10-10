@@ -46,6 +46,25 @@ describe('legacy offline message queue account isolation', () => {
     expect((await getQueuedActions(BOB)).map(item => item.payload.text)).toEqual(['Bob private']);
   });
 
+  it.each([
+    ['empty JSON', {}],
+    ['explicit rejection', { success: false }],
+    ['truthy text', { success: 'true' }],
+  ])('does not remove queued messages on a 200 response with %s', async (_description, responseBody) => {
+    await enqueueChatMessage('private-chat', 'unsent', 'unconfirmed-id', ALICE);
+    const fetchFn: typeof fetch = async () => ({
+      ok: true, status: 200, json: async () => responseBody,
+    } as unknown as Response);
+    const result = await syncQueuedActions({ ownerUid: ALICE, authToken: 'valid-token', fetchFn });
+    expect(result).toEqual({ total: 1, succeeded: 0, failed: 1 });
+    const retained = await getQueuedActions(ALICE);
+    expect(retained).toHaveLength(1);
+    expect(retained[0]).toMatchObject({
+      status: 'failed', retryCount: 1, lastError: 'message_acknowledgement_missing',
+    });
+    expect(getSyncLogs(ALICE).at(-1)?.status).toBe('failed');
+  });
+
   it('rejects missing owner and token before calling the transport', async () => {
     await enqueueChatMessage('shared-chat', 'Alice', 'a2', ALICE);
     let calls = 0;
