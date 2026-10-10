@@ -169,19 +169,30 @@ export async function clearQueueForUser(ownerUid: string): Promise<void> {
   }
 }
 
+function requireLegacyQueueOwner(ownerUid: string): void {
+  if (typeof ownerUid !== 'string' || !ownerUid.trim()) {
+    throw new Error('legacy_queue_owner_required');
+  }
+}
+
 export async function enqueueChatMessage(
   chatId: string,
   text: string,
   clientMessageId: string,
   uid: string
 ): Promise<QueuedAction> {
-  const existing = memoryQueue.find(
-    (item) => item.payload.clientMessageId === clientMessageId
-  );
-  if (existing) {
-    return existing;
+  requireLegacyQueueOwner(uid);
+  if (!validMessagePayload({ chatId, text, clientMessageId })) {
+    throw new Error('invalid_legacy_offline_message');
   }
+  const existing = memoryQueue.find(
+    (item) => item.payload.uid === uid && item.payload.clientMessageId === clientMessageId
+  );
+  if (existing) return existing;
 
+  if (memoryQueue.filter(item => item.payload.uid === uid).length >= MAX_ITEMS_PER_USER) {
+    throw new Error('offline_queue_full');
+  }
   const action: QueuedAction = {
     id: `message:${uid}:${clientMessageId}`,
     type: 'SEND_MESSAGE',
@@ -195,24 +206,31 @@ export async function enqueueChatMessage(
   return action;
 }
 
-export async function getQueuedActions(): Promise<QueuedAction[]> {
-  return [...memoryQueue];
+export async function getQueuedActions(ownerUid: string): Promise<QueuedAction[]> {
+  requireLegacyQueueOwner(ownerUid);
+  return memoryQueue.filter(item => item.payload.uid === ownerUid);
 }
 
-export async function getQueuedMessagesForChat(chatId: string): Promise<QueuedAction[]> {
+export async function getQueuedMessagesForChat(chatId: string, ownerUid: string): Promise<QueuedAction[]> {
+  requireLegacyQueueOwner(ownerUid);
   return memoryQueue.filter(
-    (item) => item.payload.chatId === chatId && item.status !== 'dead_letter'
+    item => item.payload.uid === ownerUid && item.payload.chatId === chatId && item.status !== 'dead_letter'
   );
 }
 
-export async function syncQueuedActions(options?: {
-  authToken?: string;
+export async function syncQueuedActions(options: {
+  ownerUid: string;
+  authToken: string;
   fetchFn?: typeof fetch;
 }): Promise<{ total: number; succeeded: number; failed: number }> {
-  const fetcher = options?.fetchFn ?? (typeof fetch !== 'undefined' ? fetch : undefined);
+  requireLegacyQueueOwner(options.ownerUid);
+  if (typeof options.authToken !== 'string' || !options.authToken.trim()) {
+    throw new Error('legacy_queue_auth_required');
+  }
+  const fetcher = options.fetchFn ?? (typeof fetch !== 'undefined' ? fetch : undefined);
   if (!fetcher) return { total: 0, succeeded: 0, failed: 0 };
 
-  const actions = [...memoryQueue];
+  const actions = memoryQueue.filter(item => item.payload.uid === options.ownerUid);
   let succeeded = 0;
   let failed = 0;
 
@@ -225,7 +243,7 @@ export async function syncQueuedActions(options?: {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(options?.authToken ? { Authorization: `Bearer ${options.authToken}` } : {}),
+          Authorization: `Bearer ${options.authToken}`,
         },
         body: JSON.stringify(action.payload),
       });
