@@ -89,17 +89,27 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
   });
 
-  it('ignores a spoofed sender or owner supplied in the request body', async () => {
+  it('rejects conflicting client-side sender and owner claims before persistence', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    for (const claim of [{ senderId: alice }, { uid: alice }, { ownerUid: alice }]) {
+      const response = await invoke(handleSendMessage, bob, {
+        text: 'spoofed-payload', clientMessageId: randomUUID(), ...claim,
+      });
+      expect(response).toMatchObject({ status: 403, payload: { code: 'sender_mismatch' } });
+    }
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).empty).toBe(true);
+  });
+
+  it('accepts matching legacy UID but always persists the verified identity', async () => {
     await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
     const response = await invoke(handleSendMessage, bob, {
-      text: 'auth-identity-only', clientMessageId: 'spoof-owner-1',
-      senderId: alice, uid: alice, ownerUid: alice,
+      text: 'auth-identity-only', clientMessageId: 'same-identity',
+      senderId: bob, uid: bob, ownerUid: bob,
     });
     expect(response).toMatchObject({ status: 200, payload: { success: true } });
     const saved = await db.collection('chats').doc(chatId).collection('messages')
       .doc(response.payload.messageId).get();
     expect(saved.data()?.senderId).toBe(bob);
-    expect(saved.data()?.senderId).not.toBe(alice);
   });
 
   it('never lets a third party bypass chat membership by supplying a participant UID', async () => {
@@ -108,8 +118,11 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
       text: 'impersonated-send', clientMessageId: 'spoof-owner-2',
       senderId: alice, uid: alice, ownerUid: alice,
     });
-    expect(response).toMatchObject({ status: 403, payload: { code: 'chat_forbidden' } });
+    expect(response).toMatchObject({ status: 403, payload: { code: 'sender_mismatch' } });
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).empty).toBe(true);
+    expect((await invoke(handleSendMessage, 'not-a-participant', {
+      text: 'chat-forbidden', clientMessageId: 'spoof-owner-3',
+    }))).toMatchObject({ status: 403, payload: { code: 'chat_forbidden' } });
   });
 
   it('isolates idempotent clientMessageId by verified server-side UID', async () => {
@@ -119,7 +132,7 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
       text: 'from-alice', clientMessageId,
     });
     const second = await invoke(handleSendMessage, bob, {
-      text: 'from-bob', clientMessageId, uid: alice,
+      text: 'from-bob', clientMessageId, uid: bob,
     });
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
