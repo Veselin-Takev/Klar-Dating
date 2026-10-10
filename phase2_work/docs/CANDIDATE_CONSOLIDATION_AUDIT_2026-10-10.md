@@ -41,3 +41,10 @@ node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.t
 Observed: **16 pass, 0 fail, exit 0, 92.7 ms**, Node v22.16.0. These are *isolated local copies* and are not sufficient evidence that the full current candidate passes. The TypeScript operational evidence validator and its Vitest suite were not run as a genuine checkout. The correct remediation is to obtain a clean checkout of the frozen branch SHA with Node v22.23.3 / Bun v1.4.2 / Java 21, run complete `verify:local`, and preserve exact-SHA results. Do not consume remote Actions minutes until the full local acceptance succeeds.
 
 This audit deliberately introduces **no new production changes** while complete integration testing is unavailable. Existing code changes remain unmerged. Operational controls and final sign-off are still **NO-GO**.
+
+
+## 2026-10-10 — Fast-fail operational evidence regression stage
+
+The local preflight now runs `bunx vitest run tests/operationalControlEvidence.spec.ts` immediately after the frozen dependency installation and runtime/CI-scope gates, **before** the expensive enterprise and Firebase integration suites. This pure validation suite has accumulated critical parsing, timestamp, strict-schema and evidence URL regressions. Failing quickly avoids spending local emulator/browser runtime on a candidate that cannot validate operational evidence. The full `test:ci` suite is retained unchanged; this is an additional early gate, not a test bypass.
+
+**Verification:** command placement and Vitest test path checked against current repository sources. The pinned Node 22.23.3 / Bun 1.4.2 whole-project preflight is still **NOT RUN** in the available executor (Node 22.16.0, Bun unavailable and no complete clean checkout). This optimization does not establish a green candidate or authorize any GitHub Actions spend. Issue #8 production controls and human signoff remain open; production **NO-GO**.
