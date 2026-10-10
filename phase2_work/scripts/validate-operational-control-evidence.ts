@@ -4,16 +4,31 @@ import { validateOperationalControlEvidence } from '../src/server/platform/opera
 
 async function main() {
   const path = process.argv[2];
-  if (!path) throw new Error('Usage: npx tsx scripts/validate-operational-control-evidence.ts <evidence.json> [exact-build-sha]');
-  const expectedBuildSha = process.argv[3] ?? process.env.GITHUB_SHA ?? process.env.KLAR_BUILD_SHA;
-  if (!expectedBuildSha) throw new Error('Provide the exact build SHA as argv[3], GITHUB_SHA, or KLAR_BUILD_SHA');
-  const result = validateOperationalControlEvidence(JSON.parse(await readFile(resolve(path), 'utf8')), expectedBuildSha);
+  const expectedBuildSha = process.argv[3];
+  const environment = process.env.KLAR_EVIDENCE_ENVIRONMENT;
+  const hosts = process.env.KLAR_APPROVED_EVIDENCE_HOSTS;
+  const notBefore = process.env.KLAR_EVIDENCE_NOT_BEFORE;
+  if (!path || !expectedBuildSha) {
+    throw new Error('Usage: KLAR_EVIDENCE_ENVIRONMENT=production KLAR_APPROVED_EVIDENCE_HOSTS=approved.example KLAR_EVIDENCE_NOT_BEFORE=2026-10-10T00:00:00Z npx tsx scripts/validate-operational-control-evidence.ts <evidence.json> <exact-build-sha>');
+  }
+  if (!/^[0-9a-f]{40}$/.test(expectedBuildSha)) throw new Error('A full lowercase 40-character exact build SHA is required.');
+  if (environment !== 'production' && environment !== 'staging') throw new Error('KLAR_EVIDENCE_ENVIRONMENT must be production or staging.');
+  if (!hosts?.trim() || !notBefore?.trim()) throw new Error('Explicit KLAR_APPROVED_EVIDENCE_HOSTS and KLAR_EVIDENCE_NOT_BEFORE are required.');
+  const approvedHosts = hosts.split(',').map(x => x.trim()).filter(Boolean);
+  if (approvedHosts.some(host => !/^[a-z0-9.-]+$/i.test(host))) throw new Error('Approved evidence hosts must be plain DNS hostnames.');
+  const result = validateOperationalControlEvidence(
+    JSON.parse(await readFile(resolve(path), 'utf8')),
+    expectedBuildSha,
+    environment,
+    approvedHosts,
+    notBefore,
+  );
   if (!result.passed) {
     for (const error of result.errors) console.error('- ' + error);
     process.exitCode = 1;
     return;
   }
-  console.log('Secret rotation and alert delivery evidence is complete.');
+  console.log('Operational evidence schema checks PASS; live evidence and human approval remain required.');
 }
 
 main().catch(error => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 2; });
