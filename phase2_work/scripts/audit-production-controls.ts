@@ -69,7 +69,7 @@ async function main() {
     ],
   };
   await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, JSON.stringify(report, null, 2) + '\n', 'utf8');
+  await writeFile(output, JSON.stringify(report, null, 2) + '\n', { encoding: 'utf8', mode: 0o600, flag: 'wx' });
   console.log(JSON.stringify(report, null, 2));
   if (!report.passed) process.exitCode = 1;
 }
