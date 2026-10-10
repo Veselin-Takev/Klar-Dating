@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { flushOfflineQueue } from '../src/lib/offlineQueue';
-import { queueItemsForOwner } from '../src/lib/offlineQueueIndexedReads';
+const mocks = vi.hoisted(() => ({ readOwner: vi.fn() }));
 
 vi.mock('../src/lib/userScopedStorage', () => ({
   klarStorage: { getItem: () => null, setItem: () => undefined, removeItem: () => undefined },
@@ -9,7 +9,7 @@ vi.mock('../src/lib/userScopedStorage', () => ({
   removeUserStorageItem: () => undefined,
 }));
 vi.mock('../src/lib/offlineQueueIndexedReads', () => ({
-  queueItemsForOwner: vi.fn(),
+  queueItemsForOwner: mocks.readOwner,
   queueItemById: vi.fn(),
 }));
 
@@ -34,7 +34,7 @@ beforeEach(() => {
       return request;
     },
   });
-  vi.mocked(queueItemsForOwner).mockReset();
+  mocks.readOwner.mockReset();
 });
 
 afterEach(() => {
@@ -51,17 +51,17 @@ describe('offline replay authentication transition', () => {
       fetcher: fetcher as unknown as typeof fetch,
     });
     expect(result).toEqual({ sent: 0, failed: 0, remaining: 0, deadLettered: 0 });
-    expect(queueItemsForOwner).not.toHaveBeenCalled();
+    expect(mocks.readOwner).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('stops before network replay when the active account changed', async () => {
-    vi.mocked(queueItemsForOwner).mockResolvedValue([queued()]);
+    mocks.readOwner.mockResolvedValue([queued()]);
     let active = true;
     const fetcher: typeof fetch = async () => {
       throw new Error('network must not be used');
     };
-    vi.mocked(queueItemsForOwner).mockImplementation(async () => {
+    mocks.readOwner.mockImplementation(async () => {
       active = false;
       return [queued()];
     });
@@ -73,7 +73,7 @@ describe('offline replay authentication transition', () => {
 
   it('does not acknowledge, delete or retry a message after user switch while waiting for HTTP', async () => {
     const message = queued();
-    vi.mocked(queueItemsForOwner).mockResolvedValue([message]);
+    mocks.readOwner.mockResolvedValue([message]);
     let active = true;
     const fetcher: typeof fetch = async () => {
       active = false;
@@ -90,7 +90,7 @@ describe('offline replay authentication transition', () => {
 
   it('cancellation during a failing fetch does not increase retries or dead-letter the action', async () => {
     const message = queued();
-    vi.mocked(queueItemsForOwner).mockResolvedValue([message]);
+    mocks.readOwner.mockResolvedValue([message]);
     const controller = new AbortController();
     const fetcher: typeof fetch = async () => {
       controller.abort();
