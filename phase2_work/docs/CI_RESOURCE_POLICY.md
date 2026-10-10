@@ -240,3 +240,10 @@ The local preflight Git provenance verifier now additionally resolves `git rev-p
 **Executed local evidence:** exact updated verifier and six companion regression tests executed using Node v22.16.0 in an isolated local directory. Results: **6 passed, 0 failed**; `node --check` passed. Covered clean root, unexpected root, modified and untracked files, invalid commit identity, command failure and symlink-canonical paths. This is targeted component evidence only; a full `verify:local` under required Node 22.23.3 / Bun 1.4.2 / Java 21 remains **PENDING**. The candidate remains unmerged.
 
 No GitHub Actions workflow, release or production deployment was started. Respect the current 100-minute incremental Actions cap and preserve **NO-GO** until the complete operational release checklist has been evidenced and explicitly approved.
+
+
+## 2026-10-10 — Closing the provenance time-of-check/time-of-use gap
+
+Review identified that the earlier `verify:local` runner only checked the exact clean Git HEAD **before** frozen installs, tests and build. If a stage modified a tracked file, created an untracked file, or HEAD changed while the tests ran, the JSON report could still claim PASS for the starting commit. The candidate preflight now repeats the repository-root and clean-working-tree verification **after browser acceptance**, compares the final 40-character commit SHA with the initially recorded `report.gitSha`, and fails closed on differences before assigning `report.status = 'PASS'`.
+
+This is a source-level correction committed to the isolated candidate branch; full end-to-end validation under pinned Node 22.23.3, Bun 1.4.2, Java 21 and the current exact branch remains **PENDING**. Do not promote or merge on the basis of source review alone. Intentionally generated reports must be ignored or written outside the checkout; the final cleanliness check must not be bypassed. No CI run or deployment triggered; authorized incremental Actions cap remains 100 minutes and release remains **NO-GO**.
