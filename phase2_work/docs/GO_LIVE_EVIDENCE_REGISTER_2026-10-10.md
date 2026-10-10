@@ -97,3 +97,10 @@ The working environment was checked explicitly: `node -v` reports **v22.16.0**, 
 The evidence timestamp parser now checks real calendar boundaries, leap-year February, clock fields and explicit offset ranges, rather than only matching a date-time pattern and trusting permissive `Date.parse()` normalization. The same parser handles the `KLAR_EVIDENCE_NOT_BEFORE` acceptance floor. A new Vitest regression checks impossible February dates, invalid months/hours/minutes and UTC offsets, plus a valid leap-day case.
 
 **Test evidence:** seven parser-level assertions executed successfully in an isolated local Node v22.16.0 harness reproducing the candidate algorithm. The actual Vitest suite and full application preflight at required Node 22.23.3 and Bun 1.4.2 have **not** been executed and remain **PENDING**. Do not count these isolated assertions as exact candidate SHA acceptance, operational evidence, or go-live approval. No GitHub Actions jobs, deployment or merge initiated. Incremental Actions cap: 100 minutes. Production: **NO-GO**.
+
+
+## 2026-10-10 — Gregorian early-year boundary correction
+
+The prior strict timestamp parser used `Date.UTC(year, month, 0)` to compute the month's last day. JavaScript rewrites years 0 through 99 as 1900 through 1999 in this constructor, causing incorrect leap-day handling for some four-digit ISO years. The candidate replaces the calculation with direct Gregorian leap-year and month-length rules, avoiding this coercion. A Vitest regression covers early-year leap dates and 100/400-year century exceptions.
+
+**Executed local check:** a nine-case standalone Node v22.16.0 assertion harness evaluated the corrected Gregorian month-length calculation; all nine passed. This does **not** constitute a passed Vitest suite or an exact-branch full enterprise preflight. The new repository test has been committed but not run under the required pinned Node 22.23.3/Bun 1.4.2 toolchain. Production gate remains NO-GO; no new GitHub Actions or deployments occurred.
