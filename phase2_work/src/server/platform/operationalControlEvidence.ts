@@ -27,7 +27,9 @@ function parseStrictIso(value: unknown): number {
   if (!parts) return Number.NaN;
   const [, year, month, day, hour, minute, second, , , offsetHour, offsetMinute] = parts;
   const y = Number(year), m = Number(month), d = Number(day);
-  const maxDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  // Date.UTC maps years 0..99 to 1900..1999; compute Gregorian month lengths directly.
+  const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
+  const maxDay = m === 2 ? (leap ? 29 : 28) : ([4, 6, 9, 11].includes(m) ? 30 : 31);
   if (m < 1 || m > 12 || d < 1 || d > maxDay) return Number.NaN;
   if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return Number.NaN;
   if (offsetHour && (Number(offsetHour) > 23 || Number(offsetMinute) > 59)) return Number.NaN;
