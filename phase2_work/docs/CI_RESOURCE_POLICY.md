@@ -141,3 +141,17 @@ node scripts/analyze-ci-duration.mjs /private/path/to/github-jobs.json
 The analyzer reads the `jobs` array with `steps` returned by GitHub's workflow-run jobs REST endpoint, prints the 12 slowest steps and status, and never launches CI or publishes input data. Do not commit raw job JSON, because it may contain sensitive metadata. Unit tests include duration ordering, malformed timestamps and dropping unrelated sensitive fields. **Local evidence:** 3 isolated node:test checks passed and `node --check` succeeded in the available local interpreter. This does not certify full project acceptance under pinned Node 22.23.3; `verify:local` remains required before PR or merge.
 
 No remote workflow was initiated for these analytical changes. The **100-minute incremental cap** remains in force, with billing reconciliation required before further remote actions. Production status: **NO-GO**.
+
+
+## 2026-10-10 — Emulator-suite profiling without weakening isolation
+
+The full CI job's `Tests` step took 258 seconds in [run 38036361126](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38036361126). This is the duration of the *whole* test orchestration, not proven emulator startup time. The current `vitest.config.ts` deliberately configures `fileParallelism: false`: rule suites reset a shared emulator database and must not race against persistence/security tests. **Do not enable parallel Vitest files or share mutable emulator state merely to save minutes.**
+
+Added a read-only, dependency-free Vitest JSON suite profiler and unit tests:
+```sh
+node --test scripts/analyze-vitest-duration.test.mjs
+node scripts/analyze-vitest-duration.mjs /private/path/to/vitest-report.json
+```
+To produce the input on an isolated local environment, run Vitest with its JSON reporter under the same Auth/Firestore/Storage emulator conditions as `test:ci`. Preserve test coverage, test-run exit status, and the JSON file privately; do not commit raw test reports. The profiler reports the 15 slowest suites and explicitly distinguishes summed suite times from wall-clock time or billable runner minutes.
+
+**Evidence:** Syntax check and all three unit tests passed locally with Node 22.16.0. No full pinned Node 22.23.3, Java/Firebase emulator or browser run was performed here. No PR, main push, Actions run or deployment was initiated. Continue the latest 100-minute cap and NO-GO status. Only propose isolated test-performance changes after profiling real suite timings and demonstrating unchanged correctness.
