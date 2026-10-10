@@ -224,3 +224,9 @@ Ran `node --test local-preflight-timeout.test.mjs` in `/mnt/data/klar-timeout-re
 **Remediation (development branch):** Bun checks `bun.error` and `bun.stdout?.trim()`; Java checks `java.error`, coalesces null stdout/stderr for version parsing, and keeps the required Java 21 verification. Commits `eb1b9f2e2f3020c121d75faba960cf8a70764602` and `53ee2c5237031ffd1ab12a7342b2e7a470c64dee`. Existing catch/finally logic continues to mark FAIL and attempts secure write-once external reporting.
 
 **Verification boundary:** exact GitHub source reviewed and committed, but modified preflight not yet executed under pinned Node 22.23.3/Bun 1.4.2 or a complete checkout. Full application/cloud gates NOT RUN. R2 frozen, no Actions minutes, merge or deploy. Official **NO-GO**.
+
+## 2026-10-10 — Toolchain missing-executable regression coverage
+
+**Verified risk in current source:** Node `spawnSync` may produce `error.code='ENOENT'` and `stdout=null` when `bun` or `java` does not exist. The local preflight now guards those values but lacked direct regression coverage for that failure. Extended the existing `scripts/local-preflight-timeout.test.mjs` with a real subprocess test of a deliberately nonexistent executable and source assertions for guarded Bun/Java probes (development commit `3aa2912edd0819c4781af60d403b94bd6a440ac4`). Existing CI and local preflight already invoke this test file, so no additional CI workflow step was needed.
+
+**Evidence boundary:** inspected original development-branch code and committed regression coverage; the amended tests have **not yet been executed** in a byte-identical clean checkout or on the pinned Node 22.23.3/Bun 1.4.2 runner. Full TypeScript/Firebase/Playwright/production IAM and Cloud controls remain NOT RUN. R2 frozen, no Actions/merge/deploy, production **NO-GO**.
