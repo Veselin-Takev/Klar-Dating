@@ -16,7 +16,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const { CI_BASE_SHA: base, CI_HEAD_SHA: head, GITHUB_EVENT_NAME: eventName } = process.env;
     if (eventName === 'pull_request' && /^[a-f0-9]{40}$/.test(base || '') && /^[a-f0-9]{40}$/.test(head || '')) {
-      const files = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`, '--'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+      const files = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`, '--'], { encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024 }).split('\0').filter(Boolean);
       full = requiresFullValidation(files, eventName);
     }
   } catch {
