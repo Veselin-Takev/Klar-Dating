@@ -53,3 +53,10 @@ npx tsx scripts/validate-operational-control-evidence.ts /private/controls.json 
 The domain validator `src/server/platform/operationalControlEvidence.ts` has been tightened: exercise timestamps and the `evidenceNotBefore` threshold must use complete ISO-8601 datetimes with an explicit `Z` or offset, rather than relying on permissive `Date.parse()` coercion of date-only or natural-language input. Evidence URLs now reject embedded usernames, passwords, URL fragments, or empty hosts; approved-host allowlisting and exact build-SHA checks remain mandatory. Added two Vitest regression cases in `tests/operationalControlEvidence.spec.ts` to verify these rules.
 
 **Status:** Source changes and regression tests have been committed on the isolated candidate branch. A full local test execution under Node 22.23.3 / Bun 1.4.2 and an actual production evidence review remain PENDING. This is no claim of a passed test suite or operational approval. No new Actions workflows or deployments were initiated. Release remains **NO-GO** and the incremental 100-minute Actions limit remains binding.
+
+
+## 2026-10-10 — Malformed evidence types fail closed
+
+Review found that `operationalControlEvidence.ts` used optional calls such as `secretName?.trim()` and `recipient?.trim()`. If the operational evidence JSON supplies a number, object, or boolean instead of a string, these operations could throw instead of returning the structured validation errors expected by the release gate. A malformed host allowlist could likewise throw during `.map()`. The candidate now explicitly checks string types and safely rejects invalid host-list inputs. A Vitest regression covers malformed JSON fields and absent host allowlists.
+
+**Verification:** committed source-level correction and new regression fixture only; the complete pinned local tests have not been executed. The operational evidence itself has not been collected or independently verified. Do not construe this hardening as operational signoff; the release decision remains **NO-GO**. No GitHub Actions runs, merges or deployments were initiated and the incremental 100-minute budget limit continues.
