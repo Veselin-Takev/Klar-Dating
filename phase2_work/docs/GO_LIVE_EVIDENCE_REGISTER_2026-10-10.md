@@ -90,3 +90,10 @@ The working environment was checked explicitly: `node -v` reports **v22.16.0**, 
 5. Require independently witnessed production security, secret rotation, alarm delivery/acknowledgement, privacy, canary/rollback and signed approvals. Production **NO-GO** until all records reference the exact promoted build.
 
 **Current state:** no full local preflight, no new remote Actions run, no merge, no deployment, no production operational evidence. The separate candidate and issue #8 remain open; no production authorization inferred.
+
+
+## 2026-10-10 — Calendar-valid timestamps (isolated local check)
+
+The evidence timestamp parser now checks real calendar boundaries, leap-year February, clock fields and explicit offset ranges, rather than only matching a date-time pattern and trusting permissive `Date.parse()` normalization. The same parser handles the `KLAR_EVIDENCE_NOT_BEFORE` acceptance floor. A new Vitest regression checks impossible February dates, invalid months/hours/minutes and UTC offsets, plus a valid leap-day case.
+
+**Test evidence:** seven parser-level assertions executed successfully in an isolated local Node v22.16.0 harness reproducing the candidate algorithm. The actual Vitest suite and full application preflight at required Node 22.23.3 and Bun 1.4.2 have **not** been executed and remain **PENDING**. Do not count these isolated assertions as exact candidate SHA acceptance, operational evidence, or go-live approval. No GitHub Actions jobs, deployment or merge initiated. Incremental Actions cap: 100 minutes. Production: **NO-GO**.
