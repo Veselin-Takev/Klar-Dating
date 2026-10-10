@@ -13,11 +13,17 @@ export const SyncBanner: React.FC = () => {
     let disposed = false;
     let active: { uid: string; controller: AbortController } | null = null;
     let pausedUid: string | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const cancelRetry = () => {
+      if (retryTimer !== null) clearTimeout(retryTimer);
+      retryTimer = null;
+    };
     const syncForUser = async (user: typeof auth.currentUser) => {
       if (!user || disposed || pausedUid === user.uid) return;
       // Auth listener and initial online event may fire together. Never
       // concurrently replay the same queue, and cancel old-account work.
       if (active?.uid === user.uid) return;
+      cancelRetry();
       active?.controller.abort();
       const controller = new AbortController();
       const running = { uid: user.uid, controller };
@@ -34,7 +40,18 @@ export const SyncBanner: React.FC = () => {
           signal: controller.signal,
           isCurrentUser: isCurrent,
         });
-        if (isCurrent()) setDeadLettered(result.deadLettered);
+        if (isCurrent()) {
+          setDeadLettered(result.deadLettered);
+          // No idle polling: resume only while this account still has queued
+          // work. A 60s interval is >= the queue's maximum retry backoff.
+          if (result.remaining > 0 && navigator.onLine) {
+            cancelRetry();
+            retryTimer = setTimeout(() => {
+              retryTimer = null;
+              if (isCurrent()) void syncForUser(auth.currentUser);
+            }, 60_000);
+          }
+        }
       } catch {
         // An IDB rejection, expired token or network failure must not become
         // an unhandled promise rejection in an event listener.
@@ -48,11 +65,13 @@ export const SyncBanner: React.FC = () => {
     };
 
     const handleOnline = () => {
+      cancelRetry();
       setIsOnline(true);
       void syncForUser(auth.currentUser);
     };
 
     const handleOffline = () => {
+      cancelRetry();
       setIsOnline(false);
       active?.controller.abort();
       active = null;
@@ -60,6 +79,7 @@ export const SyncBanner: React.FC = () => {
     };
 
     const cancelReplay = () => {
+      cancelRetry();
       pausedUid = auth.currentUser?.uid ?? null;
       active?.controller.abort();
       active = null;
@@ -69,11 +89,13 @@ export const SyncBanner: React.FC = () => {
     const unsubscribeAuth = onAuthStateChanged(auth, user => {
       if (user?.uid !== pausedUid) pausedUid = null;
       if (active && active.uid !== user?.uid) {
+        cancelRetry();
         active.controller.abort();
         active = null;
         if (!disposed) setIsSyncing(false);
       }
       if (!user) {
+        cancelRetry();
         setDeadLettered(0);
         setSyncError(false);
       } else if (navigator.onLine) {
@@ -87,6 +109,7 @@ export const SyncBanner: React.FC = () => {
 
     return () => {
       disposed = true;
+      cancelRetry();
       active?.controller.abort();
       unsubscribeAuth();
       window.removeEventListener(OFFLINE_REPLAY_CANCEL_EVENT, cancelReplay);
