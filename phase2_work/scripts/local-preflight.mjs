@@ -5,6 +5,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
 import { validateExternalReportPath } from './report-path.mjs';
+import { assertExpectedReleaseSha } from './expected-sha.mjs';
 
 const cwd = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = new Date().toISOString();
@@ -29,13 +30,14 @@ function run(label, command, args, options = {}) {
 try {
   validateExternalReportPath(resolve(cwd, '..'), reportPath);
   report.gitSha = verifyLocalProvenance(resolve(cwd, '..'));
+  assertExpectedReleaseSha(report.gitSha, process.env.KLAR_EXPECTED_SHA);
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8' });
   if (bun.status !== 0 || bun.stdout.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
   const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
 
-  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs']);
+  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs', 'scripts/expected-sha.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
