@@ -1,5 +1,6 @@
 import { klarStorage, getUserStorageItem, setUserStorageItem, removeUserStorageItem } from '../lib/userScopedStorage';
 import { queueItemById, queueItemsForOwner } from './offlineQueueIndexedReads';
+export const OFFLINE_REPLAY_CANCEL_EVENT = 'klar:offline-replay-cancel';
 const DB_NAME = "klar_offline_queue_db";
 const IDBKeyRange = globalThis.IDBKeyRange;
 const STORE_NAME = "pending_writes";
