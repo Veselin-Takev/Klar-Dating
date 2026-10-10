@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import {  onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signInAnonymously, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence  } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import { clearOfflineQueueForUser } from './offlineQueue';
+import { clearQueueForUser } from './offlineQueue';
 import { auth, db } from './firebase';
 import { doc, getDocFromServer, onSnapshot, setDoc, updateDoc, waitForPendingWrites } from 'firebase/firestore';
 import { meldeKontoErforderlich, sollGateZeigen } from './gastGrenze';
@@ -418,7 +418,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Fail-safe: local cleanup below remains mandatory even when offline.
     }
 
-    await clearOfflineQueueForUser(uid).catch(() => {});
+    await clearQueueForUser(uid).catch(() => {});
     clearApiMemoryCache();
     CostOptimizationService.clearCache();
 
