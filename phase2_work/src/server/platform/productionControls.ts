@@ -91,14 +91,35 @@ export function auditSecretPolicies(
 export function auditMonitoring(policies: unknown, channels: unknown, requiredPolicyNames: string[]) {
   const policyList = records(policies);
   const channelList = records(channels);
-  const enabledChannels = channelList.filter(channel => channel.enabled !== false && channel.verificationStatus !== 'UNVERIFIED');
-  const enabledPolicyNames = policyList
-    .filter(policy => policy.enabled !== false)
+  // Only explicit verification proves the stated production control. Channels
+  // without a resource name cannot be correlated with an alert policy.
+  const enabledChannels = channelList.filter(channel =>
+    channel.enabled !== false &&
+    channel.verificationStatus === 'VERIFIED' &&
+    typeof channel.name === 'string' && channel.name.length > 0,
+  );
+  const channelNames = new Set(enabledChannels.map(channel => channel.name));
+  // Cloud Monitoring list/get results populate enabled; missing state is not
+  // evidence that a required policy can trigger notifications.
+  const usablePolicies = policyList.filter(policy =>
+    policy.enabled === true && policy.validity == null,
+  );
+  const enabledPolicyNames = usablePolicies
     .map(policy => typeof policy.displayName === 'string' ? policy.displayName : '');
   const errors: string[] = [];
-  if (!enabledChannels.length) errors.push('No enabled/verified monitoring notification channel found');
+  if (!enabledChannels.length) errors.push('No explicitly verified, enabled monitoring notification channel found');
   for (const name of requiredPolicyNames) {
-    if (!enabledPolicyNames.includes(name)) errors.push('Required enabled alert policy is missing: ' + name);
+    const policies = usablePolicies.filter(policy => policy.displayName === name);
+    if (!policies.length) {
+      errors.push('Required enabled and valid alert policy is missing: ' + name);
+      continue;
+    }
+    if (!policies.some(policy =>
+      Array.isArray(policy.notificationChannels) &&
+      policy.notificationChannels.some(channel => typeof channel === 'string' && channelNames.has(channel)),
+    )) {
+      errors.push('Required alert policy has no linked enabled/verified notification channel: ' + name);
+    }
   }
   return { enabledChannelCount: enabledChannels.length, enabledPolicyNames, passed: errors.length === 0, errors };
 }
