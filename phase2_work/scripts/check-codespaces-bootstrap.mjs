@@ -7,6 +7,8 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const read = path => readFileSync(resolve(repositoryRoot, path), 'utf8');
 const configuration = JSON.parse(read('.devcontainer/devcontainer.json'));
 const script = read('phase2_work/scripts/setup-codespace.sh');
+// Comments are documentation, not executable pin evidence.
+const executableScript = script.split('\n').filter(line => !/^\s*#/.test(line)).join('\n');
 const failures = [];
 const syntax = spawnSync('bash', ['-n', resolve(repositoryRoot, 'phase2_work/scripts/setup-codespace.sh')], { encoding: 'utf8' });
 if (syntax.error || syntax.status !== 0) failures.push('Codespaces bootstrap Bash syntax failed: ' + (syntax.stderr || syntax.error?.message || 'unknown error'));
@@ -26,7 +28,7 @@ for (const [pattern, label] of [
   [/\bnpm ci --prefix functions\b/, 'frozen Functions install'],
   [/\bcheck-dependency-locks\.mjs\b/, 'lockfile policy validation'],
 ]) {
-  if (!pattern.test(script)) failures.push('Missing Codespaces bootstrap invariant: ' + label);
+  if (!pattern.test(executableScript)) failures.push('Missing Codespaces bootstrap invariant: ' + label);
 }
 if (failures.length) {
   console.error(failures.join('\n'));
