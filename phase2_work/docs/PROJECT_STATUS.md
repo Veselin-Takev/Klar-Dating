@@ -1,3 +1,22 @@
+## Current remediation — 2026-10-10
+
+Baseline: `476c808cb5689aaca178b1d8ad6c607fb9017103`. This section supersedes older current-state statements below; historical results remain tied to their original SHA.
+
+**INF-01: candidate implementation complete; full validation and merge pending.**
+[Main CI 37978229573](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/37978229573)
+failed on Docker Node 26.10.0 versus the approved Node 22.23.3 policy.
+The active Dockerfile now uses the exact approved image. CI and release perform the dependency-free runtime check
+and three regression tests before toolchain setup and dependency installation.
+
+Six runtime/scope regressions and targeted structural gates passed locally under **Node 24.19.0**.
+This is not full validation under Node 22.23.3. No application/browser/emulator/container PASS is asserted.
+No PR, main push, release tag, deployment or new Actions run was initiated.
+Historical remaining-minute figures are not a current budget balance.
+
+Production: **NO-GO / NOT CONFIRMED**. SEC-01 release validation binding, BE-01 revocation,
+DB-01 cumulative/final deletion receipts and operational/governance evidence remain open.
+See [remediation record](AUDIT_REMEDIATION_2026-10-10.md).
+
 ### 2026-10-09 — Post-merge onboarding race and runtime gate correction
 
 Main CI `37963077381` failed one browser acceptance assertion (music preferences missing from an export read immediately after submit). The candidate orders export after confirmed onboarding completion and rechecks persistence after reload. Eight focused local tests passed. All three TypeScript projects and Enterprise gates passed on the corrected local candidate. The existing Node/Docker alignment gate is now included in Enterprise checks, preventing an otherwise green Node 26 dependency PR from bypassing the required 22.23.3 baseline. No application persistence or authorization rules were weakened.
