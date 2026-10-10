@@ -179,3 +179,17 @@ Review found `scripts/audit-production-controls.ts` previously compared `git rev
 **Executed locally:** `node --test /mnt/data/klar-provenance/verify-local-provenance.test.mjs /mnt/data/klar-release-sha/expected-sha.test.mjs` → **11 PASS, 0 FAIL**, Node v22.16.0. These tests are isolated copies of the provenance and release-SHA helpers, not an execution of the modified TypeScript GCP audit. The complete pinned-toolchain preflight and the genuine production audit remain **NOT RUN**.
 
 **Candidate policy:** the frozen reference `release/candidate-preflight-2026-10-10` still targets `297c7d0982dd22c9eb71d6cea4e7e8e2c87d8472` and intentionally excludes this fix. A newer candidate requires exact-SHA pinning and full validation. Issue #8 remains open and production **NO-GO**. No GitHub Actions run, merge or deployment; 100 additional Actions-minute cap still applies.
+
+
+## 2026-10-10 — Second immutable-SHA candidate handoff (unvalidated)
+
+Direct executor recheck: Node **v22.16.0**, Java **21.0.12.1**, no Bun, and `git ls-remote` could not resolve github.com. The only local artifacts are isolated diagnostics; a full checkout and `verify:local` **were not executed**. This is a blocked infrastructure step, not a passing code result.
+
+GitHub comparison verified the development branch was **identical** to full SHA `286a991e776885199bb1028d380e239821de88ac` before creation of this documentation update. Created the separate **UNVALIDATED** candidate ref `release/candidate-preflight-2026-10-10-r2` at that SHA, leaving previous r1 ref `release/candidate-preflight-2026-10-10` at `297c7d0982dd22c9eb71d6cea4e7e8e2c87d8472`. The r2 candidate includes recent production-audit provenance controls; the documentation-only update following snapshot creation is not part of r2. The complete 40-character SHA, not either mutable branch name, is the exact review identity.
+
+**Required real runner command**, after independently approving the r2 SHA and checking out the full repository:
+```sh
+cd phase2_work
+KLAR_EXPECTED_SHA=286a991e776885199bb1028d380e239821de88ac bun run verify:local
+```
+Run only with Node **22.23.3**, Bun **1.4.2**, Java **21** and all emulator/browser dependencies. Preserve the external report and audit failure details; on code remediation cut a **new** candidate and retest. Do not infer production control attestation from local tests. No remote Actions, merge or deployment; the additional **100 GitHub Actions minutes** authorization remains the hard limit and production stays **NO-GO**.
