@@ -60,6 +60,11 @@ jobs:
             ~/.bun/install/cache
             ~/.cache/firebase/emulators
           key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock') }}
+      - name: Codespaces bootstrap regression
+        if: steps.scope.outputs.full == 'true'
+        run: |
+          node --test scripts/check-codespaces-bootstrap.test.mjs
+          node scripts/check-codespaces-bootstrap.mjs
       - name: Dependency lock preflight
         if: steps.scope.outputs.full == 'true'
         run: node scripts/check-dependency-locks.mjs
