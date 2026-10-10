@@ -32,7 +32,7 @@ function parseStrictIso(value: unknown): number {
   const maxDay = m === 2 ? (leap ? 29 : 28) : ([4, 6, 9, 11].includes(m) ? 30 : 31);
   if (m < 1 || m > 12 || d < 1 || d > maxDay) return Number.NaN;
   if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return Number.NaN;
-  if (offsetHour && (Number(offsetHour) > 23 || Number(offsetMinute) > 59)) return Number.NaN;
+  if (offsetHour && (Number(offsetHour) > 14 || Number(offsetMinute) > 59 || (Number(offsetHour) === 14 && Number(offsetMinute) !== 0))) return Number.NaN;
   return Date.parse(value);
 }
 
