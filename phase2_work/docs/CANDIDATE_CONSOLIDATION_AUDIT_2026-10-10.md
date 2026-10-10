@@ -62,3 +62,17 @@ Source inspection confirmed the early operational evidence regression used `bunx
 **Confirmed source issue:** `rejectUnexpectedFields` interpolated untrusted JSON property names into error messages. The operational-evidence CLI writes these errors to stderr, so attacker-controlled property names containing newline or ANSI escape sequences could forge visually misleading audit lines. The candidate now emits a fixed, non-reflective error message (`<section> contains an unexpected field`) while still rejecting every extraneous property. Existing `/unexpected field/` regression assertions remain compatible; a new regression tests a property name containing newline and an ANSI escape sequence.
 
 **Executed:** an isolated Node v22.16.0 harness ran three assertions against the corrected helper logic; all **PASS**. This is not a run of the exact candidate's Vitest suite or the full frozen toolchain, which still require a complete checkout, Node v22.23.3, Bun v1.4.2 and Java 21. No new remote GitHub Actions run, deployment or merge was triggered. Production remains **NO-GO**. The 100-minute incremental Actions budget restriction remains binding.
+
+
+## 2026-10-10 — Explicit release SHA binding before local test execution
+
+A clean checkout alone does not show it corresponds to the *intended* release commit. The preflight now requires `KLAR_EXPECTED_SHA` (exact 40-character lowercase SHA) and compares it to the resolved clean `HEAD` **before** expensive dependencies and tests. Missing, abbreviated, uppercase or mismatched values fail closed. The existing final `verifyLocalProvenance` check still requires the checkout not to change during the run.
+
+From a complete clean checkout of the intended release commit:
+```sh
+cd phase2_work
+KLAR_EXPECTED_SHA="$(git rev-parse --verify HEAD^{commit})" bun run verify:local
+```
+**Important:** for genuine independent release approval, the value must be pinned in advance by the release process and cross-checked against the artifact/deployment record, not merely derived from whatever happens to be checked out.
+
+**Executed narrow tests:** the new `scripts/expected-sha.test.mjs` ran under local Node 22.16.0: **5/5 passed, 0 failures**. Existing diagnostic tests previously passed 16/16. These are isolated test copies; full exact candidate `verify:local` with Node 22.23.3/Bun 1.4.2/Java 21 remains **PENDING**. No new remote GitHub Actions runs, merge or deployment. Production **NO-GO**; 100-minute incremental Actions limit unchanged.
