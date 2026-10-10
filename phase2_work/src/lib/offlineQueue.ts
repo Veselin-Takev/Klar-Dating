@@ -1,4 +1,4 @@
-import { klarStorage } from '../lib/userScopedStorage';
+import { klarStorage, getUserStorageItem, setUserStorageItem, removeUserStorageItem } from '../lib/userScopedStorage';
 import { queueItemById, queueItemsForOwner } from './offlineQueueIndexedReads';
 const DB_NAME = "klar_offline_queue_db";
 const IDBKeyRange = globalThis.IDBKeyRange;
@@ -166,6 +166,7 @@ export async function clearQueueForUser(ownerUid: string): Promise<void> {
   if (!ownerUid) return;
   memoryQueue = memoryQueue.filter((item) => item.payload.uid !== ownerUid);
   memorySyncLogs = memorySyncLogs.filter(entry => entry.ownerUid !== ownerUid);
+  removeUserStorageItem('klar_sync_logs', ownerUid);
   if (typeof indexedDB !== 'undefined') {
     await clearOfflineQueueForUser(ownerUid);
   }
@@ -443,30 +444,36 @@ export async function clearOfflineQueueForUser(ownerUid: string): Promise<void> 
   } finally { db.close(); }
 }
 
+function isOwnedSyncLog(value: unknown, ownerUid: string): value is SyncLogEntry {
+  return typeof value === 'object' && value !== null &&
+    (value as { ownerUid?: unknown }).ownerUid === ownerUid;
+}
+
 function addSyncLog(entry: SyncLogEntry): void {
   memorySyncLogs.push(entry);
-  if (typeof klarStorage !== 'undefined') {
-    try {
-      klarStorage.setItem('klar_sync_logs', JSON.stringify(memorySyncLogs));
-    } catch {}
+  // Bound in-memory history independently of the number of accounts
+  // that have used this browser session.
+  if (memorySyncLogs.length > 1000) memorySyncLogs = memorySyncLogs.slice(-1000);
+  try {
+    const previous = getUserStorageItem('klar_sync_logs', entry.ownerUid);
+    const parsed: unknown = previous ? JSON.parse(previous) : [];
+    const owned = Array.isArray(parsed) ? parsed.filter(item => isOwnedSyncLog(item, entry.ownerUid)) : [];
+    owned.push(entry);
+    setUserStorageItem('klar_sync_logs', JSON.stringify(owned.slice(-100)), entry.ownerUid);
+  } catch {
+    // Diagnostics are best-effort; never block the message send path.
   }
 }
 
 export function getSyncLogs(ownerUid: string): SyncLogEntry[] {
   requireLegacyQueueOwner(ownerUid);
-  if (typeof klarStorage !== 'undefined') {
-    try {
-      const raw = klarStorage.getItem('klar_sync_logs');
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((entry): entry is SyncLogEntry =>
-            typeof entry === 'object' && entry !== null && entry.ownerUid === ownerUid
-          );
-        }
-      }
-    } catch {}
-  }
+  try {
+    const raw = getUserStorageItem('klar_sync_logs', ownerUid);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(item => isOwnedSyncLog(item, ownerUid));
+    }
+  } catch {}
   return memorySyncLogs.filter(entry => entry.ownerUid === ownerUid);
 }
 
