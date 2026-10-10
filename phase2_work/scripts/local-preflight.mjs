@@ -33,13 +33,13 @@ try {
   assertExpectedReleaseSha(report.gitSha, process.env.KLAR_EXPECTED_SHA);
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8', timeout: 15_000 });
-  if (bun.status !== 0 || bun.stdout.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
+  if (bun.error || bun.status !== 0 || bun.stdout?.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
   const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 15_000 });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
   // Record toolchain identity in the exact-SHA preflight evidence after validation.
-  const javaVersion = (java.stdout + java.stderr).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
+  const javaVersion = ((java.stdout ?? '') + (java.stderr ?? '')).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
   if (!javaVersion) throw new Error('Java 21 version could not be extracted for audit evidence.');
-  report.toolchain = { node: process.versions.node, bun: bun.stdout.trim(), java: javaVersion };
+  report.toolchain = { node: process.versions.node, bun: bun.stdout?.trim(), java: javaVersion };
 
   run('Preflight timeout regression', 'node', ['--test', 'scripts/local-preflight-timeout.test.mjs']);
   run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/expected-sha.test.mjs']);
