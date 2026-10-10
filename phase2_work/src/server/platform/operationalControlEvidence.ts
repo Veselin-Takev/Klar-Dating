@@ -31,8 +31,9 @@ function iso(value: unknown, label: string, errors: string[]) {
 function links(values: unknown, label: string, errors: string[], approvedHosts: Set<string>) {
   if (!Array.isArray(values) || values.length === 0) { errors.push(label + ' must contain evidence links'); return; }
   for (const raw of values) {
-    try { const url = new URL(String(raw)); if (!['https:','gs:'].includes(url.protocol)) errors.push(label + ' links must use https or gs');
-      if (url.username || url.password || url.hash || !url.hostname) errors.push(label + ' links must not contain credentials, fragments or empty hosts');
+    if (typeof raw !== 'string' || !raw.trim()) { errors.push(label + ' contains an invalid link'); continue; }
+    try { const url = new URL(raw); if (!['https:','gs:'].includes(url.protocol)) errors.push(label + ' links must use https or gs');
+      if (url.username || url.password || url.hash || url.search || url.port || !url.hostname) errors.push(label + ' links must not contain credentials, query strings, fragments, custom ports or empty hosts');
           const host = url.hostname.toLowerCase();
       if (approvedHosts.size > 0 && !approvedHosts.has(host)) errors.push(label + ' link host is not an approved evidence source'); }
     catch { errors.push(label + ' contains an invalid link'); }
