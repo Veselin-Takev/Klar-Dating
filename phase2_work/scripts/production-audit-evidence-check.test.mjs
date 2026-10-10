@@ -17,3 +17,7 @@ test('audit avoids serializing the full report to console', () => {
  assert.doesNotMatch(script, /console\.(?:log|info|warn|error)\(\s*JSON\.stringify\(\s*report\b/);
  assert.match(script, /console\.log\(`Production controls audit/);
 });
+
+test('gcloud audit commands have bounded time and output', () => {
+ assert.match(script, /execFileSync\('gcloud', args, \{[^\n]*timeout:\s*30_000,\s*maxBuffer:\s*2 \* 1024 \* 1024/);
+});
