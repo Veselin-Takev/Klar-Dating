@@ -34,3 +34,12 @@ Updated both root and `phase2_work` copies of `RELEASE_MANIFEST.json` and `RELEA
 ## Gate 5 — Release decision and next approved action
 
 **NO-GO**, with outstanding P0 technical and live operational evidence. On an approved network-enabled runner, independently select and checkout the exact candidate SHA, provision Node 22.23.3/Bun 1.4.2/Java 21 plus browser/Firebase prerequisites, run `cd phase2_work && KLAR_EXPECTED_SHA=<independently-reviewed-40-character-sha> bun run verify:local`, retain external write-once report and all failures, then consider budgeted remote CI only after complete local PASS. No Actions runs/merge/deploy/production approval occurred here; strict **100 additional Actions-minute** ceiling unchanged. Human production signoff required.
+
+
+## 2026-10-10 — Infrastructure alignment follow-up
+
+**Implemented:** `scripts/setup-codespace.sh` now invokes `nvm alias default 22.23.3` after installation. Previously `nvm use` affected only the post-create subshell and did not set the default version for new terminal sessions.
+
+**Actually executed locally:** isolated Node regression suite, 21 PASS / 0 FAIL (119 ms) under existing Node 22.16.0. Bash syntax of the newly added nvm command sequence: PASS. These checks are **not** a test of the complete Codespaces bootstrap.
+
+**Connectivity and gate state:** `git ls-remote https://github.com/Veselin-Takev/Klar-Dating.git HEAD` still fails with DNS `Could not resolve host: github.com`; no full checkout, no Bun, and no Node 22.23.3 in this executor. Therefore exact-SHA clean-checkout preflight BLOCKED; TypeScript aggregate/Firebase emulator/Playwright and live cloud security tests NOT RUN. No production access has been established; do not represent tests as passing. R2 exact SHA remains unchanged. No Actions minutes used, no merge, no deployment, formal status **NO-GO**.
