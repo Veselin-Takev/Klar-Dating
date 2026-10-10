@@ -50,4 +50,23 @@ describe('operational control exercise evidence', () => {
     const e = valid(); e.alertDelivery.evidenceLinks = [];
     expect(validate(e).passed).toBe(false);
   });
+  it('rejects ambiguous dates instead of accepting Date.parse coercions', () => {
+    const e = valid();
+    e.secretRotation.newVersionCreatedAt = 'September 29, 2026';
+    expect(validate(e).errors.join(' ')).toMatch(/ISO date/);
+    const e2 = valid();
+    e2.alertDelivery.acknowledgedAt = '2026-09-29';
+    expect(validate(e2).errors.join(' ')).toMatch(/ISO date/);
+  });
+  it('rejects credentials and fragments in evidence URLs', () => {
+    for (const url of [
+      'https://admin:password@evidence.invalid/rotation',
+      'https://evidence.invalid/rotation#sensitive',
+    ]) {
+      const e = valid();
+      e.secretRotation.evidenceLinks = [url];
+      expect(validate(e).passed).toBe(false);
+    }
+  });
+
 });
