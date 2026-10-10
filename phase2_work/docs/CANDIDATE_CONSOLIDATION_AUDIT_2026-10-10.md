@@ -96,3 +96,12 @@ Observed **21 PASS / 0 FAIL / exit code 0**, duration ~115 ms, Node v22.16.0. Th
 A separate source improvement now places the successfully validated Node, Bun and Java version strings into `report.toolchain` alongside the exact `report.gitSha` and step results. This makes the future local result easier to audit against mandated Node 22.23.3, Bun 1.4.2 and Java 21. The new report-field change itself has **not** passed a complete pinned-toolchain preflight.
 
 Maintain **NO-GO**: a clean 21/21 isolated diagnostic suite cannot replace the full application tests, Firebase/Playwright runs, signed operational evidence, or human approval. No new GitHub Actions run, merge or deployment; 100-minute incremental Actions ceiling remains binding.
+
+
+## 2026-10-10 — Missing Chromium provisioning fixed in local preflight
+
+Compared the actual `.github/workflows/ci.yml` with `scripts/local-preflight.mjs`: CI explicitly provisions Chromium (`bunx playwright install --with-deps chromium`) before running browser acceptance, but the standalone local preflight previously ran Playwright directly, without installing its browser binary. This can cause a **false infrastructure failure** on otherwise clean local machines.
+
+The candidate local preflight now runs `bun run playwright install chromium` through the frozen project installation before `bun run playwright test`. This installs browser binaries without deliberately invoking OS-level package-manager changes. **Operator prerequisite:** platform libraries required by Playwright must already be present; on a fresh Linux machine, independently provision them according to the project's approved OS image or Playwright setup. If system libraries are absent, the preflight must fail rather than silently bypass tests. Browser downloads may require network access; keep browser versions locked to the project dependency.
+
+**Validation boundary:** compared CI command with actual current source and committed the local step; full pinned-toolchain/browser acceptance has not been executed here (local Node v22.16.0 and Bun unavailable). No new remote CI, merge or deployment was triggered. Production remains **NO-GO**, incremental GitHub Actions limit **100 minutes**.
