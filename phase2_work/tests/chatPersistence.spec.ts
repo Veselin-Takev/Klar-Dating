@@ -89,6 +89,44 @@ describe.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)('server-enforced chat pers
     expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(1);
   });
 
+  it('ignores a spoofed sender or owner supplied in the request body', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const response = await invoke(handleSendMessage, bob, {
+      text: 'auth-identity-only', clientMessageId: 'spoof-owner-1',
+      senderId: alice, uid: alice, ownerUid: alice,
+    });
+    expect(response).toMatchObject({ status: 200, payload: { success: true } });
+    const saved = await db.collection('chats').doc(chatId).collection('messages')
+      .doc(response.payload.messageId).get();
+    expect(saved.data()?.senderId).toBe(bob);
+    expect(saved.data()?.senderId).not.toBe(alice);
+  });
+
+  it('never lets a third party bypass chat membership by supplying a participant UID', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const response = await invoke(handleSendMessage, 'not-a-participant', {
+      text: 'impersonated-send', clientMessageId: 'spoof-owner-2',
+      senderId: alice, uid: alice, ownerUid: alice,
+    });
+    expect(response).toMatchObject({ status: 403, payload: { code: 'chat_forbidden' } });
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).empty).toBe(true);
+  });
+
+  it('isolates idempotent clientMessageId by verified server-side UID', async () => {
+    await db.collection('chats').doc(chatId).update({ gateAntwortenA: 2, gateAntwortenB: 2 });
+    const clientMessageId = 'shared-client-id';
+    const first = await invoke(handleSendMessage, alice, {
+      text: 'from-alice', clientMessageId,
+    });
+    const second = await invoke(handleSendMessage, bob, {
+      text: 'from-bob', clientMessageId, uid: alice,
+    });
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.payload.messageId).not.toBe(second.payload.messageId);
+    expect((await db.collection('chats').doc(chatId).collection('messages').get()).size).toBe(2);
+  });
+
   it('never acknowledges a failed transaction', async () => {
     vi.spyOn(db, 'runTransaction').mockRejectedValueOnce(new Error('storage unavailable'));
     expect(await invoke(handleSendMessage, alice, { text: 'must not be acknowledged' })).toMatchObject({ status: 503 });
