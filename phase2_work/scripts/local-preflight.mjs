@@ -46,7 +46,7 @@ try {
   run('Codespaces bootstrap regression tests', 'node', ['--test', 'scripts/check-codespaces-bootstrap.test.mjs']);
   run('Codespaces bootstrap invariants', 'node', ['scripts/check-codespaces-bootstrap.mjs']);
   run('Production evidence path and disclosure regression', 'node', ['--test', 'scripts/report-path.test.mjs', 'scripts/production-audit-evidence-check.test.mjs', 'scripts/validate-load-cost-cli.test.mjs', 'scripts/check-compliance-retry-config.test.mjs']);
-  run('Offline queue index regression', 'node', ['--experimental-strip-types', '--test', 'scripts/offline-queue-index.test.mjs', 'scripts/legacy-queue-isolation.test.mjs', 'scripts/offline-replay-auth.test.mjs', 'scripts/offline-retry-scheduler.test.mjs']);
+  run('Offline queue index regression', 'node', ['--experimental-strip-types', '--test', 'scripts/offline-queue-index.test.mjs', 'scripts/legacy-queue-isolation.test.mjs', 'scripts/offline-replay-auth.test.mjs', 'scripts/offline-retry-scheduler.test.mjs', 'scripts/offline-delivery-receipt.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
