@@ -36,6 +36,7 @@ export interface QueuedAction {
 }
 
 export interface SyncLogEntry {
+  ownerUid: string;
   timestamp: string;
   action: string;
   status: 'pending' | 'success' | 'failed';
@@ -164,6 +165,7 @@ export function retryDelayMs(attempts: number): number {
 export async function clearQueueForUser(ownerUid: string): Promise<void> {
   if (!ownerUid) return;
   memoryQueue = memoryQueue.filter((item) => item.payload.uid !== ownerUid);
+  memorySyncLogs = memorySyncLogs.filter(entry => entry.ownerUid !== ownerUid);
   if (typeof indexedDB !== 'undefined') {
     await clearOfflineQueueForUser(ownerUid);
   }
@@ -256,6 +258,7 @@ export async function syncQueuedActions(options: {
         memoryQueue = memoryQueue.filter((a) => a.id !== action.id);
 
         addSyncLog({
+          ownerUid: options.ownerUid,
           timestamp: new Date().toISOString(),
           action: 'SEND_MESSAGE',
           type: 'SEND_MESSAGE',
@@ -277,6 +280,7 @@ export async function syncQueuedActions(options: {
         }
 
         addSyncLog({
+          ownerUid: options.ownerUid,
           timestamp: new Date().toISOString(),
           action: 'SEND_MESSAGE',
           type: 'SEND_MESSAGE',
@@ -293,6 +297,7 @@ export async function syncQueuedActions(options: {
       action.lastError = err instanceof Error ? err.message : 'network_error';
 
       addSyncLog({
+          ownerUid: options.ownerUid,
         timestamp: new Date().toISOString(),
         action: 'SEND_MESSAGE',
         type: 'SEND_MESSAGE',
@@ -447,14 +452,22 @@ function addSyncLog(entry: SyncLogEntry): void {
   }
 }
 
-export function getSyncLogs(): SyncLogEntry[] {
+export function getSyncLogs(ownerUid: string): SyncLogEntry[] {
+  requireLegacyQueueOwner(ownerUid);
   if (typeof klarStorage !== 'undefined') {
     try {
       const raw = klarStorage.getItem('klar_sync_logs');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((entry): entry is SyncLogEntry =>
+            typeof entry === 'object' && entry !== null && entry.ownerUid === ownerUid
+          );
+        }
+      }
     } catch {}
   }
-  return [...memorySyncLogs];
+  return memorySyncLogs.filter(entry => entry.ownerUid === ownerUid);
 }
 
 export function clearSyncLogs(): void {
