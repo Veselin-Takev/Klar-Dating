@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { verifyLocalProvenance } from './verify-local-provenance.mjs';
+const sha = 'a'.repeat(40);
+const fake = (status = '', root = '/repo', head = sha) => (_, args) => args.includes('--show-toplevel') ? root : args.includes('--verify') ? head : status;
+const identity = x => x;
+test('accepts exact clean repository root and commit', () => assert.equal(verifyLocalProvenance('/repo', fake(), identity), sha));
+test('rejects nested or different repository checkout', () => assert.throws(() => verifyLocalProvenance('/repo', fake('', '/other'), identity), /repository root/));
+test('rejects dirty tracked or untracked files', () => { for (const status of [' M src/App.tsx', '?? hidden.json', 'A  new.ts']) assert.throws(() => verifyLocalProvenance('/repo', fake(status), identity), /clean checkout/); });
+test('rejects missing commit identity', () => assert.throws(() => verifyLocalProvenance('/repo', fake('', '/repo', 'bad'), identity), /Invalid Git/));
+test('propagates Git failures', () => assert.throws(() => verifyLocalProvenance('/repo', () => { throw Error('not a repository'); }, identity), /not a repository/));
+test('resolves symlink-equivalent paths safely', () => assert.equal(verifyLocalProvenance('/alias', fake('', '/repo'), x => x === '/alias' ? '/repo' : x), sha));

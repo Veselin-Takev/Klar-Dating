@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { verifyLocalProvenance } from './verify-local-provenance.mjs';
 import {
   auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPolicies,
 } from '../src/server/platform/productionControls';
@@ -30,6 +32,12 @@ async function main() {
   const expectedServiceAccount = required('KLAR_EXPECTED_SERVICE_ACCOUNT');
   const requiredSecrets = csv('KLAR_REQUIRED_SECRETS');
   const requiredAlertPolicies = csv('KLAR_REQUIRED_ALERT_POLICIES');
+  const expectedBuildSha = required('KLAR_EXPECTED_SHA');
+  if (!/^[0-9a-f]{40}$/.test(expectedBuildSha)) throw new Error('KLAR_EXPECTED_SHA must be a full lowercase 40-character commit SHA.');
+  const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+  const actualBuildSha = verifyLocalProvenance(repositoryRoot);
+  if (actualBuildSha !== expectedBuildSha) throw new Error('Production controls audit checkout does not match KLAR_EXPECTED_SHA.');
+
   const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? 'production-evidence/controls.json');
 
   const serviceJson = gcloud(['run','services','describe',service,'--project',project,'--region',region,'--format=json']);
@@ -49,6 +57,7 @@ async function main() {
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    buildSha: actualBuildSha,
     project, region, service, expectedServiceAccount, requiredSecrets, requiredAlertPolicies,
     cloudRun, iam, secrets, monitoring,
     passed: errors.length === 0,
