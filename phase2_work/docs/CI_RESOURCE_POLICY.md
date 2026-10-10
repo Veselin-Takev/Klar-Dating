@@ -278,3 +278,10 @@ These exact candidate files passed six regression cases. This establishes **comp
 The local `klar-provenance` module and tests match the two current GitHub blob SHAs `b80932018c561776931e3021112963e3918fa938` and `8cf3606a1a301cec55bc740babe9c0cf11a1861c`. Re-running `node --test /mnt/data/klar-provenance/*.test.mjs` yielded **6 passed / 0 failed** (Node v22.16.0).
 
 The isolated `klar-ci-diagnostics` folder yielded **4 passed / 0 failed**, but the local Vitest analyzer files do **not** match the latest GitHub blob hashes; treat those four results as **non-authoritative older-copy smoke evidence**. This distinction prevents counting outdated tests as candidate verification. The mandated full pinned-toolchain validation is still PENDING, and release remains NO-GO.
+
+
+## 2026-10-10 — Prevent premature PASS before evidence persistence
+
+Review found that `local-preflight.mjs` printed a successful preflight result **before** the JSON evidence file was written in `finally`. If the output file was unavailable, occupied, or storage was full, operators might see a misleading PASS followed by an uncaught file error. The candidate now prints `Local preflight PASS` only after successful exclusive evidence persistence. Persistence errors are reported explicitly and force a nonzero exit code, retaining fail-closed semantics while preserving the original test failure when applicable.
+
+**Verification boundary:** exact GitHub candidate source updated and reviewed. This change has not received an end-to-end execution on pinned Node 22.23.3 / Bun 1.4.2 / Java 21, so it is not a completed local preflight or merge authorization. No new GitHub Actions, release or deployment was triggered. Owner's 100-minute incremental Actions cap remains in force; production is **NO-GO**.
