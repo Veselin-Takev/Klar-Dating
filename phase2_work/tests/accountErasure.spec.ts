@@ -1,4 +1,7 @@
 // @vitest-environment node
+import { emptyDeletionCounts } from '../src/server/deletionAccounting';
+import { createHash, randomUUID } from 'node:crypto';
+import { DeletionPageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -45,6 +48,53 @@ describe('account erasure including archived messages and photos', () => {
     expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
     await job.delete();
   });
+  it.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('finishes a real 51-chat purge and repeats it without orphaning nested data or double-counting cumulative totals', async () => {
+    const db = getDb();
+    const uid = `erase-pages-${randomUUID()}`;
+    const requestId = randomUUID();
+    const receipt = db.collection('deletion_log').doc(createHash('sha256').update(`deletion-receipt:${requestId}`).digest('hex'));
+    const profile = db.collection('users').doc(uid);
+    const job = db.doc(`account_deletions/${uid}`);
+    await job.set({ requestId, status: 'pending', accountingVersion: 2, deletedCounts: emptyDeletionCounts() });
+    const owned = Array.from({ length: 51 }, (_, i) => db.collection('chats').doc(`${uid}-${i}`));
+    const unrelated = db.collection('chats').doc(`${uid}-other`);
+    try {
+      const batch = db.batch();
+      batch.set(profile, { name: 'Synthetic deletion test' });
+      for (const ref of [...owned, unrelated]) {
+        batch.set(ref, { participants: ref === unrelated ? ['unrelated-user'] : [uid] });
+        for (const child of ['messages', 'archived_messages', 'gate_answers']) {
+          batch.set(ref.collection(child).doc('sample'), { text: 'synthetic data' });
+        }
+      }
+      await batch.commit();
+      for (let page = 0; page < 2; page += 1) {
+        await expect(purgeAccountData(uid, requestId)).rejects.toBeInstanceOf(DeletionPageComplete);
+        expect((await receipt.get()).exists).toBe(false);
+      }
+      await purgeAccountData(uid, requestId);
+      expect((await profile.get()).exists).toBe(false);
+      for (const ref of owned) {
+        expect((await ref.get()).exists).toBe(false);
+        for (const child of ['messages', 'archived_messages', 'gate_answers']) {
+          expect((await ref.collection(child).get()).empty).toBe(true);
+        }
+      }
+      const firstCounts = (await job.get()).data()?.deletedCounts;
+      expect(firstCounts).toMatchObject({ chats: 51, nachrichten: 102, gateAntworten: 51 });
+      expect((await receipt.get()).exists).toBe(false);
+      await purgeAccountData(uid, requestId);
+      expect((await job.get()).data()?.deletedCounts).toEqual(firstCounts);
+      expect((await receipt.get()).exists).toBe(false);
+      expect((await unrelated.get()).exists).toBe(true);
+      expect((await unrelated.collection('messages').doc('sample').get()).exists).toBe(true);
+    } finally {
+      for (const ref of [...owned, unrelated, profile]) await db.recursiveDelete(ref);
+      await receipt.delete();
+      await job.delete();
+    }
+  }, 30_000);
+
   it('requires recent authentication before creating a destructive job', async () => {
     let status = 200;
     const res = { status(code: number) { status = code; return this; }, json() { return this; } };

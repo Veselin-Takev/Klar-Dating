@@ -1,3 +1,18 @@
+## DB-01 candidate integration — 2026-10-10
+
+Cumulative deletion accounting and atomic final-sweep receipts are now integrated
+from source commit `31363ebeb4251d788f877c008c12c5f7d7583e83` into the existing
+INF-01 / SEC-01 / BE-01 remediation branch. No earlier correction is overwritten.
+The static deletion gate, 42 existing dependency-free regressions and four direct
+slice-behavior checks passed under Node 24.19.0. Eight TypeScript files passed
+syntax transformation; this is not typechecking or emulator validation.
+Historical emulator results are explicitly separated from current evidence.
+Legacy-job inventory, migration decisions and full Node 22.23.3 validation remain open.
+See [integration evidence and rollout runbook](DELETION_CONSOLIDATION_2026-10-10.md).
+No PR, main push, release tag or workflow dispatch was initiated.
+Production remains **NO-GO / NOT CONFIRMED**. Next separate issue: DB-02 provider/storage progress.
+This section supersedes earlier statements describing DB-01 as not yet integrated.
+
 ## BE-01 candidate update — 2026-10-10
 
 Both API authentication entry points now enable Firebase Admin token revocation checks.
