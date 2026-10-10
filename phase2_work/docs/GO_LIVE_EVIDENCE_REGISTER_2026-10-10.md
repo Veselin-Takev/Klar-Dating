@@ -28,3 +28,21 @@ This register is an operational acceptance artifact. **PENDING means no verifiab
 The last known main CI run `38036361126` passed on SHA `3f0fc4b70551e1d580040e9dd7722931fe87e83d` (2026-10-10); this is **development validation only**. The unmerged candidate branch `ci/optimize-llm-evaluation-frozen-install-2026-10-10` has narrower isolated Node-based component tests; it has **not** passed exact candidate full frozen-toolchain validation. There is no verified evidence of deployed production controls, alert delivery, on-call acknowledgement, rotation or live rollback in the inspected issue. All listed gates remain PENDING and release remains NO-GO.
 
 This register is updated as proof becomes available. The final approval is a deliberate release-management decision, not an automated interpretation of this Markdown file.
+
+
+## 2026-10-10 — Operational evidence validator CLI contract corrected
+
+**Defect confirmed by source inspection:** `scripts/validate-operational-control-evidence.ts` previously supplied only `(evidence, buildSha)` to `validateOperationalControlEvidence`, which requires `(evidence, buildSha, expectedEnvironment, approvedEvidenceHosts, evidenceNotBefore)`. With the missing host list, the validator attempted `.map()` on `undefined`. This rendered the published operational evidence command unusable.
+
+**Candidate fix committed:** the CLI now requires an explicitly supplied exact lowercase 40-character SHA (no ambiguous CI/environment fallback), explicit `KLAR_EVIDENCE_ENVIRONMENT` (`production` or `staging`), a comma-separated DNS-only `KLAR_APPROVED_EVIDENCE_HOSTS` allowlist, and `KLAR_EVIDENCE_NOT_BEFORE`. All five parameters are passed to the existing domain validator. Missing/malformed parameters reject the command instead of implicitly widening trust.
+
+Example (illustrative only; substitute authentic private host policy and candidate SHA):
+```sh
+cd phase2_work
+KLAR_EVIDENCE_ENVIRONMENT=production \
+KLAR_APPROVED_EVIDENCE_HOSTS=records.example.org \
+KLAR_EVIDENCE_NOT_BEFORE=2026-10-10T00:00:00Z \
+npx tsx scripts/validate-operational-control-evidence.ts /private/controls.json <exact-40-character-commit-sha>
+```
+
+**Current validation boundary:** source-level correction; no real production evidence was retrieved, no cloud-side secret rotation or alert drill was executed, and the full local pinned-toolchain test suite remains unrun. A schema PASS alone is not release authorization; the security and SRE owners must still attest evidence authenticity and provenance. The release remains NO-GO; no new GitHub Actions minutes were used.
