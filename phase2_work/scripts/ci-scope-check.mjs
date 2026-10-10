@@ -34,3 +34,13 @@ test('scope diff subprocess is bounded and errors fall back to full validation',
   assert.match(source, /execFileSync\('git',[\s\S]*?timeout:\s*15_000,\s*maxBuffer:\s*1024 \* 1024/);
   assert.match(source, /catch\s*\{[\s\S]*?full validation required/);
 });
+
+test('renamed or deleted code paths cannot qualify as narrative-only', () => {
+  const from = 'phase2_work/src/App.tsx';
+  const to = 'phase2_work/docs/PROJECT_STATUS.md';
+  assert.equal(requiresFullValidation([from, to], 'pull_request'), true);
+  assert.equal(requiresFullValidation([from], 'pull_request'), true);
+  // Git diff --no-renames emits both endpoints for a rename, including a removed source.
+  const source = readFileSync(new URL('./ci-scope.mjs', import.meta.url), 'utf8');
+  assert.match(source, /'--no-renames'/);
+});
