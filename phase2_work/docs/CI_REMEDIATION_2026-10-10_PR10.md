@@ -39,3 +39,11 @@ Keep **NO-GO** pending full preflight, live operational controls (issue #8), and
 CI run `38084712603` at SHA `005fb2ce43859138c1a0d3e77d87c416da788a3f` failed at Typecheck on four `TS2532` diagnostics in `tests/aiPiiSanitizer.spec.ts:45-48`. The test file now uses optional index access for these assertions under `noUncheckedIndexedAccess`, preserving all four expected values including the unmodified source and encoded inline media. Change commit `5f6df3ada270de3f2a18ae82b0acab89b84793d0`.
 
 The fix is **committed, not yet proven by a full exact-head preflight**. CI results for a different SHA cannot release this candidate. No manual remote rerun, merge or deployment authorized; reconcile cumulative GitHub Actions usage against the user's strict 100-minute cap before initiating further jobs. Production remains **NO-GO** pending complete gates and independent operational signoff.
+
+## Follow-up: CI run 38085333471, test discovery and chat safety (2026-10-10)
+
+The observed run for prior head `87af6d7296989eab58369699c9ff211df58cc54e` failed during Tests: 16 `scripts/*.test.mjs` files were collected by Vitest even though they use Node's built-in test runner, and two `tests/chatSafetyEnforcement.spec.ts` assertions failed after the test mock omitted the required Firestore preflight `tx.get`. The production message handler was not modified.
+
+Targeted fixes committed: `fa4afd7b3c8abf00fbb1f97ebed04e6dbfd76ad6` excludes Node-runner files from Vitest collection; `e91341a559edc7249c4b8da01ae84887bbc3c67f` makes the transaction mock return a missing document so the existing chat safety assertions exercise the intended branch. Dedicated `node --test` coverage remains mandatory and must not be skipped.
+
+**Verification status: NOT YET VALIDATED at the new full head.** The failures were diagnosed from actual Actions logs, but successful CI, real production controls, and release signoff have not been demonstrated. Maintain **NO-GO**. Do not manually trigger Actions without independently reconciling cumulative usage against the user's 100-minute ceiling; request explicit approval before a further 200 minutes.
