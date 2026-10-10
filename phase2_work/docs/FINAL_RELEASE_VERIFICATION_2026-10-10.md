@@ -67,3 +67,12 @@ To make the check reproducible on an authorized full checkout, added `scripts/ch
 Downloaded/inspected the current development-branch guard, bootstrap and root devcontainer sources, and reconstructed an isolated local fixture under `/mnt/data/klar-bootstrap-check`. Executed the guard with **Node v22.16.0** and actual system Bash against four scenarios via temporary fixture copies. **4 PASS / 0 FAIL**: valid inputs exit 0; invalid Bash syntax exit 1 with syntax diagnostic; executable Bun pin changed to `bun@latest` exit 1; changed executable pin plus historical `bun@1.4.2` comment exit 1. The Bash `-n` static check also succeeded on the valid fixture.
 
 **Scope limitation:** This was an isolated reconstruction/test harness, not the complete committed Node test suite run in a clean Git checkout. Actual Codespaces provisioning, Node v22.23.3, Bun v1.4.2, TypeScript, Firebase, Playwright, live-cloud security and release signoff **NOT RUN**. No deployment or Actions minutes. R2 unchanged. **NO-GO**.
+
+
+## 2026-10-10 — Node test runner execution for reconstructed bootstrap fixture
+
+**Executed:** `cd /mnt/data/klar-bootstrap-check && node --test phase2_work/scripts/check-codespaces-bootstrap.test.mjs && node phase2_work/scripts/check-codespaces-bootstrap.mjs`.
+
+**Result:** 4 tests passed, 0 failed (TAP reported 1312 ms); the standalone guard printed `Codespaces bootstrap invariants PASS.` Cases covered valid pins, invalid Bash, incorrect Bun pin and commented-only historical pin. Node was **v22.16.0**. Test files in this fixture were reconstructed from inspected development-branch content and are **not independently verified byte-for-byte against a complete Git checkout**. This is a useful targeted regression check only, **not** the mandated exact-SHA/preflight validation.
+
+**Remaining status:** full clean checkout, Node 22.23.3, Bun 1.4.2, Firebase emulator, Playwright, full TypeScript/security tests and human production signoff **BLOCKED/NOT RUN**. R2 must remain frozen. No remote CI, merge or deployment; additional GitHub Actions use 0 this iteration. **NO-GO.**
