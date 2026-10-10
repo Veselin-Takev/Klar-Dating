@@ -69,3 +69,10 @@ The operational evidence validator now explicitly requires URL entries to be non
 **Trade-off:** signed evidence links using query parameters intentionally fail validation. Store durable records in an approved private evidence system and reference stable access-controlled HTTPS/GS object identifiers without query secrets. Never weaken the host allowlist to make a temporary signed URL pass.
 
 **Verification status:** source and regression fixtures committed, but full pinned Node 22.23.3 / Bun 1.4.2 and real-cloud evidence checks remain pending. No GitHub Actions minutes spent in this change. All production gates remain NO-GO until independently verified.
+
+
+## 2026-10-10 — Require object-specific evidence references
+
+Source audit found that `links()` accepted a bare allowlisted hostname (e.g. `https://evidence.invalid/`) as supporting evidence. A trusted portal's homepage does not identify a concrete proof item and cannot support an auditable release decision. The candidate now rejects URLs lacking an object-specific path for both HTTPS and Google Storage `gs://` references. Added a regression that rejects HTTPS/GS host roots and retains the existing valid example.
+
+**Boundary:** This is a committed code change and regression fixture; no completed pinned-toolchain test run is claimed. A well-formed deep link is still **not** proof of authenticity, retention, signer, or access control. Operational owners must independently verify the records against the exact candidate SHA and witness live cloud controls. Production remains NO-GO. No remote Actions runs were intentionally initiated, preserving the 100-minute incremental budget limit.
