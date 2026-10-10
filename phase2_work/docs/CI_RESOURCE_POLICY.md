@@ -213,3 +213,12 @@ Local working copies of the standalone diagnostics were executed with installed 
 **Provenance caveat:** These were local working copies, *not* a verified materialization of the exact latest GitHub branch SHA. The repository version has more recent regression cases than the local four-test Vitest copy. Therefore these results are **diagnostic smoke evidence only**, not certification of current candidate correctness. No emulator, Playwright, complete repository, frozen Bun dependency installation or tagged release verification was executed. Preserve the mandatory `bun run verify:local` gate and verify exact working-tree SHA before promoting a branch.
 
 The local environment has Java 21, Node v22.16.0, and no working Bun command. Do not publish or initiate GitHub Actions merely to replace missing local validation. No additional workflow run was initiated; 100-minute cap and production **NO-GO** remain unchanged.
+
+
+## 2026-10-10 — Fail-closed Actions step timing validation
+
+Found and corrected a reporting integrity defect: the read-only Actions duration analyzer silently omitted any step missing one or both timestamps. It now rejects partially timestamped steps and non-skipped steps missing all timestamps, ignores legitimately skipped steps without execution times, and rejects entirely empty measurements. This prevents incomplete timing evidence from appearing complete.
+
+**Executed local evidence:** the standalone Actions timing analyzer and its regression test were updated in an isolated local copy and run under available Node **22.16.0**. `node --check` succeeded and `node --test scripts/analyze-ci-duration.test.mjs` returned **4 passed / 0 failed** (process exit 0), including the new missing-timestamps regressions. The updated local script matches the replacement logic committed on the candidate branch, but this does **not** certify a complete local checkout or the mandated Node 22.23.3/Bun 1.4.2/Java 21 application suite. The exact-code branch-wide `verify:local` remains PENDING.
+
+No Actions run or production deployment was initiated; the new 100-minute authorization limit remains intact and the release stays **NO-GO**.
