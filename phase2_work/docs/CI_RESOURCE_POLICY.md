@@ -187,3 +187,10 @@ Regression fixtures have been extended for truncated/malformed input, contradict
 Fixed an overlooked contradiction: a Vitest JSON report could previously declare global `success: true` while also reporting `numFailedTests > 0`. The suite profiler now rejects this combination and rejects negative or out-of-range failure counts (if present). The dedicated regression case passed locally under Node 22.16.0 using a matching isolated code fixture (4/4 local checks), along with the JavaScript syntax check. The full checked-out repository suite, Bun 1.4.2 and pinned Node 22.23.3 are **not** available in this environment; the full branch was not locally certified. These targeted checks do not override `verify:local` or production approvals.
 
 No CI run or deployment was started; the 100-minute incremental Actions limit and NO-GO release hold remain active.
+
+
+## 2026-10-10 — Test-evidence privacy and false PASS hardening
+
+An additional review found that Vitest profiler summaries disclosed absolute test-suite workspace paths, potentially containing a developer name or host-specific directory. The summary now emits only normalized suite basenames for both POSIX and Windows-style paths. Test report input remains private and is never committed. The profiler additionally rejects reports declaring overall success when any assertion status is not `passed`.
+
+Changes: `scripts/analyze-vitest-duration.mjs` and accompanying privacy/contradiction regressions. A targeted **local Node 22.16.0 path-normalization smoke test** passed for POSIX and Windows paths. A full test execution of the exact repository branch under required Node 22.23.3 / Bun 1.4.2 / Java 21 **has not been performed**, so release validation remains `PENDING`. No GitHub Actions runs, deployment or production approval were initiated. Keep the 100-minute incremental Actions cap and NO-GO decision.
