@@ -22,7 +22,8 @@ export type OperationalControlEvidence = {
 };
 
 function iso(value: unknown, label: string, errors: string[]) {
-  const ms = Date.parse(String(value ?? ''));
+  const text = typeof value === 'string' ? value : '';
+  const ms = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(text) ? Date.parse(text) : Number.NaN;
   if (!Number.isFinite(ms)) errors.push(label + ' must be an ISO date/time');
   return ms;
 }
@@ -31,6 +32,7 @@ function links(values: unknown, label: string, errors: string[], approvedHosts: 
   if (!Array.isArray(values) || values.length === 0) { errors.push(label + ' must contain evidence links'); return; }
   for (const raw of values) {
     try { const url = new URL(String(raw)); if (!['https:','gs:'].includes(url.protocol)) errors.push(label + ' links must use https or gs');
+      if (url.username || url.password || url.hash || !url.hostname) errors.push(label + ' links must not contain credentials, fragments or empty hosts');
           const host = url.hostname.toLowerCase();
       if (approvedHosts.size > 0 && !approvedHosts.has(host)) errors.push(label + ' link host is not an approved evidence source'); }
     catch { errors.push(label + ' contains an invalid link'); }
@@ -48,7 +50,7 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   if (!['staging','production'].includes(String(evidence.environment ?? ''))) errors.push('environment must be staging or production');
   if (evidence.environment !== expectedEnvironment) errors.push('environment must match the expected evidence environment');
   const approvedHosts = new Set(approvedEvidenceHosts.map((host) => host.trim().toLowerCase()).filter(Boolean));
-  const evidenceFloor = evidenceNotBefore ? Date.parse(evidenceNotBefore) : Number.NaN;
+  const evidenceFloor = typeof evidenceNotBefore === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(evidenceNotBefore) ? Date.parse(evidenceNotBefore) : Number.NaN;
   if (!Number.isFinite(evidenceFloor)) errors.push('evidenceNotBefore must be a valid ISO date/time and is required');
   if (approvedHosts.size === 0) errors.push('at least one approved evidence host is required');
 
