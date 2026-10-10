@@ -31,6 +31,7 @@ try {
   const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
 
+  run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
