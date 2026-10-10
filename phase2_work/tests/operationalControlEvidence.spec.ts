@@ -191,4 +191,17 @@ describe('operational control exercise evidence', () => {
     expect(result.errors.join(' ')).not.toContain('\\u001b');
   });
 
+  it('rejects timezone offsets outside the supported ISO range', () => {
+    for (const timestamp of ['2026-09-29T12:00:00+14:01', '2026-09-29T12:00:00-14:30', '2026-09-29T12:00:00+23:00']) {
+      const record = valid();
+      record.secretRotation.newVersionCreatedAt = timestamp;
+      expect(validate(record).errors.join(' ')).toMatch(/valid ISO date/);
+    }
+    for (const timestamp of ['2026-09-29T12:00:00+14:00', '2026-09-29T12:00:00-14:00']) {
+      const record = valid();
+      record.secretRotation.newVersionCreatedAt = timestamp;
+      expect(validate(record).errors.join(' ')).not.toMatch(/newVersionCreatedAt must be a valid ISO date/);
+    }
+  });
+
 });
