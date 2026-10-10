@@ -21,10 +21,22 @@ export type OperationalControlEvidence = {
   };
 };
 
+function parseStrictIso(value: unknown): number {
+  if (typeof value !== 'string') return Number.NaN;
+  const parts = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d{1,3})?(Z|([+-])(\\d{2}):(\\d{2}))$/.exec(value);
+  if (!parts) return Number.NaN;
+  const [, year, month, day, hour, minute, second, , , offsetHour, offsetMinute] = parts;
+  const y = Number(year), m = Number(month), d = Number(day);
+  const maxDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  if (m < 1 || m > 12 || d < 1 || d > maxDay) return Number.NaN;
+  if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return Number.NaN;
+  if (offsetHour && (Number(offsetHour) > 23 || Number(offsetMinute) > 59)) return Number.NaN;
+  return Date.parse(value);
+}
+
 function iso(value: unknown, label: string, errors: string[]) {
-  const text = typeof value === 'string' ? value : '';
-  const ms = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(text) ? Date.parse(text) : Number.NaN;
-  if (!Number.isFinite(ms)) errors.push(label + ' must be an ISO date/time');
+  const ms = parseStrictIso(value);
+  if (!Number.isFinite(ms)) errors.push(label + ' must be a valid ISO date/time');
   return ms;
 }
 
@@ -52,7 +64,7 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
   if (!['staging','production'].includes(String(evidence.environment ?? ''))) errors.push('environment must be staging or production');
   if (evidence.environment !== expectedEnvironment) errors.push('environment must match the expected evidence environment');
   const approvedHosts = new Set(Array.isArray(approvedEvidenceHosts) ? approvedEvidenceHosts.filter((host): host is string => typeof host === 'string').map((host) => host.trim().toLowerCase()).filter(Boolean) : []);
-  const evidenceFloor = typeof evidenceNotBefore === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(evidenceNotBefore) ? Date.parse(evidenceNotBefore) : Number.NaN;
+  const evidenceFloor = parseStrictIso(evidenceNotBefore);
   if (!Number.isFinite(evidenceFloor)) errors.push('evidenceNotBefore must be a valid ISO date/time and is required');
   if (approvedHosts.size === 0) errors.push('at least one approved evidence host is required');
 
