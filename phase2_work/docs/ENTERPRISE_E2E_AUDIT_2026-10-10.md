@@ -11,7 +11,7 @@
 2. **FIN-01, High, Code korrigiert:** FinOps-Freigabe-CLI übergab 3 von 8 notwendigen Validatorparametern; unabhängige Vertrauensgrenzen für Host, Umgebung, Evidence-Zeitfenster und Kostenlimit wurden nicht korrekt übergeben.
 3. **OPS-01, High, Code korrigiert:** Compliance-Retry-Scheduler übersprang fehlendes `COMPLIANCE_API_ORIGIN` stillschweigend; jetzt signalisiert er Fehler.
 4. **OPS-02, Critical, offen:** Echte Cloud-Run-/IAM-/Secret-/Alert-/Rollback-/On-Call-Evidenz und Human Approval fehlen weiterhin.
-5. **PERF/FIN-02, Med, offen:** `ChatView.tsx` (ca. 116 KB Quelltext), nicht indizierter nutzerbezogener `getAll()`-Offline-Queue-Scan, globaler Firestore-AI-Tageszähler und pro Instanz wachsender `CostTracker` sind zu untersuchende Effizienz-/Betriebsrisiken, keine gemessenen Incidents.
+5. **PERF/FIN-02, Med, offen:** `ChatView.tsx` (ca. 116 KB Quelltext), zuvor nicht indizierter nutzerbezogener `getAll()`-Offline-Queue-Scan (Code nun korrigiert), globaler Firestore-AI-Tageszähler und pro Instanz wachsender `CostTracker` sind zu untersuchende Effizienz-/Betriebsrisiken, keine gemessenen Incidents.
 
 **TCO:** Tatsächlich nachgewiesene Einsparung **0 %** mangels Billing- und Lastdaten. **[ANNAHME – illustratives Szenario, keine Prognose]:** Bei Kostenanteilen Compute 30 %, Firestore 25 %, KI 35 %, andere 10 % und komponentenweisen Einsparungen 10 %, 20 %, 15 %, 0 % wären es rechnerisch **13,25 %** Gesamt-TCO. Realisierte Einsparung kann 0 % oder negativ sein. Jede Änderung benötigt SLO-/Datenschutz-/Sicherheits-Gates.
 
@@ -21,7 +21,7 @@
 | ID | Komponente / Modul | Befund / Risiko | Auswirkung | Konkrete Handlungsempfehlung | TCO-Impact |
 |---|---|---|---|---|---|
 | FE-01 | `src/screens/ChatView.tsx` | Großes Modul, viele Effects und Firebase-Listener; kein nachgewiesenes Leak | Med | Schrittweise Hooks/Teilkomponenten extrahieren, Listener- und Geräte-E2E beibehalten | Wartung/CPU messen |
-| FE-02 | `src/lib/offlineQueue.ts` | `getAll()` liest Queue global, Nutzerfilter folgt später | Med | Bestehenden `ownerUid`-Index verwenden, Konto-Wechsel und Retry testen | RAM/CPU messen |
+| FE-02 | `src/lib/offlineQueue.ts` | Globaler `getAll()`-Scan wurde beseitigt; die neuen owner-spezifischen Abfragen sind implementiert, vollständige Browser-/Mehrkonten-Abnahme offen | Med | IndexedDB-Regressionen unter gepinnter CI, Konto-Wechsel/Retry/Dead-Letter und Performance-Messung | RAM/CPU messen |
 | FE-03 | Vite/Bundle-Budget | Chunk- und gzip-Gates existieren; keine aktuellen Web-Vitals | Med | LCP/INP/CLS und TTI bei realistischen Netzbedingungen erheben | CDN/UX messen |
 
 ### Backend/API
@@ -67,7 +67,7 @@
 | P0 | SEC-01 PII-`data`-Bypass schließen (**Code erledigt**) | 10 | 10 | 8 | **800** | vollständige KI-/Consent-/Provider-Regression |
 | P0 | FIN-01 unabhängige FinOps-CLI-Abnahme (**Code erledigt**) | 8 | 10 | 9 | **720** | echter Billing-/Load-Report, Finance-Freigabe |
 | P0 | OPS-02 reale Produktionsgates und Freigabe (**offen**) | 10 | 10 | 3 | **300** | Cloud-IAM, Secret-Rotation, Alert-Delivery, On-Call und Human Signoff |
-| P1 | FE-02 indizierte Offline-Queue-Abfragen | 6 | 9 | 7 | **378** | Isolation und Retry unverändert, messbar geringere Queue-Scan-Last |
+| P1 | FE-02 indizierte Offline-Queue-Abfragen (**Code erledigt**) | 6 | 9 | 7 | **378** | Echte Browser-/Mehrkonten-Abnahme und gemessene Lastsenkung |
 | P1 | CL-04 kardinalitätsbegrenzte Cost-Telemetrie | 7 | 9 | 6 | **378** | Begrenzung, persistente Aggregation und Billing-Abgleich |
 | P1 | DB-03 globales AI-Budget unter Konkurrenzlast | 8 | 8 | 5 | **320** | P95 und Transaktionskonflikte gemessen; strikte Kostenobergrenze |
 | P1 | FE-01 ChatView entkoppeln | 6 | 9 | 4 | **216** | grüne Browser-/Auth-/Übersetzungs-Verträge |
@@ -103,3 +103,12 @@ Der CLI-Abgleich verweigert fehlende Operator-Vorgaben und unterschiedliche Load
 - **FIN-01:** CLI- und Testdateien sind bytegleich zu `f47a09e0cc797b9f335c4b751c1ce919db45716b` und `dfd0c56d9ba438ae9f5456ee2dafc90fc8373ced`; **3/3** Node-Quellvertragstests bestanden. Kein realer Billing-/Load-CLI-Lauf erfolgt.
 - **OPS-01:** Scheduler- und Testdateien stimmen zu `48bc1f8ae7e1fc9eb404493883ffae918b440cdd` und `0c23dc6e0279dd45833d3b949a8c847231eec2db`; **2/2** Node-Sicherheitsregressionen bestanden. Kein echter Cloud Scheduler-/Compliance-Queue-Test.
 - **Freigabe:** Eingefrorener `release/candidate-preflight-2026-10-10-r2` bleibt unverändert. Diese Arbeiten sind auf dem Entwicklungsbranch. Kein Merge, Deploy, GitHub-Actions-Lauf, produktiver Cloud-Zugriff oder Human Signoff. **NO-GO.**
+
+
+### 2026-10-10: FE-02 IndexedDB-Queue-Isolation und TCO-Optimierung
+
+- **Fix im Entwicklungsbranch:** Alle vier zuvor globalen IndexedDB-Leseaufrufe sind jetzt entweder direkte `get(primaryKey)`-Operationen (Checkliste laden/synchronisieren) oder `ownerUid`-Indexabfragen (`getAll(IDBKeyRange.only(ownerUid))` für Nachrichtenflush und Remaining-Count). Die primäre `ownerUid`-Schema-Version bleibt unverändert; kein Datenverlust durch Migration vorgesehen. `src/lib/offlineQueue.ts` (Commit `9664fd2bf1636f78fdd8219298f203a539f11b10`), separater testbarer Helper `src/lib/offlineQueueIndexedReads.ts` (Commit `20c2f07268bf88596c904779fd24859cba41ac71`).
+- **Regressionsschutz:** `scripts/offline-queue-index.test.mjs` (Commit `b198bbd593458773ce3a3a88275b2052d1c94e39`) prüft Quellstruktur und führt Schlüssel-/Indexleseaufrufe mit einer In-Memory-IDB-Anforderungssimulation aus. Eingebunden in CI vor Dependency-Installation und `verify:local` (Commits `24abea646276d7c359de4d778461436ab2473666`, `6b920d64d4e4f64789626b5444d6241f13393bfe`).
+- **Tatsächlich ausgeführt:** Lokaler Node **22.16.0**, byteidentisches Original-Lesemodul (Git blob `b7aa13be871cf4f8eb2755a39657a8227f085f35`): **2/2 funktionale IDB-Mock-Tests PASS**, eigenständiger strenger TypeScript-DOM-Check PASS. Zusätzlich wurden sechs statische Quellcodeinvarianten am aktuellen GitHub-`offlineQueue.ts` geprüft (alle PASS). Die vollständigen sechs committed Node-Regressionstests und realer Browser/IndexedDB sowie die gepinnte Enterprise-CI sind **noch nicht ausgeführt**. **Keine gemessene Prozentersparnis**.
+- **Separat offenes Sicherheitsrisiko:** Die ältere speicherbasierte `memoryQueue` verwendet für `enqueueChatMessage` eine Deduplizierung allein über `clientMessageId` und `syncQueuedActions` hat keinen verpflichtenden `ownerUid`-Parameter. Das ist von der IndexedDB-Optimierung **nicht** abgedeckt. Vor produktiver Nutzung dieses Legacy-Pfads ist UID-spezifische Deduplizierung, Leseberechtigung und Sendebindung mit Regressionstests zu verlangen; nicht ohne Callsite-Inventar API-Signaturen verändern.
+- **Freigabestatus:** Legacy-Memory-Queue-Prüfung und vollständiger pinned CI/Browsertest offen, R2 eingefroren, keine Actions-Minuten, kein Merge/Deploy. **NO-GO**.
