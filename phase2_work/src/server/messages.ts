@@ -33,9 +33,25 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
   }
   try {
     const db = getDb() as Firestore;
-    // Authorize before spending AI quota, then re-check inside the write transaction
-    // so a block/gate change during the external safety call cannot race persistence.
-    await db.runTransaction(tx => readChatAccess(db, tx, chatId, uid, true));
+    const messages = db.collection('chats').doc(chatId).collection('messages');
+    const message = clientMessageId ? messages.doc(`${uid}_${clientMessageId}`) : messages.doc();
+
+    // Verify access *before* a retry can receive any stored message receipt.
+    // When the first write succeeded but its HTTP acknowledgement was lost,
+    // do not depend on an external AI provider to confirm that same write.
+    // New messages still undergo the full safety gate and transaction check.
+    const prior = await db.runTransaction(async (tx: Transaction) => {
+      await readChatAccess(db, tx, chatId, uid, true);
+      return clientMessageId ? tx.get(message) : null;
+    });
+    if (prior?.exists) {
+      if (prior.data()?.senderId !== uid || prior.data()?.text !== text) {
+        throw new ChatAccessError(409, 'message_conflict', 'Diese Nachrichten-ID wurde bereits verwendet.');
+      }
+      const hash = prior.data()?.contentHash || computeMessageHash(uid, chatId, text, message.id);
+      res.json({ success: true, messageId: message.id, messageHash: hash, translated: false, isFallback: false });
+      return;
+    }
 
     const safety = await assessSafetyMessage(text);
     if (!safety.checked) {
@@ -52,8 +68,6 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
       });
       return;
     }
-    const messages = db.collection('chats').doc(chatId).collection('messages');
-    const message = clientMessageId ? messages.doc(`${uid}_${clientMessageId}`) : messages.doc();
     let contentHash = '';
 
     await db.runTransaction(async (tx: Transaction) => {
