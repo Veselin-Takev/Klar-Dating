@@ -1,3 +1,9 @@
+## P0: Idempotente Chat-Bestätigung trotz KI-Ausfall — 2026-10-10
+
+**Entwicklungsbranch-Fix:** Der Chat-Sendepfad prüft nach authentifizierter Chat-Zugehörigkeit eine bereits gespeicherte Kombination `uid + clientMessageId` vor einem erneuten externen KI-Safety-Aufruf. Derselbe Nachrichteninhalt erhält die vorhandene Quittung; Konflikte bleiben 409. Neue Nachrichten werden weiterhin vollständig KI-geprüft und innerhalb einer Firestore-Transaktion autorisiert/geschrieben. **3/3 lokale Node-Quellregressionen tatsächlich ausgeführt und bestanden** (beide getesteten Dateien byteidentisch zu GitHub), aber unter Node 20.20.2 statt der gepinnten Enterprise-Toolchain. **Vier neue Firestore-Emulator-Testfälle** (Provider-Ausfall nach Write, Konflikt, gleichzeitige identische Sends, Block nach Write) committed, **nicht ausgeführt**. Früher CI- und lokaler Preflight-Gate ergänzt. TCO-Vorteil bei Duplikaten und zusätzlicher Firestore-Leseaufwand bei neuen Sends noch nicht gemessen. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 eingefroren, keine manuell gestartete CI, **NO-GO**.
+
+---
+
 ## Offline-Zustellbestätigung und CI-Schutz — 2026-10-10
 
 **P0-Fix auf Entwicklungsbranch:** Keine Queue darf eine Nachricht auf Basis des HTTP-Status allein löschen. Legacy- und IndexedDB-Pfade verlangen nun explizites `success: true`; bei einer uneindeutigen 2xx-Antwort erfolgt ein begrenzter idempotenter Retry mit derselben Nachrichten-ID. Zusätzlich wurde eine veraltete CI-Import-Assertion korrigiert. **Lokal tatsächlich getestet:** 10/10 Receipt-Funktionsfälle PASS unter Node 22.16.0, isolierte strenge TypeScript-Prüfung PASS, originale GitHub-Quellcode-Bedingungen 6/6 bestätigt. Neue Vitest- und CI-Fälle sind committed, aber der vollständige gepinnte Preflight wurde nicht ausgeführt. Weitere Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 unverändert; **NO-GO**.
