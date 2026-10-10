@@ -8,6 +8,8 @@ export function analyzeVitestReport(report) {
   }
   if (typeof report.success !== 'boolean') throw new Error('Missing Vitest overall success status.');
   if (!Number.isSafeInteger(report.numTotalTests) || report.numTotalTests < 1) throw new Error('Invalid Vitest total test count.');
+  if (report.numFailedTests !== undefined && (!Number.isSafeInteger(report.numFailedTests) || report.numFailedTests < 0 || report.numFailedTests > report.numTotalTests)) throw new Error('Invalid Vitest failed test count.');
+  if (report.success && report.numFailedTests > 0) throw new Error('Inconsistent Vitest overall success status.');
   const suites = report.testResults.map((suite) => {
     if (typeof suite.name !== 'string' || suite.name.trim() === '') throw new Error('Missing suite name.');
     if (!Array.isArray(suite.assertionResults)) throw new Error('Missing suite assertions.');
