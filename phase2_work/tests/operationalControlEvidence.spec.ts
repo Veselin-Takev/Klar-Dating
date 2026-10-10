@@ -81,4 +81,18 @@ describe('operational control exercise evidence', () => {
     expect(validateOperationalControlEvidence(e, 'a'.repeat(40), 'production', undefined as unknown as string[], '2026-09-29T00:00:00Z').passed).toBe(false);
   });
 
+  it('rejects evidence links with query secrets, custom ports or non-string values', () => {
+    for (const value of [
+      'https://evidence.invalid/record?token=secret',
+      'https://evidence.invalid:8443/record',
+      42,
+      null,
+      { url: 'https://evidence.invalid/record' },
+    ]) {
+      const e = valid();
+      const candidate = { ...e, alertDelivery: { ...e.alertDelivery, evidenceLinks: [value] } };
+      expect(validate(candidate).passed).toBe(false);
+    }
+  });
+
 });
