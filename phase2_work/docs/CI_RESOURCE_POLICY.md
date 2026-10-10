@@ -201,3 +201,15 @@ Changes: `scripts/analyze-vitest-duration.mjs` and accompanying privacy/contradi
 The local `bun run verify:local` preflight now executes `node --test scripts/analyze-ci-duration.test.mjs scripts/analyze-vitest-duration.test.mjs` **before dependency installations**. A regression failure therefore blocks further setup and produces an explicit failed stage in the private preflight JSON report, avoiding unnecessary installs and potentially expensive emulator/browser stages. Existing exact runtime checks and every production-relevant test step remain intact; no tests were removed or bypassed.
 
 **Evidence and limitation:** Verified the candidate source updates and repository paths through GitHub; the available isolated runtime reports Node v22.16.0 and cannot access the private GitHub repository from the local container. Therefore the exact fetched files could not be run locally from a full checkout here. This is **not** a local test PASS, and the full pinned Node 22.23.3/Bun 1.4.2/Java 21 `verify:local` remains mandatory. No remote GitHub Actions jobs were started. The current 100-minute limit and production NO-GO hold remain unchanged.
+
+
+## 2026-10-10 — Executed local diagnostic smoke tests, with provenance boundary
+
+Local working copies of the standalone diagnostics were executed with installed Node **v22.16.0** (not the required production toolchain Node v22.23.3):
+- `/mnt/data/klar-ci/scripts/*.test.mjs`: **3 passed, 0 failed** (CI duration analysis).
+- `/mnt/data/klar-ci-diagnostics/*.test.mjs`: **4 passed, 0 failed** (Vitest suite-duration analysis).
+- Both processes returned exit code 0.
+
+**Provenance caveat:** These were local working copies, *not* a verified materialization of the exact latest GitHub branch SHA. The repository version has more recent regression cases than the local four-test Vitest copy. Therefore these results are **diagnostic smoke evidence only**, not certification of current candidate correctness. No emulator, Playwright, complete repository, frozen Bun dependency installation or tagged release verification was executed. Preserve the mandatory `bun run verify:local` gate and verify exact working-tree SHA before promoting a branch.
+
+The local environment has Java 21, Node v22.16.0, and no working Bun command. Do not publish or initiate GitHub Actions merely to replace missing local validation. No additional workflow run was initiated; 100-minute cap and production **NO-GO** remain unchanged.
