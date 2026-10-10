@@ -104,4 +104,22 @@ describe('operational control exercise evidence', () => {
     expect(validate(valid()).passed).toBe(true);
   });
 
+  it('rejects impossible calendar dates and offsets', () => {
+    for (const timestamp of [
+      '2026-02-30T12:00:00Z',
+      '2025-02-29T12:00:00Z',
+      '2026-13-01T12:00:00Z',
+      '2026-10-10T24:00:00Z',
+      '2026-10-10T12:60:00Z',
+      '2026-10-10T12:00:00+24:00',
+    ]) {
+      const record = valid();
+      record.secretRotation.newVersionCreatedAt = timestamp;
+      expect(validate(record).errors.join(' ')).toMatch(/valid ISO date/);
+    }
+    const leapYear = valid();
+    leapYear.secretRotation.newVersionCreatedAt = '2024-02-29T18:00:00Z';
+    expect(validateOperationalControlEvidence(leapYear, 'a'.repeat(40), 'production', ['evidence.invalid'], '2024-02-28T00:00:00Z').errors.join(' ')).not.toMatch(/ISO date/);
+  });
+
 });
