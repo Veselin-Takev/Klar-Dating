@@ -34,6 +34,9 @@ jobs:
         run: node scripts/ci-scope.mjs
       - name: Scope regression tests
         run: node --test scripts/ci-scope-check.mjs
+      - name: Preflight timeout regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/local-preflight-timeout.test.mjs
       - name: Runtime policy preflight
         if: steps.scope.outputs.full == 'true'
         run: |
