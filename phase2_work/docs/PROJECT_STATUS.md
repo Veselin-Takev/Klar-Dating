@@ -1,3 +1,9 @@
+## End-to-End Enterprise Audit — 2026-10-10 (NO-GO)
+
+Aktueller Domain-Audit und priorisierte ICE-Maßnahmen: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). Neu korrigiert auf dem Entwicklungsbranch: PII-Sanitizer für generische `data`-Felder, unabhängige achtteilige Load/Cost-Freigabe-CLI und fail-closed Compliance-Retry bei fehlender API-Konfiguration. Lokale Targeted-Checks (2 + 3 + 2) bestanden; der gepinnte Voll-Lauf, echte Cloud-/Billing-/Alarmzustellung und Human Release Approval bleiben offen. R2 unverändert, **NO-GO**.
+
+---
+
 ## Current enterprise release decision — 2026-10-10: NO-GO
 
 The historical browser-CI findings below refer to earlier candidates and must **not** be mistaken for the current exact development-branch or frozen R2 release status. Current production blockers are tracked in [FINAL_RELEASE_VERIFICATION_2026-10-10.md](FINAL_RELEASE_VERIFICATION_2026-10-10.md), the root `GO_LIVE_CHECKLIST.md`, and [GitHub Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8).
