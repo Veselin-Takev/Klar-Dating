@@ -20,7 +20,7 @@ function persist() {
 function run(label, command, args, options = {}) {
   const time = process.hrtime.bigint();
   console.log('\nPreflight: ' + label);
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' }, ...options });
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', env: { ...process.env, CI: 'true' }, timeout: 15 * 60_000, killSignal: 'SIGTERM', ...options });
   const durationMs = Number((process.hrtime.bigint() - time) / 1000000n);
   const passed = !result.error && result.status === 0;
   report.steps.push({ label, durationMs, status: passed ? 'PASS' : 'FAIL', exitCode: result.status ?? null, signal: result.signal ?? null });
@@ -32,9 +32,9 @@ try {
   report.gitSha = verifyLocalProvenance(resolve(cwd, '..'));
   assertExpectedReleaseSha(report.gitSha, process.env.KLAR_EXPECTED_SHA);
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
-  const bun = spawnSync('bun', ['--version'], { encoding: 'utf8' });
+  const bun = spawnSync('bun', ['--version'], { encoding: 'utf8', timeout: 15_000 });
   if (bun.status !== 0 || bun.stdout.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
-  const java = spawnSync('java', ['-version'], { encoding: 'utf8' });
+  const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 15_000 });
   if (java.status !== 0 || !/version "21[."]/.test(java.stdout + java.stderr)) throw new Error('Use Java 21 before preflight.');
   // Record toolchain identity in the exact-SHA preflight evidence after validation.
   const javaVersion = (java.stdout + java.stderr).match(/version "(21(?:\.[0-9]+)*)"/)?.[1];
