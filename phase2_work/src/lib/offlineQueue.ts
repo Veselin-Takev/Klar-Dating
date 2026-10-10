@@ -84,7 +84,8 @@ export async function loadQueuedDatePrepChecklist(ownerUid: string): Promise<Rec
   if (!ownerUid || typeof indexedDB === 'undefined') return null;
   const db = await openDatabase();
   try {
-    const item = (await allItems(db)).find(candidate => candidate.ownerUid === ownerUid && candidate.id === generateChecklistQueueId(ownerUid));
+    const candidate = await itemById(db, generateChecklistQueueId(ownerUid));
+    const item = candidate?.ownerUid === ownerUid ? candidate : undefined;
     const payload = item?.payload;
     if (!payload || !('checklist' in payload) || !payload.checklist || typeof payload.checklist !== 'object') return null;
     return { ...DATE_PREP_CHECKLIST_DEFAULTS, ...(payload.checklist as Record<string, boolean>) };
@@ -106,7 +107,8 @@ export async function flushDatePrepChecklist(options: { ownerUid: string; token:
   const now = options.now ?? Date.now();
   const db = await openDatabase();
   try {
-    const item = (await allItems(db)).find(candidate => candidate.ownerUid === options.ownerUid && candidate.id === generateChecklistQueueId(options.ownerUid));
+    const candidate = await itemById(db, generateChecklistQueueId(options.ownerUid));
+    const item = candidate?.ownerUid === options.ownerUid ? candidate : undefined;
     if (!item || item.nextAttemptAt > now || !('checklist' in item.payload)) return { synced: false, remaining: Boolean(item) };
     try {
       const res = await fetcher(item.url, { method: item.method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${options.token}` }, body: JSON.stringify(item.payload) });
@@ -132,9 +134,16 @@ function request<T>(factory: () => IDBRequest<T>): Promise<T> {
   });
 }
 
-async function allItems(db: IDBDatabase): Promise<PendingQueueItem[]> {
+/** Key lookup avoids scanning other accounts' messages for a checklist. */
+async function itemById(db: IDBDatabase, id: string): Promise<PendingQueueItem | undefined> {
   const tx = db.transaction(STORE_NAME, "readonly");
-  return request(() => tx.objectStore(STORE_NAME).getAll());
+  return request(() => tx.objectStore(STORE_NAME).get(id));
+}
+
+/** Uses the existing v3 ownerUid index; never materializes another account's queue. */
+async function itemsForUser(db: IDBDatabase, ownerUid: string): Promise<PendingQueueItem[]> {
+  const tx = db.transaction(STORE_NAME, "readonly");
+  return request(() => tx.objectStore(STORE_NAME).index("ownerUid").getAll(IDBKeyRange.only(ownerUid)));
 }
 
 
@@ -342,8 +351,8 @@ export async function flushOfflineQueue(options: {
   let sent = 0;
   let failed = 0;
   try {
-    const items = (await allItems(db))
-      .filter(item => item.ownerUid === options.ownerUid && item.status !== 'dead_letter')
+    const items = (await itemsForUser(db, options.ownerUid))
+      .filter(item => item.status !== 'dead_letter')
       .sort((a, b) => a.queuedAt - b.queuedAt);
 
     let deadLettered = 0;
@@ -395,7 +404,7 @@ export async function flushOfflineQueue(options: {
         break;
       }
     }
-    const remaining = (await allItems(db)).filter(item => item.ownerUid === options.ownerUid && item.status !== 'dead_letter').length;
+    const remaining = (await itemsForUser(db, options.ownerUid)).filter(item => item.status !== 'dead_letter').length;
     return { sent, failed, remaining, deadLettered };
   } finally { db.close(); }
 }
