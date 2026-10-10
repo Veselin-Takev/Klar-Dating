@@ -5,7 +5,7 @@ export default mergeConfig(viteConfig({} as any), defineConfig({
   test: {
     exclude: [
       '**/node_modules/**',
-      // Node's built-in test suites are run explicitly via node --test.
+      // Node built-in test runner suites execute through explicit node --test CI gates.
       '**/scripts/*.test.mjs',
       '**/e2e/**',
       '**/tests/e2e/**',
