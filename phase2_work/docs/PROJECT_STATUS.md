@@ -1,3 +1,13 @@
+## BE-01 candidate update — 2026-10-10
+
+Both API authentication entry points now enable Firebase Admin token revocation checks.
+The previously contrary static gate is corrected and four regression checks are wired into Enterprise validation.
+42 dependency-free checks passed under Node 24.19.0; the added real-emulator logout/relogin/disabled-account
+journey is not yet executed. Full Node 22.23.3 validation, merge and production approval remain pending.
+No Actions run was initiated. See [auth revocation evidence](AUTH_REVOCATION_2026-10-10.md).
+This supersedes earlier BE-01 implementation status only. Production remains NO-GO / NOT CONFIRMED.
+Next P0: DB-01 cumulative final deletion receipts.
+
 ## SEC-01 candidate update — 2026-10-10
 
 Release CI binding and frozen lockfile installation are implemented on the remediation branch.

@@ -53,7 +53,7 @@
     "check:aeusserungen": "node scripts/erfundene-aeusserungen.mjs src 0",
     "check:guardrails": "node scripts/check-guardrails.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "check:auth-boundary": "node scripts/check-auth-boundary.mjs",
+    "check:auth-boundary": "node scripts/check-auth-boundary.mjs && node --test scripts/auth-boundary-check.mjs",
     "check:public-firestore-rules": "node scripts/check-public-firestore-rules.mjs",
     "check:ai-pii-sanitizer": "node scripts/check-ai-pii-sanitizer.mjs",
     "check:art17-deletion-audit": "node scripts/check-art17-deletion-audit.mjs 0",
@@ -207,3 +207,4 @@
   },
   "packageManager": "bun@1.4.2"
 }
+
