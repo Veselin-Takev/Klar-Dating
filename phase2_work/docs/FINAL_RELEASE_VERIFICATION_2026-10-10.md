@@ -216,3 +216,11 @@ Ran `node --test local-preflight-timeout.test.mjs` in `/mnt/data/klar-timeout-re
 **Actual local execution** from `/mnt/data/klar-timeout-regression` on Node **v22.16.0**: `git hash-object local-preflight.mjs` returned exact development-branch blob **`ced4d91aeb5fd02611e4a93c0c3bc26dd21ba2ee`**; `node --check local-preflight.mjs` passed; `node --test local-preflight-timeout.test.mjs` returned **2 PASS, 0 FAIL**, TAP overall runtime ~**17.13 seconds**. The timed-out test subprocess was slower to settle than the configured 100 ms (individual test time ~3.82 seconds). This targeted observation warrants runner stability verification, but alone does not prove a production defect or a failure of the 15-minute preflight bound.
 
 **No speculative code change:** the targeted original-source syntax and timeout assertions passed. Full exact-SHA repository checkout, Node 22.23.3/Bun 1.4.2, TypeScript, Firebase, Playwright, cloud security evidence and human signoff **remain NOT RUN**. Frozen R2 unchanged; no additional Actions minutes, merge or deploy. Production decision **NO-GO**.
+
+## 2026-10-10 — Toolchain probe error handling
+
+**Confirmed source issue:** in `scripts/local-preflight.mjs`, Bun/Java `spawnSync` probe outputs were parsed without checking `result.error` and without null-safe stdout/stderr handling. Missing executables or timed-out child processes may yield absent output, causing an unintended JavaScript exception instead of the intended toolchain-policy failure message.
+
+**Remediation (development branch):** Bun checks `bun.error` and `bun.stdout?.trim()`; Java checks `java.error`, coalesces null stdout/stderr for version parsing, and keeps the required Java 21 verification. Commits `eb1b9f2e2f3020c121d75faba960cf8a70764602` and `53ee2c5237031ffd1ab12a7342b2e7a470c64dee`. Existing catch/finally logic continues to mark FAIL and attempts secure write-once external reporting.
+
+**Verification boundary:** exact GitHub source reviewed and committed, but modified preflight not yet executed under pinned Node 22.23.3/Bun 1.4.2 or a complete checkout. Full application/cloud gates NOT RUN. R2 frozen, no Actions minutes, merge or deploy. Official **NO-GO**.
