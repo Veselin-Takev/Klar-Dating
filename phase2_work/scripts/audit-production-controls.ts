@@ -1,8 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { verifyLocalProvenance } from './verify-local-provenance.mjs';
+import { validateExternalReportPath } from './report-path.mjs';
 import {
   auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPolicies,
 } from '../src/server/platform/productionControls';
@@ -38,7 +40,9 @@ async function main() {
   const actualBuildSha = verifyLocalProvenance(repositoryRoot);
   if (actualBuildSha !== expectedBuildSha) throw new Error('Production controls audit checkout does not match KLAR_EXPECTED_SHA.');
 
-  const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? 'production-evidence/controls.json');
+  const output = resolve(process.env.KLAR_PRODUCTION_CONTROLS_OUTPUT ?? join(tmpdir(), `klar-production-controls-${process.pid}.json`));
+  // Enforce existing external, write-once evidence policy before making cloud requests.
+  validateExternalReportPath(repositoryRoot, output);
 
   const serviceJson = gcloud(['run','services','describe',service,'--project',project,'--region',region,'--format=json']);
   const iamJson = gcloud(['projects','get-iam-policy',project,'--format=json']);
@@ -68,9 +72,8 @@ async function main() {
       'IAM review must still confirm each non-primitive role is required by the workload.',
     ],
   };
-  await mkdir(dirname(output), { recursive: true });
   await writeFile(output, JSON.stringify(report, null, 2) + '\n', { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-  console.log(JSON.stringify(report, null, 2));
+  console.log(`Production controls audit ${report.passed ? 'PASS' : 'FAIL'}; evidence: ${output}`);
   if (!report.passed) process.exitCode = 1;
 }
 
