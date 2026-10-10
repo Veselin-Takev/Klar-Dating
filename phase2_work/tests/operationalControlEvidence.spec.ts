@@ -122,4 +122,20 @@ describe('operational control exercise evidence', () => {
     expect(validateOperationalControlEvidence(leapYear, 'a'.repeat(40), 'production', ['evidence.invalid'], '2024-02-28T00:00:00Z').errors.join(' ')).not.toMatch(/ISO date/);
   });
 
+  it('handles Gregorian leap years for low four-digit years without Date.UTC coercion', () => {
+    const checks = [
+      ['0004-02-29T12:00:00Z', true],
+      ['0100-02-29T12:00:00Z', false],
+      ['0400-02-29T12:00:00Z', true],
+      ['1900-02-29T12:00:00Z', false],
+      ['2000-02-29T12:00:00Z', true],
+    ] as const;
+    for (const [timestamp, allowed] of checks) {
+      const record = valid();
+      record.secretRotation.newVersionCreatedAt = timestamp;
+      const errors = validateOperationalControlEvidence(record, 'a'.repeat(40), 'production', ['evidence.invalid'], '0001-01-01T00:00:00Z').errors;
+      expect(errors.some(message => message.includes('newVersionCreatedAt must be a valid ISO date/time'))).toBe(!allowed);
+    }
+  });
+
 });
