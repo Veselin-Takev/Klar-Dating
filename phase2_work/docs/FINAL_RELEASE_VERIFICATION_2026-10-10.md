@@ -172,3 +172,11 @@ Executed `node --test ci-scope-check.mjs` against a manually reconstructed curre
 Inspected `scripts/ci-scope.mjs`: the existing `git diff --name-only --no-renames` deliberately reports deletions and additions separately, so a code-file rename into an allowlisted narrative path must still trigger full CI. Added a dedicated regression case in `scripts/ci-scope-check.mjs` covering source/destination and deletion semantics, plus a source assertion that `--no-renames` remains present (development commit `ec73e41a1b9d5e56b7b824c6a0a392239e4cb2f6`). **No exploit was identified in the current implementation**; this is prevention of a future policy regression.
 
 **Limits:** Current policy source checked and test committed; complete clean-checkout execution, CI and production security checks remain pending. No Actions, merge, deployment or R2 modification. Official **NO-GO**.
+
+## 2026-10-10 — CI rename scenario exercised against real Git
+
+**Executed locally:** `node --test /mnt/data/klar-ci-scope-current/ci-scope-check.mjs` with Node **v22.16.0**. TAP **6 PASS, 0 FAIL** (301.18 ms); new regression checks renamed/deleted code paths and retention of `--no-renames`. The local test files were reconstructed from retrieved development-branch source, not an independent clean full checkout.
+
+**Additional real-git integration experiment:** initialized a fresh temporary repository, committed `phase2_work/src/App.tsx`, renamed the file with `git mv` to allowlisted `phase2_work/docs/PROJECT_STATUS.md` and committed the change. `git diff --name-only --no-renames BASE...HEAD` reported **both** original code path and destination. Invoking the current locally reconstructed `ci-scope.mjs` with the commit SHAs and `GITHUB_EVENT_NAME=pull_request` printed **`Full validation required.`**; the temporary repository was removed.
+
+**Limitations:** targeted Git behavior confirmed in synthetic repository, **not** a complete pinned-Node/Bun Klar checkout or live GitHub Actions. Full TypeScript/Firebase/Playwright/Cloud security tests remain NOT RUN. No additional product-code changes, no Actions minutes, merge or deploy; frozen R2 untouched and production remains **NO-GO**.
