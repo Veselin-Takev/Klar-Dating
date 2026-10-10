@@ -41,6 +41,7 @@ try {
   if (!javaVersion) throw new Error('Java 21 version could not be extracted for audit evidence.');
   report.toolchain = { node: process.versions.node, bun: bun.stdout.trim(), java: javaVersion };
 
+  run('Preflight timeout regression', 'node', ['--test', 'scripts/local-preflight-timeout.test.mjs']);
   run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/expected-sha.test.mjs']);
   run('Codespaces bootstrap regression tests', 'node', ['--test', 'scripts/check-codespaces-bootstrap.test.mjs']);
   run('Codespaces bootstrap invariants', 'node', ['scripts/check-codespaces-bootstrap.mjs']);
