@@ -180,3 +180,10 @@ Keep the original test process exit status as the authoritative result; profiler
 The offline `analyze-vitest-duration.mjs` profiler now rejects missing global success flags, invalid reported test counts, malformed suite objects, unrecognized suite statuses, and inconsistent/truncated test totals. Its JSON summary includes an explicit `overallStatus`; the CLI exits nonzero for a failing test run. This is important: a performance-profile generation must **never** be presented as passing test evidence when Vitest failed.
 
 Regression fixtures have been extended for truncated/malformed input, contradictory status and privacy-safe failure data. **Implementation committed to the isolated candidate branch; full pinned-toolchain execution remains PENDING.** No claim of full local acceptance or official release approval is made. No Actions workflow was intentionally triggered. GitHub Actions limit remains 100 newly authorized minutes subject to actual billing reconciliation; production remains NO-GO.
+
+
+## 2026-10-10 — Additional local reporter hardening
+
+Fixed an overlooked contradiction: a Vitest JSON report could previously declare global `success: true` while also reporting `numFailedTests > 0`. The suite profiler now rejects this combination and rejects negative or out-of-range failure counts (if present). The dedicated regression case passed locally under Node 22.16.0 using a matching isolated code fixture (4/4 local checks), along with the JavaScript syntax check. The full checked-out repository suite, Bun 1.4.2 and pinned Node 22.23.3 are **not** available in this environment; the full branch was not locally certified. These targeted checks do not override `verify:local` or production approvals.
+
+No CI run or deployment was started; the 100-minute incremental Actions limit and NO-GO release hold remain active.
