@@ -22,3 +22,24 @@ test('reject missing or invalid duration fields', () => {
 test('accept top-level times when perfStats are absent', () => {
   assert.equal(analyzeVitestReport({ testResults: [{ name: 'sample', startTime: 10, endTime: 20 }] }).slowest[0].durationMs, 10);
 });
+
+test('handles official Jest-compatible Vitest JSON reporter shape', () => {
+  const payload = {
+    success: false,
+    numTotalTests: 1,
+    testResults: [{
+      name: '/private/workspace/tests/security.spec.ts',
+      startTime: 1697737019787,
+      endTime: 1697737019797,
+      status: 'failed',
+      message: 'sensitive test failure contents',
+      assertionResults: [{ status: 'failed', duration: 9, failureMessages: ['private assertion'] }],
+    }],
+  };
+  const result = analyzeVitestReport(payload);
+  assert.equal(result.slowest[0].durationMs, 10);
+  assert.equal(result.slowest[0].status, 'failed');
+  assert.equal(result.slowest[0].tests, 1);
+  assert.equal(JSON.stringify(result).includes('sensitive test failure'), false);
+  assert.equal(JSON.stringify(result).includes('private assertion'), false);
+});
