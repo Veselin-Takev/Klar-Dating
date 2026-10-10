@@ -138,3 +138,10 @@ Inspection of the *actual GitHub source bytes* found that `parseStrictIso` conta
 The existing valid ISO-with-offset regression used October 10, 2026 midday timestamps. Because the validator correctly rejects events more than five minutes in the future, running that test before its hard-coded event time could fail for reasons unrelated to parsing. Replaced those five ISO fixture timestamps with September 29, 2026 historical values (maintaining offset and event-order coverage) and clarified the test comment.
 
 **Executed check:** 8 Node v22.16.0 assertions passed on the fixture values (five parseable dates, chronological relationships, and no future timestamps; isolated script, not Vitest). The actual repository Vitest suite and complete pinned-toolchain preflight have **not** been executed here. No GitHub Actions runs, merge, or deployment. Operational evidence remains pending and production remains **NO-GO**.
+
+
+## 2026-10-10 — Unknown operational evidence fields rejected
+
+Source review found the evidence schema was **permissive for unknown JSON properties**, meaning a record could contain an extraneous `accessToken`, `secretValue`, or `credential` field yet pass the existing required-field checks. The candidate now explicitly rejects unknown fields at top level and within both `secretRotation` and `alertDelivery`, including non-object arrays for those nested records. Added a targeted Vitest regression for all three levels.
+
+**Locally executed (Node v22.16.0):** six standalone assertions of the exact new helper logic passed; separately `node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs` returned **12 PASS / 0 FAIL**. The first set tests a manually extracted helper, and the second set uses existing isolated file copies, not a verified complete current checkout. **Neither is the pinned Node 22.23.3/Bun 1.4.2 full-branch test run.** Live production evidence, delivery of on-call alerts and independent attestation remain unverified. No new Actions jobs were started; no merge/deployment; production **NO-GO** and the additional 100-minute Actions limit remain binding.
