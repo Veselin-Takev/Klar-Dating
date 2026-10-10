@@ -111,3 +111,16 @@ The prior strict timestamp parser used `Date.UTC(year, month, 0)` to compute the
 Source review identified that chronological ordering alone could accept a full set of events scheduled in the future as if a secret rotation or alert-delivery drill had already occurred. The candidate now rejects any of the five event timestamps and the `evidenceNotBefore` threshold more than **five minutes ahead of validation time** (bounded clock-skew tolerance). A Vitest regression covers both secret rotation timestamps, all three alert-delivery timestamps and the threshold.
 
 **Execution boundary:** a small standalone Node v22.16.0 five-case check passed for the 5-minute clock-skew rule, but the exact updated domain-module Vitest test and full candidate branch preflight under pinned Node 22.23.3 / Bun 1.4.2 remain PENDING. Live cloud evidence and human signoff remain mandatory, and green schema checks cannot prove event authenticity. No new GitHub Actions run, merge or deployment was initiated. Production decision remains **NO-GO**; incremental Actions budget ceiling remains 100 minutes.
+
+
+## 2026-10-10 — Executed available local diagnostics, no substituted production claim
+
+Ran in the available runtime:
+```sh
+node --test /mnt/data/klar-report-guard/*.test.mjs /mnt/data/klar-provenance/*.test.mjs
+```
+Observed Node **v22.16.0**, TAP **12 tests / 12 PASS / 0 FAIL**, process exit **0** (about 82 ms). Covered clean Git root/SHA provenance, dirty/untracked checkouts, missing commits, Git failure propagation, symlink-equivalent paths, external report-path boundary, symlink parent bypass, existing/dangling symlink targets, and missing report parent directory.
+
+**Scope limitation:** these were existing isolated working copies. No exact current candidate Git-blob identity was re-established during this run, and the current operational-control validator / its Vitest tests were not available in this local checkout. Therefore **do not credit these tests against the unmerged candidate's complete acceptance**, or claim a live production audit. The runtime is not the pinned Node 22.23.3 and Bun 1.4.2 is unavailable. The full `verify:local` remains blocked pending an actual complete clean checkout and pinned toolchain. A GitHub Actions run cannot substitute for mandatory local preflight.
+
+No remote workflow, merge, or deployment was initiated. Production remains **NO-GO** pending exact-SHA technical and separately authenticated operational evidence; the incremental Actions cap remains **100 minutes**.
