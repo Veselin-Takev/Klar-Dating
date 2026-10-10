@@ -42,6 +42,7 @@ try {
   report.toolchain = { node: process.versions.node, bun: bun.stdout.trim(), java: javaVersion };
 
   run('CI diagnostic unit tests', 'node', ['--test', 'scripts/analyze-ci-duration.test.mjs', 'scripts/analyze-vitest-duration.test.mjs', 'scripts/verify-local-provenance.test.mjs', 'scripts/report-path.test.mjs', 'scripts/expected-sha.test.mjs']);
+  run('Codespaces bootstrap invariants', 'node', ['scripts/check-codespaces-bootstrap.mjs']);
   run('Dependency lock preflight', 'node', ['scripts/check-dependency-locks.mjs']);
   run('Frozen Bun installation', 'bun', ['ci']);
   run('Frozen Functions installation', 'npm', ['ci', '--prefix', 'functions', '--ignore-scripts', '--no-audit', '--no-fund']);
