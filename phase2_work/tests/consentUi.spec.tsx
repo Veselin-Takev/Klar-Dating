@@ -25,6 +25,19 @@ describe('consent UI persistence acknowledgement', () => {
     expect(sessionStorage.getItem('klar:guest:consent:guest-1')).toContain('guest-1');
   });
 
+  it.each(['Nichts davon', 'Auswahl speichern'])('stores anonymous-less session decision locally: %s', async (label) => {
+    authState.user = null;
+    const done = vi.fn();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<MemoryRouter><EinwilligungUndAlter onFertig={done} alterBereitsGeprueft /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    await waitFor(() => expect(done).toHaveBeenCalledOnce());
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('klar:guest:consent:unauthed-session')).toContain('unauthed-session');
+  });
+
   it('continues without a fabricated server evidence ID after an acknowledged account decision', async () => {
     authState.user = { uid: 'registered-1', isAnonymous: false };
     const done = vi.fn();
@@ -37,6 +50,7 @@ describe('consent UI persistence acknowledgement', () => {
   });
 
   it('does not synthesize consent from an empty successful response', async () => {
+    authState.user = { uid: 'registered-1', isAnonymous: false };
     const done = vi.fn(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({})));
     render(<MemoryRouter><EinwilligungUndAlter onFertig={done} alterBereitsGeprueft /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Nichts davon' }));
@@ -46,6 +60,7 @@ describe('consent UI persistence acknowledgement', () => {
   });
 
   it('requires a matching authoritative record after consent persistence', async () => {
+    authState.user = { uid: 'registered-1', isAnonymous: false };
     const done = vi.fn();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ ok: true, evidenceId: 'record', einwilligung: { version: 1 } })));
     refresh.mockResolvedValue({ isAdult: true, einwilligung: { evidenceId: 'different-record' } });
@@ -55,6 +70,7 @@ describe('consent UI persistence acknowledgement', () => {
   });
 
   it('completes only after the durable decision has been reread', async () => {
+    authState.user = { uid: 'registered-1', isAnonymous: false };
     const done = vi.fn();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ ok: true, evidenceId: 'record', einwilligung: { version: 1 } })));
     refresh.mockResolvedValue({ isAdult: true, einwilligung: { evidenceId: 'record' } });
