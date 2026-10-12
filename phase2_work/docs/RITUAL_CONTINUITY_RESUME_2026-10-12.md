@@ -15,3 +15,7 @@ Added regression coverage in `tests/ritualResume.spec.tsx`. The full required ga
 ## CI correction — run 38294575402
 
 The initial PR #19 Actions run completed with failure at the Vitest stage: 165 files and 1,083 tests passed, but `tests/ritualResume.spec.tsx` failed because the widget returned `null` (no streak). Cause: test setup used `klarStorage.setItem()` without a Firebase Auth UID; production `userScopedStorage` deliberately ignores UID-less writes. Commit `42bb5c24` replaces this with an isolated, test-only UID-scoped storage double and clears the fixture between tests. Production storage security and resume logic are unchanged. Await an exact-head successful CI before marking ready to merge. No manually dispatched Actions run.
+
+## Follow-up CI failure — run 38296644395
+
+The previous ritual test fixture correction passed; this CI run had 167 passing test files / 1,094 passing tests and **one unrelated timeout** in `tests/recommendationPrivacy.spec.ts` > `excludes blocks beyond the first page in both directions`. The test writes 202 forward and 202 reverse block records, performs paginated Firestore queries, then removes its fixtures. Its original Vitest default 5-second allowance expired under CI/emulator load. Commit `ee06e571` sets a **test-local 30-second cap**, retaining all privacy assertions and fixtures without raising suite-wide timeouts. A repeat failure would require per-phase instrumentation and query/index investigation, not indefinite timeout escalation. New CI status remains to be verified; no manual workflow dispatched.
