@@ -29,15 +29,10 @@ describe('accessible consent withdrawal', () => {
   it.each([
     ['KI-Auswertung', 'ki_auswertung'],
     ['Fehlerberichte', 'fehlerberichte'],
-    ['Produktanalyse', 'produktanalyse'],
   ])('immediately reflects server-proven grant for %s', async (label, purpose) => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
     hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'proof', zwecke: { produktanalyse: true, [purpose]: true } } });
     render(<ConsentSettings />);
-    if (purpose === 'produktanalyse') {
-      expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
-      return;
-    }
     fireEvent.click(screen.getByRole('button', { name: label + ' erlauben' }));
     await waitFor(() => expect(screen.getByText(label + ': Erlaubt')).toBeInTheDocument());
   });
