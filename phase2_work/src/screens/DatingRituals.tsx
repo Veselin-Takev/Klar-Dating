@@ -70,6 +70,7 @@ export const DatingRituals: React.FC = () => {
       const saved = klarStorage.getItem('klar_rituals_streak');
       let count = 1;
       let vacationUntil: string | undefined;
+      let resumeGrace = false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -78,6 +79,7 @@ export const DatingRituals: React.FC = () => {
         if (typeof data.vacationUntil === 'string' && new Date(data.vacationUntil).getTime() >= today.getTime()) {
           vacationUntil = data.vacationUntil;
         }
+        resumeGrace = typeof data.resumeGraceUntil === 'string' && new Date(data.resumeGraceUntil).getTime() >= today.getTime();
         const lastDate = new Date(data.lastDate);
         lastDate.setHours(0, 0, 0, 0);
 
@@ -86,7 +88,7 @@ export const DatingRituals: React.FC = () => {
 
         if (diffDays === 0) {
           return; // Already completed today
-        } else if (diffDays === 1 || vacationUntil) {
+        } else if (diffDays === 1 || vacationUntil || resumeGrace) {
           count = Number.isSafeInteger(data.count) && data.count > 0 ? data.count + 1 : 1;
         }
       }
