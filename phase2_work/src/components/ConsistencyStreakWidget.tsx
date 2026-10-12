@@ -37,7 +37,8 @@ export const ConsistencyStreakWidget: React.FC = () => {
           setIsOnVacation(currentlyOnVacation);
           if (!currentlyOnVacation) setVacationDaysLeft(0);
 
-          if (diffDays <= 1 || currentlyOnVacation) {
+          const graceUntil = data.resumeGraceUntil ? new Date(data.resumeGraceUntil) : null;
+          if (diffDays <= 1 || currentlyOnVacation || (graceUntil && graceUntil >= todayDate)) {
             setStreak(data.count);
           } else {
             setStreak(0);
@@ -58,6 +59,11 @@ export const ConsistencyStreakWidget: React.FC = () => {
       const data = JSON.parse(saved);
       if (!data || typeof data !== 'object') throw new Error('Invalid streak');
       delete data.vacationUntil;
+      // One-day grace preserves earned days without pretending that a ritual happened.
+      const grace = new Date();
+      grace.setHours(0, 0, 0, 0);
+      grace.setDate(grace.getDate() + 1);
+      data.resumeGraceUntil = grace.toISOString();
       // Preserve earned days while resuming; never fabricate a new completion.
       klarStorage.setItem('klar_rituals_streak', JSON.stringify(data));
       setIsOnVacation(false);
