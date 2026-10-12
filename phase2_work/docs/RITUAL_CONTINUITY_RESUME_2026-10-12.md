@@ -11,3 +11,7 @@ The observed ritual streak source of truth is `klarStorage('klar_rituals_streak'
 
 ## Verification
 Added regression coverage in `tests/ritualResume.spec.tsx`. The full required gates (`npm run typecheck`, `npm run test:pure`, `npm run test:rules`, `npx playwright test`, `npm run build`) have not been independently run in this environment. Exact-head CI, Firestore migration review, and production authorization remain pending. No production-ready project ZIP or GO claim; no manual GitHub Actions runs.
+
+## CI correction — run 38294575402
+
+The initial PR #19 Actions run completed with failure at the Vitest stage: 165 files and 1,083 tests passed, but `tests/ritualResume.spec.tsx` failed because the widget returned `null` (no streak). Cause: test setup used `klarStorage.setItem()` without a Firebase Auth UID; production `userScopedStorage` deliberately ignores UID-less writes. Commit `42bb5c24` replaces this with an isolated, test-only UID-scoped storage double and clears the fixture between tests. Production storage security and resume logic are unchanged. Await an exact-head successful CI before marking ready to merge. No manually dispatched Actions run.
