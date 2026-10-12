@@ -1,0 +1,21 @@
+# Ritual continuity resume — 2026-10-12
+
+## Root cause
+ConsistencyStreakWidget displayed "Pausiert (7T)" but only rendered a pause-start action when **not** paused; there was no resume handler. DatingRituals also overwrote `klar_rituals_streak` on a new completion, silently discarding `vacationUntil`.
+
+## Fix
+The widget now renders an accessible 44px minimum "Fortsetzen" button while paused. It removes the vacation marker, persists the change in the existing UID-scoped klarStorage entry, dispatches the same ritual-change event and updates the UI. Resume does not fabricate a completed ritual or increase earned days; a one-day `resumeGraceUntil` field lets the prior count remain visible until an actual completion. Real completions during vacation preserve the pause marker; a real completion during grace can continue the streak. Failure to persist is announced and does not claim success.
+
+## Data architecture and important constraint
+The observed ritual streak source of truth is `klarStorage('klar_rituals_streak')`, not Firestore. This PR intentionally does **not** introduce speculative Firestore writes, new security rules or unreviewed migration of behavioral data. Cross-device Firestore persistence, permissions, and retention must be designed and verified separately before declaring cross-device consistency. The separate `SmartPause` feature is unrelated to the seven-day streak vacation.
+
+## Verification
+Added regression coverage in `tests/ritualResume.spec.tsx`. The full required gates (`npm run typecheck`, `npm run test:pure`, `npm run test:rules`, `npx playwright test`, `npm run build`) have not been independently run in this environment. Exact-head CI, Firestore migration review, and production authorization remain pending. No production-ready project ZIP or GO claim; no manual GitHub Actions runs.
+
+## CI correction — run 38294575402
+
+The initial PR #19 Actions run completed with failure at the Vitest stage: 165 files and 1,083 tests passed, but `tests/ritualResume.spec.tsx` failed because the widget returned `null` (no streak). Cause: test setup used `klarStorage.setItem()` without a Firebase Auth UID; production `userScopedStorage` deliberately ignores UID-less writes. Commit `42bb5c24` replaces this with an isolated, test-only UID-scoped storage double and clears the fixture between tests. Production storage security and resume logic are unchanged. Await an exact-head successful CI before marking ready to merge. No manually dispatched Actions run.
+
+## Follow-up CI failure — run 38296644395
+
+The previous ritual test fixture correction passed; this CI run had 167 passing test files / 1,094 passing tests and **one unrelated timeout** in `tests/recommendationPrivacy.spec.ts` > `excludes blocks beyond the first page in both directions`. The test writes 202 forward and 202 reverse block records, performs paginated Firestore queries, then removes its fixtures. Its original Vitest default 5-second allowance expired under CI/emulator load. Commit `ee06e571` sets a **test-local 30-second cap**, retaining all privacy assertions and fixtures without raising suite-wide timeouts. A repeat failure would require per-phase instrumentation and query/index investigation, not indefinite timeout escalation. New CI status remains to be verified; no manual workflow dispatched.
