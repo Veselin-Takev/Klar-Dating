@@ -8,3 +8,6 @@ Three large, keyboard-accessible, 44px minimum category controls divide the tab 
 
 ## Verification and release
 The targeted static regression test is a structural guard, **not** proof of accessibility or functional behavior. The requested full gates `npm run typecheck`, `npm run test:pure`, `npm run test:rules`, `npx playwright test` and `npm run build` are NOT independently executed from a local checkout, and exact-head CI must be inspected. Manual WCAG keyboard/screenreader review, safe focus positioning upon category switch, responsive viewport test and contrast verification remain pending. A complete production ZIP has not been produced; production **NO-GO** until independent technical and operational signoff. Avoid manually rerunning Actions and reconcile use against the owner's remaining 100-minute ceiling.
+
+## CI regression (2026-10-12)
+Run 38292024420 failed the Tests step because the new `profileSettingsCategories.spec.ts` attempted `readFileSync(new URL(..., import.meta.url))` when Vitest supplied a non-file module URL (`ERR_INVALID_URL_SCHEME`). Commit `68018a32` uses the project-relative file path instead, consistent with CI working directory `phase2_work`. The previous 1,078 tests passed, but the new test suite itself did not load. Exact-head CI is pending; no production GO.
