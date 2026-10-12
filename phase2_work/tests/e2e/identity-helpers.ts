@@ -42,7 +42,7 @@ export async function enterGuestPreview(page: Page) {
   await waitForAgeGate(page);
 }
 
-export async function completeAgeAndConsent(page: Page, next: 'navigation' | 'onboarding' = 'navigation') {
+export async function completeAgeAndConsent(page: Page, next: 'navigation' | 'onboarding' = 'navigation', mode: 'guest' | 'registered' = 'guest') {
   await page.getByLabel('Geburtsdatum').fill('1990-01-01');
   const ageResponse = page.waitForResponse(response =>
     new URL(response.url()).pathname === '/api/account/alter' && response.request().method() === 'POST',
@@ -52,13 +52,27 @@ export async function completeAgeAndConsent(page: Page, next: 'navigation' | 'on
   await expect(page.getByRole('heading', { name: 'Womit bist du einverstanden?' })).toBeVisible({ timeout: PERSISTED_UI_TIMEOUT_MS });
   await expect(page.getByRole('checkbox')).toHaveCount(3);
   for (const checkbox of await page.getByRole('checkbox').all()) await expect(checkbox).not.toBeChecked();
-  const consentResponse = page.waitForResponse(response =>
-    new URL(response.url()).pathname === '/api/einwilligung' && response.request().method() === 'POST',
-  );
-  await page.getByRole('button', { name: 'Nichts davon', exact: true }).click();
-  const consent = await consentResponse;
-  expect(consent.status()).toBe(200);
-  expect((await consent.json()).evidenceId).toEqual(expect.any(String));
+  if (mode === 'guest') {
+    // Guest decisions are session-scoped, never fabricated server audit records.
+    await page.getByRole('button', { name: 'Nichts davon', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => {
+      const keys = Array.from({ length: sessionStorage.length }, (_, i) => sessionStorage.key(i));
+      const guestKey = keys.find(key => key?.startsWith('klar:guest:consent:'));
+      if (!guestKey) return null;
+      try {
+        const record = JSON.parse(sessionStorage.getItem(guestKey) || 'null');
+        return record?.zwecke;
+      } catch { return null; }
+    })).toMatchObject({ ki_auswertung: false, fehlerberichte: false, produktanalyse: false });
+  } else {
+    const consentResponse = page.waitForResponse(response =>
+      new URL(response.url()).pathname === '/api/einwilligung' && response.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Nichts davon', exact: true }).click();
+    const consent = await consentResponse;
+    expect(consent.status()).toBe(200);
+    expect((await consent.json()).evidenceId).toEqual(expect.any(String));
+  }
   if (next === 'onboarding') {
     await expect(page.getByRole('heading', { name: 'Echte Verbindungen statt endloses Suchen.' })).toBeVisible({ timeout: PERSISTED_UI_TIMEOUT_MS });
   } else {
