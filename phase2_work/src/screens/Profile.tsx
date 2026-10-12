@@ -509,6 +509,7 @@ export default function Profile() {
   });
 
   const [reiter, setReiter] = useState<ReiterId>("profil");
+  const [settingsCategory, setSettingsCategory] = useState<"privacy" | "preferences" | "advanced">("privacy");
 
   const { theme, setTheme } = useTheme();
 
@@ -1827,7 +1828,18 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         {reiter === "einstellungen" && (
         <div role="tabpanel" id="profil-einstellungen-inhalt" aria-labelledby="profil-einstellungen" className="space-y-4">
+        <nav aria-label="Einstellungskategorien" className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-2xl bg-[#FAF8F5] dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2">
+          {([['privacy', 'Sicherheit & Datenschutz'], ['preferences', 'Präferenzen & Hinweise'], ['advanced', 'Erweitert & Konto']] as const).map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={settingsCategory === id} onClick={() => setSettingsCategory(id)}
+              className={`min-h-11 rounded-xl px-3 py-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 dark:focus-visible:outline-stone-100 ${settingsCategory === id ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900' : 'text-stone-800 dark:text-stone-100 hover:bg-stone-200 dark:hover:bg-stone-800'}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className={settingsCategory === 'privacy' ? 'space-y-4' : 'hidden'}>
         <ConsentSettings />
+        </div>
+        <div className={settingsCategory === 'preferences' ? 'space-y-4' : 'hidden'}>
         {/* Aus dem Kopf hierher: eine Diagnoseanzeige gehoert zu den
             Einstellungen, nicht ueber das Profilbild. */}
         <div className="flex justify-center"><OfflineCacheStatus /></div>
@@ -1854,6 +1866,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
 
 
+        </div>
+        <div className={settingsCategory === 'advanced' ? 'space-y-4' : 'hidden'}>
         {/* ── KLAR+ 14.08.2026 ─────────────────────────────────────────
             Vorher standen hier 75 Zeilen Vergleichstabelle (acht Zeilen mal
             drei Spalten, rund 600 px) zwischen der Fokuszeit und der
@@ -1883,6 +1897,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <ChevronRight size={18} className="text-stone-400 shrink-0" aria-hidden="true" />
         </Link>
 
+        </div>
         <div className="w-full mt-4 p-4 bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl shadow-sm">
 
           <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Einstellungen</h3>
@@ -1891,7 +1906,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             {/* ── Epic 3: Spracheinstellungen ──────────────────────────────── */}
 
             {/* Privacy Visibility Settings */}
-            <div className="mt-6">
+            <div className={settingsCategory === 'privacy' ? 'mt-6' : 'hidden'}>
               <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
                 <ShieldCheck size={18} className="text-stone-500" />
                 Datenschutz & Sichtbarkeit
@@ -1928,6 +1943,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               </div>
             </div>
 
+            <div className={settingsCategory === 'preferences' ? 'space-y-4' : 'hidden'}>
             <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
               <Languages size={18} className="text-stone-500" />
               Meine Chat-Sprache
@@ -2033,7 +2049,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <HapticSettings />
           </div>
 
-          <div className="mt-8 pt-6 border-t border-stone-200 dark:border-stone-700">
+          </div>
+          <div className={settingsCategory === 'advanced' ? 'mt-8 pt-6 border-t border-stone-200 dark:border-stone-700' : 'hidden'}>
             <h4 className="text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-4">{t('profileSafety.title')}</h4>
 
             {/* GEGENPRÜFUNG 09.08.2026: Diese beiden Schaltflächen hatten
