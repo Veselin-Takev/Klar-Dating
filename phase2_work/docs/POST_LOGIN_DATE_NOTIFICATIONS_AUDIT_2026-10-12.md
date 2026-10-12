@@ -8,3 +8,7 @@ This change does **not** establish that all post-login timestamps or notificatio
 
 ## Release verification
 The requested `npm run typecheck`, `npm run test:pure`, `npm run test:rules`, `npx playwright test`, and `npm run build` have **not** been executed for this candidate. The available runtime is Node v22.16.0 versus the repository policy v22.23.3 and a complete repository checkout is unavailable here. A successful PR CI at an older SHA would not be a substitute. Current decision: **NO-GO**. No manual GitHub Actions run initiated; reconcile the user's 100-minute cap before remote CI.
+
+## Additional notification fix
+
+The global Layout legal-updates request previously ran before authentication settled and retained notification/acknowledgement state between UIDs. The effect now waits for a settled authenticated user, clears prior user-visible legal notification state on transitions, cancels stale async completions, and reloads on UID changes (commit `d5184342f0b0f3d6a80afe15bfe5f74c2fd598a5`). This is a scoped auth-race correction, not proof that all notifications and message-delivery paths are correct.
