@@ -12,3 +12,9 @@ The requested `npm run typecheck`, `npm run test:pure`, `npm run test:rules`, `n
 ## Additional notification fix
 
 The global Layout legal-updates request previously ran before authentication settled and retained notification/acknowledgement state between UIDs. The effect now waits for a settled authenticated user, clears prior user-visible legal notification state on transitions, cancels stale async completions, and reloads on UID changes (commit `d5184342f0b0f3d6a80afe15bfe5f74c2fd598a5`). This is a scoped auth-race correction, not proof that all notifications and message-delivery paths are correct.
+
+## Chat timestamp and read-receipt follow-up (2026-10-12)
+
+Commit `bbed6600f3599492a1d531cf212921b940b5f9d4` normalizes Firestore `Timestamp` values from the chat snapshot to JavaScript `Date` objects prior to rendering; downstream `MessageBubble` uses the central i18n formatter. The asynchronous mark-read flow additionally rechecks active chat subscription and current Firebase UID after `getIdToken()` resolves, preventing late auth transitions from sending a stale receipt. The server remains responsible for authorization and message persistence.
+
+These are code-reviewed mitigations, not full delivery assurances. The exact commit still requires pinned Node toolchain validation, TypeScript, pure/rules tests, Playwright, build and emulator smoke. No claims of a passing full release or production approval are made. Budget guard: no manual Actions runs beyond the user's unreconciled 100-minute ceiling.
