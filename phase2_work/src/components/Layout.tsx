@@ -1,5 +1,6 @@
 import { klarStorage } from '../lib/userScopedStorage';
 import { authFetch } from '../lib/authFetch';
+import { useAuth } from '../lib/AuthContext';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -77,6 +78,7 @@ export interface LayoutProps {
  */
 export function Layout({ children }: LayoutProps) {
   const { t } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const online = useOnline();
   const lastSync = useFirestoreSyncTime();
@@ -120,6 +122,11 @@ export function Layout({ children }: LayoutProps) {
   // Rechtliche Updates are server-authoritative. No browser storage is used for acknowledgements.
   useEffect(() => {
     let cancelled = false;
+    setLegalUpdates([]);
+    setAcknowledgedLegalIds([]);
+    setUnseenLegalCount(0);
+    setInAppNotification(null);
+    if (authLoading || !user) return () => { cancelled = true; };
     const fetchLegalUpdates = async () => {
       try {
         const res = await authFetch('/api/legal-updates');
@@ -144,7 +151,7 @@ export function Layout({ children }: LayoutProps) {
     void fetchLegalUpdates();
     const interval = setInterval(() => void fetchLegalUpdates(), 60 * 60 * 1000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [t]);
+  }, [t, user?.uid, authLoading]);
 
   const handleAcknowledgeLegal = async (id: string): Promise<boolean> => {
     try {
