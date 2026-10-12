@@ -22,3 +22,9 @@ These are code-reviewed mitigations, not full delivery assurances. The exact com
 ## Toast lifecycle follow-up
 
 The InAppNotification countdown previously depended on the identity of `onDismiss`; Layout passes an inline callback, so unrelated parent renders reset the timer. Commit `b7395ac0d1b24cce236b8bd4d9bae5210c75d561` retains the latest callback in a ref without restarting the effect, and `7ad79de9a1afc5b9f348033c67f39e2eef8640db` adds a fake-timer rerender regression. This does not alter intentional reset on a distinct notification or the persistent-notification rule. Tests remain to be validated on the exact latest head; production **NO-GO**.
+
+## Toast event identity and late-dismiss protection (2026-10-12)
+
+Identified: Layout keyed toast components only by title; consecutive notifications with the same title reused the same rendered instance and countdown. Moreover, a deferred dismiss callback from an earlier notification could clear a newer notification. Commit `f1a1a437c4d6ea0083c137f08f99e61fe05ecbf1` assigns a distinct monotonically increasing notification ID to each accepted event/legal notice, keys the component by that ID and guards onDismiss against an obsolete ID. External event payloads now require a nonempty string title and sanitize optional text/persistent flags instead of casting arbitrary event detail. Registered notification state and server authority remain distinct.
+
+Exact-head CI and integration verification remain mandatory; this commit has not received a verified passing run as part of this record. Release stays **NO-GO**. Do not start remote runs beyond the user's unreconciled Actions budget cap.
