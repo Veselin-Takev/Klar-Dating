@@ -76,4 +76,20 @@ describe("InAppNotification", () => {
     );
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
+  it("does not restart auto-dismiss when the parent supplies a new callback", () => {
+    const firstDismiss = vi.fn();
+    const latestDismiss = vi.fn();
+    const notification = { title: "Hinweis", body: "Text" };
+    const { rerender } = render(
+      <InAppNotification notification={notification} onDismiss={firstDismiss} timeoutMs={6_000} />,
+    );
+    act(() => vi.advanceTimersByTime(4_000));
+    rerender(<InAppNotification notification={notification} onDismiss={latestDismiss} timeoutMs={6_000} />);
+    act(() => vi.advanceTimersByTime(1_999));
+    expect(latestDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(firstDismiss).not.toHaveBeenCalled();
+    expect(latestDismiss).toHaveBeenCalledTimes(1);
+  });
+
 });
