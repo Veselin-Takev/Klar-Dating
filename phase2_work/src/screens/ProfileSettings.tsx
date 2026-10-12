@@ -1,6 +1,7 @@
 import { useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InterestsSettings } from '../components/InterestsSettings';
+import { BackNavigation } from '../components/BackNavigation';
 import { useAuth } from '../lib/AuthContext';
 import { useModalAccessibility } from '../lib/useModalAccessibility';
 
@@ -28,6 +29,7 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6">
+      <BackNavigation fallback="/profile" dirty={JSON.stringify(interests) !== JSON.stringify(initialInterests || [])} />
       <h2 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h2>
       
       <InterestsSettings 

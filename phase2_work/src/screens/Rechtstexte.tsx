@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
-import { ArrowLeft, ShieldCheck, Scale, Building2 } from "lucide-react";
+import { ShieldCheck, Scale, Building2 } from "lucide-react";
+import { BackNavigation } from "../components/BackNavigation";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Rechtstexte: Datenschutzerklärung (DSGVO), AGB (§§ 312k, 356a BGB), Impressum (§ 5 DDG, DSA Art. 11/12)
@@ -14,13 +15,7 @@ export default function Rechtstexte() {
   return (
     <div className="min-h-[100dvh] bg-canvas text-ink px-4 sm:px-6 py-8 mx-auto w-full max-w-3xl">
       <header className="mb-6">
-        <a
-          href="/"
-          className="inline-flex items-center gap-2 text-muted hover:text-ink text-sm font-medium mb-4 focus:outline-none focus:ring-2 focus:ring-brand rounded-lg p-1"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          Zurück zur App
-        </a>
+        <BackNavigation fallback="/" label="Zurück zur App" />
         <div className="flex flex-wrap gap-2 border-b border-line-ui pb-3 mb-6" role="tablist">
           <Link
             to="/rechtstexte/datenschutz"
