@@ -25,6 +25,9 @@ export function InAppNotification({
   const detailsId = useId();
   const [expanded, setExpanded] = useState(false);
   const timerRef = useRef<number | null>(null);
+  // Parent renders create new callback identities; they must not restart the countdown.
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
   const startedAtRef = useRef<number | null>(null);
   const remainingRef = useRef(timeoutMs);
   const pauseReasonsRef = useRef(new Set<string>());
@@ -53,9 +56,9 @@ export function InAppNotification({
       timerRef.current = null;
       startedAtRef.current = null;
       remainingRef.current = 0;
-      onDismiss();
+      onDismissRef.current();
     }, remainingRef.current);
-  }, [notification.persistent, onDismiss]);
+  }, [notification.persistent]);
 
   const pause = useCallback(
     (reason: string) => {
