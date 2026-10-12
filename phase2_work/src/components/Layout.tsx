@@ -139,17 +139,19 @@ export function Layout({ children }: LayoutProps) {
   // Rechtliche Updates are server-authoritative. No browser storage is used for acknowledgements.
   useEffect(() => {
     let cancelled = false;
+    let latestRequest = 0;
     setLegalUpdates([]);
     setAcknowledgedLegalIds([]);
     setUnseenLegalCount(0);
     setInAppNotification(null);
     if (authLoading || !user) return () => { cancelled = true; };
     const fetchLegalUpdates = async () => {
+      const requestId = ++latestRequest;
       try {
         const res = await authFetch('/api/legal-updates');
         if (!res.ok) return;
         const data = await res.json() as { updates?: LegalUpdate[]; acknowledgedIds?: string[] };
-        if (cancelled || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
+        if (cancelled || requestId !== latestRequest || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
         setLegalUpdates(data.updates);
         setAcknowledgedLegalIds(data.acknowledgedIds);
         const unseen = data.updates.filter(update => !data.acknowledgedIds!.includes(update.id));
