@@ -1,7 +1,7 @@
 import { klarStorage } from '../lib/userScopedStorage';
 import { authFetch } from '../lib/authFetch';
 import { useAuth } from '../lib/AuthContext';
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../lib/useOnline';
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 
 interface InAppNotificationMessage {
+  notificationId?: number;
   title: string;
   body?: string;
   message?: string;
@@ -98,6 +99,7 @@ export function Layout({ children }: LayoutProps) {
   }, []);
 
   const [inAppNotification, setInAppNotification] = useState<InAppNotificationMessage | null>(null);
+  const nextNotificationId = useRef(0);
   const [legalUpdates, setLegalUpdates] = useState<LegalUpdate[]>([]);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [acknowledgedLegalIds, setAcknowledgedLegalIds] = useState<string[]>([]);
@@ -106,7 +108,17 @@ export function Layout({ children }: LayoutProps) {
   useEffect(() => {
     const handleNotification = (e: Event) => {
       const customEvent = e as CustomEvent;
-      setInAppNotification(customEvent.detail as InAppNotificationMessage);
+      const detail: unknown = customEvent.detail;
+      if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return;
+      const candidate = detail as Record<string, unknown>;
+      if (typeof candidate.title !== 'string' || !candidate.title.trim()) return;
+      setInAppNotification({
+        title: candidate.title,
+        ...(typeof candidate.body === 'string' ? { body: candidate.body } : {}),
+        ...(typeof candidate.message === 'string' ? { message: candidate.message } : {}),
+        persistent: candidate.persistent === true,
+        notificationId: ++nextNotificationId.current,
+      });
     };
 
     const handleOpenLegal = () => setIsLegalModalOpen(true);
@@ -142,6 +154,7 @@ export function Layout({ children }: LayoutProps) {
             title: t('legalUpdates.notificationTitle'),
             body: t('legalUpdates.notificationBody'),
             persistent: true,
+            notificationId: ++nextNotificationId.current,
           });
         }
       } catch {
@@ -172,9 +185,9 @@ export function Layout({ children }: LayoutProps) {
         {inAppNotification && (
           <Suspense fallback={null}>
             <InAppNotification
-              key={inAppNotification.title}
+              key={inAppNotification.notificationId}
               notification={inAppNotification}
-              onDismiss={() => setInAppNotification(null)}
+              onDismiss={() => setInAppNotification(current => current?.notificationId === inAppNotification.notificationId ? null : current)}
             />
           </Suspense>
         )}
