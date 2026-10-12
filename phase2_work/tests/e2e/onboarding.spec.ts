@@ -5,12 +5,11 @@ test.describe('identity, onboarding, music, age and consent', () => {
   test('guest reaches preview through mandatory age and consent gates', async ({ page }) => {
     await enterGuestPreview(page);
     await completeAgeAndConsent(page);
-    const headers = await authHeaders(page);
-    const saved = await page.request.get('/api/einwilligung', { headers });
-    expect(saved.status()).toBe(200);
-    expect((await saved.json()).einwilligung.zwecke).toMatchObject({
-      ki_auswertung: false, fehlerberichte: false,
-    });
+    // Anonymous choices are local-only and must not imply a durable API ledger.
+    await expect.poll(() => page.evaluate(() =>
+      Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
+        .some(key => key?.startsWith('klar:guest:consent:')),
+    )).toBe(true);
     await page.reload();
     await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
   });
@@ -24,7 +23,7 @@ test.describe('identity, onboarding, music, age and consent', () => {
     await page.getByRole('button', { name: 'Registrieren', exact: true }).click();
     // Legal/age and consent gates are intentionally prior to profile onboarding.
     await waitForAgeGate(page);
-    await completeAgeAndConsent(page, 'onboarding');
+    await completeAgeAndConsent(page, 'onboarding', 'registered');
     await expect(page.getByRole('heading', {
       name: 'Echte Verbindungen statt endloses Suchen.',
     })).toBeVisible({ timeout: 15000 });

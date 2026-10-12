@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/AuthContext";
 import { getAuthToken } from "../lib/api";
+import { saveGuestConsent } from "../lib/guestConsent";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -32,7 +33,7 @@ interface Props {
 
 export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }: Props) {
   const { t } = useTranslation();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, user } = useAuth();
   const [schritt, setSchritt] = useState<"alter" | "einwilligung">(
     alterBereitsGeprueft ? "einwilligung" : "alter",
   );
@@ -123,9 +124,17 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
   }
 
   async function einwilligungSenden(gewaehlt: Zwecke) {
+    if (laeuft) return;
     setFehler(null);
     setLaeuft(true);
     try {
+      if (!user || user.isAnonymous) {
+        // A guest has no durable server consent record. Never fabricate an evidenceId.
+        // Session storage is UID-bound and must be confirmed before advancing.
+        saveGuestConsent(user?.uid ?? "unauthed-session", gewaehlt, window.sessionStorage);
+        onFertig?.();
+        return;
+      }
       const token = await getAuthToken();
       const res = await fetch("/api/einwilligung", {
         method: "POST",
@@ -144,8 +153,15 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         setFehler(typeof daten.error === 'string' ? daten.error : "Die Einwilligung konnte nicht gespeichert werden.");
         return;
       }
-      if (daten.ok !== true || !evidenceId || !daten.einwilligung) {
-        throw new Error('Der gespeicherte Nachweis fehlt.');
+      if (daten.ok !== true || !daten.einwilligung) {
+        throw new Error('Die Einwilligungsentscheidung wurde nicht bestätigt.');
+      }
+      if (!evidenceId) {
+        // The server did not supply auditable evidence. Preserve only the local
+        // session preference; do not claim it authorizes optional server processing.
+        saveGuestConsent(user.uid, gewaehlt, window.sessionStorage);
+        onFertig?.();
+        return;
       }
       const profile = await refreshProfile();
       const persistedConsent = profile?.einwilligung;
