@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, BookHeart, Tag, PenLine, ChevronRight, SmilePlus } from "lucide-react";
 import { motion } from "motion/react";
 import { melde } from "../lib/fehler";
+import { requestJournalAI, journalErrorMessage, JournalRequestError } from "../lib/journalAiRequest";
 
 interface JournalAnalysis {
   dynamicAnalysis: string;
@@ -31,19 +32,18 @@ export function SmartDatingJournalWidget() {
   };
 
   const generateFromEmojis = async () => {
+    if (isLoading || selectedEmojis.length === 0) return;
+    setUiError(null);
     setIsLoading(true);
     try {
-      const response = await fetch("/api/generate-reflection-from-emojis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emojis: selectedEmojis })
-      });
-      const data = await response.text().then(text => text ? JSON.parse(text) : {});
-      if (data.notes) {
-        setNotes(data.notes);
-        setMode("text");
-      }
-    } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; } finally {
+      const data = await requestJournalAI('/api/generate-reflection-from-emojis', { emojis: selectedEmojis });
+      if (typeof data.notes !== 'string' || !data.notes.trim()) throw new JournalRequestError('invalid');
+      setNotes(data.notes);
+      setMode('text');
+    } catch (error) {
+      setUiError(journalErrorMessage(error));
+      melde('SmartDatingJournalWidget/quicklog', error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -59,18 +59,17 @@ export function SmartDatingJournalWidget() {
   };
 
   const handleAnalyze = async () => {
-    if (!notes) return;
+    if (isLoading || !notes.trim()) return;
+    setUiError(null);
     setIsLoading(true);
     try {
-      const response = await fetch('/api/dating-journal-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes, vibes: selectedVibes })
-      });
-      const data = await response.text().then(text => text ? JSON.parse(text) : {});
-      setAnalysis(data);
-    } catch (e) {
-      melde("SmartDatingJournalWidget", e);
+      const data = await requestJournalAI('/api/dating-journal-analysis', { notes, vibes: selectedVibes });
+      if (typeof data.dynamicAnalysis !== 'string' || typeof data.behaviorPatterns !== 'string' ||
+          typeof data.advice !== 'string') throw new JournalRequestError('invalid');
+      setAnalysis({ dynamicAnalysis: data.dynamicAnalysis, behaviorPatterns: data.behaviorPatterns, advice: data.advice });
+    } catch (error) {
+      setUiError(journalErrorMessage(error));
+      melde('SmartDatingJournalWidget/analysis', error);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +77,7 @@ export function SmartDatingJournalWidget() {
 
   return (
     <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-3xl p-6 shadow-sm flex flex-col relative z-10 overflow-hidden">
-      {uiError && <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
+      {uiError && <div role="alert" aria-live="assertive" className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
 
 
       <div className="flex items-start justify-between mb-6">
