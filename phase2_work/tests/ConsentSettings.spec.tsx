@@ -5,7 +5,7 @@ import { EINWILLIGUNG_VERSION } from '../src/server/pure';
 const hooks = vi.hoisted(() => ({ refreshProfile: vi.fn(), request: vi.fn() }));
 vi.mock('../src/lib/AuthContext', () => ({ useAuth: () => ({ profileData: { einwilligung: { version: EINWILLIGUNG_VERSION, zwecke: { produktanalyse: true } } }, refreshProfile: hooks.refreshProfile }) }));
 vi.mock('../src/lib/authFetch', () => ({ authFetch: hooks.request }));
-beforeEach(() => { vi.clearAllMocks(); hooks.refreshProfile.mockResolvedValue({}); });
+beforeEach(() => { vi.clearAllMocks(); hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'proof', zwecke: { produktanalyse: false } } }); });
 describe('accessible consent withdrawal', () => {
   it('renders purpose-specific status with explicit context and announces success only after server evidence', async () => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
@@ -14,7 +14,34 @@ describe('accessible consent withdrawal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('wurde widerrufen'));
     expect(hooks.refreshProfile).toHaveBeenCalledOnce();
+    expect(screen.getByText('Produktanalyse: Nicht erlaubt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Produktanalyse erlauben' })).toBeEnabled();
   });
+  it('refuses success when server evidence does not match the refreshed profile', async () => {
+    hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
+    hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'other', zwecke: { produktanalyse: false } } });
+    render(<ConsentSettings />);
+    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('konnte nicht bestätigt'));
+    expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['KI-Auswertung', 'ki_auswertung'],
+    ['Fehlerberichte', 'fehlerberichte'],
+    ['Produktanalyse', 'produktanalyse'],
+  ])('immediately reflects server-proven grant for %s', async (label, purpose) => {
+    hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
+    hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'proof', zwecke: { produktanalyse: true, [purpose]: true } } });
+    render(<ConsentSettings />);
+    if (purpose === 'produktanalyse') {
+      expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
+      return;
+    }
+    fireEvent.click(screen.getByRole('button', { name: label + ' erlauben' }));
+    await waitFor(() => expect(screen.getByText(label + ': Erlaubt')).toBeInTheDocument());
+  });
+
   it('keeps an unavailable withdrawal visible as a failure', async () => {
     hooks.request.mockResolvedValue(new Response('{}', { status: 503 }));
     render(<ConsentSettings />); fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
