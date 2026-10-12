@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router';
 import { useAuth } from '../lib/AuthContext';
 import { EINWILLIGUNG_VERSION } from '../server/pure';
+import { readGuestConsent } from '../lib/guestConsent';
 import { LogoLoader } from './LogoLoader';
 import { NotificationService } from '../services/notificationService';
 import { AppSkeleton } from './SkeletonScreen';
@@ -29,6 +30,7 @@ export interface AuthGateProps {
  */
 export function AuthGate({ children }: AuthGateProps) {
   const { user, loading, profileData, updateProfileData } = useAuth();
+  const [guestConsentRevision, setGuestConsentRevision] = useState(0);
 
   // Vermeidung redundanter Ladezustände durch synchrone Initialisierung aus klarStorage
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
@@ -63,10 +65,15 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   // Gate 3: DSG-02 Altersprüfung & Art.-9-Einwilligung
+  // A local guest preference only completes the guest UI step; it is never
+  // treated as an Article 7/9 server audit receipt or AI processing permission.
+  const guestDecisionRecorded = user.isAnonymous && typeof window !== 'undefined'
+    && readGuestConsent(user.uid, window.sessionStorage) !== null;
+  void guestConsentRevision;
   const brauchtGate =
     !profileData
     || profileData.isAdult !== true
-    || profileData.einwilligung?.version !== EINWILLIGUNG_VERSION;
+    || (!guestDecisionRecorded && profileData.einwilligung?.version !== EINWILLIGUNG_VERSION);
 
   if (brauchtGate) {
     return (
@@ -76,7 +83,7 @@ export function AuthGate({ children }: AuthGateProps) {
           <Route path="/rechtstexte" element={<Rechtstexte />} />
           <Route
             path="*"
-            element={<EinwilligungUndAlter alterBereitsGeprueft={profileData?.isAdult === true} />}
+            element={<EinwilligungUndAlter alterBereitsGeprueft={profileData?.isAdult === true} onFertig={() => setGuestConsentRevision(previous => previous + 1)} />}
           />
         </Routes>
       </Suspense>
