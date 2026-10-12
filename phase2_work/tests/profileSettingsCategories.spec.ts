@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 describe('profile settings categories', () => {
-  const source = readFileSync(new URL('../src/screens/Profile.tsx', import.meta.url), 'utf8');
+  const source = readFileSync('src/screens/Profile.tsx', 'utf8');
   it('provides three discoverable categories with accessible selection state', () => {
     expect(source).toContain('Sicherheit & Datenschutz');
     expect(source).toContain('Präferenzen & Hinweise');
