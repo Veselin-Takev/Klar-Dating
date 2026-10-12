@@ -48,8 +48,12 @@ test.describe('Legal & Statutory Compliance E2E Flows', () => {
     await expect(page.getByRole('heading', { name: 'Impressum' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Impressum (§ 5 DDG & DSA)' })).toHaveAttribute('aria-selected', 'true');
 
-    // Return link navigates back to root
-    await page.getByRole('link', { name: 'Zurück zur App' }).click();
-    await expect(page.getByRole('heading', { name: 'Willkommen bei Klar' })).toBeVisible();
+    // The accessible back button returns to the previous in-app view,
+    // which in this flow is the AGB tab, not the application root.
+    const back = page.getByRole('button', { name: 'Zurück zur App' });
+    await expect(back).toBeVisible();
+    await back.click();
+    await expect(page.getByRole('heading', { name: 'Allgemeine Geschäftsbedingungen (AGB)' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'AGB & Widerruf' })).toHaveAttribute('aria-selected', 'true');
   });
 });
