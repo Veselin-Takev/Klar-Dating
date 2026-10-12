@@ -25,6 +25,17 @@ describe('consent UI persistence acknowledgement', () => {
     expect(sessionStorage.getItem('klar:guest:consent:guest-1')).toContain('guest-1');
   });
 
+  it('continues without a fabricated server evidence ID after an acknowledged account decision', async () => {
+    authState.user = { uid: 'registered-1', isAnonymous: false };
+    const done = vi.fn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ ok: true, einwilligung: { version: 1 } })));
+    render(<MemoryRouter><EinwilligungUndAlter onFertig={done} alterBereitsGeprueft /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Nichts davon' }));
+    await waitFor(() => expect(done).toHaveBeenCalledOnce());
+    expect(refresh).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('klar:guest:consent:registered-1')).toContain('registered-1');
+  });
+
   it('does not synthesize consent from an empty successful response', async () => {
     const done = vi.fn(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({})));
     render(<MemoryRouter><EinwilligungUndAlter onFertig={done} alterBereitsGeprueft /></MemoryRouter>);
