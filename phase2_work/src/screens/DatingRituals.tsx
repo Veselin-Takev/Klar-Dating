@@ -69,11 +69,15 @@ export const DatingRituals: React.FC = () => {
     try {
       const saved = klarStorage.getItem('klar_rituals_streak');
       let count = 1;
+      let vacationUntil: string | undefined;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       if (saved) {
         const data = JSON.parse(saved);
+        if (typeof data.vacationUntil === 'string' && new Date(data.vacationUntil).getTime() >= today.getTime()) {
+          vacationUntil = data.vacationUntil;
+        }
         const lastDate = new Date(data.lastDate);
         lastDate.setHours(0, 0, 0, 0);
 
@@ -82,12 +86,12 @@ export const DatingRituals: React.FC = () => {
 
         if (diffDays === 0) {
           return; // Already completed today
-        } else if (diffDays === 1) {
-          count = data.count + 1;
+        } else if (diffDays === 1 || vacationUntil) {
+          count = Number.isSafeInteger(data.count) && data.count > 0 ? data.count + 1 : 1;
         }
       }
 
-      klarStorage.setItem('klar_rituals_streak', JSON.stringify({ count, lastDate: today.toISOString() }));
+      klarStorage.setItem('klar_rituals_streak', JSON.stringify({ count, lastDate: today.toISOString(), ...(vacationUntil ? { vacationUntil } : {}) }));
       window.dispatchEvent(new Event('klar_ritual_completed'));
     } catch (e) { console.warn(e); setUiError("Fehler beim Laden/Verarbeiten der Daten.");; }
   };
