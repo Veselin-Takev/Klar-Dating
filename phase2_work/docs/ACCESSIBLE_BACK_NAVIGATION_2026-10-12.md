@@ -10,3 +10,9 @@ A focused Vitest test covers direct-entry fallback and cancelling the unsaved-ch
 
 ## Future checks
 Review all remaining isolated modal/form routes, test keyboard and screen-reader flow, inspect unsaved-field tracking in multi-step checkout and withdrawal endpoints if they are subsequently added, and audit contrast in both themes. Production release: **NO-GO**.
+
+## CI browser acceptance remediation (2026-10-12)
+
+PR #14 run [38287394814](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38287394814) passed 164 Vitest files (1,074 tests) and 25 of 26 browser tests. The sole failure was `tests/e2e/legal-and-safety-flows.spec.ts` looking for a **link** named 'Zurück zur App'; the implementation intentionally replaced the anchor with an accessible **button**. The test also expected an unconditional root redirect even after navigating among legal tabs, contrary to the documented previous-in-app-view behavior. Commit `629b0889033699220c9aec87e561184a825a374e` now asserts button semantics and return to the immediately preceding AGB tab. Direct-entry route fallback and unsaved-form confirmation remain covered separately by `tests/backNavigation.spec.tsx`.
+
+This is a test-contract correction, not a relaxation of application logic. **Exact-head CI still needs to pass**; production release remains NO-GO pending complete gates and operational approvals. No manual GitHub Actions run initiated. Observe owner's 100-minute Actions budget ceiling.
