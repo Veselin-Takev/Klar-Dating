@@ -153,8 +153,15 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
         setFehler(typeof daten.error === 'string' ? daten.error : "Die Einwilligung konnte nicht gespeichert werden.");
         return;
       }
-      if (daten.ok !== true || !evidenceId || !daten.einwilligung) {
-        throw new Error('Der gespeicherte Nachweis fehlt.');
+      if (daten.ok !== true || !daten.einwilligung) {
+        throw new Error('Die Einwilligungsentscheidung wurde nicht bestätigt.');
+      }
+      if (!evidenceId) {
+        // The server did not supply auditable evidence. Preserve only the local
+        // session preference; do not claim it authorizes optional server processing.
+        saveGuestConsent(user.uid, gewaehlt, window.sessionStorage);
+        onFertig?.();
+        return;
       }
       const profile = await refreshProfile();
       const persistedConsent = profile?.einwilligung;
