@@ -25,10 +25,10 @@
 // · Die Tabelle hat `<th scope>` in beiden Richtungen. Ohne `scope` liest
 //   eine Vorlesehilfe eine Zelle als „Häkchen" vor, ohne zu sagen, wozu.
 // ═══════════════════════════════════════════════════════════════════════════
-import { Link } from "react-router";
-import { ArrowLeft, Check, Minus } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/AuthContext";
+import { BackNavigation } from "../components/BackNavigation";
 import {
   LEISTUNGEN,
   ACHSEN,
@@ -105,10 +105,7 @@ export default function KlarPlus() {
   };
   return (
     <div className="min-h-[100dvh] bg-canvas px-6 py-8 mx-auto w-full max-w-2xl">
-      <Link to="/profile" className="inline-flex items-center gap-2 text-muted mb-8">
-        <ArrowLeft size={18} aria-hidden="true" />
-        Zurück
-      </Link>
+      <BackNavigation fallback="/profile" disabled={loading} />
 
       <h1 className="text-3xl font-serif text-ink mb-3">Klar+</h1>
 
