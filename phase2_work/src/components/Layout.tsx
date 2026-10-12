@@ -2,6 +2,7 @@ import { klarStorage } from '../lib/userScopedStorage';
 import { authFetch } from '../lib/authFetch';
 import { useAuth } from '../lib/AuthContext';
 import { belongsToCurrentAuthEpoch } from '../lib/notificationAuthBoundary';
+import { isLatestNotificationRequest } from '../lib/notificationRequestOrder';
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -151,7 +152,7 @@ export function Layout({ children }: LayoutProps) {
         const res = await authFetch('/api/legal-updates');
         if (!res.ok) return;
         const data = await res.json() as { updates?: LegalUpdate[]; acknowledgedIds?: string[] };
-        if (cancelled || requestId !== latestRequest || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
+        if (!isLatestNotificationRequest(requestId, latestRequest, cancelled) || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
         setLegalUpdates(data.updates);
         setAcknowledgedLegalIds(data.acknowledgedIds);
         const unseen = data.updates.filter(update => !data.acknowledgedIds!.includes(update.id));
