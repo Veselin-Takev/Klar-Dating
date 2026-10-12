@@ -102,6 +102,8 @@ export function Layout({ children }: LayoutProps) {
   const [inAppNotification, setInAppNotification] = useState<InAppNotificationMessage | null>(null);
   const nextNotificationId = useRef(0);
   const currentAuthUid = useRef<string | null>(null);
+  const authEpoch = useRef(0);
+  useEffect(() => { authEpoch.current += 1; }, [user, authLoading]);
   currentAuthUid.current = authLoading ? null : user?.uid ?? null;
   const [legalUpdates, setLegalUpdates] = useState<LegalUpdate[]>([]);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
@@ -171,10 +173,11 @@ export function Layout({ children }: LayoutProps) {
 
   const handleAcknowledgeLegal = async (id: string): Promise<boolean> => {
     const requestUid = currentAuthUid.current;
+    const requestEpoch = authEpoch.current;
     if (!belongsToCurrentSession(requestUid, currentAuthUid.current)) return false;
     try {
       const response = await authFetch(`/api/legal-updates/${encodeURIComponent(id)}/acknowledge`, { method: 'POST' });
-      if (!response.ok || !belongsToCurrentSession(requestUid, currentAuthUid.current)) return false;
+      if (!response.ok || authEpoch.current !== requestEpoch || !belongsToCurrentSession(requestUid, currentAuthUid.current)) return false;
       setAcknowledgedLegalIds(previous => previous.includes(id) ? previous : [...previous, id]);
       setUnseenLegalCount(previous => Math.max(0, previous - 1));
       setIsLegalModalOpen(false);
