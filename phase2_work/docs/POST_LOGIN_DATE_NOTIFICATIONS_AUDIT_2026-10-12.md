@@ -18,3 +18,7 @@ The global Layout legal-updates request previously ran before authentication set
 Commit `bbed6600f3599492a1d531cf212921b940b5f9d4` normalizes Firestore `Timestamp` values from the chat snapshot to JavaScript `Date` objects prior to rendering; downstream `MessageBubble` uses the central i18n formatter. The asynchronous mark-read flow additionally rechecks active chat subscription and current Firebase UID after `getIdToken()` resolves, preventing late auth transitions from sending a stale receipt. The server remains responsible for authorization and message persistence.
 
 These are code-reviewed mitigations, not full delivery assurances. The exact commit still requires pinned Node toolchain validation, TypeScript, pure/rules tests, Playwright, build and emulator smoke. No claims of a passing full release or production approval are made. Budget guard: no manual Actions runs beyond the user's unreconciled 100-minute ceiling.
+
+## Toast lifecycle follow-up
+
+The InAppNotification countdown previously depended on the identity of `onDismiss`; Layout passes an inline callback, so unrelated parent renders reset the timer. Commit `b7395ac0d1b24cce236b8bd4d9bae5210c75d561` retains the latest callback in a ref without restarting the effect, and `7ad79de9a1afc5b9f348033c67f39e2eef8640db` adds a fake-timer rerender regression. This does not alter intentional reset on a distinct notification or the persistent-notification rule. Tests remain to be validated on the exact latest head; production **NO-GO**.
