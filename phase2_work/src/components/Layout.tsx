@@ -1,6 +1,9 @@
 import { klarStorage } from '../lib/userScopedStorage';
 import { authFetch } from '../lib/authFetch';
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useAuth } from '../lib/AuthContext';
+import { belongsToCurrentAuthEpoch } from '../lib/notificationAuthBoundary';
+import { isLatestNotificationRequest } from '../lib/notificationRequestOrder';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../lib/useOnline';
@@ -23,6 +26,7 @@ import {
 } from 'lucide-react';
 
 interface InAppNotificationMessage {
+  notificationId?: number;
   title: string;
   body?: string;
   message?: string;
@@ -77,6 +81,7 @@ export interface LayoutProps {
  */
 export function Layout({ children }: LayoutProps) {
   const { t } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const online = useOnline();
   const lastSync = useFirestoreSyncTime();
@@ -96,6 +101,11 @@ export function Layout({ children }: LayoutProps) {
   }, []);
 
   const [inAppNotification, setInAppNotification] = useState<InAppNotificationMessage | null>(null);
+  const nextNotificationId = useRef(0);
+  const currentAuthUid = useRef<string | null>(null);
+  const authEpoch = useRef(0);
+  useEffect(() => { authEpoch.current += 1; }, [user, authLoading]);
+  currentAuthUid.current = authLoading ? null : user?.uid ?? null;
   const [legalUpdates, setLegalUpdates] = useState<LegalUpdate[]>([]);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [acknowledgedLegalIds, setAcknowledgedLegalIds] = useState<string[]>([]);
@@ -104,7 +114,17 @@ export function Layout({ children }: LayoutProps) {
   useEffect(() => {
     const handleNotification = (e: Event) => {
       const customEvent = e as CustomEvent;
-      setInAppNotification(customEvent.detail as InAppNotificationMessage);
+      const detail: unknown = customEvent.detail;
+      if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return;
+      const candidate = detail as Record<string, unknown>;
+      if (typeof candidate.title !== 'string' || !candidate.title.trim()) return;
+      setInAppNotification({
+        title: candidate.title,
+        ...(typeof candidate.body === 'string' ? { body: candidate.body } : {}),
+        ...(typeof candidate.message === 'string' ? { message: candidate.message } : {}),
+        persistent: candidate.persistent === true,
+        notificationId: ++nextNotificationId.current,
+      });
     };
 
     const handleOpenLegal = () => setIsLegalModalOpen(true);
@@ -120,12 +140,19 @@ export function Layout({ children }: LayoutProps) {
   // Rechtliche Updates are server-authoritative. No browser storage is used for acknowledgements.
   useEffect(() => {
     let cancelled = false;
+    let latestRequest = 0;
+    setLegalUpdates([]);
+    setAcknowledgedLegalIds([]);
+    setUnseenLegalCount(0);
+    setInAppNotification(null);
+    if (authLoading || !user) return () => { cancelled = true; };
     const fetchLegalUpdates = async () => {
+      const requestId = ++latestRequest;
       try {
         const res = await authFetch('/api/legal-updates');
         if (!res.ok) return;
         const data = await res.json() as { updates?: LegalUpdate[]; acknowledgedIds?: string[] };
-        if (cancelled || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
+        if (!isLatestNotificationRequest(requestId, latestRequest, cancelled) || !Array.isArray(data.updates) || !Array.isArray(data.acknowledgedIds)) return;
         setLegalUpdates(data.updates);
         setAcknowledgedLegalIds(data.acknowledgedIds);
         const unseen = data.updates.filter(update => !data.acknowledgedIds!.includes(update.id));
@@ -135,6 +162,7 @@ export function Layout({ children }: LayoutProps) {
             title: t('legalUpdates.notificationTitle'),
             body: t('legalUpdates.notificationBody'),
             persistent: true,
+            notificationId: ++nextNotificationId.current,
           });
         }
       } catch {
@@ -144,12 +172,15 @@ export function Layout({ children }: LayoutProps) {
     void fetchLegalUpdates();
     const interval = setInterval(() => void fetchLegalUpdates(), 60 * 60 * 1000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [t]);
+  }, [t, user?.uid, authLoading]);
 
   const handleAcknowledgeLegal = async (id: string): Promise<boolean> => {
+    const requestUid = currentAuthUid.current;
+    const requestEpoch = authEpoch.current;
+    if (!belongsToCurrentAuthEpoch(requestUid, currentAuthUid.current, requestEpoch, authEpoch.current)) return false;
     try {
       const response = await authFetch(`/api/legal-updates/${encodeURIComponent(id)}/acknowledge`, { method: 'POST' });
-      if (!response.ok) return false;
+      if (!response.ok || !belongsToCurrentAuthEpoch(requestUid, currentAuthUid.current, requestEpoch, authEpoch.current)) return false;
       setAcknowledgedLegalIds(previous => previous.includes(id) ? previous : [...previous, id]);
       setUnseenLegalCount(previous => Math.max(0, previous - 1));
       setIsLegalModalOpen(false);
@@ -165,9 +196,9 @@ export function Layout({ children }: LayoutProps) {
         {inAppNotification && (
           <Suspense fallback={null}>
             <InAppNotification
-              key={inAppNotification.title}
+              key={inAppNotification.notificationId}
               notification={inAppNotification}
-              onDismiss={() => setInAppNotification(null)}
+              onDismiss={() => setInAppNotification(current => current?.notificationId === inAppNotification.notificationId ? null : current)}
             />
           </Suspense>
         )}
