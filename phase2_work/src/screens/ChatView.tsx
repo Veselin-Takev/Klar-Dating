@@ -46,7 +46,7 @@ import { melde } from "../lib/fehler";
 import { meldeKontoErforderlich, sollGateZeigen } from "../lib/gastGrenze";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { hapticFeedback } from "../lib/haptics";
 import { enqueueOfflineMessage } from "../lib/offlineQueue";
@@ -1014,17 +1014,23 @@ Der Einstieg sollte kreativ, freundlich und auf eine Gemeinsamkeit oder etwas au
             text: typeof data.text === 'string' ? data.text : '',
             isRead: data.isRead === true,
             ...(typeof data.originalText === 'string' ? { originalText: data.originalText } : {}),
-            ...(typeof data.createdAt === 'string' || typeof data.createdAt === 'number' || data.createdAt instanceof Date
-              ? { createdAt: data.createdAt }
-              : {}),
+            ...(data.createdAt instanceof Timestamp
+              ? { createdAt: data.createdAt.toDate() }
+              : typeof data.createdAt === 'string' || typeof data.createdAt === 'number' || data.createdAt instanceof Date
+                ? { createdAt: data.createdAt }
+                : {}),
           };
         });
         setMessages(persisted);
         if (unreadIds.length) {
-          user.getIdToken().then(token => fetch('/api/messages/mark-read', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ chatId: id, messageIds: unreadIds }),
-          })).catch(() => { /* Read receipts never acknowledge unsaved messages. */ });
+          user.getIdToken().then(token => {
+            // Token resolution may outlive logout, chat navigation or account switch.
+            if (!active || auth.currentUser?.uid !== viewer) return;
+            return fetch('/api/messages/mark-read', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ chatId: id, messageIds: unreadIds }),
+            });
+          }).catch(() => { /* Read receipts never acknowledge unsaved messages. */ });
         }
       }, error => {
         if (active) setSendError('Nachrichten konnten nicht geladen werden. Bitte lade das Gespräch erneut.');
