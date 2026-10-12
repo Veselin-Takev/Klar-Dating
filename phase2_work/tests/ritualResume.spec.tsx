@@ -3,7 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConsistencyStreakWidget } from '../src/components/ConsistencyStreakWidget';
 import { klarStorage } from '../src/lib/userScopedStorage';
 
-beforeEach(() => { vi.clearAllMocks(); });
+// The production storage boundary requires a Firebase UID. Use an isolated
+// UID-scoped test double rather than writing without an authenticated user.
+const fixture = vi.hoisted(() => ({ records: new Map<string, string>() }));
+vi.mock('../src/lib/userScopedStorage', () => ({
+  klarStorage: {
+    getItem: (key: string) => fixture.records.get('user:test-user:' + key) ?? null,
+    setItem: (key: string, value: string) => { fixture.records.set('user:test-user:' + key, value); },
+    removeItem: (key: string) => { fixture.records.delete('user:test-user:' + key); },
+  },
+}));
+
+beforeEach(() => { fixture.records.clear(); vi.clearAllMocks(); });
 
 describe('Ritual continuity pause restart', () => {
   it('exposes an accessible resume action and removes the vacation marker without resetting earned days', () => {
