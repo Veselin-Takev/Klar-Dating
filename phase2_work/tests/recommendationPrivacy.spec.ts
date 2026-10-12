@@ -24,7 +24,7 @@ describe('published preferences and recommendation privacy', () => {
       expect(recommendations.some(row => row.id === candidate)).toBe(false);
       const cleanup = getDb().batch(); for (const id of blockIds.splice(0)) cleanup.delete(getDb().collection('blocks').doc(id)); await cleanup.commit();
     }
-  });
+  }, 30_000); // Emulator integration: >400 writes, two paginated queries and cleanup.
 
   it('retains valid music preferences in the safe public projection', () => {
     const profile = toPublicProfile('a', { name: 'Anna', age: 28, location: 'Berlin', musicPreferences: music, email: 'private@example.test' });
