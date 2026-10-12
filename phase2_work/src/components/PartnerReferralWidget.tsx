@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Copy, ExternalLink, Gift, Handshake, QrCode, Share2, ShieldCheck } from 'lucide-react';
 import { authFetch } from '../lib/authFetch';
 import qrcode from '../vendor/qrcode-generator.js';
@@ -29,18 +29,20 @@ export function PartnerReferralWidget() {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const linkRequest = useRef(0);
 
   const loadLinks = useCallback(async () => {
+    const requestId = ++linkRequest.current;
     setLoadingLinks(true);
     setError('');
     try {
       const response = await authFetch('/api/partner/referrals');
       const data = await response.json().catch(() => ({})) as { referrals?: ReferralCard[]; error?: string };
-      if (!response.ok || !Array.isArray(data.referrals)) throw new Error(data.error || 'Die Partnerlinks konnten nicht geladen werden.');
-      setReferrals(data.referrals);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Partnerlinks sind derzeit nicht verfügbar.');
-    } finally { setLoadingLinks(false); }
+      if (!response.ok || !Array.isArray(data.referrals)) throw new Error('partner_links_unavailable');
+      if (requestId === linkRequest.current) setReferrals(data.referrals);
+    } catch {
+      if (requestId === linkRequest.current) setError('Deine Partnerübersicht ist gerade nicht verfügbar. Bitte versuche es später erneut.');
+    } finally { if (requestId === linkRequest.current) setLoadingLinks(false); }
   }, []);
 
   useEffect(() => {
@@ -90,10 +92,11 @@ export function PartnerReferralWidget() {
       });
       const data = await response.json().catch(() => ({})) as { allowed?: boolean; error?: string };
       if (!response.ok || data.allowed !== nextAllowed) throw new Error(data.error || 'Die Einwilligung konnte nicht bestätigt werden.');
+      if (!nextAllowed) ++linkRequest.current;
       setAllowed(nextAllowed);
       setMessage(nextAllowed ? 'Deine Einwilligung wurde gespeichert.' : 'Deine Einwilligung wurde widerrufen; bestehende Links werden nicht länger nachverfolgt.');
       if (nextAllowed) await loadLinks();
-      else { setReferrals([]); setShowQr({}); setQrCodes({}); }
+      else { setLoadingLinks(false); setReferrals([]); setShowQr({}); setQrCodes({}); }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Die Einwilligung konnte nicht bestätigt werden.');
     } finally { setBusy(false); }

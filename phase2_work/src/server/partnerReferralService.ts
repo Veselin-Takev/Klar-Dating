@@ -412,11 +412,14 @@ export async function listPartnerReferralLinks(
   const data = userSnap.data();
   const userState = requirePartnerUserData(data);
   if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
-  const origin = publicOrigin(deps);
   const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
   const activeCampaigns = snapshot.docs
     .map(campaignFrom)
     .filter((campaign): campaign is PartnerCampaignRecord => campaign !== null && campaign.brandVerified && campaign.status === 'active');
+  // No campaign is a valid empty state. Do not require a public origin or signing
+  // infrastructure until a link is actually needed.
+  if (activeCampaigns.length === 0) return { consent: { allowed: true }, referrals: [] };
+  const origin = publicOrigin(deps);
   const referrals: Array<{ campaign: PartnerCampaignRecord; url: string; clickCount: number; qualifiedConversions: number }> = [];
   for (const campaign of activeCampaigns) {
     const ensured = await ensureReferralForCampaign(deps, uid, campaign, userState.version);

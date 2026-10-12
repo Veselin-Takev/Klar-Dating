@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
-import { createPartnerCampaign, openPartnerReferral, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
+import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
 import { pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
 import { verifyHmacAuditPayload } from '../src/server/consentAudit';
 
@@ -90,6 +90,21 @@ const campaignInput = {
 };
 
 describe('Klar & Partner transactional service boundary', () => {
+  it('returns an empty authorized list when no campaigns exist, even without public URL', async () => {
+    const db = makeFirestore([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]);
+    const configured = { ...deps(db), publicUrl: () => undefined };
+    await expect(listPartnerReferralLinks(configured, 'user-1')).resolves.toEqual({
+      consent: { allowed: true }, referrals: [],
+    });
+  });
+
+  it('never exposes referral links when consent is missing', async () => {
+    const db = makeFirestore([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: false } }]);
+    await expect(listPartnerReferralLinks(deps(db), 'user-1')).rejects.toMatchObject({
+      status: 403, code: 'partner_consent_required',
+    });
+  });
+
   it('creates a draft, reserves its slug and signs the audit event', async () => {
     const db = makeFirestore();
     const campaign = await createPartnerCampaign(deps(db), 'admin-1', campaignInput);
