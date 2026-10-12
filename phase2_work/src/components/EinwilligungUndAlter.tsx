@@ -128,10 +128,10 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
     setFehler(null);
     setLaeuft(true);
     try {
-      if (user?.isAnonymous) {
+      if (!user || user.isAnonymous) {
         // A guest has no durable server consent record. Never fabricate an evidenceId.
         // Session storage is UID-bound and must be confirmed before advancing.
-        saveGuestConsent(user.uid, gewaehlt, window.sessionStorage);
+        saveGuestConsent(user?.uid ?? "unauthed-session", gewaehlt, window.sessionStorage);
         onFertig?.();
         return;
       }
