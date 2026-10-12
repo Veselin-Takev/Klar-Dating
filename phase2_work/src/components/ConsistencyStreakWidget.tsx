@@ -35,6 +35,7 @@ export const ConsistencyStreakWidget: React.FC = () => {
           }
 
           setIsOnVacation(currentlyOnVacation);
+          if (!currentlyOnVacation) setVacationDaysLeft(0);
 
           if (diffDays <= 1 || currentlyOnVacation) {
             setStreak(data.count);
@@ -49,6 +50,24 @@ export const ConsistencyStreakWidget: React.FC = () => {
     window.addEventListener('klar_ritual_completed', handleStorageChange);
     return () => window.removeEventListener('klar_ritual_completed', handleStorageChange);
   }, []);
+
+  const resumeVacation = () => {
+    try {
+      const saved = klarStorage.getItem('klar_rituals_streak');
+      if (!saved) throw new Error('Streak not found');
+      const data = JSON.parse(saved);
+      if (!data || typeof data !== 'object') throw new Error('Invalid streak');
+      delete data.vacationUntil;
+      // Preserve earned days while resuming; never fabricate a new completion.
+      klarStorage.setItem('klar_rituals_streak', JSON.stringify(data));
+      setIsOnVacation(false);
+      setVacationDaysLeft(0);
+      window.dispatchEvent(new Event('klar_ritual_completed'));
+      setUiError(null);
+    } catch {
+      setUiError('Die Ritual-Pause konnte nicht beendet werden. Bitte versuche es erneut.');
+    }
+  };
 
   const activateVacation = () => {
     try {
@@ -69,7 +88,7 @@ export const ConsistencyStreakWidget: React.FC = () => {
 
   return (
     <div className="bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 mb-6">
-      {uiError && <div className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
+      {uiError && <div role="alert" className="p-3 m-4 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200">{uiError}</div>}
 
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-brand/10 dark:bg-brand-light/10 text-brand dark:text-brand-light flex items-center justify-center shrink-0">
@@ -93,11 +112,18 @@ export const ConsistencyStreakWidget: React.FC = () => {
                : 'Gute Gewohnheiten schaffen Klarheit. Bleib dran!'}
           </p>
         </div>
-        {!isOnVacation && (
+        {isOnVacation ? (
+          <button type="button" onClick={resumeVacation} aria-label="Ritual-Pause beenden"
+            className="min-h-11 rounded-xl border border-stone-300 dark:border-stone-600 px-4 py-2 text-sm font-medium text-stone-800 dark:text-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+            Fortsetzen
+          </button>
+        ) : (
           <button
             onClick={activateVacation}
+            type="button"
+            aria-label="Ritual-Kontinuität 7 Tage pausieren"
             title="7 Tage pausieren"
-            className="p-2 text-stone-400 hover:text-brand dark:hover:text-brand-light hover:bg-brand/5 dark:hover:bg-brand-light/5 rounded-full transition-colors shrink-0"
+            className="min-h-11 min-w-11 p-2 text-stone-600 dark:text-stone-300 hover:text-brand dark:hover:text-brand-light hover:bg-brand/5 dark:hover:bg-brand-light/5 rounded-full transition-colors shrink-0"
           >
             <Coffee size={18} />
           </button>
