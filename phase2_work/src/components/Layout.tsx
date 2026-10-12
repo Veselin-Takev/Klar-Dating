@@ -1,7 +1,7 @@
 import { klarStorage } from '../lib/userScopedStorage';
 import { authFetch } from '../lib/authFetch';
 import { useAuth } from '../lib/AuthContext';
-import { belongsToCurrentSession } from '../lib/notificationAuthBoundary';
+import { belongsToCurrentAuthEpoch } from '../lib/notificationAuthBoundary';
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -174,10 +174,10 @@ export function Layout({ children }: LayoutProps) {
   const handleAcknowledgeLegal = async (id: string): Promise<boolean> => {
     const requestUid = currentAuthUid.current;
     const requestEpoch = authEpoch.current;
-    if (!belongsToCurrentSession(requestUid, currentAuthUid.current)) return false;
+    if (!belongsToCurrentAuthEpoch(requestUid, currentAuthUid.current, requestEpoch, authEpoch.current)) return false;
     try {
       const response = await authFetch(`/api/legal-updates/${encodeURIComponent(id)}/acknowledge`, { method: 'POST' });
-      if (!response.ok || authEpoch.current !== requestEpoch || !belongsToCurrentSession(requestUid, currentAuthUid.current)) return false;
+      if (!response.ok || !belongsToCurrentAuthEpoch(requestUid, currentAuthUid.current, requestEpoch, authEpoch.current)) return false;
       setAcknowledgedLegalIds(previous => previous.includes(id) ? previous : [...previous, id]);
       setUnseenLegalCount(previous => Math.max(0, previous - 1));
       setIsLegalModalOpen(false);
