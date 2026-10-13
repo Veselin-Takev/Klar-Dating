@@ -149,6 +149,22 @@ describe('production control audit', () => {
     expect(result.errors.join(' ')).toMatch(/plaintext|service account/i);
   });
 
+  it('rejects malformed project IAM binding entries rather than discarding them', () => {
+    for (const binding of [
+      null,
+      'not-a-binding',
+      { role: 'roles/viewer', members: 'serviceAccount:' + sa },
+      { role: 'roles/viewer', members: [null] },
+      { members: ['serviceAccount:' + sa] },
+    ]) {
+      const result = auditProjectRoles({
+        bindings: [{ role: 'roles/logging.logWriter', members: ['serviceAccount:' + sa] }, binding],
+      }, sa);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed binding records/i);
+    }
+  });
+
   it('fails closed when project IAM policy evidence has no bindings array', () => {
     for (const policy of [null, {}, { bindings: null }, { bindings: {} }]) {
       const result = auditProjectRoles(policy, sa);
