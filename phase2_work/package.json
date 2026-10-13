@@ -118,7 +118,9 @@
     "check:dependabot-config": "node scripts/check-dependabot-config.mjs",
     "test:partner": "vitest run tests/partnerReferralCore.spec.ts tests/partnerReferralRoutes.spec.ts",
     "verify:local": "node scripts/local-preflight.mjs",
-    "typecheck:core": "tsc -p tsconfig.core.json"
+    "typecheck:core": "tsc -p tsconfig.core.json",
+    "check:local-firebase-adc": "node scripts/check-local-firebase-adc.mjs",
+    "test:local-firebase-adc": "node --test tests/localFirebaseAdc.spec.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
