@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const preflight = readFileSync(new URL('../scripts/check-rules-prerequisites.mjs', import.meta.url), 'utf8');
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const preflight = readFileSync('scripts/check-rules-prerequisites.mjs', 'utf8');
 test('every Firestore rules task triggers the same fail-fast preflight', () => {
   for (const suffix of ['rules', 'rules-diagnose', 'rules-sprache']) {
     expect(pkg.scripts['pretest:' + suffix]).toBe('node scripts/check-rules-prerequisites.mjs');
