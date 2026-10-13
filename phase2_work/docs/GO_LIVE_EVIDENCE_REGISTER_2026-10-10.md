@@ -182,3 +182,18 @@ The GitHub API confirms both profile PRs are merged, with successful PR-head Act
 | [#22](https://github.com/Veselin-Takev/Klar-Dating/pull/22) | Display-name source, fallback and name editing | [38406919940](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38406919940) — success |
 
 Observed `main` Git tree SHA at this reconciliation: `693301aaf8ed2853d80f2f658fef559da666b446`. PR-head runs are not proof of a successful exact merged-`main` deployment. Issue #8 remains the only open non-PR GitHub issue. Operational gates remain PENDING; do not deploy or mark GO without cloud evidence, incident drill and approved signoff. No manual workflow run was triggered.
+
+## 2026-10-13 — Latest open-PR CI reconciliation
+
+The following exact PR-head GitHub Actions checks were confirmed successful via GitHub workflow-run records:
+
+| PR | Head SHA | CI run | Result |
+| --- | --- | --- | --- |
+| [#20](https://github.com/Veselin-Takev/Klar-Dating/pull/20) | `94bcc5c22e245d6c751e079ec36d6b7822406b9f` | [38411024335](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38411024335) | success |
+| [#24](https://github.com/Veselin-Takev/Klar-Dating/pull/24) | `78888a1e45fc799101afa480d514c0a07777fbee` | [38414094921](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38414094921) | success |
+| [#25](https://github.com/Veselin-Takev/Klar-Dating/pull/25) | `e17380bedf3ba31fba6f44ec4764180b777da2f2` | [38425213003](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38425213003) | success |
+| [#26](https://github.com/Veselin-Takev/Klar-Dating/pull/26) | `b0535e2e05685ef4f629e164e5907b014f761805` | [38422871160](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38422871160) | success |
+
+PR #25's `validate` job explicitly reports PASS for scope regression tests, release-policy tests, Typecheck, Functions build, Tests, and Build. This is **CI execution on the PR head**, not a claim that all commands were run locally and not a deployment test. PR #20 must receive a **new exact-head check** after this documentation update; the previous run for PR #20 does not cover this new commit.
+
+The sole currently open non-PR issue is [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). PRs remain open for independent review and merge; PR-head success does not prove merged-`main` integrity or provide Cloud Run IAM, secrets, monitoring, alert-delivery, canary/rollback, incident, data-protection, or accountable release approvals. **Production remains NO-GO.** No manual workflow execution or deployment was initiated by this reconciliation.
