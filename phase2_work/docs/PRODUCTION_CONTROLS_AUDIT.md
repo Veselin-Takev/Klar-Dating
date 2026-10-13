@@ -66,3 +66,7 @@ The monitoring audit previously could pass when `requiredPolicyNames` was empty,
 ## 2026-10-13 — Reject malformed Cloud Run container entries
 
 The service auditor's `records()` normalization discarded non-object entries in `spec.template.spec.containers`. A malformed list containing at least one valid container could therefore pass without flagging the discarded entries. The audit now compares the raw container count with the validated-record count and rejects mismatches. Tests cover `null` and string entries alongside valid records. This is a fail-closed schema evidence check, not production deployment attestation. Previous PR-head CI run 38432764509 passed at `eee6a5b9`; **a fresh exact-head check is required for this change**. Issue #8 remains open; release stays NO-GO.
+
+## 2026-10-13 — Malformed Cloud Run environment records
+
+The required-secret audit previously used `records(container.env)`, silently dropping non-object entries. Consequently, one valid Secret Manager env record plus a malformed sibling could pass. The validator now rejects a present `env` field unless it is an array entirely composed of object records; omitted `env` fields remain valid for containers without environment variables. Regression tests cover a null entry, a string entry, and a non-array `env` value. This is fail-closed configuration evidence validation; it is not runtime deployment attestation. New exact-head CI must pass before merging; Issue #8 and production NO-GO remain unchanged.
