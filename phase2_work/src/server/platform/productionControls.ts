@@ -128,6 +128,12 @@ export function auditSecretPolicies(
   const member = 'serviceAccount:' + serviceAccount;
   for (const secret of requiredSecrets) {
     const secretPolicy = isRecord(policies[secret]) ? policies[secret] : {};
+    if (!Array.isArray(secretPolicy.bindings) || records(secretPolicy.bindings).length !== secretPolicy.bindings.length ||
+      records(secretPolicy.bindings).some(binding => typeof binding.role !== 'string' || !Array.isArray(binding.members) ||
+        !binding.members.every(member => typeof member === 'string'))) {
+      errors.push('Secret IAM policy bindings are missing or malformed for: ' + secret);
+      continue;
+    }
     const bindings = records(secretPolicy.bindings);
     const accessor = bindings.some(binding =>
       binding.role === 'roles/secretmanager.secretAccessor' &&
