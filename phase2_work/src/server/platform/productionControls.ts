@@ -132,7 +132,7 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
   // Only explicit verification proves the stated production control. Channels
   // without a resource name cannot be correlated with an alert policy.
   const enabledChannels = channelList.filter(channel =>
-    channel.enabled !== false &&
+    channel.enabled === true &&
     channel.verificationStatus === 'VERIFIED' &&
     typeof channel.name === 'string' && channel.name.length > 0,
   );
