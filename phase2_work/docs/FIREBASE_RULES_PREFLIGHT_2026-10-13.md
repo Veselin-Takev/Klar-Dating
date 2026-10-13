@@ -19,3 +19,6 @@ Prefer `npm ci` only when enough memory is available; never overwrite working-tr
 
 ## Limitations / release
 The archived ZIP reports rule-test success on Node 24.19.0 for its *own* original repository, **not** evidence for Klar-Dating or the pinned Node 22.23.3 runtime. The preflight script only checks prerequisites; it does not validate credentials, Firestore authorization semantics, rule correctness, or the whole release. Run rule/emulator tests and complete CI on the exact PR head. The user's Codespace `security/v149-autonomous-consolidation` is not modified. Go-live Issue #8 remains **NO-GO**.
+
+## CI follow-up (2026-10-13)
+GitHub CI exposed a test-runner integration issue: `node:test` in a `tests/*.test.mjs` file is discovered by Vitest and fails Vite bundling. The regression suite on this branch now imports `test` and `expect` from `vitest`. Validate via `npx vitest run tests/firebaseRulesPreflightPolicy.test.mjs` and run the full CI suite at the new head SHA. Earlier CI results do not apply to this updated commit.
