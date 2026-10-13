@@ -25,7 +25,8 @@ describe('atomic cumulative deletion accounting', () => {
     expect(await accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).toBe(0);
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(1);
     expect((await chat.collection('messages').get()).empty).toBe(true);
-  });
+  }, 20_000); // Emulator transaction contention/retries may exceed Vitest's default 5s.
+
   it('rolls back deletions and counters together if the transaction callback fails', async () => {
     const { db, accounting, chat, job } = await fixture();
     const original = db.runTransaction.bind(db);
