@@ -1,3 +1,4 @@
+import { resolveProfileDisplayName } from './profileDisplayName';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {  onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signInAnonymously, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence  } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -128,6 +129,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (raw && typeof raw.einwilligung === 'undefined' && profileDataRef.current?.einwilligung) {
       raw.einwilligung = profileDataRef.current.einwilligung;
     }
+    // Keep the persisted name authoritative; resolve empty/legacy placeholders only
+    // for the authenticated UI, never as a Firestore write or authorization input.
+    if (raw && auth.currentUser) raw.name = resolveProfileDisplayName(raw.name, auth.currentUser.displayName, auth.currentUser.email, auth.currentUser.emailVerified);
     const profile = raw ? validateUserProfile(raw, auth.currentUser?.uid) : null;
     profileDataRef.current = profile;
     setProfileData(profile);
@@ -158,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           uid: currentUser.uid,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          name: currentUser.displayName || 'Neu',
+          name: currentUser.displayName?.trim() || '',
           bio: '', interests: [], goal: 'undecided', smartMatchAlerts: true,
         });
         snapshot = await getDocFromServer(docRef);
