@@ -11,3 +11,7 @@ Run `npx vitest run tests/nativeFirestoreBoundary.spec.ts` to verify mode select
 
 ## Release
 The user's `security/v149-autonomous-consolidation` Codespace has uncommitted changes and is not this PR branch. Review and cherry-pick/merge only after reconciling those changes. Issue #8 remains **NO-GO**, including production identity, alarm delivery, secret rotation, exact-SHA validation, and accountable approval.
+
+## 2026-10-13 follow-up regression coverage
+
+Additional unit cases inject a Firebase Admin SDK initialization failure and require production, staging, and test environments to throw without constructing the durable proxy, even if the fallback environment flag is set. A separate case verifies that explicit development opt-in may pass a null real database to the local proxy. These tests are committed but have **not** been run in the user's Codespace; green CI and actual Firestore emulator integration remain mandatory before merge.
