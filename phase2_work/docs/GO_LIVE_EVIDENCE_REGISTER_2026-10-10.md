@@ -153,3 +153,21 @@ Source review found the evidence schema was **permissive for unknown JSON proper
 **Issue #8 remains open.** No evidence of actual Cloud Run identity/IAM, Secret Manager rotation, alert delivery acknowledgement, private telemetry, deletion/KYC/payment/cancellation checks on the release artifact, signed digest, canary rollback, or independent human signoff has been verified in this update. Each control stays **PENDING**. Do not set the production approval flag or declare GO based on CI success.
 
 **Next operator action:** use a privileged, approved environment to collect the evidence specified in the register, scrub secrets, bind proof to immutable build and deployed-revision identifiers, obtain explicit accountable reviews, and only then perform go/no-go assessment. Confirm cumulative GitHub Actions minutes against the user's 100-minute cap before scheduling any new runs; request explicit authorization for a further 200 minutes if the cap is reached. No new Actions run or deployment is needed to update this register.
+
+## 2026-10-13 — Post-merge release evidence reconciliation (Issue #8)
+
+Current `main` commit observed through GitHub tree API: `16f51d8b5e9f2398e45ee1f808f90e27595f9f97`. The following merged PR heads have successful pull-request-triggered GitHub Actions runs:
+
+| Merged PR | Scope | Proven pull-request CI run | Outcome |
+| --- | --- | --- | --- |
+| [#14](https://github.com/Veselin-Takev/Klar-Dating/pull/14) | A11y back navigation | [38288778770](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38288778770) | success |
+| [#15](https://github.com/Veselin-Takev/Klar-Dating/pull/15) | AI Journal error/timeout UX | [38289418810](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38289418810) | success |
+| [#16](https://github.com/Veselin-Takev/Klar-Dating/pull/16) | Partner referral empty state | [38290060717](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38290060717) | success |
+| [#18](https://github.com/Veselin-Takev/Klar-Dating/pull/18) | Consent settings evidence readback | [38293020615](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38293020615) | success |
+| [#19](https://github.com/Veselin-Takev/Klar-Dating/pull/19) | Ritual continuity resume | [38298045755](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38298045755) | success |
+
+**Scope limitation:** successful PR CI validates each corresponding PR head, **not** automatically the combined `main` merge commit, deployed Cloud Run revision, Firebase Rules deployment or production infrastructure. No exact-main CI or production exercise is claimed here.
+
+As of this audit, the GitHub issues API returned only [open Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). The nine production acceptance gates listed above **remain PENDING**: no matching real-environment Cloud Run controls report, alert delivery/on-call acknowledgement, secret rotation, OTLP/Sentry privacy proof, GDPR/KYC/payment/legal acceptance, attested deploy digest, canary rollback or accountable approvals were provided. **Production NO-GO.** Do not set `KLAR_PRODUCTION_RELEASE_APPROVED=true` based on this reconciliation.
+
+Next actionable work requires authorized cloud access and explicit signoff: (1) identify the exact release candidate SHA and image digest; (2) collect `audit:production-controls` output in an external evidence vault, securely; (3) perform on-call witnessed monitoring, secret-rotation and rollback exercises; (4) validate matching evidence and sign off individual gates. This documentation-only reconciliation neither incurs a manually dispatched Actions run nor certifies live controls.
