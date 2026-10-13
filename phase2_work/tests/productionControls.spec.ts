@@ -4,6 +4,18 @@ import { auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPo
 const sa = 'klar-runtime@klar-prod.iam.gserviceaccount.com';
 
 describe('production control audit', () => {
+  it('rejects Cloud Run evidence with no runtime containers even without configured secrets', () => {
+    for (const containers of [undefined, []]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: [],
+        service: { spec: { template: { spec: { serviceAccountName: sa, containers } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/no containers/i);
+    }
+  });
+
   it('accepts explicit runtime identity and Secret Manager references', () => {
     const result = auditCloudRunService({
       expectedServiceAccount: sa,
