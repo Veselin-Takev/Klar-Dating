@@ -1,3 +1,4 @@
+import { resolveProfileDisplayName } from '../lib/profileDisplayName';
 import { ConsentSettings } from '../components/ConsentSettings';
 import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
 import { getUserStorageItem, setUserStorageItem, klarStorage, clearUserStorageForUid, clearSessionStorageForApp } from '../lib/userScopedStorage';
@@ -328,7 +329,7 @@ export function ProfileFeedback() {
 export default function Profile() {
 
   const { t } = useTranslation();
-  const { logOut, updateProfileData, profileData, refreshProfile } = useAuth();
+  const { user, logOut, updateProfileData, profileData, refreshProfile } = useAuth();
   const [activeRadarValue, setActiveRadarValue] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -875,7 +876,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{profileData?.name || 'Dein Profil'}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
+            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true)}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
             {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title="Verifiziert">
               <ShieldCheck size={16} />
             </div>}
