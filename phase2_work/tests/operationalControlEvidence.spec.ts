@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateOperationalControlEvidence } from '../src/server/platform/operationalControlEvidence';
+import { isApprovedEvidenceHostname, validateOperationalControlEvidence } from '../src/server/platform/operationalControlEvidence';
 
 function validate(value: unknown, buildSha = 'a'.repeat(40)) {
   return validateOperationalControlEvidence(
@@ -26,6 +26,17 @@ function valid() {
     },
   };
 }
+
+describe('approved operational evidence DNS hostnames', () => {
+  it('accepts valid DNS names and rejects malformed host configurations', () => {
+    for (const host of ['evidence.invalid', 'records-1.example.org', 'EXAMPLE.com']) {
+      expect(isApprovedEvidenceHostname(host)).toBe(true);
+    }
+    for (const host of ['', '.', 'evidence..invalid', '-bad.example', 'bad-.example', 'host/path', 'host:443', 'a'.repeat(64) + '.example', 'x'.repeat(254)]) {
+      expect(isApprovedEvidenceHostname(host)).toBe(false);
+    }
+  });
+});
 
 describe('operational control exercise evidence', () => {
   it('accepts a complete rotation and alert-delivery exercise', () => {
