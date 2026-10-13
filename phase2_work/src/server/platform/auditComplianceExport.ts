@@ -82,7 +82,10 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
 
   // Gesetzliche Eingangsbestätigung (§ 312k Abs. 4 BGB)
   const receipt = isRecord(data.receipt) ? data.receipt : null;
-  const hasReceipt = Boolean(receipt && (typeof receipt.text === 'string' || typeof receipt.id === 'string'));
+  const hasReceipt = Boolean(receipt && (
+    (typeof receipt.text === 'string' && receipt.text.trim().length > 0) ||
+    (typeof receipt.id === 'string' && receipt.id.trim().length > 0)
+  ));
   const statutoryConfirmationStatus = hasReceipt
     ? 'Erteilt gem. § 312k Abs. 4 BGB'
     : 'Ausstehend';
