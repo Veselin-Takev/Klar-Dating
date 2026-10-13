@@ -230,7 +230,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       const data = await res.json();
       expect(data.ok).toBe(true);
       expect(data.count).toBeGreaterThan(0);
-      expect(data.records[0].complianceStatus).toBe('KONFORM (§ 312k BGB)');
+      expect(data.records[0].complianceStatus).toBe('BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)');
       expect(data.records[0].legalBasis).toBe('§ 312k BGB (Kündigung)');
     });
 
