@@ -217,6 +217,22 @@ describe('production control audit', () => {
     }
   });
 
+  it('rejects malformed monitoring lists even when valid policies and channels exist', () => {
+    const policy = { displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] };
+    const channel = { name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' };
+    const required = ['Klar API burn rate 1h'];
+    for (const [policies, channels] of [
+      [[policy, null], [channel]],
+      [[policy], [channel, 'malformed']],
+      [null, [channel]],
+      [[policy], null],
+    ] as const) {
+      const result = auditMonitoring(policies, channels, required);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed records/i);
+    }
+  });
+
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
       [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
