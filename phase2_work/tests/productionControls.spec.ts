@@ -138,6 +138,7 @@ describe('production control audit', () => {
   it('rejects unknown verification, missing channel identity, and disabled channels', () => {
     const policy = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }];
     for (const channel of [
+      { name: 'projects/p/notificationChannels/pager', verificationStatus: 'VERIFIED' },
       { name: 'projects/p/notificationChannels/pager', enabled: true },
       { name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'UNVERIFIED' },
       { name: 'projects/p/notificationChannels/pager', enabled: false, verificationStatus: 'VERIFIED' },
