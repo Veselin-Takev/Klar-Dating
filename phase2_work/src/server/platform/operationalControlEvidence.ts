@@ -115,3 +115,10 @@ export function validateOperationalControlEvidence(value: unknown, expectedBuild
 
   return { passed: errors.length === 0, errors };
 }
+
+/** Validate configured evidence-source DNS identities before trusting links. */
+export function isApprovedEvidenceHostname(host: string): boolean {
+  return host.length > 0 && host.length <= 253 && host.split('.').every(label =>
+    label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label),
+  );
+}

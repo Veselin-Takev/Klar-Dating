@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { validateOperationalControlEvidence } from '../src/server/platform/operationalControlEvidence';
+import { isApprovedEvidenceHostname, validateOperationalControlEvidence } from '../src/server/platform/operationalControlEvidence';
 
 async function main() {
   const path = process.argv[2];
@@ -15,7 +15,7 @@ async function main() {
   if (environment !== 'production' && environment !== 'staging') throw new Error('KLAR_EVIDENCE_ENVIRONMENT must be production or staging.');
   if (!hosts?.trim() || !notBefore?.trim()) throw new Error('Explicit KLAR_APPROVED_EVIDENCE_HOSTS and KLAR_EVIDENCE_NOT_BEFORE are required.');
   const approvedHosts = hosts.split(',').map(x => x.trim()).filter(Boolean);
-  if (approvedHosts.some(host => !/^[a-z0-9.-]+$/i.test(host))) throw new Error('Approved evidence hosts must be plain DNS hostnames.');
+  if (approvedHosts.some(host => !isApprovedEvidenceHostname(host))) throw new Error('Approved evidence hosts must be valid plain DNS hostnames.');
   const result = validateOperationalControlEvidence(
     JSON.parse(await readFile(resolve(path), 'utf8')),
     expectedBuildSha,
