@@ -832,8 +832,7 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     if (OHNE_ALTERSPRUEFUNG.has(pfad)) return next();
 
     const meineUid = req.user?.uid;
-    // Defense-in-depth: missing identity must never skip age or consent gates,
-    // even if upstream authentication middleware changes in the future.
+    // Defense in depth: missing identity must never bypass protected gates.
     if (!meineUid) {
       return res.status(401).json({
         error: 'Authentifizierung erforderlich.',
