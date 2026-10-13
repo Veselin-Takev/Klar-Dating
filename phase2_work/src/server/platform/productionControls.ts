@@ -165,6 +165,12 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
   const enabledPolicyNames = usablePolicies
     .map(policy => typeof policy.displayName === 'string' ? policy.displayName : '');
   const errors: string[] = [];
+  if (!Array.isArray(policies) || policyList.length !== policies.length) {
+    errors.push('Monitoring alert policy list is missing or contains malformed records');
+  }
+  if (!Array.isArray(channels) || channelList.length !== channels.length) {
+    errors.push('Monitoring notification channel list is missing or contains malformed records');
+  }
   if (requiredPolicyNames.length === 0 || requiredPolicyNames.some(name => typeof name !== 'string' || !name.trim())) {
     errors.push('Required monitoring alert policy names are missing or invalid');
   }
