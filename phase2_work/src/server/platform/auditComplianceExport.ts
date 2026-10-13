@@ -88,8 +88,9 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
     : 'Ausstehend';
 
   const confirmationInput = receipt?.receivedAt;
-  const confirmationTimestamp = confirmationInput
-    ? new Date(dateInput(confirmationInput)).toISOString()
+  const confirmationDate = confirmationInput == null ? null : new Date(dateInput(confirmationInput));
+  const confirmationTimestamp = confirmationDate && Number.isFinite(confirmationDate.getTime())
+    ? confirmationDate.toISOString()
     : receivedAtUTC;
 
   const deliveryMethod =
