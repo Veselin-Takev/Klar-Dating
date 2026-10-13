@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 // Source-policy regression only. Functional middleware behavior still requires
 // emulator-backed HTTP tests before release.
-const source = readFileSync(new URL('../server.ts', import.meta.url), 'utf8');
+const source = readFileSync('server.ts', 'utf8');
 const gate = source.slice(source.indexOf('app.use("/api", async (req, res, next) => {'));
 
 test('protected age/consent middleware fails closed on absent identity', () => {
