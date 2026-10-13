@@ -118,7 +118,10 @@
     "check:dependabot-config": "node scripts/check-dependabot-config.mjs",
     "test:partner": "vitest run tests/partnerReferralCore.spec.ts tests/partnerReferralRoutes.spec.ts",
     "verify:local": "node scripts/local-preflight.mjs",
-    "typecheck:core": "tsc -p tsconfig.core.json"
+    "typecheck:core": "tsc -p tsconfig.core.json",
+    "pretest:rules": "node scripts/check-rules-prerequisites.mjs",
+    "pretest:rules-diagnose": "node scripts/check-rules-prerequisites.mjs",
+    "pretest:rules-sprache": "node scripts/check-rules-prerequisites.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
