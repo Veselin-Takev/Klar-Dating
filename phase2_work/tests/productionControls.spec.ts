@@ -179,6 +179,20 @@ describe('production control audit', () => {
     expect(auditProjectRoles({ bindings: [{ role: 'roles/logging.logWriter', members: ['serviceAccount:' + sa] }] }, sa).passed).toBe(true);
   });
 
+  it('rejects malformed Secret Manager policy bindings even if an accessor exists', () => {
+    const valid = { role: 'roles/secretmanager.secretAccessor', members: ['serviceAccount:' + sa] };
+    for (const policy of [
+      { bindings: [valid, null] },
+      { bindings: [valid, { role: 'roles/viewer', members: 'serviceAccount:' + sa }] },
+      { bindings: [valid, { role: 'roles/viewer', members: [null] }] },
+      { bindings: { role: valid.role, members: valid.members } },
+    ]) {
+      const result = auditSecretPolicies({ stripe: policy }, sa, ['stripe']);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/bindings are missing or malformed/i);
+    }
+  });
+
   it('requires secret accessor bindings on each declared secret', () => {
     expect(auditSecretPolicies({
       stripe: { bindings: [{ role: 'roles/secretmanager.secretAccessor', members: ['serviceAccount:' + sa] }] },
