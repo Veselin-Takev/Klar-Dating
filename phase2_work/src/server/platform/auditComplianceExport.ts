@@ -133,7 +133,7 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
     deliveryMethod,
     processingStatus,
     userPseudonym,
-    complianceStatus: 'KONFORM (§ 312k BGB)',
+    complianceStatus: hasReceipt ? 'BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)' : 'BESTÄTIGUNG NICHT NACHGEWIESEN',
     integrityHash,
   };
 }
