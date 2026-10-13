@@ -38,9 +38,18 @@ export function getDb(): Firestore {
       console.warn('Direct Firestore initialization failed; explicitly enabled non-production durable fallback is active:', err);
     }
     if (!realDbInstance && !durableFallbackAllowed()) throw new Error('Firestore is unavailable; durable fallback is disabled.');
-    proxyDbInstance = (realDbInstance && typeof realDbInstance.runTransaction !== 'function')
-      ? realDbInstance
-      : createDurableDbProxy(realDbInstance) as unknown as Firestore;
+    // Production and normal emulator operation must retain native Firestore
+    // transaction, batch and recursive-delete semantics. The durable proxy
+    // is opt-in for explicitly non-production local development only.
+    if (!durableFallbackAllowed()) {
+      if (!realDbInstance) throw new Error('Firestore is unavailable; durable fallback is disabled.');
+      proxyDbInstance = realDbInstance;
+    } else {
+      // Preserve historical test doubles which intentionally omit transactions.
+      proxyDbInstance = (realDbInstance && typeof realDbInstance.runTransaction !== 'function')
+        ? realDbInstance
+        : createDurableDbProxy(realDbInstance) as unknown as Firestore;
+    }
   }
   return proxyDbInstance;
 }

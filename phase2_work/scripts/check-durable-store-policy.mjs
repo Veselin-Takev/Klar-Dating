@@ -21,6 +21,11 @@ if (/catch \(e: unknown\) \{\s*fallbackActive = true;/.test(durable)) {
 if (!devDocs.includes('KLAR_ALLOW_DURABLE_DB_FALLBACK=true')) {
   failures.push('Development documentation must document the explicit local-only fallback flag.');
 }
+// Verify the fail-closed native client boundary in addition to the opt-in flag.
+if (!db.includes('if (!durableFallbackAllowed()) {') ||
+    !db.includes('proxyDbInstance = realDbInstance;')) {
+  failures.push('db.ts must return native Firestore outside the explicit local fallback.');
+}
 if (db.includes('using durable store:')) {
   failures.push('db.ts must not describe durable fallback as an implicit production recovery path.');
 }
