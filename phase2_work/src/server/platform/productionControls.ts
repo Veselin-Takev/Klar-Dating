@@ -108,6 +108,10 @@ export function auditProjectRoles(policy: unknown, serviceAccount: string) {
   const errors: string[] = [];
   if (!isRecord(policy) || !Array.isArray(policy.bindings)) {
     errors.push('Project IAM policy bindings are missing or malformed');
+  } else if (records(policy.bindings).length !== policy.bindings.length ||
+    records(policy.bindings).some(binding => typeof binding.role !== 'string' || !Array.isArray(binding.members) ||
+      !binding.members.every(member => typeof member === 'string'))) {
+    errors.push('Project IAM policy contains malformed binding records');
   }
   for (const forbidden of ['roles/owner', 'roles/editor']) {
     if (roles.includes(forbidden)) errors.push('Runtime service account has forbidden primitive role: ' + forbidden);
