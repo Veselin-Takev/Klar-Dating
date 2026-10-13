@@ -4,6 +4,22 @@ import { auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPo
 const sa = 'klar-runtime@klar-prod.iam.gserviceaccount.com';
 
 describe('production control audit', () => {
+  it('rejects malformed env entries even alongside a valid required secret', () => {
+    for (const env of [
+      [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }, null],
+      [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }, 'invalid'],
+      { name: 'STRIPE_SECRET_KEY' },
+    ]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: ['STRIPE_SECRET_KEY'],
+        service: { spec: { template: { spec: { serviceAccountName: sa, containers: [{ env }] } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed env records/i);
+    }
+  });
+
   it('rejects malformed Cloud Run container entries rather than silently discarding them', () => {
     for (const containers of [
       [null],
