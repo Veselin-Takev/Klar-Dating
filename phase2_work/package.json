@@ -117,7 +117,8 @@
     "check:workflow-layout": "node scripts/check-workflow-layout.mjs",
     "check:dependabot-config": "node scripts/check-dependabot-config.mjs",
     "test:partner": "vitest run tests/partnerReferralCore.spec.ts tests/partnerReferralRoutes.spec.ts",
-    "verify:local": "node scripts/local-preflight.mjs"
+    "verify:local": "node scripts/local-preflight.mjs",
+    "typecheck:core": "tsc -p tsconfig.core.json"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

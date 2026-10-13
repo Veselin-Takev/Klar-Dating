@@ -82,14 +82,18 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
 
   // Gesetzliche Eingangsbestätigung (§ 312k Abs. 4 BGB)
   const receipt = isRecord(data.receipt) ? data.receipt : null;
-  const hasReceipt = Boolean(receipt && (typeof receipt.text === 'string' || typeof receipt.id === 'string'));
+  const hasReceipt = Boolean(receipt && (
+    (typeof receipt.text === 'string' && receipt.text.trim().length > 0) ||
+    (typeof receipt.id === 'string' && receipt.id.trim().length > 0)
+  ));
   const statutoryConfirmationStatus = hasReceipt
     ? 'Erteilt gem. § 312k Abs. 4 BGB'
     : 'Ausstehend';
 
   const confirmationInput = receipt?.receivedAt;
-  const confirmationTimestamp = confirmationInput
-    ? new Date(dateInput(confirmationInput)).toISOString()
+  const confirmationDate = confirmationInput == null ? null : new Date(dateInput(confirmationInput));
+  const confirmationTimestamp = confirmationDate && Number.isFinite(confirmationDate.getTime())
+    ? confirmationDate.toISOString()
     : receivedAtUTC;
 
   const deliveryMethod =
@@ -132,7 +136,7 @@ export function anonymizeContractRequest(raw: unknown, id: string): AnonymizedCo
     deliveryMethod,
     processingStatus,
     userPseudonym,
-    complianceStatus: 'KONFORM (§ 312k BGB)',
+    complianceStatus: hasReceipt ? 'BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)' : 'BESTÄTIGUNG NICHT NACHGEWIESEN',
     integrityHash,
   };
 }

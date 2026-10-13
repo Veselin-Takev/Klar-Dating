@@ -50,7 +50,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(record.userPseudonym).toMatch(/^USR-ANON-[A-F0-9]{10}$/);
       expect(record.legalBasis).toBe('§ 312k BGB (Kündigung)');
       expect(record.statutoryConfirmationStatus).toBe('Erteilt gem. § 312k Abs. 4 BGB');
-      expect(record.complianceStatus).toBe('KONFORM (§ 312k BGB)');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)');
       expect(record.requestedEndDate).toBe('Nächstmöglicher Termin (§ 312k Abs. 1)');
     });
 
@@ -72,6 +72,25 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(record.statutoryConfirmationStatus).toBe('Erteilt gem. § 312k Abs. 4 BGB');
     });
 
+    it('does not crash on malformed receipt timestamps in historic Firestore documents', () => {
+      const record = anonymizeContractRequest({
+        requestId: 'bad-receipt-timestamp',
+        receivedAt: '2026-10-01T12:00:00.000Z',
+        receipt: { id: 'receipt-bad-date', receivedAt: 'not-a-date' },
+      }, 'bad-receipt-timestamp');
+      expect(record.confirmationTimestamp).toBe('2026-10-01T12:00:00.000Z');
+    });
+
+    it('does not accept blank receipt fields as confirmation evidence', () => {
+      const record = anonymizeContractRequest({
+        requestId: 'empty-receipt',
+        receivedAt: '2026-10-01T12:00:00.000Z',
+        receipt: { id: '  ', text: '' },
+      }, 'empty-receipt');
+      expect(record.statutoryConfirmationStatus).toBe('Ausstehend');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG NICHT NACHGEWIESEN');
+    });
+
     it('flags unconfirmed requests as ausstehend', () => {
       const unconfirmed = {
         requestId: 'unconfirmed-req',
@@ -82,6 +101,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
 
       const record = anonymizeContractRequest(unconfirmed, 'unconfirmed-req');
       expect(record.statutoryConfirmationStatus).toBe('Ausstehend');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG NICHT NACHGEWIESEN');
     });
   });
 
@@ -210,7 +230,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       const data = await res.json();
       expect(data.ok).toBe(true);
       expect(data.count).toBeGreaterThan(0);
-      expect(data.records[0].complianceStatus).toBe('KONFORM (§ 312k BGB)');
+      expect(data.records[0].complianceStatus).toBe('BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)');
       expect(data.records[0].legalBasis).toBe('§ 312k BGB (Kündigung)');
     });
 
