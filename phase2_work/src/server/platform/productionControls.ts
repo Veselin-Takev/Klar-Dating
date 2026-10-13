@@ -99,6 +99,9 @@ export function auditProjectRoles(policy: unknown, serviceAccount: string) {
     .map(binding => typeof binding.role === 'string' ? binding.role : '')
     .filter(Boolean);
   const errors: string[] = [];
+  if (!isRecord(policy) || !Array.isArray(policy.bindings)) {
+    errors.push('Project IAM policy bindings are missing or malformed');
+  }
   for (const forbidden of ['roles/owner', 'roles/editor']) {
     if (roles.includes(forbidden)) errors.push('Runtime service account has forbidden primitive role: ' + forbidden);
   }
