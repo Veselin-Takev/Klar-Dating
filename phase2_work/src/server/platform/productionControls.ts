@@ -186,6 +186,11 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
       errors.push('Required enabled and valid alert policy is missing: ' + name);
       continue;
     }
+    if (policies.some(policy => !Array.isArray(policy.notificationChannels) ||
+      policy.notificationChannels.some(channel => typeof channel !== 'string' || !channel.trim()))) {
+      errors.push('Required alert policy has malformed notification channel references: ' + name);
+      continue;
+    }
     if (!policies.some(policy =>
       Array.isArray(policy.notificationChannels) &&
       policy.notificationChannels.some(channel => typeof channel === 'string' && channelNames.has(channel)),
