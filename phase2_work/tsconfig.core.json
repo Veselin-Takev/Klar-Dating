@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"]
+  },
+  "files": [
+    "src/server/db.ts",
+    "src/server/platform/ageGateEngine.ts",
+    "src/server/platform/consentEngine.ts",
+    "src/server/platform/auditComplianceExport.ts",
+    "src/types/strict.ts"
+  ],
+  "include": [],
+  "exclude": []
+}
