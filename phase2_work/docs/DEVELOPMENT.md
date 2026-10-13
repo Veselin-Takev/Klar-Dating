@@ -227,3 +227,9 @@ The language API is `PATCH /api/account/preferences`, authenticated, with the st
 AI calls mounted in `server.ts` use `createBudgetedAI` within the authenticated request context. Do not introduce direct SDK clients or retry loops that bypass reservations. Daily UTC budget configuration, timeout behavior, retention requirements and limitations are documented in [the current audit](AUDIT_2026-09-28.md#betrieb-und-tco). The unused Gemini cache prototype is not an enabled cache or a measured cost saving.
 
 Payment webhook regression tests sign local fixtures with the Stripe SDK and use the isolated Firestore emulator. They do not charge cards or establish real provider readiness. Return URLs use the configured HTTPS origin allowlist. Keep completion markers and entitlement changes within one database transaction; cancellation tombstones must survive delayed events.
+
+## Explicit local-only durable fallback
+
+The durable fallback is **not** a production or staging recovery mechanism. Enable it only for local development with both `NODE_ENV=development` and `KLAR_ALLOW_DURABLE_DB_FALLBACK=true`. Production, staging, and ordinary emulator operation use the native Firebase Admin Firestore client; backend initialization failures fail closed.
+
+The durable adapter does not provide independently verified Firestore transaction atomicity, batch atomicity, recursive deletion, or consistent post-commit mirroring. Do not use it for billing, consent, KYC, account deletion, or other compliance/security integration testing. Use the isolated Firebase Auth, Firestore, and Storage emulators with synthetic fixtures instead. Do not commit local durable data.
