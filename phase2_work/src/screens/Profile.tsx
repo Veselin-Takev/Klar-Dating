@@ -331,6 +331,8 @@ export default function Profile() {
   const { logOut, updateProfileData, profileData, refreshProfile } = useAuth();
   const [activeRadarValue, setActiveRadarValue] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [profileActionMessage, setProfileActionMessage] = useState('');
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [showBiometricsModal, setShowBiometricsModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -348,15 +350,24 @@ export default function Profile() {
   };
 
   const handleCropComplete = async (croppedBlob: Blob) => {
+    if (isUploadingPhoto) return;
     setIsCropping(false);
     setImageToCrop(null);
+    setIsUploadingPhoto(true);
+    setProfileActionMessage('');
     try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) throw new Error('Bitte melde dich erneut an.');
       const url = await ladeProfilfotoHoch(croppedBlob);
-      // Optional: force refresh of photo URL in auth context if needed
-      updateProfileData({ photoURL: url });
-    } catch(e: unknown) {
-      melde('Profile/photo-upload', e);
-      alert("Fehler beim Hochladen des Profilfotos: " + (e instanceof Error ? e.message : "Unbekannter Fehler"));
+      if (auth.currentUser?.uid !== uid) throw new Error('Die Sitzung hat sich geändert.');
+      await updateProfileData({ photoURL: url });
+      await refreshProfile();
+      setProfileActionMessage('Profilfoto erfolgreich aktualisiert.');
+    } catch (error: unknown) {
+      melde('Profile/photo-upload', error);
+      setProfileActionMessage('Das Profilfoto konnte nicht vollständig gespeichert werden. Bitte versuche es erneut.');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -606,26 +617,30 @@ export default function Profile() {
   };
 
   const handleImport = async () => {
-    if (!importText.trim()) return;
-
+    if (isImporting || !importText.trim()) return;
     setIsImporting(true);
+    setProfileActionMessage('');
     try {
-      const data = await parseProfileImport(importText);
-      if (data.bio) {
-        setUserBio(data.bio);
-        setUserStorageItem('klar_user_bio', data.bio);
-      }
-      if (data.interests && Array.isArray(data.interests)) {
-        // Merge with existing or replace? Let's append new ones, keep up to 10
-        const combined = Array.from(new Set([...userInterests, ...data.interests])).slice(0, 10);
-        setUserInterests(combined);
-        setUserStorageItem('userInterests', JSON.stringify(combined));
-      }
+      const uid = auth.currentUser?.uid;
+      if (!uid) throw new Error('Bitte melde dich erneut an.');
+      const data = await parseProfileImport(importText.trim());
+      const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
+      const interests = Array.isArray(data.interests)
+        ? data.interests.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        : [];
+      if (!bio && interests.length === 0) throw new Error('Import response was empty');
+      const combined = Array.from(new Set([...userInterests, ...interests])).slice(0, 10);
+      const changes = { ...(bio ? { bio } : {}), ...(interests.length ? { interests: combined } : {}) };
+      await updateProfileData(changes);
+      if (auth.currentUser?.uid !== uid) throw new Error('Die Sitzung hat sich geändert.');
+      if (bio) { setUserBio(bio); setUserStorageItem('klar_user_bio', bio); }
+      if (interests.length) { setUserInterests(combined); setUserStorageItem('userInterests', JSON.stringify(combined)); }
       setShowImport(false);
-      setImportText("");
-    } catch (e) {
-      melde("Profile", e);
-      alert((e instanceof Error ? e.message : String(e)) || "Es gab einen Fehler beim Importieren.");
+      setImportText('');
+      setProfileActionMessage('Profiltext erfolgreich übernommen und gespeichert.');
+    } catch (error) {
+      melde('Profile/import', error);
+      setProfileActionMessage('Der Text konnte nicht gespeichert werden. Deine Eingabe bleibt erhalten. Bitte erneut versuchen.');
     } finally {
       setIsImporting(false);
     }
@@ -804,6 +819,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
   return (
     <>
     <div className="p-6 h-full overflow-y-auto pb-24 bg-light-bg dark:bg-dark-bg">
+      {profileActionMessage && <p role="status" aria-live="polite" className="mb-4 rounded-xl border border-stone-300 dark:border-stone-700 p-3 text-sm text-stone-800 dark:text-stone-100">{profileActionMessage}</p>}
+      {isUploadingPhoto && <p role="status" aria-live="polite" className="mb-4 text-sm">Profilfoto wird gespeichert …</p>}
       {isCropping && imageToCrop && (
         <ImageCropperModal
           imageSrc={imageToCrop}
