@@ -50,7 +50,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(record.userPseudonym).toMatch(/^USR-ANON-[A-F0-9]{10}$/);
       expect(record.legalBasis).toBe('§ 312k BGB (Kündigung)');
       expect(record.statutoryConfirmationStatus).toBe('Erteilt gem. § 312k Abs. 4 BGB');
-      expect(record.complianceStatus).toBe('KONFORM (§ 312k BGB)');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG DOKUMENTIERT (weitere Prüfung erforderlich)');
       expect(record.requestedEndDate).toBe('Nächstmöglicher Termin (§ 312k Abs. 1)');
     });
 
@@ -91,6 +91,7 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
 
       const record = anonymizeContractRequest(unconfirmed, 'unconfirmed-req');
       expect(record.statutoryConfirmationStatus).toBe('Ausstehend');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG NICHT NACHGEWIESEN');
     });
   });
 
