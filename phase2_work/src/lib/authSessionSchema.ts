@@ -59,6 +59,9 @@ export const UserProfileDataSchema = z.object({
   goal: z.string().max(100).default('undecided'),
   location: z.string().max(100).optional(),
   age: z.number().int().min(18).max(120).optional(),
+  // Authoritative age-verification field persisted by ageGateEngine in users/{uid}.
+  // Not inferred from email or local storage; keep private and never publish it.
+  geburtsdatum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   birthdate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   gender: z.string().max(50).optional(),
   photoURL: z.string().nullable().optional(),

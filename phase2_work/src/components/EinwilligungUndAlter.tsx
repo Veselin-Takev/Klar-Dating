@@ -106,7 +106,9 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
       }
 
       const profile = await refreshProfile();
-      if (profile && profile.isAdult !== true) {
+      // Confirm the same UID's authoritative date and adult status from
+      // Firestore before advancing. A 200 API response alone is insufficient.
+      if (!profile || profile.isAdult !== true || profile.geburtsdatum !== geburtsdatum) {
         setFehler(t("ageGate.errorGeneric"));
         return;
       }
