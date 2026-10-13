@@ -117,6 +117,15 @@ describe('production control audit', () => {
     expect(result.errors.join(' ')).toMatch(/plaintext|service account/i);
   });
 
+  it('fails closed when project IAM policy evidence has no bindings array', () => {
+    for (const policy of [null, {}, { bindings: null }, { bindings: {} }]) {
+      const result = auditProjectRoles(policy, sa);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/bindings.*missing or malformed/i);
+    }
+    expect(auditProjectRoles({ bindings: [] }, sa).passed).toBe(true);
+  });
+
   it('rejects primitive owner/editor roles on the runtime service account', () => {
     expect(auditProjectRoles({ bindings: [{ role: 'roles/editor', members: ['serviceAccount:' + sa] }] }, sa).passed).toBe(false);
     expect(auditProjectRoles({ bindings: [{ role: 'roles/logging.logWriter', members: ['serviceAccount:' + sa] }] }, sa).passed).toBe(true);
