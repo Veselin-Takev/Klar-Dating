@@ -15,5 +15,5 @@ test('protected age/consent middleware fails closed on absent identity', () => {
 test('public and age-exemption branches remain before identity guard', () => {
   const exemption = gate.indexOf('if (OHNE_ALTERSPRUEFUNG.has(pfad)) return next();');
   const identity = gate.indexOf('const meineUid = req.user?.uid;');
-  assert.ok(exemption >= 0 && identity > exemption);
+  expect(exemption >= 0 && identity > exemption).toBe(true);
 });
