@@ -66,6 +66,24 @@ describe('Firestore production boundary', () => {
     expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
   });
 
+  it.each(['false', 'TRUE', '1', ''])('fails closed when local opt-in is not exactly true (%s)', async flag => {
+    process.env.NODE_ENV = 'development';
+    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = flag;
+    doubles.sdkFailure.enabled = true;
+    const { getDb } = await import('../src/server/db');
+    expect(() => getDb()).toThrow(/Firestore initialization failed/);
+    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  });
+
+  it('retains native transaction and batch identities without a local opt-in', async () => {
+    process.env.NODE_ENV = 'development';
+    const { getDb } = await import('../src/server/db');
+    const db = getDb();
+    expect(db.runTransaction).toBe(doubles.nativeDb.runTransaction);
+    expect(db.batch).toBe(doubles.nativeDb.batch);
+    expect(db.recursiveDelete).toBe(doubles.nativeDb.recursiveDelete);
+  });
+
   it('permits an explicit development fallback when Firebase initialization fails', async () => {
     process.env.NODE_ENV = 'development';
     process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
