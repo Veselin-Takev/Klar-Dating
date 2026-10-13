@@ -89,6 +89,21 @@ describe('production control audit', () => {
     expect(result.secretReferences).toEqual({});
   });
 
+  it('rejects required secret env values even when plaintext is null or empty', () => {
+    for (const value of [null, '']) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: ['STRIPE_SECRET_KEY'],
+        service: { spec: { template: { spec: {
+          serviceAccountName: sa,
+          containers: [{ env: [{ name: 'STRIPE_SECRET_KEY', value, valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }] }],
+        } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/plaintext value field/i);
+    }
+  });
+
   it('rejects plaintext secrets and unexpected runtime identity', () => {
     const result = auditCloudRunService({
       expectedServiceAccount: sa,
