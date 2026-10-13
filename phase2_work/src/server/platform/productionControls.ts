@@ -23,6 +23,7 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
   const containers = records(spec.containers);
   const serviceAccount = typeof spec.serviceAccountName === 'string' ? spec.serviceAccountName : '';
   const errors: string[] = [];
+  if (containers.length === 0) errors.push('Cloud Run service has no containers');
 
   if (!serviceAccount) errors.push('Cloud Run service account is missing');
   if (serviceAccount !== input.expectedServiceAccount) errors.push('Cloud Run service account does not match KLAR_EXPECTED_SERVICE_ACCOUNT');
