@@ -158,7 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           uid: currentUser.uid,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          name: currentUser.displayName || 'Neu',
+          name: currentUser.displayName?.trim() || '',
           bio: '', interests: [], goal: 'undecided', smartMatchAlerts: true,
         });
         snapshot = await getDocFromServer(docRef);

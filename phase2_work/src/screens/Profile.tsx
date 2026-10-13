@@ -1,3 +1,4 @@
+import { resolveProfileDisplayName } from '../lib/profileDisplayName';
 import { ConsentSettings } from '../components/ConsentSettings';
 import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
 import { getUserStorageItem, setUserStorageItem, klarStorage, clearUserStorageForUid, clearSessionStorageForApp } from '../lib/userScopedStorage';
@@ -328,8 +329,12 @@ export function ProfileFeedback() {
 export default function Profile() {
 
   const { t } = useTranslation();
-  const { logOut, updateProfileData, profileData, refreshProfile } = useAuth();
+  const { user, logOut, updateProfileData, profileData, refreshProfile } = useAuth();
   const [activeRadarValue, setActiveRadarValue] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameMessage, setNameMessage] = useState('');
   const [isCropping, setIsCropping] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profileActionMessage, setProfileActionMessage] = useState('');
@@ -892,12 +897,49 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{profileData?.name || 'Dein Profil'}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
+            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true)}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
             {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title="Verifiziert">
               <ShieldCheck size={16} />
             </div>}
           </div>
           <p className="text-stone-500 dark:text-stone-400 text-sm">{profileData?.location || 'Ort noch nicht angegeben'}</p>
+          <button type="button" onClick={() => { setNameDraft(profileData?.name === 'Neu' ? '' : (profileData?.name || '')); setNameMessage(''); setEditingName(true); }}
+            className="mt-1 min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200 underline underline-offset-2 focus-visible:outline focus-visible:outline-2">
+            Namen bearbeiten
+          </button>
+          {editingName && (
+            <form className="mt-2 space-y-2" onSubmit={async event => {
+              event.preventDefault();
+              const value = nameDraft.trim();
+              if (!value || value.length > 80) { setNameMessage('Bitte gib einen Namen mit maximal 80 Zeichen ein.'); return; }
+              setNameSaving(true);
+              setNameMessage('');
+              try {
+                await updateProfileData({ name: value });
+                setEditingName(false);
+                setNameMessage('Name gespeichert.');
+              } catch (error) {
+                melde('Profile/name-update', error);
+                setNameMessage('Der Name konnte nicht gespeichert werden. Bitte versuche es erneut.');
+              } finally {
+                setNameSaving(false);
+              }
+            }}>
+              <label className="block text-sm font-medium" htmlFor="profile-name-edit">Anzeigename</label>
+              <input id="profile-name-edit" name="profile-name-edit" type="text" maxLength={80} required autoComplete="nickname"
+                value={nameDraft} onChange={event => setNameDraft(event.target.value)}
+                className="min-h-11 w-full rounded-xl border border-stone-400 bg-white dark:bg-stone-800 px-3 text-stone-900 dark:text-stone-100" />
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" disabled={nameSaving} className="min-h-11 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 px-4 disabled:opacity-50">
+                  {nameSaving ? 'Speichere …' : 'Speichern'}
+                </button>
+                <button type="button" disabled={nameSaving} onClick={() => setEditingName(false)}
+                  className="min-h-11 rounded-xl border border-stone-300 px-4">Abbrechen</button>
+              </div>
+            </form>
+          )}
+          {nameMessage && <p role="status" aria-live="polite" className="mt-2 text-sm text-stone-700 dark:text-stone-200">{nameMessage}</p>}
+
         </div>
         {isFocusTimeActive && (
           <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-full text-xs font-medium border border-stone-200 dark:border-stone-700 shrink-0">
