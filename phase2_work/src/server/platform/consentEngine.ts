@@ -193,6 +193,21 @@ export function getArt9FieldsToPurge(purposeToRevoke?: Art9Purpose | 'all'): str
 }
 
 /**
+ * Fail-closed normalization for persisted consent values at the revocation boundary.
+ * Never interpret truthy strings or missing purposes as a grant.
+ */
+export function normalizeArt9Purposes(
+  stored: unknown
+): Record<Art9Purpose, boolean> {
+  const candidate = stored && typeof stored === 'object' && !Array.isArray(stored)
+    ? stored as Record<string, unknown>
+    : {};
+  return Object.fromEntries(
+    ART9_PURPOSES.map(purpose => [purpose, candidate[purpose] === true])
+  ) as Record<Art9Purpose, boolean>;
+}
+
+/**
  * Revokes explicit Art. 9 consent either entirely or for specific purposes.
  * Immediate effect: Updates user state, performs transactional cascade purge of sensitive
  * data from user and public_profiles documents, and appends withdrawal audit entry.
@@ -224,7 +239,9 @@ export async function revokeExplicitConsent(
     ]);
     const existingState: Art9ConsentState | undefined = userDoc.data()?.art9Consent;
 
-    const newPurposes = { ...(existingState?.purposes || {}) } as Record<Art9Purpose, boolean>;
+    // Reconstruct all known purposes from validated booleans; a missing or
+    // malformed stored state cannot implicitly grant a purpose during revocation.
+    const newPurposes = normalizeArt9Purposes(existingState?.purposes);
 
     if (!purposeToRevoke || purposeToRevoke === 'all') {
       for (const p of ART9_PURPOSES) {
