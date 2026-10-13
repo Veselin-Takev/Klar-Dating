@@ -4,6 +4,50 @@ import { auditCloudRunService, auditMonitoring, auditProjectRoles, auditSecretPo
 const sa = 'klar-runtime@klar-prod.iam.gserviceaccount.com';
 
 describe('production control audit', () => {
+  it('rejects malformed env entries even alongside a valid required secret', () => {
+    for (const env of [
+      [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }, null],
+      [{ name: 'STRIPE_SECRET_KEY', valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }, 'invalid'],
+      { name: 'STRIPE_SECRET_KEY' },
+    ]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: ['STRIPE_SECRET_KEY'],
+        service: { spec: { template: { spec: { serviceAccountName: sa, containers: [{ env }] } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed env records/i);
+    }
+  });
+
+  it('rejects malformed Cloud Run container entries rather than silently discarding them', () => {
+    for (const containers of [
+      [null],
+      [{ env: [] }, null],
+      [{ env: [] }, 'malformed'],
+    ]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: [],
+        service: { spec: { template: { spec: { serviceAccountName: sa, containers } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed container records/i);
+    }
+  });
+
+  it('rejects Cloud Run evidence with no runtime containers even without configured secrets', () => {
+    for (const containers of [undefined, []]) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: [],
+        service: { spec: { template: { spec: { serviceAccountName: sa, containers } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/no containers/i);
+    }
+  });
+
   it('accepts explicit runtime identity and Secret Manager references', () => {
     const result = auditCloudRunService({
       expectedServiceAccount: sa,
@@ -77,6 +121,21 @@ describe('production control audit', () => {
     expect(result.secretReferences).toEqual({});
   });
 
+  it('rejects required secret env values even when plaintext is null or empty', () => {
+    for (const value of [null, '']) {
+      const result = auditCloudRunService({
+        expectedServiceAccount: sa,
+        requiredSecrets: ['STRIPE_SECRET_KEY'],
+        service: { spec: { template: { spec: {
+          serviceAccountName: sa,
+          containers: [{ env: [{ name: 'STRIPE_SECRET_KEY', value, valueFrom: { secretKeyRef: { name: 'stripe-secret' } } }] }],
+        } } } },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/plaintext value field/i);
+    }
+  });
+
   it('rejects plaintext secrets and unexpected runtime identity', () => {
     const result = auditCloudRunService({
       expectedServiceAccount: sa,
@@ -90,9 +149,48 @@ describe('production control audit', () => {
     expect(result.errors.join(' ')).toMatch(/plaintext|service account/i);
   });
 
+  it('rejects malformed project IAM binding entries rather than discarding them', () => {
+    for (const binding of [
+      null,
+      'not-a-binding',
+      { role: 'roles/viewer', members: 'serviceAccount:' + sa },
+      { role: 'roles/viewer', members: [null] },
+      { members: ['serviceAccount:' + sa] },
+    ]) {
+      const result = auditProjectRoles({
+        bindings: [{ role: 'roles/logging.logWriter', members: ['serviceAccount:' + sa] }, binding],
+      }, sa);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed binding records/i);
+    }
+  });
+
+  it('fails closed when project IAM policy evidence has no bindings array', () => {
+    for (const policy of [null, {}, { bindings: null }, { bindings: {} }]) {
+      const result = auditProjectRoles(policy, sa);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/bindings.*missing or malformed/i);
+    }
+    expect(auditProjectRoles({ bindings: [] }, sa).passed).toBe(true);
+  });
+
   it('rejects primitive owner/editor roles on the runtime service account', () => {
     expect(auditProjectRoles({ bindings: [{ role: 'roles/editor', members: ['serviceAccount:' + sa] }] }, sa).passed).toBe(false);
     expect(auditProjectRoles({ bindings: [{ role: 'roles/logging.logWriter', members: ['serviceAccount:' + sa] }] }, sa).passed).toBe(true);
+  });
+
+  it('rejects malformed Secret Manager policy bindings even if an accessor exists', () => {
+    const valid = { role: 'roles/secretmanager.secretAccessor', members: ['serviceAccount:' + sa] };
+    for (const policy of [
+      { bindings: [valid, null] },
+      { bindings: [valid, { role: 'roles/viewer', members: 'serviceAccount:' + sa }] },
+      { bindings: [valid, { role: 'roles/viewer', members: [null] }] },
+      { bindings: { role: valid.role, members: valid.members } },
+    ]) {
+      const result = auditSecretPolicies({ stripe: policy }, sa, ['stripe']);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/bindings are missing or malformed/i);
+    }
   });
 
   it('requires secret accessor bindings on each declared secret', () => {
@@ -107,6 +205,57 @@ describe('production control audit', () => {
     const conditional = { ...grant, condition: { title: 'expired', expression: 'request.time < timestamp("2020-01-01T00:00:00Z")' } };
     expect(auditSecretPolicies({ stripe: { bindings: [conditional] } }, sa, ['stripe']).passed).toBe(false);
     expect(auditSecretPolicies({ stripe: { bindings: [conditional, grant] } }, sa, ['stripe']).passed).toBe(true);
+  });
+
+  it('rejects empty or blank required monitoring policy configuration', () => {
+    const policies = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }];
+    const channels = [{ name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const required of [[], [''], ['  ']]) {
+      const result = auditMonitoring(policies, channels, required);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/required monitoring alert policy names/i);
+    }
+  });
+
+  it('rejects malformed monitoring lists even when valid policies and channels exist', () => {
+    const policy = { displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] };
+    const channel = { name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' };
+    const required = ['Klar API burn rate 1h'];
+    for (const [policies, channels] of [
+      [[policy, null], [channel]],
+      [[policy], [channel, 'malformed']],
+      [null, [channel]],
+      [[policy], null],
+    ] as const) {
+      const result = auditMonitoring(policies, channels, required);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed records/i);
+    }
+  });
+
+  it('rejects duplicate required alert policy definitions even if one is valid', () => {
+    const name = 'Klar API burn rate 1h';
+    const channelName = 'projects/p/notificationChannels/pager';
+    const valid = { displayName: name, enabled: true, notificationChannels: [channelName] };
+    const invalid = { displayName: name, enabled: false, notificationChannels: [] };
+    const channels = [{ name: channelName, enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const extra of [valid, invalid]) {
+      const result = auditMonitoring([valid, extra], channels, [name]);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/exactly one named definition/i);
+    }
+  });
+
+  it('rejects malformed notification channel references next to valid ones', () => {
+    const name = 'Klar API burn rate 1h';
+    const channelName = 'projects/p/notificationChannels/pager';
+    const channels = [{ name: channelName, enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const invalid of [null, '', '  ', 42]) {
+      const policies = [{ displayName: name, enabled: true, notificationChannels: [channelName, invalid] }];
+      const result = auditMonitoring(policies, channels, [name]);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed notification channel references/i);
+    }
   });
 
   it('requires verified notification channels and named enabled policies', () => {
@@ -126,6 +275,7 @@ describe('production control audit', () => {
   it('rejects unknown verification, missing channel identity, and disabled channels', () => {
     const policy = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }];
     for (const channel of [
+      { name: 'projects/p/notificationChannels/pager', verificationStatus: 'VERIFIED' },
       { name: 'projects/p/notificationChannels/pager', enabled: true },
       { name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'UNVERIFIED' },
       { name: 'projects/p/notificationChannels/pager', enabled: false, verificationStatus: 'VERIFIED' },

@@ -42,3 +42,51 @@ The validator requires:
 - timestamps in a valid chronological order.
 
 This validator does not rotate secrets or trigger production alerts. Those exercises require an approved maintenance/test window and must be performed against the real configured systems.
+
+## 2026-10-13 — Cloud Run container presence audit hardening
+
+The production controls checker previously allowed a syntactically valid service account to pass the Cloud Run service check if the service template contained **no containers**, when `KLAR_REQUIRED_SECRETS` was empty. This is not sufficient evidence of a runnable service. `auditCloudRunService` now rejects an empty or missing `spec.template.spec.containers` array regardless of required secret configuration. A targeted regression checks both missing and explicitly empty containers. This is a fail-closed static evidence-validation improvement; it is **not** evidence of real production Cloud Run deployment, alert delivery, IAM access, secret rotation, rollback or accountable human release approval. Keep Issue #8 open and production **NO-GO** until verified operational evidence is available. Exact PR-head CI remains pending; no manual GitHub Actions runs were dispatched.
+
+## 2026-10-13 — Require explicit enabled state for alert channels
+
+Additional fail-closed hardening: `auditMonitoring` formerly accepted a channel with `verificationStatus: VERIFIED` and no `enabled` value because it only rejected `enabled: false`. This was inconsistent with the rule requiring **explicitly enabled** monitoring notification channels, and could treat incomplete API evidence as an operative notification path. Only `enabled === true` is accepted now. `tests/productionControls.spec.ts` includes a negative regression for missing `enabled`. This validates input semantics only; it does not show that alerts were delivered or acknowledged by on-call staff. Revalidate CI on the updated exact SHA. Issue #8 and production **NO-GO** remain unchanged.
+
+## 2026-10-13 — Reject ambiguous inline secret fields
+
+The Cloud Run service audit previously rejected a required secret's inline `value` only if it was non-null. A payload could therefore specify `value: null` alongside `valueFrom.secretKeyRef` without being rejected, even though the audit should only accept an unambiguous Secret Manager reference. The validator now fails closed whenever a `value` property exists for a required secret, including null and empty strings. Regression tests cover both cases. This hardens evidence parsing; it does **not** prove Secret Manager access, actual runtime injection, rotation or deployment controls. GitHub PR-head CI must be rerun automatically for this new commit; production remains NO-GO pending Issue #8 and authorized operational signoff.
+
+## 2026-10-13 — Project IAM audit evidence completeness
+
+A missing or malformed project IAM policy could previously be silently interpreted as an empty list of role bindings by `auditProjectRoles`, causing an incomplete evidence payload to pass the primitive-role check. The audit now returns `passed: false` unless the supplied IAM policy object has an explicit `bindings` array. An intentionally empty but valid `bindings: []` remains acceptable for the *primitive-role* subcheck only; it is not proof of sufficient service privileges, which are separately evaluated. Regression tests cover null, absent, null-valued, object-valued and empty-array bindings. This is evidence-integrity hardening, not actual production IAM verification. Issue #8 stays open and production NO-GO. New PR-head CI must validate this revision; no manual Actions execution.
+
+## 2026-10-13 — Required alert policy list must not be empty
+
+The monitoring audit previously could pass when `requiredPolicyNames` was empty, provided at least one enabled, verified notification channel existed. An enabled channel alone does not show that a required production alert policy exists. The validator now rejects an empty list or blank policy names; targeted regression cases cover `[]`, `['']` and `['  ']`. This is a configuration-evidence validity check only, **not** an observed production alert delivery or on-call acknowledgement. Revalidate exact PR-head CI after these changes. Issue #8 and production **NO-GO** remain open.
+
+## 2026-10-13 — Reject malformed Cloud Run container entries
+
+The service auditor's `records()` normalization discarded non-object entries in `spec.template.spec.containers`. A malformed list containing at least one valid container could therefore pass without flagging the discarded entries. The audit now compares the raw container count with the validated-record count and rejects mismatches. Tests cover `null` and string entries alongside valid records. This is a fail-closed schema evidence check, not production deployment attestation. Previous PR-head CI run 38432764509 passed at `eee6a5b9`; **a fresh exact-head check is required for this change**. Issue #8 remains open; release stays NO-GO.
+
+## 2026-10-13 — Malformed Cloud Run environment records
+
+The required-secret audit previously used `records(container.env)`, silently dropping non-object entries. Consequently, one valid Secret Manager env record plus a malformed sibling could pass. The validator now rejects a present `env` field unless it is an array entirely composed of object records; omitted `env` fields remain valid for containers without environment variables. Regression tests cover a null entry, a string entry, and a non-array `env` value. This is fail-closed configuration evidence validation; it is not runtime deployment attestation. New exact-head CI must pass before merging; Issue #8 and production NO-GO remain unchanged.
+
+## 2026-10-13 — Fail-closed IAM binding schema validation
+
+The primitive-role evidence check previously normalized `policy.bindings` through `records()`, silently discarding malformed entries. A binding list with one valid record and another null, string, or malformed members field could therefore pass. Now any non-object entry, non-string role, missing/non-array members, or non-string member fails `auditProjectRoles`. Regression tests cover each shape. This checks **evidence schema integrity**, not effective Google Cloud IAM permissions (conditional policies, inherited permissions and production access still require operational verification). The previous CI run for `33eb6758` was in progress when work began; this new exact PR head requires an independent successful CI result. Production NO-GO; Issue #8 remains open.
+
+## 2026-10-13 — Secret Manager IAM binding evidence completeness
+
+The Secret Manager accessor audit previously normalized malformed `bindings` entries away using `records()`. A valid accessor alongside a malformed binding could pass despite incomplete policy evidence. Now each required secret policy must expose an explicit `bindings` array containing only records with string roles and string-array members. Absent, wrong-type, or malformed entries fail closed; targeted regression tests cover both mixed and non-array inputs. This is an input-integrity check, not proof of effective IAM access, rotation, secret injection or production deployment. Exact latest PR-head CI still requires confirmation. Issue #8 and production NO-GO remain unchanged.
+
+## 2026-10-13 — Monitoring list integrity
+
+The monitoring evidence validator previously normalized policy and channel lists with `records()`, silently discarding malformed non-record entries. Even with an otherwise valid enabled alert policy and verified channel, a partly malformed evidence response could pass. Both inputs now must be arrays consisting entirely of object records. Regression tests cover mixed valid/invalid arrays and missing policy/channel arrays. This is a static evidence-integrity check only, not proof of live alert delivery, escalation, or on-call acknowledgement. Previous head CI does not validate these new commits: require a successful exact-head run before approval. Issue #8 remains open and production is NO-GO.
+
+## 2026-10-13 — Ambiguous duplicate monitoring policies
+
+The required-alert policy check formerly evaluated only enabled/valid matching policies. A second disabled, invalid or otherwise contradictory policy with the same required `displayName` was ignored, potentially allowing ambiguous evidence to pass. Each required display name must now resolve to **exactly one** definition in the complete policy list before its enabled state and linked verified channel are evaluated. Tests cover duplicate-valid and valid-plus-disabled cases. Note that Cloud Monitoring display names are not globally unique; this is a conservative release evidence rule, not an API uniqueness claim. Use unambiguous required policy names in the deployment configuration. The new PR-head CI result must be confirmed; real alert delivery/on-call acknowledgement remains outstanding under Issue #8. Production NO-GO.
+
+## 2026-10-13 — Required alert notification-channel reference schema
+
+The required alert policy validator previously considered an alert actionable if *any* linked notification-channel identifier matched a verified channel. An additional malformed `notificationChannels` entry (null, blank string, or number) was ignored. The audit now fails closed if a required usable policy's channel-reference list is absent or includes an invalid identifier, even when another reference resolves. Regression tests cover null, blank, whitespace-only and numeric entries. This is evidence data-shape validation only; an actual delivery/acknowledgement test remains required for Issue #8. Previous CI on PR #27 does not validate this new exact head; production remains NO-GO.

@@ -21,8 +21,11 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
   const template = isRecord(serviceSpec.template) ? serviceSpec.template : {};
   const spec = isRecord(template.spec) ? template.spec : {};
   const containers = records(spec.containers);
+  const containerCount = Array.isArray(spec.containers) ? spec.containers.length : 0;
   const serviceAccount = typeof spec.serviceAccountName === 'string' ? spec.serviceAccountName : '';
   const errors: string[] = [];
+  if (containerCount === 0) errors.push('Cloud Run service has no containers');
+  if (containers.length !== containerCount) errors.push('Cloud Run service contains malformed container records');
 
   if (!serviceAccount) errors.push('Cloud Run service account is missing');
   if (serviceAccount !== input.expectedServiceAccount) errors.push('Cloud Run service account does not match KLAR_EXPECTED_SERVICE_ACCOUNT');
@@ -58,6 +61,11 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
 
   // Flattening into a Map would hide a plaintext or conflicting definition in
   // another container. Any duplicate required env variable is ambiguous.
+  for (const container of containers) {
+    if (container.env !== undefined && (!Array.isArray(container.env) || records(container.env).length !== container.env.length)) {
+      errors.push('Cloud Run container contains malformed env records');
+    }
+  }
   const env = containers.flatMap(container => records(container.env));
   const secretReferences: Record<string, string> = Object.create(null);
   for (const secret of input.requiredSecrets) {
@@ -75,7 +83,7 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
       errors.push('Required secret env is missing: ' + secret);
       continue;
     }
-    if ('value' in item && item.value != null) errors.push('Secret must not be configured as plaintext: ' + secret);
+    if ('value' in item) errors.push('Secret must not define a plaintext value field: ' + secret);
     const valueFrom = isRecord(item.valueFrom) ? item.valueFrom : {};
     const secretKeyRef = isRecord(valueFrom.secretKeyRef) ? valueFrom.secretKeyRef : {};
     const refName = secretKeyRef.name;
@@ -98,6 +106,13 @@ export function auditProjectRoles(policy: unknown, serviceAccount: string) {
     .map(binding => typeof binding.role === 'string' ? binding.role : '')
     .filter(Boolean);
   const errors: string[] = [];
+  if (!isRecord(policy) || !Array.isArray(policy.bindings)) {
+    errors.push('Project IAM policy bindings are missing or malformed');
+  } else if (records(policy.bindings).length !== policy.bindings.length ||
+    records(policy.bindings).some(binding => typeof binding.role !== 'string' || !Array.isArray(binding.members) ||
+      !binding.members.every(member => typeof member === 'string'))) {
+    errors.push('Project IAM policy contains malformed binding records');
+  }
   for (const forbidden of ['roles/owner', 'roles/editor']) {
     if (roles.includes(forbidden)) errors.push('Runtime service account has forbidden primitive role: ' + forbidden);
   }
@@ -113,6 +128,12 @@ export function auditSecretPolicies(
   const member = 'serviceAccount:' + serviceAccount;
   for (const secret of requiredSecrets) {
     const secretPolicy = isRecord(policies[secret]) ? policies[secret] : {};
+    if (!Array.isArray(secretPolicy.bindings) || records(secretPolicy.bindings).length !== secretPolicy.bindings.length ||
+      records(secretPolicy.bindings).some(binding => typeof binding.role !== 'string' || !Array.isArray(binding.members) ||
+        !binding.members.every(member => typeof member === 'string'))) {
+      errors.push('Secret IAM policy bindings are missing or malformed for: ' + secret);
+      continue;
+    }
     const bindings = records(secretPolicy.bindings);
     const accessor = bindings.some(binding =>
       binding.role === 'roles/secretmanager.secretAccessor' &&
@@ -131,7 +152,7 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
   // Only explicit verification proves the stated production control. Channels
   // without a resource name cannot be correlated with an alert policy.
   const enabledChannels = channelList.filter(channel =>
-    channel.enabled !== false &&
+    channel.enabled === true &&
     channel.verificationStatus === 'VERIFIED' &&
     typeof channel.name === 'string' && channel.name.length > 0,
   );
@@ -144,11 +165,30 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
   const enabledPolicyNames = usablePolicies
     .map(policy => typeof policy.displayName === 'string' ? policy.displayName : '');
   const errors: string[] = [];
+  if (!Array.isArray(policies) || policyList.length !== policies.length) {
+    errors.push('Monitoring alert policy list is missing or contains malformed records');
+  }
+  if (!Array.isArray(channels) || channelList.length !== channels.length) {
+    errors.push('Monitoring notification channel list is missing or contains malformed records');
+  }
+  if (requiredPolicyNames.length === 0 || requiredPolicyNames.some(name => typeof name !== 'string' || !name.trim())) {
+    errors.push('Required monitoring alert policy names are missing or invalid');
+  }
   if (!enabledChannels.length) errors.push('No explicitly verified, enabled monitoring notification channel found');
   for (const name of requiredPolicyNames) {
     const policies = usablePolicies.filter(policy => policy.displayName === name);
+    const allNamedPolicies = policyList.filter(policy => policy.displayName === name);
+    if (allNamedPolicies.length !== 1) {
+      errors.push('Required monitoring alert policy must have exactly one named definition: ' + name);
+      continue;
+    }
     if (!policies.length) {
       errors.push('Required enabled and valid alert policy is missing: ' + name);
+      continue;
+    }
+    if (policies.some(policy => !Array.isArray(policy.notificationChannels) ||
+      policy.notificationChannels.some(channel => typeof channel !== 'string' || !channel.trim()))) {
+      errors.push('Required alert policy has malformed notification channel references: ' + name);
       continue;
     }
     if (!policies.some(policy =>
