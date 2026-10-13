@@ -61,6 +61,11 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
 
   // Flattening into a Map would hide a plaintext or conflicting definition in
   // another container. Any duplicate required env variable is ambiguous.
+  for (const container of containers) {
+    if (container.env !== undefined && (!Array.isArray(container.env) || records(container.env).length !== container.env.length)) {
+      errors.push('Cloud Run container contains malformed env records');
+    }
+  }
   const env = containers.flatMap(container => records(container.env));
   const secretReferences: Record<string, string> = Object.create(null);
   for (const secret of input.requiredSecrets) {
