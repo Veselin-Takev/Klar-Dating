@@ -131,6 +131,7 @@ export function validateReflectionAnalysisOutput(parsed: unknown): parsed is Ref
   const value = parsed as Record<string, unknown>;
   if (typeof value.mood !== 'string' || !value.mood.trim()) return false;
   if (!Array.isArray(value.tags) || !value.tags.every((tag): tag is string => typeof tag === 'string')) return false;
+  if (value.personName !== undefined && typeof value.personName !== 'string') return false;
   return true;
 }
 
