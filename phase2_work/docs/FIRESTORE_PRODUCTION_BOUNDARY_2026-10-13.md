@@ -15,3 +15,7 @@ The user's `security/v149-autonomous-consolidation` Codespace has uncommitted ch
 ## 2026-10-13 follow-up regression coverage
 
 Additional unit cases inject a Firebase Admin SDK initialization failure and require production, staging, and test environments to throw without constructing the durable proxy, even if the fallback environment flag is set. A separate case verifies that explicit development opt-in may pass a null real database to the local proxy. These tests are committed but have **not** been run in the user's Codespace; green CI and actual Firestore emulator integration remain mandatory before merge.
+
+## Fallback flag strictness and native API identity
+
+The test suite also covers opt-in values `false`, `TRUE`, `1` and empty string: none may silently enable the local adapter when native initialization fails. In regular development without opt-in, the native `runTransaction`, `batch`, and `recursiveDelete` methods must retain their original identity; this prevents accidental replacement with non-atomic shims. These are mocked unit assertions, **not** emulator or production evidence. Exact-SHA CI, emulator validation and operational approval remain outstanding.
