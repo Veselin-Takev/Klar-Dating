@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { resolveProfileDisplayName } from '../src/lib/profileDisplayName';
 
 describe('authenticated profile name resolution', () => {
@@ -14,5 +15,12 @@ describe('authenticated profile name resolution', () => {
   });
   it('does not reveal an unverified email or fabricate a profile identity', () => {
     expect(resolveProfileDisplayName('Neu', null, 'someone@example.com', false)).toBe('Namen im Profil ergänzen');
+  });
+  it('has a persisted name editor with accessible feedback', () => {
+    const source = readFileSync('src/screens/Profile.tsx', 'utf8');
+    expect(source).toContain('Namen bearbeiten');
+    expect(source).toContain('await updateProfileData({ name: value })');
+    expect(source).toContain('htmlFor="profile-name-edit"');
+    expect(source).toContain('aria-live="polite"');
   });
 });
