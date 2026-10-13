@@ -233,6 +233,19 @@ describe('production control audit', () => {
     }
   });
 
+  it('rejects duplicate required alert policy definitions even if one is valid', () => {
+    const name = 'Klar API burn rate 1h';
+    const channelName = 'projects/p/notificationChannels/pager';
+    const valid = { displayName: name, enabled: true, notificationChannels: [channelName] };
+    const invalid = { displayName: name, enabled: false, notificationChannels: [] };
+    const channels = [{ name: channelName, enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const extra of [valid, invalid]) {
+      const result = auditMonitoring([valid, extra], channels, [name]);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/exactly one named definition/i);
+    }
+  });
+
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
       [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
