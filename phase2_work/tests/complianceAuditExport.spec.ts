@@ -72,6 +72,15 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(record.statutoryConfirmationStatus).toBe('Erteilt gem. § 312k Abs. 4 BGB');
     });
 
+    it('does not crash on malformed receipt timestamps in historic Firestore documents', () => {
+      const record = anonymizeContractRequest({
+        requestId: 'bad-receipt-timestamp',
+        receivedAt: '2026-10-01T12:00:00.000Z',
+        receipt: { id: 'receipt-bad-date', receivedAt: 'not-a-date' },
+      }, 'bad-receipt-timestamp');
+      expect(record.confirmationTimestamp).toBe('2026-10-01T12:00:00.000Z');
+    });
+
     it('flags unconfirmed requests as ausstehend', () => {
       const unconfirmed = {
         requestId: 'unconfirmed-req',
