@@ -177,6 +177,11 @@ export function auditMonitoring(policies: unknown, channels: unknown, requiredPo
   if (!enabledChannels.length) errors.push('No explicitly verified, enabled monitoring notification channel found');
   for (const name of requiredPolicyNames) {
     const policies = usablePolicies.filter(policy => policy.displayName === name);
+    const allNamedPolicies = policyList.filter(policy => policy.displayName === name);
+    if (allNamedPolicies.length !== 1) {
+      errors.push('Required monitoring alert policy must have exactly one named definition: ' + name);
+      continue;
+    }
     if (!policies.length) {
       errors.push('Required enabled and valid alert policy is missing: ' + name);
       continue;
