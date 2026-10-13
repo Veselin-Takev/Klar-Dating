@@ -832,7 +832,14 @@ app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'
     if (OHNE_ALTERSPRUEFUNG.has(pfad)) return next();
 
     const meineUid = req.user?.uid;
-    if (!meineUid) return next();   // requireAuth hat bereits abgelehnt
+    // Defense-in-depth: missing identity must never skip age or consent gates,
+    // even if upstream authentication middleware changes in the future.
+    if (!meineUid) {
+      return res.status(401).json({
+        error: 'Authentifizierung erforderlich.',
+        code: 'auth_required',
+      });
+    }
 
     let daten: Record<string, unknown> | undefined;
     try {
