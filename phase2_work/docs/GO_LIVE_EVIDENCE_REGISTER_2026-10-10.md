@@ -171,3 +171,14 @@ Current `main` commit observed through GitHub tree API: `16f51d8b5e9f2398e45ee1f
 As of this audit, the GitHub issues API returned only [open Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). The nine production acceptance gates listed above **remain PENDING**: no matching real-environment Cloud Run controls report, alert delivery/on-call acknowledgement, secret rotation, OTLP/Sentry privacy proof, GDPR/KYC/payment/legal acceptance, attested deploy digest, canary rollback or accountable approvals were provided. **Production NO-GO.** Do not set `KLAR_PRODUCTION_RELEASE_APPROVED=true` based on this reconciliation.
 
 Next actionable work requires authorized cloud access and explicit signoff: (1) identify the exact release candidate SHA and image digest; (2) collect `audit:production-controls` output in an external evidence vault, securely; (3) perform on-call witnessed monitoring, secret-rotation and rollback exercises; (4) validate matching evidence and sign off individual gates. This documentation-only reconciliation neither incurs a manually dispatched Actions run nor certifies live controls.
+
+## 2026-10-13 — Additional merged profile fixes
+
+The GitHub API confirms both profile PRs are merged, with successful PR-head Actions checks:
+
+| Merged PR | Scope | Verified run |
+| --- | --- | --- |
+| [#21](https://github.com/Veselin-Takev/Klar-Dating/pull/21) | Avatar and imported-text Firestore persistence | [38405677545](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38405677545) — success |
+| [#22](https://github.com/Veselin-Takev/Klar-Dating/pull/22) | Display-name source, fallback and name editing | [38406919940](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38406919940) — success |
+
+Observed `main` Git tree SHA at this reconciliation: `693301aaf8ed2853d80f2f658fef559da666b446`. PR-head runs are not proof of a successful exact merged-`main` deployment. Issue #8 remains the only open non-PR GitHub issue. Operational gates remain PENDING; do not deploy or mark GO without cloud evidence, incident drill and approved signoff. No manual workflow run was triggered.
