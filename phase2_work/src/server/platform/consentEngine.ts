@@ -97,6 +97,14 @@ export function filterProfileSensitiveFields<T extends JsonObject>(
     delete sanitized.healthNotes;
   }
 
+  // AI-derived profile attributes also require their own active consent.
+  // Revocation must prevent disclosure even before persistence cleanup finishes.
+  if (!evaluateArt9Consent(consent, 'ai_personality_insights')) {
+    delete sanitized.aiPersonalitySummary;
+    delete sanitized.aiBioSummary;
+    delete sanitized.personalityRadar;
+  }
+
   return sanitized;
 }
 
