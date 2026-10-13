@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 
-const server = readFileSync(new URL('../server.ts', import.meta.url), 'utf8');
+const server = readFileSync('server.ts', 'utf8');
 const start = server.indexOf('const requireAuth = async');
 const end = server.indexOf('\n};', start);
 if (!(start >= 0 && end > start)) throw new Error('requireAuth middleware must exist');
