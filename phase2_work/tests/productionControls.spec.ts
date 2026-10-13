@@ -246,6 +246,18 @@ describe('production control audit', () => {
     }
   });
 
+  it('rejects malformed notification channel references next to valid ones', () => {
+    const name = 'Klar API burn rate 1h';
+    const channelName = 'projects/p/notificationChannels/pager';
+    const channels = [{ name: channelName, enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const invalid of [null, '', '  ', 42]) {
+      const policies = [{ displayName: name, enabled: true, notificationChannels: [channelName, invalid] }];
+      const result = auditMonitoring(policies, channels, [name]);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/malformed notification channel references/i);
+    }
+  });
+
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
       [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
