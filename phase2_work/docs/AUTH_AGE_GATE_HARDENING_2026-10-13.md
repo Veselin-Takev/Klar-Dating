@@ -13,3 +13,6 @@ The explicitly public routes and routes exempt from the age prerequisite still b
 - `verifyIdToken(idToken, false)` remains an independent revocation-risk audit item; token verification semantics have not been changed here.
 
 Production release remains **NO-GO** pending issue #8, exact-head-SHA CI, and operational signoff.
+
+## CI follow-up (2026-10-13)
+GitHub CI exposed a test-runner integration issue: `node:test` in a `tests/*.test.mjs` file is discovered by Vitest and fails Vite bundling. The regression suite on this branch now imports `test` and `expect` from `vitest`. Validate via `npx vitest run tests/authAgeGatePolicy.test.mjs` and run the full CI suite at the new head SHA. Earlier CI results do not apply to this updated commit.
