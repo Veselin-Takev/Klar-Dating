@@ -62,3 +62,7 @@ A missing or malformed project IAM policy could previously be silently interpret
 ## 2026-10-13 — Required alert policy list must not be empty
 
 The monitoring audit previously could pass when `requiredPolicyNames` was empty, provided at least one enabled, verified notification channel existed. An enabled channel alone does not show that a required production alert policy exists. The validator now rejects an empty list or blank policy names; targeted regression cases cover `[]`, `['']` and `['  ']`. This is a configuration-evidence validity check only, **not** an observed production alert delivery or on-call acknowledgement. Revalidate exact PR-head CI after these changes. Issue #8 and production **NO-GO** remain open.
+
+## 2026-10-13 — Reject malformed Cloud Run container entries
+
+The service auditor's `records()` normalization discarded non-object entries in `spec.template.spec.containers`. A malformed list containing at least one valid container could therefore pass without flagging the discarded entries. The audit now compares the raw container count with the validated-record count and rejects mismatches. Tests cover `null` and string entries alongside valid records. This is a fail-closed schema evidence check, not production deployment attestation. Previous PR-head CI run 38432764509 passed at `eee6a5b9`; **a fresh exact-head check is required for this change**. Issue #8 remains open; release stays NO-GO.
