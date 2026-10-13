@@ -81,6 +81,16 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
       expect(record.confirmationTimestamp).toBe('2026-10-01T12:00:00.000Z');
     });
 
+    it('does not accept blank receipt fields as confirmation evidence', () => {
+      const record = anonymizeContractRequest({
+        requestId: 'empty-receipt',
+        receivedAt: '2026-10-01T12:00:00.000Z',
+        receipt: { id: '  ', text: '' },
+      }, 'empty-receipt');
+      expect(record.statutoryConfirmationStatus).toBe('Ausstehend');
+      expect(record.complianceStatus).toBe('BESTÄTIGUNG NICHT NACHGEWIESEN');
+    });
+
     it('flags unconfirmed requests as ausstehend', () => {
       const unconfirmed = {
         requestId: 'unconfirmed-req',
