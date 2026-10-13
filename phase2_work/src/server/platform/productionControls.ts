@@ -76,7 +76,7 @@ export function auditCloudRunService(input: CloudRunAuditInput) {
       errors.push('Required secret env is missing: ' + secret);
       continue;
     }
-    if ('value' in item && item.value != null) errors.push('Secret must not be configured as plaintext: ' + secret);
+    if ('value' in item) errors.push('Secret must not define a plaintext value field: ' + secret);
     const valueFrom = isRecord(item.valueFrom) ? item.valueFrom : {};
     const secretKeyRef = isRecord(valueFrom.secretKeyRef) ? valueFrom.secretKeyRef : {};
     const refName = secretKeyRef.name;
