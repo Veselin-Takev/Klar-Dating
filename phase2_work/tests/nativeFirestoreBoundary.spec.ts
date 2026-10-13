@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const doubles = vi.hoisted(() => {
   const nativeDb = { collection: vi.fn(), runTransaction: vi.fn(), batch: vi.fn(), recursiveDelete: vi.fn() };
   const durableDb = { collection: vi.fn(), runTransaction: vi.fn() };
-  return { nativeDb, durableDb, createDurableDbProxy: vi.fn(() => durableDb) };
+  return { nativeDb, durableDb, createDurableDbProxy: vi.fn(() => durableDb), sdkFailure: { enabled: false } };
 });
 
 vi.mock('firebase-admin/app', () => ({
@@ -11,7 +11,7 @@ vi.mock('firebase-admin/app', () => ({
   initializeApp: () => ({ name: 'unit-test' }),
 }));
 vi.mock('firebase-admin/firestore', () => ({
-  getFirestore: () => doubles.nativeDb,
+  getFirestore: () => { if (doubles.sdkFailure.enabled) throw new Error('Firestore SDK unavailable'); return doubles.nativeDb; },
   FieldValue: {},
 }));
 vi.mock('../src/server/firebaseRuntime', () => ({
@@ -31,9 +31,11 @@ describe('Firestore production boundary', () => {
   beforeEach(() => {
     vi.resetModules();
     doubles.createDurableDbProxy.mockClear();
+    doubles.sdkFailure.enabled = false;
     delete process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
   });
   afterEach(() => {
+    doubles.sdkFailure.enabled = false;
     if (oldMode === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = oldMode;
     if (oldFallback === undefined) delete process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
@@ -53,6 +55,24 @@ describe('Firestore production boundary', () => {
     const { getDb } = await import('../src/server/db');
     expect(getDb()).toBe(doubles.nativeDb);
     expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  });
+
+  it.each(['production', 'staging', 'test'])('fails closed on Firebase SDK initialization failure in %s', async mode => {
+    process.env.NODE_ENV = mode;
+    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
+    doubles.sdkFailure.enabled = true;
+    const { getDb } = await import('../src/server/db');
+    expect(() => getDb()).toThrow(/Firestore initialization failed/);
+    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  });
+
+  it('permits an explicit development fallback when Firebase initialization fails', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
+    doubles.sdkFailure.enabled = true;
+    const { getDb } = await import('../src/server/db');
+    expect(getDb()).toBe(doubles.durableDb);
+    expect(doubles.createDurableDbProxy).toHaveBeenCalledWith(null);
   });
 
   it('retains explicit development-only proxy opt-in', async () => {
