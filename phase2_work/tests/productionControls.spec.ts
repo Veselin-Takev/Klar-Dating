@@ -145,6 +145,16 @@ describe('production control audit', () => {
     expect(auditSecretPolicies({ stripe: { bindings: [conditional, grant] } }, sa, ['stripe']).passed).toBe(true);
   });
 
+  it('rejects empty or blank required monitoring policy configuration', () => {
+    const policies = [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }];
+    const channels = [{ name: 'projects/p/notificationChannels/pager', enabled: true, verificationStatus: 'VERIFIED' }];
+    for (const required of [[], [''], ['  ']]) {
+      const result = auditMonitoring(policies, channels, required);
+      expect(result.passed).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/required monitoring alert policy names/i);
+    }
+  });
+
   it('requires verified notification channels and named enabled policies', () => {
     expect(auditMonitoring(
       [{ displayName: 'Klar API burn rate 1h', enabled: true, notificationChannels: ['projects/p/notificationChannels/pager'] }],
