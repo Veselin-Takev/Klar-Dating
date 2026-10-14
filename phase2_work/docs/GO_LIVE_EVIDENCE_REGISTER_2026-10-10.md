@@ -153,3 +153,90 @@ Source review found the evidence schema was **permissive for unknown JSON proper
 **Issue #8 remains open.** No evidence of actual Cloud Run identity/IAM, Secret Manager rotation, alert delivery acknowledgement, private telemetry, deletion/KYC/payment/cancellation checks on the release artifact, signed digest, canary rollback, or independent human signoff has been verified in this update. Each control stays **PENDING**. Do not set the production approval flag or declare GO based on CI success.
 
 **Next operator action:** use a privileged, approved environment to collect the evidence specified in the register, scrub secrets, bind proof to immutable build and deployed-revision identifiers, obtain explicit accountable reviews, and only then perform go/no-go assessment. Confirm cumulative GitHub Actions minutes against the user's 100-minute cap before scheduling any new runs; request explicit authorization for a further 200 minutes if the cap is reached. No new Actions run or deployment is needed to update this register.
+
+## 2026-10-13 — Post-merge release evidence reconciliation (Issue #8)
+
+Current `main` commit observed through GitHub tree API: `16f51d8b5e9f2398e45ee1f808f90e27595f9f97`. The following merged PR heads have successful pull-request-triggered GitHub Actions runs:
+
+| Merged PR | Scope | Proven pull-request CI run | Outcome |
+| --- | --- | --- | --- |
+| [#14](https://github.com/Veselin-Takev/Klar-Dating/pull/14) | A11y back navigation | [38288778770](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38288778770) | success |
+| [#15](https://github.com/Veselin-Takev/Klar-Dating/pull/15) | AI Journal error/timeout UX | [38289418810](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38289418810) | success |
+| [#16](https://github.com/Veselin-Takev/Klar-Dating/pull/16) | Partner referral empty state | [38290060717](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38290060717) | success |
+| [#18](https://github.com/Veselin-Takev/Klar-Dating/pull/18) | Consent settings evidence readback | [38293020615](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38293020615) | success |
+| [#19](https://github.com/Veselin-Takev/Klar-Dating/pull/19) | Ritual continuity resume | [38298045755](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38298045755) | success |
+
+**Scope limitation:** successful PR CI validates each corresponding PR head, **not** automatically the combined `main` merge commit, deployed Cloud Run revision, Firebase Rules deployment or production infrastructure. No exact-main CI or production exercise is claimed here.
+
+As of this audit, the GitHub issues API returned only [open Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). The nine production acceptance gates listed above **remain PENDING**: no matching real-environment Cloud Run controls report, alert delivery/on-call acknowledgement, secret rotation, OTLP/Sentry privacy proof, GDPR/KYC/payment/legal acceptance, attested deploy digest, canary rollback or accountable approvals were provided. **Production NO-GO.** Do not set `KLAR_PRODUCTION_RELEASE_APPROVED=true` based on this reconciliation.
+
+Next actionable work requires authorized cloud access and explicit signoff: (1) identify the exact release candidate SHA and image digest; (2) collect `audit:production-controls` output in an external evidence vault, securely; (3) perform on-call witnessed monitoring, secret-rotation and rollback exercises; (4) validate matching evidence and sign off individual gates. This documentation-only reconciliation neither incurs a manually dispatched Actions run nor certifies live controls.
+
+## 2026-10-13 — Additional merged profile fixes
+
+The GitHub API confirms both profile PRs are merged, with successful PR-head Actions checks:
+
+| Merged PR | Scope | Verified run |
+| --- | --- | --- |
+| [#21](https://github.com/Veselin-Takev/Klar-Dating/pull/21) | Avatar and imported-text Firestore persistence | [38405677545](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38405677545) — success |
+| [#22](https://github.com/Veselin-Takev/Klar-Dating/pull/22) | Display-name source, fallback and name editing | [38406919940](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38406919940) — success |
+
+Observed `main` Git tree SHA at this reconciliation: `693301aaf8ed2853d80f2f658fef559da666b446`. PR-head runs are not proof of a successful exact merged-`main` deployment. Issue #8 remains the only open non-PR GitHub issue. Operational gates remain PENDING; do not deploy or mark GO without cloud evidence, incident drill and approved signoff. No manual workflow run was triggered.
+
+## 2026-10-13 — Latest open-PR CI reconciliation
+
+The following exact PR-head GitHub Actions checks were confirmed successful via GitHub workflow-run records:
+
+| PR | Head SHA | CI run | Result |
+| --- | --- | --- | --- |
+| [#20](https://github.com/Veselin-Takev/Klar-Dating/pull/20) | `94bcc5c22e245d6c751e079ec36d6b7822406b9f` | [38411024335](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38411024335) | success |
+| [#24](https://github.com/Veselin-Takev/Klar-Dating/pull/24) | `78888a1e45fc799101afa480d514c0a07777fbee` | [38414094921](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38414094921) | success |
+| [#25](https://github.com/Veselin-Takev/Klar-Dating/pull/25) | `e17380bedf3ba31fba6f44ec4764180b777da2f2` | [38425213003](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38425213003) | success |
+| [#26](https://github.com/Veselin-Takev/Klar-Dating/pull/26) | `b0535e2e05685ef4f629e164e5907b014f761805` | [38422871160](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38422871160) | success |
+
+PR #25's `validate` job explicitly reports PASS for scope regression tests, release-policy tests, Typecheck, Functions build, Tests, and Build. This is **CI execution on the PR head**, not a claim that all commands were run locally and not a deployment test. PR #20 must receive a **new exact-head check** after this documentation update; the previous run for PR #20 does not cover this new commit.
+
+The sole currently open non-PR issue is [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). PRs remain open for independent review and merge; PR-head success does not prove merged-`main` integrity or provide Cloud Run IAM, secrets, monitoring, alert-delivery, canary/rollback, incident, data-protection, or accountable release approvals. **Production remains NO-GO.** No manual workflow execution or deployment was initiated by this reconciliation.
+
+## 2026-10-13 — Core typecheck and compliance PR #25 merged
+
+GitHub PR state inspection confirms [#25](https://github.com/Veselin-Takev/Klar-Dating/pull/25) is **merged** (no longer an outstanding PR). Its exact PR-head [CI run 38425213003](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38425213003) completed **success**, validating the scoped TypeScript gate and evidence-aware compliance audit behavior before merge. This is **not** proof that the merged main commit was retested, nor proof of actual §312k confirmation delivery, full GDPR compliance, deployment, or release approval.
+
+At this check: PR #20 head `596e6c60b339a4a8ca9d45fbdc741ced01a2d14a` CI [38427659745](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38427659745) was still in progress; [#24](https://github.com/Veselin-Takev/Klar-Dating/pull/24) and [#26](https://github.com/Veselin-Takev/Klar-Dating/pull/26) remained open with prior successful PR-head checks. Issue #8 is still the only open non-PR issue. Operational evidence gaps and formal approvals stay PENDING. **PRODUCTION NO-GO**. No manual Actions run or deployment was initiated.
+
+## 2026-10-13 — PR #27 merged; main exact-SHA CI evidence pending
+
+At reconciliation, [PR #27](https://github.com/Veselin-Takev/Klar-Dating/pull/27) is **merged** and its final PR head `bc0b1f9cba71ab94fe8bda0beb67f54d5910af1c` passed [workflow run 38438483817](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38438483817). It hardens parser-based evidence checks for Cloud Run deployment configuration, Secret Manager, IAM and monitoring; this does not verify actual production operation.
+
+The retrieved `main` HEAD at this check was `8bbe161901c805eddba7fb742ad62144f088c33e`. The exact-main-SHA workflow lookup returned **no runs**; therefore do **not** claim a merged-main CI PASS from these results. Confirm branch protection, merge commit provenance, and exact-main-SHA gates before release decisions.
+
+PRs #20, #24 and #26 remain open, in draft, with successful earlier exact-PR-head checks (respectively 38427837727, 38414094921, 38422871160). No independent merge approval is asserted. Open [Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) still requires real-production Cloud Run IAM and secret rotation/access evidence, verified alert delivery and on-call acknowledgement, canary/rollback rehearsal, and accountable human approvals. **Production NO-GO.** No manual CI, deployment or merge initiated by this register update. A new PR #20 exact-head CI check is required after this documentation commit.
+
+## 2026-10-13 — PR #28 merged and current main evidence reconciliation
+
+GitHub confirms [PR #28](https://github.com/Veselin-Takev/Klar-Dating/pull/28) merged with exact PR-head SHA `6e0d1b1df450e82f3bedcef34e4834fd34799b3a`; [CI 38441274452](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38441274452) completed **success**. This covers static test/build validation of the operational evidence DNS-hostname input hardening, not verification that any production evidence URL is authentic.
+
+The current `main` HEAD observed here is `e52caf0835016a26788ccd0534970a9c563d2c72`. An exact-commit workflow lookup returned **no runs**; absence of a returned run is not evidence of a successful post-merge validation. The other outstanding draft PR heads remain green: [#20](https://github.com/Veselin-Takev/Klar-Dating/pull/20) run 38440377139, [#24](https://github.com/Veselin-Takev/Klar-Dating/pull/24) run 38414094921, [#26](https://github.com/Veselin-Takev/Klar-Dating/pull/26) run 38422871160. Their reviews/merges are still open.
+
+Issue [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) remains the only open non-PR issue. Real Cloud Run identity/Secret Manager, secret rotation, policy-to-verified-channel alert *delivery* and on-call acknowledgment, OTLP/metrics, canary rollback, exact deployment provenance and named accountable approvals remain **not demonstrated** by these PR checks. **Production NO-GO.** No manual Actions run, deployment or PR merge was initiated for this update. This documentation commit requires a new exact-head check before it can be considered CI validated.
+
+## 2026-10-13 — Corrected merged-main CI evidence (branch-wide Actions lookup)
+
+**Correction to earlier exact-commit workflow lookup:** The GitHub Actions *branch-wide run listing* returned completed, successful `push` CI for BOTH merged main commits:
+
+- `e52caf0835016a26788ccd0534970a9c563d2c72`: [GitHub Actions run 38442970620](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38442970620), completed **success**.
+- `8bbe161901c805eddba7fb742ad62144f088c33e`: [GitHub Actions run 38440163693](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38440163693), completed **success**.
+
+Previous statements that no exact-main-SHA CI *could be found* were limited to the commit-specific workflow lookup and are **superseded** by these run records. These runs establish successful CI on those exact commits; they do **not** prove deployment/production operational controls. At this check draft PRs #20, #24, #26 each still have passing PR-head CI and **zero submitted reviews**; do not merge without independent review. [Issue #8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) remains open for live Cloud Run IAM/Secret Manager, alert delivery and acknowledgement, rotation, rollback, privacy/legal checks, protected-environment controls and authorized signoff. **PRODUCTION NO-GO.** A new exact PR #20 head CI is needed after this documentation edit.
+
+
+## 2026-10-14 — Current merge/production checkpoint
+
+**Observed main HEAD:** `737eecf26c788c531b5da39a08664f4440108e31`. This replaces older "current main" statements **for the 2026-10-14 checkpoint only**; historical observations above remain historical. Merge status as verified by the GitHub connector: product alignment PR #54, partner trust-boundary design PR #59, architectural ADR PR #26 and v150 roadmap PR #24 are **merged**. Do not interpret old draft/open statuses above as current.
+
+**Open PR gates at this checkpoint:**
+- [#60](https://github.com/Veselin-Takev/Klar-Dating/pull/60) at `79329a9ed8c48122aeb6895313823faf647a9cd8`: [PR-head CI 38547917807](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38547917807) **success**, but draft and **HOLD** due changed partner webhook/settlement semantics, lack of independent purchase attribution proof, migration and Product/Security/Legal/Finance approval. A green CI does not approve a breaking integration.
+- [#29](https://github.com/Veselin-Takev/Klar-Dating/pull/29) at `3be44a71d67c3ac3479292ab1a7e22b55c18e551`: previous CI run 38462426972 **failed** due `node:test` suite picked up by Vitest; source and documentation corrected but **no exact-head workflow result returned** at checkpoint. HOLD until green current-head CI, independent review and current-base mergeability verified.
+- [#20](https://github.com/Veselin-Takev/Klar-Dating/pull/20): this document's older head `727604b3760c8e2f996edc05365ea131fe716a82` had [successful PR-head CI 38445435115](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38445435115). This additional edit creates a new head and requires fresh exact-head CI and independent release documentation review before merging.
+
+**Release decision:** **NO-GO**. Main-branch CI or PR-head CI does not prove live Cloud Run IAM, Secret Manager rotation, verified alert delivery/acknowledgement, deletion/KYC/paid flows, current deployment SHA/digest, canary/rollback and accountable production signoffs. Track these individually in [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8). No Actions runs manually dispatched and no automatic PR merges performed in this update.
