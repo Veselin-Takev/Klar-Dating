@@ -11,13 +11,17 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function makeDb() {
+function makeDb(seed: Array<{ collection: string; id: string; data: Record<string, unknown> }> = []) {
   const store = new Map<string, Record<string, unknown>>();
-  const docRef = (collectionName: string, id: string) => ({ id, path: collectionName + '/' + id });
+  for (const item of seed) store.set(item.collection + '/' + item.id, structuredClone(item.data));
+  const docRef = (collectionName: string, id: string) => ({ id, path: collectionName + '/' + id,
+    get: async () => ({ id, exists: store.has(collectionName + '/' + id), data: () => store.get(collectionName + '/' + id) }),
+  });
   const db = {
     collection: (name: string) => ({
       doc: (id: string) => docRef(name, id),
       limit: (_count: number) => ({ get: async () => ({ docs: [] }) }),
+      where: (_field: string, _op: string, _value: unknown) => ({ limit: (_count: number) => ({ get: async () => ({ docs: [] }) }) }),
     }),
     runTransaction: async (callback: (tx: {
       get: (ref: { path: string }) => Promise<{ exists: boolean; data: () => Record<string, unknown> | undefined }>;
@@ -80,7 +84,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(result.getFirestore).toHaveBeenCalled();
   });
   it('disables caching of personalized partner link responses, including failures', async () => {
-    const getFirestore = vi.fn(() => makeDb());
+    const getFirestore = vi.fn(() => makeDb([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]));
     const app = express();
     app.use((req, _res, next) => {
       req.user = {
@@ -107,6 +111,12 @@ describe('Klar & Partner strict Admin claim boundary', () => {
       ['/api/partner/open/invalid!', { method: 'POST' }],
     ] as const) {
       const response = await fetch(base + path, init);
+      if (path === '/api/partner/referrals') {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ consent: { allowed: true }, referrals: [] });
+      } else {
+        expect(response.status).toBe(400);
+      }
       expect(response.headers.get('cache-control')).toContain('no-store');
       expect(response.headers.get('pragma')).toBe('no-cache');
     }
