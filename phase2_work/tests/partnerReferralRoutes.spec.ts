@@ -175,6 +175,13 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(response.headers.get('cache-control')).toContain('no-store');
     expect(response.headers.get('pragma')).toBe('no-cache');
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    // A syntactically valid token MUST still reach the existing distributed limiter.
+    // Its deliberately unavailable Firestore dependency must fail closed, not bypass the gate.
+    const validShape = await fetch(origin + '/api/partner/click/' + 'a'.repeat(64));
+    expect(validShape.status).toBe(500);
+    expect(validShape.headers.get('cache-control')).toContain('no-store');
+    expect(validShape.headers.get('pragma')).toBe('no-cache');
+    expect(validShape.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
 });
