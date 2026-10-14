@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
-import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
-import { pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
+import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, recordPartnerConversion, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
+import { derivePartnerReferralToken, partnerReferralDocumentId, pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
 import { verifyHmacAuditPayload } from '../src/server/consentAudit';
 
 type Stored = Record<string, unknown>;
@@ -195,4 +195,30 @@ describe('Klar & Partner transactional service boundary', () => {
       .map(([, record]) => record);
     expect(ledger.some(record => record.eventType === 'referral_open_link')).toBe(true);
   });
+  it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
+    const uid = 'owner-1';
+    const buyer = 'buyer-1';
+    const campaignId = 'campaign-1';
+    const slug = 'example-partner';
+    const token = derivePartnerReferralToken(uid, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: uid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: buyer, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, slug, brandVerified: true, status: 'active', qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid: uid, campaignId, campaignSlug: slug, version: 1, status: 'active', qualifiedConversions: 0 } },
+    ]);
+    const payload = { event: 'qualified_conversion' as const, eventId: 'provider-order-00001', referralToken: token, buyerUid: buyer };
+    const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');
+    expect(result).toEqual({ ok: true, duplicate: false, rewardStatus: 'pending_verification' });
+    const conversions = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'));
+    expect(conversions).toHaveLength(1);
+    expect(conversions[0]?.[1]).toMatchObject({ rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' });
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+    expect(db._store.get('partner_referrals/' + referralId)?.qualifiedConversions).toBe(0);
+    expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+  });
+
 });

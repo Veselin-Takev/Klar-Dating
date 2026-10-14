@@ -552,7 +552,7 @@ export async function recordPartnerConversion(
   slug: string,
   payload: PartnerConversionPayload,
   partnerSecret: string,
-): Promise<{ ok: true; duplicate: boolean; rewardStatus: 'earned' | 'already_recorded' }> {
+): Promise<{ ok: true; duplicate: boolean; rewardStatus: 'pending_verification' | 'already_recorded' }> {
   if (partnerSecret.length < 32) throw new PartnerReferralError(503, 'partner_webhook_unconfigured', 'Der Partner-Rückkanal ist nicht konfiguriert.');
   const db = deps.getFirestore();
   const referralId = partnerReferralDocumentId(payload.referralToken);
@@ -609,7 +609,8 @@ export async function recordPartnerConversion(
       referralId,
       ownerRef: pseudonymousPartnerUid(ownerUid, auditSecret(deps)),
       buyerRef: buyerRefHash,
-      rewardStatus: 'earned',
+      rewardStatus: 'pending_verification',
+      proofStatus: 'partner_assertion_only',
       rewardLabel: String(campaign.rewardLabel ?? ''),
       createdAt: now,
     });
@@ -620,10 +621,10 @@ export async function recordPartnerConversion(
       buyerRef: buyerRefHash,
       createdAt: now,
     });
-    tx.update(referralRef, { qualifiedConversions: FieldValue.increment(1), updatedAt: now });
-    tx.update(campaignRef, { qualifiedConversions: FieldValue.increment(1), updatedAt: now });
-    tx.create(audit.ref, withLedgerDetails(deps, audit, { rewardStatus: 'earned' }));
+    // Partner HMAC proves message origin, not purchase or buyer attribution. Never credit
+    // qualified conversion counters or mark rewards earned from this assertion alone.
+    tx.create(audit.ref, withLedgerDetails(deps, audit, { rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' }));
     return { duplicate: false as const };
   });
-  return { ok: true, duplicate: result.duplicate, rewardStatus: result.duplicate ? 'already_recorded' : 'earned' };
+  return { ok: true, duplicate: result.duplicate, rewardStatus: result.duplicate ? 'already_recorded' : 'pending_verification' };
 }
