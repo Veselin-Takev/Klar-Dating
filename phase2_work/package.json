@@ -106,6 +106,8 @@
     "check:dependency-locks": "node scripts/check-dependency-locks.mjs",
     "check:toolchain-policy": "node scripts/check-toolchain-policy.mjs",
     "check:ci-toolchain-pins": "node --test scripts/toolchain-pin-policy-check.mjs && node scripts/check-ci-toolchain-pins.mjs",
+    "check:local-firebase-adc": "node scripts/check-local-firebase-adc.mjs",
+    "test:local-firebase-adc": "node --test scripts/localFirebaseAdc-check.mjs",
     "check:release-workflow": "node scripts/check-release-workflow.mjs",
     "check:phase2-ai": "node scripts/check-phase2-ai.mjs",
     "check:rate-limit-ipv6": "node scripts/check-rate-limit-ipv6.mjs",
