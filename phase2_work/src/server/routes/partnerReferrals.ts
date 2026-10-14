@@ -94,7 +94,14 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     getDb: deps.getFirestore,
   });
 
-  router.get('/partner/click/:token', clickLimiter, async (req, res) => {
+  const protectPublicPartnerRedirect = (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+
+  router.get('/partner/click/:token', protectPublicPartnerRedirect, clickLimiter, async (req, res) => {
     try {
       const visitorUid = await optionalVisitorUid(req);
       const result = await recordPartnerClick(deps, String(req.params.token ?? ''), {
