@@ -40,6 +40,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # The production Node runtime is intentionally pinned to 22.23.3 across Docker,
+    # GitHub Actions, and the exact-image policy gate. Changes require a separate
+    # toolchain migration and compatibility review; don't bundle them with Bun.
+    ignore:
+      - dependency-name: "node"
     groups:
       container-dependencies:
         patterns:
