@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkWorkflowToolchain } from './toolchainPinPolicy.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
@@ -22,16 +23,7 @@ for (const file of workflows) {
     failures.push(`${file} is missing from the supported workflow surface.`);
     continue;
   }
-  const text = fs.readFileSync(file, 'utf8');
-  if (!text.includes('actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1')) {
-    failures.push(`${file} must pin actions/setup-node to the approved immutable revision.`);
-  }
-  if (!text.includes(`node-version: '${expectedNode}'`)) {
-    failures.push(`${file} must pin Node ${expectedNode}.`);
-  }
-  if (!text.includes("oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6")) {
-    failures.push(`${file} must pin Bun 1.4.2.`);
-  }
+  failures.push(...checkWorkflowToolchain(fs.readFileSync(file, 'utf8'), file, expectedNode));
 }
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'phase2_work', 'package.json'), 'utf8'));
