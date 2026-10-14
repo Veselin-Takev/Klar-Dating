@@ -17,3 +17,7 @@ Use workload identity / attached service identity in Cloud Run. For approved loc
 
 ## Release status
 Issue #8 stays **NO-GO** until evidence from actual production controls, exact-SHA CI, rotation, alert delivery, canary/rollback and accountable human approval is recorded. This local developer-experience change neither authorizes production secrets nor certifies Cloud Run.
+
+## CI regression correction (2026-10-14)
+
+The Node built-in `node:test` regression suite is located at `scripts/localFirebaseAdc-check.mjs`, not in `tests/`. Vitest's CI discovery collected the previous `tests/localFirebaseAdc.spec.mjs` file and attempted to bundle the `node:test` builtin, failing suite initialization in Actions run [38462426972](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38462426972). Run `npm run test:local-firebase-adc` to execute the six Node tests independently; standard Vitest CI remains free to discover only Vitest suites. No emulator bypass or ADC credential fallback was introduced. **Production NO-GO**.
