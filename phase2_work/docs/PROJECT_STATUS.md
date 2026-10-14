@@ -950,3 +950,8 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+## 2026-10-14 — Reconciled partner token privacy documentation against current main
+
+Current main includes merged PR #64, while documentation PR #65 had conflicts with changes on main. The third-party token recipient and Art.17 risk assessment is preserved in `docs/PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md` on this fresh candidate branch. PR #66 and #67 remain conflict-stale; old successful CI cannot authorize a merge onto changed main. Issue #56 remains open on partner token transfer/consent/retention/erasure; #55 independent conversion proof and #8 operational signoff still require external evidence. This is documentation only, not verified production compliance. Independent Privacy/Security/Legal review and exact-head CI remain mandatory. **NO-GO / NOT CONFIRMED**.
