@@ -165,9 +165,14 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+      const eventName = String(req.body?.eventName ?? '');
+      const eventId = req.body?.eventId ?? (
+        /^onboarding_(started|completed)$/.test(eventName)
+          ? `onboarding_v2_${eventName.slice('onboarding_'.length)}_${uid}`
+          : undefined
+      );
       const result = await deps.recordActivation(
-        deps.getFirestore(), uid, String(req.body?.eventName ?? ''),
-        req.body?.eventId ?? (/^onboarding_v2_(started|completed)$/.test(String(req.body?.eventName ?? '')) ? `${String(req.body?.eventName)}_${uid}` : undefined),
+        deps.getFirestore(), uid, eventName, eventId,
         typeof req.body?.metadata === 'object' && req.body.metadata ? req.body.metadata : {},
       );
       return res.status(201).json(result);
