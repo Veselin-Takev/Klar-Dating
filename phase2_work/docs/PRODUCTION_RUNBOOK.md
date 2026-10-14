@@ -73,3 +73,8 @@ For `GET /api/partner/click/:token`, verify non-cacheable responses and `Referre
 ### 2026-10-14 — Public partner malformed-token fail-fast CI regression
 
 CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 500 from the distributed Firestore limiter instead of HTTP 404. The candidate route now checks the exact 64-character lowercase-hex token syntax **before** invoking the Firestore-backed limiter; invalid input returns 404 with no-store/no-cache/no-referrer response headers and without DB calls. **Valid token shapes must still be rate-limited** and checked for consent/campaign state in the service. Re-run the unchanged HTTP regression, full pinned CI/enterprise/lockfile suites on the exact new PR head and review with Security/Privacy before merging. Never weaken rate limiting or infer production GO from CI. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
+
+The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
