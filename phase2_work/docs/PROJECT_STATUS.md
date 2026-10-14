@@ -928,3 +928,8 @@ The regression suite now also seeds 51 real emulator chat documents with message
 ### 2026-10-14 — P0 #56 cache-policy positive-path regression
 
 PR #62 now exercises the authorized `GET /api/partner/referrals` success path (consented adult, no active campaigns) at HTTP level. It asserts 200, an empty authorized list and `private, no-store`/legacy no-cache header coverage, as well as the invalid campaign ID failure path. This closes the previously identified test gap where only failing API responses were exercised. Test-fixture Firestore supports the minimal `get` and empty status query paths. **Tests not locally executed in this change; require new exact-head CI before merge.** This does not certify real Firestore, token non-disclosure, GDPR retention or production controls. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — P0 #56 consent-state cache boundary
+
+Follow-up on draft PR #62: authenticated `GET /api/partner/consent` and `POST /api/partner/consent` also carry account-specific data and now use the same `Cache-Control: private, no-store` and `Pragma: no-cache` middleware as personalized partner link reads/open operations. HTTP regression asserts an authorized consent read returns `{ allowed: true }` (200) with no-cache headers and a malformed mutation returns 400 with the same headers. Original partner-link tests remain. This is **a candidate on an unmerged branch** and must pass exact-head CI + privacy review; no live/CDN evidence or full GDPR/Art.-17 proof is claimed. **NO-GO / NOT CONFIRMED**.
