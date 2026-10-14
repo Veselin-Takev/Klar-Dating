@@ -204,7 +204,14 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
     catch (error) { return handleError(res, error, 'Der Partnerlink konnte nicht sicher geöffnet werden.'); }
   });
 
-  router.use('/admin/partners', requireStrictPartnerAdmin, adminLimiter);
+  // Administrative campaign responses can include sensitive configuration and
+  // must not be cached, including unauthorized and rate-limited responses.
+  router.use('/admin/partners', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  }, requireStrictPartnerAdmin, adminLimiter);
   router.get('/admin/partners', async (_req, res) => {
     try { return res.json({ campaigns: await listPartnerCampaignsForAdmin(deps) }); }
     catch (error) { return handleError(res, error, 'Die Partnerkampagnen konnten nicht geladen werden.'); }
