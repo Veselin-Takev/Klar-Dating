@@ -166,12 +166,19 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
   });
 
   const accountGate = requirePartnerAccount(deps);
-  router.get('/partner/consent', accountGate, async (req, res) => {
+  // Consent state and individualized referral URLs must not be cached.
+  const noStorePartnerPrivateData = (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    next();
+  };
+
+  router.get('/partner/consent', accountGate, noStorePartnerPrivateData, async (req, res) => {
     try { return res.json(await getPartnerConsentState(deps, uidFrom(req, deps))); }
     catch (error) { return handleError(res, error, 'Der Einwilligungsstatus konnte nicht geladen werden.'); }
   });
 
-  router.post('/partner/consent', accountGate, userMutationLimiter, async (req, res) => {
+  router.post('/partner/consent', accountGate, userMutationLimiter, noStorePartnerPrivateData, async (req, res) => {
     if (!req.body || typeof req.body.allowed !== 'boolean' || Object.keys(req.body).some(key => key !== 'allowed')) {
       return res.status(400).json({ code: 'invalid_partner_consent', error: 'Bitte übermittle eine eindeutige Einwilligungsentscheidung.' });
     }
@@ -179,14 +186,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
     catch (error) { return handleError(res, error, 'Die Einwilligungsentscheidung konnte nicht bestätigt werden.'); }
   });
 
-  // Personalized referral URLs must never be retained by shared/proxy/browser caches.
-  const noStorePersonalLinks = (_req: Request, res: Response, next: NextFunction) => {
-    res.setHeader('Cache-Control', 'private, no-store');
-    res.setHeader('Pragma', 'no-cache');
-    next();
-  };
-
-  router.get('/partner/referrals', accountGate, noStorePersonalLinks, async (req, res) => {
+  router.get('/partner/referrals', accountGate, noStorePartnerPrivateData, async (req, res) => {
     try { return res.json(await listPartnerReferralLinks(deps, uidFrom(req, deps))); }
     catch (error) { return handleError(res, error, 'Die Partnerlinks konnten nicht geladen werden.'); }
   });
@@ -204,7 +204,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
     } catch (error) { return handleError(res, error, 'Die Partneraktion konnte nicht im Audit-Ledger bestätigt werden.'); }
   });
 
-  router.post('/partner/open/:campaignId', accountGate, userMutationLimiter, noStorePersonalLinks, async (req, res) => {
+  router.post('/partner/open/:campaignId', accountGate, userMutationLimiter, noStorePartnerPrivateData, async (req, res) => {
     const campaignId = String(req.params.campaignId ?? '');
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(campaignId)) return res.status(400).json({ code: 'invalid_campaign_id', error: 'Die Kampagnenkennung ist ungültig.' });
     try { return res.json(await openPartnerReferral(deps, uidFrom(req, deps), campaignId)); }
