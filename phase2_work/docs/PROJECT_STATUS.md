@@ -930,3 +930,8 @@ The regression suite now also seeds 51 real emulator chat documents with message
 ## 2026-10-14 — P0 #56 current-main partner cache hardening port
 
 Because #62 was no longer mergeable after upstream changes, scoped private cache-control middleware and HTTP response regression tests were brought onto a new branch based on `main` at `9d6c554df1633212654bab9bfda2ca9e3b0a4b2a`. The candidate sets `Cache-Control: private, no-store` and `Pragma: no-cache` before authorization/rate limits for consent and personalized link endpoints, including 401, 400 and 200 cases. This is an unmerged candidate: full exact-head CI, tests, branch diff review and Privacy/Security approval required. Token transmission to third-party partner destinations, Art.17/TTL evidence and formal release remain open. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — P0 #56 private partner API referrer policy
+
+Draft PR #64 now additionally sets `Referrer-Policy: no-referrer` on personalized consent/referral/open JSON responses, alongside `Cache-Control: private, no-store` and `Pragma: no-cache`. HTTP regression coverage asserts this header for authorized and unauthenticated responses. This is **defense in depth** for private API response handling, NOT a fix for the existing `klar_referral` token transmitted to external partner destinations. Previous CI 38597710273 belongs to an older commit: require fresh exact-head full CI, upstream diff review, independent privacy/security approval before merging. Issue #56 and release #8 remain OPEN. **NO-GO / NOT CONFIRMED**.
