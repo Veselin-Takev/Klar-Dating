@@ -79,4 +79,37 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(await result.response.json()).toEqual({ campaigns: [] });
     expect(result.getFirestore).toHaveBeenCalled();
   });
+  it('disables caching of personalized partner link responses, including failures', async () => {
+    const getFirestore = vi.fn(() => makeDb());
+    const app = express();
+    app.use((req, _res, next) => {
+      req.user = {
+        aud: 'demo-klar', auth_time: 1, exp: 2, iat: 1,
+        iss: 'https://securetoken.google.com/demo-klar', sub: 'user-1',
+        uid: 'user-1', firebase: { identities: {}, sign_in_provider: 'custom' },
+      };
+      next();
+    });
+    app.use('/api', createPartnerReferralRouter({
+      currentUserId: () => 'user-1',
+      getFirestore,
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const base = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    for (const [path, init] of [
+      ['/api/partner/referrals', undefined],
+      ['/api/partner/open/invalid!', { method: 'POST' }],
+    ] as const) {
+      const response = await fetch(base + path, init);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+    }
+  });
+
 });
