@@ -124,6 +124,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
       }
       expect(response.headers.get('cache-control')).toContain('no-store');
       expect(response.headers.get('pragma')).toBe('no-cache');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     }
   });
 
@@ -151,6 +152,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
       expect(response.status).toBe(401);
       expect(response.headers.get('cache-control')).toContain('no-store');
       expect(response.headers.get('pragma')).toBe('no-cache');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     }
   });
 
