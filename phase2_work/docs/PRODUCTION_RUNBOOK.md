@@ -53,3 +53,8 @@ Follow `docs/INCIDENT_RESPONSE.md`. Use feature kill switches first when contain
 For **local diagnostics only**, run `npm run check:local-firebase-adc` to inspect whether emulator settings or credential discovery are structurally configured; this does not validate access permissions, credential contents, production Firestore connectivity, or Cloud Run workload identity. Six dependency-free `node:test` regressions run via `npm run test:local-firebase-adc`; this command is part of `npm run check:enterprise` on PR #61 after commit `aca4cd8...`. The native Node tests must stay outside Vitest's `tests/` discovery to prevent bundling failures.
 
 **Fail-closed gate:** CI must succeed on the current exact PR SHA after *any* subsequent script/docs change; verify Node 22.23.3, Bun 1.4.2, untouched lockfiles, all configured test suites, and security review. Do not substitute a passing local ADC preflight for production IAM/secret access evidence. Formal release remains **NO-GO / NOT CONFIRMED** until Issue #8 operational proof and accountable approvals are complete.
+
+
+## 2026-10-14 — Administrative B2B response cache acceptance
+
+For `/api/admin/partners` endpoints, verify private no-store/no-cache and no-referrer headers on both successful admin responses and rejected 403 responses. Apply privacy headers **before** authentication and distributed rate limits; do not weaken the `admin:true` Firebase custom-claim requirement or introduce client Firestore access. Confirm through `tests/partnerReferralRoutes.spec.ts` and full exact-head CI, followed by staging proxy verification and independent Security/Privacy review. This does not change partner attribution or fulfill legal retention/deletion obligations. Production **NO-GO / NOT CONFIRMED**.
