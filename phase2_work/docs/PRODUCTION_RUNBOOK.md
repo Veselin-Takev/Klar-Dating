@@ -46,3 +46,8 @@ Follow `docs/INCIDENT_RESPONSE.md`. Use feature kill switches first when contain
 - latest backup and restore-drill evidence
 - SLO dashboard and alert test
 - incident on-call owner and escalation path
+
+
+## B2B personalized link privacy gate — 2026-10-14
+
+For authenticated `/api/partner/referrals` and `/api/partner/open/:campaignId`, verify `Cache-Control: private, no-store` and `Pragma: no-cache` both on successful responses and failures. These headers protect personalized URL responses against caching but **do not** replace analysis of partner-side `klar_referral` query parameters, partner logs, GDPR legal basis, token retention and Art.-17 cascade. Run `vitest run tests/partnerReferralRoutes.spec.ts` followed by the full pinned-toolchain CI, emulator and security gates; archive exact-commit proof. Partner reward settlement and live deployment remain **NO-GO / NOT CONFIRMED** pending #55/#56/#57/#58/#8 and accountable approvals.
