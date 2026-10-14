@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from 'firebase/auth';
+import { browserLocalPersistence, createUserWithEmailAndPassword, setPersistence, signInWithEmailAndPassword } from 'firebase/auth';
 import { AuthProvider, useAuth } from '../src/lib/AuthContext';
 import { hasDiagnosticsConsent, setDiagnosticsConsent } from '../src/lib/telemetryPrivacy';
 
@@ -92,4 +93,33 @@ describe('authoritative profile state', () => {
     expect(context.profileData?.isAdult).toBe(false);
     expect(hasDiagnosticsConsent()).toBe(false);
   });
+  it('revokes consent and adult state when an authoritative server snapshot omits those fields', async () => {
+    mocks.read.mockResolvedValue(snapshot({ uid: 'alice', isAdult: true, einwilligung: grant }));
+    await signIn('alice');
+    expect(hasDiagnosticsConsent()).toBe(true);
+    act(() => mocks.snapshot(snapshot({ uid: 'alice', name: 'Alice' })));
+    expect(context.profileData?.isAdult).not.toBe(true);
+    expect(hasDiagnosticsConsent()).toBe(false);
+  });
+
+  it.each(['signInWithEmail', 'signUpWithEmail'] as const)(
+    'sets durable Firebase persistence before %s rather than inheriting guest session scope',
+    async (operation) => {
+      const persist = vi.mocked(setPersistence);
+      const login = vi.mocked(signInWithEmailAndPassword);
+      const signup = vi.mocked(createUserWithEmailAndPassword);
+      persist.mockReset();
+      login.mockReset();
+      signup.mockReset();
+      persist.mockResolvedValue(undefined);
+      login.mockResolvedValue({} as Awaited<ReturnType<typeof signInWithEmailAndPassword>>);
+      signup.mockResolvedValue({} as Awaited<ReturnType<typeof createUserWithEmailAndPassword>>);
+      await act(async () => { await context[operation]('test@example.invalid', 'test-password'); });
+      expect(persist).toHaveBeenCalledWith(mocks.auth, browserLocalPersistence);
+      const authCall = operation === 'signInWithEmail' ? login : signup;
+      expect(authCall).toHaveBeenCalledTimes(1);
+      expect(persist.mock.invocationCallOrder[0]).toBeLessThan(authCall.mock.invocationCallOrder[0]);
+    },
+  );
+
 });
