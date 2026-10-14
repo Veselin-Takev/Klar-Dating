@@ -61,3 +61,8 @@ On PR #62 the HTTP regression must prove both an authenticated, consenting adult
 ### 2026-10-14 — Partner consent response cache controls
 
 In addition to personalized link responses, test authenticated `GET /api/partner/consent` (authorized 200) and `POST /api/partner/consent` (including malformed 400) for `Cache-Control: private, no-store` and `Pragma: no-cache`. The safeguard is server-response-local; deployed CDN and reverse-proxy behavior, third-party referral URL exposure, storage retention, erasure and privacy legal basis still need independent verification. Require fresh exact-PR-head green pinned toolchain, full test and lockfile gates before any merge. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — Authentication failure cache behavior
+
+For `/api/partner/consent` (GET/POST), `/api/partner/referrals` (GET), and `/api/partner/open/:campaignId` (POST), assert `Cache-Control: private, no-store` and `Pragma: no-cache` on 200, validation failures, **and 401 authentication failures**. The cache-protection middleware must execute before authentication and rate limits. Verify targeted HTTP tests and full exact-head pinned CI; a previous green PR SHA does not approve subsequent edits. **NO-GO / NOT CONFIRMED**.
