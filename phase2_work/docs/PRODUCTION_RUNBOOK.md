@@ -68,3 +68,8 @@ For `GET/POST /api/partner/consent`, `GET /api/partner/referrals` and `POST /api
 ### 2026-10-14 — Public partner redirect early-failure privacy gate
 
 For `GET /api/partner/click/:token`, verify non-cacheable responses and `Referrer-Policy: no-referrer` for success, invalid token 404, inactive campaign 410 and rate-limit 429. Privacy headers must be set before token resolution and distributed limits. Targeted test covers invalid 404; remaining operational cases need integration/staging verification on deployed revision. These response headers do not prevent `klar_referral` being sent to the external partner on successful tracked referrals. Require exact-head full CI and independent privacy/security signoff. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — Public partner malformed-token fail-fast CI regression
+
+CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 500 from the distributed Firestore limiter instead of HTTP 404. The candidate route now checks the exact 64-character lowercase-hex token syntax **before** invoking the Firestore-backed limiter; invalid input returns 404 with no-store/no-cache/no-referrer response headers and without DB calls. **Valid token shapes must still be rate-limited** and checked for consent/campaign state in the service. Re-run the unchanged HTTP regression, full pinned CI/enterprise/lockfile suites on the exact new PR head and review with Security/Privacy before merging. Never weaken rate limiting or infer production GO from CI. **NO-GO / NOT CONFIRMED.**
