@@ -63,3 +63,8 @@ For authenticated partner consent and personal link API endpoints (`GET/POST /ap
 ### 2026-10-14 — B2B private referral API Referrer-Policy verification
 
 For `GET/POST /api/partner/consent`, `GET /api/partner/referrals` and `POST /api/partner/open/:campaignId`, check `Referrer-Policy: no-referrer` as well as no-store/no-cache on authorized and rejected responses. The header applies to HTTP handling and does **not** prevent the direct `klar_referral` query parameter from reaching the approved external partner. Validate on the exact PR head with the pinned toolchain, lockfile and full CI test suite, and confirm reverse proxy behavior in staging. External token minimization, controller agreements, retention/Art.17 and independent signoff are still release blockers. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — Public partner redirect early-failure privacy gate
+
+For `GET /api/partner/click/:token`, verify non-cacheable responses and `Referrer-Policy: no-referrer` for success, invalid token 404, inactive campaign 410 and rate-limit 429. Privacy headers must be set before token resolution and distributed limits. Targeted test covers invalid 404; remaining operational cases need integration/staging verification on deployed revision. These response headers do not prevent `klar_referral` being sent to the external partner on successful tracked referrals. Require exact-head full CI and independent privacy/security signoff. **NO-GO / NOT CONFIRMED.**
