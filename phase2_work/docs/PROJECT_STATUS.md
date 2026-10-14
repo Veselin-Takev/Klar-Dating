@@ -923,3 +923,8 @@ The regression suite now also seeds 51 real emulator chat documents with message
 ## 2026-10-14 — P0 #56 personalized partner URL cache control
 
 **Draft only / NO-GO / NOT CONFIRMED.** The authenticated `GET /api/partner/referrals` and `POST /api/partner/open/:campaignId` routes return individualized referral URLs. Candidate branch `fix/partner-personal-links-no-store-2026-10-14` adds `Cache-Control: private, no-store` and `Pragma: no-cache` to responses (including route errors), with HTTP-level regression tests in `tests/partnerReferralRoutes.spec.ts`. This addresses accidental browser/proxy caching; it does **not** eliminate referral tokens transmitted to partner destinations, server or partner logs, or the legal retention/Art.-17 gaps in #56. CI and privacy review must pass on exact PR head; no production approval inferred.
+
+
+### 2026-10-14 — P0 #56 cache-policy positive-path regression
+
+PR #62 now exercises the authorized `GET /api/partner/referrals` success path (consented adult, no active campaigns) at HTTP level. It asserts 200, an empty authorized list and `private, no-store`/legacy no-cache header coverage, as well as the invalid campaign ID failure path. This closes the previously identified test gap where only failing API responses were exercised. Test-fixture Firestore supports the minimal `get` and empty status query paths. **Tests not locally executed in this change; require new exact-head CI before merge.** This does not certify real Firestore, token non-disclosure, GDPR retention or production controls. **NO-GO / NOT CONFIRMED.**
