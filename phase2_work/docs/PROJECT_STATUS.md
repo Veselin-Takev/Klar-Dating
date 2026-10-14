@@ -918,3 +918,8 @@ The contact limiter's 429 cause is **not yet established**; do not mark that iss
 
 The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
 
+
+
+## 2026-10-14 — P0 #56 personalized partner URL cache control
+
+**Draft only / NO-GO / NOT CONFIRMED.** The authenticated `GET /api/partner/referrals` and `POST /api/partner/open/:campaignId` routes return individualized referral URLs. Candidate branch `fix/partner-personal-links-no-store-2026-10-14` adds `Cache-Control: private, no-store` and `Pragma: no-cache` to responses (including route errors), with HTTP-level regression tests in `tests/partnerReferralRoutes.spec.ts`. This addresses accidental browser/proxy caching; it does **not** eliminate referral tokens transmitted to partner destinations, server or partner logs, or the legal retention/Art.-17 gaps in #56. CI and privacy review must pass on exact PR head; no production approval inferred.
