@@ -114,7 +114,16 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     }
   });
 
-  router.post('/partner/webhook/:slug', webhookLimiter, async (req, res) => {
+  // Webhook results can disclose conversion state and must not be retained.
+  // Apply even to rejected signatures and distributed limiter errors.
+  const noStorePartnerWebhook = (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+
+  router.post('/partner/webhook/:slug', noStorePartnerWebhook, webhookLimiter, async (req, res) => {
     try {
       const slug = String(req.params.slug ?? '');
       if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug)) {
