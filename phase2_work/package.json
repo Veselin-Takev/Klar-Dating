@@ -120,7 +120,7 @@
     "verify:local": "node scripts/local-preflight.mjs",
     "typecheck:core": "tsc -p tsconfig.core.json",
     "check:local-firebase-adc": "node scripts/check-local-firebase-adc.mjs",
-    "test:local-firebase-adc": "node --test tests/localFirebaseAdc.spec.mjs"
+    "test:local-firebase-adc": "node --test scripts/localFirebaseAdc-check.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
