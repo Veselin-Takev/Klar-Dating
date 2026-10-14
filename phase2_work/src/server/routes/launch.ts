@@ -1,5 +1,6 @@
 import express, { Router, type Request } from 'express';
 import { distributedRateLimit } from '../distributedRateLimiter';
+import { resolveActivationEventId } from './activationEventId';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import type { LaunchCity } from '../platform/launchPlatform';
 
@@ -166,11 +167,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const eventName = String(req.body?.eventName ?? '');
-      const eventId = req.body?.eventId ?? (
-        /^onboarding_(started|completed)$/.test(eventName)
-          ? `onboarding_v2_${eventName.slice('onboarding_'.length)}_${uid}`
-          : undefined
-      );
+      const eventId = resolveActivationEventId(eventName, uid, req.body?.eventId);
       const result = await deps.recordActivation(
         deps.getFirestore(), uid, eventName, eventId,
         typeof req.body?.metadata === 'object' && req.body.metadata ? req.body.metadata : {},
