@@ -918,3 +918,8 @@ The contact limiter's 429 cause is **not yet established**; do not mark that iss
 
 The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
 
+
+
+## 2026-10-14 — P0 #56 partner token / Article 17 architecture evidence
+
+The source-grounded recipient/data-flow matrix and privacy release gates are documented in `docs/PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md` on a separate draft documentation branch. Current code can transmit persistent campaign/consent-version-scoped referral tokens as `klar_referral` in a third-party URL; withdrawal stops future valid attribution but cannot erase already shared partner-side copies. Before changing this contract require explicit DPO/Legal/partner approval, short-lived scope-bound token exchange design and deletion/retention evidence. This is **analysis, not code remediation**. #56 and #8 remain OPEN, production **NO-GO / NOT CONFIRMED**; no merge was performed.
