@@ -170,6 +170,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
   const noStorePartnerPrivateData = (_req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     next();
   };
 
