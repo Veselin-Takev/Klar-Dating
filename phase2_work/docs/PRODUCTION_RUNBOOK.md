@@ -78,3 +78,8 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+## 2026-10-14 — End-to-end audit release gates
+
+See `docs/ENTERPRISE_END_TO_END_AUDIT_2026-10-14.md` for source-backed findings. P0 #70: reconcile the approved TTL policy matrix with `scripts/configure-retention.sh` (four groups) and `docs/DATA_RETENTION.md` (nine baseline and four partner rate-limit groups); obtain explicit per-database ACTIVE TTL evidence and legal-hold approval before any policy change. P1 #71: align `ops/slo.json` API P95 limit of 300ms with `src/server/observability.ts` 1500ms breach threshold; verify staging pager burn-rate alerts using real telemetry. Security/Privacy: P0 #55 verified purchase evidence, #56 partner token minimization, recipient retention/erasure and independent reviews remain open. Operations: archive the exact deployed SHA, full CI, IAM/secrets, restore and rollback drills, measured load/provider usage and Finance-approved unit-cost envelope in issue #8. Estimates marked [ANNAHME] are scenarios, not invoices. Production NO-GO / NOT CONFIRMED.
