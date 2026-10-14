@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Build with the repository's pinned Bun toolchain; never copy host node_modules.
-FROM oven/bun:1.4.2@sha256:9114c058aeae42162ee16dd5084b95fe9473970bb6bcb5b232ab1630f0546895 AS build
+FROM oven/bun:1.4.3@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS build
 
 WORKDIR /app
 ENV CI=true
@@ -15,7 +15,7 @@ RUN bun run build
 RUN rm -rf node_modules \
   && bun install --frozen-lockfile --production
 
-FROM node:22.23.3-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runtime
+FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production \
