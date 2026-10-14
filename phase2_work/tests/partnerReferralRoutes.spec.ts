@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express, { type Request } from 'express';
 import type { AddressInfo } from 'node:net';
-import { createPartnerReferralRouter } from '../src/server/routes/partnerReferrals';
+import { createPartnerReferralPublicRouter, createPartnerReferralRouter } from '../src/server/routes/partnerReferrals';
 
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 
@@ -154,6 +154,27 @@ describe('Klar & Partner strict Admin claim boundary', () => {
       expect(response.headers.get('pragma')).toBe('no-cache');
       expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     }
+  });
+
+  it('prevents caching and referrer disclosure on invalid public partner tokens', async () => {
+    const app = express();
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore: () => { throw new Error('Invalid token must not access Firestore'); },
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    const response = await fetch(origin + '/api/partner/click/not-a-valid-token');
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
 });
