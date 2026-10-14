@@ -101,7 +101,16 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     next();
   };
 
-  router.get('/partner/click/:token', protectPublicPartnerRedirect, clickLimiter, async (req, res) => {
+  // Reject malformed public tokens without DB I/O; valid tokens still pass the
+  // distributed limiter before any Firestore referral lookup.
+  const validatePublicPartnerToken = (req: Request, res: Response, next: NextFunction) => {
+    if (!/^[a-f0-9]{64}$/.test(String(req.params.token ?? ''))) {
+      return res.status(404).json({ code: 'partner_link_not_found', error: 'Dieser Partnerlink ist nicht verfügbar.' });
+    }
+    return next();
+  };
+
+  router.get('/partner/click/:token', protectPublicPartnerRedirect, validatePublicPartnerToken, clickLimiter, async (req, res) => {
     try {
       const visitorUid = await optionalVisitorUid(req);
       const result = await recordPartnerClick(deps, String(req.params.token ?? ''), {
