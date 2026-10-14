@@ -935,3 +935,8 @@ Because #62 was no longer mergeable after upstream changes, scoped private cache
 ### 2026-10-14 — P0 #56 private partner API referrer policy
 
 Draft PR #64 now additionally sets `Referrer-Policy: no-referrer` on personalized consent/referral/open JSON responses, alongside `Cache-Control: private, no-store` and `Pragma: no-cache`. HTTP regression coverage asserts this header for authorized and unauthenticated responses. This is **defense in depth** for private API response handling, NOT a fix for the existing `klar_referral` token transmitted to external partner destinations. Previous CI 38597710273 belongs to an older commit: require fresh exact-head full CI, upstream diff review, independent privacy/security approval before merging. Issue #56 and release #8 remain OPEN. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — P0 #56 public referral redirect error-cache protection
+
+Draft PR #64 now applies `Cache-Control: private, no-store`, `Pragma: no-cache`, and `Referrer-Policy: no-referrer` before public `/api/partner/click/:token` token handling and distributed rate-limiting. The previous handler emitted no-store/no-referrer only on successful redirects; early 404/410/429 paths were unprotected. Added HTTP regression for invalid-token 404 with all three headers and no database access. No tracking/attribution logic changed. New exact-head CI and Security/Privacy review required, earlier green CI superseded. Referral token disclosure to partner, legal basis, recipient retention and Art.17 still open. **NO-GO / NOT CONFIRMED.**
