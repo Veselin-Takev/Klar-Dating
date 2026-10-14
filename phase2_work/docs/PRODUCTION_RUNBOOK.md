@@ -78,3 +78,8 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+## 2026-10-14 — Auth profile fail-closed and email persistence acceptance
+
+For any subsequent `users/{uid}` authoritative snapshot missing `isAdult` or `einwilligung`, UI/session MUST NOT reuse the previous adult/consent grant. Verify denied/pending snapshots and account changes fail closed, and never authorize from localStorage. Guest login must remain session-scoped while permanent email sign-up/sign-in sets browser-local Firebase persistence before account authentication (require Product/Privacy policy approval). Profile-interest save may report success only after Firebase write completion plus server readback; rejected writes and account switches must not show false success. Execute new AuthContext/ProfileSettings regressions, complete secrets/auth/Firestore/PII/Art17 gates, full typecheck, pure/rules tests, Playwright, build with pinned Node 22.23.3 and matching lockfile, then obtain independent review. Document real stage/browser and Firebase emulator evidence in #8. **NO-GO / NOT CONFIRMED**.
