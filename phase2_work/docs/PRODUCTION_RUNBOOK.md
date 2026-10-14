@@ -56,3 +56,8 @@ For authenticated `/api/partner/referrals` and `/api/partner/open/:campaignId`, 
 ### 2026-10-14 — B2B cache-policy HTTP acceptance criteria
 
 On PR #62 the HTTP regression must prove both an authenticated, consenting adult can fetch the **successful empty campaign list** (`200`) with no-store/no-cache headers and an invalid `/api/partner/open/:campaignId` returns an error with the same headers. Run the targeted Vitest route suite, full enterprise gates, lock/runtime policies and exact-head GitHub CI before approving any merge. A green synthetic route test does not replace reverse-proxy/CDN cache verification on a real deployed revision. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — Partner consent response cache controls
+
+In addition to personalized link responses, test authenticated `GET /api/partner/consent` (authorized 200) and `POST /api/partner/consent` (including malformed 400) for `Cache-Control: private, no-store` and `Pragma: no-cache`. The safeguard is server-response-local; deployed CDN and reverse-proxy behavior, third-party referral URL exposure, storage retention, erasure and privacy legal basis still need independent verification. Require fresh exact-PR-head green pinned toolchain, full test and lockfile gates before any merge. **NO-GO / NOT CONFIRMED**.
