@@ -108,12 +108,17 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const base = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
     for (const [path, init] of [
       ['/api/partner/referrals', undefined],
+      ['/api/partner/consent', undefined],
+      ['/api/partner/consent', { method: 'POST' }],
       ['/api/partner/open/invalid!', { method: 'POST' }],
     ] as const) {
       const response = await fetch(base + path, init);
       if (path === '/api/partner/referrals') {
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual({ consent: { allowed: true }, referrals: [] });
+      } else if (path === '/api/partner/consent' && init === undefined) {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ allowed: true });
       } else {
         expect(response.status).toBe(400);
       }
