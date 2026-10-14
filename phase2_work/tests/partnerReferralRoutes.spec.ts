@@ -11,13 +11,17 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function makeDb() {
+function makeDb(seed: Array<{ collection: string; id: string; data: Record<string, unknown> }> = []) {
   const store = new Map<string, Record<string, unknown>>();
-  const docRef = (collectionName: string, id: string) => ({ id, path: collectionName + '/' + id });
+  for (const item of seed) store.set(item.collection + '/' + item.id, structuredClone(item.data));
+  const docRef = (collectionName: string, id: string) => ({ id, path: collectionName + '/' + id,
+    get: async () => ({ id, exists: store.has(collectionName + '/' + id), data: () => store.get(collectionName + '/' + id) }),
+  });
   const db = {
     collection: (name: string) => ({
       doc: (id: string) => docRef(name, id),
       limit: (_count: number) => ({ get: async () => ({ docs: [] }) }),
+      where: (_field: string, _op: string, _value: unknown) => ({ limit: (_count: number) => ({ get: async () => ({ docs: [] }) }) }),
     }),
     runTransaction: async (callback: (tx: {
       get: (ref: { path: string }) => Promise<{ exists: boolean; data: () => Record<string, unknown> | undefined }>;
@@ -79,4 +83,75 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(await result.response.json()).toEqual({ campaigns: [] });
     expect(result.getFirestore).toHaveBeenCalled();
   });
+  it('disables caching of personalized partner link responses, including failures', async () => {
+    const getFirestore = vi.fn(() => makeDb([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]));
+    const app = express();
+    app.use((req, _res, next) => {
+      req.user = {
+        aud: 'demo-klar', auth_time: 1, exp: 2, iat: 1,
+        iss: 'https://securetoken.google.com/demo-klar', sub: 'user-1',
+        uid: 'user-1', firebase: { identities: {}, sign_in_provider: 'custom' },
+      };
+      next();
+    });
+    app.use('/api', createPartnerReferralRouter({
+      currentUserId: () => 'user-1',
+      getFirestore,
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const base = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    for (const [path, init] of [
+      ['/api/partner/referrals', undefined],
+      ['/api/partner/consent', undefined],
+      ['/api/partner/consent', { method: 'POST' }],
+      ['/api/partner/open/invalid!', { method: 'POST' }],
+    ] as const) {
+      const response = await fetch(base + path, init);
+      if (path === '/api/partner/referrals') {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ consent: { allowed: true }, referrals: [] });
+      } else if (path === '/api/partner/consent' && init === undefined) {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ allowed: true });
+      } else {
+        expect(response.status).toBe(400);
+      }
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+    }
+  });
+
+  it('applies private no-store headers even when authentication rejects partner requests', async () => {
+    const app = express();
+    app.use('/api', createPartnerReferralRouter({
+      currentUserId: () => null,
+      getFirestore: () => { throw new Error('Unauthorized routes must not touch Firestore'); },
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    for (const [path, init] of [
+      ['/api/partner/consent', undefined],
+      ['/api/partner/consent', { method: 'POST' }],
+      ['/api/partner/referrals', undefined],
+      ['/api/partner/open/campaign-1', { method: 'POST' }],
+    ] as const) {
+      const response = await fetch(origin + path, init);
+      expect(response.status).toBe(401);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+    }
+  });
+
 });
