@@ -933,3 +933,8 @@ PR #62 now exercises the authorized `GET /api/partner/referrals` success path (c
 ### 2026-10-14 — P0 #56 consent-state cache boundary
 
 Follow-up on draft PR #62: authenticated `GET /api/partner/consent` and `POST /api/partner/consent` also carry account-specific data and now use the same `Cache-Control: private, no-store` and `Pragma: no-cache` middleware as personalized partner link reads/open operations. HTTP regression asserts an authorized consent read returns `{ allowed: true }` (200) with no-cache headers and a malformed mutation returns 400 with the same headers. Original partner-link tests remain. This is **a candidate on an unmerged branch** and must pass exact-head CI + privacy review; no live/CDN evidence or full GDPR/Art.-17 proof is claimed. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — P0 #56 unauthenticated response cache-control boundary
+
+Incremental PR #62 hardening: route-level `noStorePartnerPrivateData` now executes before account authorization and rate-limit checks for all four personal partner consent/link routes. This ensures 401 and rate-limiter failures are also tagged `Cache-Control: private, no-store` and `Pragma: no-cache`. Added HTTP regression for all four unauthenticated routes (401 with headers, no database access). The earlier green run 38555776672 belongs to an earlier SHA; **new exact-head CI required**. Third-party URL token, Art. 17, retention and privacy signoff still open. **NO-GO / NOT CONFIRMED**.
