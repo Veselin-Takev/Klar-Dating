@@ -918,3 +918,10 @@ The contact limiter's 429 cause is **not yet established**; do not mark that iss
 
 The regression suite now also seeds 51 real emulator chat documents with messages, archived messages and gate answers. It invokes the production purge twice, requires 26 then 1 remaining chats, verifies removal of all three child collections beneath deleted parents, and verifies an unrelated chat remains intact. This complements the 51-page durable-worker test. Full completion across within-page time slices and cumulative receipts still require further work. CI validation is pending.
 
+
+
+## 2026-10-14 — Firebase ADC preflight gate integrity (PR #61)
+
+**Development change only; PRODUCTION NO-GO / NOT CONFIRMED.** The prior #29 branch was unmergeable and its initial CI failed because a native `node:test` spec under `tests/` was wrongly collected by Vitest. Replacement PR #61 starts from current main and places six native Node tests under `scripts/localFirebaseAdc-check.mjs`. They were initially manually runnable but *not included in the ordinary enterprise gate*. Follow-up commit `aca4cd8cc310607a3f9b651d2731fdbb89f3ff39` adds `npm run test:local-firebase-adc` to the existing `check:enterprise` chain; Node version/runtime and dependency locks remain unchanged.
+
+**Verification policy:** Earlier PR-head CI success 38551151503 applies only to the earlier PR SHA `796d64e...`. Require full new exact-head CI, pinned Node 22.23.3/Bun 1.4.2, dependency/lock gates, complete configured test suites, security review and current-base conflict check before merge. No local full-test completion or live-production validation is claimed for this amendment. Release issue #8 remains open.
