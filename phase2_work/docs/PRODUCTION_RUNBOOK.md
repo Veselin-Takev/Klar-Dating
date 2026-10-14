@@ -46,3 +46,8 @@ Follow `docs/INCIDENT_RESPONSE.md`. Use feature kill switches first when contain
 - latest backup and restore-drill evidence
 - SLO dashboard and alert test
 - incident on-call owner and escalation path
+
+
+## 2026-10-14 — Third-party partner token release checklist
+
+Read `docs/PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md` before activating B2B tracking/conversion. Validate token disclosure points (`/api/partner/click/:token` and authenticated `/api/partner/open/:campaignId`), explicit privacy/legal basis, partner recipient logs, retention and withdrawal/deletion obligations, and operational proof of live TTL/Art.-17 cascade. Require bounded external attribution semantics signed off with partner and robust interoperability tests; no production contracts may be silently broken. Archive exact deployed SHA, independent DPO/Security approval and runbook receipts under #8. **NO-GO / NOT CONFIRMED**.
