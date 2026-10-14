@@ -71,6 +71,9 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const result = await requestAdmin({ uid: 'user-1', role: 'admin', roles: ['admin'] });
     expect(result.response.status).toBe(403);
     expect(result.getFirestore).not.toHaveBeenCalled();
+    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response.headers.get('pragma')).toBe('no-cache');
+    expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
   it('accepts explicit Firebase admin:true claim', async () => {
@@ -78,5 +81,8 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(result.response.status).toBe(200);
     expect(await result.response.json()).toEqual({ campaigns: [] });
     expect(result.getFirestore).toHaveBeenCalled();
+    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response.headers.get('pragma')).toBe('no-cache');
+    expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 });
