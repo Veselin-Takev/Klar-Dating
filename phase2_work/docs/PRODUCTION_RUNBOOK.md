@@ -58,3 +58,8 @@ For **local diagnostics only**, run `npm run check:local-firebase-adc` to inspec
 ## 2026-10-14 — Current-main partner private HTTP response cache gate
 
 For authenticated partner consent and personal link API endpoints (`GET/POST /api/partner/consent`, `GET /api/partner/referrals`, `POST /api/partner/open/:campaignId`) verify no-store and no-cache headers on authorized, malformed, and unauthenticated responses; middleware must precede authentication and distributed rate limits. Use `tests/partnerReferralRoutes.spec.ts`, full CI with pinned toolchain and immutable lock verification, and review deployed CDN/proxy behavior before approval. Existing #62 branch became stale; this is a fresh unmerged candidate from current main. Third-party tracking token and retention/deletion gaps persist. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — B2B private referral API Referrer-Policy verification
+
+For `GET/POST /api/partner/consent`, `GET /api/partner/referrals` and `POST /api/partner/open/:campaignId`, check `Referrer-Policy: no-referrer` as well as no-store/no-cache on authorized and rejected responses. The header applies to HTTP handling and does **not** prevent the direct `klar_referral` query parameter from reaching the approved external partner. Validate on the exact PR head with the pinned toolchain, lockfile and full CI test suite, and confirm reverse proxy behavior in staging. External token minimization, controller agreements, retention/Art.17 and independent signoff are still release blockers. **NO-GO / NOT CONFIRMED**.
