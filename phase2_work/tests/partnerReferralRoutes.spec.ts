@@ -127,4 +127,31 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     }
   });
 
+  it('applies private no-store headers even when authentication rejects partner requests', async () => {
+    const app = express();
+    app.use('/api', createPartnerReferralRouter({
+      currentUserId: () => null,
+      getFirestore: () => { throw new Error('Unauthorized routes must not touch Firestore'); },
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    for (const [path, init] of [
+      ['/api/partner/consent', undefined],
+      ['/api/partner/consent', { method: 'POST' }],
+      ['/api/partner/referrals', undefined],
+      ['/api/partner/open/campaign-1', { method: 'POST' }],
+    ] as const) {
+      const response = await fetch(origin + path, init);
+      expect(response.status).toBe(401);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+    }
+  });
+
 });
