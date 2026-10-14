@@ -925,3 +925,28 @@ The regression suite now also seeds 51 real emulator chat documents with message
 **Development change only; PRODUCTION NO-GO / NOT CONFIRMED.** The prior #29 branch was unmergeable and its initial CI failed because a native `node:test` spec under `tests/` was wrongly collected by Vitest. Replacement PR #61 starts from current main and places six native Node tests under `scripts/localFirebaseAdc-check.mjs`. They were initially manually runnable but *not included in the ordinary enterprise gate*. Follow-up commit `aca4cd8cc310607a3f9b651d2731fdbb89f3ff39` adds `npm run test:local-firebase-adc` to the existing `check:enterprise` chain; Node version/runtime and dependency locks remain unchanged.
 
 **Verification policy:** Earlier PR-head CI success 38551151503 applies only to the earlier PR SHA `796d64e...`. Require full new exact-head CI, pinned Node 22.23.3/Bun 1.4.2, dependency/lock gates, complete configured test suites, security review and current-base conflict check before merge. No local full-test completion or live-production validation is claimed for this amendment. Release issue #8 remains open.
+
+
+## 2026-10-14 — P0 #56 current-main partner cache hardening port
+
+Because #62 was no longer mergeable after upstream changes, scoped private cache-control middleware and HTTP response regression tests were brought onto a new branch based on `main` at `9d6c554df1633212654bab9bfda2ca9e3b0a4b2a`. The candidate sets `Cache-Control: private, no-store` and `Pragma: no-cache` before authorization/rate limits for consent and personalized link endpoints, including 401, 400 and 200 cases. This is an unmerged candidate: full exact-head CI, tests, branch diff review and Privacy/Security approval required. Token transmission to third-party partner destinations, Art.17/TTL evidence and formal release remain open. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — P0 #56 private partner API referrer policy
+
+Draft PR #64 now additionally sets `Referrer-Policy: no-referrer` on personalized consent/referral/open JSON responses, alongside `Cache-Control: private, no-store` and `Pragma: no-cache`. HTTP regression coverage asserts this header for authorized and unauthenticated responses. This is **defense in depth** for private API response handling, NOT a fix for the existing `klar_referral` token transmitted to external partner destinations. Previous CI 38597710273 belongs to an older commit: require fresh exact-head full CI, upstream diff review, independent privacy/security approval before merging. Issue #56 and release #8 remain OPEN. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — P0 #56 public referral redirect error-cache protection
+
+Draft PR #64 now applies `Cache-Control: private, no-store`, `Pragma: no-cache`, and `Referrer-Policy: no-referrer` before public `/api/partner/click/:token` token handling and distributed rate-limiting. The previous handler emitted no-store/no-referrer only on successful redirects; early 404/410/429 paths were unprotected. Added HTTP regression for invalid-token 404 with all three headers and no database access. No tracking/attribution logic changed. New exact-head CI and Security/Privacy review required, earlier green CI superseded. Referral token disclosure to partner, legal basis, recipient retention and Art.17 still open. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — PR #64 CI failure diagnosis and deterministic malformed-token rejection
+
+Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/38602779698) **FAILED**: `tests/partnerReferralRoutes.spec.ts` expected an invalid public referral token to return HTTP 404 but received HTTP 500. Root cause: the Firestore-backed distributed click limiter executed before the service's token-shape validation, and the isolated HTTP regression intentionally made DB access fail. Candidate fix adds strict 64-character lowercase-hex route-token validation before the limiter, after no-store/no-referrer headers. Malformed requests now terminate with non-sensitive 404 without DB access; well-formed tokens still traverse the existing limiter and service checks. The regression's 404/header/no-DB expectation is **unchanged**. This is fail-fast, not a rate-limit bypass for valid tokens. New exact-HEAD full CI and independent Security/Privacy review required; no merge and no production approval. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — PR #64 well-formed-token limiter regression
+
+Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.

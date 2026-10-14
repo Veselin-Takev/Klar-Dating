@@ -53,3 +53,28 @@ Follow `docs/INCIDENT_RESPONSE.md`. Use feature kill switches first when contain
 For **local diagnostics only**, run `npm run check:local-firebase-adc` to inspect whether emulator settings or credential discovery are structurally configured; this does not validate access permissions, credential contents, production Firestore connectivity, or Cloud Run workload identity. Six dependency-free `node:test` regressions run via `npm run test:local-firebase-adc`; this command is part of `npm run check:enterprise` on PR #61 after commit `aca4cd8...`. The native Node tests must stay outside Vitest's `tests/` discovery to prevent bundling failures.
 
 **Fail-closed gate:** CI must succeed on the current exact PR SHA after *any* subsequent script/docs change; verify Node 22.23.3, Bun 1.4.2, untouched lockfiles, all configured test suites, and security review. Do not substitute a passing local ADC preflight for production IAM/secret access evidence. Formal release remains **NO-GO / NOT CONFIRMED** until Issue #8 operational proof and accountable approvals are complete.
+
+
+## 2026-10-14 — Current-main partner private HTTP response cache gate
+
+For authenticated partner consent and personal link API endpoints (`GET/POST /api/partner/consent`, `GET /api/partner/referrals`, `POST /api/partner/open/:campaignId`) verify no-store and no-cache headers on authorized, malformed, and unauthenticated responses; middleware must precede authentication and distributed rate limits. Use `tests/partnerReferralRoutes.spec.ts`, full CI with pinned toolchain and immutable lock verification, and review deployed CDN/proxy behavior before approval. Existing #62 branch became stale; this is a fresh unmerged candidate from current main. Third-party tracking token and retention/deletion gaps persist. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — B2B private referral API Referrer-Policy verification
+
+For `GET/POST /api/partner/consent`, `GET /api/partner/referrals` and `POST /api/partner/open/:campaignId`, check `Referrer-Policy: no-referrer` as well as no-store/no-cache on authorized and rejected responses. The header applies to HTTP handling and does **not** prevent the direct `klar_referral` query parameter from reaching the approved external partner. Validate on the exact PR head with the pinned toolchain, lockfile and full CI test suite, and confirm reverse proxy behavior in staging. External token minimization, controller agreements, retention/Art.17 and independent signoff are still release blockers. **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-14 — Public partner redirect early-failure privacy gate
+
+For `GET /api/partner/click/:token`, verify non-cacheable responses and `Referrer-Policy: no-referrer` for success, invalid token 404, inactive campaign 410 and rate-limit 429. Privacy headers must be set before token resolution and distributed limits. Targeted test covers invalid 404; remaining operational cases need integration/staging verification on deployed revision. These response headers do not prevent `klar_referral` being sent to the external partner on successful tracked referrals. Require exact-head full CI and independent privacy/security signoff. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — Public partner malformed-token fail-fast CI regression
+
+CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 500 from the distributed Firestore limiter instead of HTTP 404. The candidate route now checks the exact 64-character lowercase-hex token syntax **before** invoking the Firestore-backed limiter; invalid input returns 404 with no-store/no-cache/no-referrer response headers and without DB calls. **Valid token shapes must still be rate-limited** and checked for consent/campaign state in the service. Re-run the unchanged HTTP regression, full pinned CI/enterprise/lockfile suites on the exact new PR head and review with Security/Privacy before merging. Never weaken rate limiting or infer production GO from CI. **NO-GO / NOT CONFIRMED.**
+
+
+### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
+
+The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
