@@ -190,6 +190,12 @@ describe('Klar & Partner transactional service boundary', () => {
       await expect(setPartnerConsent(deps(db), 'uid-1', true))
         .rejects.toMatchObject({ code: 'partner_consent_epoch_quarantined' });
       expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
+      const quarantinedSnapshot = { ...db._store.get('users/uid-1') };
+      expect(await setPartnerConsent(deps(db), 'uid-1', false))
+        .toEqual({ allowed: false, version: null });
+      expect(db._store.get('users/uid-1')).toEqual(quarantinedSnapshot);
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
+
     }
     const full = makeFirestore([{ collection: 'users', id: 'uid-1',
       data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: Number.MAX_SAFE_INTEGER } }]);
