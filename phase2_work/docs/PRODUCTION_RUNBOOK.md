@@ -90,3 +90,7 @@ Run `node scripts/test-marketing-claims.mjs`, then `node scripts/check-marketing
 
 ### 2026-10-18 — Pin claim release evidence to repository matrix
 `node scripts/check-marketing-claims.mjs --release` must never accept a manifest-path environment override. Confirm canonical matrix is used and all unapproved claims cause NO-GO. Run `node scripts/test-marketing-claims.mjs` and inspect signoffs independently. Trusted CI and protected refs are still necessary; local file edits can falsify the canonical matrix. No production authorization from this gate alone. **NO-GO.**
+
+
+### 2026-10-18 — Trusted claim evidence URL preflight
+Approved product claims require at least one repository commit/PR/file reference and an actual, reviewed Actions run on the corresponding source revision; the local gate validates only trusted URL format and required classes. Review status/subject, SHA, successful test results and authorized Product/Legal/Brand approvals independently before using a GO status. `node scripts/test-marketing-claims.mjs` and `node scripts/check-marketing-claims.mjs --release` are mandatory local preflights. **NO-GO**.
