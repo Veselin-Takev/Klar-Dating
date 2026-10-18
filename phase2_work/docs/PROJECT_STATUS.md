@@ -958,3 +958,7 @@ Added `docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json` with verification, 8–12 
 
 ### 2026-10-18 — P0 #47 approval-evidence hardening (draft)
 The claim gate rejects placeholder evidence, same-person role endorsements and absent explicit top-level GO. Added local mutation test `node scripts/test-marketing-claims.mjs` and `docs/MARKETING_CLAIM_APPROVAL_VALIDATION_2026-10-18.md`. The test only checks structure; reviewer identity/evidence authenticity requires independent external verification. All claims remain blocked. **NO-GO.**
+
+
+### 2026-10-18 — P0 #47 canonical claim manifest pinned (draft)
+Release-mode `scripts/check-marketing-claims.mjs --release` now rejects `KLAR_CLAIM_MANIFEST_PATH` and always reads the committed matrix; local mutation tests may still supply fixtures outside release mode. Test checks forged GO override fails. Claims remain 0/5 approved; independent evidence verification, review authority, trusted CI, branch protection and full Mandatory Gates remain outstanding. Details: `docs/MARKETING_CANONICAL_MANIFEST_RELEASE_GATE_2026-10-18.md`. **NO-GO.**
