@@ -48,3 +48,10 @@ The four real Firestore Emulator integration scenarios now allow up to 90 second
 ## 2026-10-18 — Dependency-free transaction contract test under pinned Node
 
 The in-memory quarantine contract test is executed with `node --experimental-strip-types --test scripts/test-partner-referral-quarantine.mjs` under Node **22.23.3**. This removes the separate `tsx` process from the Art.-17 compliance gate and avoids an unrelated remote transpiler `ENOTCONN` failure. The source-level tests verify canonical root collection references as well as deletion restart/idempotency, and the same four real Firestore Emulator tests retain a 90-second per-test timeout for documented lock contention. Node's native type stripping is permitted here because this isolated helper uses only erasable TypeScript syntax; application-wide TSX bundling is unchanged. Running these offline tests still does **not** establish Firestore Emulator or production transaction behavior. **NO-GO.**
+
+
+### 2026-10-18 – Pinned Node22 target gate at code commit `ed91c77580c86dff5da61ac9de11e7e6de3b5dfb`
+
+The whole integrated `npm run check:art17-deletion-audit` exited **0** on the SHA above using Node **v22.23.3** without a separate `tsx` worker. Its seven storage tests, twelve Art. 17 negative mutations, seven in-memory partner-referral transaction tests (including the nested-path denial), and six unsafe-Emulator preflight tests all passed. The four independent static checks—`check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`—also exited **0** on the unchanged repository files. The full GitHub ZIP of this commit passed CRC validation (1,257 entries, SHA-256 `4f8f5ca718a426700b422fe289577ed939d7ef1ccd83c86f09c0067dbb840c03`).
+
+This is **offline/static and mocked Firestore** evidence. Four real Firestore Emulator integration scenarios are not executed; full TypeScript/Playwright/build/npm audit, production TTL and independent Security/Privacy/Legal approvals are not verified. GitHub Actions is not certified PASS. `main` remains unchanged; **NO-GO**.
