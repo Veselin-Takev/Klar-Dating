@@ -82,3 +82,7 @@ The public `/api/partner/click/:token` must reject malformed syntax with 404 bef
 
 ### 2026-10-18 — Partner event-ID conflict guard (#55)
 On a signed webhook retry with an existing event ID, the stored stable event HMAC must match the new buyer/referral assertion; otherwise return 409 without credit. Historical conversion docs with no binding also return 409 pending reconciliation. Run `npx vitest run tests/partnerReferralService.spec.ts`, exact-commit full security/emulator gates, and review partner retry semantics before merge. No production deployment. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 provider replay after buyer consent revocation
+An identical partner webhook retry is acknowledged only after current eligibility checks within the Firestore transaction. If buyer consent is withdrawn or the account deleted, retries fail closed rather than accepting old event status. Execute `npx vitest run tests/partnerReferralService.spec.ts`, emulator tests and all mandatory gates on the exact integrated SHA. Provider retries may change from 200 to 403; coordinate handling with Privacy/Partner Operations. No reward may become earned solely from partner assertion. **NO-GO.**
