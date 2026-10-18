@@ -82,3 +82,7 @@ The public `/api/partner/click/:token` must reject malformed syntax with 404 bef
 
 ### 2026-10-18 — Partner visitor-consent and token egress gate (#56)
 Only an authenticated adult visitor with live partner consent and no account deletion may trigger the tracked redirect; invalid or unconsented visits use a direct destination without an attribution token. The Firestore tracking transaction checks visitor consent and deletion again to prevent a mid-request withdrawal race. Run `node scripts/check-partner-visitor-consent.mjs` locally and the full release gates at exact head. Cross-border token transfer and partner contract review remain legally outstanding. NO-GO.
+
+
+### 2026-10-18 — Public partner redirect and anonymous Firebase auth
+Both pre-authenticated `req.user` and optional verified Bearer JWT paths reject `firebase.sign_in_provider=anonymous`. Anonymous visitors receive only direct untracked redirects after existing campaign checks. Run `node scripts/check-partner-visitor-auth-boundary.mjs` and then HTTP emulator integration and the full pinned Node22.23.3 mandatory gates; see `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Independent Privacy/Legal review needed. **NO-GO.**
