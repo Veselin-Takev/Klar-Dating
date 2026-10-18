@@ -950,3 +950,7 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — P0 #55 adversarial partner-assertion regression (draft)
+Expanded `tests/partnerReferralService.spec.ts` for forged buyer/consent/version/campaign and duplicate assertions; signed partner claims remain `pending_verification` with zero credit. New evidence scope doc: `docs/PARTNER_CONVERSION_ADVERSARIAL_TEST_GATE_2026-10-18.md`. Emulator concurrency, independent purchase binding and full mandatory gates are **NOT CONFIRMED**. **NO-GO**.
