@@ -9,12 +9,22 @@ const catalog = readFileSync('scripts/loeschkaskade.mjs', 'utf8');
 const failures = [];
 
 for (const token of [
-  "db.collection('partner_referrals').where('ownerUid', '==', meineUid)",
+  ".where('ownerUid', '==', meineUid).limit(BATCH).get()",
   "db.collection('partner_referral_conversions').where(field, '==', partnerUidRef)",
   "db.collection('partner_referral_buyer_claims').where('buyerRef', '==', partnerUidRef)",
   "db.collection('partner_referral_ledger').where(field, '==', partnerUidRef)",
   "pseudonymousPartnerUid(meineUid, consentAuditSecret())",
 ]) if (!purge.includes(token)) failures.push(`missing deletion receipt control: ${token}`);
+
+// Owner-linked buyer claims have no ownerRef; deleting only ownerRef-indexed
+// conversions would leave orphaned buyer claims after account erasure.
+const ownerCascade = purge.slice(purge.indexOf('const ownedReferrals ='), purge.indexOf("for (const field of ['ownerRef', 'buyerRef'])"));
+const lookup = ownerCascade.indexOf(".where('referralId', '==', referral.id)");
+const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(db.collection('partner_referral_buyer_claims')");
+const parentDeletion = ownerCascade.indexOf("await referral.ref.delete()");
+if (lookup < 0 || claimDeletion < 0 || parentDeletion < 0 || !(claimDeletion < parentDeletion) || !(lookup < parentDeletion)) {
+  failures.push('owner deletion must remove buyer claims by referralId before deleting referral parent');
+}
 
 for (const token of [
   'schemaVersion: 2', "status: 'completed'", 'expiresAt: new Date(completedAt.getTime() + 30 * 86_400_000)',
