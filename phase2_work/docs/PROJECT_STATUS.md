@@ -1064,3 +1064,13 @@ Auf dem gestapelten Draft-Branch von PR #118 wird nun bei jedem einzelnen Eigent
 **Tatsächlich ausgeführt:** Auf dem GitHub-Commit `33b2812b2f12e67678da6c7aca8aca1cdd340a4c` wurde `npm run check:art17-deletion-audit` unter Node `22.23.3` erfolgreich ausgeführt (7/7 Storage-Testfälle, 6/6 negative Mutationstests, Art.-17-Statischprüfung PASS). Das vollständige Commit-ZIP bestand die ZIP-CRC-Prüfung. Die Fehlerbehandlung eines zunächst falsch escapten Prüfausdrucks wurde vor dem erfolgreichen Lauf korrigiert.
 
 **Weiterhin NO-GO:** Noch keine echten Firestore-Emulator-Tests für Konkurrenz, Abbruch/Wiederaufnahme und Nachweis der vollständigen Kaskadenlöschung; auch die vollständigen TypeScript-/E2E-/Build-/Supply-Chain-Gates, reale TTL-Policies und unabhängige Datenschutz-/Rechts-/Sicherheitsfreigaben sind nicht nachgewiesen. Kein Produktionsdeployment, kein Merge nach `main`, keine manuell gestartete kostenpflichtige CI.
+
+---
+
+## 2026-10-18 — Additional Art. 17 pre-parent deletion checkpoint (Draft PR #118)
+
+Before the owner referral document is deleted, the account-erasure worker now invokes `checkDeletionSlice()` **after** the awaited buyer-claim removal. This avoids final parent deletion after the slice expires during a long child purge; the surviving parent remains available for safe restart. Static Art. 17 control and the offline mutation suite now enforce both slice checkpoints (per-referral start and after child deletion) plus child-before-parent ordering.
+
+**Verified:** Exact source commit `cfb15b10f93aec89734a6fddae0ef549a9e2db64`, Node 20.20.2, baseline and **7/7 negative mutation tests PASS**, ZIP CRC check PASS (1,251 entries). Attempted independent Node 22.23.3 integrated test in remote workbench but the environment crashed before reporting a result; thus pinned Node22 integrated gate for this commit is **NOT VERIFIED**. Previous Node22 tests on earlier commits do not validate this new head.
+
+**Remaining NO-GO:** Firebase Emulator concurrency/restart, full pinned Node22 suite, TypeScript/Vitest/E2E/build/npm audit, real Firestore TTL ACTIVE evidence, and independent Privacy/Legal/Security approvals. `main` untouched, no production deployment or manually dispatched paid GitHub Actions.
