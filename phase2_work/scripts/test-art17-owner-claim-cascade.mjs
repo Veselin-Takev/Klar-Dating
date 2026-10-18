@@ -33,6 +33,18 @@ try {
 
   const cases = [
     {
+      name: 'missing owner cascade start boundary',
+      from: 'const ownedReferrals =',
+      to: 'const referralPage =',
+      expectedError: /owner referral cascade boundaries missing or invalid/,
+    },
+    {
+      name: 'missing owner cascade end boundary',
+      from: "for (const field of ['ownerRef', 'buyerRef'])",
+      to: "for (const field of ['ownerRef', 'customerRef'])",
+      expectedError: /owner referral cascade boundaries missing or invalid/,
+    },
+    {
       name: 'missing referralId claim lookup',
       from: ".where('referralId', '==', referral.id)",
       to: ".where('buyerRef', '==', partnerUidRef)",
@@ -92,7 +104,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (7 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (9 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
