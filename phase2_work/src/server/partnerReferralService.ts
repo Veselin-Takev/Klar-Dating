@@ -425,7 +425,7 @@ async function ensureReferralForCampaign(
     }
     if (deletionSnap.exists || !userSnap.exists || userSnap.data()?.isAdult !== true
       || userSnap.data()?.partnerReferralConsent !== true || userSnap.data()?.partnerReferralEpochQuarantined === true
-      || (Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) ? Number(userSnap.data()?.partnerReferralVersion) : 1) !== userVersion
+      || (!Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) || userSnap.data()?.partnerReferralVersion < 1 || userSnap.data()?.partnerReferralVersion !== userVersion)
       || !campaignIsActive(campaignSnap.data())) return false;
     if (referralSnap.exists) {
       const existing = referralSnap.data() ?? {};
@@ -456,6 +456,7 @@ export async function listPartnerReferralLinks(
   const userSnap = await db.collection('users').doc(uid).get();
   const data = userSnap.data();
   const userState = requirePartnerUserData(data);
+  if (data?.partnerReferralConsent === true && (!Number.isSafeInteger(data?.partnerReferralVersion) || data?.partnerReferralVersion < 1)) throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
   if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
   const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
   const activeCampaigns = snapshot.docs
@@ -509,7 +510,7 @@ export async function recordPartnerInteraction(
     }
     const savedData = savedUser.data();
     if (deletion.exists || savedData?.partnerReferralConsent !== true || savedData?.partnerReferralEpochQuarantined === true
-      || (Number.isSafeInteger(savedData?.partnerReferralVersion) ? Number(savedData?.partnerReferralVersion) : 1) !== state.version
+      || (!Number.isSafeInteger(savedData?.partnerReferralVersion) || savedData?.partnerReferralVersion < 1 || savedData?.partnerReferralVersion !== state.version)
       || !campaignIsActive(savedCampaign.data()) || !referral.exists || referral.data()?.ownerUid !== uid) {
       throw new PartnerReferralError(409, 'partner_interaction_stale', 'Der Partnerlink ist nicht mehr aktuell. Bitte lade die Übersicht neu.');
     }
@@ -565,7 +566,7 @@ export async function recordPartnerClick(
   const ownerData = ownerSnap.data();
   const activeConsent = ownerData?.partnerReferralConsent === true
     && ownerData?.partnerReferralEpochQuarantined !== true
-    && (Number.isSafeInteger(ownerData?.partnerReferralVersion) ? Number(ownerData?.partnerReferralVersion) : 1) === referralData.version
+    && (Number.isSafeInteger(ownerData?.partnerReferralVersion) && ownerData?.partnerReferralVersion >= 1 && ownerData?.partnerReferralVersion === referralData.version)
     && referralData.status === 'active';
   // Preview crawlers and the link owner's authenticated visit never earn clicks.
   if (!activeConsent || !visitorUid || visitorUid === ownerUid || request.method !== 'GET'
@@ -594,7 +595,7 @@ export async function recordPartnerClick(
       || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
-      || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
+      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || referral?.status !== 'active') return false;
     tx.update(referralRef, { clickCount: FieldValue.increment(1), lastClickAt: now, updatedAt: now });
     tx.update(campaignRef, { clickCount: FieldValue.increment(1), updatedAt: now });
@@ -661,7 +662,7 @@ export async function recordPartnerConversion(
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
       || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
-      || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
+      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true || buyer?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
     }
