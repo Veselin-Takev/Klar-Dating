@@ -273,6 +273,19 @@ describe('Klar & Partner transactional service boundary', () => {
       .rejects.toMatchObject({ code: 'conversion_not_eligible' });
     expect([...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
     expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+    // A re-grant increments the buyer consent epoch and must not revive an old assertion.
+    db._store.set('users/' + buyer, { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 2 });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_event_inconsistent' });
+    // Legacy conversion records with no consent epoch are quarantined, not trusted.
+    db._store.set('users/' + buyer, { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 });
+    db._store.set(eventKey, { ...eventOriginal, buyerConsentVersion: undefined });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_event_inconsistent' });
+    db._store.set(eventKey, eventOriginal);
+    expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+
   });
 
 });
