@@ -209,6 +209,14 @@ describe('Klar & Partner transactional service boundary', () => {
       { collection: 'partner_referrals', id: referralId, data: { ownerUid: uid, campaignId, campaignSlug: slug, version: 1, status: 'active', qualifiedConversions: 0 } },
     ]);
     const payload = { event: 'qualified_conversion' as const, eventId: 'provider-order-00001', referralToken: token, buyerUid: buyer };
+    // Invalid or absent epochs must never be silently treated as version 1.
+    const originalBuyer = db._store.get('users/' + buyer)!;
+    for (const invalidEpoch of [undefined, null, 0, -1, 1.5, '1', Number.MAX_SAFE_INTEGER + 1]) {
+      db._store.set('users/' + buyer, { ...originalBuyer, partnerReferralVersion: invalidEpoch });
+      await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ code: 'buyer_consent_epoch_missing' });
+    }
+    db._store.set('users/' + buyer, originalBuyer);
     const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');
     expect(result).toEqual({ ok: true, duplicate: false, rewardStatus: 'pending_verification' });
     const conversions = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'));
