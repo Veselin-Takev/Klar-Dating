@@ -974,3 +974,7 @@ Neue signierte Partner-Conversions werden als `partner_conversion_asserted` stat
 
 ### 2026-10-18 — P0 #55/#56 buyer consent epoch binding (draft)
 Partner-conversion events and buyer claims now persist `buyerConsentVersion` and reject old replays after consent is revoked and re-granted. Added in-memory negative tests and `docs/PARTNER_BUYER_CONSENT_EPOCH_2026-10-18.md`; legacy conversion records without epoch fail closed and need approved reconciliation. Full Vitest, emulator, actual consent-version increment contract, privacy/finance approval NOT VERIFIED. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55/#56 fail-closed buyer consent epoch validation (draft)
+New partner assertions reject missing or invalid buyer `partnerReferralVersion` instead of silently assuming consent epoch 1. Negative Vitest cases cover null/missing/nonpositive/fraction/string/unsafe versions. No implicit profile migration; audited user re-consent required for legacy records. See `docs/PARTNER_BUYER_CONSENT_EPOCH_VALIDATION_2026-10-18.md`. Vitest/Emulator and full release gates unverified. **NO-GO.**
