@@ -599,6 +599,9 @@ export async function recordPartnerClick(
       || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
       || !Number.isSafeInteger(savedVisitor.data()?.partnerReferralVersion) || savedVisitor.data()?.partnerReferralVersion < 1
       || savedVisitor.data()?.partnerReferralVersion !== visitorConsentVersion
+      // A campaign destination edit after preflight invalidates attribution.
+      // Never forward a referral token to a destination that was not rechecked.
+      || savedCampaign.data()?.destinationUrl !== campaign.destinationUrl
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
