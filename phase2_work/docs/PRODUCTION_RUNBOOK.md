@@ -130,3 +130,7 @@ When consent is already false and `partnerReferralEpochQuarantined=true`, repeat
 
 ### 2026-10-18 – Withdrawal must remain possible while account deletion is pending
 During queued account deletion, do not block `setPartnerConsent(false)`; continue rejecting new grants. Verify the withdrawal is HMAC-audited once and processing is disabled, and that the deletion worker handles cases where it removes the user record first. Run exact-SHA emulator, Node22, typecheck and privacy review. **NO-GO.**
+
+
+### 2026-10-18 – Withdrawal API after user-document purge
+If deletion marker exists and user doc is absent, treat a later `allowed=false` request as read-only, idempotently withdrawn; never recreate profile or personal audit solely for retries. Verify cleanup of all other copies separately. A new grant and missing profile without deletion evidence must remain denied. Run full Node22/Emulator/Privacy/Art17 gates. **NO-GO.**
