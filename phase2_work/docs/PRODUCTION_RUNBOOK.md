@@ -82,3 +82,7 @@ The public `/api/partner/click/:token` must reject malformed syntax with 404 bef
 
 ### 2026-10-18 — Partner destination token injection safeguard (#56)
 Campaign destination URLs must not include reserved `klar_referral` query keys, including case/percent-encoded variants. Update or remove affected legacy URLs through an authorized, audited administrative workflow. Run `npx vitest run tests/partnerReferralCore.spec.ts` and all mandatory release gates on exact head. This rejects unsafe configuration before any direct redirect; partner consent and third-party transfer controls remain separately mandatory. **NO-GO**.
+
+
+### 2026-10-18 — Partner destination fragment hard stop
+Configured partner destinations with a URL fragment (`#...`) must be denied, including SPA hash routes. Before rollout, inventory affected existing campaign URLs without logging tokens, obtain equivalent partner-approved fragment-free links, and verify browser navigation. Execute exact-head Vitest, emulator, full security and build gates. GDPR and external transfer signoffs remain mandatory. **NO-GO**.
