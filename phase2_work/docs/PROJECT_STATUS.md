@@ -1120,3 +1120,11 @@ The dedicated Art.-17 partner-referral emulator run now refuses absent, producti
 **Executed on GitHub source commit `5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03`:** official SHA-256 verified Node **22.23.3**; the integrated Art.-17 gate exited 0 with **7/7 storage, 12/12 static cascade mutation, 6/6 quarantine contract and 6/6 unsafe-emulator-preflight rejection tests**. No valid real Firestore Emulator pass, full TypeScript/Vitest/Playwright/build/npm-audit, active GCP TTL or independent Security/Privacy/Legal attestation was obtained.
 
 **CI caveat:** Earlier automatic GitHub Actions run 39162571437 on a prior SHA ended in failure with `runner_id: 0`, no steps and an empty log archive. It is not evidence of a failing application test or a passed CI run. No paid Actions rerun was manually started. **Production decision remains NO-GO.**
+
+---
+
+## 2026-10-18 — P0 #56 root-ref fail-closed guard and Emulator contention tolerances
+
+The owner-referral quarantine helper now validates that the reference belongs to the **root** `partner_referrals/{id}` collection, not merely a collection named `partner_referrals` nested below another document. Added a regression asserting that a nested ref fails **before** any database transaction. The four Firestore Emulator scenarios now use 90-second per-case timeouts to accommodate documented Emulator transaction-lock behavior; this does **not** alter production deletion limits.
+
+**Verification pending at this exact commit:** after committing these changes, rerun the Art. 17 integrated gate under Node 22.23.3, four static security boundaries, and validate complete artifact integrity. The genuine Firestore Emulator scenarios and full enterprise CI remain unverified; do not mark production GO. Reference: `docs/ART17_PARTNER_REFERRAL_QUARANTINE_2026-10-18.md`.

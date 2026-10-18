@@ -71,16 +71,17 @@
     "developmentBranchEvidence": {
       "asOf": "2026-10-18",
       "sourceCommit": "5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03",
-      "scope": "P0 #56 transactional owner-referral quarantine plus fail-closed emulator harness",
+      "scope": "P0 #56 root-ref quarantine fail-closed + emulator contention test timeout",
       "node": "22.23.3 verified using official distribution checksum",
       "result": "NODE22_7_STORAGE_PASS_12_MUTATIONS_PASS_6_QUARANTINE_CONTRACT_PASS_6_EMULATOR_PREFLIGHT_PASS",
-      "firestoreEmulator": "NOT_RUN_FOUR_SCENARIOS_COMMITTED",
+      "firestoreEmulator": "NOT_RUN_4_CASES",
       "fullEnterpriseGate": "NOT_RUN",
       "securityPrivacyLegalReview": "PENDING",
       "productionApproved": false,
       "note": "Static/contract/preflight evidence only; final branch's production decision remains NO-GO.",
       "emulatorPreflight": "PASS_6_NEGATIVE_CASES_NODE_22_23_3",
-      "automaticCiEvidence": "run 39162571437 failed without runner allocation or steps on preceding SHA; root cause unconfirmed"
+      "automaticCiEvidence": "run 39162571437 failed without runner allocation or steps on preceding SHA; root cause unconfirmed",
+      "notes": "Validation pending on this patch SHA; no live Firestore proof."
     }
   }
 }

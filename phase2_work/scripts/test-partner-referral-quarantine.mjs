@@ -7,7 +7,7 @@ import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDel
 function fakeFirestore(initial) {
   let record = initial === null ? null : { ...initial };
   let writes = 0;
-  const ref = { id: 'ref-test', parent: { id: 'partner_referrals' } };
+  const ref = { id: 'ref-test', path: 'partner_referrals/ref-test', parent: { id: 'partner_referrals' } };
   const db = {
     async runTransaction(work) {
       const pending = [];
@@ -61,6 +61,19 @@ test('invalid paths fail before opening Firestore transaction', async () => {
   await assert.rejects(quarantineOwnedPartnerReferral(state.db, state.ref, ''),
     /partner_referral_quarantine_invalid_target/);
   assert.equal(state.getWrites(), 0);
+});
+
+test('nested collection with a forged parent ID cannot be quarantined', async () => {
+  const state = fakeFirestore({ ownerUid: 'owner', status: 'active' });
+  const nestedRef = {
+    id: 'ref-test',
+    path: 'users/owner/partner_referrals/ref-test',
+    parent: { id: 'partner_referrals' },
+  };
+  await assert.rejects(quarantineOwnedPartnerReferral(state.db, nestedRef, 'owner'),
+    /partner_referral_quarantine_invalid_target/);
+  assert.equal(state.getWrites(), 0);
+  assert.equal(state.getRecord().status, 'active');
 });
 
 test('transaction failures propagate and cannot acknowledge a tombstone', async () => {

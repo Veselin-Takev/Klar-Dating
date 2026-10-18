@@ -4,6 +4,10 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDeletion';
 
+// Firebase notes that concurrent emulator writes can hold locks for ~30 seconds.
+// Allow transaction retries to finish before classifying the integration as failed.
+const EMULATOR_CONTENTION_TIMEOUT_MS = 90_000;
+
 // Dedicated runners set this flag and must never silently skip.
 if (process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' && !process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('art17_firestore_emulator_required');
@@ -33,7 +37,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     // The actual partner conversion service reads this same referral and
     // rejects any status other than active inside its transaction.
     expect(snapshot.data()?.status === 'active').toBe(false);
-  }, 20_000);
+  }, EMULATOR_CONTENTION_TIMEOUT_MS);
 
   it('keeps a tombstone over a simulated restart so no new claim can be created', async () => {
     const db = getDb();
@@ -61,7 +65,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     await referralRef.delete();
     expect((await claimRef.get()).exists).toBe(false);
     expect((await referralRef.get()).exists).toBe(false);
-  }, 20_000);
+  }, EMULATOR_CONTENTION_TIMEOUT_MS);
 
   it('does not strand claims when assertions race the owner quarantine', async () => {
     const db = getDb();
@@ -100,7 +104,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
       .where('referralId', '==', referral.id).get()).empty).toBe(true);
     expect(await tryClaim(db.collection('partner_referral_buyer_claims').doc('late-' + randomUUID())))
       .toBe('rejected');
-  }, 30_000);
+  }, EMULATOR_CONTENTION_TIMEOUT_MS);
 
   it('rejects a changed owner without a destructive write', async () => {
     const db = getDb();
@@ -110,5 +114,5 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     await expect(quarantineOwnedPartnerReferral(db, ref, 'owner'))
       .rejects.toThrow('partner_referral_owner_changed');
     expect((await ref.get()).data()?.status).toBe('active');
-  }, 20_000);
+  }, EMULATOR_CONTENTION_TIMEOUT_MS);
 });
