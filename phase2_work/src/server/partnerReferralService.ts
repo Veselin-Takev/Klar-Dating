@@ -728,7 +728,12 @@ export async function recordPartnerConversion(
         || buyerClaimSnap.data()?.campaignId !== campaignId
         || buyerClaimSnap.data()?.referralId !== referralId
         || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
-        || buyerClaimSnap.data()?.buyerConsentVersion !== buyerConsentVersion) {
+        || buyerClaimSnap.data()?.buyerConsentVersion !== buyerConsentVersion
+        // Conversion assertion and buyer claim are created together. An
+        // inconsistent timestamp indicates incomplete or altered evidence.
+        || typeof eventSnap.data()?.createdAt !== 'string'
+        || !Number.isFinite(Date.parse(eventSnap.data()!.createdAt))
+        || buyerClaimSnap.data()?.createdAt !== eventSnap.data()?.createdAt) {
         throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
       }
       return { duplicate: true as const };
