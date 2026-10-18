@@ -105,6 +105,13 @@ describe('Klar & Partner transactional service boundary', () => {
     });
   });
 
+  it('excludes quarantined consent from private referral authorization', async () => {
+    const db = makeFirestore([{ collection: 'users', id: 'user-1',
+      data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1, partnerReferralEpochQuarantined: true } }]);
+    await expect(listPartnerReferralLinks(deps(db), 'user-1'))
+      .rejects.toMatchObject({ code: 'partner_consent_required' });
+  });
+
   it('creates a draft, reserves its slug and signs the audit event', async () => {
     const db = makeFirestore();
     const campaign = await createPartnerCampaign(deps(db), 'admin-1', campaignInput);
@@ -244,6 +251,17 @@ describe('Klar & Partner transactional service boundary', () => {
         .rejects.toMatchObject({ code: 'buyer_consent_epoch_missing' });
     }
     db._store.set('users/' + buyer, originalBuyer);
+    // Even if a malformed external writer restores the boolean, a quarantined
+    // consent epoch cannot authorize new partner conversions.
+    db._store.set('users/' + buyer, { ...originalBuyer, partnerReferralEpochQuarantined: true });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    db._store.set('users/' + buyer, originalBuyer);
+    const originalOwner = db._store.get('users/' + uid)!;
+    db._store.set('users/' + uid, { ...originalOwner, partnerReferralEpochQuarantined: true });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    db._store.set('users/' + uid, originalOwner);
     const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');
     expect(result).toEqual({ ok: true, duplicate: false, rewardStatus: 'pending_verification' });
     const conversions = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'));
