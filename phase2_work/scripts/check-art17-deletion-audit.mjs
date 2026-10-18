@@ -43,7 +43,7 @@ if (quarantine < 0 || !(quarantine < claimDeletion)) {
 }
 const quarantineSource = readFileSync('src/server/partnerReferralDeletion.ts', 'utf8');
 for (const required of [
-  'return db.runTransaction(async tx =>',
+  'return db.runTransaction<OwnerReferralQuarantineResult>(async tx =>',
   'const snapshot = await tx.get(referralRef);',
   "if (snapshot.data()?.ownerUid !== ownerUid)",
   "tx.update(referralRef, { status: 'deleting' });",
