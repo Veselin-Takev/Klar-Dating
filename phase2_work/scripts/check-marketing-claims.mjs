@@ -20,7 +20,7 @@ const trustedEvidence = item => {
  if (segments[0] !== 'Veselin-Takev' || segments[1] !== 'Klar-Dating') return null;
  if (segments.length >= 4 && ['blob','commit','pull'].includes(segments[2])) return 'implementation';
  if (segments.length === 5 && segments[2] === 'actions' && segments[3] === 'runs'
-   && /^\\d+$/.test(segments[4])) return 'test';
+   && /^\d+$/.test(segments[4])) return 'test';
  return null;
 };
 assert.equal(data.version,1);
