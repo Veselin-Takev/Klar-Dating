@@ -233,6 +233,24 @@ describe('Klar & Partner transactional service boundary', () => {
     db._store.set(claimKey, originalClaim);
     expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
       .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+    // Event data is independently checked, not just its HMAC binding.
+    const [eventKey, eventOriginal] = conversions[0]!;
+    for (const alteration of [
+      { campaignId: 'different-campaign' },
+      { referralId: 'another-referral' },
+      { buyerRef: 'different-buyer-ref' },
+      { ownerRef: 'different-owner-ref' },
+      { proofStatus: 'verified_without_independent_proof' },
+      { rewardStatus: 'earned' },
+    ]) {
+      db._store.set(eventKey, { ...eventOriginal, ...alteration });
+      await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ code: 'partner_event_inconsistent' });
+    }
+    db._store.set(eventKey, eventOriginal);
+    expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+
 
     await expect(recordPartnerConversion(deps(db), slug, { ...payload, buyerUid: 'different-buyer' }, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'partner_event_id_conflict' });
