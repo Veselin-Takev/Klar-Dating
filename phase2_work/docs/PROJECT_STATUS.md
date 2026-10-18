@@ -978,3 +978,7 @@ Partner-conversion events and buyer claims now persist `buyerConsentVersion` and
 
 ### 2026-10-18 — P0 #55/#56 fail-closed buyer consent epoch validation (draft)
 New partner assertions reject missing or invalid buyer `partnerReferralVersion` instead of silently assuming consent epoch 1. Negative Vitest cases cover null/missing/nonpositive/fraction/string/unsafe versions. No implicit profile migration; audited user re-consent required for legacy records. See `docs/PARTNER_BUYER_CONSENT_EPOCH_VALIDATION_2026-10-18.md`. Vitest/Emulator and full release gates unverified. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55/#56 consent-writer epoch integrity (draft)
+`setPartnerConsent` now rejects missing/invalid epoch on an already-granted consent instead of silently inferring version 1. Withdrawals at MAX_SAFE_INTEGER are also rejected to prevent overflow. Added in-memory negative tests and `docs/PARTNER_CONSENT_WRITER_EPOCH_GATE_2026-10-18.md`. Explicit legacy-quarantine/withdrawal and independent Privacy approval required. Full Node22/Vitest/Emulator checks NOT executed; **NO-GO**.
