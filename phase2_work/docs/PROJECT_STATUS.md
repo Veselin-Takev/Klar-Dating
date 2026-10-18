@@ -1090,3 +1090,15 @@ The Art. 17 static source audit now checks the presence and order of both owner-
 The source-level owner-referral deletion audit now rejects duplicate cascade start/end markers as well as absent or invalid boundaries, eliminating ambiguous first-occurrence selections when a marker is duplicated in comments or generated source. Two additional fault injections increased the suite to 11 cases. **Actual offline evidence:** On exact GitHub commit `0a835dfd69eceda687f46f14f75707ecb6a35c21`, Node 20.20.2, static baseline PASS and **11/11 negative mutation regressions PASS**. Source ZIP CRC PASS (1,251 entries).
 
 **NO-GO:** Full Node 22.23.3 mandatory suite on final SHA, Firestore Emulator restart/concurrency, TypeScript, Playwright, npm audit, real Firestore TTL ACTIVE proof and independent Privacy/Legal/Security reviews are not verified. This is a test-boundary improvement, not a completed Art. 17 deletion proof; no merge or deployment.
+
+---
+
+## 2026-10-18 — P0 #56: Transactional referral quarantine during Art. 17 erasure
+
+**Implementation:** Draft PR #118 now transactionally changes an owned partner-referral document to `status: 'deleting'` **before** scanning and deleting its linked buyer claims. A provider conversion already requires the same referral to be `active` within its Firestore transaction; the tombstone closes the potential create-during-deletion window. Quarantine validates `ownerUid`, is idempotent across resumed deletion slices, does not resurrect a missing document and fails closed on transaction errors. Child-before-parent deletion and per-referral time-slice checks remain in place.
+
+**Executed evidence on source commit `f83c84acbc3f03fbedb6583cb54ae61abae8eff0`:** SHA-256-verified Node **v22.23.3**, `npm run check:art17-deletion-audit` exit 0: seven storage deletion tests, **12 negative static cascade mutations**, and **six in-memory transactional helper tests** all PASS. Exact-source ZIP integrity verified (1,255 entries). This evidence covers static gates and a contract-level mock only.
+
+**Missing release evidence:** The three new real Firestore Emulator integration cases are committed but **NOT RUN**; independently verify transaction conflicts, restarts and cross-buyer claim cleanup. Full Node22 TypeScript/Vitest/E2E/build/npm-audit suite, active Google Cloud TTL policies, legal-hold handling and independent DPO/Security/Legal approvals are also outstanding. Existing historical `RELEASE_MANIFEST.json` release-candidate fields describe earlier baselines and must not be mistaken for approval of this draft. No manual GitHub Actions run, no merge/deployment. **Production remains NO-GO.**
+
+Reference: `docs/ART17_PARTNER_REFERRAL_QUARANTINE_2026-10-18.md`.
