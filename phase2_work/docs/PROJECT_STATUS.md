@@ -958,3 +958,7 @@ A new domain-separated stable HMAC binds each stored partner event ID to origina
 
 ### 2026-10-18 — P0 #55 partner replay eligibility recheck (draft)
 On an already-bound event ID, current buyer/owner consent, deletion state, campaign and referral eligibility are now checked **before** duplicate acknowledgement. Added revocation-after-first-event regression and `docs/PARTNER_REPLAY_ELIGIBILITY_GATE_2026-10-18.md`. Full Vitest, emulator concurrency, provider retry protocol and separate Security/Privacy/Finance approvals not verified. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 replay buyer-claim linkage gate (draft)
+Even an exact signed event replay now requires the persisted buyer claim to exist and match conversion, campaign, referral and pseudonymous buyer. Missing/inconsistent claims fail closed with 409 `partner_claim_inconsistent`, never auto-repaired. Regression tests and `docs/PARTNER_REPLAY_CLAIM_CONSISTENCY_2026-10-18.md` added. Full Node22/Vitest/Emulator proof, legal data retention, independent purchase attestation and approvals NOT verified. **NO-GO.**
