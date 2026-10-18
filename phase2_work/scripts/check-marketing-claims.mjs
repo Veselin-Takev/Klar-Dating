@@ -16,11 +16,16 @@ const trustedEvidence = item => {
  try { url = new URL(item); } catch { return null; }
  if (url.protocol !== 'https:' || url.hostname !== 'github.com'
    || url.username || url.password || url.port || url.search || url.hash) return null;
- const segments = url.pathname.split('/').filter(Boolean);
+ const segments = url.pathname.split('/').slice(1);
  if (segments[0] !== 'Veselin-Takev' || segments[1] !== 'Klar-Dating') return null;
- if (segments.length >= 4 && ['blob','commit','pull'].includes(segments[2])) return 'implementation';
+ // Require exact GitHub resource shapes. Path ambiguity and percent-encoded
+ // separators cannot be treated as independent, inspectable evidence.
+ if (segments.some(seg => !seg || seg.includes('%') || seg === '.' || seg === '..')) return null;
+ if (segments.length === 4 && segments[2] === 'pull' && /^\\d+$/.test(segments[3])) return 'implementation';
+ if (segments.length === 4 && segments[2] === 'commit' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
+ if (segments.length >= 6 && segments[2] === 'blob' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
  if (segments.length === 5 && segments[2] === 'actions' && segments[3] === 'runs'
-   && /^\d+$/.test(segments[4])) return 'test';
+   && /^\\d+$/.test(segments[4])) return 'test';
  return null;
 };
 assert.equal(data.version,1);
