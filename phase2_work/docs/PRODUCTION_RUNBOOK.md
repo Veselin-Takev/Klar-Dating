@@ -90,3 +90,7 @@ An identical partner webhook retry is acknowledged only after current eligibilit
 
 ### 2026-10-18 — P0 #55 replay buyer-claim consistency
 A replay with a valid event HMAC but missing or inconsistent buyer claim must yield `partner_claim_inconsistent` (409) and be quarantined for authorized reconciliation; do not auto-create missing claims. Validate with `npx vitest run tests/partnerReferralService.spec.ts` and Firestore Emulator concurrency/retention tests. Separate finance, fraud, privacy and partner-contract approval required. **NO-GO.**
+
+
+### 2026-10-18 — Partner replay event record guard (#55)
+Validate that an existing conversion's campaign/referral, pseudonymous buyer/owner and assertion-only pending statuses are unchanged before duplicate acknowledgment. A 409 `partner_event_inconsistent` requires authorized quarantine/reconciliation, never auto-repair. Before future settlement features, explicitly version this invariant and test legitimate verified-state transitions. Execute pinned Node22.23.3 Vitest and Emulator suites; obtain Privacy/Security/Finance approval. **NO-GO.**
