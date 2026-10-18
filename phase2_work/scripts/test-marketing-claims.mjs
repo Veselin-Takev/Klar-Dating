@@ -15,9 +15,12 @@ try {
  const blocked=run(original,true);assert.equal(blocked.status,1);assert.match(blocked.stderr,/NO-GO/);
  const good=structuredClone(original);good.releaseStatus='GO';
  for(const c of good.claims){c.state='approved';c.evidence=['https://github.com/org/repo/issues/111','https://github.com/org/repo/actions/runs/222'];c.owners={product:'@owner-product',legal:'@owner-legal',brand:'@owner-brand'};}
- assert.equal(run(good,true).status,0,'Structurally complete manifest should pass local shape check; real evidence still requires manual verification');
+ assert.equal(run(good).status,0,'Structurally complete test fixture is valid for non-release mode');
+ const override=run(good,true);
+ assert.equal(override.status,1,'Release must reject alternate manifest even when it claims GO');
+ assert.match(override.stderr,/release manifest override is forbidden/);
  const placeholder=structuredClone(good);placeholder.claims[0].evidence=['placeholder','https://example.com/fake'];assert.notEqual(run(placeholder,true).status,0);
  const sameOwner=structuredClone(good);sameOwner.claims[0].owners.legal=sameOwner.claims[0].owners.product;assert.notEqual(run(sameOwner,true).status,0);
  const missingGo=structuredClone(good);missingGo.releaseStatus='NO-GO';assert.equal(run(missingGo,true).status,1);
- console.log('PASS: baseline valid, blocked NO-GO, placeholder evidence denied, distinct reviewers required and explicit GO required');
+ console.log('PASS: canonical release matrix pinned; GO override denied; placeholder evidence and shared reviewers rejected');
 } finally {rmSync(root,{recursive:true,force:true});}
