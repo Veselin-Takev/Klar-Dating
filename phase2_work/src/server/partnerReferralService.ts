@@ -610,9 +610,13 @@ export async function recordPartnerConversion(
     }
     // A withdrawn/re-granted consent is a different authorization epoch.
     // Version changes must never resurrect an old partner assertion.
-    const buyerConsentVersion = Number.isSafeInteger(buyer?.partnerReferralVersion)
-      && Number(buyer?.partnerReferralVersion) >= 1
-      ? Number(buyer.partnerReferralVersion) : 1;
+    const buyerConsentVersion = buyer?.partnerReferralVersion;
+    // Do not infer a consent epoch for absent, corrupt, negative or fractional
+    // values. A legacy user must re-establish a recorded consent epoch.
+    if (typeof buyerConsentVersion !== 'number'
+      || !Number.isSafeInteger(buyerConsentVersion) || buyerConsentVersion < 1) {
+      throw new PartnerReferralError(403, 'buyer_consent_epoch_missing', 'Die Partner-Einwilligung muss erneut bestätigt werden.');
+    }
     // A previously recorded event does not bypass fresh consent, legal hold,
     // deletion or campaign-eligibility checks on a provider retry.
     if (eventSnap.exists) {
