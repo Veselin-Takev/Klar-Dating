@@ -608,6 +608,11 @@ export async function recordPartnerConversion(
       || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
     }
+    // A withdrawn/re-granted consent is a different authorization epoch.
+    // Version changes must never resurrect an old partner assertion.
+    const buyerConsentVersion = Number.isSafeInteger(buyer?.partnerReferralVersion)
+      && Number(buyer?.partnerReferralVersion) >= 1
+      ? Number(buyer.partnerReferralVersion) : 1;
     // A previously recorded event does not bypass fresh consent, legal hold,
     // deletion or campaign-eligibility checks on a provider retry.
     if (eventSnap.exists) {
@@ -625,14 +630,16 @@ export async function recordPartnerConversion(
         || eventSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
         || eventSnap.data()?.ownerRef !== pseudonymousPartnerUid(ownerUid, idempotencySecret)
         || eventSnap.data()?.proofStatus !== 'partner_assertion_only'
-        || eventSnap.data()?.rewardStatus !== 'pending_verification') {
+        || eventSnap.data()?.rewardStatus !== 'pending_verification'
+        || eventSnap.data()?.buyerConsentVersion !== buyerConsentVersion) {
         throw new PartnerReferralError(409, 'partner_event_inconsistent', 'Der Partner-Ereignisdatensatz muss unabhängig überprüft werden.');
       }
       if (!buyerClaimSnap.exists
         || buyerClaimSnap.data()?.conversionId !== eventIdHash
         || buyerClaimSnap.data()?.campaignId !== campaignId
         || buyerClaimSnap.data()?.referralId !== referralId
-        || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)) {
+        || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || buyerClaimSnap.data()?.buyerConsentVersion !== buyerConsentVersion) {
         throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
       }
       return { duplicate: true as const };
@@ -646,6 +653,7 @@ export async function recordPartnerConversion(
       buyerRef: buyerRefHash,
       rewardStatus: 'pending_verification',
       proofStatus: 'partner_assertion_only',
+      buyerConsentVersion,
       eventBinding,
       rewardLabel: String(campaign.rewardLabel ?? ''),
       createdAt: now,
@@ -655,6 +663,7 @@ export async function recordPartnerConversion(
       referralId,
       conversionId: eventIdHash,
       buyerRef: buyerRefHash,
+      buyerConsentVersion,
       createdAt: now,
     });
     // Partner HMAC proves message origin, not purchase or buyer attribution. Never credit
