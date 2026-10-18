@@ -954,3 +954,7 @@ Added an HTTP negative/fail-closed companion test: malformed referral tokens mus
 
 ### 2026-10-18 — P0 #56 reserved partner URL token parameter (draft)
 `validatePartnerDestinationUrl` now rejects case-insensitive, URL-decoded `klar_referral` keys in campaign destinations so a direct, consentless redirect cannot forward a pre-seeded attribution token. Added Vitest cases for percent-encoded and mixed-case variants; see `docs/ADR_PARTNER_DESTINATION_TOKEN_INJECTION_2026-10-18.md`. Existing campaign data must be inventoried and exact-head mandatory gates run. Tests/Privacy approval pending, **NO-GO**.
+
+
+### 2026-10-18 — Partner fragment attribution egress gate (#56)
+Stacked on query-key hardening PR #83: reject any nonempty partner destination URL fragment, since it remains browser-JavaScript-readable even when tracking is otherwise suppressed. Added tests and `docs/ADR_PARTNER_DESTINATION_FRAGMENT_GUARD_2026-10-18.md`. Hash-route compatibility, Privacy/legal approval, Vitest/Emulator and full gates remain pending. **NO-GO.**
