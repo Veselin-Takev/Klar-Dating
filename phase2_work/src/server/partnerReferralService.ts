@@ -557,6 +557,13 @@ export async function recordPartnerClick(
   const referralData = referralSnap.data() ?? {};
   const ownerUid = typeof referralData.ownerUid === 'string' ? referralData.ownerUid : '';
   const campaignId = typeof referralData.campaignId === 'string' ? referralData.campaignId : '';
+  const referralVersion = referralData.version;
+  // A document ID derived from an HMAC token is not proof that its mutable
+  // owner, campaign and epoch fields still correspond to that same token.
+  if (!ownerUid || !campaignId || !Number.isSafeInteger(referralVersion) || referralVersion < 1
+    || derivePartnerReferralToken(ownerUid, campaignId, referralVersion, referralSecret(deps)) !== token) {
+    throw new PartnerReferralError(404, 'partner_link_not_found', 'Dieser Partnerlink ist nicht verfügbar.');
+  }
   const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
   const ownerRef = db.collection('users').doc(ownerUid);
   const [campaignSnap, ownerSnap] = await Promise.all([campaignRef.get(), ownerRef.get()]);
@@ -602,6 +609,8 @@ export async function recordPartnerClick(
       // A campaign destination edit after preflight invalidates attribution.
       // Never forward a referral token to a destination that was not rechecked.
       || savedCampaign.data()?.destinationUrl !== campaign.destinationUrl
+      || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
+      || referral?.version !== referralVersion
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
