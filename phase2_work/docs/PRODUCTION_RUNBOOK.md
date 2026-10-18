@@ -110,3 +110,7 @@ A partner conversion requires current buyer `partnerReferralVersion` to be a pos
 
 ### 2026-10-18 — Consent version writer fail-closed (#55/#56)
 For an already-granted partner consent, missing/malformed `partnerReferralVersion` must yield 409 `partner_consent_epoch_inconsistent` and not rewrite the user. Overflow on withdrawal yields 409 `partner_consent_epoch_exhausted`. Run Node22 Vitest/Firestore Emulator tests and confirm there is a privacy-approved administrative withdrawal path for corrupt legacy records. Never treat source-code assertions as full release gates. **NO-GO.**
+
+
+### 2026-10-18 — Consent withdrawal cannot be blocked by epoch corruption
+If a previously allowed partner consent has malformed/exhausted `partnerReferralVersion`, its withdrawal MUST still set `partnerReferralConsent=false` transactionally and flag quarantine. Preserve original version, sign audit (`partner_consent_withdrawn`), return `version:null` and block any new grant until authorized reconciliation. Validate all clients tolerate `version:null` and ensure no downstream partner tracking may use quarantined consent. Run pinned Node22 Vitest, Firebase emulator and full mandatory gates. **NO-GO.**
