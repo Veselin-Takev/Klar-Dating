@@ -577,7 +577,8 @@ export async function recordPartnerClick(
   const visitorDeletionRef = db.collection('account_deletions').doc(visitorUid);
   const visitorSnap = await visitorRef.get();
   if (!visitorSnap.exists || visitorSnap.data()?.isAdult !== true
-    || visitorSnap.data()?.partnerReferralConsent !== true || visitorSnap.data()?.partnerReferralEpochQuarantined === true) {
+    || visitorSnap.data()?.partnerReferralConsent !== true || visitorSnap.data()?.partnerReferralEpochQuarantined === true
+    || !Number.isSafeInteger(visitorSnap.data()?.partnerReferralVersion) || visitorSnap.data()?.partnerReferralVersion < 1) {
     return { url: destination, tracked: false };
   }
   const ledger = makeLedger(deps, 'referral_click_counted', null, { ownerUid, campaignId, referralId });
@@ -593,6 +594,7 @@ export async function recordPartnerClick(
     if (visitorDeletion.exists || !savedVisitor.exists
       || savedVisitor.data()?.isAdult !== true
       || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
+      || !Number.isSafeInteger(savedVisitor.data()?.partnerReferralVersion) || savedVisitor.data()?.partnerReferralVersion < 1
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
