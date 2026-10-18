@@ -958,3 +958,7 @@ Development branch `fix/p0-retention-safeguards-2026-10-18` contains a dry-run-f
 
 ### 2026-10-18 — P0 #70 staging identity hardening (draft)
 TTL script now denies staging activation unless target equals an explicit reviewed staging project ID, differs from the declared production ID, and read-only GCP project metadata confirms `labels.environment=staging`. Added local mock regression and `docs/RETENTION_STAGING_IDENTITY_GATE_2026-10-18.md`. This is defence in depth, not proof of production project controls or legal approval. Exact-head mandatory gates and staging verification are pending. **NO-GO; do not merge/deploy.**
+
+
+### 2026-10-18 — P0 #70 Retention-Matrix-Drift-Prüfung (Draft)
+`node scripts/check-retention-matrix.mjs` gleicht 13 TTL-Gruppen im staging-only Provisionierungsskript mit `docs/DATA_RETENTION.md` ab und stellt die sicherheitskritischen Dry-Run-/Identitäts-/Genehmigungs-Gates statisch sicher. Dokumentiert in `docs/RETENTION_POLICY_MATRIX_DRIFT_2026-10-18.md`. Keine Cloud-Aktivierung/Art.-17-E2E bestätigt. **NO-GO**.
