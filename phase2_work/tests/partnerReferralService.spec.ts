@@ -169,6 +169,25 @@ describe('Klar & Partner transactional service boundary', () => {
     ))).toBe(true);
   });
 
+  it('never silently backfills a missing or invalid epoch on an existing consent grant', async () => {
+    for (const invalid of [undefined, null, 0, -1, 1.5, '1']) {
+      const db = makeFirestore([{ collection: 'users', id: 'uid-1',
+        data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: invalid } }]);
+      await expect(setPartnerConsent(deps(db), 'uid-1', true))
+        .rejects.toMatchObject({ code: 'partner_consent_epoch_inconsistent' });
+      await expect(setPartnerConsent(deps(db), 'uid-1', false))
+        .rejects.toMatchObject({ code: 'partner_consent_epoch_inconsistent' });
+      expect(db._store.get('users/uid-1')?.partnerReferralVersion).toBe(invalid);
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    }
+    const full = makeFirestore([{ collection: 'users', id: 'uid-1',
+      data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: Number.MAX_SAFE_INTEGER } }]);
+    await expect(setPartnerConsent(deps(full), 'uid-1', false))
+      .rejects.toMatchObject({ code: 'partner_consent_epoch_exhausted' });
+    expect(full._store.get('users/uid-1')?.partnerReferralConsent).toBe(true);
+    expect([...full._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
   it('opens a partner directly without counting the referrer’s own open as a tracked click', async () => {
     const db = makeFirestore([{
       collection: 'users',
