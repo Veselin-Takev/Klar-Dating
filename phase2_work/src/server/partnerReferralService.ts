@@ -325,6 +325,13 @@ export async function setPartnerConsent(
     // A deletion job must block new consent but cannot obstruct withdrawal.
     // Preserve audit and idempotency while the profile still exists.
     if (deletionSnap.exists && allowed) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
+    // Once deletion removed the profile, no consent remains to withdraw.
+    // Return a read-only, idempotent denial only when deletion is recorded;
+    // never recreate a deleted user or append a new personal audit entry.
+    if (!allowed && deletionSnap.exists && !userSnap.exists) {
+      result = { allowed: false, version: null };
+      return;
+    }
     const data = userSnap.data();
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
