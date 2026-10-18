@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -52,6 +52,16 @@ try {
       },
     },
     {
+      name: 'buyer-claim deletion not awaited',
+      from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')",
+      to: "void loescheAbfrage(db.collection('partner_referral_buyer_claims')",
+    },
+    {
+      name: 'omit parent referral deletion',
+      from: 'await referral.ref.delete();',
+      to: 'void referral.id;',
+    },
+    {
       name: 'omit buyer-claim deletion',
       from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')\n          .where('referralId', '==', referral.id));",
       to: 'void referral.id;',
@@ -70,7 +80,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (3 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (5 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
