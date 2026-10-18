@@ -12,6 +12,7 @@ import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
 import { consentAuditSecret } from './consentAudit';
 import { pseudonymousPartnerUid } from './partnerReferralCore';
+import { quarantineOwnedPartnerReferral } from './partnerReferralDeletion';
 import {
   recordModerationDecision,
   submitDsaAppeal,
@@ -514,6 +515,12 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
         .where('ownerUid', '==', meineUid).limit(BATCH).get();
       if (ownedReferrals.empty) break;
       for (const referral of ownedReferrals.docs) {
+        checkDeletionSlice();
+        // Quarantine first: conversion transactions must not create new claims
+        // after our deletion sweep has begun. Resumed slices keep this tombstone.
+        const quarantine = await quarantineOwnedPartnerReferral(db, referral.ref, meineUid);
+        if (quarantine === 'missing') continue;
+        if (quarantine === 'updated') recordDeletionProgress();
         checkDeletionSlice();
         await loescheAbfrage(db.collection('partner_referral_buyer_claims')
           .where('referralId', '==', referral.id));
