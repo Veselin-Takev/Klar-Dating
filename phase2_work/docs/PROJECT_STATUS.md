@@ -1022,3 +1022,7 @@ Link-Ausstellung, Interaktionen, Klicktracking und Conversion prüfen nun eine a
 
 ### 2026-10-18 – P0 #56 Besucher-Epochenwechsel zwischen Klickprüfung und Transaktion (Draft)
 Klicktracking bindet die beim Vorabcheck festgestellte `visitorConsentVersion` an den in der Firestore-Transaktion erneut gelesenen Wert. Ändert sich die Einwilligungsperiode, wird keine Attribution gebucht. Race-Simulation als In-Memory-Vitest ergänzt; siehe `docs/PARTNER_VISITOR_EPOCH_CLICK_RACE_2026-10-18.md`. Emulator/TypeScript/Privacy-Gates ausstehend. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55/#56 Kampagnen-Zieladresse beim Klick konsistent halten (Draft)
+Die Klicktransaktion fordert nun dieselbe validierte `destinationUrl` wie beim Vorabcheck. Bei einer Zieländerung vor der Transaktion wird nur ungetrackt weitergeleitet, ohne Zähler-/Audit-Schreibvorgang und ohne Tracking-Token. Statischer Check und Race-Vitest ergänzt; siehe `docs/PARTNER_CLICK_DESTINATION_RACE_2026-10-18.md`. Volle Node22- und Emulator-Gates noch ausstehend. **NO-GO**.
