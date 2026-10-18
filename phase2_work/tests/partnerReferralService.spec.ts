@@ -176,6 +176,24 @@ describe('Klar & Partner transactional service boundary', () => {
     ))).toBe(true);
   });
 
+  it('returns a read-only withdrawn state after deletion purges the profile', async () => {
+    const db = makeFirestore([
+      { collection: 'account_deletions', id: 'uid-purged', data: { status: 'processing' } },
+    ]);
+    const initial = [...db._store.entries()];
+    await expect(setPartnerConsent(deps(db), 'uid-purged', false))
+      .resolves.toEqual({ allowed: false, version: null });
+    await expect(setPartnerConsent(deps(db), 'uid-purged', false))
+      .resolves.toEqual({ allowed: false, version: null });
+    expect([...db._store.entries()]).toEqual(initial);
+    await expect(setPartnerConsent(deps(db), 'uid-purged', true))
+      .rejects.toMatchObject({ code: 'account_deletion_pending' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    const untracked = makeFirestore();
+    await expect(setPartnerConsent(deps(untracked), 'uid-purged', false))
+      .rejects.toMatchObject({ code: 'account_not_found' });
+  });
+
   it('allows consent withdrawal during pending deletion but denies a new grant', async () => {
     const db = makeFirestore([
       { collection: 'users', id: 'uid-deleting', data: {
