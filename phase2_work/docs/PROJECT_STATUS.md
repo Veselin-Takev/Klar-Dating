@@ -982,3 +982,7 @@ New partner assertions reject missing or invalid buyer `partnerReferralVersion` 
 
 ### 2026-10-18 — P0 #55/#56 consent-writer epoch integrity (draft)
 `setPartnerConsent` now rejects missing/invalid epoch on an already-granted consent instead of silently inferring version 1. Withdrawals at MAX_SAFE_INTEGER are also rejected to prevent overflow. Added in-memory negative tests and `docs/PARTNER_CONSENT_WRITER_EPOCH_GATE_2026-10-18.md`. Explicit legacy-quarantine/withdrawal and independent Privacy approval required. Full Node22/Vitest/Emulator checks NOT executed; **NO-GO**.
+
+
+### 2026-10-18 — P0 #56 withdrawal remains available for corrupt partner consent history (draft)
+`setPartnerConsent(false)` now revokes an existing grant even when its epoch is absent, malformed or exhausted. The transaction sets `partnerReferralConsent=false`, flags `partnerReferralEpochQuarantined=true`, emits signed withdrawal audit and returns nullable `version` rather than fabricating epoch 1; regrant remains denied pending privacy-approved migration. In-memory regression updated, docs: `docs/PARTNER_CONSENT_WITHDRAWAL_QUARANTINE_2026-10-18.md`. Full Node22/emulator/client/schema verification pending. **NO-GO.**
