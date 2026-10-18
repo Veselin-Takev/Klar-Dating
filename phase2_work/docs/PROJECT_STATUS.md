@@ -962,3 +962,7 @@ TTL script now denies staging activation unless target equals an explicit review
 
 ### 2026-10-18 — P0 #70 Retention-Matrix-Drift-Prüfung (Draft)
 `node scripts/check-retention-matrix.mjs` gleicht 13 TTL-Gruppen im staging-only Provisionierungsskript mit `docs/DATA_RETENTION.md` ab und stellt die sicherheitskritischen Dry-Run-/Identitäts-/Genehmigungs-Gates statisch sicher. Dokumentiert in `docs/RETENTION_POLICY_MATRIX_DRIFT_2026-10-18.md`. Keine Cloud-Aktivierung/Art.-17-E2E bestätigt. **NO-GO**.
+
+
+### 2026-10-18 – P0 #70 Retention-Dokumentation und negative Matrix-Regressionen (Draft)
+`docs/DATA_RETENTION.md` dokumentiert jetzt korrekt 13 TTL-Gruppen, Projekt-/Datenbank-gebundenen Staging-Dry-Run und den fehlenden Cloud-ACTIVE-Nachweis. Sechs lokale Negativmutationen in `scripts/test-retention-matrix.mjs` prüfen die Fail-Closed-Logik des Matrix-Gates. Siehe `docs/RETENTION_TTL_NEGATIVE_REGRESSIONS_2026-10-18.md`. Vollständige Node22-/Emulator-/Privacy-/Security-Freigaben ausstehend. **NO-GO**.
