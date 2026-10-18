@@ -305,7 +305,7 @@ export async function getPartnerConsentState(deps: PartnerReferralServiceDeps, u
   const snapshot = await deps.getFirestore().collection('users').doc(uid).get();
   const data = snapshot.data();
   requirePartnerUserData(data);
-  return { allowed: data?.partnerReferralConsent === true };
+  return { allowed: data?.partnerReferralConsent === true && data?.partnerReferralEpochQuarantined !== true };
 }
 
 export async function setPartnerConsent(
@@ -404,7 +404,7 @@ async function ensureReferralForCampaign(
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
     if (deletionSnap.exists || !userSnap.exists || userSnap.data()?.isAdult !== true
-      || userSnap.data()?.partnerReferralConsent !== true
+      || userSnap.data()?.partnerReferralConsent !== true || userSnap.data()?.partnerReferralEpochQuarantined === true
       || (Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) ? Number(userSnap.data()?.partnerReferralVersion) : 1) !== userVersion
       || !campaignIsActive(campaignSnap.data())) return false;
     if (referralSnap.exists) {
@@ -436,7 +436,7 @@ export async function listPartnerReferralLinks(
   const userSnap = await db.collection('users').doc(uid).get();
   const data = userSnap.data();
   const userState = requirePartnerUserData(data);
-  if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
+  if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
   const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
   const activeCampaigns = snapshot.docs
     .map(campaignFrom)
@@ -475,7 +475,7 @@ export async function recordPartnerInteraction(
   const userSnap = await userRef.get();
   const data = userSnap.data();
   const state = requirePartnerUserData(data);
-  if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
+  if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
   const campaign = campaignFrom(await campaignRef.get());
   if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
   const token = derivePartnerReferralToken(uid, campaign.id, state.version, referralSecret(deps));
@@ -488,7 +488,7 @@ export async function recordPartnerInteraction(
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
     const savedData = savedUser.data();
-    if (deletion.exists || savedData?.partnerReferralConsent !== true
+    if (deletion.exists || savedData?.partnerReferralConsent !== true || savedData?.partnerReferralEpochQuarantined === true
       || (Number.isSafeInteger(savedData?.partnerReferralVersion) ? Number(savedData?.partnerReferralVersion) : 1) !== state.version
       || !campaignIsActive(savedCampaign.data()) || !referral.exists || referral.data()?.ownerUid !== uid) {
       throw new PartnerReferralError(409, 'partner_interaction_stale', 'Der Partnerlink ist nicht mehr aktuell. Bitte lade die Übersicht neu.');
@@ -544,6 +544,7 @@ export async function recordPartnerClick(
   const destination = directDestination(campaign.destinationUrl);
   const ownerData = ownerSnap.data();
   const activeConsent = ownerData?.partnerReferralConsent === true
+    && ownerData?.partnerReferralEpochQuarantined !== true
     && (Number.isSafeInteger(ownerData?.partnerReferralVersion) ? Number(ownerData?.partnerReferralVersion) : 1) === referralData.version
     && referralData.status === 'active';
   // Preview crawlers and the link owner's authenticated visit never earn clicks.
@@ -561,7 +562,7 @@ export async function recordPartnerClick(
     const owner = savedOwner.data();
     const referral = savedReferral.data();
     if (deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
-      || owner?.partnerReferralConsent !== true
+      || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
       || referral?.status !== 'active') return false;
     tx.update(referralRef, { clickCount: FieldValue.increment(1), lastClickAt: now, updatedAt: now });
@@ -628,9 +629,9 @@ export async function recordPartnerConversion(
     if (ownerDeletion.exists || buyerDeletion.exists || !campaignIsActive(campaign)
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
-      || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true
+      || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
-      || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true) {
+      || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true || buyer?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
     }
     // A withdrawn/re-granted consent is a different authorization epoch.
