@@ -732,7 +732,9 @@ export async function recordPartnerConversion(
         // Conversion assertion and buyer claim are created together. An
         // inconsistent timestamp indicates incomplete or altered evidence.
         || typeof eventSnap.data()?.createdAt !== 'string'
+        || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(eventSnap.data()!.createdAt)
         || !Number.isFinite(Date.parse(eventSnap.data()!.createdAt))
+        || new Date(Date.parse(eventSnap.data()!.createdAt)).toISOString() !== eventSnap.data()!.createdAt
         || buyerClaimSnap.data()?.createdAt !== eventSnap.data()?.createdAt) {
         throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
       }
