@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const data=JSON.parse(readFileSync(process.env.KLAR_CLAIM_MANIFEST_PATH ?? new URL('../docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json', import.meta.url),'utf8'));
+const releaseMode = process.argv.includes('--release');
+const canonicalManifest = new URL('../docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json', import.meta.url);
+// Release must always evaluate the committed canonical matrix; external manifest
+// paths are only for isolated local mutation tests and cannot authorize shipping.
+if (releaseMode && process.env.KLAR_CLAIM_MANIFEST_PATH) {
+ console.error('NO-GO: release manifest override is forbidden');
+ process.exit(1);
+}
+const manifestPath = releaseMode ? canonicalManifest : (process.env.KLAR_CLAIM_MANIFEST_PATH ?? canonicalManifest);
+const data=JSON.parse(readFileSync(manifestPath,'utf8'));
 const isHttpsEvidence = item => typeof item === 'string' && /^https:\/\/[^\s/]+\/[^\s]+$/.test(item) && !/example\.(com|org|net)/i.test(item);
 assert.equal(data.version,1);
 assert.equal(data.issue,47);
@@ -20,7 +29,7 @@ for(const claim of data.claims){
  }
 }
 const approved=data.claims.filter(c=>c.state==='approved');
-if(process.argv.includes('--release') && (data.releaseStatus !== 'GO' || approved.length!==data.claims.length)){
+if(releaseMode && (data.releaseStatus !== 'GO' || approved.length!==data.claims.length)){
  console.error('NO-GO: marketing claims are not independently evidenced and signed off');
  process.exitCode=1;
 }else{
