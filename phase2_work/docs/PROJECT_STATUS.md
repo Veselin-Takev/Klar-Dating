@@ -1102,3 +1102,11 @@ The source-level owner-referral deletion audit now rejects duplicate cascade sta
 **Missing release evidence:** The three new real Firestore Emulator integration cases are committed but **NOT RUN**; independently verify transaction conflicts, restarts and cross-buyer claim cleanup. Full Node22 TypeScript/Vitest/E2E/build/npm-audit suite, active Google Cloud TTL policies, legal-hold handling and independent DPO/Security/Legal approvals are also outstanding. Existing historical `RELEASE_MANIFEST.json` release-candidate fields describe earlier baselines and must not be mistaken for approval of this draft. No manual GitHub Actions run, no merge/deployment. **Production remains NO-GO.**
 
 Reference: `docs/ART17_PARTNER_REFERRAL_QUARANTINE_2026-10-18.md`.
+
+---
+
+## 2026-10-18 — P0 #56 pinned runtime preflight on documented branch head
+
+On exact source commit `c4d03eae44fa213d0af394fe71ea16a8e3ee1ccd`, an official SHA-256-verified Node **22.23.3** binary was used to execute `npm run check:art17-deletion-audit`: exit **0**, **7/7 storage**, **12/12 static mutation**, **6/6 functional quarantine mock** tests passed. Secrets, Firebase Admin auth-boundary, public Firestore-rules and AI PII source-boundary checks returned exit **0** when executed against the unchanged 1,131-file source tree. An initial secrets-check `INCOMPLETE` was caused by a temporary, external `node_modules` symlink introduced solely to run the isolated TypeScript tests; removing that symlink from the scan environment resolved it. No code was changed to bypass the scanner.
+
+**Still NO-GO:** Actual Firestore Emulator tests, provider conversion concurrency/fault injection, live GCP TTL ACTIVE evidence, full CI/typecheck/build/Playwright/npm audit and independent Security/Privacy/Legal review were not completed. This statement does not imply production approval.
