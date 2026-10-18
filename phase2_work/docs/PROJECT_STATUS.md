@@ -950,3 +950,7 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — Validated CODEOWNERS individual fallback (#73)
+The private repository is a personal User-owned repository; its owner @Veselin-Takev has admin access. Draft #76's unverified `@klar/*` teams have been replaced on a stacked draft branch with the confirmed account. Added `scripts/check-codeowners-owner.mjs` and `docs/CODEOWNERS_VALID_OWNER_GATE_2026-10-18.md`. This fixes owner identity, NOT independent Security/Finance approvals or branch-protection enforcement. Full gates and review remain outstanding. **NO-GO.**
