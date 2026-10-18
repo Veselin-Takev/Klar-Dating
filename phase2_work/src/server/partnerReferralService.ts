@@ -548,20 +548,31 @@ export async function recordPartnerClick(
     && (Number.isSafeInteger(ownerData?.partnerReferralVersion) ? Number(ownerData?.partnerReferralVersion) : 1) === referralData.version
     && referralData.status === 'active';
   // Preview crawlers and the link owner's authenticated visit never earn clicks.
-  if (!activeConsent || visitorUid === ownerUid || request.method !== 'GET'
+  if (!activeConsent || !visitorUid || visitorUid === ownerUid || request.method !== 'GET'
     || isAutomatedPartnerClick(request)) return { url: destination, tracked: false };
 
+  // Consent for the link owner does not authorize tracking an unrelated visitor.
+  const visitorRef = db.collection('users').doc(visitorUid);
+  const visitorDeletionRef = db.collection('account_deletions').doc(visitorUid);
+  const visitorSnap = await visitorRef.get();
+  if (!visitorSnap.exists || visitorSnap.data()?.isAdult !== true
+    || visitorSnap.data()?.partnerReferralConsent !== true || visitorSnap.data()?.partnerReferralEpochQuarantined === true) {
+    return { url: destination, tracked: false };
+  }
   const ledger = makeLedger(deps, 'referral_click_counted', null, { ownerUid, campaignId, referralId });
   const now = nowIso(deps);
   const tracked = await db.runTransaction(async tx => {
     const deletionRef = db.collection('account_deletions').doc(ownerUid);
-    const [savedReferral, savedCampaign, savedOwner, deletion] = await tx.getAll(referralRef, campaignRef, ownerRef, deletionRef);
-    if (!savedReferral || !savedCampaign || !savedOwner || !deletion) {
+    const [savedReferral, savedCampaign, savedOwner, deletion, savedVisitor, visitorDeletion] = await tx.getAll(referralRef, campaignRef, ownerRef, deletionRef, visitorRef, visitorDeletionRef);
+    if (!savedReferral || !savedCampaign || !savedOwner || !deletion || !savedVisitor || !visitorDeletion) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
     const owner = savedOwner.data();
     const referral = savedReferral.data();
-    if (deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
+    if (visitorDeletion.exists || !savedVisitor.exists
+      || savedVisitor.data()?.isAdult !== true
+      || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
+      || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
       || referral?.status !== 'active') return false;
