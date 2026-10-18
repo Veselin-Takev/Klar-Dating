@@ -19,3 +19,7 @@ The quarantine operation returns `updated`, `already_deleting`, or `missing`. Th
 **Evidence requirement:** Do not count emulator test cases as passed without an executed emulator job. An isolated mock test validates the helper contract but not Firestore's distributed locking, transaction retry behavior, recovery, completeness, or legal holds.
 
 The static Art. 17 gate continues to enforce the quarantine-before-child-delete order; the negative mutation suite must reject removal of the quarantine call. Full Node 22.23.3, TypeScript, Firebase Rules/Emulator, Playwright/build, real TTL policy evidence and independently approved DPO/Security/Legal review remain mandatory. **NO-GO**.
+
+## Verified local check (2026-10-18)
+
+The integrated `npm run check:art17-deletion-audit` command returned exit code 0 under an officially checksum-verified Node 22.23.3 binary for source commit `f83c84acbc3f03fbedb6583cb54ae61abae8eff0`. The **7 storage checks**, **12 static deletion mutation checks** and **6 in-memory quarantine contract tests** passed. The Firestore Emulator scenarios have not been executed. Repeat all gates on the final integration SHA; **NO-GO**.
