@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — Partner visitor-consent and token egress gate (#56)
+Only an authenticated adult visitor with live partner consent and no account deletion may trigger the tracked redirect; invalid or unconsented visits use a direct destination without an attribution token. The Firestore tracking transaction checks visitor consent and deletion again to prevent a mid-request withdrawal race. Run `node scripts/check-partner-visitor-consent.mjs` locally and the full release gates at exact head. Cross-border token transfer and partner contract review remain legally outstanding. NO-GO.
