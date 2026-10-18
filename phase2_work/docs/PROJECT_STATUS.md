@@ -1002,3 +1002,7 @@ Second `setPartnerConsent(false)` request on a quarantined, already-revoked prof
 
 ### 2026-10-18 – P0 #56 consent withdrawal during pending account deletion (draft)
 `setPartnerConsent(false)` now works when `account_deletions/{uid}` exists while grant remains denied. Regression covers pending deletion, repeat withdrawal/audit idempotency and no regrant; see `docs/PARTNER_WITHDRAW_DURING_DELETION_2026-10-18.md`. Deletion-worker ordering and full Node22/Vitest/Emulator/privacy gates unverified. **NO-GO.**
+
+
+### 2026-10-18 – P0 #56 consent withdrawal after profile purge (draft)
+When account deletion is recorded and the user profile is already missing, withdrawal now returns `{allowed:false,version:null}` without recreating personal records or audit entries. New grants still fail; missing user without deletion marker continues to fail. In-memory Vitest regression and `docs/PARTNER_WITHDRAW_AFTER_PROFILE_PURGE_2026-10-18.md` added. Complete deletion proof and Node22/Emulator testing pending. **NO-GO.**
