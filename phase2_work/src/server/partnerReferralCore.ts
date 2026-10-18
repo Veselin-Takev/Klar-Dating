@@ -52,6 +52,11 @@ export function validatePartnerDestinationUrl(value: unknown): string {
   }
   // A campaign must never pre-seed the attribution parameter. Otherwise
   // even a consentless direct redirect can leak a preconfigured identifier.
+  // Fragments are visible to third-party JavaScript even though HTTP does not send them.
+  // Deny all campaign fragments rather than guessing how external SPAs decode attribution.
+  if (url.hash) {
+    throw new PartnerReferralError(400, 'unsafe_destination', 'Die Partner-URL darf kein URL-Fragment enthalten.');
+  }
   if ([...url.searchParams.keys()].some(key => key.toLowerCase() === 'klar_referral')) {
     throw new PartnerReferralError(400, 'unsafe_destination', 'Die Partner-URL enthält einen reservierten Trackingparameter.');
   }
