@@ -514,6 +514,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
         .where('ownerUid', '==', meineUid).limit(BATCH).get();
       if (ownedReferrals.empty) break;
       for (const referral of ownedReferrals.docs) {
+        checkDeletionSlice();
         await loescheAbfrage(db.collection('partner_referral_buyer_claims')
           .where('referralId', '==', referral.id));
         // Do not remove the parent pointer until dependent buyer claims are gone.
