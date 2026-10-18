@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const data=JSON.parse(readFileSync(new URL('../docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json', import.meta.url),'utf8'));
+const data=JSON.parse(readFileSync(process.env.KLAR_CLAIM_MANIFEST_PATH ?? new URL('../docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json', import.meta.url),'utf8'));
+const isHttpsEvidence = item => typeof item === 'string' && /^https:\/\/[^\s/]+\/[^\s]+$/.test(item) && !/example\.(com|org|net)/i.test(item);
 assert.equal(data.version,1);
 assert.equal(data.issue,47);
-assert.equal(data.releaseStatus,'NO-GO');
+assert.ok(['NO-GO','GO'].includes(data.releaseStatus), 'Invalid declared release status');
 const required=['verification','daily_proposals','free_use','selection','referral'];
 assert.deepEqual(data.claims.map(c=>c.id).sort(),required.sort());
 for(const claim of data.claims){
@@ -12,14 +13,16 @@ for(const claim of data.claims){
  assert.ok(Array.isArray(claim.evidence),claim.id+' evidence must be array');
  for(const role of ['product','legal','brand'])assert.ok(Object.hasOwn(claim.owners,role),claim.id+' missing reviewer role');
  if(claim.state==='approved'){
-  assert.ok(claim.evidence.length>0,claim.id+' cannot be approved without evidence');
-  for(const role of ['product','legal','brand'])assert.ok(typeof claim.owners[role]==='string'&&claim.owners[role].trim(),claim.id+' missing '+role+' signoff');
+  assert.ok(claim.evidence.length>=2 && claim.evidence.every(isHttpsEvidence),claim.id+' requires 2 concrete HTTPS evidence links (product behavior and test)');
+  assert.equal(new Set(claim.evidence).size, claim.evidence.length,claim.id+' cannot reuse evidence references');
+  for(const role of ['product','legal','brand'])assert.ok(typeof claim.owners[role]==='string'&&/^@[A-Za-z0-9-]{1,39}$/.test(claim.owners[role]),claim.id+' must name a GitHub reviewer for '+role);
+  assert.equal(new Set(Object.values(claim.owners)).size,3,claim.id+' requires distinct Product/Legal/Brand reviewers');
  }
 }
 const approved=data.claims.filter(c=>c.state==='approved');
-if(process.argv.includes('--release') && approved.length!==data.claims.length){
+if(process.argv.includes('--release') && (data.releaseStatus !== 'GO' || approved.length!==data.claims.length)){
  console.error('NO-GO: marketing claims are not independently evidenced and signed off');
  process.exitCode=1;
 }else{
- console.log('PASS: claim manifest valid; approved '+approved.length+'/'+data.claims.length+'; release '+(approved.length===data.claims.length?'review required':'BLOCKED'));
+ console.log('PASS: claim manifest structurally valid; approved '+approved.length+'/'+data.claims.length+'; release '+data.releaseStatus+' (external approval not validated)');
 }
