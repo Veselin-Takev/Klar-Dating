@@ -20,7 +20,7 @@ export async function quarantineOwnedPartnerReferral(
   // A nested users/{uid}/partner_referrals/{id} ref has the same parent ID.
   // Restrict erasure to the canonical root collection, not just its last segment.
   if (!ownerUid || typeof referralRef?.path !== 'string'
-    || !/^partner_referrals\\/[^/]+$/.test(referralRef.path)
+    || !/^partner_referrals\/[^/]+$/.test(referralRef.path)
     || referralRef.parent.id !== 'partner_referrals') {
     throw new Error('partner_referral_quarantine_invalid_target');
   }
