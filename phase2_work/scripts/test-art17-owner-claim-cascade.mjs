@@ -62,6 +62,11 @@ try {
       to: 'void referral.id;',
     },
     {
+      name: 'omit per-referral slice guard',
+      from: 'for (const referral of ownedReferrals.docs) {\n        checkDeletionSlice();',
+      to: 'for (const referral of ownedReferrals.docs) {',
+    },
+    {
       name: 'omit buyer-claim deletion',
       from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')\n          .where('referralId', '==', referral.id));",
       to: 'void referral.id;',
@@ -80,7 +85,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (5 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (6 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
