@@ -329,6 +329,12 @@ export async function setPartnerConsent(
     const validEpoch = typeof data?.partnerReferralVersion === 'number'
       && Number.isSafeInteger(data.partnerReferralVersion)
       && data.partnerReferralVersion >= 1;
+    // A repeated withdrawal of quarantined consent is a read-only no-op.
+    // Never backfill an invalid legacy epoch on this idempotent path.
+    if (!allowed && data?.partnerReferralEpochQuarantined === true && !currentlyAllowed) {
+      result = { allowed: false, version: null };
+      return;
+    }
     if (allowed && data?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(409, 'partner_consent_epoch_quarantined', 'Die frühere Einwilligung muss vor einer erneuten Zustimmung geprüft werden.');
     }
