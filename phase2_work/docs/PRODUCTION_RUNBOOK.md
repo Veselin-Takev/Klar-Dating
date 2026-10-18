@@ -150,3 +150,7 @@ Besucher-Consent erfordert eine explizite positive sichere Ganzzahl als Version,
 
 ### 2026-10-18 – Visitor epoch must remain constant across click preflight and transaction
 Reject tracked click if transactional visitor `partnerReferralVersion` differs from the positive safe version read during preflight; perform direct untracked redirect, no ledger/counter. Test the withdrawal/regrant race on pinned Node22 with Firestore Emulator before any release. **NO-GO**.
+
+
+### 2026-10-18 – Stable campaign destination during partner attribution
+A click may forward a `klar_referral` token only if transactionally re-read campaign `destinationUrl` equals preflight validated destination. Mismatch must disable attribution and ledger write; returning the old prevalidated URL is untracked. Verify with Node22 Vitest/Firebase Emulator and full release/privacy gates. **NO-GO**.
