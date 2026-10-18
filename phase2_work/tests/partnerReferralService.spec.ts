@@ -221,4 +221,66 @@ describe('Klar & Partner transactional service boundary', () => {
     expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
   });
 
+
+  it.each([
+    { scenario: 'buyer consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: false }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'buyer is a minor', buyer: { isAdult: false, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'owner consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'owner version revoked', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 2 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'campaign slug altered', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'different-partner', expectCode: 'conversion_not_eligible' },
+  ])('rejects an ineligible signed assertion: $scenario', async ({ buyer, owner, campaignSlug, expectCode }) => {
+    const ownerUid = 'owner-adversarial';
+    const buyerUid = 'buyer-adversarial';
+    const campaignId = 'campaign-adversarial';
+    const token = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const db = makeFirestore([
+      { collection: 'users', id: ownerUid, data: owner },
+      { collection: 'users', id: buyerUid, data: buyer },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, slug: campaignSlug, brandVerified: true, status: 'active', qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: partnerReferralDocumentId(token), data: { ownerUid, campaignId, version: 1, status: 'active', qualifiedConversions: 0 } },
+    ]);
+    await expect(recordPartnerConversion(deps(db), 'example-partner', {
+      event: 'qualified_conversion', eventId: 'provider-claim-adversarial', referralToken: token, buyerUid,
+    }, 'partner-provider-signing-secret-is-long-enough')).rejects.toMatchObject({ code: expectCode });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_buyer_claims/'))).toHaveLength(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+  });
+
+  it('rejects self-referral without persisting a conversion or buyer claim', async () => {
+    const ownerUid = 'owner-self';
+    const campaignId = 'campaign-self';
+    const token = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const db = makeFirestore([
+      { collection: 'partner_referrals', id: partnerReferralDocumentId(token), data: { ownerUid, campaignId, status: 'active', version: 1 } },
+    ]);
+    await expect(recordPartnerConversion(deps(db), 'example-partner', {
+      event: 'qualified_conversion', eventId: 'provider-claim-self', referralToken: token, buyerUid: ownerUid,
+    }, 'partner-provider-signing-secret-is-long-enough')).rejects.toMatchObject({ code: 'self_referral_rejected' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
+  });
+
+  it('does not award credit for multiple partner-asserted events on the same buyer', async () => {
+    const ownerUid = 'owner-repeat';
+    const buyerUid = 'buyer-repeat';
+    const campaignId = 'campaign-repeat';
+    const slug = 'example-partner';
+    const token = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const refId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: buyerUid, data: { isAdult: true, partnerReferralConsent: true } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, slug, brandVerified: true, status: 'active', qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: refId, data: { ownerUid, campaignId, version: 1, status: 'active', qualifiedConversions: 0 } },
+    ]);
+    const payload = { event: 'qualified_conversion' as const, eventId: 'provider-repeat-0001', referralToken: token, buyerUid };
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough')).resolves.toMatchObject({ rewardStatus: 'pending_verification' });
+    await expect(recordPartnerConversion(deps(db), slug, { ...payload, eventId: 'provider-repeat-0002' }, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'duplicate_conversion' });
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+    expect(db._store.get('partner_referrals/' + refId)?.qualifiedConversions).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
+  });
+
+
 });
