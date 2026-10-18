@@ -49,3 +49,7 @@ Buyer-claim cleanup may span multiple batches. The owner-referral purge now chec
 ## 2026-10-18 — Fail-closed section boundaries
 
 The static deletion audit now rejects missing or invalid start/end markers for the owner-referral cascade, rather than allowing JavaScript `slice()` with a negative index to silently inspect an unrelated region. Two additional mutation fixtures remove each boundary independently. This is a **source-level regression**, not an Emulator or production deletion-completeness proof. The release stays **NO-GO**.
+
+## 2026-10-18 — Unique owner-cascade section markers
+
+In addition to rejecting missing or reversed boundaries, the static Art. 17 audit must reject **duplicate** start/end markers. Two fault-injection fixtures insert a marker into a source comment while preserving the original one; the audit must fail closed rather than inspect an ambiguous range. This is source-level protection only, not evidence of Firebase Emulator integrity or a completed GDPR deletion. **NO-GO.**
