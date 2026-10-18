@@ -617,6 +617,16 @@ export async function recordPartnerConversion(
       // Both conversion and buyer-claim documents were atomically created.
       // Missing/mismatched links indicate tampering or incomplete migration:
       // do not acknowledge a corrupt replay as a successful duplicate.
+      // A valid HMAC binding cannot attest that persisted event fields were
+      // never changed independently. Quarantine inconsistent event records.
+      if (eventSnap.data()?.campaignId !== campaignId
+        || eventSnap.data()?.referralId !== referralId
+        || eventSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || eventSnap.data()?.ownerRef !== pseudonymousPartnerUid(ownerUid, idempotencySecret)
+        || eventSnap.data()?.proofStatus !== 'partner_assertion_only'
+        || eventSnap.data()?.rewardStatus !== 'pending_verification') {
+        throw new PartnerReferralError(409, 'partner_event_inconsistent', 'Der Partner-Ereignisdatensatz muss unabhängig überprüft werden.');
+      }
       if (!buyerClaimSnap.exists
         || buyerClaimSnap.data()?.conversionId !== eventIdHash
         || buyerClaimSnap.data()?.campaignId !== campaignId
