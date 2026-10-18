@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — P0 #55 conversion evidence and negative tests
+Before partner monetization approval run `npx vitest run tests/partnerReferralService.spec.ts` and the complete mandatory gates at exact PR head. Negative scenarios: buyer/owner consent withdrawal, underage buyer, wrong campaign, revoked referral version, self-referral, duplicate buyer event. Confirm no qualified conversion increments or earned rewards until independently verified purchase proof is available. In-memory tests are not Firebase Emulator contention validation. No deploy; **NO-GO**.
