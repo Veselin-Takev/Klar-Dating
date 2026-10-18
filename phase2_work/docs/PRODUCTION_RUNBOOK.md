@@ -162,3 +162,7 @@ Before redirecting, recompute the HMAC referral token for ownerUid, campaignId a
 
 ### 2026-10-18 – Signed referral metadata on conversion webhook
 Never acknowledge provider assertion or duplicate replay solely from referral document ID. Recompute signed token from original referral owner/campaign/consent epoch before processing; compare referral version in transaction with preflight. Invalid binding denies the conversion; do not credit rewards. Execute full Node22 Vitest/Emulator/security verification before release. **NO-GO**.
+
+
+### 2026-10-18 – Conversion event/claim timestamp consistency on retries
+Before acknowledging `duplicate:true`, verify that the original conversion event timestamp is a parseable string and that the buyer claim timestamp is identical; fail closed with `partner_claim_inconsistent` on mismatch. Never auto-migrate corrupt evidence. Run Node22.23.3 Vitest + Firebase Emulator and all independent evidence gates. **NO-GO**.
