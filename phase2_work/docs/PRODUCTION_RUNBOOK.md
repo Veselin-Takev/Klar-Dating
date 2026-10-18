@@ -138,3 +138,7 @@ If deletion marker exists and user doc is absent, treat a later `allowed=false` 
 
 ### 2026-10-18 — Idempotent already-denied partner consent
 When `partnerReferralConsent=false`, repeated `setPartnerConsent(false)` must be read-only and must not synthesize epoch 1, update timestamps or append audit. Return the valid unchanged version or `null` for legacy/malformed/quarantined version. Run Node22.23.3 Vitest + Firebase Emulator and verify client handling of nullable response. **NO-GO**.
+
+
+### 2026-10-18 – Owner consent epoch must be explicit
+For partner owner account, prohibit implicit version 1 in referral issuance, interactions, click tracking and signed conversion. Reject invalid epoch at link-list boundary with `partner_consent_epoch_missing`; ensure actual clicks/conversions stay uncredited. Run pinned Node22 Vitest and emulator concurrency tests plus all mandatory security and privacy gates before production. **NO-GO**.
