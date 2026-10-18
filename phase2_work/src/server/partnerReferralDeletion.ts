@@ -20,7 +20,7 @@ export async function quarantineOwnedPartnerReferral(
   if (!ownerUid || referralRef.parent.id !== 'partner_referrals') {
     throw new Error('partner_referral_quarantine_invalid_target');
   }
-  return db.runTransaction(async tx => {
+  return db.runTransaction<OwnerReferralQuarantineResult>(async tx => {
     const snapshot = await tx.get(referralRef);
     if (!snapshot.exists) return 'missing';
     if (snapshot.data()?.ownerUid !== ownerUid) {
