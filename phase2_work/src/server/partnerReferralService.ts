@@ -639,6 +639,14 @@ export async function recordPartnerConversion(
   const ownerUid = typeof initial.ownerUid === 'string' ? initial.ownerUid : '';
   if (!ownerUid || ownerUid === payload.buyerUid) throw new PartnerReferralError(409, 'self_referral_rejected', 'Selbst-Empfehlungen sind nicht prämienberechtigt.');
   const campaignId = typeof initial.campaignId === 'string' ? initial.campaignId : '';
+  const initialVersion = initial.version;
+  // A referral document ID does not prove mutable owner/campaign/version fields
+  // still belong to the signed token; verify the HMAC binding before processing
+  // any provider assertion.
+  if (!campaignId || !Number.isSafeInteger(initialVersion) || initialVersion < 1
+    || derivePartnerReferralToken(ownerUid, campaignId, initialVersion, referralSecret(deps)) !== payload.referralToken) {
+    throw new PartnerReferralError(404, 'partner_link_not_found', 'Der verknüpfte Partnerlink wurde nicht gefunden.');
+  }
   const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
   const ownerRef = db.collection('users').doc(ownerUid);
   const buyerRef = db.collection('users').doc(payload.buyerUid);
@@ -679,6 +687,7 @@ export async function recordPartnerConversion(
     if (ownerDeletion.exists || buyerDeletion.exists || !campaignIsActive(campaign)
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
+      || referral?.version !== initialVersion
       || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true || buyer?.partnerReferralEpochQuarantined === true) {
