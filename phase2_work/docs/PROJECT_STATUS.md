@@ -1082,3 +1082,11 @@ Before the owner referral document is deleted, the account-erasure worker now in
 The Art. 17 static source audit now checks the presence and order of both owner-referral cleanup section boundaries before evaluating the child-before-parent controls. This removes the risk of JavaScript `slice()` silently using an invalid `-1` boundary and scanning the wrong source section. Two new isolated mutation fixtures remove each anchor independently, bringing the suite to **nine** cases.
 
 **Executed evidence:** On exact GitHub source commit `b630167111994ae782ab7b0eb551dbc2ea70ff5b`, the baseline and **9/9 negative mutations** passed with the available Node **20.20.2** runtime. The source ZIP contains 1,251 entries and passed archive CRC inspection. These checks are static only; the final Node 22.23.3 integrated gate, Firestore Emulator restart/concurrency, npm audit, typecheck, Playwright/build and independent Privacy/Legal/Security approvals remain **NOT VERIFIED**. No production release, merge or deployment; **NO-GO**.
+
+---
+
+## 2026-10-18 — Art. 17 static boundary uniqueness (Draft PR #118)
+
+The source-level owner-referral deletion audit now rejects duplicate cascade start/end markers as well as absent or invalid boundaries, eliminating ambiguous first-occurrence selections when a marker is duplicated in comments or generated source. Two additional fault injections increased the suite to 11 cases. **Actual offline evidence:** On exact GitHub commit `0a835dfd69eceda687f46f14f75707ecb6a35c21`, Node 20.20.2, static baseline PASS and **11/11 negative mutation regressions PASS**. Source ZIP CRC PASS (1,251 entries).
+
+**NO-GO:** Full Node 22.23.3 mandatory suite on final SHA, Firestore Emulator restart/concurrency, TypeScript, Playwright, npm audit, real Firestore TTL ACTIVE proof and independent Privacy/Legal/Security reviews are not verified. This is a test-boundary improvement, not a completed Art. 17 deletion proof; no merge or deployment.
