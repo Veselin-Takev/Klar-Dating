@@ -175,17 +175,25 @@ describe('Klar & Partner transactional service boundary', () => {
         data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: invalid } }]);
       await expect(setPartnerConsent(deps(db), 'uid-1', true))
         .rejects.toMatchObject({ code: 'partner_consent_epoch_inconsistent' });
-      await expect(setPartnerConsent(deps(db), 'uid-1', false))
-        .rejects.toMatchObject({ code: 'partner_consent_epoch_inconsistent' });
+      expect(await setPartnerConsent(deps(db), 'uid-1', false))
+        .toEqual({ allowed: false, version: null });
+      expect(db._store.get('users/uid-1')?.partnerReferralConsent).toBe(false);
+      expect(db._store.get('users/uid-1')?.partnerReferralEpochQuarantined).toBe(true);
       expect(db._store.get('users/uid-1')?.partnerReferralVersion).toBe(invalid);
-      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+      await expect(setPartnerConsent(deps(db), 'uid-1', true))
+        .rejects.toMatchObject({ code: 'partner_consent_epoch_quarantined' });
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
     }
     const full = makeFirestore([{ collection: 'users', id: 'uid-1',
       data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: Number.MAX_SAFE_INTEGER } }]);
-    await expect(setPartnerConsent(deps(full), 'uid-1', false))
-      .rejects.toMatchObject({ code: 'partner_consent_epoch_exhausted' });
-    expect(full._store.get('users/uid-1')?.partnerReferralConsent).toBe(true);
-    expect([...full._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    expect(await setPartnerConsent(deps(full), 'uid-1', false))
+      .toEqual({ allowed: false, version: null });
+    expect(full._store.get('users/uid-1')?.partnerReferralConsent).toBe(false);
+    expect(full._store.get('users/uid-1')?.partnerReferralEpochQuarantined).toBe(true);
+    expect(full._store.get('users/uid-1')?.partnerReferralVersion).toBe(Number.MAX_SAFE_INTEGER);
+    await expect(setPartnerConsent(deps(full), 'uid-1', true))
+      .rejects.toMatchObject({ code: 'partner_consent_epoch_quarantined' });
+    expect([...full._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
   });
 
   it('opens a partner directly without counting the referrer’s own open as a tracked click', async () => {
