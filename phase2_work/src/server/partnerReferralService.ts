@@ -338,10 +338,15 @@ export async function setPartnerConsent(
     const validEpoch = typeof data?.partnerReferralVersion === 'number'
       && Number.isSafeInteger(data.partnerReferralVersion)
       && data.partnerReferralVersion >= 1;
-    // A repeated withdrawal of quarantined consent is a read-only no-op.
-    // Never backfill an invalid legacy epoch on this idempotent path.
-    if (!allowed && data?.partnerReferralEpochQuarantined === true && !currentlyAllowed) {
-      result = { allowed: false, version: null };
+    // Withdrawing an already-denied consent must not synthesize an epoch,
+    // change timestamps or create another personal audit record, regardless
+    // of whether the historical profile has been quarantined.
+    if (!allowed && !currentlyAllowed) {
+      result = {
+        allowed: false,
+        version: data?.partnerReferralEpochQuarantined === true || !validEpoch
+          ? null : data.partnerReferralVersion as number,
+      };
       return;
     }
     if (allowed && data?.partnerReferralEpochQuarantined === true) {
