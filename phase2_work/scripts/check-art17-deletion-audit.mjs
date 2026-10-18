@@ -37,6 +37,19 @@ if (perReferralSlice < 0) {
   failures.push('owner referral iteration must check deletion slice before each child purge');
 }
 const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(db.collection('partner_referral_buyer_claims')");
+const quarantine = ownerCascade.indexOf('await quarantineOwnedPartnerReferral(db, referral.ref, meineUid)');
+if (quarantine < 0 || !(quarantine < claimDeletion)) {
+  failures.push('owner referral must be transactionally quarantined before buyer claims are purged');
+}
+const quarantineSource = readFileSync('src/server/partnerReferralDeletion.ts', 'utf8');
+for (const required of [
+  'return db.runTransaction(async tx =>',
+  'const snapshot = await tx.get(referralRef);',
+  "if (snapshot.data()?.ownerUid !== ownerUid)",
+  "tx.update(referralRef, { status: 'deleting' });",
+]) {
+  if (!quarantineSource.includes(required)) failures.push('missing transactional quarantine guard: ' + required);
+}
 const parentDeletion = ownerCascade.indexOf("await referral.ref.delete()");
 const beforeParentGuard = ownerCascade.indexOf('checkDeletionSlice();\n        // Do not remove the parent pointer');
 if (beforeParentGuard < 0 || !(claimDeletion < beforeParentGuard && beforeParentGuard < parentDeletion)) {
