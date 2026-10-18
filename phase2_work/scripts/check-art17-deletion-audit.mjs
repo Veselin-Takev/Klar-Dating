@@ -20,6 +20,10 @@ for (const token of [
 // conversions would leave orphaned buyer claims after account erasure.
 const ownerCascade = purge.slice(purge.indexOf('const ownedReferrals ='), purge.indexOf("for (const field of ['ownerRef', 'buyerRef'])"));
 const lookup = ownerCascade.indexOf(".where('referralId', '==', referral.id)");
+const perReferralSlice = ownerCascade.indexOf('for (const referral of ownedReferrals.docs) {\\n        checkDeletionSlice();');
+if (perReferralSlice < 0) {
+  failures.push('owner referral iteration must check deletion slice before each child purge');
+}
 const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(db.collection('partner_referral_buyer_claims')");
 const parentDeletion = ownerCascade.indexOf("await referral.ref.delete()");
 if (lookup < 0 || claimDeletion < 0 || parentDeletion < 0 || !(claimDeletion < parentDeletion) || !(lookup < parentDeletion)) {
