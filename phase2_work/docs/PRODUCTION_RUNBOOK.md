@@ -94,3 +94,7 @@ Run `node scripts/test-marketing-claims.mjs`, then `node scripts/check-marketing
 
 ### 2026-10-18 — Trusted claim evidence URL preflight
 Approved product claims require at least one repository commit/PR/file reference and an actual, reviewed Actions run on the corresponding source revision; the local gate validates only trusted URL format and required classes. Review status/subject, SHA, successful test results and authorized Product/Legal/Brand approvals independently before using a GO status. `node scripts/test-marketing-claims.mjs` and `node scripts/check-marketing-claims.mjs --release` are mandatory local preflights. **NO-GO**.
+
+
+### 2026-10-18 – Marketing-Nachweispfade (P0 #47)
+Den Gate-Test `node scripts/test-marketing-claims.mjs` und den erwarteten NO-GO-Releasecheck auf exaktem Source-Stand ausführen. Nur echte numerische PR-/Run-IDs bzw. vollständige Git-Commit-Referenzen verwenden. Jede Referenz im authentifizierten GitHub prüfen (Existenz, CI-Status, Commit-SHA, Review-Berechtigung). Die URL-Prüfung selbst beweist keine Freigabe. **NO-GO.**
