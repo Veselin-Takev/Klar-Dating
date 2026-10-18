@@ -513,7 +513,7 @@ describe('Klar & Partner transactional service boundary', () => {
     // Event data is independently checked, not just its HMAC binding.
     const [eventKey, eventOriginal] = conversions[0]!;
     // Even matching event/claim timestamps cannot authenticate an invalid event time.
-    for (const invalidEventTime of [null, 123, 'not-a-date']) {
+    for (const invalidEventTime of [null, 123, 'not-a-date', '2026-10-18', '2026-10-18T12:00:00Z', '2026-02-30T00:00:00.000Z']) {
       db._store.set(eventKey, { ...eventOriginal, createdAt: invalidEventTime });
       db._store.set(claimKey, { ...originalClaim, createdAt: invalidEventTime });
       await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
