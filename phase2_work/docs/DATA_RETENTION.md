@@ -71,11 +71,18 @@ Client-seitige Schreibzugriffe sind blockiert (`allow write: if false;`), um Man
 Die Richtlinie ist erst aktiv, wenn die Plattformkonfiguration nachgewiesen ist:
 
 ```bash
-KLAR_PROJECT_ID=... KLAR_CONFIRM_RETENTION=... scripts/configure-retention.sh
-gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID"
+KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/configure-retention.sh  # DRY RUN ONLY
+# Nur nach unabhängiger Prüfung und dokumentierter Staging-/Legal-/Inventar-Freigabe:
+# KLAR_APPLY_RETENTION=true KLAR_ENVIRONMENT=staging KLAR_APPROVED_STAGING_PROJECT_ID=... \
+# KLAR_PRODUCTION_PROJECT_ID=... KLAR_CONFIRM_RETENTION='<project>/<database>' \
+# KLAR_RETENTION_LEGAL_APPROVED=true KLAR_RETENTION_INVENTORY_APPROVED=true \
+# KLAR_PROJECT_ID=... KLAR_DATABASE_ID=... bash scripts/configure-retention.sh
+gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
 ```
 
-Der zweite Befehl muss für alle neun Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+Der zweite Befehl muss für alle 13 dokumentierten Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+
+**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 13 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
 
 ### Kündigungsnachweise nach § 312k BGB
 
