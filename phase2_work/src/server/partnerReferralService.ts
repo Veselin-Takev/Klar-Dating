@@ -312,13 +312,13 @@ export async function setPartnerConsent(
   deps: PartnerReferralServiceDeps,
   uid: string,
   allowed: boolean,
-): Promise<{ allowed: boolean; version: number }> {
+): Promise<{ allowed: boolean; version: number | null }> {
   const db = deps.getFirestore();
   const userRef = db.collection('users').doc(uid);
   const deletionRef = db.collection('account_deletions').doc(uid);
   const now = nowIso(deps);
   const ledger = makeLedger(deps, allowed ? 'partner_consent_granted' : 'partner_consent_withdrawn', uid);
-  let result: { allowed: boolean; version: number } = { allowed, version: 1 };
+  let result: { allowed: boolean; version: number | null } = { allowed, version: null };
   await db.runTransaction(async tx => {
     const userSnap = await tx.get(userRef);
     const deletionSnap = await tx.get(deletionRef);
@@ -326,20 +326,33 @@ export async function setPartnerConsent(
     const data = userSnap.data();
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
-    // Never reconstruct a missing consent epoch for an already-authorized user.
-    // Only an explicit grant from the currently denied state may initialize v1.
-    if (currentlyAllowed && (typeof data?.partnerReferralVersion !== 'number'
-      || !Number.isSafeInteger(data.partnerReferralVersion)
-      || data.partnerReferralVersion < 1)) {
+    const validEpoch = typeof data?.partnerReferralVersion === 'number'
+      && Number.isSafeInteger(data.partnerReferralVersion)
+      && data.partnerReferralVersion >= 1;
+    if (allowed && data?.partnerReferralEpochQuarantined === true) {
+      throw new PartnerReferralError(409, 'partner_consent_epoch_quarantined', 'Die frühere Einwilligung muss vor einer erneuten Zustimmung geprüft werden.');
+    }
+    // Withdrawing consent must remain possible even when existing history is
+    // corrupt or has exhausted the safe integer range. Never synthesize an
+    // epoch or re-enable privileges: quarantine the epoch for manual review.
+    if (!allowed && currentlyAllowed && (!validEpoch || data.partnerReferralVersion === Number.MAX_SAFE_INTEGER)) {
+      tx.update(userRef, {
+        partnerReferralConsent: false,
+        partnerReferralEpochQuarantined: true,
+        partnerReferralConsentUpdatedAt: now,
+      });
+      tx.create(ledger.ref, withLedgerDetails(deps, ledger, {
+        partnerConsent: false, tokenVersion: validEpoch ? data.partnerReferralVersion : null,
+        epochQuarantined: true,
+      }));
+      result = { allowed: false, version: null };
+      return;
+    }
+    if (currentlyAllowed && !validEpoch) {
       throw new PartnerReferralError(409, 'partner_consent_epoch_inconsistent', 'Die vorhandene Partner-Einwilligung muss überprüft werden.');
     }
     let version = current.version;
-    if (!allowed && currentlyAllowed) {
-      if (version === Number.MAX_SAFE_INTEGER) {
-        throw new PartnerReferralError(409, 'partner_consent_epoch_exhausted', 'Die Partner-Einwilligungsversion kann nicht weiter erhöht werden.');
-      }
-      version += 1;
-    }
+    if (!allowed && currentlyAllowed) version += 1;
     if (currentlyAllowed === allowed && Number(data?.partnerReferralVersion) === version) {
       result = { allowed, version };
       return;
