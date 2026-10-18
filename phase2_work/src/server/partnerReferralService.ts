@@ -572,6 +572,12 @@ export async function recordPartnerConversion(
   // claim identifiers use the stable audit key, not the rotating campaign webhook key.
   const idempotencySecret = auditSecret(deps);
   const eventIdHash = partnerWebhookEventDocumentId(slug, payload.eventId, idempotencySecret);
+  // The event ID is an idempotency key, not permission to change its buyer or referral.
+  // Bind the original provider assertion with a domain-separated stable HMAC,
+  // never storing the plain buyer UID, token, or partner event ID.
+  const eventBinding = crypto.createHmac('sha256', idempotencySecret)
+    .update(JSON.stringify(['klar-partner-event-binding:v1', slug, payload.eventId, payload.referralToken, payload.buyerUid]), 'utf8')
+    .digest('hex');
   const eventRef = db.collection(CONVERSIONS).doc(eventIdHash);
   const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret));
   const now = nowIso(deps);
@@ -589,7 +595,13 @@ export async function recordPartnerConversion(
     if (!referralSnap || !campaignSnap || !ownerSnap || !buyerSnap || !ownerDeletion || !buyerDeletion || !eventSnap || !buyerClaimSnap) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    if (eventSnap.exists) return { duplicate: true as const };
+    if (eventSnap.exists) {
+      // Legacy records lacking a binding must be reviewed, never silently trusted.
+      if (eventSnap.data()?.eventBinding !== eventBinding) {
+        throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
+      }
+      return { duplicate: true as const };
+    }
     const referral = referralSnap.data();
     const campaign = campaignSnap.data();
     const owner = ownerSnap.data();
@@ -611,6 +623,7 @@ export async function recordPartnerConversion(
       buyerRef: buyerRefHash,
       rewardStatus: 'pending_verification',
       proofStatus: 'partner_assertion_only',
+      eventBinding,
       rewardLabel: String(campaign.rewardLabel ?? ''),
       createdAt: now,
     });
