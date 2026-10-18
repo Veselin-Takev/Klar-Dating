@@ -962,3 +962,7 @@ The claim gate rejects placeholder evidence, same-person role endorsements and a
 
 ### 2026-10-18 — P0 #47 canonical claim manifest pinned (draft)
 Release-mode `scripts/check-marketing-claims.mjs --release` now rejects `KLAR_CLAIM_MANIFEST_PATH` and always reads the committed matrix; local mutation tests may still supply fixtures outside release mode. Test checks forged GO override fails. Claims remain 0/5 approved; independent evidence verification, review authority, trusted CI, branch protection and full Mandatory Gates remain outstanding. Details: `docs/MARKETING_CANONICAL_MANIFEST_RELEASE_GATE_2026-10-18.md`. **NO-GO.**
+
+
+### 2026-10-18 — P0 #47 trusted evidence URL gate (draft)
+Claim approval references now require implementation and Actions-run URL shapes scoped to `github.com/Veselin-Takev/Klar-Dating`. External URLs, userinfo, missing test runs and alternate release manifests are rejected by mutation checks. `docs/MARKETING_TRUSTED_EVIDENCE_ORIGIN_2026-10-18.md` details external evidence and reviewer validation still missing. Five claims remain BLOCKED; NO-GO.
