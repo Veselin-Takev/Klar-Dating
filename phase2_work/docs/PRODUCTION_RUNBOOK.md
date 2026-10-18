@@ -86,3 +86,7 @@ Only an authenticated adult visitor with live partner consent and no account del
 
 ### 2026-10-18 — Public partner redirect and anonymous Firebase auth
 Both pre-authenticated `req.user` and optional verified Bearer JWT paths reject `firebase.sign_in_provider=anonymous`. Anonymous visitors receive only direct untracked redirects after existing campaign checks. Run `node scripts/check-partner-visitor-auth-boundary.mjs` and then HTTP emulator integration and the full pinned Node22.23.3 mandatory gates; see `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Independent Privacy/Legal review needed. **NO-GO.**
+
+
+### 2026-10-18 — Firebase revocation-aware optional partner Bearer token
+The public click route now rejects revoked Firebase ID tokens via `verifyIdToken(token, true)`. On Auth outage/rejection the untracked direct redirect is used. This adds Firebase Auth latency/dependency; validate telemetry. Run `node scripts/check-partner-visitor-auth-boundary.mjs` locally and emulator tests for revoked/disabled/anonymous/valid account tokens. Independently audit whether trusted middleware `req.user` checks token revocation. Full Mandatory Gates plus Privacy sign-off required; **NO-GO**.
