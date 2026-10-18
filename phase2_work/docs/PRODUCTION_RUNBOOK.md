@@ -118,3 +118,7 @@ If a previously allowed partner consent has malformed/exhausted `partnerReferral
 
 ### 2026-10-18 — Quarantine must deny partner privileges everywhere
 Reject partner activity whenever `partnerReferralEpochQuarantined === true`, regardless of a stale restored `partnerReferralConsent=true`. Check both buyer/owner conversions and click attribution. Withdrawal remains available. Run full Vitest and Firebase Emulator matrix and verify rules against unauthorized profile updates; release NO-GO until approved.
+
+
+### 2026-10-18 — Visitor consent preserved across stacked partner fixes
+During full-source integration, restored the authenticated visitor, adult-consent and transactionally checked visitor deletion safeguards from draft #87 to the latest partner service; now also blocks visitor, buyer and owner quarantine state. Static gate `scripts/check-partner-visitor-consent.mjs` extended for quarantine. Full HTTP and emulator behavior not verified. **NO-GO.**
