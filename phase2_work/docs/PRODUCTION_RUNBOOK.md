@@ -86,3 +86,7 @@ Development branch `fix/p0-retention-safeguards-2026-10-18` contains a dry-run-f
 
 ### 2026-10-18 — Firestore TTL staging identity safeguard
 For staging activation, set and independently review `KLAR_APPROVED_STAGING_PROJECT_ID` and `KLAR_PRODUCTION_PROJECT_ID`, distinct and explicit. The provisioning tool additionally requires a live read-only `gcloud projects describe` result with `labels.environment=staging`; missing/mismatched labels fail closed. Dry-run never calls gcloud. Run `bash scripts/test-retention-project-identity.sh` locally. Detailed review gate: `docs/RETENTION_STAGING_IDENTITY_GATE_2026-10-18.md`. Production retention policies, IAM, legal holds, backups and safety remain unverified; **NO-GO**.
+
+
+### 2026-10-18 — P0 #70 retention matrix drift regression
+Execute `node scripts/check-retention-matrix.mjs` with the existing TTL dry-run and mocked staging identity checks. Any mismatch among the 13 documented expiry groups or loss of a preflight guard fails the release check. This does not assert live ACTIVE policies. Require independent Legal/Privacy approval, Cloud staging inventory and ACTIVE evidence before GO.
