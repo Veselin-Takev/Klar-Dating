@@ -4,6 +4,11 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../src/server/db';
 import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDeletion';
 
+// Dedicated runners set this flag and must never silently skip.
+if (process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' && !process.env.FIRESTORE_EMULATOR_HOST) {
+  throw new Error('art17_firestore_emulator_required');
+}
+
 // Run with the real Firestore emulator. This file skips outside emulator mode
 // so ordinary unit-test jobs cannot write to a live Firebase project.
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine (Firestore Emulator)', () => {
@@ -57,6 +62,45 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     expect((await claimRef.get()).exists).toBe(false);
     expect((await referralRef.get()).exists).toBe(false);
   }, 20_000);
+
+  it('does not strand claims when assertions race the owner quarantine', async () => {
+    const db = getDb();
+    const owner = 'owner-' + randomUUID();
+    const referral = db.collection('partner_referrals').doc('erasure-' + randomUUID());
+    const claimedA = db.collection('partner_referral_buyer_claims').doc('claim-' + randomUUID());
+    const claimedB = db.collection('partner_referral_buyer_claims').doc('claim-' + randomUUID());
+    paths.push(referral.path, claimedA.path, claimedB.path);
+    await referral.set({ ownerUid: owner, status: 'active' });
+
+    // Model the status predicate of the real conversion service. A writer
+    // committed before quarantine may create a claim; one serialized after it
+    // must not. The subsequent deletion sweep must remove either outcome.
+    const tryClaim = (claim: typeof claimedA) => db.runTransaction(async tx => {
+      const snapshot = await tx.get(referral);
+      if (!snapshot.exists || snapshot.data()?.status !== 'active') return 'rejected';
+      tx.create(claim, { referralId: referral.id, buyerRef: 'other-buyer' });
+      return 'accepted';
+    });
+    const outcomes = await Promise.all([
+      quarantineOwnedPartnerReferral(db, referral, owner),
+      tryClaim(claimedA),
+      tryClaim(claimedB),
+    ]);
+    expect(outcomes[0]).toBe('updated');
+    expect((await referral.get()).data()?.status).toBe('deleting');
+
+    const children = await db.collection('partner_referral_buyer_claims')
+      .where('referralId', '==', referral.id).get();
+    const batch = db.batch();
+    children.docs.forEach(child => batch.delete(child.ref));
+    if (!children.empty) await batch.commit();
+    await referral.delete();
+
+    expect((await db.collection('partner_referral_buyer_claims')
+      .where('referralId', '==', referral.id).get()).empty).toBe(true);
+    expect(await tryClaim(db.collection('partner_referral_buyer_claims').doc('late-' + randomUUID())))
+      .toBe('rejected');
+  }, 30_000);
 
   it('rejects a changed owner without a destructive write', async () => {
     const db = getDb();
