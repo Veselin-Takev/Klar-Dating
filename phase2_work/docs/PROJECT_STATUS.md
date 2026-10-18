@@ -1026,3 +1026,7 @@ Klicktracking bindet die beim Vorabcheck festgestellte `visitorConsentVersion` a
 
 ### 2026-10-18 – P0 #55/#56 Kampagnen-Zieladresse beim Klick konsistent halten (Draft)
 Die Klicktransaktion fordert nun dieselbe validierte `destinationUrl` wie beim Vorabcheck. Bei einer Zieländerung vor der Transaktion wird nur ungetrackt weitergeleitet, ohne Zähler-/Audit-Schreibvorgang und ohne Tracking-Token. Statischer Check und Race-Vitest ergänzt; siehe `docs/PARTNER_CLICK_DESTINATION_RACE_2026-10-18.md`. Volle Node22- und Emulator-Gates noch ausstehend. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55/#56 signierte Partnerlink-Metadatenbindung (Draft)
+Klicktracking validiert nun die HMAC-Tokenbindung an gespeicherte `ownerUid`-, `campaignId`- und `version`-Werte vor dem Kampagnenzugriff. In der Firestore-Transaktion werden diese Werte erneut geprüft, um Metadatenwechsel nicht attributierbar zu machen. In-Memory-Manipulations- und Race-Tests ergänzt; siehe `docs/PARTNER_CLICK_TOKEN_RECORD_BINDING_2026-10-18.md`. Volle Node22-/Emulator-/Security-Gates ausstehend. **NO-GO**.
