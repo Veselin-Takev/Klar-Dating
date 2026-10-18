@@ -94,3 +94,7 @@ A replay with a valid event HMAC but missing or inconsistent buyer claim must yi
 
 ### 2026-10-18 — Partner replay event record guard (#55)
 Validate that an existing conversion's campaign/referral, pseudonymous buyer/owner and assertion-only pending statuses are unchanged before duplicate acknowledgment. A 409 `partner_event_inconsistent` requires authorized quarantine/reconciliation, never auto-repair. Before future settlement features, explicitly version this invariant and test legitimate verified-state transitions. Execute pinned Node22.23.3 Vitest and Emulator suites; obtain Privacy/Security/Finance approval. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 Audit-Ledger: Partnerbehauptung ist keine Kaufverifikation
+Bei neuen Providerwebhooks nur `partner_conversion_asserted` als Auditereignis erwarten; `partner_conversion_verified` als Legacy-Auditlabel vor unabhängiger Kaufverifikation NICHT als echten Kauf interpretieren. Bestehende HMAC-Audit-Einträge nie überschreiben; nachgelagerte Dashboard-/Alert-/Report-Filter versionsbewusst migrieren. `npx vitest run tests/partnerReferralService.spec.ts` und vollständige Emulator-/Security-Gates vor Freigabe ausführen. **NO-GO.**
