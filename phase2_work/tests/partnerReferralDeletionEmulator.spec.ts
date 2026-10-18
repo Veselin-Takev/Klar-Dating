@@ -41,14 +41,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
 
     // Simulate a later conversion writer. The same status predicate as the
     // production conversion transaction blocks this write after quarantine.
+    const unexpectedClaim = db.collection('partner_referral_buyer_claims').doc('unexpected-' + randomUUID());
+    paths.push(unexpectedClaim.path);
     await db.runTransaction(async tx => {
       const referral = await tx.get(referralRef);
       if (referral.data()?.status === 'active') {
-        tx.create(db.collection('partner_referral_buyer_claims').doc('unexpected-' + randomUUID()), {
-          referralId: referralRef.id,
-        });
+        tx.create(unexpectedClaim, { referralId: referralRef.id });
       }
     });
+    expect((await unexpectedClaim.get()).exists).toBe(false);
     expect(await quarantineOwnedPartnerReferral(db, referralRef, 'owner')).toBe('already_deleting');
     expect((await claimRef.get()).exists).toBe(true);
     await claimRef.delete();
