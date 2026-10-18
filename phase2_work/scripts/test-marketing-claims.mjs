@@ -29,6 +29,18 @@ try {
  const missingCi=structuredClone(good);
  missingCi.claims[0].evidence[1]='https://github.com/Veselin-Takev/Klar-Dating/pull/89';
  assert.notEqual(run(missingCi).status,0,'Implementation citations alone cannot replace test results');
+ const fakePull=structuredClone(good);
+ fakePull.claims[0].evidence[0]='https://github.com/Veselin-Takev/Klar-Dating/pull/not-a-real-number';
+ assert.notEqual(run(fakePull).status,0,'PR number must be numeric');
+ const fakeCommit=structuredClone(good);
+ fakeCommit.claims[0].evidence[0]='https://github.com/Veselin-Takev/Klar-Dating/commit/placeholder';
+ assert.notEqual(run(fakeCommit).status,0,'Commit SHA must be full-length');
+ const encoded=structuredClone(good);
+ encoded.claims[0].evidence[0]='https://github.com/Veselin-Takev/Klar-Dating/pull/%39%30';
+ assert.notEqual(run(encoded).status,0,'Encoded ambiguous references must be rejected');
+ const badRun=structuredClone(good);
+ badRun.claims[0].evidence[1]='https://github.com/Veselin-Takev/Klar-Dating/actions/runs/placeholder';
+ assert.notEqual(run(badRun).status,0,'Workflow run ID must be numeric');
  const sameOwner=structuredClone(good);sameOwner.claims[0].owners.legal=sameOwner.claims[0].owners.product;assert.notEqual(run(sameOwner).status,0);
  const missingGo=structuredClone(good);missingGo.releaseStatus='NO-GO';assert.equal(run(missingGo,true).status,1);
  console.log('PASS: canonical release matrix pinned; GO override denied; placeholder evidence and shared reviewers rejected');
