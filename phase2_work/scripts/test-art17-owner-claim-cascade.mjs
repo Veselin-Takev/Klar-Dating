@@ -68,6 +68,12 @@ try {
       expectedError: /owner referral iteration must check deletion slice before each child purge/,
     },
     {
+      name: 'omit post-child pre-parent slice guard',
+      from: 'checkDeletionSlice();\n        // Do not remove the parent pointer',
+      to: '// Do not remove the parent pointer',
+      expectedError: /owner referral parent deletion must recheck slice after buyer-claim purge/,
+    },
+    {
       name: 'omit buyer-claim deletion',
       from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')\n          .where('referralId', '==', referral.id));",
       to: 'void referral.id;',
@@ -86,7 +92,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (6 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (7 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
