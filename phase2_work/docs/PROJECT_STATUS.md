@@ -954,3 +954,7 @@ Added an HTTP negative/fail-closed companion test: malformed referral tokens mus
 
 ### 2026-10-18 — P0 #55 event-ID assertion binding (draft)
 A new domain-separated stable HMAC binds each stored partner event ID to original buyer/referral assertion. Exact duplicates remain idempotent; conflicting assertions and legacy records missing the binding fail closed. Adds Vitest regression and `docs/PARTNER_EVENT_ID_BINDING_GATE_2026-10-18.md`. Exact-head Vitest, emulator tests, independent purchase proof and all release gates remain outstanding. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 partner replay eligibility recheck (draft)
+On an already-bound event ID, current buyer/owner consent, deletion state, campaign and referral eligibility are now checked **before** duplicate acknowledgement. Added revocation-after-first-event regression and `docs/PARTNER_REPLAY_ELIGIBILITY_GATE_2026-10-18.md`. Full Vitest, emulator concurrency, provider retry protocol and separate Security/Privacy/Finance approvals not verified. **NO-GO.**
