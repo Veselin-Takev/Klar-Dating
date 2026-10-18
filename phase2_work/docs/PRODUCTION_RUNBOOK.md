@@ -106,3 +106,7 @@ New pending provider assertions store the buyer consent epoch in the conversion 
 
 ### 2026-10-18 — Reject absent/malformed buyer consent epochs
 A partner conversion requires current buyer `partnerReferralVersion` to be a positive safe integer; otherwise return 403 `buyer_consent_epoch_missing`, with no conversion/claim/audit created. Legacy consent data must be resolved via an approved explicit consent migration, not default version 1. Run Node22.23.3 Vitest, Firebase Emulator and all privacy/finance review gates. **NO-GO.**
+
+
+### 2026-10-18 — Consent version writer fail-closed (#55/#56)
+For an already-granted partner consent, missing/malformed `partnerReferralVersion` must yield 409 `partner_consent_epoch_inconsistent` and not rewrite the user. Overflow on withdrawal yields 409 `partner_consent_epoch_exhausted`. Run Node22 Vitest/Firestore Emulator tests and confirm there is a privacy-approved administrative withdrawal path for corrupt legacy records. Never treat source-code assertions as full release gates. **NO-GO.**
