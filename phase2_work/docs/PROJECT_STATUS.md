@@ -962,3 +962,7 @@ On an already-bound event ID, current buyer/owner consent, deletion state, campa
 
 ### 2026-10-18 — P0 #55 replay buyer-claim linkage gate (draft)
 Even an exact signed event replay now requires the persisted buyer claim to exist and match conversion, campaign, referral and pseudonymous buyer. Missing/inconsistent claims fail closed with 409 `partner_claim_inconsistent`, never auto-repaired. Regression tests and `docs/PARTNER_REPLAY_CLAIM_CONSISTENCY_2026-10-18.md` added. Full Node22/Vitest/Emulator proof, legal data retention, independent purchase attestation and approvals NOT verified. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 event-record integrity on replay (draft)
+Even an HMAC-matching partner webhook retry now requires immutable persisted event fields (campaign, referral, pseudonymous buyer/owner) and the current pending-only proof/reward states to remain consistent; inconsistent data produces 409 `partner_event_inconsistent`. New tamper matrix in `tests/partnerReferralService.spec.ts`; see `docs/PARTNER_EVENT_RECORD_REPLAY_INTEGRITY_2026-10-18.md`. Future verified/reconciled state transitions must be separately designed. Node22/Vitest/Emulator not executed. **NO-GO**.
