@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — Marketing claim release gating (#47)
+Before publishing any unverified product claim, review `docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json`, collect actual behavior/test evidence and separately authorized Product, Legal, Brand signoffs. Run `node scripts/check-marketing-claims.mjs --release` as a fail-closed pre-release gate; blocked claims are expected to fail. Review all DE/EN/ES/FR UI copy and referral share content. These checks do not replace full security/privacy/emulator CI or human approval. **NO-GO**.
