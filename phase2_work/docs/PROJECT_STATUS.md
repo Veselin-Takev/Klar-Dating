@@ -990,3 +990,7 @@ New partner assertions reject missing or invalid buyer `partnerReferralVersion` 
 
 ### 2026-10-18 — P0 #56 partner quarantine applied across all eligibility checks (draft)
 `partnerReferralEpochQuarantined` now denies listings, referral and interaction paths, click tracking and buyer/owner conversion even if stale consent boolean remains true; withdrawal is preserved. Regression scenarios and `docs/PARTNER_QUARANTINE_ALL_BOUNDARIES_2026-10-18.md` added. Full Node22/Vitest/emulator/PII and independent privacy approval pending. **NO-GO.**
+
+
+### 2026-10-18 — Visitor consent preserved across stacked partner fixes
+During full-source integration, restored the authenticated visitor, adult-consent and transactionally checked visitor deletion safeguards from draft #87 to the latest partner service; now also blocks visitor, buyer and owner quarantine state. Static gate `scripts/check-partner-visitor-consent.mjs` extended for quarantine. Full HTTP and emulator behavior not verified. **NO-GO.**
