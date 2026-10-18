@@ -1014,3 +1014,7 @@ An already-denied `partnerReferralConsent=false` now produces no Firestore mutat
 
 ### 2026-10-18 – P0 #55/#56 Partnerlink-Eigentümer-Epoche ohne Version-1-Fallback (Draft)
 Link-Ausstellung, Interaktionen, Klicktracking und Conversion prüfen nun eine ausdrücklich gespeicherte positive sichere Eigentümer-Version; ein unbestimmter Legacy-Wert wird nicht als Version 1 interpretiert. Neue Negativ-Vitest-Szenarien und `docs/PARTNER_OWNER_EPOCH_NO_FALLBACK_2026-10-18.md`. Vollständige Node22/Emulator/TypeScript-Gates ausstehend. **NO-GO**.
+
+
+### 2026-10-18 – P0 #56 explizite Besucher-Einwilligungsversion für Partner-Klicktracking (Draft)
+`recordPartnerClick` prüft eine positive sichere Besucher-`partnerReferralVersion` vor und innerhalb der Transaktion, zusätzlich zu Authentifizierung, Erwachsenenstatus, Consent, Quarantäne und Löschung. Ungültige Versionen führen zu direkter Weiterleitung ohne Tracking; statische Prüfung und negative Vitest-Fixtures ergänzt. Siehe `docs/PARTNER_VISITOR_EPOCH_CLICK_GATE_2026-10-18.md`. Vollständige Gates ausstehend; **NO-GO**.
