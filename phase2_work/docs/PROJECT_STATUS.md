@@ -1010,3 +1010,7 @@ When account deletion is recorded and the user profile is already missing, withd
 
 ### 2026-10-18 — P0 #56 read-only repeated withdrawal for already-denied consent (draft)
 An already-denied `partnerReferralConsent=false` now produces no Firestore mutation or audit append on repeated withdrawal, even for missing, malformed or zero version. A valid existing epoch is returned unchanged; otherwise response uses `version:null`. Regression fixtures and `docs/PARTNER_ALREADY_DENIED_WITHDRAWAL_IDEMPOTENCY_2026-10-18.md` added. Mandatory tests and independent privacy signoff pending. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55/#56 Partnerlink-Eigentümer-Epoche ohne Version-1-Fallback (Draft)
+Link-Ausstellung, Interaktionen, Klicktracking und Conversion prüfen nun eine ausdrücklich gespeicherte positive sichere Eigentümer-Version; ein unbestimmter Legacy-Wert wird nicht als Version 1 interpretiert. Neue Negativ-Vitest-Szenarien und `docs/PARTNER_OWNER_EPOCH_NO_FALLBACK_2026-10-18.md`. Vollständige Node22/Emulator/TypeScript-Gates ausstehend. **NO-GO**.
