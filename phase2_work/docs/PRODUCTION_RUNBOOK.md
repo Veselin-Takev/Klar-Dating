@@ -94,3 +94,7 @@ Execute `node scripts/check-retention-matrix.mjs` with the existing TTL dry-run 
 
 ### 2026-10-18 – P0 #70 TTL negative regressions and scoped ACTIVE proof
 Run `node scripts/check-retention-matrix.mjs` and `node scripts/test-retention-matrix.mjs`, plus existing staging identity/dry-run tests, before changing retention configuration. The latter applies six mutations only to disposable copies and must fail closed for each. In `docs/DATA_RETENTION.md`, inspect the revised non-mutating default and target-specific ACTIVE evidence command. No automatic rollout; TTL is asynchronous and cannot substitute for verified Art.17 cascade deletion. **NO-GO**.
+
+
+### 2026-10-18 – P0 #70 independently verified TTL ACTIVE evidence
+After approved staging TTL provisioning, collect a read-only project/database-scoped `gcloud firestore fields ttls list --format=json` snapshot and run `node scripts/check-retention-active-evidence.mjs --evidence staging-ttl-evidence.json --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"`. Also execute `node scripts/test-retention-active-evidence.mjs` offline. Archive actual capture time, reviewer and Cloud IAM/project verification; the JSON alone is not independent proof. No production changes and **NO-GO** without legal/Privacy signoff and Art.17 validation.
