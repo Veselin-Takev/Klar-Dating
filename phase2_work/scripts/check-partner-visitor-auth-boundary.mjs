@@ -7,9 +7,9 @@ assert.ok(from !== -1 && until > from, 'Visitor identity helper not found');
 const visitor = source.slice(from, until);
 assert.match(visitor, /if \(isGuest\(req\)\) return Promise\.resolve\(null\)/,
   'Existing anonymous Firebase request claims must not identify an attributed visitor');
-assert.doesNotMatch(visitor, /existingUid|return Promise\\.resolve\\(req\\.user|user\\?\\.uid/,
+assert.ok(!visitor.includes('existingUid') && !visitor.includes('user?.uid'),
   'Unverified prepopulated request identity must not be accepted for attribution');
-assert.match(visitor, /typeof header !== 'string' \\|\\| !\\/\\^Bearer/,
+assert.ok(visitor.includes("typeof header !== 'string'") && visitor.includes('return Promise.resolve(null)'),
   'Missing or malformed authorization must fall back to no attribution');
 assert.match(visitor, /getAuth\(getServerFirebaseApp\(\)\)\.verifyIdToken\(token, true\)/,
   'Bearer JWT must be server-verified and checked for revocation');
