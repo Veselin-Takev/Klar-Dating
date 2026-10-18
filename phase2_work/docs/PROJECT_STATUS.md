@@ -998,3 +998,7 @@ During full-source integration, restored the authenticated visitor, adult-consen
 
 ### 2026-10-18 – P0 #56 idempotent withdrawal under partner consent quarantine (draft)
 Second `setPartnerConsent(false)` request on a quarantined, already-revoked profile now returns `{allowed:false,version:null}` without synthesizing epoch 1 or a duplicate HMAC audit entry. In-memory regression and `docs/PARTNER_QUARANTINE_IDEMPOTENT_WITHDRAWAL_2026-10-18.md` added. Full Node22/Vitest/Emulator and Legal/Privacy gates outstanding; **NO-GO**.
+
+
+### 2026-10-18 – P0 #56 consent withdrawal during pending account deletion (draft)
+`setPartnerConsent(false)` now works when `account_deletions/{uid}` exists while grant remains denied. Regression covers pending deletion, repeat withdrawal/audit idempotency and no regrant; see `docs/PARTNER_WITHDRAW_DURING_DELETION_2026-10-18.md`. Deletion-worker ordering and full Node22/Vitest/Emulator/privacy gates unverified. **NO-GO.**
