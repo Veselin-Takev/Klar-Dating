@@ -176,6 +176,21 @@ describe('Klar & Partner transactional service boundary', () => {
     ))).toBe(true);
   });
 
+  it('does not invent consent epoch or audit on repeated withdrawal when already denied', async () => {
+    for (const epoch of [undefined, null, 0, '1', 2]) {
+      const db = makeFirestore([{ collection: 'users', id: 'uid-denied',
+        data: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: epoch } }]);
+      const initial = [...db._store.entries()];
+      const expectedVersion = epoch === 2 ? 2 : null;
+      await expect(setPartnerConsent(deps(db), 'uid-denied', false))
+        .resolves.toEqual({ allowed: false, version: expectedVersion });
+      await expect(setPartnerConsent(deps(db), 'uid-denied', false))
+        .resolves.toEqual({ allowed: false, version: expectedVersion });
+      expect([...db._store.entries()]).toEqual(initial);
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    }
+  });
+
   it('returns a read-only withdrawn state after deletion purges the profile', async () => {
     const db = makeFirestore([
       { collection: 'account_deletions', id: 'uid-purged', data: { status: 'processing' } },
