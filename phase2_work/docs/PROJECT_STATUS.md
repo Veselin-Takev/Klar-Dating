@@ -954,3 +954,7 @@ Added an HTTP negative/fail-closed companion test: malformed referral tokens mus
 
 ### 2026-10-18 — P0 #56 visitor partner-consent gate (draft)
 Partner click token forwarding requires an independently consenting, authenticated adult visitor; consent and deletion status are rechecked transactionally before attribution. Adds `scripts/check-partner-visitor-consent.mjs` and `docs/PARTNER_VISITOR_CONSENT_GATE_2026-10-18.md`. Full emulator/HTTP and legal partner transfer approvals remain pending. NO-GO; no production deployment or main merge.
+
+
+### 2026-10-18 — P0 #56 Firebase anonymous visitor attribution blocked (draft)
+Route-level optional visitor identity now excludes anonymous Firebase requests and verified anonymous Bearer JWTs; untracked redirect remains available. Added `scripts/check-partner-visitor-auth-boundary.mjs` and `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Static gate only; runtime Firebase Emulator tests, consent/DSGVO approvals and complete mandatory gates remain NOT VERIFIED. **NO-GO.**
