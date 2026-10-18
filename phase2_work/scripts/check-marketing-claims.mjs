@@ -10,7 +10,19 @@ if (releaseMode && process.env.KLAR_CLAIM_MANIFEST_PATH) {
 }
 const manifestPath = releaseMode ? canonicalManifest : (process.env.KLAR_CLAIM_MANIFEST_PATH ?? canonicalManifest);
 const data=JSON.parse(readFileSync(manifestPath,'utf8'));
-const isHttpsEvidence = item => typeof item === 'string' && /^https:\/\/[^\s/]+\/[^\s]+$/.test(item) && !/example\.(com|org|net)/i.test(item);
+const trustedEvidence = item => {
+ if (typeof item !== 'string' || item.length > 2048 || /[\\s\\x00-\\x1f\\x7f]/.test(item)) return null;
+ let url;
+ try { url = new URL(item); } catch { return null; }
+ if (url.protocol !== 'https:' || url.hostname !== 'github.com'
+   || url.username || url.password || url.port || url.search || url.hash) return null;
+ const segments = url.pathname.split('/').filter(Boolean);
+ if (segments[0] !== 'Veselin-Takev' || segments[1] !== 'Klar-Dating') return null;
+ if (segments.length >= 4 && ['blob','commit','pull'].includes(segments[2])) return 'implementation';
+ if (segments.length === 5 && segments[2] === 'actions' && segments[3] === 'runs'
+   && /^\\d+$/.test(segments[4])) return 'test';
+ return null;
+};
 assert.equal(data.version,1);
 assert.equal(data.issue,47);
 assert.ok(['NO-GO','GO'].includes(data.releaseStatus), 'Invalid declared release status');
@@ -22,7 +34,8 @@ for(const claim of data.claims){
  assert.ok(Array.isArray(claim.evidence),claim.id+' evidence must be array');
  for(const role of ['product','legal','brand'])assert.ok(Object.hasOwn(claim.owners,role),claim.id+' missing reviewer role');
  if(claim.state==='approved'){
-  assert.ok(claim.evidence.length>=2 && claim.evidence.every(isHttpsEvidence),claim.id+' requires 2 concrete HTTPS evidence links (product behavior and test)');
+  assert.ok(claim.evidence.length>=2 && claim.evidence.every(item => trustedEvidence(item)),claim.id+' requires trusted Klar-Dating GitHub evidence links');
+  assert.ok(claim.evidence.some(item => trustedEvidence(item) === 'implementation') && claim.evidence.some(item => trustedEvidence(item) === 'test'),claim.id+' requires implementation AND workflow-run references');
   assert.equal(new Set(claim.evidence).size, claim.evidence.length,claim.id+' cannot reuse evidence references');
   for(const role of ['product','legal','brand'])assert.ok(typeof claim.owners[role]==='string'&&/^@[A-Za-z0-9-]{1,39}$/.test(claim.owners[role]),claim.id+' must name a GitHub reviewer for '+role);
   assert.equal(new Set(Object.values(claim.owners)).size,3,claim.id+' requires distinct Product/Legal/Brand reviewers');
