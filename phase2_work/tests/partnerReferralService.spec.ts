@@ -112,6 +112,16 @@ describe('Klar & Partner transactional service boundary', () => {
       .rejects.toMatchObject({ code: 'partner_consent_required' });
   });
 
+  it('rejects missing or malformed owner epochs before issuing referral links', async () => {
+    for (const epoch of [undefined, null, 0, -1, '1', 1.5]) {
+      const db = makeFirestore([{ collection: 'users', id: 'user-1',
+        data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: epoch } }]);
+      await expect(listPartnerReferralLinks(deps(db), 'user-1'))
+        .rejects.toMatchObject({ code: 'partner_consent_epoch_missing' });
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referrals/'))).toHaveLength(0);
+    }
+  });
+
   it('creates a draft, reserves its slug and signs the audit event', async () => {
     const db = makeFirestore();
     const campaign = await createPartnerCampaign(deps(db), 'admin-1', campaignInput);
@@ -304,6 +314,14 @@ describe('Klar & Partner transactional service boundary', () => {
       { collection: 'partner_referrals', id: referralId, data: { ownerUid: uid, campaignId, campaignSlug: slug, version: 1, status: 'active', qualifiedConversions: 0 } },
     ]);
     const payload = { event: 'qualified_conversion' as const, eventId: 'provider-order-00001', referralToken: token, buyerUid: buyer };
+    // Owner identity must never fall back to epoch 1 on a preexisting link.
+    const originalOwnerEpoch = db._store.get('users/' + uid)!;
+    for (const badEpoch of [undefined, null, 0, -1, '1', 1.5]) {
+      db._store.set('users/' + uid, { ...originalOwnerEpoch, partnerReferralVersion: badEpoch });
+      await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    }
+    db._store.set('users/' + uid, originalOwnerEpoch);
     // Invalid or absent epochs must never be silently treated as version 1.
     const originalBuyer = db._store.get('users/' + buyer)!;
     for (const invalidEpoch of [undefined, null, 0, -1, 1.5, '1', Number.MAX_SAFE_INTEGER + 1]) {
