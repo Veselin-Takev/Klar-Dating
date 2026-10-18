@@ -950,3 +950,7 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — P0 #56 reserved partner URL token parameter (draft)
+`validatePartnerDestinationUrl` now rejects case-insensitive, URL-decoded `klar_referral` keys in campaign destinations so a direct, consentless redirect cannot forward a pre-seeded attribution token. Added Vitest cases for percent-encoded and mixed-case variants; see `docs/ADR_PARTNER_DESTINATION_TOKEN_INJECTION_2026-10-18.md`. Existing campaign data must be inventoried and exact-head mandatory gates run. Tests/Privacy approval pending, **NO-GO**.
