@@ -158,3 +158,7 @@ A click may forward a `klar_referral` token only if transactionally re-read camp
 
 ### 2026-10-18 – Validate signed referral token against mutable record metadata
 Before redirecting, recompute the HMAC referral token for ownerUid, campaignId and positive safe consent version in the stored referral. An invalid binding must return partner_link_not_found without referencing the stored campaign target. Recheck unchanged owner/campaign/version inside the Firestore transaction before counting or forwarding a token. Run Node22.23.3 Vitest, Emulator, Firestore Rules and full release review; **NO-GO**.
+
+
+### 2026-10-18 – Signed referral metadata on conversion webhook
+Never acknowledge provider assertion or duplicate replay solely from referral document ID. Recompute signed token from original referral owner/campaign/consent epoch before processing; compare referral version in transaction with preflight. Invalid binding denies the conversion; do not credit rewards. Execute full Node22 Vitest/Emulator/security verification before release. **NO-GO**.
