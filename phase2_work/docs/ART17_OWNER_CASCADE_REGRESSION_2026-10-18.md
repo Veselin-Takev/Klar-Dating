@@ -45,3 +45,7 @@ The owner-referral cleanup must call `checkDeletionSlice()` for each parent befo
 ## 2026-10-18 — Guard before parent deletion
 
 Buyer-claim cleanup may span multiple batches. The owner-referral purge now checks `checkDeletionSlice()` again after awaiting the buyer-claim purge and before deleting the referral parent. If the slice expires, the referral remains as a durable pointer and retry can resume the child-first deletion. A seventh negative mutation verifies that removal of the post-child checkpoint is rejected by the static Art. 17 gate. This is not proof of live Firestore cancellation, concurrent claims, or legal-hold handling. **NO-GO** pending emulator tests and approvals.
+
+## 2026-10-18 — Fail-closed section boundaries
+
+The static deletion audit now rejects missing or invalid start/end markers for the owner-referral cascade, rather than allowing JavaScript `slice()` with a negative index to silently inspect an unrelated region. Two additional mutation fixtures remove each boundary independently. This is a **source-level regression**, not an Emulator or production deletion-completeness proof. The release stays **NO-GO**.
