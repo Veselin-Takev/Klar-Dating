@@ -154,3 +154,7 @@ Reject tracked click if transactional visitor `partnerReferralVersion` differs f
 
 ### 2026-10-18 – Stable campaign destination during partner attribution
 A click may forward a `klar_referral` token only if transactionally re-read campaign `destinationUrl` equals preflight validated destination. Mismatch must disable attribution and ledger write; returning the old prevalidated URL is untracked. Verify with Node22 Vitest/Firebase Emulator and full release/privacy gates. **NO-GO**.
+
+
+### 2026-10-18 – Validate signed referral token against mutable record metadata
+Before redirecting, recompute the HMAC referral token for ownerUid, campaignId and positive safe consent version in the stored referral. An invalid binding must return partner_link_not_found without referencing the stored campaign target. Recheck unchanged owner/campaign/version inside the Firestore transaction before counting or forwarding a token. Run Node22.23.3 Vitest, Emulator, Firestore Rules and full release review; **NO-GO**.
