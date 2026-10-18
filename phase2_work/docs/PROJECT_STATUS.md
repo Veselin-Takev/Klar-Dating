@@ -958,3 +958,7 @@ Partner click token forwarding requires an independently consenting, authenticat
 
 ### 2026-10-18 — P0 #56 Firebase anonymous visitor attribution blocked (draft)
 Route-level optional visitor identity now excludes anonymous Firebase requests and verified anonymous Bearer JWTs; untracked redirect remains available. Added `scripts/check-partner-visitor-auth-boundary.mjs` and `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Static gate only; runtime Firebase Emulator tests, consent/DSGVO approvals and complete mandatory gates remain NOT VERIFIED. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 Firebase revoked bearer-token gate (draft)
+Optional public visitor Bearer JWT validation now uses Firebase Admin `verifyIdToken(token, true)` rather than no revocation check. A rejected/disabled/revoked token returns no visitor identity and no attribution; anonymous accounts are already denied. Updated static guard and new `docs/PARTNER_REVOKED_ID_TOKEN_GATE_2026-10-18.md`. Central `req.user` revocation policy, real emulator HTTP, Auth availability and all mandatory gates remain UNVERIFIED. **NO-GO.**
