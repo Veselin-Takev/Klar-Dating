@@ -326,8 +326,20 @@ export async function setPartnerConsent(
     const data = userSnap.data();
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
+    // Never reconstruct a missing consent epoch for an already-authorized user.
+    // Only an explicit grant from the currently denied state may initialize v1.
+    if (currentlyAllowed && (typeof data?.partnerReferralVersion !== 'number'
+      || !Number.isSafeInteger(data.partnerReferralVersion)
+      || data.partnerReferralVersion < 1)) {
+      throw new PartnerReferralError(409, 'partner_consent_epoch_inconsistent', 'Die vorhandene Partner-Einwilligung muss überprüft werden.');
+    }
     let version = current.version;
-    if (!allowed && currentlyAllowed) version += 1;
+    if (!allowed && currentlyAllowed) {
+      if (version === Number.MAX_SAFE_INTEGER) {
+        throw new PartnerReferralError(409, 'partner_consent_epoch_exhausted', 'Die Partner-Einwilligungsversion kann nicht weiter erhöht werden.');
+      }
+      version += 1;
+    }
     if (currentlyAllowed === allowed && Number(data?.partnerReferralVersion) === version) {
       result = { allowed, version };
       return;
