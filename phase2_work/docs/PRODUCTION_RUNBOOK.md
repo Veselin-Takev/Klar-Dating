@@ -146,3 +146,7 @@ For partner owner account, prohibit implicit version 1 in referral issuance, int
 
 ### 2026-10-18 – Besucher-Epoche vor Partner-Klicktracking
 Besucher-Consent erfordert eine explizite positive sichere Ganzzahl als Version, sowohl vor dem Klick als auch in der atomaren Transaktion. Fehlende/ungültige Version → keine Attribution, kein Ledger und keine `klar_referral`-Weiterleitung. Node22.23.3 Vitest, echte Firebase Emulator/Rules, Datenschutzprüfung und E2E-Tests verpflichtend. **NO-GO**.
+
+
+### 2026-10-18 – Visitor epoch must remain constant across click preflight and transaction
+Reject tracked click if transactional visitor `partnerReferralVersion` differs from the positive safe version read during preflight; perform direct untracked redirect, no ledger/counter. Test the withdrawal/regrant race on pinned Node22 with Firestore Emulator before any release. **NO-GO**.
