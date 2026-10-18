@@ -11,7 +11,7 @@ if (releaseMode && process.env.KLAR_CLAIM_MANIFEST_PATH) {
 const manifestPath = releaseMode ? canonicalManifest : (process.env.KLAR_CLAIM_MANIFEST_PATH ?? canonicalManifest);
 const data=JSON.parse(readFileSync(manifestPath,'utf8'));
 const trustedEvidence = item => {
- if (typeof item !== 'string' || item.length > 2048 || /[\\s\\x00-\\x1f\\x7f]/.test(item)) return null;
+ if (typeof item !== 'string' || item.length > 2048 || /[\s\x00-\x1f\x7f]/.test(item)) return null;
  let url;
  try { url = new URL(item); } catch { return null; }
  if (url.protocol !== 'https:' || url.hostname !== 'github.com'
