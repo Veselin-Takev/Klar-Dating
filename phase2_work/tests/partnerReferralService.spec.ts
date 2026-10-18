@@ -122,6 +122,51 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('rejects a referral token whose stored owner or campaign binding was modified', async () => {
+    const owner = 'bound-owner', visitor = 'bound-visitor', campaignId = 'bound-campaign';
+    const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    for (const patch of [{ ownerUid: 'different-owner' }, { campaignId: 'different-campaign' }, { version: 2 }, { version: undefined }]) {
+      const db = makeFirestore([
+        { collection: 'users', id: owner, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+        { collection: 'users', id: visitor, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+        { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, clickCount: 0 } },
+        { collection: 'partner_referrals', id: referralId, data: { ownerUid: owner, campaignId, status: 'active', version: 1, clickCount: 0, ...patch } },
+      ]);
+      await expect(recordPartnerClick(deps(db), token, { method: 'GET' }, visitor))
+        .rejects.toMatchObject({ code: 'partner_link_not_found' });
+      expect(db._store.get('partner_referrals/' + referralId)?.clickCount).toBe(0);
+      expect(db._store.get('partner_campaigns/' + campaignId)?.clickCount).toBe(0);
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    }
+  });
+
+  it('does not attribute a click after referral metadata changes during transaction', async () => {
+    const owner = 'atomic-owner', visitor = 'atomic-visitor', campaignId = 'atomic-campaign';
+    const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: owner, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: visitor, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, clickCount: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid: owner, campaignId, status: 'active', version: 1, clickCount: 0 } },
+    ]);
+    const originalTransaction = db.runTransaction.bind(db);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async (callback: Parameters<typeof db.runTransaction>[0]) => {
+        const saved = db._store.get('partner_referrals/' + referralId)!;
+        db._store.set('partner_referrals/' + referralId, { ...saved, campaignId: 'different-campaign' });
+        return originalTransaction(callback);
+      },
+    });
+    expect(await recordPartnerClick(deps(db), token, { method: 'GET' }, visitor))
+      .toEqual({ url: 'https://partner.example/offer', tracked: false });
+    expect(db._store.get('partner_referrals/' + referralId)?.clickCount).toBe(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.clickCount).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
   it('does not forward a referral token after the campaign destination changes before transaction', async () => {
     const owner = 'destination-owner', visitor = 'destination-visitor', campaignId = 'destination-campaign';
     const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
