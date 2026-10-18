@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+## 2026-10-18 — P0 #70 Retention TTL candidate (NO-GO)
+Development branch `fix/p0-retention-safeguards-2026-10-18` contains a dry-run-first, staging-only TTL provisioning gate enumerating 13 documented groups. No production TTL activation, confirmed legal-hold inventory, completed Firebase emulator tests, or production approval is claimed. Before staging use: approved per-group retention matrix and existing-expiry audit, explicit project/database attestation, independent reviewer, and after-activation ACTIVE evidence. See `docs/RETENTION_TTL_GATE_2026-10-18.md`. Keep issue #70 and release gate #8 open; no merge without exact-head CI and Security/Privacy review.
