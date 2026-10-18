@@ -90,3 +90,7 @@ Both pre-authenticated `req.user` and optional verified Bearer JWT paths reject 
 
 ### 2026-10-18 — Firebase revocation-aware optional partner Bearer token
 The public click route now rejects revoked Firebase ID tokens via `verifyIdToken(token, true)`. On Auth outage/rejection the untracked direct redirect is used. This adds Firebase Auth latency/dependency; validate telemetry. Run `node scripts/check-partner-visitor-auth-boundary.mjs` locally and emulator tests for revoked/disabled/anonymous/valid account tokens. Independently audit whether trusted middleware `req.user` checks token revocation. Full Mandatory Gates plus Privacy sign-off required; **NO-GO**.
+
+
+### 2026-10-18 — Partner redirect verified Bearer-only attribution
+Do not permit trusted middleware req.user.uid alone to identify a visitor for public partner tracking. Only explicit bearer ID token verified with Firebase checkRevoked=true and non-anonymous provider is eligible; absent/revoked tokens follow untracked direct redirect. Browser navigation cannot generally provide Authorization headers, so attribution reduction is expected; assess with product/privacy owners. `node scripts/check-partner-visitor-auth-boundary.mjs` is a static check only. Full security and emulator evidence still required. **NO-GO.**
