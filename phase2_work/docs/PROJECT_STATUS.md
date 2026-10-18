@@ -994,3 +994,7 @@ New partner assertions reject missing or invalid buyer `partnerReferralVersion` 
 
 ### 2026-10-18 — Visitor consent preserved across stacked partner fixes
 During full-source integration, restored the authenticated visitor, adult-consent and transactionally checked visitor deletion safeguards from draft #87 to the latest partner service; now also blocks visitor, buyer and owner quarantine state. Static gate `scripts/check-partner-visitor-consent.mjs` extended for quarantine. Full HTTP and emulator behavior not verified. **NO-GO.**
+
+
+### 2026-10-18 – P0 #56 idempotent withdrawal under partner consent quarantine (draft)
+Second `setPartnerConsent(false)` request on a quarantined, already-revoked profile now returns `{allowed:false,version:null}` without synthesizing epoch 1 or a duplicate HMAC audit entry. In-memory regression and `docs/PARTNER_QUARANTINE_IDEMPOTENT_WITHDRAWAL_2026-10-18.md` added. Full Node22/Vitest/Emulator and Legal/Privacy gates outstanding; **NO-GO**.
