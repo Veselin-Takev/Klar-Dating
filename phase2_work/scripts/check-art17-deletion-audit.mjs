@@ -18,7 +18,14 @@ for (const token of [
 
 // Owner-linked buyer claims have no ownerRef; deleting only ownerRef-indexed
 // conversions would leave orphaned buyer claims after account erasure.
-const ownerCascade = purge.slice(purge.indexOf('const ownedReferrals ='), purge.indexOf("for (const field of ['ownerRef', 'buyerRef'])"));
+const ownerCascadeStart = purge.indexOf('const ownedReferrals =');
+const ownerCascadeEnd = purge.indexOf("for (const field of ['ownerRef', 'buyerRef'])", ownerCascadeStart + 1);
+if (ownerCascadeStart < 0 || ownerCascadeEnd <= ownerCascadeStart) {
+  failures.push('owner referral cascade boundaries missing or invalid');
+}
+const ownerCascade = ownerCascadeStart >= 0 && ownerCascadeEnd > ownerCascadeStart
+  ? purge.slice(ownerCascadeStart, ownerCascadeEnd)
+  : '';
 const lookup = ownerCascade.indexOf(".where('referralId', '==', referral.id)");
 const perReferralSlice = ownerCascade.indexOf('for (const referral of ownedReferrals.docs) {\n        checkDeletionSlice();');
 if (perReferralSlice < 0) {
