@@ -98,3 +98,7 @@ Validate that an existing conversion's campaign/referral, pseudonymous buyer/own
 
 ### 2026-10-18 — P0 #55 Audit-Ledger: Partnerbehauptung ist keine Kaufverifikation
 Bei neuen Providerwebhooks nur `partner_conversion_asserted` als Auditereignis erwarten; `partner_conversion_verified` als Legacy-Auditlabel vor unabhängiger Kaufverifikation NICHT als echten Kauf interpretieren. Bestehende HMAC-Audit-Einträge nie überschreiben; nachgelagerte Dashboard-/Alert-/Report-Filter versionsbewusst migrieren. `npx vitest run tests/partnerReferralService.spec.ts` und vollständige Emulator-/Security-Gates vor Freigabe ausführen. **NO-GO.**
+
+
+### 2026-10-18 — P0 partner webhook buyer consent versions
+New pending provider assertions store the buyer consent epoch in the conversion and buyer-claim records. On replay, require both recorded epochs to match current consent version, otherwise quarantine (`partner_event_inconsistent` / `partner_claim_inconsistent`); never auto-repair old records. Confirm `setPartnerConsent` increments partnerReferralVersion on withdrawal and re-grant, verify emulator concurrency and signed webhook semantics. Full mandatory gates and Finance/Privacy approval required. **NO-GO.**
