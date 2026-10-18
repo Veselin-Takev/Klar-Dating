@@ -458,6 +458,19 @@ describe('Klar & Partner transactional service boundary', () => {
     await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'conversion_not_eligible' });
     db._store.set('users/' + uid, originalOwner);
+    // A provider signature cannot authorize tampered referral owner/campaign/epoch
+    // data even when the document ID is based on a valid original token.
+    const originalReferral = db._store.get('partner_referrals/' + referralId)!;
+    for (const mutated of [
+      { ownerUid: 'other-owner' }, { campaignId: 'other-campaign' },
+      { version: 2 }, { version: undefined },
+    ]) {
+      db._store.set('partner_referrals/' + referralId, { ...originalReferral, ...mutated });
+      await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ code: 'partner_link_not_found' });
+    }
+    db._store.set('partner_referrals/' + referralId, originalReferral);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
     const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');
     expect(result).toEqual({ ok: true, duplicate: false, rewardStatus: 'pending_verification' });
     const conversions = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'));
