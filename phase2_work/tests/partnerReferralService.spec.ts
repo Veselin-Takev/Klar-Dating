@@ -500,6 +500,14 @@ describe('Klar & Partner transactional service boundary', () => {
     db._store.set(claimKey, { ...originalClaim, conversionId: 'wrong-conversion' });
     await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'partner_claim_inconsistent' });
+    // The event and buyer claim have the same creation timestamp because
+    // both were atomically created by the original transaction.
+    for (const invalidCreatedAt of ['1999-01-01T00:00:00.000Z', null, 123, 'not-a-date']) {
+      db._store.set(claimKey, { ...originalClaim, createdAt: invalidCreatedAt });
+      await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ code: 'partner_claim_inconsistent' });
+    }
+    db._store.set(claimKey, originalClaim);
     db._store.set(claimKey, originalClaim);
     expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
       .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
