@@ -102,3 +102,7 @@ Bei neuen Providerwebhooks nur `partner_conversion_asserted` als Auditereignis e
 
 ### 2026-10-18 — P0 partner webhook buyer consent versions
 New pending provider assertions store the buyer consent epoch in the conversion and buyer-claim records. On replay, require both recorded epochs to match current consent version, otherwise quarantine (`partner_event_inconsistent` / `partner_claim_inconsistent`); never auto-repair old records. Confirm `setPartnerConsent` increments partnerReferralVersion on withdrawal and re-grant, verify emulator concurrency and signed webhook semantics. Full mandatory gates and Finance/Privacy approval required. **NO-GO.**
+
+
+### 2026-10-18 — Reject absent/malformed buyer consent epochs
+A partner conversion requires current buyer `partnerReferralVersion` to be a positive safe integer; otherwise return 403 `buyer_consent_epoch_missing`, with no conversion/claim/audit created. Legacy consent data must be resolved via an approved explicit consent migration, not default version 1. Run Node22.23.3 Vitest, Firebase Emulator and all privacy/finance review gates. **NO-GO.**
