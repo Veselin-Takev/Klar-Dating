@@ -581,7 +581,8 @@ export async function recordPartnerConversion(
   const eventRef = db.collection(CONVERSIONS).doc(eventIdHash);
   const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret));
   const now = nowIso(deps);
-  const audit = makeLedger(deps, 'partner_conversion_verified', null, {
+  // A partner signature attests only the provider assertion, never the purchase.
+  const audit = makeLedger(deps, 'partner_conversion_asserted', null, {
     ownerUid,
     buyerUid: payload.buyerUid,
     campaignId,
