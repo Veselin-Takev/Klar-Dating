@@ -226,6 +226,13 @@ describe('Klar & Partner transactional service boundary', () => {
       .rejects.toMatchObject({ code: 'partner_link_not_found' });
     expect([...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
     expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+
+    // An exact provider retry must not override a newer consent revocation.
+    db._store.set('users/' + buyer, { isAdult: true, partnerReferralConsent: false });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    expect([...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
   });
 
 });
