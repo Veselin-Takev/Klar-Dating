@@ -966,3 +966,7 @@ Release-mode `scripts/check-marketing-claims.mjs --release` now rejects `KLAR_CL
 
 ### 2026-10-18 — P0 #47 trusted evidence URL gate (draft)
 Claim approval references now require implementation and Actions-run URL shapes scoped to `github.com/Veselin-Takev/Klar-Dating`. External URLs, userinfo, missing test runs and alternate release manifests are rejected by mutation checks. `docs/MARKETING_TRUSTED_EVIDENCE_ORIGIN_2026-10-18.md` details external evidence and reviewer validation still missing. Five claims remain BLOCKED; NO-GO.
+
+
+### 2026-10-18 – P0 #47 GitHub-Nachweisreferenzen eindeutig validiert (Draft)
+Der lokale Freigabecheck akzeptiert nur numerische PR-/Actions-IDs, vollständige Commit-SHAs und Blob-Links mit Commit-SHA und Dateipfad; kodierte oder mehrdeutige Pfade werden abgewiesen. Negativtests und `docs/MARKETING_EVIDENCE_REFERENCE_SHAPES_2026-10-18.md` ergänzt. Echte GitHub-Nachweise, Rollenfreigaben und vollständige Gates weiterhin UNBESTÄTIGT. **NO-GO.**
