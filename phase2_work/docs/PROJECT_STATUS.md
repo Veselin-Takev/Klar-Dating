@@ -1074,3 +1074,11 @@ Before the owner referral document is deleted, the account-erasure worker now in
 **Verified:** Exact source commit `cfb15b10f93aec89734a6fddae0ef549a9e2db64`, Node 20.20.2, baseline and **7/7 negative mutation tests PASS**, ZIP CRC check PASS (1,251 entries). Attempted independent Node 22.23.3 integrated test in remote workbench but the environment crashed before reporting a result; thus pinned Node22 integrated gate for this commit is **NOT VERIFIED**. Previous Node22 tests on earlier commits do not validate this new head.
 
 **Remaining NO-GO:** Firebase Emulator concurrency/restart, full pinned Node22 suite, TypeScript/Vitest/E2E/build/npm audit, real Firestore TTL ACTIVE evidence, and independent Privacy/Legal/Security approvals. `main` untouched, no production deployment or manually dispatched paid GitHub Actions.
+
+---
+
+## 2026-10-18 — Fail-closed section markers for Art. 17 source audit (#56 / draft PR #118)
+
+The Art. 17 static source audit now checks the presence and order of both owner-referral cleanup section boundaries before evaluating the child-before-parent controls. This removes the risk of JavaScript `slice()` silently using an invalid `-1` boundary and scanning the wrong source section. Two new isolated mutation fixtures remove each anchor independently, bringing the suite to **nine** cases.
+
+**Executed evidence:** On exact GitHub source commit `b630167111994ae782ab7b0eb551dbc2ea70ff5b`, the baseline and **9/9 negative mutations** passed with the available Node **20.20.2** runtime. The source ZIP contains 1,251 entries and passed archive CRC inspection. These checks are static only; the final Node 22.23.3 integrated gate, Firestore Emulator restart/concurrency, npm audit, typecheck, Playwright/build and independent Privacy/Legal/Security approvals remain **NOT VERIFIED**. No production release, merge or deployment; **NO-GO**.
