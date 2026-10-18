@@ -82,3 +82,7 @@ The public `/api/partner/click/:token` must reject malformed syntax with 404 bef
 
 ## 2026-10-18 — P0 #70 Retention TTL candidate (NO-GO)
 Development branch `fix/p0-retention-safeguards-2026-10-18` contains a dry-run-first, staging-only TTL provisioning gate enumerating 13 documented groups. No production TTL activation, confirmed legal-hold inventory, completed Firebase emulator tests, or production approval is claimed. Before staging use: approved per-group retention matrix and existing-expiry audit, explicit project/database attestation, independent reviewer, and after-activation ACTIVE evidence. See `docs/RETENTION_TTL_GATE_2026-10-18.md`. Keep issue #70 and release gate #8 open; no merge without exact-head CI and Security/Privacy review.
+
+
+### 2026-10-18 — Firestore TTL staging identity safeguard
+For staging activation, set and independently review `KLAR_APPROVED_STAGING_PROJECT_ID` and `KLAR_PRODUCTION_PROJECT_ID`, distinct and explicit. The provisioning tool additionally requires a live read-only `gcloud projects describe` result with `labels.environment=staging`; missing/mismatched labels fail closed. Dry-run never calls gcloud. Run `bash scripts/test-retention-project-identity.sh` locally. Detailed review gate: `docs/RETENTION_STAGING_IDENTITY_GATE_2026-10-18.md`. Production retention policies, IAM, legal holds, backups and safety remain unverified; **NO-GO**.
