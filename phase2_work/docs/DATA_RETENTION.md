@@ -100,3 +100,16 @@ Der zweite Befehl muss für alle 13 dokumentierten Collection Groups den aktiven
   - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_admin_rate_limits --enable-ttl`
   - `gcloud firestore fields ttls update expiresAt --collection-group=partner_referral_user_rate_limits --enable-ttl`
 - **Retention offen vor Produktivbetrieb:** Die verbindliche Aufbewahrungsdauer für nicht personenbezogene Kampagnen-/Conversion-Belege muss anhand des Partnervertrags und mit Datenschutz-/Rechtsreview festgelegt werden. Keine TTL für notwendige Vertrags-/Finanznachweise ohne diese Entscheidung setzen.
+
+
+### Gezielter TTL-ACTIVE-Evidenznachweis (Staging; lesend)
+
+Nach unabhängig genehmigter Aktivierung kann ein berechtigter Reviewer den Status ohne Änderung an Cloud-Daten erfassen und den gespeicherten Nachweis offline prüfen:
+
+```bash
+gcloud firestore fields ttls list --project="$KLAR_PROJECT_ID" --database="$KLAR_DATABASE_ID" --format=json > staging-ttl-evidence.json
+node scripts/check-retention-active-evidence.mjs --evidence staging-ttl-evidence.json --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
+node scripts/test-retention-active-evidence.mjs
+```
+
+Der Prüfer verlangt 13 distinct `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`, exakt zum angegebenen Projekt und zur angegebenen Datenbank. Abweichende, fehlende, doppelte, nicht aktive oder umkonfigurierte Felder verursachen einen Fehler. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projektidentität und Zeitpunkt des `gcloud`-Abrufs müssen im Change-Ticket unabhängig attestiert werden. Dieser Check aktiviert keine TTL, ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung und autorisiert keinen Produktions-Deploy.
