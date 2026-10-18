@@ -142,3 +142,7 @@ When `partnerReferralConsent=false`, repeated `setPartnerConsent(false)` must be
 
 ### 2026-10-18 – Owner consent epoch must be explicit
 For partner owner account, prohibit implicit version 1 in referral issuance, interactions, click tracking and signed conversion. Reject invalid epoch at link-list boundary with `partner_consent_epoch_missing`; ensure actual clicks/conversions stay uncredited. Run pinned Node22 Vitest and emulator concurrency tests plus all mandatory security and privacy gates before production. **NO-GO**.
+
+
+### 2026-10-18 – Besucher-Epoche vor Partner-Klicktracking
+Besucher-Consent erfordert eine explizite positive sichere Ganzzahl als Version, sowohl vor dem Klick als auch in der atomaren Transaktion. Fehlende/ungültige Version → keine Attribution, kein Ledger und keine `klar_referral`-Weiterleitung. Node22.23.3 Vitest, echte Firebase Emulator/Rules, Datenschutzprüfung und E2E-Tests verpflichtend. **NO-GO**.
