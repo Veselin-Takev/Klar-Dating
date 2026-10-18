@@ -170,3 +170,7 @@ Before acknowledging `duplicate:true`, verify that the original conversion event
 
 ### 2026-10-18 – Canonical event/claim time on partner webhooks
 Before acknowledging a replay, enforce UTC ISO-8601 millisecond event `createdAt` with exact round-trip, then equality to the buyer-claim timestamp; otherwise 409 `partner_claim_inconsistent`. Syntactic checks cannot attest storage immutability. Full pinned Node22 test/emulator/privacy controls required. **NO-GO**.
+
+
+### 2026-10-18 – P0 #56 cascade owner referral claims before deleting link
+Before deleting `partner_referrals` owned by a departing user, delete linked `partner_referral_buyer_claims` using `referralId`; otherwise claims for different buyers can outlive the deleted link. Keep the parent until child deletion finishes so interruption/resume remains safe. Execute `node scripts/check-art17-deletion-audit.mjs` and full emulator/restart tests; independently review Legal Holds, DPO and retained business records. **NO-GO**.
