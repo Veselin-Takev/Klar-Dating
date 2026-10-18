@@ -65,6 +65,7 @@ try {
       name: 'omit per-referral slice guard',
       from: 'for (const referral of ownedReferrals.docs) {\n        checkDeletionSlice();',
       to: 'for (const referral of ownedReferrals.docs) {',
+      expectedError: /owner referral iteration must check deletion slice before each child purge/,
     },
     {
       name: 'omit buyer-claim deletion',
@@ -80,7 +81,7 @@ try {
     writeFileSync(join(work, sourcePath), mutated, 'utf8');
     const result = runGate();
     assert.equal(result.status, 1, `gate accepted invalid cascade: ${item.name}; ${result.stdout}`);
-    assert.match(result.stderr, /owner deletion must remove buyer claims by referralId before deleting referral parent/,
+    assert.match(result.stderr, item.expectedError ?? /owner deletion must remove buyer claims by referralId before deleting referral parent/,
       `missing expected denial: ${item.name}; ${result.stderr}`);
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
