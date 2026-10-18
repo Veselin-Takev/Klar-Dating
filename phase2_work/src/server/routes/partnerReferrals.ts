@@ -65,13 +65,15 @@ function requireStrictPartnerAdmin(req: Request, res: Response, next: NextFuncti
 }
 
 function optionalVisitorUid(req: Request): Promise<string | null> {
+  // Anonymous Firebase authentication must not grant partner attribution.
+  if (isGuest(req)) return Promise.resolve(null);
   const existingUid = (req as Request & { user?: { uid?: unknown } }).user?.uid;
   if (typeof existingUid === 'string' && existingUid.length > 0) return Promise.resolve(existingUid);
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !/^Bearer\s+\S+$/.test(header)) return Promise.resolve(null);
   const token = header.slice('Bearer '.length).trim();
   return getAuth(getServerFirebaseApp()).verifyIdToken(token, false)
-    .then(decoded => typeof decoded.uid === 'string' ? decoded.uid : null)
+    .then(decoded => decoded.firebase?.sign_in_provider !== 'anonymous' && typeof decoded.uid === 'string' ? decoded.uid : null)
     .catch(() => null);
 }
 
