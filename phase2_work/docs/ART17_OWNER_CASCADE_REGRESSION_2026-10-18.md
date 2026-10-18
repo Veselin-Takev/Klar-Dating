@@ -22,6 +22,7 @@ The test copies only source files needed by `check-art17-deletion-audit.mjs` int
 3. Remove the claim deletion statement.
 4. Run buyer-claim deletion without awaiting its completion.
 5. Omit deletion of the parent referral document.
+6. Remove the per-referral deletion-slice guard that limits long-running pages.
 
 Each altered fixture must make the actual Art. 17 static audit gate fail with the expected diagnostic; the original source is never modified. Temporary files are removed on completion.
 
@@ -36,3 +37,7 @@ The mandatory `npm run check:art17-deletion-audit` script now executes the exist
 **Actual executed evidence:** On an isolated extraction of the exact GitHub source archive at `ec8a2c9ccd5fded0806452319af0f6d54c89f215`, with the proposed package-script wiring applied identically, SHA-256-verified official Node `v22.23.3` was used. The integrated npm command returned exit 0, the seven storage tests passed, and all five negative cascade mutations were rejected. The following standalone gates also returned exit 0: `check-secrets.mjs`, `check-auth-boundary.mjs`, `check-public-firestore-rules.mjs`, `check-ai-pii-sanitizer.mjs`, and `check-art17-deletion-audit.mjs 0`.
 
 These are offline/static tests only. They do not replace Firestore Emulator concurrency/restart tests, real TTL policy status, npm audit, full TypeScript/Vitest/Playwright/build, production telemetry, or DPO/Legal/Security approval. A paid GitHub Actions run was not manually started. **NO-GO until all mandatory gates and independent reviews have passed on the final exact commit.**
+
+## 2026-10-18 — Per-referral slice guard
+
+The owner-referral cleanup must call `checkDeletionSlice()` for each parent before querying its buyer claims. A single page contains up to `BATCH` referrals and may require multiple child-query batches; without this check, a resumed worker can run longer than its intended slice. The new static mutation rejects removal of that checkpoint. Interrupted operations retain parent referrals until their claims are deleted; this does not prove real Firestore concurrency or legal-hold behavior. **NO-GO** pending emulator and independent review.
