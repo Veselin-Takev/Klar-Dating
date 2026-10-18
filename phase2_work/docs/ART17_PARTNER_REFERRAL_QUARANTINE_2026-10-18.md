@@ -23,3 +23,10 @@ The static Art. 17 gate continues to enforce the quarantine-before-child-delete 
 ## Verified local check (2026-10-18)
 
 The integrated `npm run check:art17-deletion-audit` command returned exit code 0 under an officially checksum-verified Node 22.23.3 binary for source commit `f83c84acbc3f03fbedb6583cb54ae61abae8eff0`. The **7 storage checks**, **12 static deletion mutation checks** and **6 in-memory quarantine contract tests** passed. The Firestore Emulator scenarios have not been executed. Repeat all gates on the final integration SHA; **NO-GO**.
+
+## Exact-source test evidence — 2026-10-18
+
+- GitHub source commit: `c4d03eae44fa213d0af394fe71ea16a8e3ee1ccd`.
+- Official checksum-verified Node v22.23.3: `npm run check:art17-deletion-audit` exit 0, **7 storage tests, 12 negative mutations, 6 transactional helper contract tests**.
+- `check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`: each exit 0 against the source tree. A temporary test-only dependency symlink was excluded from the secrets scanner's scope; the scan was not suppressed.
+- The Firebase Emulator integration cases are **committed but NOT RUN**. This evidence does not establish Firestore transaction serializability or safe concurrency in production. **NO-GO**.
