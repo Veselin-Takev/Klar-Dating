@@ -26,6 +26,11 @@ if (perReferralSlice < 0) {
 }
 const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(db.collection('partner_referral_buyer_claims')");
 const parentDeletion = ownerCascade.indexOf("await referral.ref.delete()");
+const beforeParentGuard = ownerCascade.indexOf('checkDeletionSlice();\n        // Do not remove the parent pointer');
+if (beforeParentGuard < 0 || !(claimDeletion < beforeParentGuard && beforeParentGuard < parentDeletion)) {
+  failures.push('owner referral parent deletion must recheck slice after buyer-claim purge');
+}
+
 if (lookup < 0 || claimDeletion < 0 || parentDeletion < 0 || !(claimDeletion < parentDeletion) || !(lookup < parentDeletion)) {
   failures.push('owner deletion must remove buyer claims by referralId before deleting referral parent');
 }
