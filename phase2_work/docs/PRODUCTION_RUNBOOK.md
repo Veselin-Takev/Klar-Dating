@@ -86,3 +86,7 @@ Before publishing any unverified product claim, review `docs/MARKETING_CLAIM_EVI
 
 ### 2026-10-18 — Claim release gate must prove independent authorization
 Run `node scripts/test-marketing-claims.mjs`, then `node scripts/check-marketing-claims.mjs --release` (expected NO-GO unless Product, Legal and Brand approve all linked evidence). Distinct reviewer handles and evidence URL shape are syntactic only and DO NOT authenticate approvals. Enforce separate trusted CI/branch reviews and verify actual behavior and URLs before changing manifest to GO. **NO-GO.**
+
+
+### 2026-10-18 — Pin claim release evidence to repository matrix
+`node scripts/check-marketing-claims.mjs --release` must never accept a manifest-path environment override. Confirm canonical matrix is used and all unapproved claims cause NO-GO. Run `node scripts/test-marketing-claims.mjs` and inspect signoffs independently. Trusted CI and protected refs are still necessary; local file edits can falsify the canonical matrix. No production authorization from this gate alone. **NO-GO.**
