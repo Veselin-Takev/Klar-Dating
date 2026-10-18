@@ -962,3 +962,7 @@ Route-level optional visitor identity now excludes anonymous Firebase requests a
 
 ### 2026-10-18 — P0 #56 Firebase revoked bearer-token gate (draft)
 Optional public visitor Bearer JWT validation now uses Firebase Admin `verifyIdToken(token, true)` rather than no revocation check. A rejected/disabled/revoked token returns no visitor identity and no attribution; anonymous accounts are already denied. Updated static guard and new `docs/PARTNER_REVOKED_ID_TOKEN_GATE_2026-10-18.md`. Central `req.user` revocation policy, real emulator HTTP, Auth availability and all mandatory gates remain UNVERIFIED. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 prepopulated visitor identity bypass closed (draft)
+Optional partner redirect visitor identity now requires explicit revocation-checked Firebase Bearer ID token; prepopulated req.user.uid cannot bypass verification. No bearer -> untracked redirect. `docs/PARTNER_VERIFIED_BEARER_ONLY_2026-10-18.md` documents browser compatibility, migration and mandatory tests. Static guard updated. Runtime HTTP/emulator and all full gates pending; production **NO-GO**.
