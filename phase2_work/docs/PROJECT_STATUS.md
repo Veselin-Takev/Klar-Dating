@@ -1038,3 +1038,7 @@ Neue und wiederholte Conversion-Behauptungen verifizieren vorab die Token-HMAC-B
 
 ### 2026-10-18 – P0 #55 Zeitstempel-Konsistenz bei Partner-Conversion-Replays (Draft)
 Ein wiederholtes Partnerereignis wird nur bestätigt, wenn Event- und Käufer-Claim-Zeitstempel, die atomar angelegt wurden, weiterhin identisch und als Datum interpretierbar sind. Bei Abweichung `partner_claim_inconsistent`, keine Reward-Verifikation. Negativer Vitest-Test und `docs/PARTNER_CONVERSION_CLAIM_TIMESTAMP_REPLAY_2026-10-18.md` ergänzt; Mandatory Gates offen. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55 kanonische UTC-Zeit bei Conversion-Replays (Draft)
+Replay-Konsistenz verlangt nun den exakten UTC-ISO-`createdAt`-Zeitstempel mit Millisekunden, gültigem Kalendertag und identischer Claim-Zeit. In-Memory-Vitest erweitert und doppelten Test-Reset entfernt. Details: `docs/PARTNER_CONVERSION_EVENT_TIME_CANONICAL_2026-10-18.md`. Dies beweist keine kryptografische Immutabilität. Mandatory Gates ausstehend, **NO-GO**.
