@@ -20,6 +20,8 @@ The test copies only source files needed by `check-art17-deletion-audit.mjs` int
 1. Query buyer claims via `buyerRef` instead of `referralId`.
 2. Delete the parent referral before deleting its claims.
 3. Remove the claim deletion statement.
+4. Run buyer-claim deletion without awaiting its completion.
+5. Omit deletion of the parent referral document.
 
 Each altered fixture must make the actual Art. 17 static audit gate fail with the expected diagnostic; the original source is never modified. Temporary files are removed on completion.
 
