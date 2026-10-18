@@ -614,6 +614,16 @@ export async function recordPartnerConversion(
       if (eventSnap.data()?.eventBinding !== eventBinding) {
         throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
       }
+      // Both conversion and buyer-claim documents were atomically created.
+      // Missing/mismatched links indicate tampering or incomplete migration:
+      // do not acknowledge a corrupt replay as a successful duplicate.
+      if (!buyerClaimSnap.exists
+        || buyerClaimSnap.data()?.conversionId !== eventIdHash
+        || buyerClaimSnap.data()?.campaignId !== campaignId
+        || buyerClaimSnap.data()?.referralId !== referralId
+        || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)) {
+        throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
+      }
       return { duplicate: true as const };
     }
     if (buyerClaimSnap.exists) throw new PartnerReferralError(409, 'duplicate_conversion', 'Für dieses Klar-Konto wurde bereits eine Prämie zu dieser Kampagne berücksichtigt.');
