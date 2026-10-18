@@ -1,16 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${KLAR_PROJECT_ID:?KLAR_PROJECT_ID is required}"
-: "${KLAR_CONFIRM_RETENTION:?Set KLAR_CONFIRM_RETENTION to the exact project id}"
+# No cloud mutations are possible without explicit staging approval.
+: "${KLAR_PROJECT_ID:?KLAR_PROJECT_ID required}"
+: "${KLAR_DATABASE_ID:?KLAR_DATABASE_ID required}"
+[[ "${KLAR_PROJECT_ID}" =~ ^[a-z][a-z0-9-]{4,62}$ ]] || { echo "Invalid project id" >&2; exit 2; }
+[[ "${KLAR_DATABASE_ID}" =~ ^[a-zA-Z0-9_()-]+$ ]] || { echo "Invalid database id" >&2; exit 2; }
 
-if [[ "${KLAR_CONFIRM_RETENTION}" != "${KLAR_PROJECT_ID}" ]]; then
-  echo "Retention confirmation does not match the target project" >&2
-  exit 2
-fi
-
-for collection_group in messages ki_zwischenspeicher age_attempts deletion_log; do
-  gcloud firestore fields ttls update expiresAt     --collection-group="${collection_group}"     --enable-ttl     --project="${KLAR_PROJECT_ID}"     --quiet
+# Source: docs/DATA_RETENTION.md; additional groups require approved legal-hold review.
+groups=(
+  messages archived_messages ki_zwischenspeicher age_attempts
+  funnel_events ai_budget kyc_events account_deletions deletion_log
+  partner_referral_click_rate_limits partner_referral_webhook_rate_limits
+  partner_referral_admin_rate_limits partner_referral_user_rate_limits
+)
+for group in "${groups[@]}"; do
+  printf 'PLAN: gcloud firestore fields ttls update expiresAt --collection-group=%s --database=%s --project=%s --enable-ttl\n' "${group}" "${KLAR_DATABASE_ID}" "${KLAR_PROJECT_ID}"
 done
 
-echo "TTL policies requested. Verify ACTIVE state with: gcloud firestore fields ttls list --project ${KLAR_PROJECT_ID}"
+if [[ "${KLAR_APPLY_RETENTION:-false}" != true ]]; then
+  echo "DRY RUN ONLY: no policies modified."
+  exit 0
+fi
+[[ "${KLAR_ENVIRONMENT:-}" == staging ]] || { echo "Only staging changes allowed by this script" >&2; exit 3; }
+[[ "${KLAR_CONFIRM_RETENTION:-}" == "${KLAR_PROJECT_ID}/${KLAR_DATABASE_ID}" ]] || { echo "Exact project/database approval required" >&2; exit 3; }
+[[ "${KLAR_RETENTION_LEGAL_APPROVED:-}" == true ]] || { echo "Legal retention matrix approval required" >&2; exit 3; }
+[[ "${KLAR_RETENTION_INVENTORY_APPROVED:-}" == true ]] || { echo "Existing expired-data and legal-hold inventory required" >&2; exit 3; }
+command -v gcloud >/dev/null || { echo "gcloud CLI unavailable" >&2; exit 3; }
+for group in "${groups[@]}"; do
+  gcloud firestore fields ttls update expiresAt \
+    --collection-group="${group}" \
+    --database="${KLAR_DATABASE_ID}" \
+    --project="${KLAR_PROJECT_ID}" \
+    --enable-ttl --quiet
+done
+echo "Activation requested for staging; verify ACTIVE state independently."
