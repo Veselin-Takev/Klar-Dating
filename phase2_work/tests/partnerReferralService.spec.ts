@@ -214,6 +214,14 @@ describe('Klar & Partner transactional service boundary', () => {
     const conversions = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'));
     expect(conversions).toHaveLength(1);
     expect(conversions[0]?.[1]).toMatchObject({ rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' });
+    const conversionLedger = [...db._store.entries()]
+      .filter(([key]) => key.startsWith('partner_referral_ledger/'))
+      .map(([, record]) => record)
+      .filter(record => record.eventType === 'partner_conversion_asserted');
+    expect(conversionLedger).toHaveLength(1);
+    expect(conversionLedger[0]).toMatchObject({ eventType: 'partner_conversion_asserted' });
+    expect([...db._store.values()].some(record => record.eventType === 'partner_conversion_verified')).toBe(false);
+
     expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
     expect(db._store.get('partner_referrals/' + referralId)?.qualifiedConversions).toBe(0);
     expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
