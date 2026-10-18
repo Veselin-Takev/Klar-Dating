@@ -41,3 +41,7 @@ These are offline/static tests only. They do not replace Firestore Emulator conc
 ## 2026-10-18 — Per-referral slice guard
 
 The owner-referral cleanup must call `checkDeletionSlice()` for each parent before querying its buyer claims. A single page contains up to `BATCH` referrals and may require multiple child-query batches; without this check, a resumed worker can run longer than its intended slice. The new static mutation rejects removal of that checkpoint. Interrupted operations retain parent referrals until their claims are deleted; this does not prove real Firestore concurrency or legal-hold behavior. **NO-GO** pending emulator and independent review.
+
+## 2026-10-18 — Guard before parent deletion
+
+Buyer-claim cleanup may span multiple batches. The owner-referral purge now checks `checkDeletionSlice()` again after awaiting the buyer-claim purge and before deleting the referral parent. If the slice expires, the referral remains as a durable pointer and retry can resume the child-first deletion. A seventh negative mutation verifies that removal of the post-child checkpoint is rejected by the static Art. 17 gate. This is not proof of live Firestore cancellation, concurrent claims, or legal-hold handling. **NO-GO** pending emulator tests and approvals.
