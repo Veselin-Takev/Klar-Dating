@@ -174,3 +174,9 @@ Before acknowledging a replay, enforce UTC ISO-8601 millisecond event `createdAt
 
 ### 2026-10-18 – P0 #56 cascade owner referral claims before deleting link
 Before deleting `partner_referrals` owned by a departing user, delete linked `partner_referral_buyer_claims` using `referralId`; otherwise claims for different buyers can outlive the deleted link. Keep the parent until child deletion finishes so interruption/resume remains safe. Execute `node scripts/check-art17-deletion-audit.mjs` and full emulator/restart tests; independently review Legal Holds, DPO and retained business records. **NO-GO**.
+
+### 2026-10-18 — Art. 17 owner-referral quarantine (P0 #56)
+
+When erasing an owner account, the worker must transactionally mark every owned partner referral `status: 'deleting'` **before** deleting related `partner_referral_buyer_claims`. Provider conversion transactions reject referrals that are not `active`. Do **not** manually restore a tombstoned referral to active: this would reopen the attribution race. Failed and interrupted purges must resume from the existing parent record and delete children before parent removal; parent ownership mismatches stop processing and require Security/Privacy review.
+
+Preflight: execute `npm run check:art17-deletion-audit` under Node 22.23.3; it includes the transactional helper contract tests. The dedicated real Firestore Emulator suite is `npm run test:art17-partner-emulator` and **must be demonstrated running**, not inferred from committed tests. Prove rollback/retry/fault injection, absence of orphan buyer claims, legal-hold controls and independent DPO/Security/Legal approval before integration. A passing static audit **does not** authorize production. **NO-GO**.
