@@ -954,3 +954,7 @@ Added an HTTP negative/fail-closed companion test: malformed referral tokens mus
 
 ## 2026-10-18 — P0 #70 Retention TTL candidate (NO-GO)
 Development branch `fix/p0-retention-safeguards-2026-10-18` contains a dry-run-first, staging-only TTL provisioning gate enumerating 13 documented groups. No production TTL activation, confirmed legal-hold inventory, completed Firebase emulator tests, or production approval is claimed. Before staging use: approved per-group retention matrix and existing-expiry audit, explicit project/database attestation, independent reviewer, and after-activation ACTIVE evidence. See `docs/RETENTION_TTL_GATE_2026-10-18.md`. Keep issue #70 and release gate #8 open; no merge without exact-head CI and Security/Privacy review.
+
+
+### 2026-10-18 — P0 #70 staging identity hardening (draft)
+TTL script now denies staging activation unless target equals an explicit reviewed staging project ID, differs from the declared production ID, and read-only GCP project metadata confirms `labels.environment=staging`. Added local mock regression and `docs/RETENTION_STAGING_IDENTITY_GATE_2026-10-18.md`. This is defence in depth, not proof of production project controls or legal approval. Exact-head mandatory gates and staging verification are pending. **NO-GO; do not merge/deploy.**
