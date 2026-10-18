@@ -1128,3 +1128,11 @@ The dedicated Art.-17 partner-referral emulator run now refuses absent, producti
 The owner-referral quarantine helper now validates that the reference belongs to the **root** `partner_referrals/{id}` collection, not merely a collection named `partner_referrals` nested below another document. Added a regression asserting that a nested ref fails **before** any database transaction. The four Firestore Emulator scenarios now use 90-second per-case timeouts to accommodate documented Emulator transaction-lock behavior; this does **not** alter production deletion limits.
 
 **Verification pending at this exact commit:** after committing these changes, rerun the Art. 17 integrated gate under Node 22.23.3, four static security boundaries, and validate complete artifact integrity. The genuine Firestore Emulator scenarios and full enterprise CI remain unverified; do not mark production GO. Reference: `docs/ART17_PARTNER_REFERRAL_QUARANTINE_2026-10-18.md`.
+
+---
+
+## 2026-10-18 — Root-path deletion guard and native Node22 Art.-17 checks
+
+The transactional partner referral quarantine now rejects nested refs such as `users/{uid}/partner_referrals/{id}`, even if their `parent.id` is `partner_referrals`. A new in-memory regression asserts rejection without opening a transaction. The four real Firestore Emulator tests use 90-second timeouts to tolerate Firestore Emulator lock delays documented by Firebase (up to 30 seconds).
+
+The Art.-17 compliance npm gate was switched from test-only `tsx` loading to Node 22.23.3 native `--experimental-strip-types` to avoid a transient `ENOTCONN` transpiler spawn error. The stand-alone contract test on code SHA `3c80f93be0aee5fb95f72769e67b360a2a35074c` returned 7/7 PASS, 12/12 static cascade mutations PASS and 6/6 fail-closed Emulator preflight cases PASS on verified Node 22.23.3. A complete integrated gate pass must be rechecked on the following committed package-script SHA before marking this iteration's targeted gates PASS. Real Firestore Emulator tests, full typecheck/build/npm audit and sign-offs remain missing. **NO-GO.**

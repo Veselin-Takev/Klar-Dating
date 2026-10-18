@@ -190,3 +190,7 @@ If GitHub Actions shows an immediate failed `validate` job with `runner_id=0`, n
 ### 2026-10-18 — Referral root collection boundary and Emulator lock duration
 
 Account-erasure quarantine may only update root `partner_referrals/{referralId}` documents. A similarly named nested collection must be rejected before any Firestore transaction. When testing concurrent Firestore Emulator writes, allow the dedicated scenarios their 90-second timeout, since Emulator document locks can last up to 30 seconds. A pass in these scenarios still requires independent production-equivalent concurrency verification; do not change the production deletion time-slice budget to compensate for Emulator slowness. **NO-GO until required signoffs and gates.**
+
+### 2026-10-18 — Root referral deletion boundary and pinned TypeScript contract runtime
+
+Do not quarantine nested `partner_referrals` collections; only `partner_referrals/{id}` at the root is valid. Run `npm run check:art17-deletion-audit` under pinned Node 22.23.3; the isolated TypeScript helper contract tests use native `--experimental-strip-types` without launching the external `tsx` transpiler. For the true Firestore Emulator concurrency suite (`npm run test:art17-partner-emulator`), use a Java-enabled machine and allow 90 seconds per test; emulator lock behavior differs from production. The official Node runtime requirement and existing deployment gates are unchanged. **NO-GO pending real Emulator and independent controls.**
