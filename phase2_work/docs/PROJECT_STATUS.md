@@ -986,3 +986,7 @@ New partner assertions reject missing or invalid buyer `partnerReferralVersion` 
 
 ### 2026-10-18 — P0 #56 withdrawal remains available for corrupt partner consent history (draft)
 `setPartnerConsent(false)` now revokes an existing grant even when its epoch is absent, malformed or exhausted. The transaction sets `partnerReferralConsent=false`, flags `partnerReferralEpochQuarantined=true`, emits signed withdrawal audit and returns nullable `version` rather than fabricating epoch 1; regrant remains denied pending privacy-approved migration. In-memory regression updated, docs: `docs/PARTNER_CONSENT_WITHDRAWAL_QUARANTINE_2026-10-18.md`. Full Node22/emulator/client/schema verification pending. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 partner quarantine applied across all eligibility checks (draft)
+`partnerReferralEpochQuarantined` now denies listings, referral and interaction paths, click tracking and buyer/owner conversion even if stale consent boolean remains true; withdrawal is preserved. Regression scenarios and `docs/PARTNER_QUARANTINE_ALL_BOUNDARIES_2026-10-18.md` added. Full Node22/Vitest/emulator/PII and independent privacy approval pending. **NO-GO.**
