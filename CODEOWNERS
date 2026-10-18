@@ -1,7 +1,24 @@
+# GitHub CODEOWNERS: applies to repository-relative paths, last match wins.
+# @klar/* team references are retained pending verification of GitHub teams and permissions.
 * @klar/engineering
-/src/server/authorization.ts @klar/security @klar/engineering
-/src/server/stripeService.ts @klar/finance @klar/engineering
-/firestore.rules @klar/security @klar/engineering
-/storage.rules @klar/security @klar/engineering
+
+# Governance and CI.
+/CODEOWNERS @klar/engineering
 /.github/ @klar/engineering
 /.gitlab-ci.yml @klar/engineering
+
+# Active application under phase2_work.
+/phase2_work/ @klar/engineering
+/phase2_work/src/server/ @klar/security @klar/engineering
+/phase2_work/src/server/routes/ @klar/security @klar/engineering
+/phase2_work/src/server/authorization.ts @klar/security @klar/engineering
+/phase2_work/src/server/stripeService.ts @klar/finance @klar/engineering
+/phase2_work/src/server/partnerReferralService.ts @klar/security @klar/finance @klar/engineering
+/phase2_work/src/server/partnerConversionTrustPolicy.ts @klar/security @klar/finance @klar/engineering
+/phase2_work/functions/src/ @klar/security @klar/engineering
+/phase2_work/firestore.rules @klar/security @klar/engineering
+/phase2_work/storage.rules @klar/security @klar/engineering
+/phase2_work/scripts/ @klar/security @klar/engineering
+/phase2_work/docs/DATA_RETENTION.md @klar/security @klar/engineering
+/phase2_work/docs/PRODUCTION_RUNBOOK.md @klar/security @klar/engineering
+/phase2_work/RELEASE_MANIFEST.json @klar/security @klar/engineering
