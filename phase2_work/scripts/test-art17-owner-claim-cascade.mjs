@@ -33,6 +33,18 @@ try {
 
   const cases = [
     {
+      name: 'duplicate owner cascade start boundary',
+      from: 'const ownedReferrals =',
+      to: '/* const ownedReferrals = */\n      const ownedReferrals =',
+      expectedError: /owner referral cascade boundary markers must be unique/,
+    },
+    {
+      name: 'duplicate owner cascade end boundary',
+      from: "for (const field of ['ownerRef', 'buyerRef'])",
+      to: "/* for (const field of ['ownerRef', 'buyerRef']) */\n    for (const field of ['ownerRef', 'buyerRef'])",
+      expectedError: /owner referral cascade boundary markers must be unique/,
+    },
+    {
       name: 'missing owner cascade start boundary',
       from: 'const ownedReferrals =',
       to: 'const referralPage =',
@@ -104,7 +116,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (9 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (11 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
