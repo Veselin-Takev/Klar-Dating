@@ -20,6 +20,11 @@ for (const token of [
 // conversions would leave orphaned buyer claims after account erasure.
 const ownerCascadeStart = purge.indexOf('const ownedReferrals =');
 const ownerCascadeEnd = purge.indexOf("for (const field of ['ownerRef', 'buyerRef'])", ownerCascadeStart + 1);
+const cascadeStartToken = 'const ownedReferrals =';
+const cascadeEndToken = "for (const field of ['ownerRef', 'buyerRef'])";
+if (purge.split(cascadeStartToken).length !== 2 || purge.split(cascadeEndToken).length !== 2) {
+  failures.push('owner referral cascade boundary markers must be unique');
+}
 if (ownerCascadeStart < 0 || ownerCascadeEnd <= ownerCascadeStart) {
   failures.push('owner referral cascade boundaries missing or invalid');
 }
