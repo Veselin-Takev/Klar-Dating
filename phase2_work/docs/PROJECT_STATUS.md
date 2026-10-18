@@ -950,3 +950,7 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — API P95 SLO canonical-policy reconciliation (#71)
+Draft branch `fix/p1-slo-canonical-threshold-2026-10-18` derives in-process API P95 breach threshold from `ops/slo.json` (300ms) instead of legacy 1500ms. Adds pure local regression gate `node scripts/test-slo-policy.mjs` and detailed `docs/API_P95_SLO_ALIGNMENT_2026-10-18.md`. Exact-head typecheck, telemetry validation, paging, SRE approval and full Mandatory Gates are not confirmed. #71 and #8 stay OPEN; release **NO-GO**.
