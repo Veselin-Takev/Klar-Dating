@@ -18,6 +18,7 @@ assert.match(click, /savedVisitor\.data\(\)\?\.partnerReferralEpochQuarantined =
 assert.match(click, /Number\.isSafeInteger\(savedVisitor\.data\(\)\?\.partnerReferralVersion\)/);
 assert.match(click, /savedVisitor\.data\(\)\?\.partnerReferralVersion < 1/);
 assert.match(click, /ownerData\?\.partnerReferralEpochQuarantined !== true/);
+assert.match(click, /savedCampaign\.data\(\)\?\.destinationUrl !== campaign\.destinationUrl/);
 assert.match(click, /savedVisitor\.data\(\)\?\.isAdult !== true/);
 assert.match(click, /return tracked \? \{ url: trackedDestination\(destination, token\), tracked: true \}/);
-console.log('PASS: visitor authentication, adult status, consent, explicit consent epoch, quarantine and deletion state are required and transactionally rechecked before token forwarding');
+console.log('PASS: visitor authentication, adult status, consent, explicit consent epoch, quarantine and deletion state are required and transactionally rechecked and unchanged campaign destination before token forwarding');
