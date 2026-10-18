@@ -126,3 +126,7 @@ During full-source integration, restored the authenticated visitor, adult-consen
 
 ### 2026-10-18 – Idempotent withdrawal for quarantined consent
 When consent is already false and `partnerReferralEpochQuarantined=true`, repeated revocations must be read-only: return `version:null`, do not backfill the missing epoch, update profile timestamps or emit a new audit. Only the initial revocation is signed and counted. Reverify against Firestore emulator, audit ledger and UI response contracts before release. **NO-GO**.
+
+
+### 2026-10-18 – Withdrawal must remain possible while account deletion is pending
+During queued account deletion, do not block `setPartnerConsent(false)`; continue rejecting new grants. Verify the withdrawal is HMAC-audited once and processing is disabled, and that the deletion worker handles cases where it removes the user record first. Run exact-SHA emulator, Node22, typecheck and privacy review. **NO-GO.**
