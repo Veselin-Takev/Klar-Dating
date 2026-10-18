@@ -122,3 +122,7 @@ Reject partner activity whenever `partnerReferralEpochQuarantined === true`, reg
 
 ### 2026-10-18 — Visitor consent preserved across stacked partner fixes
 During full-source integration, restored the authenticated visitor, adult-consent and transactionally checked visitor deletion safeguards from draft #87 to the latest partner service; now also blocks visitor, buyer and owner quarantine state. Static gate `scripts/check-partner-visitor-consent.mjs` extended for quarantine. Full HTTP and emulator behavior not verified. **NO-GO.**
+
+
+### 2026-10-18 – Idempotent withdrawal for quarantined consent
+When consent is already false and `partnerReferralEpochQuarantined=true`, repeated revocations must be read-only: return `version:null`, do not backfill the missing epoch, update profile timestamps or emit a new audit. Only the initial revocation is signed and counted. Reverify against Firestore emulator, audit ledger and UI response contracts before release. **NO-GO**.
