@@ -8,6 +8,7 @@ import { join, dirname } from 'node:path';
 const root = process.cwd();
 const relativeFiles = [
   'src/server/trustAndSafety.ts',
+  'src/server/partnerReferralDeletion.ts',
   'src/server/deletionAccounting.ts',
   'src/server/accountDeletion.ts',
   'docs/DATA_RETENTION.md',
@@ -55,6 +56,12 @@ try {
       from: "for (const field of ['ownerRef', 'buyerRef'])",
       to: "for (const field of ['ownerRef', 'customerRef'])",
       expectedError: /owner referral cascade boundaries missing or invalid/,
+    },
+    {
+      name: 'missing transactional referral quarantine',
+      from: 'await quarantineOwnedPartnerReferral(db, referral.ref, meineUid)',
+      to: "Promise.resolve('already_deleting')",
+      expectedError: /owner referral must be transactionally quarantined before buyer claims are purged/,
     },
     {
       name: 'missing referralId claim lookup',
@@ -116,7 +123,7 @@ try {
     writeFileSync(join(work, sourcePath), original, 'utf8');
     console.log(`PASS negative: ${item.name}`);
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (11 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate mutation regression (12 cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
