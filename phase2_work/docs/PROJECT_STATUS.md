@@ -950,3 +950,7 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 ### 2026-10-14 — PR #64 well-formed-token limiter regression
 
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — P0 #55 event-ID assertion binding (draft)
+A new domain-separated stable HMAC binds each stored partner event ID to original buyer/referral assertion. Exact duplicates remain idempotent; conflicting assertions and legacy records missing the binding fail closed. Adds Vitest regression and `docs/PARTNER_EVENT_ID_BINDING_GATE_2026-10-18.md`. Exact-head Vitest, emulator tests, independent purchase proof and all release gates remain outstanding. **NO-GO.**
