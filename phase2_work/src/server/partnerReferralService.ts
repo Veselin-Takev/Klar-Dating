@@ -322,7 +322,9 @@ export async function setPartnerConsent(
   await db.runTransaction(async tx => {
     const userSnap = await tx.get(userRef);
     const deletionSnap = await tx.get(deletionRef);
-    if (deletionSnap.exists) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
+    // A deletion job must block new consent but cannot obstruct withdrawal.
+    // Preserve audit and idempotency while the profile still exists.
+    if (deletionSnap.exists && allowed) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
     const data = userSnap.data();
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
