@@ -1042,3 +1042,7 @@ Ein wiederholtes Partnerereignis wird nur bestätigt, wenn Event- und Käufer-Cl
 
 ### 2026-10-18 – P0 #55 kanonische UTC-Zeit bei Conversion-Replays (Draft)
 Replay-Konsistenz verlangt nun den exakten UTC-ISO-`createdAt`-Zeitstempel mit Millisekunden, gültigem Kalendertag und identischer Claim-Zeit. In-Memory-Vitest erweitert und doppelten Test-Reset entfernt. Details: `docs/PARTNER_CONVERSION_EVENT_TIME_CANONICAL_2026-10-18.md`. Dies beweist keine kryptografische Immutabilität. Mandatory Gates ausstehend, **NO-GO**.
+
+
+### 2026-10-18 – P0 #56 Art.-17-Eigentümer-Löschung umfasst fremde Käufer-Claims (Draft)
+`purgeAccountData` entfernt nun abhängige `partner_referral_buyer_claims` per `referralId` **vor** der Entfernung der Eigentümer-Referrals. Dadurch verbleiben nach dem Löschen eines Link-Eigentümers keine durch dessen Referral verknüpften Käufer-Claims allein aufgrund einer fehlenden `ownerRef`-Spalte. Statische Lösch-Gate-Prüfung in `scripts/check-art17-deletion-audit.mjs`; Emulator-/Staging-/DPO-Nachweise fehlen. `docs/ART17_REFERRAL_OWNER_BUYER_CLAIM_CASCADE_2026-10-18.md`. **NO-GO**.
