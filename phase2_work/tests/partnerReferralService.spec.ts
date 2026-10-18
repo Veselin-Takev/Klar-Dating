@@ -220,6 +220,20 @@ describe('Klar & Partner transactional service boundary', () => {
       .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
     expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
     expect(conversions[0]?.[1]?.eventBinding).toMatch(/^[a-f0-9]{64}$/);
+    // The duplicate must be linked to the same immutable buyer claim.
+    const claimEntry = [...db._store.entries()].find(([key]) => key.startsWith('partner_referral_buyer_claims/'));
+    expect(claimEntry).toBeDefined();
+    const [claimKey, originalClaim] = claimEntry!;
+    db._store.delete(claimKey);
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_claim_inconsistent' });
+    db._store.set(claimKey, { ...originalClaim, conversionId: 'wrong-conversion' });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_claim_inconsistent' });
+    db._store.set(claimKey, originalClaim);
+    expect(await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+
     await expect(recordPartnerConversion(deps(db), slug, { ...payload, buyerUid: 'different-buyer' }, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'partner_event_id_conflict' });
     await expect(recordPartnerConversion(deps(db), slug, { ...payload, referralToken: derivePartnerReferralToken('other-owner', campaignId, 1, tokenSecret) }, 'partner-provider-signing-secret-is-long-enough'))
