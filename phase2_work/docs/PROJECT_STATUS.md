@@ -966,3 +966,7 @@ TTL script now denies staging activation unless target equals an explicit review
 
 ### 2026-10-18 – P0 #70 Retention-Dokumentation und negative Matrix-Regressionen (Draft)
 `docs/DATA_RETENTION.md` dokumentiert jetzt korrekt 13 TTL-Gruppen, Projekt-/Datenbank-gebundenen Staging-Dry-Run und den fehlenden Cloud-ACTIVE-Nachweis. Sechs lokale Negativmutationen in `scripts/test-retention-matrix.mjs` prüfen die Fail-Closed-Logik des Matrix-Gates. Siehe `docs/RETENTION_TTL_NEGATIVE_REGRESSIONS_2026-10-18.md`. Vollständige Node22-/Emulator-/Privacy-/Security-Freigaben ausstehend. **NO-GO**.
+
+
+### 2026-10-18 – P0 #70 TTL ACTIVE-Evidenz je Staging-Projekt/Datenbank (Draft)
+`node scripts/check-retention-active-evidence.mjs` prüft erfasste lesende `gcloud`-JSON-Evidenz für 13 ACTIVE/expiresAt-Policies mit exakter Projekt-/Datenbankbindung. Neun Negativtests in `scripts/test-retention-active-evidence.mjs`; siehe `docs/RETENTION_TTL_ACTIVE_EVIDENCE_2026-10-18.md`. Kein Live-Nachweis oder Art.-17-E2E, **NO-GO**.
