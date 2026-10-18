@@ -1006,3 +1006,7 @@ Second `setPartnerConsent(false)` request on a quarantined, already-revoked prof
 
 ### 2026-10-18 – P0 #56 consent withdrawal after profile purge (draft)
 When account deletion is recorded and the user profile is already missing, withdrawal now returns `{allowed:false,version:null}` without recreating personal records or audit entries. New grants still fail; missing user without deletion marker continues to fail. In-memory Vitest regression and `docs/PARTNER_WITHDRAW_AFTER_PROFILE_PURGE_2026-10-18.md` added. Complete deletion proof and Node22/Emulator testing pending. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 read-only repeated withdrawal for already-denied consent (draft)
+An already-denied `partnerReferralConsent=false` now produces no Firestore mutation or audit append on repeated withdrawal, even for missing, malformed or zero version. A valid existing epoch is returned unchanged; otherwise response uses `version:null`. Regression fixtures and `docs/PARTNER_ALREADY_DENIED_WITHDRAWAL_IDEMPOTENCY_2026-10-18.md` added. Mandatory tests and independent privacy signoff pending. **NO-GO**.
