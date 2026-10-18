@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const source = readFileSync(new URL('../src/server/partnerReferralService.ts', import.meta.url), 'utf8');
+const clickStart = source.indexOf('export async function recordPartnerClick(');
+const conversionStart = source.indexOf('export async function recordPartnerConversion(', clickStart);
+assert.ok(clickStart >= 0 && conversionStart > clickStart, 'Partner click and conversion functions exist');
+const click = source.slice(clickStart, conversionStart);
+assert.match(click, /!activeConsent \|\| !visitorUid \|\| visitorUid === ownerUid/);
+assert.match(click, /visitorSnap\.data\(\)\?\.partnerReferralConsent !== true/);
+assert.match(click, /visitorSnap\.data\(\)\?\.isAdult !== true/);
+assert.match(click, /tx\.getAll\(referralRef, campaignRef, ownerRef, deletionRef, visitorRef, visitorDeletionRef\)/);
+assert.match(click, /visitorDeletion\.exists \|\| !savedVisitor\.exists/);
+assert.match(click, /savedVisitor\.data\(\)\?\.partnerReferralConsent !== true/);
+assert.match(click, /savedVisitor\.data\(\)\?\.isAdult !== true/);
+assert.match(click, /return tracked \? \{ url: trackedDestination\(destination, token\), tracked: true \}/);
+console.log('PASS: visitor authentication, adult status, consent and deletion state are required and transactionally rechecked before token forwarding');
