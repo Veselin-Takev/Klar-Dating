@@ -1054,3 +1054,13 @@ Replay-Konsistenz verlangt nun den exakten UTC-ISO-`createdAt`-Zeitstempel mit M
 The `check:art17-deletion-audit` npm script on the draft branch now additionally runs `scripts/test-art17-owner-claim-cascade.mjs` after the existing static audit and storage deletion checks. Verified in an isolated source snapshot with an official SHA-256-verified Node **22.23.3** binary: integrated command exit 0, **7/7 storage tests** and **5/5 negative owner-claim mutation tests** pass. Four standalone static boundary checks (secrets, auth, public Firestore rules, AI PII) also returned exit 0. Detailed scope/limitations are in `docs/ART17_OWNER_CASCADE_REGRESSION_2026-10-18.md`.
 
 **Production remains NO-GO.** This is not evidence of live Firestore deletion, Art.-17 completeness, production TTL settings, full CI/Emulator/E2E/build, or independent Security/Privacy/Legal signoff. `main` is unchanged and no deployment or manual paid Actions rerun occurred.
+
+---
+
+## 2026-10-18 — Art.-17-Löschkaskade: Zeitscheibenkontrolle je Referral (#56)
+
+Auf dem gestapelten Draft-Branch von PR #118 wird nun bei jedem einzelnen Eigentümer-Referral innerhalb der maximal 400 Einträge großen Abfrageseite `checkDeletionSlice()` ausgeführt, bevor die verknüpften Buyer-Claims gelöscht werden. Damit wird die Zeitscheiben-Grenze auch zwischen umfangreichen Referral-Löschungen beachtet; die bisherige Reihenfolge **Claims vor Parent** bleibt erhalten. Ein sechster deterministischer Mutationstest verweigert das Entfernen dieses Kontrollpunkts.
+
+**Tatsächlich ausgeführt:** Auf dem GitHub-Commit `33b2812b2f12e67678da6c7aca8aca1cdd340a4c` wurde `npm run check:art17-deletion-audit` unter Node `22.23.3` erfolgreich ausgeführt (7/7 Storage-Testfälle, 6/6 negative Mutationstests, Art.-17-Statischprüfung PASS). Das vollständige Commit-ZIP bestand die ZIP-CRC-Prüfung. Die Fehlerbehandlung eines zunächst falsch escapten Prüfausdrucks wurde vor dem erfolgreichen Lauf korrigiert.
+
+**Weiterhin NO-GO:** Noch keine echten Firestore-Emulator-Tests für Konkurrenz, Abbruch/Wiederaufnahme und Nachweis der vollständigen Kaskadenlöschung; auch die vollständigen TypeScript-/E2E-/Build-/Supply-Chain-Gates, reale TTL-Policies und unabhängige Datenschutz-/Rechts-/Sicherheitsfreigaben sind nicht nachgewiesen. Kein Produktionsdeployment, kein Merge nach `main`, keine manuell gestartete kostenpflichtige CI.
