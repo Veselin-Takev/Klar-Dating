@@ -970,3 +970,7 @@ Even an HMAC-matching partner webhook retry now requires immutable persisted eve
 
 ### 2026-10-18 — P0 #55 Audit-Ereignissemantik korrekt als Partnerbehauptung (Draft)
 Neue signierte Partner-Conversions werden als `partner_conversion_asserted` statt irreführendem `partner_conversion_verified` im unveränderlichen Audit-Ledger protokolliert, während Proof-/Reward-Status weiterhin ausschließlich `partner_assertion_only`/`pending_verification` sind. In-Memory-Vitest-Regression und `docs/PARTNER_AUDIT_ASSERTION_SEMANTICS_2026-10-18.md` ergänzt. Alte Audit-Ereignisse nicht umschreiben; Dashboard/Monitoring-Konsumenten vor Release prüfen. Vollständige Mandatory Gates NICHT NACHGEWIESEN. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55/#56 buyer consent epoch binding (draft)
+Partner-conversion events and buyer claims now persist `buyerConsentVersion` and reject old replays after consent is revoked and re-granted. Added in-memory negative tests and `docs/PARTNER_BUYER_CONSENT_EPOCH_2026-10-18.md`; legacy conversion records without epoch fail closed and need approved reconciliation. Full Vitest, emulator, actual consent-version increment contract, privacy/finance approval NOT VERIFIED. **NO-GO.**
