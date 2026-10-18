@@ -1034,3 +1034,7 @@ Klicktracking validiert nun die HMAC-Tokenbindung an gespeicherte `ownerUid`-, `
 
 ### 2026-10-18 – P0 #55 Partner-Conversion prüft HMAC-Referral-Metadatenbindung (Draft)
 Neue und wiederholte Conversion-Behauptungen verifizieren vorab die Token-HMAC-Bindung an `ownerUid`, `campaignId` und gültige Referral-Version und gleichen die Version in der Transaktion erneut ab. Neue Manipulations-Regression und `docs/PARTNER_CONVERSION_TOKEN_RECORD_BINDING_2026-10-18.md`; alle Full-Gates offen. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55 Zeitstempel-Konsistenz bei Partner-Conversion-Replays (Draft)
+Ein wiederholtes Partnerereignis wird nur bestätigt, wenn Event- und Käufer-Claim-Zeitstempel, die atomar angelegt wurden, weiterhin identisch und als Datum interpretierbar sind. Bei Abweichung `partner_claim_inconsistent`, keine Reward-Verifikation. Negativer Vitest-Test und `docs/PARTNER_CONVERSION_CLAIM_TIMESTAMP_REPLAY_2026-10-18.md` ergänzt; Mandatory Gates offen. **NO-GO**.
