@@ -16,7 +16,7 @@ const cases = [
   ['removed collection group', s => s.replace('archived_messages ', ''), d => d],
   ['duplicate collection group', s => s.replace('messages archived_messages', 'messages messages archived_messages'), d => d],
   ['missing legal approval condition', s => s.replace('[[ "${KLAR_RETENTION_LEGAL_APPROVED:-}" == true ]]', '[[ true == true ]]'), d => d],
-  ['missing staging project identity', s => s.replace('KLAR_APPROVED_STAGING_PROJECT_ID', 'KLAR_UNCHECKED_PROJECT'), d => d],
+  ['missing staging project identity', s => s.replaceAll('KLAR_APPROVED_STAGING_PROJECT_ID', 'KLAR_UNCHECKED_PROJECT'), d => d],
   ['missing database-scoped mutation', s => s.replace('--database="${KLAR_DATABASE_ID}"', '--database=unscoped'), d => d],
   ['missing documented TTL group', s => s, d => d.replace('--collection-group=partner_referral_user_rate_limits', '--collection-group=undocumented_group')],
 ];
