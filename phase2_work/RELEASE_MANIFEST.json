@@ -70,15 +70,17 @@
     "networkCheckout": "DNS_BLOCKED",
     "developmentBranchEvidence": {
       "asOf": "2026-10-18",
-      "sourceCommit": "f83c84acbc3f03fbedb6583cb54ae61abae8eff0",
-      "scope": "P0-56 transactional owner referral quarantine and Art17 source checks",
+      "sourceCommit": "5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03",
+      "scope": "P0 #56 transactional owner-referral quarantine plus fail-closed emulator harness",
       "node": "22.23.3 verified using official distribution checksum",
-      "result": "7_STORAGE_PASS_12_STATIC_MUTATIONS_PASS_6_IN_MEMORY_HELPER_PASS",
-      "firestoreEmulator": "NOT_RUN",
+      "result": "NODE22_7_STORAGE_PASS_12_MUTATIONS_PASS_6_QUARANTINE_CONTRACT_PASS_6_EMULATOR_PREFLIGHT_PASS",
+      "firestoreEmulator": "NOT_RUN_FOUR_SCENARIOS_COMMITTED",
       "fullEnterpriseGate": "NOT_RUN",
       "securityPrivacyLegalReview": "PENDING",
       "productionApproved": false,
-      "note": "Draft branch evidence; prior release governance entries are historical and remain NO-GO."
+      "note": "Static/contract/preflight evidence only; final branch's production decision remains NO-GO.",
+      "emulatorPreflight": "PASS_6_NEGATIVE_CASES_NODE_22_23_3",
+      "automaticCiEvidence": "run 39162571437 failed without runner allocation or steps on preceding SHA; root cause unconfirmed"
     }
   }
 }

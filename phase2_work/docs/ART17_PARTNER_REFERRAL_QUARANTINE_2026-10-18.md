@@ -30,3 +30,11 @@ The integrated `npm run check:art17-deletion-audit` command returned exit code 0
 - Official checksum-verified Node v22.23.3: `npm run check:art17-deletion-audit` exit 0, **7 storage tests, 12 negative mutations, 6 transactional helper contract tests**.
 - `check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`: each exit 0 against the source tree. A temporary test-only dependency symlink was excluded from the secrets scanner's scope; the scan was not suppressed.
 - The Firebase Emulator integration cases are **committed but NOT RUN**. This evidence does not establish Firestore transaction serializability or safe concurrency in production. **NO-GO**.
+
+## 2026-10-18 — Fail-closed Firestore Emulator execution
+
+The dedicated `npm run test:art17-partner-emulator` command starts the Firestore Emulator with project `demo-klar`, then invokes `node scripts/run-art17-partner-emulator.mjs`. That runner refuses missing/non-loopback endpoints, wrong port (from `firebase.pruefung.json`), and mismatched GCP project IDs before launching Vitest. It marks `KLAR_REQUIRE_FIRESTORE_EMULATOR=1` so the target test file cannot silently skip if emulator configuration is missing.
+
+The real Emulator test file now contains **four** scenarios, including a concurrent status-checked conversion writer racing transactional quarantine followed by a child-before-parent sweep and an assertion that no orphan claims remain. These tests are **committed but NOT RUN** in this iteration: the remote execution sandbox has no Java runtime and insufficient memory for the full Emulator toolchain. A passing preflight is **not** a passing Firestore integration test.
+
+**Executed on code commit `5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03` with official checksum-verified Node 22.23.3:** dedicated preflight safety regressions **6/6 PASS** (missing host, remote endpoint, production-like endpoint, wrong port, wrong project in either environment variable). Integrated `npm run check:art17-deletion-audit` exit 0: 7 storage tests, 12 static mutations, 6 contract tests, and 6 emulator preflight tests. Emulator evidence, full project typecheck/build, security/legal approvals and production TTL remain missing. **NO-GO**.

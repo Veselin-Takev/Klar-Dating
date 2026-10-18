@@ -1110,3 +1110,13 @@ Reference: `docs/ART17_PARTNER_REFERRAL_QUARANTINE_2026-10-18.md`.
 On exact source commit `c4d03eae44fa213d0af394fe71ea16a8e3ee1ccd`, an official SHA-256-verified Node **22.23.3** binary was used to execute `npm run check:art17-deletion-audit`: exit **0**, **7/7 storage**, **12/12 static mutation**, **6/6 functional quarantine mock** tests passed. Secrets, Firebase Admin auth-boundary, public Firestore-rules and AI PII source-boundary checks returned exit **0** when executed against the unchanged 1,131-file source tree. An initial secrets-check `INCOMPLETE` was caused by a temporary, external `node_modules` symlink introduced solely to run the isolated TypeScript tests; removing that symlink from the scan environment resolved it. No code was changed to bypass the scanner.
 
 **Still NO-GO:** Actual Firestore Emulator tests, provider conversion concurrency/fault injection, live GCP TTL ACTIVE evidence, full CI/typecheck/build/Playwright/npm audit and independent Security/Privacy/Legal review were not completed. This statement does not imply production approval.
+
+---
+
+## 2026-10-18 — P0 #56: Firestore Emulator invocation fail-closed
+
+The dedicated Art.-17 partner-referral emulator run now refuses absent, production-like, non-local, wrong-port and wrong-project hosts instead of returning success from silently skipped tests. `test:art17-partner-emulator` invokes `scripts/run-art17-partner-emulator.mjs` inside `firebase emulators:exec`; four targeted Firestore transaction scenarios, including concurrent assertions and a post-quarantine claim sweep, are committed but **not executed**.
+
+**Executed on GitHub source commit `5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03`:** official SHA-256 verified Node **22.23.3**; the integrated Art.-17 gate exited 0 with **7/7 storage, 12/12 static cascade mutation, 6/6 quarantine contract and 6/6 unsafe-emulator-preflight rejection tests**. No valid real Firestore Emulator pass, full TypeScript/Vitest/Playwright/build/npm-audit, active GCP TTL or independent Security/Privacy/Legal attestation was obtained.
+
+**CI caveat:** Earlier automatic GitHub Actions run 39162571437 on a prior SHA ended in failure with `runner_id: 0`, no steps and an empty log archive. It is not evidence of a failing application test or a passed CI run. No paid Actions rerun was manually started. **Production decision remains NO-GO.**
