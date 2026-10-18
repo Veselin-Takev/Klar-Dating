@@ -19,8 +19,8 @@ try {
  const override=run(good,true);
  assert.equal(override.status,1,'Release must reject alternate manifest even when it claims GO');
  assert.match(override.stderr,/release manifest override is forbidden/);
- const placeholder=structuredClone(good);placeholder.claims[0].evidence=['placeholder','https://example.com/fake'];assert.notEqual(run(placeholder,true).status,0);
- const sameOwner=structuredClone(good);sameOwner.claims[0].owners.legal=sameOwner.claims[0].owners.product;assert.notEqual(run(sameOwner,true).status,0);
+ const placeholder=structuredClone(good);placeholder.claims[0].evidence=['placeholder','https://example.com/fake'];assert.notEqual(run(placeholder).status,0);
+ const sameOwner=structuredClone(good);sameOwner.claims[0].owners.legal=sameOwner.claims[0].owners.product;assert.notEqual(run(sameOwner).status,0);
  const missingGo=structuredClone(good);missingGo.releaseStatus='NO-GO';assert.equal(run(missingGo,true).status,1);
  console.log('PASS: canonical release matrix pinned; GO override denied; placeholder evidence and shared reviewers rejected');
 } finally {rmSync(root,{recursive:true,force:true});}
