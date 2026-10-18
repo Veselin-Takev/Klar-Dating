@@ -114,3 +114,7 @@ For an already-granted partner consent, missing/malformed `partnerReferralVersio
 
 ### 2026-10-18 — Consent withdrawal cannot be blocked by epoch corruption
 If a previously allowed partner consent has malformed/exhausted `partnerReferralVersion`, its withdrawal MUST still set `partnerReferralConsent=false` transactionally and flag quarantine. Preserve original version, sign audit (`partner_consent_withdrawn`), return `version:null` and block any new grant until authorized reconciliation. Validate all clients tolerate `version:null` and ensure no downstream partner tracking may use quarantined consent. Run pinned Node22 Vitest, Firebase emulator and full mandatory gates. **NO-GO.**
+
+
+### 2026-10-18 — Quarantine must deny partner privileges everywhere
+Reject partner activity whenever `partnerReferralEpochQuarantined === true`, regardless of a stale restored `partnerReferralConsent=true`. Check both buyer/owner conversions and click attribution. Withdrawal remains available. Run full Vitest and Firebase Emulator matrix and verify rules against unauthorized profile updates; release NO-GO until approved.
