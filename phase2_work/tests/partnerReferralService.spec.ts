@@ -122,6 +122,32 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('does not forward a referral token after the campaign destination changes before transaction', async () => {
+    const owner = 'destination-owner', visitor = 'destination-visitor', campaignId = 'destination-campaign';
+    const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: owner, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: visitor, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, clickCount: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid: owner, campaignId, status: 'active', version: 1, clickCount: 0 } },
+    ]);
+    const originalTransaction = db.runTransaction.bind(db);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async (callback: Parameters<typeof db.runTransaction>[0]) => {
+        const stored = db._store.get('partner_campaigns/' + campaignId)!;
+        db._store.set('partner_campaigns/' + campaignId, { ...stored, destinationUrl: 'https://new-partner.example/offer' });
+        return originalTransaction(callback);
+      },
+    });
+    const response = await recordPartnerClick(deps(db), token, { method: 'GET' }, visitor);
+    expect(response).toEqual({ url: 'https://partner.example/offer', tracked: false });
+    expect(db._store.get('partner_referrals/' + referralId)?.clickCount).toBe(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.clickCount).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
   it('does not count a click if the visitor consent epoch changes before transaction', async () => {
     const owner = 'race-owner', visitor = 'race-visitor', campaignId = 'race-campaign';
     const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
