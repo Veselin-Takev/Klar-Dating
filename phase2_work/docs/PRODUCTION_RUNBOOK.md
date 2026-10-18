@@ -86,3 +86,7 @@ On a signed webhook retry with an existing event ID, the stored stable event HMA
 
 ### 2026-10-18 — P0 #55 provider replay after buyer consent revocation
 An identical partner webhook retry is acknowledged only after current eligibility checks within the Firestore transaction. If buyer consent is withdrawn or the account deleted, retries fail closed rather than accepting old event status. Execute `npx vitest run tests/partnerReferralService.spec.ts`, emulator tests and all mandatory gates on the exact integrated SHA. Provider retries may change from 200 to 403; coordinate handling with Privacy/Partner Operations. No reward may become earned solely from partner assertion. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 replay buyer-claim consistency
+A replay with a valid event HMAC but missing or inconsistent buyer claim must yield `partner_claim_inconsistent` (409) and be quarantined for authorized reconciliation; do not auto-create missing claims. Validate with `npx vitest run tests/partnerReferralService.spec.ts` and Firestore Emulator concurrency/retention tests. Separate finance, fraud, privacy and partner-contract approval required. **NO-GO.**
