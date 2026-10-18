@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "issue": 47,
+  "releaseStatus": "NO-GO",
+  "claims": [
+    {
+      "id": "verification",
+      "claim": "Profile sind verifiziert",
+      "state": "blocked",
+      "evidence": [],
+      "owners": {
+        "product": null,
+        "legal": null,
+        "brand": null
+      },
+      "constraints": "Only signed Didit KYC state may drive verification; invitations must not grant verification"
+    },
+    {
+      "id": "daily_proposals",
+      "claim": "8–12 lokale Vorschläge pro Tag",
+      "state": "blocked",
+      "evidence": [],
+      "owners": {
+        "product": null,
+        "legal": null,
+        "brand": null
+      },
+      "constraints": "Prove inventory, local eligibility, delivery and fallback under low density"
+    },
+    {
+      "id": "free_use",
+      "claim": "Echte Free-Nutzung durch kurze Werbung",
+      "state": "blocked",
+      "evidence": [],
+      "owners": {
+        "product": null,
+        "legal": null,
+        "brand": null
+      },
+      "constraints": "Verify actual free flows and fair treatment, do not promise untested advertising availability"
+    },
+    {
+      "id": "selection",
+      "claim": "Handverlesene Profile",
+      "state": "blocked",
+      "evidence": [],
+      "owners": {
+        "product": null,
+        "legal": null,
+        "brand": null
+      },
+      "constraints": "Human curation may be claimed only with auditable human process, not automated ranking"
+    },
+    {
+      "id": "referral",
+      "claim": "Einladungen ermöglichen exklusive Vorteile",
+      "state": "blocked",
+      "evidence": [],
+      "owners": {
+        "product": null,
+        "legal": null,
+        "brand": null
+      },
+      "constraints": "No fabricated VIP, waitlist bypass, KYC badge, coins or unapproved Klar+ duration rewards"
+    }
+  ]
+}
