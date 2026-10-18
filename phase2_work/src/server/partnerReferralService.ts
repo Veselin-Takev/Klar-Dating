@@ -581,6 +581,9 @@ export async function recordPartnerClick(
     || !Number.isSafeInteger(visitorSnap.data()?.partnerReferralVersion) || visitorSnap.data()?.partnerReferralVersion < 1) {
     return { url: destination, tracked: false };
   }
+  // Pin the visitor consent epoch observed before the transactional eligibility read.
+  // An epoch change between these reads is a new authorization period.
+  const visitorConsentVersion = visitorSnap.data()?.partnerReferralVersion;
   const ledger = makeLedger(deps, 'referral_click_counted', null, { ownerUid, campaignId, referralId });
   const now = nowIso(deps);
   const tracked = await db.runTransaction(async tx => {
@@ -595,6 +598,7 @@ export async function recordPartnerClick(
       || savedVisitor.data()?.isAdult !== true
       || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
       || !Number.isSafeInteger(savedVisitor.data()?.partnerReferralVersion) || savedVisitor.data()?.partnerReferralVersion < 1
+      || savedVisitor.data()?.partnerReferralVersion !== visitorConsentVersion
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
