@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — API P95 SLO configuration guard (#71)
+Metric `klar_http_p95_slo_breach` now compares against the canonical `ops/slo.json` `api-latency-p95-ms` policy, currently 300ms. Run `node scripts/test-slo-policy.mjs` from `phase2_work` and the full mandatory gates on exact PR head. This guard covers a local breach threshold only: the existing per-instance sliding window/gauge is not equivalent to a 30-day fleet SLI. SRE must verify the aggregation, telemetry labels, window, alert burn-rates and actual pager delivery independently before GO. Do not deploy or close #71/#8 without evidence. **NO-GO**.
