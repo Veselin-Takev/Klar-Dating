@@ -134,3 +134,7 @@ During queued account deletion, do not block `setPartnerConsent(false)`; continu
 
 ### 2026-10-18 – Withdrawal API after user-document purge
 If deletion marker exists and user doc is absent, treat a later `allowed=false` request as read-only, idempotently withdrawn; never recreate profile or personal audit solely for retries. Verify cleanup of all other copies separately. A new grant and missing profile without deletion evidence must remain denied. Run full Node22/Emulator/Privacy/Art17 gates. **NO-GO.**
+
+
+### 2026-10-18 — Idempotent already-denied partner consent
+When `partnerReferralConsent=false`, repeated `setPartnerConsent(false)` must be read-only and must not synthesize epoch 1, update timestamps or append audit. Return the valid unchanged version or `null` for legacy/malformed/quarantined version. Run Node22.23.3 Vitest + Firebase Emulator and verify client handling of nullable response. **NO-GO**.
