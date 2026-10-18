@@ -595,13 +595,6 @@ export async function recordPartnerConversion(
     if (!referralSnap || !campaignSnap || !ownerSnap || !buyerSnap || !ownerDeletion || !buyerDeletion || !eventSnap || !buyerClaimSnap) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    if (eventSnap.exists) {
-      // Legacy records lacking a binding must be reviewed, never silently trusted.
-      if (eventSnap.data()?.eventBinding !== eventBinding) {
-        throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
-      }
-      return { duplicate: true as const };
-    }
     const referral = referralSnap.data();
     const campaign = campaignSnap.data();
     const owner = ownerSnap.data();
@@ -613,6 +606,15 @@ export async function recordPartnerConversion(
       || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
       || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
+    }
+    // A previously recorded event does not bypass fresh consent, legal hold,
+    // deletion or campaign-eligibility checks on a provider retry.
+    if (eventSnap.exists) {
+      // Legacy records lacking a binding must be reviewed, never silently trusted.
+      if (eventSnap.data()?.eventBinding !== eventBinding) {
+        throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
+      }
+      return { duplicate: true as const };
     }
     if (buyerClaimSnap.exists) throw new PartnerReferralError(409, 'duplicate_conversion', 'Für dieses Klar-Konto wurde bereits eine Prämie zu dieser Kampagne berücksichtigt.');
     const buyerRefHash = pseudonymousPartnerUid(payload.buyerUid, auditSecret(deps));
