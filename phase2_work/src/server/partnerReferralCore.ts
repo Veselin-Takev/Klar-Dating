@@ -50,6 +50,11 @@ export function validatePartnerDestinationUrl(value: unknown): string {
     || host === 'metadata.google.internal' || host === 'host.docker.internal') {
     throw new PartnerReferralError(400, 'unsafe_destination', 'Partnerlinks müssen auf eine öffentliche HTTPS-Domain zeigen.');
   }
+  // A campaign must never pre-seed the attribution parameter. Otherwise
+  // even a consentless direct redirect can leak a preconfigured identifier.
+  if ([...url.searchParams.keys()].some(key => key.toLowerCase() === 'klar_referral')) {
+    throw new PartnerReferralError(400, 'unsafe_destination', 'Die Partner-URL enthält einen reservierten Trackingparameter.');
+  }
   return url.toString();
 }
 
