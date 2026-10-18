@@ -82,3 +82,7 @@ The public `/api/partner/click/:token` must reject malformed syntax with 404 bef
 
 ### 2026-10-18 — Marketing claim release gating (#47)
 Before publishing any unverified product claim, review `docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json`, collect actual behavior/test evidence and separately authorized Product, Legal, Brand signoffs. Run `node scripts/check-marketing-claims.mjs --release` as a fail-closed pre-release gate; blocked claims are expected to fail. Review all DE/EN/ES/FR UI copy and referral share content. These checks do not replace full security/privacy/emulator CI or human approval. **NO-GO**.
+
+
+### 2026-10-18 — Claim release gate must prove independent authorization
+Run `node scripts/test-marketing-claims.mjs`, then `node scripts/check-marketing-claims.mjs --release` (expected NO-GO unless Product, Legal and Brand approve all linked evidence). Distinct reviewer handles and evidence URL shape are syntactic only and DO NOT authenticate approvals. Enforce separate trusted CI/branch reviews and verify actual behavior and URLs before changing manifest to GO. **NO-GO.**
