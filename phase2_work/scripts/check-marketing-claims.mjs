@@ -21,11 +21,11 @@ const trustedEvidence = item => {
  // Require exact GitHub resource shapes. Path ambiguity and percent-encoded
  // separators cannot be treated as independent, inspectable evidence.
  if (segments.some(seg => !seg || seg.includes('%') || seg === '.' || seg === '..')) return null;
- if (segments.length === 4 && segments[2] === 'pull' && /^\\d+$/.test(segments[3])) return 'implementation';
+ if (segments.length === 4 && segments[2] === 'pull' && /^\d+$/.test(segments[3])) return 'implementation';
  if (segments.length === 4 && segments[2] === 'commit' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
  if (segments.length >= 6 && segments[2] === 'blob' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
  if (segments.length === 5 && segments[2] === 'actions' && segments[3] === 'runs'
-   && /^\\d+$/.test(segments[4])) return 'test';
+   && /^\d+$/.test(segments[4])) return 'test';
  return null;
 };
 assert.equal(data.version,1);
