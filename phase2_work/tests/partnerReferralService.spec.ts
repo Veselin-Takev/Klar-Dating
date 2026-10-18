@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
-import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, recordPartnerConversion, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
+import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, recordPartnerClick, recordPartnerConversion, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
 import { derivePartnerReferralToken, partnerReferralDocumentId, pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
 import { verifyHmacAuditPayload } from '../src/server/consentAudit';
 
@@ -120,6 +120,27 @@ describe('Klar & Partner transactional service boundary', () => {
         .rejects.toMatchObject({ code: 'partner_consent_epoch_missing' });
       expect([...db._store.keys()].filter(key => key.startsWith('partner_referrals/'))).toHaveLength(0);
     }
+  });
+
+  it('does not attribute clicks to visitors without a valid consent epoch', async () => {
+    const owner = 'owner-click', visitor = 'visitor-click', campaignId = 'campaign-click';
+    const token = derivePartnerReferralToken(owner, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: owner, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, clickCount: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid: owner, campaignId, status: 'active', version: 1, clickCount: 0 } },
+      { collection: 'users', id: visitor, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+    ]);
+    for (const invalidVersion of [undefined, null, 0, -1, '1', 1.5]) {
+      db._store.set('users/' + visitor, { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: invalidVersion });
+      const result = await recordPartnerClick(deps(db), token, { method: 'GET' }, visitor);
+      expect(result.tracked).toBe(false);
+      expect(result.url).toBe('https://partner.example/offer');
+    }
+    expect(db._store.get('partner_referrals/' + referralId)?.clickCount).toBe(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.clickCount).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
   });
 
   it('creates a draft, reserves its slug and signs the audit event', async () => {
