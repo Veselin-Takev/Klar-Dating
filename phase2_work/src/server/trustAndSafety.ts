@@ -517,6 +517,8 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
         checkDeletionSlice();
         await loescheAbfrage(db.collection('partner_referral_buyer_claims')
           .where('referralId', '==', referral.id));
+        // The claim purge may span many batches. Stop before parent removal if the lease expired.
+        checkDeletionSlice();
         // Do not remove the parent pointer until dependent buyer claims are gone.
         await referral.ref.delete();
         recordDeletionProgress();
