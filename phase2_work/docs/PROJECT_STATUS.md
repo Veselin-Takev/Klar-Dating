@@ -1030,3 +1030,7 @@ Die Klicktransaktion fordert nun dieselbe validierte `destinationUrl` wie beim V
 
 ### 2026-10-18 – P0 #55/#56 signierte Partnerlink-Metadatenbindung (Draft)
 Klicktracking validiert nun die HMAC-Tokenbindung an gespeicherte `ownerUid`-, `campaignId`- und `version`-Werte vor dem Kampagnenzugriff. In der Firestore-Transaktion werden diese Werte erneut geprüft, um Metadatenwechsel nicht attributierbar zu machen. In-Memory-Manipulations- und Race-Tests ergänzt; siehe `docs/PARTNER_CLICK_TOKEN_RECORD_BINDING_2026-10-18.md`. Volle Node22-/Emulator-/Security-Gates ausstehend. **NO-GO**.
+
+
+### 2026-10-18 – P0 #55 Partner-Conversion prüft HMAC-Referral-Metadatenbindung (Draft)
+Neue und wiederholte Conversion-Behauptungen verifizieren vorab die Token-HMAC-Bindung an `ownerUid`, `campaignId` und gültige Referral-Version und gleichen die Version in der Transaktion erneut ab. Neue Manipulations-Regression und `docs/PARTNER_CONVERSION_TOKEN_RECORD_BINDING_2026-10-18.md`; alle Full-Gates offen. **NO-GO**.
