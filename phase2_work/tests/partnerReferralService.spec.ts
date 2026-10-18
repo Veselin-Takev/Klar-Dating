@@ -176,6 +176,28 @@ describe('Klar & Partner transactional service boundary', () => {
     ))).toBe(true);
   });
 
+  it('allows consent withdrawal during pending deletion but denies a new grant', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'uid-deleting', data: {
+        isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 3,
+      } },
+      { collection: 'account_deletions', id: 'uid-deleting', data: { status: 'pending' } },
+    ]);
+    await expect(setPartnerConsent(deps(db), 'uid-deleting', true))
+      .rejects.toMatchObject({ code: 'account_deletion_pending' });
+    await expect(setPartnerConsent(deps(db), 'uid-deleting', false))
+      .resolves.toEqual({ allowed: false, version: 4 });
+    expect(db._store.get('users/uid-deleting')).toMatchObject({
+      partnerReferralConsent: false, partnerReferralVersion: 4,
+    });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
+    await expect(setPartnerConsent(deps(db), 'uid-deleting', false))
+      .resolves.toEqual({ allowed: false, version: 4 });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(1);
+    await expect(setPartnerConsent(deps(db), 'uid-deleting', true))
+      .rejects.toMatchObject({ code: 'account_deletion_pending' });
+  });
+
   it('never silently backfills a missing or invalid epoch on an existing consent grant', async () => {
     for (const invalid of [undefined, null, 0, -1, 1.5, '1']) {
       const db = makeFirestore([{ collection: 'users', id: 'uid-1',
