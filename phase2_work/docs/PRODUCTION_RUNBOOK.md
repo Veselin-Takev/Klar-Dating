@@ -78,3 +78,7 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — Partner event-ID conflict guard (#55)
+On a signed webhook retry with an existing event ID, the stored stable event HMAC must match the new buyer/referral assertion; otherwise return 409 without credit. Historical conversion docs with no binding also return 409 pending reconciliation. Run `npx vitest run tests/partnerReferralService.spec.ts`, exact-commit full security/emulator gates, and review partner retry semantics before merge. No production deployment. **NO-GO.**
