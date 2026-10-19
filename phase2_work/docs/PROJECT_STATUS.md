@@ -1268,3 +1268,17 @@ The Rules and Art17 Firebase profile actually reserves Firestore **8085**, hub *
 A real Java21/Firestore Emulator process started locally using `firestore.rules` and `demo-klar`, but the sandbox crashed before any SDK tests; **actual integration was NOT completed**. Issue #70 20-group TTL offline gates PASS, while real staging ACTIVE policies, legal holds, data-lifecycle inventory and independent approval are **NOT VERIFIED**. GitHub Actions job #117997339276 used `ubuntu-latest`, received runner_id=0 and ran zero steps; Actions repository variables list was empty. Runner assignment/billing/platform cause requires administrator diagnostics, not an unverified YAML change. Root supply chain still has outstanding High/Critical advisories. **Release NO-GO**.
 
 See `docs/FINALIZATION_EMULATOR_RUNNER_TTL_2026-10-19.md` and `docs/ADR_FIRESTORE_EMULATOR_PORT_PREFLIGHT_2026-10-19.md` for evidence, rollback and N-1 compatibility.
+
+
+### 2026-10-19 — GO-Behauptung aus externem PDF nicht freigegeben (P0 Release-Governance)
+
+**Aktueller Status: NO-GO.** GitHub belegt weiterhin 15 offene Issues und ungemergte Draft-PR #119. Die externe PDF mit "GO / 0 Issues / alle Tests PASS" ist **keine** gültige Build-, Emulator-, Rechts- oder CI-Attestation. Das enthaltene Beispiel `referralRef.delete()` löscht Firestore-Subcollections nicht; die pauschale 30-Tage-Partner-Referral-Löschung ist ohne genehmigte Retention-/Legal-Hold-Matrix unzulässig als automatische Produktionsfreigabe.
+
+Die bisherige Produktionsfreigabeprüfung akzeptierte nur `KLAR_PRODUCTION_RELEASE_APPROVED=true`, selbst während `RELEASE_MANIFEST.json` noch NO-GO meldete. Sie wurde fail-closed um Manifest, vollständige Go-Live-Checkliste, 14 commitgebundene Gate-Belege, 13 Compliance/Emulator/TTL-Belege, sauberes Critical/High-SCA und unabhängige Security/DPO/Legal/SRE-Freigaben erweitert. Positive synthetische Tests belegen lediglich das Prüfungsschema, nicht die Echtheit einer externen Signatur. CI und produktiver Release bleiben bis zu echten Nachweisen gesperrt. ADR/Belege: `docs/ADR_RELEASE_GO_EVIDENCE_2026-10-19.md`, `docs/GO_CLAIM_AUDIT_2026-10-19.md`.
+
+
+### 2026-10-19 — Reproduzierbare Release-Guard-Validierung, weiterhin NO-GO
+
+Unter SHA-256-verifiziertem Node v22.23.3 wurden **45** fail-closed Release-Evidenztests und die Release-Workflow-Quellprüfung erfolgreich ausgeführt. Das reale `check-production-release-approval.mjs` verweigert bei gesetztem Test-Flag `KLAR_PRODUCTION_RELEASE_APPROVED=true` weiterhin die Produktion, solange das GitHub-Manifest NO-GO und fehlende echte Gate-Evidenz meldet. Dies ist das **korrekte erwartete Scheitern**, nicht eine fehlgeschlagene Regression. Der vollständige 14-Gate-Testdurchlauf meldete **5 PASS / 9 FAIL oder blockiert**: Enterprise/TypeScript-Modul fehlt; Root-npm-audit=ENOLOCK wegen Bun-only; Gitleaks/Semgrep fehlen; tsc/Vitest/firebase-tools/Playwright/Vite nicht vorhanden. **Kein GO, keine geschlossene Issue-Liste, keine unabhängigen Legal/DPO/Security/SRE-Signoffs.**
+
+Der unveränderte `bun.lock` darf nicht durch `npm ci` oder ein neues npm-Lockfile umgangen werden. Umfassende Sicherheits- und Integrationsbelege bleiben Pflicht. Weitere Details in `docs/GO_CLAIM_AUDIT_2026-10-19.md`.

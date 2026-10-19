@@ -90,7 +90,7 @@
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
       "scope": "Production CSP fail-closed runtime and supply-chain advisory audit",
       "retentionGate": "OFFLINE_TARGETED_PENDING_FINAL_SHA",
-      "fullEnterpriseGate": "NOT_PASS_DEPENDENCIES_MISSING",
+      "fullEnterpriseGate": "FAIL_TYPESCRIPT_NOT_INSTALLED",
       "firestoreEmulator": "INTEGRATION_BLOCKED_NO_TEST_COMPLETION",
       "liveStagingTtlActive": "NOT_VERIFIED",
       "securityPrivacyLegalReview": "PENDING",
@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "No human GO; real emulator started only, actual Rules and Art17 transactions did not run. Never treat offline mocks as live staging TTL proof.",
+      "note": "External PDF GO claim cannot override missing real signed test evidence or GitHub protected human release approval.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -123,7 +123,7 @@
       "retentionIdempotency": "PASS_LOCAL_MOCK_20_18_0_UPDATE_REQUESTS",
       "preflightMachineMode": "VALIDATED_EXISTING_ACTIVE_POLICY_IDS_ONLY",
       "ttlMatrixSourceNegativeTests": 13,
-      "mandatoryGateIteration2": "5_PASS_7_FAILED_OR_BLOCKED",
+      "mandatoryGateIteration2": "RELEASE_BOUNDARY_45_PASS_FULL_RELEASE_STILL_NO_GO",
       "mandatoryGateIteration3": "PENDING_FINAL_SHA",
       "rootDependencyPolicy": "BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
       "npmAuditRoot": "ENOLOCK_BUN_ONLY_NOT_A_VULNERABILITY_SCAN",
@@ -141,7 +141,20 @@
       "ciRunnerOverride": "NONE_ZERO_REPOSITORY_ACTIONS_VARIABLES",
       "ttlMatrixOffline": "20_GROUP_TARGETED_CHECKS_PASS",
       "art17EmulatorIntegration": "NOT_VERIFIED",
-      "rootHighCriticalSCA": "UNRESOLVED"
+      "rootHighCriticalSCA": "UNRESOLVED",
+      "releaseGoEvidenceBoundary": "ENV_ONLY_BYPASS_FIXED_45_LOCAL_STRUCTURAL_REGRESSIONS_PENDING_EXACT_SHA",
+      "externalGoPdf": "UNTRUSTED_NOT_RELEASE_EVIDENCE",
+      "reviewCandidateSource": "DRAFT_PR119_UNMERGED",
+      "goLiveAttestation": "NOT_PRESENT_NO_VALID_SIGNOFFS",
+      "criticalHighDependencyIssues": "UNRESOLVED",
+      "art17RealEmulator": "NOT_VERIFIED",
+      "releaseEvidenceStructuralTests": "PASS_45_ON_PINNED_NODE22_PRECOMMIT",
+      "mandatoryGateIteration1": "5_PASS_9_FAIL_OR_BLOCKED",
+      "rootNpmAudit": "ENOLOCK_BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
+      "gitleaks": "NOT_EXECUTABLE_NOT_INSTALLED",
+      "semgrep": "NOT_EXECUTABLE_NOT_INSTALLED",
+      "actualRulesEmulator": "NOT_RUN_SDK_DEPENDENCIES_UNAVAILABLE",
+      "independentProductionSignoffs": "NOT_VERIFIED"
     }
   }
 }
