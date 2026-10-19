@@ -154,7 +154,10 @@
       "gitleaks": "NOT_EXECUTABLE_NOT_INSTALLED",
       "semgrep": "NOT_EXECUTABLE_NOT_INSTALLED",
       "actualRulesEmulator": "NOT_RUN_SDK_DEPENDENCIES_UNAVAILABLE",
-      "independentProductionSignoffs": "NOT_VERIFIED"
+      "independentProductionSignoffs": "NOT_VERIFIED",
+      "codeownersPhase2Paths": "STATIC_PATH_REGRESSIONS_6_PASS_UNVERIFIED_REVIEWER_PERMISSIONS",
+      "codeownersGitHubTeams": "NOT_VERIFIED_PERSONAL_ACCOUNT_OWNER",
+      "branchProtectionCodeownerReviews": "NOT_VERIFIED"
     }
   }
 }
