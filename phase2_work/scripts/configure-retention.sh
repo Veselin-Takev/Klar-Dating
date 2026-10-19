@@ -37,9 +37,13 @@ command -v node >/dev/null || { echo 'Node runtime unavailable for TTL preflight
 existing_policies="$(mktemp)"
 trap 'rm -f -- "$existing_policies"' EXIT
 gcloud firestore fields ttls list --project="${KLAR_PROJECT_ID}" --database="${KLAR_DATABASE_ID}" --format=json > "$existing_policies"
-node "$repo_root/scripts/check-retention-active-evidence.mjs" \
-  --evidence "$existing_policies" --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID" --mode preflight
+already_active="$(node "$repo_root/scripts/check-retention-active-evidence.mjs" \
+  --evidence "$existing_policies" --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID" --mode preflight-ids)"
 for group in "${groups[@]}"; do
+  if [[ " $already_active " == *" $group "* ]]; then
+    printf 'SKIP: TTL policy already ACTIVE for %s\n' "$group"
+    continue
+  fi
   gcloud firestore fields ttls update expiresAt \
     --collection-group="${group}" \
     --database="${KLAR_DATABASE_ID}" \

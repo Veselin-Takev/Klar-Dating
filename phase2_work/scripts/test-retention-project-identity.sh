@@ -60,6 +60,17 @@ bash "${script}" > "${work}/apply"
 [[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}")" -eq 20 ]]
 [[ "$(grep -c '^projects describe' "${MOCK_GCLOUD_LOG}")" -eq 1 ]]
 [[ "$(grep -c '^firestore fields ttls list' "${MOCK_GCLOUD_LOG}")" -eq 1 ]]
+# New updates must be idempotent: existing ACTIVE policies are skipped.
+: > "$MOCK_GCLOUD_LOG"
+export MOCK_TTL_LIST_JSON='[{"name":"projects/klar-staging-a/databases/(default)/collectionGroups/messages/fields/expiresAt","ttlConfig":{"state":"ACTIVE"}},{"name":"projects/klar-staging-a/databases/(default)/collectionGroups/archived_messages/fields/expiresAt","ttlConfig":{"state":"ACTIVE"}}]'
+bash "${script}" > "$work/partial"
+[[ "$(grep -c '^firestore fields ttls update' "$MOCK_GCLOUD_LOG")" -eq 18 ]]
+[[ "$(grep -c '^SKIP: TTL policy already ACTIVE' "$work/partial")" -eq 2 ]]
+: > "$MOCK_GCLOUD_LOG"
+export MOCK_TTL_LIST_JSON="$(node -e 'const fs=require("fs");const s=fs.readFileSync(process.argv[1],"utf8");const g=s.match(/groups=\(\s*([\s\S]*?)\s*\)/)[1].trim().split(/\s+/);process.stdout.write(JSON.stringify(g.map(x=>({name:"projects/klar-staging-a/databases/(default)/collectionGroups/"+x+"/fields/expiresAt",ttlConfig:{state:"ACTIVE"}}))))' "$script")"
+bash "$script" > "$work/already-active"
+[[ "$(grep -c '^firestore fields ttls update' "$MOCK_GCLOUD_LOG" || true)" -eq 0 ]]
+[[ "$(grep -c '^SKIP: TTL policy already ACTIVE' "$work/already-active")" -eq 20 ]]
 # No write may occur if even one existing TTL policy was unapproved or
 # altered; actual gcloud calls are a fake executable in this test.
 : > "$MOCK_GCLOUD_LOG"

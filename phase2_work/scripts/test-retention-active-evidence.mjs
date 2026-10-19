@@ -72,6 +72,21 @@ for (const [label, fixture] of preflightMutations) {
   const result = run(fixture, 'preflight');
   assert.notEqual(result.status, 0, 'Preflight accepted ' + label);
 }
+// The machine-readable mode must return only *validated* existing ACTIVE IDs.
+for (const [records, expected] of [
+  [[], ''],
+  [valid.slice(0, 2), groups.slice(0, 2).join(' ')],
+  [valid, groups.join(' ')],
+]) {
+  const output = run(records, 'preflight-ids');
+  assert.equal(output.status, 0, 'Safe preflight ID listing failed: ' + output.stderr);
+  assert.equal(output.stdout.trim(), expected, 'Existing ACTIVE IDs must be deterministic');
+}
+for (const [label, fixture] of preflightMutations) {
+  const result = run(fixture, 'preflight-ids');
+  assert.notEqual(result.status, 0, 'Unsafe ID listing accepted: ' + label);
+  assert.equal(result.stdout, '', 'Unsafe policy yielded trusted IDs: ' + label);
+}
 const incorrectMode = run([], 'unsafe');
 assert.notEqual(incorrectMode.status, 0, 'Unknown preflight mode must be rejected');
 console.log('PASS: empty/existing ACTIVE subsets accepted and ' + preflightMutations.length + ' dangerous policy preflight mutations rejected.');

@@ -43,6 +43,10 @@ const listCall = script.indexOf('gcloud firestore fields ttls list --project="${
 const checkCall = script.indexOf('node "$repo_root/scripts/check-retention-active-evidence.mjs"');
 assert(mutationLoop > 0 && listCall > 0 && checkCall > listCall && checkCall < mutationLoop,
   'Read-only scoped TTL preflight must precede any staging policy update loop');
-assert(script.includes('--mode preflight'), 'Preflight must use approved-policy subset validation');
+assert(script.includes('--mode preflight-ids'), 'Preflight must return validated existing ACTIVE policy identifiers');
+assert(script.includes('already_active="$(node "$repo_root/scripts/check-retention-active-evidence.mjs"'),
+  'Existing ACTIVE policies must be captured from validated preflight output');
+assert(script.includes('if [[ " $already_active " == *" $group "* ]]; then'),
+  'Already ACTIVE policies must be skipped (idempotent staging apply)');
 
 console.log('PASS: retention policy matrix (20 groups), docs, dry-run, staging identity and approval gates align. NO-GO pending LIVE ACTIVE verification.');
