@@ -178,7 +178,18 @@
       "enterpriseDashboardUnknownDomains": "SLO_P95_TTL_ART17_AI_LEDGER_SECURITY_GATE_NOT_VERIFIED",
       "enterpriseDashboardSource": "AUTHORIZED_ADMIN_READ_ONLY_HEALTH_CHECK",
       "enterpriseDashboardRealEmulator": "NOT_VERIFIED",
-      "enterpriseDashboardAIReview": "NOT_PASS_STATIC_ESLINT_AND_E2E_MISSING"
+      "enterpriseDashboardAIReview": "NOT_PASS_STATIC_ESLINT_AND_E2E_MISSING",
+      "sourceCommitValidated": "51864c8a8ef29c696a1b7e420a19eeb7cc903a47",
+      "enterpriseDashboardSourceRegressions": "PASS_10_EXACT_COMMIT_NODE_22_23_3",
+      "codeownersRegressions": "PASS_24_EXACT_COMMIT",
+      "goReleaseEvidenceRegressions": "PASS_55_EXACT_COMMIT",
+      "retentionOfflineMockChecks": "PASS_NOT_LIVE_TTL",
+      "art17StaticPreflight": "PASS_NOT_FIRESTORE_EMULATOR",
+      "mandatoryGates": "5_PASS_9_FAIL_OR_UNAVAILABLE",
+      "staticEslint": "FAIL_TOOLCHAIN_UNAVAILABLE",
+      "aiReviewAggregate": "NOT_PASS_UNTIL_ESLINT_TYPECHECK_E2E",
+      "liveTtlEvidence": "NOT_VERIFIED",
+      "independentReleaseApprovals": "NOT_VERIFIED"
     }
   }
 }
