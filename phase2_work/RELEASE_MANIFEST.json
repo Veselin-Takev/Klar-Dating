@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "Any additional unapproved TTL policy blocks staged evidence; no live Cloud proof or approval.",
+      "note": "Source/observability gate reconciled to 300ms, not a validated 30-day service-wide SLO or human release approval.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -111,7 +111,10 @@
       "ttlSourceNegativeMutations": 20,
       "ttlEvidenceExtraneousPolicies": "FAIL_CLOSED_ALL_UNDOCUMENTED_GROUPS",
       "ttlEvidenceNegativeMutations": 12,
-      "ttlReadOnlyMockDenied": 13
+      "ttlReadOnlyMockDenied": 13,
+      "p95PolicyIntegration": "PR77_CANONICAL_300_MS_OBSERVABILITY_AND_GATE",
+      "p95PolicyTests": "299_300_301_1500_MS_BOUNDARY_AND_OBSERVABILITY_GATE_LOCAL_PASS",
+      "p95ProductionSli": "NOT_VERIFIED_NO_FLEET_HISTOGRAM_OR_PAGER_DELIVERY"
     }
   }
 }
