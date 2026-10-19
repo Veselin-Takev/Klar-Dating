@@ -194,3 +194,7 @@ Account-erasure quarantine may only update root `partner_referrals/{referralId}`
 ### 2026-10-18 — Root referral deletion boundary and pinned TypeScript contract runtime
 
 Do not quarantine nested `partner_referrals` collections; only `partner_referrals/{id}` at the root is valid. Run `npm run check:art17-deletion-audit` under pinned Node 22.23.3; the isolated TypeScript helper contract tests use native `--experimental-strip-types` without launching the external `tsx` transpiler. For the true Firestore Emulator concurrency suite (`npm run test:art17-partner-emulator`), use a Java-enabled machine and allow 90 seconds per test; emulator lock behavior differs from production. The official Node runtime requirement and existing deployment gates are unchanged. **NO-GO pending real Emulator and independent controls.**
+
+### 2026-10-19 — Proving that the Art. 17 tests use the REAL Firestore Emulator
+
+Use `npm run test:art17-partner-emulator` under Node 22.23.3 in a Java-enabled local environment. Do not set `KLAR_ALLOW_DURABLE_DB_FALLBACK=true` or `NODE_ENV=production`. Both the wrapper and the test suite independently reject non-loopback hosts, incorrect configured ports and project IDs other than `demo-klar`. Ordinary unit runs may skip emulator scenarios; **a skip is never a passing integration result**. Preserve terminal output proving all four tests actually executed and passed; do not merge or deploy while this evidence and independent privacy/legal signoff are absent.

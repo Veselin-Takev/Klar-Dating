@@ -13,11 +13,13 @@ const requiredPort = configuration?.emulators?.firestore?.port;
 const host = process.env.FIRESTORE_EMULATOR_HOST ?? '';
 const parsedHost = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(host);
 const project = 'demo-klar';
-const projects = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT].filter(Boolean);
+const projects = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
 
 if (!Number.isSafeInteger(requiredPort) || requiredPort < 1 || requiredPort > 65535
   || !parsedHost || Number(parsedHost[2]) !== requiredPort
-  || projects.some(value => value !== project)) {
+  || projects.some(value => value !== project)
+  || process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true'
+  || process.env.NODE_ENV === 'production') {
   console.error('Art. 17 Firestore Emulator required: local host at configured port and project demo-klar; refusing to skip or contact production.');
   process.exitCode = 2;
 } else {

@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { getDb } from '../src/server/db';
 import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDeletion';
 
@@ -8,9 +10,19 @@ import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDel
 // Allow transaction retries to finish before classifying the integration as failed.
 const EMULATOR_CONTENTION_TIMEOUT_MS = 90_000;
 
-// Dedicated runners set this flag and must never silently skip.
-if (process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' && !process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error('art17_firestore_emulator_required');
+// This file can also be invoked directly by Vitest, bypassing the CLI wrapper.
+// Fail closed before getDb() can create any Admin SDK client.
+const activeEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
+if (activeEmulatorHost || process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1') {
+  const config = JSON.parse(readFileSync(resolve(process.cwd(), 'firebase.pruefung.json'), 'utf8'));
+  const local = /^(localhost|127\\.0\\.0\\.1|\\[::1\\]):([0-9]{1,5})$/.exec(activeEmulatorHost);
+  const ids = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
+  if (!local || Number(local[2]) !== config?.emulators?.firestore?.port
+    || ids.some(id => id !== 'demo-klar')
+    || process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true'
+    || process.env.NODE_ENV === 'production') {
+    throw new Error('art17_firestore_emulator_unsafe_target');
+  }
 }
 
 // Run with the real Firestore emulator. This file skips outside emulator mode

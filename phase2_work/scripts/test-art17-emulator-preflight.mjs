@@ -17,6 +17,9 @@ for (const [label, variables] of [
   ['wrong emulator port', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' }],
   ['invalid emulator project', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085', GCLOUD_PROJECT: 'production-app' }],
   ['invalid second project', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085', GOOGLE_CLOUD_PROJECT: 'production-app' }],
+  ['firebase project disagreement', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085', FIREBASE_PROJECT_ID: 'production-app' }],
+  ['enabled durable fallback', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085', KLAR_ALLOW_DURABLE_DB_FALLBACK: 'true' }],
+  ['production runtime', { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085', NODE_ENV: 'production' }],
 ]) {
   test(`refuses ${label} before Vitest or Firestore runs`, () => {
     const result = spawnSync(process.execPath, [script], {

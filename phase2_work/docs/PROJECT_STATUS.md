@@ -1143,3 +1143,11 @@ The Art.-17 compliance npm gate was switched from test-only `tsx` loading to Nod
 The whole integrated `npm run check:art17-deletion-audit` exited **0** on the SHA above using Node **v22.23.3** without a separate `tsx` worker. Its seven storage tests, twelve Art. 17 negative mutations, seven in-memory partner-referral transaction tests (including the nested-path denial), and six unsafe-Emulator preflight tests all passed. The four independent static checks—`check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`—also exited **0** on the unchanged repository files. The full GitHub ZIP of this commit passed CRC validation (1,257 entries, SHA-256 `4f8f5ca718a426700b422fe289577ed939d7ef1ccd83c86f09c0067dbb840c03`).
 
 This is **offline/static and mocked Firestore** evidence. Four real Firestore Emulator integration scenarios are not executed; full TypeScript/Playwright/build/npm audit, production TTL and independent Security/Privacy/Legal approvals are not verified. GitHub Actions is not certified PASS. `main` remains unchanged; **NO-GO**.
+
+---
+
+## 2026-10-19 — Art.-17 Emulator tests fail closed on direct invocation
+
+The direct `tests/partnerReferralDeletionEmulator.spec.ts` path now checks loopback host, configured port, project consistency, production runtime and disabled durable fallback before any SDK database access. The dedicated runner likewise rejects mismatching `FIREBASE_PROJECT_ID` and local proxy/fallback tests; three further negative regressions cover those bypasses. This prevents a green report from exercising a development fallback instead of real Firestore Emulator semantics.
+
+**NO-GO** remains: the four genuine Emulator cases are not yet executed; Node 22.23.3 static/contract tests should be repeated on the immutable final SHA. Full TypeScript/Vitest/Playwright/build/npm audit, active TTL policy evidence, runner availability and DPO/Security/Legal approvals remain open.
