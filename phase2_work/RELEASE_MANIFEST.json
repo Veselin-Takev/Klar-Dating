@@ -165,7 +165,15 @@
       "securityHumanSignoffs": "NOT_VERIFIED",
       "checklistParserNegativeTests": "55_PASS_LOCAL_NODE22_CHECKED_UNORDERED_AND_ORDERED",
       "mandatoryGateLocalIteration2": "5_PASS_9_FAILED_OR_UNAVAILABLE",
-      "firestoreRulesIntegration": "NOT_RUN_DEPENDENCIES_MISSING"
+      "firestoreRulesIntegration": "NOT_RUN_DEPENDENCIES_MISSING",
+      "aiCodeReviewSemantic": "PASS_SCOPED_2_CHANGED_SCRIPTS_AFTER_REMEDIATION",
+      "aiCodeReviewStaticEslint": "NOT_PASS_CLI_DEPENDENCIES_UNAVAILABLE",
+      "aiCodeReviewOverall": "NOT_PASS_INCOMPLETE_STATIC_LINT_AND_EXTERNAL_APPROVAL",
+      "codeownersWildcards": "REJECT_UNSUPPORTED_GLOB_AND_UNANCHORED_RULES",
+      "codeownersRegressionSuite": "24_PASS_NODE22_LOCAL_PENDING_IMMUTABLE_SHA",
+      "codeownersGitHubTeamPermissions": "NOT_VERIFIED",
+      "ttlLiveStagingActive": "NOT_VERIFIED",
+      "releaseDecision": "NO-GO"
     }
   }
 }

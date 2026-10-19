@@ -16,7 +16,7 @@ export function ownersForPath(source, filePath) {
     const [pattern, ...candidates] = line.split(/\s+/);
     if (!candidates.length) continue;
     const matches = pattern === '*' || (pattern.startsWith('/') &&
-      (pattern.endsWith('/') ? filePath.startsWith(pattern.slice(1)) : filePath === pattern.slice(1)));
+      (filePath === pattern.slice(1) || filePath.startsWith(pattern.slice(1).replace(/\/$/, '') + '/')));
     if (matches) owners = candidates.filter(owner => owner.startsWith('@'));
   }
   return owners;
@@ -44,6 +44,27 @@ export const requiredOwnership = Object.freeze({
 
 export function checkCodeowners(source) {
   const failures = [];
+  // Require a real repository-wide engineering default. A file-specific
+  // ChatView assignment must not substitute ownership of unrelated code.
+  if (!source.split(/\r?\n/).some(raw => {
+    const [pattern, ...owners] = raw.trim().split(/\s+/);
+    return pattern === '*' && owners.includes('@klar/engineering');
+  })) failures.push('Missing CODEOWNERS repository-wide engineering default');
+  // GitHub honors glob patterns and the LAST matching line wins. Our
+  // deterministic matcher supports only '/', exact paths and the default '*'.
+  // Any other glob could override a specialist owner without being evaluated:
+  // fail closed rather than pretending the recorded ownership is sufficient.
+  for (const [index, raw] of source.split(/\r?\n/).entries()) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const [pattern, ...owners] = line.split(/\s+/);
+    if (pattern !== '*' && (!pattern.startsWith('/') || /[*?\[\]\\]/.test(pattern))) {
+      failures.push(`Line ${index + 1}: unsupported CODEOWNERS pattern: ${pattern}`);
+    }
+    if (!owners.length || !owners.every(owner => /^@[A-Za-z0-9][A-Za-z0-9-]*(?:\/[A-Za-z0-9][A-Za-z0-9-]*)?$/.test(owner))) {
+      failures.push(`Line ${index + 1}: invalid or missing CODEOWNERS reviewer identity`);
+    }
+  }
   for (const [file, required] of Object.entries(requiredOwnership)) {
     const owners = ownersForPath(source, file);
     for (const owner of required) {
