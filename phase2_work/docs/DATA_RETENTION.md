@@ -182,3 +182,12 @@ Sources: https://firebase.google.com/docs/firestore/ttl and local scripts/tests 
 The staging TTL provisioner now uses the existing fail-closed scoped policy preflight to retrieve validated ACTIVE group identifiers and skips already ACTIVE policies. Mocked GCP tests show **20/18/0 update requests** when **0/2/20 policies** were already ACTIVE, and unsafe policy fixtures still cause zero writes. Three additional static matrix mutations cover an omitted skip or ID-validation step; the regular full-20 ACTIVE evidence check remains unchanged. See `docs/ADR_TTL_STAGING_IDEMPOTENCE_2026-10-19.md` and `docs/ENTERPRISE_REVIEW_3_ITERATIONS_2026-10-19.md`.
 
 The mandatory tests cannot yet all pass in the isolated checkout: root Bun-only lock policy forbids npm package-lock, `npm audit` exits ENOLOCK, and the full TS/Vitest/Playwright/Emulator/build toolchain is absent. Do not fabricate zero vulnerabilities or GO from static checks; the final third-iteration result is recorded in the associated Draft PR description. **NO-GO.**
+
+
+### 2026-10-19 — Finalization: emulator port preflight, runner evidence and TTL NO-GO
+
+The Rules and Art17 Firebase profile actually reserves Firestore **8085**, hub **4405**, and logging **4505**; the old hard-coded port check omitted all three. The replacement reads the approved Firebase emulator config instead of guessing. Eight Node22 offline regressions PASS (including denial for port conflicts and unsafe production/fallback settings). All corresponding Rules/Art17 scripts execute this preflight before starting their isolated emulator. Correct dependency install is `bun ci`, not `npm ci` in the root app.
+
+A real Java21/Firestore Emulator process started locally using `firestore.rules` and `demo-klar`, but the sandbox crashed before any SDK tests; **actual integration was NOT completed**. Issue #70 20-group TTL offline gates PASS, while real staging ACTIVE policies, legal holds, data-lifecycle inventory and independent approval are **NOT VERIFIED**. GitHub Actions job #117997339276 used `ubuntu-latest`, received runner_id=0 and ran zero steps; Actions repository variables list was empty. Runner assignment/billing/platform cause requires administrator diagnostics, not an unverified YAML change. Root supply chain still has outstanding High/Critical advisories. **Release NO-GO**.
+
+See `docs/FINALIZATION_EMULATOR_RUNNER_TTL_2026-10-19.md` and `docs/ADR_FIRESTORE_EMULATOR_PORT_PREFLIGHT_2026-10-19.md` for evidence, rollback and N-1 compatibility.

@@ -90,8 +90,8 @@
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
       "scope": "Production CSP fail-closed runtime and supply-chain advisory audit",
       "retentionGate": "OFFLINE_TARGETED_PENDING_FINAL_SHA",
-      "fullEnterpriseGate": "FAIL_TYPESCRIPT_MISSING",
-      "firestoreEmulator": "NOT_RUN",
+      "fullEnterpriseGate": "NOT_PASS_DEPENDENCIES_MISSING",
+      "firestoreEmulator": "INTEGRATION_BLOCKED_NO_TEST_COMPLETION",
       "liveStagingTtlActive": "NOT_VERIFIED",
       "securityPrivacyLegalReview": "PENDING",
       "productionApproved": false,
@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "One critical and four high root Bun advisories block release; no full typecheck/Vitest/E2E/build or independent human signoffs.",
+      "note": "No human GO; real emulator started only, actual Rules and Art17 transactions did not run. Never treat offline mocks as live staging TTL proof.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -133,7 +133,15 @@
       "bunRootHighAdvisories": 4,
       "bunProductionHighAdvisories": 1,
       "functionsModerateAdvisories": 2,
-      "gitleaksHistoryScan": "NOT_RUN"
+      "gitleaksHistoryScan": "NOT_RUN",
+      "emulatorPortProfile": "CONFIG_BASED_8085_4405_4505_OFFLINE_8_PASS",
+      "emulatorProcess": "JAVA21_FIRESTORE_1_20_2_LOCAL_STARTED_SANDBOX_CRASH_BEFORE_ASSERTIONS",
+      "ciRunnerEvidence": "UBUNTU_LATEST_RUNNER_ID_0_ZERO_STEPS_RUN_39233636752",
+      "ciRunnerRootCause": "UNVERIFIED_REQUIRES_GITHUB_ADMIN_REVIEW",
+      "ciRunnerOverride": "NONE_ZERO_REPOSITORY_ACTIONS_VARIABLES",
+      "ttlMatrixOffline": "20_GROUP_TARGETED_CHECKS_PASS",
+      "art17EmulatorIntegration": "NOT_VERIFIED",
+      "rootHighCriticalSCA": "UNRESOLVED"
     }
   }
 }
