@@ -198,3 +198,9 @@ Do not quarantine nested `partner_referrals` collections; only `partner_referral
 ### 2026-10-19 — Proving that the Art. 17 tests use the REAL Firestore Emulator
 
 Use `npm run test:art17-partner-emulator` under Node 22.23.3 in a Java-enabled local environment. Do not set `KLAR_ALLOW_DURABLE_DB_FALLBACK=true` or `NODE_ENV=production`. Both the wrapper and the test suite independently reject non-loopback hosts, incorrect configured ports and project IDs other than `demo-klar`. Ordinary unit runs may skip emulator scenarios; **a skip is never a passing integration result**. Preserve terminal output proving all four tests actually executed and passed; do not merge or deploy while this evidence and independent privacy/legal signoff are absent.
+
+### 2026-10-19 — Stacked P0 #70 TTL / P0 #56 Art. 17 integration
+
+This branch is an *integration candidate*, not a production merge. The original Draft PRs #116 and #118 remain open. Run `npm run check:retention-p0` under the pinned Node v22.23.3 in `phase2_work`; this runs only source/fixture/mock staging checks, **not** any live policy update. The aggregate `check:enterprise` now includes that check immediately after Art. 17 audit.
+
+Do not set `KLAR_APPLY_RETENTION=true` except after independent confirmation of approved staging project/database IDs, legal retention-matrix approval, expired-data/legal-hold inventory and an independently observed GCP staging environment label. Capture `gcloud firestore fields ttls list --project ... --database ... --format=json` as a separate read-only LIVE evidence step, verify all 13 required `expiresAt` TTL policies ACTIVE and store change-ticket provenance. None of those live steps have occurred. **NO-GO.**

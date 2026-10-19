@@ -1158,3 +1158,11 @@ The direct `tests/partnerReferralDeletionEmulator.spec.ts` path now checks loopb
 **Exact code SHA:** `b41f37a06f58aac45c33e6d3ffa61e7ffeca2425`. With an official SHA-256-verified Node **22.23.3** binary, `node --test scripts/test-art17-emulator-preflight.mjs` returned exit **0 (18/18)**: nine negative launcher checks plus one accepted local direct-guard case and eight rejected direct-guard cases. The latter execute the actual guard source in an isolated Node VM with no Firestore SDK. `npm run check:art17-deletion-audit` also exited **0**, incorporating seven storage cases, twelve owner-claim mutations, seven quarantine contracts and eighteen test-harness boundary tests.
 
 These results show fail-closed behavior of the test harness, **not** the execution of the four genuine Firestore Emulator transaction scenarios. The full TypeScript build, Playwright, real TTL ACTIVE state and independent DPO/Security/Legal sign-offs are outstanding. The latest GitHub Actions runner remains unavailable. **Production NO-GO.**
+
+---
+
+## 2026-10-19 — P0 #70 TTL integration with Art. 17 Draft #118
+
+A separate integration branch combines the Art. 17 Draft #118 source with the reviewed *staging-only* TTL provisioner, evidence validator, and negative tests from Draft #116. The original PRs remain unmerged and intact. The new `npm run check:retention-p0` gate is mandatory within `npm run check:enterprise` after the Art. 17 static/contract checks.
+
+On code commit `e88268adc11eec11d6cb73140cf13f327a659f79`, all **five offline TTL script test groups** passed (13 groups, 6 matrix negatives, 9 ACTIVE evidence negatives, dry-run/prod-deny and project identity mock). Those tests **do not** establish live staging TTL policy state or safe legal-hold retention. The combined Node22 final commit check is still to be executed. Consult `docs/P0_ART17_RETENTION_INTEGRATION_2026-10-19.md`. **Production remains NO-GO.**

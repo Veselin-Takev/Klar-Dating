@@ -83,6 +83,19 @@
       "automaticCiEvidence": "run 39162571437 failed without runner allocation or steps on preceding SHA; root cause unconfirmed",
       "notes": "Validation pending on this patch SHA; no live Firestore proof.",
       "validationNote": "Contract/static negative suites have passed standalone on preceding code SHA; integrated gate must be rerun on final SHA."
+    },
+    "integrationEvidence": {
+      "asOf": "2026-10-19",
+      "base": "9e886c67c97201602cd969fc57dfc9bf2d019c90",
+      "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
+      "scope": "P0 #70 staging-only TTL provisioner and 13-group ACTIVE evidence validator integrated with P0 #56",
+      "retentionGate": "FIVE_OFFLINE_TEST_GROUPS_PASS_PRE_INTEGRATION_NODE20",
+      "fullEnterpriseGate": "NOT_RUN",
+      "firestoreEmulator": "NOT_RUN",
+      "liveStagingTtlActive": "NOT_VERIFIED",
+      "securityPrivacyLegalReview": "PENDING",
+      "productionApproved": false,
+      "overallDecision": "NO-GO"
     }
   }
 }
