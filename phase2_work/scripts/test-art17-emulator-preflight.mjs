@@ -51,7 +51,7 @@ function checkDirectGuard(override) {
     ...override,
   };
   runInNewContext(directlyExecutedGuard, {
-    process: { env },
+    process: { env, cwd: () => process.cwd() },
     readFileSync: () => JSON.stringify({ emulators: { firestore: { port: 8085 } } }),
     resolve: (...parts) => parts.join('/'),
     JSON,
