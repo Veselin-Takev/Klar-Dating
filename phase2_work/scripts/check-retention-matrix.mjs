@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+// P0 #70: fail closed if the approved documented TTL collection groups drift
+// from the staging-only provisioning plan. This is a source-level guard,
+// NOT evidence that any live Firestore policy is ACTIVE.
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from 'node:path';
+import assert from 'node:assert/strict';
+
+const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const script = readFileSync(resolve(project, 'scripts/configure-retention.sh'), 'utf8');
+const docs = readFileSync(resolve(project, 'docs/DATA_RETENTION.md'), 'utf8');
+const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
+assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
+const groups = match[1].trim().split(/\s+/);
+const approvedGroups = [
+  'messages', 'archived_messages', 'ki_zwischenspeicher', 'age_attempts',
+  'funnel_events', 'ai_budget', 'kyc_events', 'account_deletions', 'deletion_log',
+  'partner_referral_click_rate_limits', 'partner_referral_webhook_rate_limits',
+  'partner_referral_admin_rate_limits', 'partner_referral_user_rate_limits',
+];
+assert.deepEqual(groups, approvedGroups, 'TTL collection group matrix mismatch / unsafe drift');
+assert.equal(new Set(groups).size, groups.length, 'Duplicate TTL groups are prohibited');
+for (const group of groups) {
+  assert(docs.includes('--collection-group=' + group), 'Missing documented TTL group: ' + group);
+}
+for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_STAGING_PROJECT_ID',
+  'KLAR_PRODUCTION_PROJECT_ID', 'KLAR_CONFIRM_RETENTION', 'KLAR_DATABASE_ID',
+  'KLAR_RETENTION_LEGAL_APPROVED', 'KLAR_RETENTION_INVENTORY_APPROVED',
+  'gcloud projects describe', '--format=\'value(labels.environment)\'']) {
+  assert(script.includes(code), 'Missing safety condition: ' + code);
+}
+assert(script.includes('DRY RUN ONLY'), 'Provisioning must default to non-mutating dry run');
+assert(script.includes('--database="${KLAR_DATABASE_ID}"'), 'Must pin Firestore database explicitly');
+assert(script.includes('--project="${KLAR_PROJECT_ID}"'), 'Must pin GCP project explicitly');
+console.log('PASS: retention policy matrix (13 groups), docs, dry-run, staging identity and approval gates align. NO-GO pending LIVE ACTIVE verification.');
