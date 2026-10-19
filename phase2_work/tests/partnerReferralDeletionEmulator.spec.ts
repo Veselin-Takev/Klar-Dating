@@ -15,7 +15,7 @@ const EMULATOR_CONTENTION_TIMEOUT_MS = 90_000;
 const activeEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
 if (activeEmulatorHost || process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1') {
   const config = JSON.parse(readFileSync(resolve(process.cwd(), 'firebase.pruefung.json'), 'utf8'));
-  const local = /^(localhost|127\\.0\\.0\\.1|\\[::1\\]):([0-9]{1,5})$/.exec(activeEmulatorHost);
+  const local = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(activeEmulatorHost);
   const ids = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
   if (!local || Number(local[2]) !== config?.emulators?.firestore?.port
     || ids.some(id => id !== 'demo-klar')
