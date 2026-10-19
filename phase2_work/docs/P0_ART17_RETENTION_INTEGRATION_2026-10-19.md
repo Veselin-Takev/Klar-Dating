@@ -19,3 +19,18 @@ On integration commit `e88268adc11eec11d6cb73140cf13f327a659f79` in an isolated 
 **Still unverified:** Full combined enterprise pipeline on exact final commit, Node 22.23.3 check, Java-enabled Firestore Emulator tests, actual staging gcloud TTL ACTIVE evidence with project/database scope, retention/legal-hold signoff, supply-chain audit, TypeScript, E2E, build, independent Security/DPO/Legal approval and GitHub CI.
 
 **Safety:** No TTL policies have been changed; the tests simulate only CLI mutations with a fake gcloud executable. No prod data, deployment, or main merge.
+
+
+## Executed combined proof — 2026-10-19
+
+**Exact verified code commit:** `c85efca453d8c022c6c11b738c63220134af7d19`.
+
+Official SHA-256-verified Node `v22.23.3` was used on a complete GitHub source archive. The following commands returned exit 0:
+
+- `npm run check:art17-deletion-audit` (seven storage tests, twelve Art. 17 source mutations, seven in-memory quarantine contracts, eighteen Emulator harness/preflight safety cases).
+- `npm run check:retention-p0` (13-group matrix, six negative matrix mutations, nine negative read-only TTL ACTIVE evidence mutations, staging dry-run and mock project-identity tests).
+- `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` (all PASS).
+
+The complete archive contained **1,269 ZIP entries**, passed CRC check and had SHA-256 `cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd`.
+
+**Unverified / NO-GO:** The isolated low-memory environment crashed while attempting to launch the actual Java-based Firestore Emulator, so none of the four real transaction scenarios passed. No live staging/prod Firestore TTL ACTIVE evidence was obtained. The full enterprise typecheck/Vitest/Playwright/build/npm audit and independent DPO/Security/Legal approval remain missing. No TTL mutation, production database access, merge or deployment took place.

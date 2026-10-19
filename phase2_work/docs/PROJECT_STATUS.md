@@ -1166,3 +1166,18 @@ These results show fail-closed behavior of the test harness, **not** the executi
 A separate integration branch combines the Art. 17 Draft #118 source with the reviewed *staging-only* TTL provisioner, evidence validator, and negative tests from Draft #116. The original PRs remain unmerged and intact. The new `npm run check:retention-p0` gate is mandatory within `npm run check:enterprise` after the Art. 17 static/contract checks.
 
 On code commit `e88268adc11eec11d6cb73140cf13f327a659f79`, all **five offline TTL script test groups** passed (13 groups, 6 matrix negatives, 9 ACTIVE evidence negatives, dry-run/prod-deny and project identity mock). Those tests **do not** establish live staging TTL policy state or safe legal-hold retention. The combined Node22 final commit check is still to be executed. Consult `docs/P0_ART17_RETENTION_INTEGRATION_2026-10-19.md`. **Production remains NO-GO.**
+
+
+## Executed combined proof — 2026-10-19
+
+**Exact verified code commit:** `c85efca453d8c022c6c11b738c63220134af7d19`.
+
+Official SHA-256-verified Node `v22.23.3` was used on a complete GitHub source archive. The following commands returned exit 0:
+
+- `npm run check:art17-deletion-audit` (seven storage tests, twelve Art. 17 source mutations, seven in-memory quarantine contracts, eighteen Emulator harness/preflight safety cases).
+- `npm run check:retention-p0` (13-group matrix, six negative matrix mutations, nine negative read-only TTL ACTIVE evidence mutations, staging dry-run and mock project-identity tests).
+- `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` (all PASS).
+
+The complete archive contained **1,269 ZIP entries**, passed CRC check and had SHA-256 `cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd`.
+
+**Unverified / NO-GO:** The isolated low-memory environment crashed while attempting to launch the actual Java-based Firestore Emulator, so none of the four real transaction scenarios passed. No live staging/prod Firestore TTL ACTIVE evidence was obtained. The full enterprise typecheck/Vitest/Playwright/build/npm audit and independent DPO/Security/Legal approval remain missing. No TTL mutation, production database access, merge or deployment took place.
