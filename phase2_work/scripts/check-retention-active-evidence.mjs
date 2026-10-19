@@ -13,7 +13,9 @@ const option = key => {
   assert(index >= 0 && index + 1 < args.length && !args[index + 1].startsWith('--'), 'Missing ' + key);
   return args[index + 1];
 };
-assert.equal(args.length, 6, 'Expected --evidence FILE --project ID --database ID');
+const preflight = args.includes('--mode');
+assert.equal(args.length, preflight ? 8 : 6, 'Expected --evidence FILE --project ID --database ID [--mode preflight]');
+if (preflight) assert.equal(option('--mode'), 'preflight', 'Only explicit preflight mode is supported');
 const evidencePath = option('--evidence');
 const projectId = option('--project');
 const databaseId = option('--database');
@@ -47,5 +49,9 @@ for (const field of evidence) {
   assert(offset === undefined || offset === '0s', 'Unexpected expiration offset for ' + group);
   actual.set(group, true);
 }
-assert.deepEqual([...actual.keys()].sort(), [...required].sort(), 'Missing ACTIVE TTL collection groups');
-console.log('PASS: 20 ACTIVE expiresAt TTL fields for explicitly scoped project/database in supplied read-only evidence (not a live cloud check).');
+if (!preflight) {
+  assert.deepEqual([...actual.keys()].sort(), [...required].sort(), 'Missing ACTIVE TTL collection groups');
+}
+console.log(preflight
+  ? 'PASS: existing scoped TTL policies are a compatible ACTIVE subset of the approved 20-group matrix (offline preflight, not live attestation).'
+  : 'PASS: 20 ACTIVE expiresAt TTL fields for explicitly scoped project/database in supplied read-only evidence (not a live cloud check).');

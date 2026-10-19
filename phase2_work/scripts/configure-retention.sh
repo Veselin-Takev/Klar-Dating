@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${KLAR_PROJECT_ID:?KLAR_PROJECT_ID required}"
 : "${KLAR_DATABASE_ID:?KLAR_DATABASE_ID required}"
 [[ "${KLAR_PROJECT_ID}" =~ ^[a-z][a-z0-9-]{4,62}$ ]] || { echo 'Invalid project id' >&2; exit 2; }
@@ -30,6 +31,14 @@ fi
 command -v gcloud >/dev/null || { echo 'gcloud CLI unavailable' >&2; exit 3; }
 cloud_environment="$(gcloud projects describe "${KLAR_PROJECT_ID}" --format='value(labels.environment)')" || { echo 'Could not independently confirm GCP project environment' >&2; exit 3; }
 [[ "${cloud_environment}" == staging ]] || { echo 'GCP project is not labelled staging: refusing TTL mutation' >&2; exit 3; }
+# Preflight existing policies BEFORE the first mutation. Unapproved groups,
+# nonzero offsets, wrong fields and in-progress changes block all updates.
+command -v node >/dev/null || { echo 'Node runtime unavailable for TTL preflight' >&2; exit 3; }
+existing_policies="$(mktemp)"
+trap 'rm -f -- "$existing_policies"' EXIT
+gcloud firestore fields ttls list --project="${KLAR_PROJECT_ID}" --database="${KLAR_DATABASE_ID}" --format=json > "$existing_policies"
+node "$repo_root/scripts/check-retention-active-evidence.mjs" \
+  --evidence "$existing_policies" --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID" --mode preflight
 for group in "${groups[@]}"; do
   gcloud firestore fields ttls update expiresAt \
     --collection-group="${group}" \

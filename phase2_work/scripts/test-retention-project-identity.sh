@@ -14,6 +14,11 @@ if [[ "${1:-}" == projects && "${2:-}" == describe ]]; then
   printf '%s\n' "${MOCK_GCP_LABEL:-production}"
   exit 0
 fi
+if [[ "${1:-}" == firestore && "${2:-}" == fields && "${3:-}" == ttls && "${4:-}" == list ]]; then
+  [[ "${MOCK_TTL_LIST_FAIL:-false}" != true ]] || exit 21
+  printf '%s\n' "${MOCK_TTL_LIST_JSON:-[]}"
+  exit 0
+fi
 if [[ "${1:-}" == firestore && "${2:-}" == fields && "${3:-}" == ttls && "${4:-}" == update ]]; then
   exit 0
 fi
@@ -54,4 +59,22 @@ export KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19
 bash "${script}" > "${work}/apply"
 [[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}")" -eq 20 ]]
 [[ "$(grep -c '^projects describe' "${MOCK_GCLOUD_LOG}")" -eq 1 ]]
-echo 'PASS: dry-run, project allowlist, production deny, GCP staging label, 20 gated updates'
+[[ "$(grep -c '^firestore fields ttls list' "${MOCK_GCLOUD_LOG}")" -eq 1 ]]
+# No write may occur if even one existing TTL policy was unapproved or
+# altered; actual gcloud calls are a fake executable in this test.
+: > "$MOCK_GCLOUD_LOG"
+export MOCK_TTL_LIST_JSON='[{"name":"projects/klar-staging-a/databases/(default)/collectionGroups/unapproved_group/fields/expiresAt","ttlConfig":{"state":"ACTIVE"}}]'
+if bash "${script}" >"${work}/unsafe" 2>&1; then echo 'FAIL: unapproved existing TTL accepted' >&2; exit 1; fi
+[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}" || true)" -eq 0 ]]
+[[ "$(grep -c '^firestore fields ttls list' "${MOCK_GCLOUD_LOG}" || true)" -eq 1 ]]
+: > "$MOCK_GCLOUD_LOG"
+export MOCK_TTL_LIST_JSON='[{"name":"projects/klar-staging-a/databases/(default)/collectionGroups/messages/fields/expiresAt","ttlConfig":{"state":"CREATING"}}]'
+if bash "${script}" >/dev/null 2>&1; then echo 'FAIL: in-progress TTL modification accepted' >&2; exit 1; fi
+[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}" || true)" -eq 0 ]]
+: > "$MOCK_GCLOUD_LOG"
+export MOCK_TTL_LIST_JSON='[]'
+export MOCK_TTL_LIST_FAIL=true
+if bash "${script}" >/dev/null 2>&1; then echo 'FAIL: gcloud list error accepted' >&2; exit 1; fi
+[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}" || true)" -eq 0 ]]
+unset MOCK_TTL_LIST_FAIL
+echo 'PASS: dry-run, GCP staging identity, read-only existing-TTL preflight and 20 gated updates; unsafe preflight blocks all writes'

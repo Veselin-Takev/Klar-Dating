@@ -36,4 +36,13 @@ for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_S
 assert(script.includes('DRY RUN ONLY'), 'Provisioning must default to non-mutating dry run');
 assert(script.includes('--database="${KLAR_DATABASE_ID}"'), 'Must pin Firestore database explicitly');
 assert(script.includes('--project="${KLAR_PROJECT_ID}"'), 'Must pin GCP project explicitly');
+// A real STAGING apply must read and validate existing TTL policies *before*
+// any update, not just validate the expected final ACTIVE state afterwards.
+const mutationLoop = script.lastIndexOf('for group in "${groups[@]}"; do');
+const listCall = script.indexOf('gcloud firestore fields ttls list --project="${KLAR_PROJECT_ID}" --database="${KLAR_DATABASE_ID}" --format=json');
+const checkCall = script.indexOf('node "$repo_root/scripts/check-retention-active-evidence.mjs"');
+assert(mutationLoop > 0 && listCall > 0 && checkCall > listCall && checkCall < mutationLoop,
+  'Read-only scoped TTL preflight must precede any staging policy update loop');
+assert(script.includes('--mode preflight'), 'Preflight must use approved-policy subset validation');
+
 console.log('PASS: retention policy matrix (20 groups), docs, dry-run, staging identity and approval gates align. NO-GO pending LIVE ACTIVE verification.');

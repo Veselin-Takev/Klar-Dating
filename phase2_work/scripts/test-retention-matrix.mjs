@@ -21,6 +21,9 @@ const cases = [
   ['missing documented TTL group', s => s, d => d.replace('--collection-group=partner_referral_user_rate_limits', '--collection-group=undocumented_group')],
   ['removed KYC reconciliation TTL group', s => s.replace('kyc_start_rate_limits kyc_reconciliation_events', 'kyc_start_rate_limits'), d => d],
   ['removed new 20-group approval', s => s.replaceAll('KLAR_RETENTION_MATRIX_REVISION_APPROVED', 'KLAR_UNAPPROVED_TTL_MATRIX'), d => d],
+  ['removed TTL preflight list query', s => s.replace('gcloud firestore fields ttls list --project=', 'printf [] --project='), d => d],
+  ['removed TTL preflight validation call', s => s.replace('node "$repo_root/scripts/check-retention-active-evidence.mjs"', 'printf'), d => d],
+  ['removed TTL preflight mode', s => s.replace('--mode preflight', ''), d => d],
 ];
 const run = (script, document) => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-ttl-regression-'));
