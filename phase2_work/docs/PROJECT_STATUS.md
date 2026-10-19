@@ -1181,3 +1181,9 @@ Official SHA-256-verified Node `v22.23.3` was used on a complete GitHub source a
 The complete archive contained **1,269 ZIP entries**, passed CRC check and had SHA-256 `cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd`.
 
 **Unverified / NO-GO:** The isolated low-memory environment crashed while attempting to launch the actual Java-based Firestore Emulator, so none of the four real transaction scenarios passed. No live staging/prod Firestore TTL ACTIVE evidence was obtained. The full enterprise typecheck/Vitest/Playwright/build/npm audit and independent DPO/Security/Legal approval remain missing. No TTL mutation, production database access, merge or deployment took place.
+
+---
+
+## 2026-10-19 — Staging TTL evidence acquisition hardened (P0 #70)
+
+Added a separate **read-only** `verify:retention-staging-live` command that verifies approved project/database, the independently reported GCP staging environment label, 13 ACTIVE TTL fields, and an optional non-overwriting private JSON export. It rejects production identities, mutating mode, malformed/unready cloud responses and unsafe export targets before accepting evidence. The offline mock-gcloud suite is now part of `check:retention-p0`; 12 denied scenarios plus one valid isolated case were exercised before this docs commit. The cloud **has not** been queried; this is not an ACTIVE certification. The real Art.17 Firestore Emulator, full typecheck/E2E/build and independent legal/security/Privacy signoffs remain outstanding. **NO-GO.**

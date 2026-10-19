@@ -34,3 +34,9 @@ Official SHA-256-verified Node `v22.23.3` was used on a complete GitHub source a
 The complete archive contained **1,269 ZIP entries**, passed CRC check and had SHA-256 `cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd`.
 
 **Unverified / NO-GO:** The isolated low-memory environment crashed while attempting to launch the actual Java-based Firestore Emulator, so none of the four real transaction scenarios passed. No live staging/prod Firestore TTL ACTIVE evidence was obtained. The full enterprise typecheck/Vitest/Playwright/build/npm audit and independent DPO/Security/Legal approval remain missing. No TTL mutation, production database access, merge or deployment took place.
+
+---
+
+## 2026-10-19 — P0 #70 evidence collection path added
+
+`scripts/verify-retention-staging-live.sh` provides a deterministic read-only query of the explicitly approved Staging project and Firestore database, validates the fetched JSON using the existing 13-group ACTIVE evidence validator, and can export a new private JSON snapshot without overwriting a prior record. `npm run check:retention-p0` now additionally tests 12 failure scenarios using a deliberately fake `gcloud`. No live project was accessed. This does not close Issue #70 until independent Cloud state and the approved retention/legal-hold matrix are verified. **NO-GO.**

@@ -113,3 +113,9 @@ node scripts/test-retention-active-evidence.mjs
 ```
 
 Der Prüfer verlangt 13 distinct `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`, exakt zum angegebenen Projekt und zur angegebenen Datenbank. Abweichende, fehlende, doppelte, nicht aktive oder umkonfigurierte Felder verursachen einen Fehler. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projektidentität und Zeitpunkt des `gcloud`-Abrufs müssen im Change-Ticket unabhängig attestiert werden. Dieser Check aktiviert keine TTL, ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung und autorisiert keinen Produktions-Deploy.
+
+---
+
+## Staging TTL verification (read-only, separate from provisioning)
+
+Use `npm run verify:retention-staging-live` under approved credentials and exactly scoped project/database identity. See `docs/PRODUCTION_RUNBOOK.md` for required `KLAR_*` environment values, fresh private evidence path and independent reviewer procedure. The script only performs `gcloud projects describe` and `gcloud firestore fields ttls list`; it validates all 13 ACTIVE TTL fields and records a JSON SHA-256 with UTC capture time. Unlike `configure-retention.sh`, it never requests any TTL mutation. A passing unit test uses **mock gcloud only**, and no live Staging TTL state is confirmed here. **NO-GO.**

@@ -204,3 +204,22 @@ Use `npm run test:art17-partner-emulator` under Node 22.23.3 in a Java-enabled l
 This branch is an *integration candidate*, not a production merge. The original Draft PRs #116 and #118 remain open. Run `npm run check:retention-p0` under the pinned Node v22.23.3 in `phase2_work`; this runs only source/fixture/mock staging checks, **not** any live policy update. The aggregate `check:enterprise` now includes that check immediately after Art. 17 audit.
 
 Do not set `KLAR_APPLY_RETENTION=true` except after independent confirmation of approved staging project/database IDs, legal retention-matrix approval, expired-data/legal-hold inventory and an independently observed GCP staging environment label. Capture `gcloud firestore fields ttls list --project ... --database ... --format=json` as a separate read-only LIVE evidence step, verify all 13 required `expiresAt` TTL policies ACTIVE and store change-ticket provenance. None of those live steps have occurred. **NO-GO.**
+
+### 2026-10-19 — Read-only LIVE TTL capture with target guard
+
+`scripts/verify-retention-staging-live.sh` is a *read-only* Staging TTL evidence command. Unlike the file-only `check-retention-active-evidence.mjs`, it directly obtains the policy list through `gcloud firestore fields ttls list` **only after** independently checking the GCP project `labels.environment=staging`, exact approved project/database identity and an explicit staging vs production distinction. No `gcloud ... update/create/delete` command is present. It refuses `KLAR_APPLY_RETENTION=true`, prevents overwriting a previous evidence file, and will not save raw evidence inside the repository. When `KLAR_TTL_EVIDENCE_PATH` points to a new absolute location outside the repository, the tool stores mode-0600 JSON and prints a UTC timestamp and SHA-256 for the change ticket. It validates that all **13** TTL policies are ACTIVE before exporting any file.
+
+**Operational invocation from `phase2_work`, only for authorized staging reviewers:**
+
+```bash
+export KLAR_ENVIRONMENT=staging
+export KLAR_PROJECT_ID='<approved-staging-project>'
+export KLAR_DATABASE_ID='(default)'
+export KLAR_APPROVED_STAGING_PROJECT_ID="$KLAR_PROJECT_ID"
+export KLAR_PRODUCTION_PROJECT_ID='<actual-distinct-production-project>'
+export KLAR_CONFIRM_RETENTION="$KLAR_PROJECT_ID/$KLAR_DATABASE_ID"
+export KLAR_TTL_EVIDENCE_PATH='/absolute/private/path/to/fresh-staging-ttl-evidence.json'
+npm run verify:retention-staging-live
+```
+
+**Local/CI check:** `npm run check:retention-p0` includes `scripts/test-retention-staging-live-readonly.sh`; it uses a stub `gcloud` to prove denial of 12 bad or dangerous situations without any provider changes. A mocked test and an unsigned JSON snapshot are **not** proof of live cloud configuration. The independent reviewer must verify the authenticated GCP identity, evidence capture time, platform state, legal holds and expiry behavior before signing off. No cloud environment was queried or modified in this change. **NO-GO**.

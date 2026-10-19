@@ -88,7 +88,7 @@
       "asOf": "2026-10-19",
       "base": "9e886c67c97201602cd969fc57dfc9bf2d019c90",
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
-      "scope": "P0 #70 staging-only TTL provisioner and 13-group ACTIVE evidence validator integrated with P0 #56",
+      "scope": "P0 #70 read-only live Staging TTL capture and Art17 stacked integration",
       "retentionGate": "PASS_FIVE_OFFLINE_TEST_GROUPS",
       "fullEnterpriseGate": "NOT_RUN",
       "firestoreEmulator": "NOT_RUN_REMOTE_JAVA_EMULATOR_CRASH",
@@ -101,7 +101,9 @@
       "art17Gate": "PASS_STATIC_MOCK_AND_HARNESS",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "Results proven on code commit immediately before this documentation-only commit; rerun scoped gates on final SHA."
+      "note": "Offline tests and guard code only; no live cloud attestation or production release.",
+      "readonlyTtlCapture": "IMPLEMENTED_CLOUD_NOT_QUERIED",
+      "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT"
     }
   }
 }
