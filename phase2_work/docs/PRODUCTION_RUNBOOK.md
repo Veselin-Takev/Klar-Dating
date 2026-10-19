@@ -230,3 +230,8 @@ npm run verify:retention-staging-live
 Der Plan umfasst nun 20 Collection-Groups; sieben zusätzliche `expiresAt`-Schreibpfade wurden unter `docs/DATA_RETENTION.md` nachgewiesen. Die Staging-Aktivierung ist durch einen **neuen Revisions-Gate** gesperrt: `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19` darf erst gesetzt werden, nachdem Legal/DPO und Operations die **gesamte 20er-Matrix**, Bestands-Ablaufstempel und Legal Holds unabhängig geprüft, signiert und im Change-Ticket archiviert haben. Der Marker ist allein keine Freigabe. Alle bestehenden Staging-ID, Datenbank, Cloud-Label und Inventarprüfungen bleiben obligatorisch. Vorher ausschließlich Dry-Run nutzen; keine produktiven TTL-Änderungen.
 
 Tests: `npm run check:retention-p0` muss jetzt **20** Pläne und ACTIVE-Nachweise erwarten. Der Live-Nachweis erfordert 20 tatsächlich ACTIVE-Policies, nicht 13. Bei unerfüllter Retention-/Rechtsgrundlage niemals `KLAR_APPLY_RETENTION=true` setzen. **NO-GO**.
+
+
+### 2026-10-19 — Per-write TTL timestamp regression gate
+
+`npm run check:retention-p0` executes `scripts/check-retention-expiry-writers.mjs` and `scripts/test-retention-expiry-writers.mjs`. These now independently protect both `set` and `update` expiry-field writers for reset/email/account deletion/KYC-start rate limiters, both shared chat limiter write branches, and KYC reconciliation event writes. A passing guard is **source-only** evidence. The 20-group Staging activation still requires the revised legal/operations matrix, inventory and hold review, and independently captured Google Cloud ACTIVE evidence. Do not convert this test result into a production GO.

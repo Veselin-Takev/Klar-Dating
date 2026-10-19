@@ -31,9 +31,36 @@ const chat = read('src/server/routes/chat.ts');
 assert(chat.includes('collection: CHAT_MESSAGE_RATE_LIMIT_COLLECTION')
   && chat.includes('collection: CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION'),
   'Both chat limiters must use the distributed expiry writer');
+// A filename-level `expiresAt` check is not sufficient when one module writes
+// multiple documents. Demand a Date on BOTH creation and counter-update paths
+// for every scoped limiter, and on the exact KYC reconciliation write.
+const writeWithDate = /expiresAt\s*:\s*new Date\s*\(/;
+function findDocumentWrite(moduleCode, operation, label) {
+  const match = new RegExp('\\btx\\.' + operation + '\\(ref,\\s*\\{([^}]+)\\}', 'g');
+  const bodies = [...moduleCode.matchAll(match)].map(hit => hit[1]);
+  assert.equal(bodies.length, 1, `${label}: expected one transaction ${operation} write`);
+  assert(writeWithDate.test(bodies[0]), `${label}: transaction ${operation} must write expiresAt as Date`);
+}
+for (const [label, file, begin] of [
+  ['password_reset_rate_limits', 'src/server/passwordReset.ts', 'const ACCOUNT_RATE_LIMIT_COLLECTION'],
+  ['verification_mail_rate_limits', 'src/server/email.ts', 'const VERIFICATION_RATE_LIMIT_COLLECTION'],
+  ['account_deletion_rate_limits', 'src/server/routes/account.ts', "collection('account_deletion_rate_limits')"],
+  ['kyc_start_rate_limits', 'src/server/verification/diditKyc.ts', 'const KYC_START_RATE_LIMIT_COLLECTION'],
+]) {
+  const code = read(file);
+  const start = code.indexOf(begin);
+  assert(start >= 0, `${label}: transaction section missing`);
+  // One bounded function block avoids accepting an unrelated write elsewhere.
+  let section = code.slice(start, start + 3800);
+  if (label === 'account_deletion_rate_limits') section = code.slice(Math.max(0, start - 600), start + 2200);
+  findDocumentWrite(section, 'set', label);
+  findDocumentWrite(section, 'update', label);
+}
 const limiter = read('src/server/distributedRateLimiter.ts');
-assert(limiter.includes('expiresAt: new Date('), 'Distributed rate-limit expiry timestamp missing');
+findDocumentWrite(limiter, 'set', 'shared_chat_distributed_rate_limit');
+findDocumentWrite(limiter, 'update', 'shared_chat_distributed_rate_limit');
 const kyc = read('src/server/verification/diditKyc.ts');
-assert(/kyc_reconciliation_events\/\$\{claimed\}[\s\S]{0,320}expiresAt:/.test(kyc),
-  'KYC reconciliation expiry field missing from the actual write');
+const reconciliation = kyc.match(/tx\.set\(db\.doc\(`kyc_reconciliation_events\/\$\{claimed\}`\),\s*\{([^}]+)\}/);
+assert(reconciliation, 'KYC reconciliation write missing');
+assert(writeWithDate.test(reconciliation[1]), 'KYC reconciliation must write expiresAt as Date');
 console.log('PASS: 7 previously untracked expiry-writing Firestore collection groups are covered by 20-group TTL plan (source-only).');

@@ -37,9 +37,23 @@ const cases = [
   ['chat gate group', 'src/server/routes/chat.ts', "'chat_gate_answer_rate_limits'", "'unknown_gate_limits'"],
   ['shared expiry writer', 'src/server/distributedRateLimiter.ts', 'expiresAt: new Date(', 'obsoleteAt: new Date('],
   ['TTL plan group', 'scripts/configure-retention.sh', 'password_reset_rate_limits ', 'untracked_reset_limits '],
+
+  // Removal of a single expiresAt in either write branch must fail even when
+  // the other branch (and other modules) still writes expiresAt.
+  ['password reset create expiration removed', 'src/server/passwordReset.ts', 'expiresAt: new Date(now + ACCOUNT_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(now + ACCOUNT_RATE_LIMIT_WINDOW_MS)'],
+  ['password reset update expiration removed', 'src/server/passwordReset.ts', 'expiresAt: new Date(windowStartedAt + ACCOUNT_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(windowStartedAt + ACCOUNT_RATE_LIMIT_WINDOW_MS)'],
+  ['verification mail create expiration removed', 'src/server/email.ts', 'expiresAt: new Date(now + VERIFICATION_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(now + VERIFICATION_RATE_LIMIT_WINDOW_MS)'],
+  ['verification mail update expiration removed', 'src/server/email.ts', 'expiresAt: new Date(windowStartedAt + VERIFICATION_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(windowStartedAt + VERIFICATION_RATE_LIMIT_WINDOW_MS)'],
+  ['account deletion limiter create expiration removed', 'src/server/routes/account.ts', 'expiresAt: new Date(now + windowMs)', 'retiredAt: new Date(now + windowMs)'],
+  ['account deletion limiter update expiration removed', 'src/server/routes/account.ts', 'expiresAt: new Date(windowStartedAt + windowMs)', 'retiredAt: new Date(windowStartedAt + windowMs)'],
+  ['KYC start create expiration removed', 'src/server/verification/diditKyc.ts', 'expiresAt: new Date(now + KYC_START_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(now + KYC_START_RATE_LIMIT_WINDOW_MS)'],
+  ['KYC start update expiration removed', 'src/server/verification/diditKyc.ts', 'expiresAt: new Date(windowStartedAt + KYC_START_RATE_LIMIT_WINDOW_MS)', 'retiredAt: new Date(windowStartedAt + KYC_START_RATE_LIMIT_WINDOW_MS)'],
+  ['KYC reconciliation expiration removed', 'src/server/verification/diditKyc.ts', 'reconciledAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000)', 'reconciledAt: new Date(now), retiredAt: new Date(now + 30 * 86400_000)'],
+  ['chat limiter create expiration removed', 'src/server/distributedRateLimiter.ts', 'expiresAt: new Date(now + options.windowMs)', 'retiredAt: new Date(now + options.windowMs)'],
+  ['chat limiter update expiration removed', 'src/server/distributedRateLimiter.ts', 'expiresAt: new Date(start + options.windowMs)', 'retiredAt: new Date(start + options.windowMs)'],
 ];
 for (const [label,file,from,to] of cases) {
   const result=run({file,from,to});
   assert.notEqual(result.status,0, 'Missing rejection for '+label);
 }
-console.log('PASS: 7 expiry writer source contracts and 9 fail-closed mutations (offline only).');
+console.log('PASS: 7 expiry writer source contracts and ' + cases.length + ' fail-closed mutations (offline only).');

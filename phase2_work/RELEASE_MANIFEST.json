@@ -89,7 +89,7 @@
       "base": "9e886c67c97201602cd969fc57dfc9bf2d019c90",
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
       "scope": "P0 #70 20-group staging TTL plan after discovering seven additional expiresAt writers; plus P0 #56 Art17",
-      "retentionGate": "OFFLINE_20_GROUPS_PENDING_FINAL_SHA",
+      "retentionGate": "OFFLINE_TARGETED_PENDING_FINAL_SHA",
       "fullEnterpriseGate": "NOT_RUN",
       "firestoreEmulator": "NOT_RUN",
       "liveStagingTtlActive": "NOT_VERIFIED",
@@ -101,12 +101,14 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "New 20-group revision marker is a fail-closed gate, not itself legal approval. Existing 13-group evidence is historical.",
+      "note": "Per-write source-level expiry assertions and 20 negative mutations do not establish live TTL, historical expiry safety or production approval.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
       "ttlMatrixRevision": "expiresAt-20-2026-10-19",
-      "ttlMatrixRevisionApproved": "REQUIRES_INDEPENDENT_LEGAL_DPO_OPERATIONS_APPROVAL"
+      "ttlMatrixRevisionApproved": "REQUIRES_INDEPENDENT_LEGAL_DPO_OPERATIONS_APPROVAL",
+      "ttlPerWriteGuard": "STRICT_SET_UPDATE_TIMESTAMP_AND_RECONCILIATION",
+      "ttlSourceNegativeMutations": 20
     }
   }
 }
