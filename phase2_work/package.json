@@ -86,7 +86,7 @@
     "check:isverified-authority": "node scripts/check-isverified-authority.mjs",
     "check:legal-updates": "node scripts/check-legal-updates.mjs",
     "seed:legal-updates": "node scripts/seed-legal-updates.mjs",
-    "check:observability": "node scripts/check-observability.mjs",
+    "check:observability": "node scripts/check-observability.mjs && node scripts/test-slo-policy.mjs",
     "check:compliance-storage-purge": "node scripts/check-compliance-storage-purge.mjs",
     "check:stripe-idempotency": "node scripts/check-stripe-idempotency.mjs",
     "check:design-system": "node scripts/check-design-system.mjs",
