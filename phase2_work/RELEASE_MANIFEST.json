@@ -173,7 +173,12 @@
       "codeownersRegressionSuite": "24_PASS_NODE22_LOCAL_PENDING_IMMUTABLE_SHA",
       "codeownersGitHubTeamPermissions": "NOT_VERIFIED",
       "ttlLiveStagingActive": "NOT_VERIFIED",
-      "releaseDecision": "NO-GO"
+      "releaseDecision": "NO-GO",
+      "enterpriseDashboardStatus": "IMPLEMENTED_FEATURE_BRANCH_TARGETED_MODEL_TESTS_PENDING",
+      "enterpriseDashboardUnknownDomains": "SLO_P95_TTL_ART17_AI_LEDGER_SECURITY_GATE_NOT_VERIFIED",
+      "enterpriseDashboardSource": "AUTHORIZED_ADMIN_READ_ONLY_HEALTH_CHECK",
+      "enterpriseDashboardRealEmulator": "NOT_VERIFIED",
+      "enterpriseDashboardAIReview": "NOT_PASS_STATIC_ESLINT_AND_E2E_MISSING"
     }
   }
 }
