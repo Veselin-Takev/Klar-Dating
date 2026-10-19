@@ -54,8 +54,14 @@ export function collectReleaseApprovalFailures({ manifest, checklist, env = {} }
   if (attest?.approvedCommit !== commit || !shaPattern.test(attest?.approvedCommit ?? '')) {
     failures.push('GO attestation is missing or not bound to the exact commit SHA');
   }
-  if (typeof checklist !== 'string' || /^\s*-\s*\[\s\]/m.test(checklist)) {
-    failures.push('GO_LIVE_CHECKLIST.md has unresolved checklist items or is missing');
+  // A blank file, alternate Markdown list markers and multi-space unchecked
+  // boxes must never count as a completed production release checklist.
+  // Valid checked states are [x] or [X]; any other task state denies GO.
+  const taskMarkers = typeof checklist === 'string'
+    ? [...checklist.matchAll(/^\s*(?:[-*+]|\d+[.)])\s*\[([^\]\r\n]*)\]/gm)]
+    : [];
+  if (taskMarkers.length === 0 || taskMarkers.some(([, marker]) => !/^[xX]$/.test(marker))) {
+    failures.push('GO_LIVE_CHECKLIST.md has unresolved, malformed or missing checklist items');
   }
 
   const completedEvidence = (name, item) => {

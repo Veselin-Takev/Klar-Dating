@@ -44,6 +44,25 @@ test('real current repository is NO-GO even if an environment variable says appr
   assert(errors.length > 20);
 });
 
+for (const [name, checklist] of [
+  ['empty checklist', ''],
+  ['title-only checklist', '# No verified tasks\n'],
+  ['asterisk unchecked item', '# Review\n* [ ] Firestore Emulator incomplete\n'],
+  ['plus unchecked item', '# Review\n+ [ ] Live TTL incomplete\n'],
+  ['multispace unchecked item', '# Review\n- [  ] Art.17 tests incomplete\n'],
+  ['tab-space unchecked item', '# Review\n- [\t ] Security review incomplete\n'],
+  ['unknown checkbox status', '# Review\n- [?] DPO approval missing\n'],
+  ['mixed checked and unchecked items', '# Review\n- [x] Unit tests\n* [ ] CI runner checks\n'],
+  ['numbered unchecked item', '# Review\n1. [ ] EU AI Act signoff pending\n'],
+  ['numbered-parenthesis unchecked item', '# Review\n2) [ ] Final staging TTL pending\n'],
+]) {
+  test('rejects ' + name + ' as unverified GO checklist', () => {
+    const candidate = validFixture();
+    candidate.checklist = checklist;
+    assert(collectReleaseApprovalFailures(candidate).some(x => x.includes('GO_LIVE_CHECKLIST.md')));
+  });
+}
+
 for (const [name, mutate, expected] of [
   ['unset protected environment approval', x => { x.env.KLAR_PRODUCTION_RELEASE_APPROVED = 'false'; }, 'Protected'],
   ['missing GitHub commit SHA', x => { delete x.env.GITHUB_SHA; }, 'GITHUB_SHA'],

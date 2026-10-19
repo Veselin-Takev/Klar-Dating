@@ -310,3 +310,15 @@ Der unveränderte `bun.lock` darf nicht durch `npm ci` oder ein neues npm-Lockfi
 ### 2026-10-19 – CODEOWNERS P1 #73 path alignment, NOT VERIFIED reviews
 
 The repository-root CODEOWNERS policy now explicitly covers active `phase2_work` authorization, Stripe, partner webhooks, Firestore/Storage rules, retention, release and workflows. Static Node path/mutation tests (6 tests) and the new `check:codeowners` source gate are integrated into `check:enterprise`. The repo is owned by a GitHub *User* account, while `@klar/...` organization team role names are inherited and their existence/write access and effective branch reviews remain **NOT VERIFIED**. GitHub CODEOWNERS uses the base branch, so Draft PR #119 cannot itself prove effective reviewer routing. Issue #73 and production status stay **NO-GO**. ADR: `docs/CODEOWNERS_GOVERNANCE_2026-10-19.md`.
+
+
+### 2026-10-19 — GO checklist parser fail-closed security regression
+
+The production release evidence checker formerly accepted an **empty** or title-only checklist and failed to recognize unchecked GitHub Flavored Markdown tasks using `*`, `+`, ordered numeric markers or extra whitespace. The checker now requires at least one task and rejects all unchecked or malformed task markers (`[-*+]`, `1.`, `2)` syntax). **55** synthetic structure/negative Node22 release-evidence regressions PASS; separate TTL, Art.17, emulator profile, CODEOWNERS and workflow source gates PASS. The real release approval checker still rejects the actual `NO-GO` manifest even when `KLAR_PRODUCTION_RELEASE_APPROVED=true` is provided in a negative test.
+
+**Compliance scope:** structural validation is not authentic signed CI evidence; actual Firestore Emulator transactions, live 20-group TTL and legal-hold approvals, full security scanning and independent Security/DPO/Legal/SRE signoff remain unverified. Preserve **NO-GO** and open Issues. ADR: `docs/ADR_GO_CHECKLIST_TASK_PARSER_2026-10-19.md`.
+
+
+#### Lokaler Mandatory-Gate-Lauf (19.10.2026, Node v22.23.3, SHA-256-verifiziert)
+
+**5/14 PASS; 9/14 FAIL oder nicht ausführbar.** PASS: `check-secrets.mjs`, `check-auth-boundary.mjs`, `check-public-firestore-rules.mjs`, `check-ai-pii-sanitizer.mjs` und `check-art17-deletion-audit.mjs 0`. FAIL/BLOCKIERT: `npm run check:enterprise` (TypeScript-Modul nicht installiert), Root-`npm audit --audit-level=high` (kein npm-Lockfile, Bun-only Root), Gitleaks und Semgrep (ohne installierte lokale Executables, kein Auto-Download), TypeScript, Vitest, Firebase Rules (`firebase-tools` fehlt), Playwright (nicht installiert), Build (`vite` fehlt). Dieses Ergebnis belegt **keinen vollständigen** Supply-Chain-/SAST-/Emulator-/Browser-Test; produktive Security/DPO/Legal/SRE-Abnahmen fehlen. Der Release-Status bleibt **NO-GO**. Der Checkout enthält nur den isolierten Arbeitsstand; keine produktive Cloud-Anpassung wurde vorgenommen.

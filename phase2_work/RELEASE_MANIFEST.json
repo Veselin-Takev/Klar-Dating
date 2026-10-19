@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "External PDF GO claim cannot override missing real signed test evidence or GitHub protected human release approval.",
+      "note": "Checklist parser is structural only; neither PDF nor self-asserted checkbox can replace real tests and independently reviewed release evidence.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -126,7 +126,7 @@
       "mandatoryGateIteration2": "RELEASE_BOUNDARY_45_PASS_FULL_RELEASE_STILL_NO_GO",
       "mandatoryGateIteration3": "PENDING_FINAL_SHA",
       "rootDependencyPolicy": "BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
-      "npmAuditRoot": "ENOLOCK_BUN_ONLY_NOT_A_VULNERABILITY_SCAN",
+      "npmAuditRoot": "FAIL_ENOLOCK_ROOT_BUN_ONLY",
       "cspProductionEnforcedUnderViteEmulator": "PASS_3_OFFLINE_NODE22_REGRESSIONS",
       "cspDeployedResponseHeaders": "NOT_VERIFIED",
       "bunRootCriticalAdvisories": 1,
@@ -151,13 +151,21 @@
       "releaseEvidenceStructuralTests": "PASS_45_ON_PINNED_NODE22_PRECOMMIT",
       "mandatoryGateIteration1": "5_PASS_9_FAIL_OR_BLOCKED",
       "rootNpmAudit": "ENOLOCK_BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
-      "gitleaks": "NOT_EXECUTABLE_NOT_INSTALLED",
-      "semgrep": "NOT_EXECUTABLE_NOT_INSTALLED",
+      "gitleaks": "NOT_EXECUTABLE_NO_INSTALL",
+      "semgrep": "NOT_EXECUTABLE_NO_INSTALL",
       "actualRulesEmulator": "NOT_RUN_SDK_DEPENDENCIES_UNAVAILABLE",
       "independentProductionSignoffs": "NOT_VERIFIED",
       "codeownersPhase2Paths": "STATIC_PATH_REGRESSIONS_6_PASS_UNVERIFIED_REVIEWER_PERMISSIONS",
       "codeownersGitHubTeams": "NOT_VERIFIED_PERSONAL_ACCOUNT_OWNER",
-      "branchProtectionCodeownerReviews": "NOT_VERIFIED"
+      "branchProtectionCodeownerReviews": "NOT_VERIFIED",
+      "goLiveChecklistFailClosedParser": "IMPLEMENTED_55_SYNTHETIC_LOCAL_REGRESSIONS_PENDING_IMMUTABLE_SHA",
+      "goLiveChecklistEmptyOrUnfinished": "REJECTED_IN_OFFLINE_TESTS",
+      "releaseEnvironmentFlagOnly": "REJECTED_WITH_REAL_NO_GO_MANIFEST",
+      "githubCodeownerPermissions": "NOT_VERIFIED",
+      "securityHumanSignoffs": "NOT_VERIFIED",
+      "checklistParserNegativeTests": "55_PASS_LOCAL_NODE22_CHECKED_UNORDERED_AND_ORDERED",
+      "mandatoryGateLocalIteration2": "5_PASS_9_FAILED_OR_UNAVAILABLE",
+      "firestoreRulesIntegration": "NOT_RUN_DEPENDENCIES_MISSING"
     }
   }
 }
