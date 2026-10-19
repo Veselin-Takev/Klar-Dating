@@ -175,3 +175,10 @@ Google-Cloud-Dokumentation: https://docs.cloud.google.com/sdk/gcloud/reference/f
 **Residual risk:** The preflight is a snapshot and cannot rule out changes by a concurrent administrator after it completes (TOCTOU); a protected change window, least-privilege Cloud IAM and independent change approval are still necessary. Since policies are applied sequentially, an operational error after the first write could result in **partial activation**, which must be independently reconciled. Existing expired-data and legal-hold review is mandatory because activating TTL can trigger deletion of historical records. Firestore TTL deletion is asynchronous, non-recursive, and billable. No production deploy/merge and no human GO authorized.
 
 Sources: https://firebase.google.com/docs/firestore/ttl and local scripts/tests described above. **PRODUCTION NO-GO**.
+
+
+### 2026-10-19 — TTL staging idempotence and mandatory 3-iteration NO-GO review
+
+The staging TTL provisioner now uses the existing fail-closed scoped policy preflight to retrieve validated ACTIVE group identifiers and skips already ACTIVE policies. Mocked GCP tests show **20/18/0 update requests** when **0/2/20 policies** were already ACTIVE, and unsafe policy fixtures still cause zero writes. Three additional static matrix mutations cover an omitted skip or ID-validation step; the regular full-20 ACTIVE evidence check remains unchanged. See `docs/ADR_TTL_STAGING_IDEMPOTENCE_2026-10-19.md` and `docs/ENTERPRISE_REVIEW_3_ITERATIONS_2026-10-19.md`.
+
+The mandatory tests cannot yet all pass in the isolated checkout: root Bun-only lock policy forbids npm package-lock, `npm audit` exits ENOLOCK, and the full TS/Vitest/Playwright/Emulator/build toolchain is absent. Do not fabricate zero vulnerabilities or GO from static checks; the final third-iteration result is recorded in the associated Draft PR description. **NO-GO.**
