@@ -1151,3 +1151,10 @@ This is **offline/static and mocked Firestore** evidence. Four real Firestore Em
 The direct `tests/partnerReferralDeletionEmulator.spec.ts` path now checks loopback host, configured port, project consistency, production runtime and disabled durable fallback before any SDK database access. The dedicated runner likewise rejects mismatching `FIREBASE_PROJECT_ID` and local proxy/fallback tests; three further negative regressions cover those bypasses. This prevents a green report from exercising a development fallback instead of real Firestore Emulator semantics.
 
 **NO-GO** remains: the four genuine Emulator cases are not yet executed; Node 22.23.3 static/contract tests should be repeated on the immutable final SHA. Full TypeScript/Vitest/Playwright/build/npm audit, active TTL policy evidence, runner availability and DPO/Security/Legal approvals remain open.
+
+
+### 2026-10-19 — Verified emulator test-harness safety
+
+**Exact code SHA:** `b41f37a06f58aac45c33e6d3ffa61e7ffeca2425`. With an official SHA-256-verified Node **22.23.3** binary, `node --test scripts/test-art17-emulator-preflight.mjs` returned exit **0 (18/18)**: nine negative launcher checks plus one accepted local direct-guard case and eight rejected direct-guard cases. The latter execute the actual guard source in an isolated Node VM with no Firestore SDK. `npm run check:art17-deletion-audit` also exited **0**, incorporating seven storage cases, twelve owner-claim mutations, seven quarantine contracts and eighteen test-harness boundary tests.
+
+These results show fail-closed behavior of the test harness, **not** the execution of the four genuine Firestore Emulator transaction scenarios. The full TypeScript build, Playwright, real TTL ACTIVE state and independent DPO/Security/Legal sign-offs are outstanding. The latest GitHub Actions runner remains unavailable. **Production NO-GO.**

@@ -65,3 +65,10 @@ The targeted static gate is a test-harness safety control, not evidence that the
 ## 2026-10-19 — Direct guard executed without Firestore SDK
 
 The nine wrapper rejection scenarios are supplemented by **nine isolated checks of the actual direct Vitest guard source**: one valid local `demo-klar` configuration and eight invalid host/port/project/fallback/production configurations. The latter are executed against the exact guard code in a Node VM without importing Firestore or writing any data. These tests cover guard behavior only; **they do not execute the four real Emulator integration scenarios**. The tests must pass on the final pinned Node 22.23.3 commit. **NO-GO**.
+
+
+### 2026-10-19 — Verified emulator test-harness safety
+
+**Exact code SHA:** `b41f37a06f58aac45c33e6d3ffa61e7ffeca2425`. With an official SHA-256-verified Node **22.23.3** binary, `node --test scripts/test-art17-emulator-preflight.mjs` returned exit **0 (18/18)**: nine negative launcher checks plus one accepted local direct-guard case and eight rejected direct-guard cases. The latter execute the actual guard source in an isolated Node VM with no Firestore SDK. `npm run check:art17-deletion-audit` also exited **0**, incorporating seven storage cases, twelve owner-claim mutations, seven quarantine contracts and eighteen test-harness boundary tests.
+
+These results show fail-closed behavior of the test harness, **not** the execution of the four genuine Firestore Emulator transaction scenarios. The full TypeScript build, Playwright, real TTL ACTIVE state and independent DPO/Security/Legal sign-offs are outstanding. The latest GitHub Actions runner remains unavailable. **Production NO-GO.**
