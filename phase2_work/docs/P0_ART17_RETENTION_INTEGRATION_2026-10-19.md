@@ -40,3 +40,14 @@ The complete archive contained **1,269 ZIP entries**, passed CRC check and had S
 ## 2026-10-19 — P0 #70 evidence collection path added
 
 `scripts/verify-retention-staging-live.sh` provides a deterministic read-only query of the explicitly approved Staging project and Firestore database, validates the fetched JSON using the existing 13-group ACTIVE evidence validator, and can export a new private JSON snapshot without overwriting a prior record. `npm run check:retention-p0` now additionally tests 12 failure scenarios using a deliberately fake `gcloud`. No live project was accessed. This does not close Issue #70 until independent Cloud state and the approved retention/legal-hold matrix are verified. **NO-GO.**
+
+
+### 2026-10-19 — Read-only staging TTL collector verified on pinned Node 22.23.3
+
+**Tested code commit:** `6331cf918443b930f130a0672d37392567096724`. The complete GitHub source archive of this commit was CRC-valid (1,271 entries; SHA-256 `1e22c3026120c50452f4ab812a70e726c005733e381537a2842b764d1c7e3802`). With **Node 22.23.3**, the following ran and returned exit code **0**:
+
+- `npm run check:art17-deletion-audit` — static and contract tests PASS; **not** genuine Firestore Emulator integration.
+- `npm run check:retention-p0` — includes **13 TTL collection groups**, six matrix negatives, nine JSON ACTIVE-evidence negatives, staged provisioning tests, plus a positive read-only collector fixture and **12 fail-closed mock-gcloud collector scenarios**.
+- `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` — all PASS.
+
+**Evidence limitation:** The collector was exercised using a *fake* gcloud command. No real Cloud project was queried, no live TTL ACTIVE state was attested, and no TTL settings were changed. The actual Firestore Emulator scenario suite, full TypeScript/Vitest/Playwright/build/npm-audit, review of legal holds, partner buyer-binding and independent DPO/Legal/Security approvals are still pending. Draft PR #119 stays unmerged; production decision **NO-GO**.

@@ -1187,3 +1187,14 @@ The complete archive contained **1,269 ZIP entries**, passed CRC check and had S
 ## 2026-10-19 — Staging TTL evidence acquisition hardened (P0 #70)
 
 Added a separate **read-only** `verify:retention-staging-live` command that verifies approved project/database, the independently reported GCP staging environment label, 13 ACTIVE TTL fields, and an optional non-overwriting private JSON export. It rejects production identities, mutating mode, malformed/unready cloud responses and unsafe export targets before accepting evidence. The offline mock-gcloud suite is now part of `check:retention-p0`; 12 denied scenarios plus one valid isolated case were exercised before this docs commit. The cloud **has not** been queried; this is not an ACTIVE certification. The real Art.17 Firestore Emulator, full typecheck/E2E/build and independent legal/security/Privacy signoffs remain outstanding. **NO-GO.**
+
+
+### 2026-10-19 — Read-only staging TTL collector verified on pinned Node 22.23.3
+
+**Tested code commit:** `6331cf918443b930f130a0672d37392567096724`. The complete GitHub source archive of this commit was CRC-valid (1,271 entries; SHA-256 `1e22c3026120c50452f4ab812a70e726c005733e381537a2842b764d1c7e3802`). With **Node 22.23.3**, the following ran and returned exit code **0**:
+
+- `npm run check:art17-deletion-audit` — static and contract tests PASS; **not** genuine Firestore Emulator integration.
+- `npm run check:retention-p0` — includes **13 TTL collection groups**, six matrix negatives, nine JSON ACTIVE-evidence negatives, staged provisioning tests, plus a positive read-only collector fixture and **12 fail-closed mock-gcloud collector scenarios**.
+- `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` — all PASS.
+
+**Evidence limitation:** The collector was exercised using a *fake* gcloud command. No real Cloud project was queried, no live TTL ACTIVE state was attested, and no TTL settings were changed. The actual Firestore Emulator scenario suite, full TypeScript/Vitest/Playwright/build/npm-audit, review of legal holds, partner buyer-binding and independent DPO/Legal/Security approvals are still pending. Draft PR #119 stays unmerged; production decision **NO-GO**.
