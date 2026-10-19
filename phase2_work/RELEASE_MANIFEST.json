@@ -90,7 +90,7 @@
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
       "scope": "P0 #70 20-group staging TTL plan after discovering seven additional expiresAt writers; plus P0 #56 Art17",
       "retentionGate": "OFFLINE_TARGETED_PENDING_FINAL_SHA",
-      "fullEnterpriseGate": "NOT_RUN",
+      "fullEnterpriseGate": "FAIL_DEPENDENCIES_NOT_INSTALLED",
       "firestoreEmulator": "NOT_RUN",
       "liveStagingTtlActive": "NOT_VERIFIED",
       "securityPrivacyLegalReview": "PENDING",
@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "Read-only preflight prevents known unsafe policy writes in local mock tests but cannot replace independent legal/GCP verification or human release approval.",
+      "note": "Release hard stop after max 3 iterations; no npm package-lock may be introduced without approved tooling policy change.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -119,7 +119,14 @@
       "stagingTtlPreflightNegativeFixtures": 7,
       "stagingTtlUnknownPolicy": "DENY_BEFORE_ANY_UPDATE_IN_MOCK",
       "stagingTtlInProgressPolicy": "DENY_BEFORE_ANY_UPDATE_IN_MOCK",
-      "stagingTtlListFailure": "DENY_BEFORE_ANY_UPDATE_IN_MOCK"
+      "stagingTtlListFailure": "DENY_BEFORE_ANY_UPDATE_IN_MOCK",
+      "retentionIdempotency": "PASS_LOCAL_MOCK_20_18_0_UPDATE_REQUESTS",
+      "preflightMachineMode": "VALIDATED_EXISTING_ACTIVE_POLICY_IDS_ONLY",
+      "ttlMatrixSourceNegativeTests": 13,
+      "mandatoryGateIteration2": "5_PASS_7_FAILED_OR_BLOCKED",
+      "mandatoryGateIteration3": "PENDING_FINAL_SHA",
+      "rootDependencyPolicy": "BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
+      "npmAuditRoot": "ENOLOCK_BUN_ONLY_NOT_A_VULNERABILITY_SCAN"
     }
   }
 }
