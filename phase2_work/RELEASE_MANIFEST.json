@@ -88,9 +88,9 @@
       "asOf": "2026-10-19",
       "base": "9e886c67c97201602cd969fc57dfc9bf2d019c90",
       "ttlSource": "fdcc8403bccb51a29f504c3100b31d6ddce9089d",
-      "scope": "P0 #70 20-group staging TTL plan after discovering seven additional expiresAt writers; plus P0 #56 Art17",
+      "scope": "Production CSP fail-closed runtime and supply-chain advisory audit",
       "retentionGate": "OFFLINE_TARGETED_PENDING_FINAL_SHA",
-      "fullEnterpriseGate": "FAIL_DEPENDENCIES_NOT_INSTALLED",
+      "fullEnterpriseGate": "FAIL_TYPESCRIPT_MISSING",
       "firestoreEmulator": "NOT_RUN",
       "liveStagingTtlActive": "NOT_VERIFIED",
       "securityPrivacyLegalReview": "PENDING",
@@ -101,7 +101,7 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "Release hard stop after max 3 iterations; no npm package-lock may be introduced without approved tooling policy change.",
+      "note": "One critical and four high root Bun advisories block release; no full typecheck/Vitest/E2E/build or independent human signoffs.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
@@ -126,7 +126,14 @@
       "mandatoryGateIteration2": "5_PASS_7_FAILED_OR_BLOCKED",
       "mandatoryGateIteration3": "PENDING_FINAL_SHA",
       "rootDependencyPolicy": "BUN_ONLY_ROOT_PACKAGE_LOCK_FORBIDDEN",
-      "npmAuditRoot": "ENOLOCK_BUN_ONLY_NOT_A_VULNERABILITY_SCAN"
+      "npmAuditRoot": "ENOLOCK_BUN_ONLY_NOT_A_VULNERABILITY_SCAN",
+      "cspProductionEnforcedUnderViteEmulator": "PASS_3_OFFLINE_NODE22_REGRESSIONS",
+      "cspDeployedResponseHeaders": "NOT_VERIFIED",
+      "bunRootCriticalAdvisories": 1,
+      "bunRootHighAdvisories": 4,
+      "bunProductionHighAdvisories": 1,
+      "functionsModerateAdvisories": 2,
+      "gitleaksHistoryScan": "NOT_RUN"
     }
   }
 }
