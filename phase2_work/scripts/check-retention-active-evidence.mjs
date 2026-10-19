@@ -24,7 +24,7 @@ const provisioning = readFileSync(join(root, 'scripts/configure-retention.sh'), 
 const match = provisioning.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Approved TTL matrix is missing');
 const required = match[1].trim().split(/\s+/);
-assert.equal(required.length, 13, 'Expected 13 documented TTL groups');
+assert.equal(required.length, 20, 'Expected 20 documented TTL groups');
 const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
 assert(Array.isArray(evidence), 'Expected JSON array from gcloud firestore fields ttls list --format=json');
 const actual = new Map();
@@ -46,4 +46,4 @@ for (const field of evidence) {
   actual.set(group, true);
 }
 assert.deepEqual([...actual.keys()].sort(), [...required].sort(), 'Missing ACTIVE TTL collection groups');
-console.log('PASS: 13 ACTIVE expiresAt TTL fields for explicitly scoped project/database in supplied read-only evidence (not a live cloud check).');
+console.log('PASS: 20 ACTIVE expiresAt TTL fields for explicitly scoped project/database in supplied read-only evidence (not a live cloud check).');

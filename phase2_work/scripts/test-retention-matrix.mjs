@@ -19,6 +19,8 @@ const cases = [
   ['missing staging project identity', s => s.replaceAll('KLAR_APPROVED_STAGING_PROJECT_ID', 'KLAR_UNCHECKED_PROJECT'), d => d],
   ['missing database-scoped mutation', s => s.replace('--database="${KLAR_DATABASE_ID}"', '--database=unscoped'), d => d],
   ['missing documented TTL group', s => s, d => d.replace('--collection-group=partner_referral_user_rate_limits', '--collection-group=undocumented_group')],
+  ['removed KYC reconciliation TTL group', s => s.replace('kyc_start_rate_limits kyc_reconciliation_events', 'kyc_start_rate_limits'), d => d],
+  ['removed new 20-group approval', s => s.replaceAll('KLAR_RETENTION_MATRIX_REVISION_APPROVED', 'KLAR_UNAPPROVED_TTL_MATRIX'), d => d],
 ];
 const run = (script, document) => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-ttl-regression-'));
@@ -41,4 +43,4 @@ for (const [label, mutateScript, mutateDocs] of cases) {
   const result = run(modifiedSource, modifiedDocs);
   assert.notEqual(result.status, 0, 'Fail-open TTL matrix regression: ' + label);
 }
-console.log('PASS: canonical 13-group TTL guard and ' + cases.length + ' fail-closed mutations (no cloud writes)');
+console.log('PASS: canonical 20-group TTL guard and ' + cases.length + ' fail-closed mutations (no cloud writes)');

@@ -51,3 +51,8 @@ The complete archive contained **1,269 ZIP entries**, passed CRC check and had S
 - `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` — all PASS.
 
 **Evidence limitation:** The collector was exercised using a *fake* gcloud command. No real Cloud project was queried, no live TTL ACTIVE state was attested, and no TTL settings were changed. The actual Firestore Emulator scenario suite, full TypeScript/Vitest/Playwright/build/npm-audit, review of legal holds, partner buyer-binding and independent DPO/Legal/Security approvals are still pending. Draft PR #119 stays unmerged; production decision **NO-GO**.
+
+
+## 2026-10-19 — Evidence of seven additional expiry writers
+
+The earlier 13-group retention matrix omitted seven source-backed `expiresAt` groups: password reset, verification mail, account deletion, KYC start, KYC reconciliation, chat messaging and chat gate answers. The staging-only plan now includes **20 groups** with an additional explicit “20-group revision approved” guard; stale approvals cannot activate new TTL policies. This change is only a source-level candidate. All production, LIVE ACTIVE, legal hold, DPO and TypeScript/Emulator/full CI gates remain **NO-GO**. Consult the per-source mapping in `docs/DATA_RETENTION.md`.

@@ -28,7 +28,7 @@ const text = fs.readFileSync(process.argv[2] + '/scripts/configure-retention.sh'
 const match = text.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 if (!match) throw new Error('TTL matrix unavailable');
 const groups = match[1].trim().split(/\s+/);
-if (groups.length !== 13) throw new Error('Expected exactly 13 groups');
+if (groups.length !== 20) throw new Error('Expected exactly 20 groups');
 const fields = groups.map(group => ({
   name: 'projects/klar-staging-test/databases/(default)/collectionGroups/' + group + '/fields/expiresAt',
   ttlConfig: { state: 'ACTIVE' },

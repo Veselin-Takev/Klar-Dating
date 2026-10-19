@@ -14,6 +14,9 @@ const groups = [
   'funnel_events', 'ai_budget', 'kyc_events', 'account_deletions', 'deletion_log',
   'partner_referral_click_rate_limits', 'partner_referral_webhook_rate_limits',
   'partner_referral_admin_rate_limits', 'partner_referral_user_rate_limits',
+  'password_reset_rate_limits', 'verification_mail_rate_limits',
+  'account_deletion_rate_limits', 'kyc_start_rate_limits', 'kyc_reconciliation_events',
+  'chat_message_rate_limits', 'chat_gate_answer_rate_limits',
 ];
 const valid = groups.map(group => ({
   name: 'projects/' + project + '/databases/' + database + '/collectionGroups/' + group + '/fields/expiresAt',
@@ -44,4 +47,4 @@ for (const [label, record] of mutations) {
   const outcome = run(record);
   assert.notEqual(outcome.status, 0, 'Failed to reject ' + label);
 }
-console.log('PASS: read-only TTL evidence validator accepts 13 scoped ACTIVE fields and rejects ' + mutations.length + ' mutations');
+console.log('PASS: read-only TTL evidence validator accepts 20 scoped ACTIVE fields and rejects ' + mutations.length + ' mutations');

@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 script=scripts/configure-retention.sh
 bash -n "$script"
 output="$(KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash "$script")"
-[[ "$(grep -c '^PLAN:' <<< "$output")" -eq 13 ]]
+[[ "$(grep -c '^PLAN:' <<< "$output")" -eq 20 ]]
 grep -q 'DRY RUN ONLY' <<< "$output"
 if KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' KLAR_APPLY_RETENTION=true bash "$script" >/dev/null 2>&1; then
   echo "FAIL: apply without approvals succeeded" >&2
@@ -14,4 +14,4 @@ if KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' KLAR_ENVIRONMEN
   echo "FAIL: production apply succeeded" >&2
   exit 1
 fi
-echo "PASS: syntax, 13 groups, default dry run, denied unapproved and production apply"
+echo "PASS: syntax, 20 groups, default dry run, denied unapproved and production apply"

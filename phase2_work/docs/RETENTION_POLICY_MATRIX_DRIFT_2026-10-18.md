@@ -12,3 +12,8 @@
 Diese statische Prüfung muss zusammen mit `scripts/test-retention-gate.sh` und `scripts/test-retention-project-identity.sh` bei jeder Änderung an Retention-Skript oder Datenklassifizierung durchgeführt werden. Nicht bestätigt sind tatsächliche Firestore-TTL-Status (ACTIVE), Feldtyp `expiresAt` für jede Collection, Legal Holds, reale Staging-Provisionierung und verifizierte DSGVO-Art.-17-Ende-zu-Ende-Löschung. Vor echter Staging-Aktivierung dokumentierte Policy-Freigabe und Bestands-/Expiry-Inventar vorlegen; niemals Produktionsprojekt überschreiben. Das unabhängige Reviewer-Gate bleibt offen.
 
 Referenzen: https://firebase.google.com/docs/firestore/ttl und https://firebase.google.com/docs/firestore/security/test-rules-emulator . Kein produktiver Deploy, Merge oder zusätzlicher GitHub-Actions-Lauf. **NO-GO.**
+
+
+### Fortschreibung 2026-10-19 (gesondert vom historischen 13er-Befund)
+
+Eine erneute Schreibpfadprüfung ergab sieben weitere `expiresAt`-Collection-Groups. Der Staging-Plan enthält nun **20** Gruppen und benötigt ein neues, gesondertes 20er-Genehmigungsticket (`KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19`), zusätzlich zu allen bestehenden Legal-/Inventory-/Projekt-Gates. Historische 13er-Testresultate beziehen sich ausschließlich auf die damalige Matrix. Keine Policy-Aktivierung erfolgt. **NO-GO**.

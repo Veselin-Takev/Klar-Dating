@@ -26,11 +26,12 @@ export KLAR_PROJECT_ID=klar-staging-a KLAR_DATABASE_ID='(default)'
 export KLAR_ENVIRONMENT=staging KLAR_APPROVED_STAGING_PROJECT_ID=klar-staging-a
 export KLAR_PRODUCTION_PROJECT_ID=klar-production-a KLAR_CONFIRM_RETENTION='klar-staging-a/(default)'
 export KLAR_RETENTION_LEGAL_APPROVED=true KLAR_RETENTION_INVENTORY_APPROVED=true
+export KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19
 : > "${MOCK_GCLOUD_LOG}"
 unset KLAR_APPLY_RETENTION || true
 bash "${script}" > "${work}/dry"
 grep -q 'DRY RUN ONLY' "${work}/dry"
-[[ "$(grep -c '^PLAN:' "${work}/dry")" -eq 13 ]]
+[[ "$(grep -c '^PLAN:' "${work}/dry")" -eq 20 ]]
 [[ ! -s "${MOCK_GCLOUD_LOG}" ]]
 export KLAR_APPLY_RETENTION=true
 export KLAR_APPROVED_STAGING_PROJECT_ID=klar-staging-other
@@ -46,7 +47,11 @@ if bash "${script}" >/dev/null 2>&1; then echo 'FAIL: non-staging label accepted
 [[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}" || true)" -eq 0 ]]
 : > "${MOCK_GCLOUD_LOG}"
 export MOCK_GCP_LABEL=staging
+unset KLAR_RETENTION_MATRIX_REVISION_APPROVED
+if bash "${script}" >/dev/null 2>&1; then echo 'FAIL: old TTL matrix approval accepted' >&2; exit 1; fi
+[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}" || true)" -eq 0 ]]
+export KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19
 bash "${script}" > "${work}/apply"
-[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}")" -eq 13 ]]
+[[ "$(grep -c '^firestore fields ttls update' "${MOCK_GCLOUD_LOG}")" -eq 20 ]]
 [[ "$(grep -c '^projects describe' "${MOCK_GCLOUD_LOG}")" -eq 1 ]]
-echo 'PASS: dry-run, project allowlist, production deny, GCP staging label, 13 gated updates'
+echo 'PASS: dry-run, project allowlist, production deny, GCP staging label, 20 gated updates'

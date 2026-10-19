@@ -119,3 +119,35 @@ Der Prüfer verlangt 13 distinct `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`
 ## Staging TTL verification (read-only, separate from provisioning)
 
 Use `npm run verify:retention-staging-live` under approved credentials and exactly scoped project/database identity. See `docs/PRODUCTION_RUNBOOK.md` for required `KLAR_*` environment values, fresh private evidence path and independent reviewer procedure. The script only performs `gcloud projects describe` and `gcloud firestore fields ttls list`; it validates all 13 ACTIVE TTL fields and records a JSON SHA-256 with UTC capture time. Unlike `configure-retention.sh`, it never requests any TTL mutation. A passing unit test uses **mock gcloud only**, and no live Staging TTL state is confirmed here. **NO-GO.**
+
+
+### P0 #70 — 2026-10-19: sieben weitere TTL-Feld-Schreibpfade (20 Gruppen, **noch nicht freigegeben**)
+
+Die Codeprüfung der aktuellen Entwicklungszweige ergab **sieben weitere Firestore-Collection-Groups**, in denen `expiresAt` tatsächlich als Zeitstempel geschrieben wird, die aber nicht in der bisherigen 13er-TTL-Matrix vorkamen:
+
+| Collection-Group | Nachgewiesener Schreibpfad |
+| --- | --- |
+| `password_reset_rate_limits` | `src/server/passwordReset.ts` |
+| `verification_mail_rate_limits` | `src/server/email.ts` |
+| `account_deletion_rate_limits` | `src/server/routes/account.ts` |
+| `kyc_start_rate_limits` | `src/server/verification/diditKyc.ts` |
+| `kyc_reconciliation_events` | `src/server/verification/diditKyc.ts` |
+| `chat_message_rate_limits` | `src/server/routes/chat.ts` über `distributedRateLimiter.ts` |
+| `chat_gate_answer_rate_limits` | `src/server/routes/chat.ts` über `distributedRateLimiter.ts` |
+
+Entsprechend werden **sieben neue Staging-TTL-Pläne** mit dem Feld `expiresAt` ergänzt (weiterhin standardmäßig **nur Dry Run**):
+
+```bash
+# Nur Plananzeige; keine Aktivierung ohne erneute rechtliche/operative Prüfung:
+gcloud firestore fields ttls update expiresAt --collection-group=password_reset_rate_limits --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=verification_mail_rate_limits --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=account_deletion_rate_limits --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=kyc_start_rate_limits --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=kyc_reconciliation_events --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=chat_message_rate_limits --enable-ttl
+gcloud firestore fields ttls update expiresAt --collection-group=chat_gate_answer_rate_limits --enable-ttl
+```
+
+**Neue zwingende Sperre für Staging-Apply:** Zusätzlich zu den vorhandenen Legal-/Inventar-/Projekt-/Datenbank-Gates verlangt `configure-retention.sh` explizit `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19`. Dieser Wert ist nur ein Marker für eine **außerhalb des Systems separat archivierte, aktuell genehmigte 20-Gruppen-Matrix**; er ist selbst keine rechtliche Freigabe. Alte 13-Gruppen-Genehmigungen dürfen die sieben zusätzlichen Löschregeln nicht aktivieren. Keines der sieben zusätzlichen Felder wurde in Google Cloud aktiviert oder als ACTIVE nachgewiesen.
+
+**Unverändert NO-GO:** Jeder Bestand muss auf tatsächliche Firestore-Timestamp-Typen, bestehende Ablauftermine, Aufbewahrungspflichten, Legal Holds, Audit-Bewahrung und Löschkosten geprüft werden. Firestore TTL löscht asynchron und ersetzt nicht die Art.-17-Löschkaskade. Nur im freigegebenen Staging mit unabhängigen Reviews testen; niemals Produktion automatisch verändern.

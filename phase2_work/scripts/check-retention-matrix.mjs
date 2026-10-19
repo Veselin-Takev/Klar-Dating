@@ -18,6 +18,9 @@ const approvedGroups = [
   'funnel_events', 'ai_budget', 'kyc_events', 'account_deletions', 'deletion_log',
   'partner_referral_click_rate_limits', 'partner_referral_webhook_rate_limits',
   'partner_referral_admin_rate_limits', 'partner_referral_user_rate_limits',
+  'password_reset_rate_limits', 'verification_mail_rate_limits',
+  'account_deletion_rate_limits', 'kyc_start_rate_limits', 'kyc_reconciliation_events',
+  'chat_message_rate_limits', 'chat_gate_answer_rate_limits',
 ];
 assert.deepEqual(groups, approvedGroups, 'TTL collection group matrix mismatch / unsafe drift');
 assert.equal(new Set(groups).size, groups.length, 'Duplicate TTL groups are prohibited');
@@ -26,11 +29,11 @@ for (const group of groups) {
 }
 for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_STAGING_PROJECT_ID',
   'KLAR_PRODUCTION_PROJECT_ID', 'KLAR_CONFIRM_RETENTION', 'KLAR_DATABASE_ID',
-  'KLAR_RETENTION_LEGAL_APPROVED', 'KLAR_RETENTION_INVENTORY_APPROVED',
+  'KLAR_RETENTION_LEGAL_APPROVED', 'KLAR_RETENTION_INVENTORY_APPROVED', 'KLAR_RETENTION_MATRIX_REVISION_APPROVED',
   'gcloud projects describe', '--format=\'value(labels.environment)\'']) {
   assert(script.includes(code), 'Missing safety condition: ' + code);
 }
 assert(script.includes('DRY RUN ONLY'), 'Provisioning must default to non-mutating dry run');
 assert(script.includes('--database="${KLAR_DATABASE_ID}"'), 'Must pin Firestore database explicitly');
 assert(script.includes('--project="${KLAR_PROJECT_ID}"'), 'Must pin GCP project explicitly');
-console.log('PASS: retention policy matrix (13 groups), docs, dry-run, staging identity and approval gates align. NO-GO pending LIVE ACTIVE verification.');
+console.log('PASS: retention policy matrix (20 groups), docs, dry-run, staging identity and approval gates align. NO-GO pending LIVE ACTIVE verification.');

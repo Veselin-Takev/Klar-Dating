@@ -223,3 +223,10 @@ npm run verify:retention-staging-live
 ```
 
 **Local/CI check:** `npm run check:retention-p0` includes `scripts/test-retention-staging-live-readonly.sh`; it uses a stub `gcloud` to prove denial of 12 bad or dangerous situations without any provider changes. A mocked test and an unsigned JSON snapshot are **not** proof of live cloud configuration. The independent reviewer must verify the authenticated GCP identity, evidence capture time, platform state, legal holds and expiry behavior before signing off. No cloud environment was queried or modified in this change. **NO-GO**.
+
+
+### 2026-10-19 — 13→20 TTL-Matrixänderung: erneute Freigabe erforderlich
+
+Der Plan umfasst nun 20 Collection-Groups; sieben zusätzliche `expiresAt`-Schreibpfade wurden unter `docs/DATA_RETENTION.md` nachgewiesen. Die Staging-Aktivierung ist durch einen **neuen Revisions-Gate** gesperrt: `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19` darf erst gesetzt werden, nachdem Legal/DPO und Operations die **gesamte 20er-Matrix**, Bestands-Ablaufstempel und Legal Holds unabhängig geprüft, signiert und im Change-Ticket archiviert haben. Der Marker ist allein keine Freigabe. Alle bestehenden Staging-ID, Datenbank, Cloud-Label und Inventarprüfungen bleiben obligatorisch. Vorher ausschließlich Dry-Run nutzen; keine produktiven TTL-Änderungen.
+
+Tests: `npm run check:retention-p0` muss jetzt **20** Pläne und ACTIVE-Nachweise erwarten. Der Live-Nachweis erfordert 20 tatsächlich ACTIVE-Policies, nicht 13. Bei unerfüllter Retention-/Rechtsgrundlage niemals `KLAR_APPLY_RETENTION=true` setzen. **NO-GO**.

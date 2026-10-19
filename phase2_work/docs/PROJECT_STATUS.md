@@ -1198,3 +1198,8 @@ Added a separate **read-only** `verify:retention-staging-live` command that veri
 - `node scripts/check-secrets.mjs`, `node scripts/check-auth-boundary.mjs`, `node scripts/check-public-firestore-rules.mjs`, `node scripts/check-ai-pii-sanitizer.mjs` — all PASS.
 
 **Evidence limitation:** The collector was exercised using a *fake* gcloud command. No real Cloud project was queried, no live TTL ACTIVE state was attested, and no TTL settings were changed. The actual Firestore Emulator scenario suite, full TypeScript/Vitest/Playwright/build/npm-audit, review of legal holds, partner buyer-binding and independent DPO/Legal/Security approvals are still pending. Draft PR #119 stays unmerged; production decision **NO-GO**.
+
+
+## 2026-10-19 — P0 #70: Sieben übersehene expiresAt-Collection-Groups
+
+Im Quellcode wurden sieben fehlende TTL-Collection-Groups identifiziert: `password_reset_rate_limits`, `verification_mail_rate_limits`, `account_deletion_rate_limits`, `kyc_start_rate_limits`, `kyc_reconciliation_events`, `chat_message_rate_limits`, `chat_gate_answer_rate_limits`. Die Staging-Plan-/Evidenzmatrix wird von 13 auf **20** erweitert; vollständige Gruppe-für-Gruppe-Ergänzung und Tests sind erforderlich. Der neue Freigabemarker `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19` verhindert das Anwenden einer erweiterten Matrix mit alter 13er-Genehmigung. Das ist **kein** Freibrief für die Aktivierung; die unabhängigen Rechts-/Inventar-/Cloud-Freigaben stehen aus. Keine Cloud-Änderung, kein Merge und kein Deployment. **NO-GO**.

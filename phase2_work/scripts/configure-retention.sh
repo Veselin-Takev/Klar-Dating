@@ -9,6 +9,9 @@ groups=(
   funnel_events ai_budget kyc_events account_deletions deletion_log
   partner_referral_click_rate_limits partner_referral_webhook_rate_limits
   partner_referral_admin_rate_limits partner_referral_user_rate_limits
+  password_reset_rate_limits verification_mail_rate_limits
+  account_deletion_rate_limits kyc_start_rate_limits kyc_reconciliation_events
+  chat_message_rate_limits chat_gate_answer_rate_limits
 )
 for group in "${groups[@]}"; do
   printf 'PLAN: gcloud firestore fields ttls update expiresAt --collection-group=%s --database=%s --project=%s --enable-ttl\n' "${group}" "${KLAR_DATABASE_ID}" "${KLAR_PROJECT_ID}"
@@ -23,6 +26,7 @@ fi
 [[ "${KLAR_CONFIRM_RETENTION:-}" == "${KLAR_PROJECT_ID}/${KLAR_DATABASE_ID}" ]] || { echo 'Exact project/database approval required' >&2; exit 3; }
 [[ "${KLAR_RETENTION_LEGAL_APPROVED:-}" == true ]] || { echo 'Legal retention matrix approval required' >&2; exit 3; }
 [[ "${KLAR_RETENTION_INVENTORY_APPROVED:-}" == true ]] || { echo 'Existing expired-data and legal-hold inventory required' >&2; exit 3; }
+[[ "${KLAR_RETENTION_MATRIX_REVISION_APPROVED:-}" == expiresAt-20-2026-10-19 ]] || { echo '20-group TTL expansion requires NEW approved retention matrix revision' >&2; exit 3; }
 command -v gcloud >/dev/null || { echo 'gcloud CLI unavailable' >&2; exit 3; }
 cloud_environment="$(gcloud projects describe "${KLAR_PROJECT_ID}" --format='value(labels.environment)')" || { echo 'Could not independently confirm GCP project environment' >&2; exit 3; }
 [[ "${cloud_environment}" == staging ]] || { echo 'GCP project is not labelled staging: refusing TTL mutation' >&2; exit 3; }
