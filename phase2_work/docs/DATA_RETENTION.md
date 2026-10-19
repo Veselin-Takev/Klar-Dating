@@ -151,3 +151,14 @@ gcloud firestore fields ttls update expiresAt --collection-group=chat_gate_answe
 **Neue zwingende Sperre für Staging-Apply:** Zusätzlich zu den vorhandenen Legal-/Inventar-/Projekt-/Datenbank-Gates verlangt `configure-retention.sh` explizit `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19`. Dieser Wert ist nur ein Marker für eine **außerhalb des Systems separat archivierte, aktuell genehmigte 20-Gruppen-Matrix**; er ist selbst keine rechtliche Freigabe. Alte 13-Gruppen-Genehmigungen dürfen die sieben zusätzlichen Löschregeln nicht aktivieren. Keines der sieben zusätzlichen Felder wurde in Google Cloud aktiviert oder als ACTIVE nachgewiesen.
 
 **Unverändert NO-GO:** Jeder Bestand muss auf tatsächliche Firestore-Timestamp-Typen, bestehende Ablauftermine, Aufbewahrungspflichten, Legal Holds, Audit-Bewahrung und Löschkosten geprüft werden. Firestore TTL löscht asynchron und ersetzt nicht die Art.-17-Löschkaskade. Nur im freigegebenen Staging mit unabhängigen Reviews testen; niemals Produktion automatisch verändern.
+
+
+### 2026-10-19 — P0 #70: Undokumentierte zusätzliche TTL-Policies strikt ablehnen
+
+**Quellbefund:** `scripts/check-retention-active-evidence.mjs` ignorierte bisher mit `if (!required.includes(group)) continue` jede TTL-Policy einer nicht in der genehmigten 20er-Matrix enthaltenen Collection-Group. Da `gcloud firestore fields ttls list` sämtliche konfigurierten TTL-Felder der gewählten Datenbank auflistet, konnte ein erfolgreicher 20/20-ACTIVE-Nachweis gleichzeitig eine **zusätzliche, potenziell rechtswidrige Löschrichtlinie verschweigen**.
+
+**Korrektur:** Die Read-only-Evidenzprüfung bricht jetzt bei **jeder** unerwarteten TTL-Policy sofort ab, auch bei `CREATING` und alternativen Feldnamen. Zusätzliche Richtlinien müssen zuerst in der vollständigen Matrix erfasst, auf Rechtsgrundlage, Aufbewahrung und Legal Holds geprüft und gesondert genehmigt werden; der Validator bietet absichtlich keine automatische `ignore`-Ausnahme. `test-retention-active-evidence.mjs` enthält nun **12** Negativmutationen statt 9. Das Mock-Staging-Skript verweigert zusätzlich eine unautorisierte aktive Policy (**13** Fail-Closed-Szenarien statt 12). Vor der Korrektur hätte der Validator die unautorisierte ACTIVE-Policy akzeptiert.
+
+**Wichtige Grenze:** Das sind lokale JSON-/Mock-/Quellcode-Tests, **kein** realer Google-Cloud-Abruf. Diese Änderung aktiviert/deaktiviert/löscht keine TTL-Policies. Für eine GO-Entscheidung fehlen insbesondere die unabhängig genehmigte *vollständige* 20er-Policy-Matrix, die Auswertung **aller** tatsächlich vorhandenen Policies im freigegebenen Staging, Bestands-/Legal-Hold-Nachweise, echte Firestore-Emulator-Transaktionen und die vollständigen Enterprise-Release-Gates. Produktionsfreigabe **NO-GO**.
+
+Google-Cloud-Dokumentation: https://docs.cloud.google.com/sdk/gcloud/reference/firestore/fields/ttls/list und https://firebase.google.com/docs/firestore/ttl

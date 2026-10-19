@@ -37,7 +37,9 @@ for (const field of evidence) {
   const hit = /^([^/]+)\/fields\/([^/]+)$/.exec(suffix);
   assert(hit, 'Malformed scoped Firestore field name');
   const [, group, key] = hit;
-  if (!required.includes(group)) continue;
+  // `gcloud firestore fields ttls list` enumerates all configured TTL policies.
+  // A successful check must not conceal additional, unreviewed deletion rules.
+  assert(required.includes(group), 'Unapproved TTL policy found outside documented retention matrix: ' + group);
   assert.equal(key, 'expiresAt', 'TTL field must be expiresAt for ' + group);
   assert(!actual.has(group), 'Duplicate TTL evidence for ' + group);
   assert.equal(field.ttlConfig?.state, 'ACTIVE', 'TTL not ACTIVE for ' + group);

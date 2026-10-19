@@ -42,6 +42,9 @@ const mutations = [
   ['offset', valid.map((x, i) => i === 0 ? { ...x, ttlConfig: { state: 'ACTIVE', expirationOffset: '3600s' } } : x)],
   ['missing status', valid.map((x, i) => i === 0 ? { ...x, ttlConfig: {} } : x)],
   ['corrupt name', valid.map((x, i) => i === 0 ? { ...x, name: 'not-a-resource-name' } : x)],
+  ['unapproved ACTIVE TTL group', [...valid, { name: 'projects/' + project + '/databases/' + database + '/collectionGroups/undocumented_retention/fields/expiresAt', ttlConfig: { state: 'ACTIVE' } }]],
+  ['unapproved CREATING TTL group', [...valid, { name: 'projects/' + project + '/databases/' + database + '/collectionGroups/undocumented_retention/fields/expiresAt', ttlConfig: { state: 'CREATING' } }]],
+  ['unapproved alternate field TTL group', [...valid, { name: 'projects/' + project + '/databases/' + database + '/collectionGroups/undocumented_retention/fields/autoDeleteAt', ttlConfig: { state: 'ACTIVE' } }]],
 ];
 for (const [label, record] of mutations) {
   const outcome = run(record);

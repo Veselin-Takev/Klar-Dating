@@ -101,14 +101,17 @@
       "art17Gate": "PASS_STATIC_CONTRACT_MOCK",
       "securityBoundaries": "PASS_4_OF_4",
       "zipSha256": "cb33306921de4d585c87975f1ae267474b6d22d5e20077a2961d3150ae5033dd",
-      "note": "Per-write source-level expiry assertions and 20 negative mutations do not establish live TTL, historical expiry safety or production approval.",
+      "note": "Any additional unapproved TTL policy blocks staged evidence; no live Cloud proof or approval.",
       "readonlyTtlCapture": "IMPLEMENTED_WITH_12_FAIL_CLOSED_CASES_NO_GCP_ACCESS",
       "readonlyTtlCaptureTest": "MOCK_12_NEGATIVE_PLUS_1_VALID_PRE_DOCS_COMMIT",
       "retentionGroupCount": 20,
       "ttlMatrixRevision": "expiresAt-20-2026-10-19",
       "ttlMatrixRevisionApproved": "REQUIRES_INDEPENDENT_LEGAL_DPO_OPERATIONS_APPROVAL",
       "ttlPerWriteGuard": "STRICT_SET_UPDATE_TIMESTAMP_AND_RECONCILIATION",
-      "ttlSourceNegativeMutations": 20
+      "ttlSourceNegativeMutations": 20,
+      "ttlEvidenceExtraneousPolicies": "FAIL_CLOSED_ALL_UNDOCUMENTED_GROUPS",
+      "ttlEvidenceNegativeMutations": 12,
+      "ttlReadOnlyMockDenied": 13
     }
   }
 }

@@ -22,7 +22,7 @@ else
 fi
 GCLOUD
 chmod +x "$work/bin/gcloud"
-node - "$root" "$work/valid.json" "$work/creating.json" "$work/missing.json" <<'NODE'
+node - "$root" "$work/valid.json" "$work/creating.json" "$work/missing.json" "$work/extra.json" <<'NODE'
 const fs = require('node:fs');
 const text = fs.readFileSync(process.argv[2] + '/scripts/configure-retention.sh', 'utf8');
 const match = text.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
@@ -36,6 +36,10 @@ const fields = groups.map(group => ({
 fs.writeFileSync(process.argv[3], JSON.stringify(fields));
 fs.writeFileSync(process.argv[4], JSON.stringify(fields.map((f, i) => i === 0 ? {...f, ttlConfig: {state:'CREATING'}} : f)));
 fs.writeFileSync(process.argv[5], JSON.stringify(fields.slice(1)));
+fs.writeFileSync(process.argv[6], JSON.stringify([...fields, {
+  name: 'projects/klar-staging-test/databases/(default)/collectionGroups/unapproved_ledger_deletion/fields/expiresAt',
+  ttlConfig: { state: 'ACTIVE' },
+}]));
 NODE
 export PATH="$work/bin:$PATH"
 export MOCK_GCLOUD_LOG="$work/gcloud.log"
@@ -85,6 +89,7 @@ KLAR_APPLY_RETENTION=true deny 'mutating mode' bash "$runner"
 MOCK_GCP_LABEL=production deny 'wrong GCP project label' bash "$runner"
 MOCK_TTL_DATA="$work/creating.json" deny 'unready TTL state' bash "$runner"
 MOCK_TTL_DATA="$work/missing.json" deny 'missing TTL group' bash "$runner"
+MOCK_TTL_DATA="$work/extra.json" deny 'unapproved extra TTL policy' bash "$runner"
 MOCK_LIST_FAIL=true deny 'failed gcloud response' bash "$runner"
 ln -s "$work/nonexistent.json" "$work/symlink.json"
 KLAR_TTL_EVIDENCE_PATH="$work/symlink.json" deny 'symlink output target' bash "$runner"
