@@ -43,3 +43,8 @@ References: GitHub issues [#55](https://github.com/Veselin-Takev/Klar-Dating/iss
 ## P1 #57 cross-reference (2026-10-23)
 
 An exact comparison of original PR119 conversion code versus `docs/PARTNER_REFERRAL_SYSTEM.md` found a **stale `earned` claim** in the system description; the audit branch now documents the actual `pending_verification`/`partner_assertion_only` state and no immediate Klar+ grant. Detailed financial liabilities, idempotency, controlled refund/chargeback compensation and required Product/Finance/Legal approvals are tracked in `PR119_P1_57_PARTNER_REWARD_SETTLEMENT_DECISION_2026-10-23.md`. This is **proposal only**, not authorization to change API, accounting or settlement behavior. Release NO-GO.
+
+
+## P1 #57 static source/document checker integration (2026-10-23)
+
+The isolated audit branch now contains the exact locally tested `screen-pr119-partner-reward-contract.mjs` source and 14 negative tests. Its read-only 11-point source/document comparison detects the former `earned` claim and obvious accidental partner crediting, but is **not** a semantic compiler analysis, payment test, independent purchase verification, legal approval or authenticated source checkout. The unchanged PR119 service and corrected audited system document are independently Git-blob identified; 71/71 total local audit-boundary tests PASS on Node 22.16.0, **0/15** mandatory host PASS and **0/4** independent production approvals. Proposal remains unapproved, issues #55/#56/#57 remain OPEN. Production NO-GO, no app/runtime/API/schema/CI/cloud change.

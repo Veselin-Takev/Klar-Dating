@@ -49,7 +49,7 @@ Die Statusnamen und Belegarten sind **Designvorschläge**; sie sind keine Behaup
 
 ## 5. Kostenfreie lokale Evidenz und Grenzen
 
-Die vorhandenen gezielten Partner-Webhook- und Datenschutz-Regressionstests wurden mit separat Git-Blob-verifizierten Originalquellen erneut ausgeführt: **57/57 PASS** unter unqualifiziertem Node.js v22.16.0. Ein neuer isolierter, schreibgeschützter Reward-Dokumentations-/Quellvertragsprüfer bestand **14/14** positive/negative Tests, einschließlich einer anfänglich erkannten und korrigierten mehrfachen `proofStatus`-Fundstelle. Zusammen **71/71 lokale Tests**, **kein** qualifiziertes Enterprise-Host-Gate und **kein** tatsächlicher Kauf-/Klar+-Buchungsnachweis. Das neue Prüfskript ist bis zu einer gesonderten, hash-verifizierten Integration ausschließlich lokaler Audit-Kandidat.
+Die vorhandenen gezielten Partner-Webhook- und Datenschutz-Regressionstests wurden mit separat Git-Blob-verifizierten Originalquellen erneut ausgeführt: **57/57 PASS** unter unqualifiziertem Node.js v22.16.0. Ein neuer isolierter, schreibgeschützter Reward-Dokumentations-/Quellvertragsprüfer bestand **14/14** positive/negative Tests, einschließlich einer anfänglich erkannten und korrigierten mehrfachen `proofStatus`-Fundstelle. Zusammen **71/71 lokale Tests**, **kein** qualifiziertes Enterprise-Host-Gate und **kein** tatsächlicher Kauf-/Klar+-Buchungsnachweis. Das neue schreibgeschützte Prüfskript und die 14 gezielten Tests sind nun **ausschließlich auf dem isolierten Audit-Branch integriert**, ihre Git-Blob-Identität wurde geprüft. Diese Integration ist keine Host-Gate-Qualifikation oder Freigabe von Partner-Rewards.
 
 ## 6. Freigabe- und Änderungsgrenze
 
