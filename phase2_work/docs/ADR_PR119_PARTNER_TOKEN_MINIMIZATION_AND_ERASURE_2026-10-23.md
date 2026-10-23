@@ -23,6 +23,6 @@ HMAC/SHA-256 pseudonyms can remain GDPR personal data if linkable with auxiliary
 
 ## Evidence and rollback boundary
 
-The original source subset matched **10/10** Git blobs from the immutable PR119 tree. A read-only locally tested structural screen reported ten expected controls with **30/30 local tests PASS under nonqualified Node.js 22.16.0**. It does not authenticate a source checkout or prove live legal or technical compliance, and was **not integrated in this commit**. All source patterns could pass while legal approval remains absent.
+The original source subset matched **10/10** Git blobs from the immutable PR119 tree. A read-only locally tested structural screen reported ten expected controls with **30/30 local tests PASS under nonqualified Node.js 22.16.0**. It does not authenticate a source checkout or prove live legal or technical compliance, and is now integrated **only on this isolated audit branch**; it is not an approved release gate or host provenance proof. All source patterns could pass while legal approval remains absent.
 
 No staging or production system, product behavior, API, TTL setting, paid CI or cloud resource changed. Revert this **audit-only documentary change** for rollback. Additional application remediation needs separate authorization because the earlier production-correction cycle exhausted its governance allowance. P0 #56 stays OPEN, qualified host gates **0/15**, final signoffs **0/4**, **NO-GO**.
