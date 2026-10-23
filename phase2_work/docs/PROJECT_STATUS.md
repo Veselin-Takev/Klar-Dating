@@ -952,6 +952,20 @@ Exact-head CI [38602779698](https://github.com/Veselin-Takev/Klar-Dating/actions
 Added an HTTP negative/fail-closed companion test: malformed referral tokens must terminate in 404 without database use, while a syntactically valid 64-character hex token MUST still hit the distributed Firestore-backed limiter. In the controlled test the database is intentionally unavailable, so the well-formed request returns 500 (not an unguarded 404 or 302) and retains no-store/no-referrer headers. **HTTP 500 is expected solely for simulated dependency failure, never asserted to be production behavior.** The preceding CI #38604828563 was still in progress during initial investigation; any outcome predates this new commit. Require fresh exact-head complete CI and Security review. No main merge; privacy/retention and release status **NO-GO / NOT CONFIRMED**.
 
 
+### 2026-10-18 — P0 #56 visitor partner-consent gate (draft)
+Partner click token forwarding requires an independently consenting, authenticated adult visitor; consent and deletion status are rechecked transactionally before attribution. Adds `scripts/check-partner-visitor-consent.mjs` and `docs/PARTNER_VISITOR_CONSENT_GATE_2026-10-18.md`. Full emulator/HTTP and legal partner transfer approvals remain pending. NO-GO; no production deployment or main merge.
+
+
+### 2026-10-18 — P0 #56 Firebase anonymous visitor attribution blocked (draft)
+Route-level optional visitor identity now excludes anonymous Firebase requests and verified anonymous Bearer JWTs; untracked redirect remains available. Added `scripts/check-partner-visitor-auth-boundary.mjs` and `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Static gate only; runtime Firebase Emulator tests, consent/DSGVO approvals and complete mandatory gates remain NOT VERIFIED. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 Firebase revoked bearer-token gate (draft)
+Optional public visitor Bearer JWT validation now uses Firebase Admin `verifyIdToken(token, true)` rather than no revocation check. A rejected/disabled/revoked token returns no visitor identity and no attribution; anonymous accounts are already denied. Updated static guard and new `docs/PARTNER_REVOKED_ID_TOKEN_GATE_2026-10-18.md`. Central `req.user` revocation policy, real emulator HTTP, Auth availability and all mandatory gates remain UNVERIFIED. **NO-GO.**
+
+
+### 2026-10-18 — P0 #56 prepopulated visitor identity bypass closed (draft)
+Optional partner redirect visitor identity now requires explicit revocation-checked Firebase Bearer ID token; prepopulated req.user.uid cannot bypass verification. No bearer -> untracked redirect. `docs/PARTNER_VERIFIED_BEARER_ONLY_2026-10-18.md` documents browser compatibility, migration and mandatory tests. Static guard updated. Runtime HTTP/emulator and all full gates pending; production **NO-GO**.
 ## 2026-10-14 — Auth profile hydration, email session and settings save hardening
 
 Candidate branch `fix/auth-profile-state-email-persistence-2026-10-14` resolves three confirmed source defects: (1) absent Firestore adult/consent fields previously inherited prior in-memory authorization/consent, now fail closed; (2) email account login/signup did not explicitly set browser-local Firebase persistence after guest session persistence, now sets and awaits it before auth; (3) `ProfileSettings` reported saves from an unverified unauthenticated `fetch`, now uses `updateProfileData` authoritative Firestore write/readback, with accessible pending/error states and updated prop hydration. See `docs/ADR_PROFILE_STATE_EMAIL_PERSISTENCE_2026-10-14.md`. Tests added in `tests/AuthContext.spec.tsx` and `tests/ProfileSettingsPersistence.spec.tsx`. **No local exact-main npm/emulator/Playwright verification yet; Node 22.23.3 unavailable in isolated runner and current complete git checkout not mounted.** The older 13 October archive is not equivalent to exact current main and must not be claimed as such. No merge/deploy. P0 partner, retention and official #8 production approval remain open. **NO-GO / NOT CONFIRMED**.
@@ -1337,3 +1351,10 @@ CI 40015958038 bestätigt den vollständigen Typecheck und Functions-Build auf 7
 
 ### 2026-10-23 — PR #74 integration and targeted verification
 Integrated main fc83aacee41a0048fbae192d89f34479b352e0bb, retaining both branches documentation. Profile save confirmation rejects pending writes and ignores completion after account change/unmount. Email persistence is awaited; absent authoritative grants fail closed. Targeted verification on D: 21 tests in AuthContext, ProfileSettingsPersistence and profileWriteConfirmation PASS; targeted strict TypeScript 5.8.3 check PASS (Node 24.22.1, Vitest 5.0.5). This isolated npm test environment is not the pinned full CI environment. Complete pinned typecheck/test/build/browser CI on the final PR head is still required; independent review and production release evidence remain separate. No deployment or production approval.
+
+
+## Integration auf main: Visitor-Authentifizierung (2026-10-24)
+
+PR #87 fasst #85 und #86 zusammen. Die aktuellen Consent-Epochen- und Quarantäneprüfungen aus main bleiben erhalten. Nur ein separat übermittelter Firebase-Bearer mit frischer Widerrufsprüfung, nicht anonymem Provider und nicht leerer UID erlaubt Attribution. Vorbefülltes req.user ersetzt diese Prüfung nicht. Auch synchrone Firebase-Initialisierungsfehler führen zur ungetrackten Weiterleitung.
+
+Validierung: 16 neue HTTP-Tests mit echtem Express-Router, Referral-Service und Rate-Limiter sowie simuliertem Firebase bestehen zusammen mit sieben Core-Tests (23 Tests). Der statische Authentifizierungscheck ist in check:enterprise eingebunden. Vollständige Typprüfung und CI sind separat nach dem Push zu prüfen. Normale Browsernavigation ohne Bearer bleibt ungetrackt; ein browsergeeigneter Ticket-Flow und die unabhängige Datenschutzprüfung sind damit nicht abgeschlossen.

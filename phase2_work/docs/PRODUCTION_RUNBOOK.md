@@ -80,6 +80,20 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
 
 
+### 2026-10-18 — Partner visitor-consent and token egress gate (#56)
+Only an authenticated adult visitor with live partner consent and no account deletion may trigger the tracked redirect; invalid or unconsented visits use a direct destination without an attribution token. The Firestore tracking transaction checks visitor consent and deletion again to prevent a mid-request withdrawal race. Run `node scripts/check-partner-visitor-consent.mjs` locally and the full release gates at exact head. Cross-border token transfer and partner contract review remain legally outstanding. NO-GO.
+
+
+### 2026-10-18 — Public partner redirect and anonymous Firebase auth
+Both pre-authenticated `req.user` and optional verified Bearer JWT paths reject `firebase.sign_in_provider=anonymous`. Anonymous visitors receive only direct untracked redirects after existing campaign checks. Run `node scripts/check-partner-visitor-auth-boundary.mjs` and then HTTP emulator integration and the full pinned Node22.23.3 mandatory gates; see `docs/PARTNER_ANONYMOUS_VISITOR_BOUNDARY_2026-10-18.md`. Independent Privacy/Legal review needed. **NO-GO.**
+
+
+### 2026-10-18 — Firebase revocation-aware optional partner Bearer token
+The public click route now rejects revoked Firebase ID tokens via `verifyIdToken(token, true)`. On Auth outage/rejection the untracked direct redirect is used. This adds Firebase Auth latency/dependency; validate telemetry. Run `node scripts/check-partner-visitor-auth-boundary.mjs` locally and emulator tests for revoked/disabled/anonymous/valid account tokens. Independently audit whether trusted middleware `req.user` checks token revocation. Full Mandatory Gates plus Privacy sign-off required; **NO-GO**.
+
+
+### 2026-10-18 — Partner redirect verified Bearer-only attribution
+Do not permit trusted middleware req.user.uid alone to identify a visitor for public partner tracking. Only explicit bearer ID token verified with Firebase checkRevoked=true and non-anonymous provider is eligible; absent/revoked tokens follow untracked direct redirect. Browser navigation cannot generally provide Authorization headers, so attribution reduction is expected; assess with product/privacy owners. `node scripts/check-partner-visitor-auth-boundary.mjs` is a static check only. Full security and emulator evidence still required. **NO-GO.**
 ## 2026-10-14 — Auth profile fail-closed and email persistence acceptance
 
 For any subsequent `users/{uid}` authoritative snapshot missing `isAdult` or `einwilligung`, UI/session MUST NOT reuse the previous adult/consent grant. Verify denied/pending snapshots and account changes fail closed, and never authorize from localStorage. Guest login must remain session-scoped while permanent email sign-up/sign-in sets browser-local Firebase persistence before account authentication (require Product/Privacy policy approval). Profile-interest save may report success only after Firebase write completion plus server readback; rejected writes and account switches must not show false success. Execute new AuthContext/ProfileSettings regressions, complete secrets/auth/Firestore/PII/Art17 gates, full typecheck, pure/rules tests, Playwright, build with pinned Node 22.23.3 and matching lockfile, then obtain independent review. Document real stage/browser and Firebase emulator evidence in #8. **NO-GO / NOT CONFIRMED**.
@@ -362,3 +376,10 @@ Widget-Erwartungen und Referral-Testdaten wurden an das vorhandene Sicherheitsve
 
 ### 2026-10-23 — PR #74 integration and targeted verification
 Integrated main fc83aacee41a0048fbae192d89f34479b352e0bb, retaining both branches documentation. Profile save confirmation rejects pending writes and ignores completion after account change/unmount. Email persistence is awaited; absent authoritative grants fail closed. Targeted verification on D: 21 tests in AuthContext, ProfileSettingsPersistence and profileWriteConfirmation PASS; targeted strict TypeScript 5.8.3 check PASS (Node 24.22.1, Vitest 5.0.5). This isolated npm test environment is not the pinned full CI environment. Complete pinned typecheck/test/build/browser CI on the final PR head is still required; independent review and production release evidence remain separate. No deployment or production approval.
+
+
+## Integration auf main: Visitor-Authentifizierung (2026-10-24)
+
+PR #87 fasst #85 und #86 zusammen. Die aktuellen Consent-Epochen- und Quarantäneprüfungen aus main bleiben erhalten. Nur ein separat übermittelter Firebase-Bearer mit frischer Widerrufsprüfung, nicht anonymem Provider und nicht leerer UID erlaubt Attribution. Vorbefülltes req.user ersetzt diese Prüfung nicht. Auch synchrone Firebase-Initialisierungsfehler führen zur ungetrackten Weiterleitung.
+
+Validierung: 16 neue HTTP-Tests mit echtem Express-Router, Referral-Service und Rate-Limiter sowie simuliertem Firebase bestehen zusammen mit sieben Core-Tests (23 Tests). Der statische Authentifizierungscheck ist in check:enterprise eingebunden. Vollständige Typprüfung und CI sind separat nach dem Push zu prüfen. Normale Browsernavigation ohne Bearer bleibt ungetrackt; ein browsergeeigneter Ticket-Flow und die unabhängige Datenschutzprüfung sind damit nicht abgeschlossen.
