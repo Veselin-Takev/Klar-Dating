@@ -9,7 +9,7 @@ import { TARGET_COMMIT, evaluateReadiness, inspectHost } from './preflight-autho
 const goodImage = 'ghcr.io/approved/klar-audit:2026-10-23@sha256:' + 'a'.repeat(64);
 function good() {
   return {
-    checkout: {ok:true,state:'git checkout inspected',head:TARGET_COMMIT,tree:'05f22f0ca387ae37573b1f81e85ead901dce3da9',clean:true,index_flags_safe:true},
+    checkout: {ok:true,state:'git checkout inspected',head:TARGET_COMMIT,tree:'05f22f0ca387ae37573b1f81e85ead901dce3da9',clean:true,index_flags_safe:true,ignored_files_absent:true},
     commit: TARGET_COMMIT, node: 'v22.23.3', bun: '1.4.2', image: goodImage,
     authorizationReference: 'SECURITY-AND-RELEASE-OWNER-TICKET-119',
     probes: Array.from({length:5},()=>({ok:true,output:'available'})),
@@ -197,5 +197,59 @@ test('ls-files command failure fails the checkout inspection closed',()=>{
     const report=inspectHost({checkoutDir:d,probe:failProbe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
     assert.ok(report.findings.some(f=>f.code==='CHECKOUT_UNAVAILABLE'));
     assert.equal(report.technical_preflight_pass,false);
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+
+test('pure policy refuses omitted ignored-file observation',()=>{
+  const x=good();delete x.checkout.ignored_files_absent;
+  finding(x,'CHECKOUT_IGNORED_FILES');
+});
+test('pure policy refuses ignored files independently from normal checkout status',()=>{
+  const x=good();x.checkout={...x.checkout,clean:true,ignored_files_absent:false};
+  finding(x,'CHECKOUT_IGNORED_FILES');
+});
+test('real ignored .env is invisible to default status but rejected by preflight',()=>{
+  const {d,git,probe}=createCheckoutFixture('klar-git-ignored-env-');
+  try {
+    writeFileSync(join(d,'.gitignore'),'.env\n');
+    git('add','.gitignore');
+    git('-c','user.name=QA','-c','user.email=qa@example.invalid','commit','-qm','ignore-env');
+    writeFileSync(join(d,'.env'),'injected=secret\n');
+    assert.equal(git('status','--porcelain=v1','--untracked-files=all'),'');
+    const report=inspectHost({checkoutDir:d,probe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.equal(report.checkout_ignored_files_absent,false);
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_IGNORED_FILES'));
+    assert.equal(report.release_decision,'NO-GO');
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+test('ignored dependency subtree is rejected before installation',()=>{
+  const {d,git,probe}=createCheckoutFixture('klar-git-ignored-deps-');
+  try {
+    writeFileSync(join(d,'.gitignore'),'node_modules/\n');
+    git('add','.gitignore');
+    git('-c','user.name=QA','-c','user.email=qa@example.invalid','commit','-qm','ignore-deps');
+    mkdirSync(join(d,'node_modules'),{mode:0o700});
+    writeFileSync(join(d,'node_modules','injection.mjs'),'console.log("untrusted");\n');
+    assert.equal(git('status','--porcelain=v1','--untracked-files=all'),'');
+    const report=inspectHost({checkoutDir:d,probe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.equal(report.checkout_ignored_files_absent,false);
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_IGNORED_FILES'));
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+test('clean real local git checkout has no ignored artifacts and still fails only target-commit mismatch',()=>{
+  const {d,probe}=createCheckoutFixture('klar-git-ignored-clean-');
+  try {
+    const report=inspectHost({checkoutDir:d,probe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.equal(report.checkout_ignored_files_absent,true);
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_COMMIT_MISMATCH'));
+    assert.ok(!report.findings.some(f=>f.code==='CHECKOUT_IGNORED_FILES'));
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+test('failure to enumerate ignored artifacts fails checkout inspection closed',()=>{
+  const {d,probe}=createCheckoutFixture('klar-git-ignored-probe-error-');
+  try {
+    const failProbe=(exe,args)=>exe==='git' && args.includes('--ignored')?{ok:false,reason:'injected inspection failure'}:probe(exe,args);
+    const report=inspectHost({checkoutDir:d,probe:failProbe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_UNAVAILABLE'));
   } finally {rmSync(d,{recursive:true,force:true})}
 });
