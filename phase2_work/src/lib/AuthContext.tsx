@@ -191,6 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // authority; the live listener will apply the next server-confirmed snapshot.
       if (snapshot.metadata.hasPendingWrites) {
         setDiagnosticsConsent(false);
+        if (expectedFields) throw new Error('Die Profiländerung konnte nicht serverseitig bestätigt werden.');
         return data;
       }
       applyServerProfile(data);
