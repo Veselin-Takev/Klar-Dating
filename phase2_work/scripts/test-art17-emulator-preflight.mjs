@@ -48,11 +48,12 @@ function checkDirectGuard(override) {
     FIREBASE_PROJECT_ID: 'demo-klar',
     NODE_ENV: 'test',
     KLAR_ALLOW_DURABLE_DB_FALLBACK: 'false',
+    KLAR_REQUIRE_FIRESTORE_EMULATOR: '1',
     ...override,
   };
   runInNewContext(directlyExecutedGuard, {
     process: { env, cwd: () => process.cwd() },
-    readFileSync: () => JSON.stringify({ emulators: { firestore: { port: 8085 } } }),
+    readFileSync,
     resolve: (...parts) => parts.join('/'),
     JSON,
     Error,
@@ -60,6 +61,12 @@ function checkDirectGuard(override) {
 }
 test('direct Vitest guard accepts a demo project on local configured emulator port', () => {
   assert.doesNotThrow(() => checkDirectGuard({}));
+});
+test('general CI uses the configured default emulator profile', () => {
+  assert.doesNotThrow(() => checkDirectGuard({ KLAR_REQUIRE_FIRESTORE_EMULATOR: '', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' }));
+});
+test('general CI rejects the dedicated profile port', () => {
+  assert.throws(() => checkDirectGuard({ KLAR_REQUIRE_FIRESTORE_EMULATOR: '', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8085' }), /art17_firestore_emulator_unsafe_target/);
 });
 for (const [label, params] of [
   ['absent host', { FIRESTORE_EMULATOR_HOST: '', KLAR_REQUIRE_FIRESTORE_EMULATOR: '1' }],
