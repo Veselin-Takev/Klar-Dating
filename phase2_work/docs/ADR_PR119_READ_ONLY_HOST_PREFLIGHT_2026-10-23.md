@@ -1,12 +1,12 @@
 # ADR — PR #119 read-only host readiness check (2026-10-23)
 
-**Status:** Proposed audit-tooling control; locally tested, not yet installed as an approved Enterprise host launcher.
+**Status:** Implemented on an isolated audit-tooling branch; locally tested, not yet approved for Enterprise host launch.
 **Target application commit:** `7fdf29010c85f16a9b38e5c93186f32e92192f3a`.
 **Release decision:** **NO-GO / HARD STOP**.
 
 ## Problem and decision
 
-The former host launcher tries to invoke Docker and network operations as soon as it is started. The prerequisites are not sufficiently visible before a chargeable run. A dedicated read-only preflight is therefore prepared as a *separately reviewed, locally tested candidate*; it must not be mistaken for an authorized or already installed program.
+The former host launcher tries to invoke Docker and network operations as soon as it is started. The prerequisites are not sufficiently visible before a chargeable run. A dedicated read-only preflight is therefore prepared as a *locally tested audit-branch tool*; it must not be mistaken for an authorized or already installed program.
 
 The preflight checks the exact 40-character commit SHA, Node.js v22.23.3, Bun 1.4.2, local Docker CLI and daemon, git/bash/sha256sum, a syntactically digest-pinned proposed image reference, a nonsecret authorization *reference*, and a private, empty or absent results directory. It invokes no Docker build/run, fetch, gate, remote write, merge or deployment. It never returns GO or identity-authenticated approval.
 
@@ -20,7 +20,7 @@ If a required prerequisite fails, the approved host audit is not started. Only a
 
 ## Compatibility, rollback and restrictions
 
-Audit-tooling-only documentation; no change to runtime APIs, product code, lockfiles, Firestore indexes, deployment settings or PR #119. Revert this ADR/status note/runbook paragraph on the isolated audit branch to roll back. Do not reopen the exhausted application correction cycles. A passing read-only environment check is never an authorization to run chargeable CI or to merge/deploy.
+Audit-tooling scripts and documentation only; no change to runtime APIs, product code, lockfiles, Firestore indexes, deployment settings or PR #119. Revert the preflight tool and tests alongside this ADR/status note/runbook paragraph on the isolated audit branch to roll back. Do not reopen the exhausted application correction cycles. A passing read-only environment check is never an authorization to run chargeable CI or to merge/deploy.
 
 References:
 - https://docs.docker.com/build/building/best-practices/
