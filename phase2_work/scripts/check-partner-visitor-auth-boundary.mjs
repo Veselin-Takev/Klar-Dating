@@ -13,7 +13,7 @@ assert.ok(visitor.includes("typeof header !== 'string'") && visitor.includes('re
   'Missing or malformed authorization must fall back to no attribution');
 assert.match(visitor, /getAuth\(getServerFirebaseApp\(\)\)\.verifyIdToken\(token, true\)/,
   'Bearer JWT must be server-verified and checked for revocation');
-assert.match(visitor, /decoded\.firebase\?\.sign_in_provider !== 'anonymous'/,
+assert.match(visitor, /decoded\.firebase\.sign_in_provider !== 'anonymous'/,
   'Verified anonymous JWT must not identify attributed visitor');
 assert.match(visitor, /\.catch\(\(\) => null\)/, 'Invalid tokens must fail closed');
 console.log('PASS: anonymous Firebase request claims and verified anonymous JWT denied for partner attribution (static check)');
