@@ -93,3 +93,7 @@ The GitHub release structural checker **cannot** prove the referenced evidence l
 - **Issue #8 remains OPEN / PRODUCTION NO-GO**. The only next executable step is authorized independent evidence intake and governance unlock, not a production release.
 
 Related: [Core governance report](CI_GOVERNANCE_LOCKDOWN_2026-10-23.md), [Host-evidence intake runbook](CI_HOST_EVIDENCE_INTAKE_RUNBOOK_2026-10-23.md), [P0 issue-to-evidence traceability](P0_RELEASE_EVIDENCE_TRACEABILITY_2026-10-23.md).
+
+## P1 #71 SLO/pager evidence dependency — 2026-10-23
+
+The [Issue #71 API P95 and Fleet Telemetry Source Audit](P1_ISSUE_71_API_P95_SLO_TELEMETRY_AUDIT_2026-10-23.md) traces the accepted source-level **300-ms** threshold at Draft PR #119 exact SHA, the **15-minute process-local gauge** implementation, and the separate quantile gauge from /api/metrics. It explicitly warns: **no actual 30-day fleet latency SLI or Cloud Monitoring/pager/acknowledgement is independently demonstrated**. No-traffic p95=0 cannot mean healthy service. The Product/SRE team must resolve strict '<300ms' (architecture) versus inclusive 'p95 >300ms means breach' (code), remove the older Issue #8 '>1500ms' operating requirement once approved, and verify an approved per-request histogram aggregation, 30-day good/eligible ratio, multiwindow latency burn-rate alerts and on-call delivery. Prior source-level expression checks at 299/300/301/1500 are *not* monitoring attestation. OPS-02 and OPS-04 remain **NOT VERIFIED / NO-GO**.
