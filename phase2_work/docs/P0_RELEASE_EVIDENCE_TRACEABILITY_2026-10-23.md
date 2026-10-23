@@ -71,3 +71,9 @@ Only genuinely authenticated **PASS** on matching exact candidate SHA can satisf
 **NO-GO.** Documentation is stored in an isolated docs-only branch and does **not** update PR #119, its base, `main`, release manifest or live system. No issue was closed. No CI retry, emulator test, Cloud lookup, TTL apply, role approval, deployment, merge or release-tag action is claimed.
 
 Pending independent host evidence and the release-owner's explicit audit unlock, continue only with read-only inventory and documentation in the isolated branch.
+
+## Issue #47 source-level claim and verification-UI findings (2026-10-23)
+
+The companion [P0 #47 Product Claim Source Audit](P0_ISSUE_47_PRODUCT_CLAIM_SOURCE_AUDIT_2026-10-23.md) inspects exact Draft PR #119 source and identifies a **P0 static UI trust defect**: the chat list always renders a verified-connection badge while its parsed DTO drops `isVerified`; the header also shows an unconditional verified label. It specifies fail-closed conditional rendering and proposed regression cases, **not an implemented patch or a runtime exploit demonstration**.
+
+It also distinguishes the **8-new-contacts/day** rule from the **1–30-per-request** recommendations API (default 12), and documents that current source marks advertising rewards removed and `Klar+` as not yet purchasable. Claims of guaranteed daily 8–12 suggestions, ad-supported extras, manual human curation and currently purchasable Klar+ remain **unapproved** absent feature-level and legal evidence. Issue #47 is **OPEN**; authoritative Product/Brand/Legal decisions, a separate production-code remediation and current exact-SHA CI/E2E are required after governance unlock.
