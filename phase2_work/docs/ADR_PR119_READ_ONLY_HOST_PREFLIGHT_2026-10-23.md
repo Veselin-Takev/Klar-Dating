@@ -14,7 +14,7 @@ A digest reference is only a byte identifier, **not proof of approved provenance
 
 ## Local evidence and failure policy
 
-Candidate test suite: **17/17 PASS**. Existing evidence verifier/sealer suites: **43/43 PASS**, all under local Node.js **v22.16.0** rather than the required v22.23.3. Running the preflight on that same sandbox returned **exit 1, NO-GO**, because Bun and Docker were unavailable and the approved image/authorization references were not supplied. These results do not count as mandatory host gates or a successful authorisation.
+Candidate test suite: **24/24 PASS**. Existing evidence verifier/sealer suites: **43/43 PASS**, all under local Node.js **v22.16.0** rather than the required v22.23.3. Running the preflight on that same sandbox returned **exit 1, NO-GO**, because Bun and Docker were unavailable and the approved image/authorization references were not supplied. These results do not count as mandatory host gates or a successful authorisation.
 
 If a required prerequisite fails, the approved host audit is not started. Only a separately authorized Security + Release Owner decision can permit a new immutable-SHA Enterprise host run, with approved pinned image provenance, fixed scanner/tool versions and budget. Preserve original results for offline sealing/verification and obtain the four independent commit-bound GO approvals separately. **0/15 qualified mandatory gates and 0/4 independent approvals remain the last evidenced release state.**
 
@@ -25,3 +25,9 @@ Audit-tooling scripts and documentation only; no change to runtime APIs, product
 References:
 - https://docs.docker.com/build/building/best-practices/
 - https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations
+
+## Amendment — actual checkout is mandatory (2026-10-23)
+
+The preflight must observe the actual source-checkout HEAD, target Git tree, cleanliness, and root identity. A user-supplied target SHA alone is not cryptographic evidence that the correct application files are being tested. This audit-branch implementation adds a `--checkout` argument, read-only Git commands, and 7 regression cases for missing/wrong/dirty source checkouts (24/24 preflight tests total). A mismatch remains NO-GO, without triggering new CI or modifying the source checkout.
+
+**Authorization constraint:** Current user instructions authorize cost-free analysis and documentation only; no chargeable runner, independently signed four-way release approval, or Production GO. Rollback is a revert of this isolated audit-tooling commit. No migrations, database/schema/API or application code changes.
