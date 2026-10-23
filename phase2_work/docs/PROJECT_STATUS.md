@@ -1323,3 +1323,8 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 PR #121 basiert auf #119 (7fdf290) und ergänzt am bisherigen Head ac96721 drei Retention-Commits. Der optionale P95-SLO-Wert wird nun durch eine sofort ausgeführte Initialisierung validiert und als Zahl zurückgegeben. Fehlende oder ungültige Konfiguration bleibt ein Startfehler; 300 ms bleibt das Ziel.
 
 Lokal: TypeScript 5.8.3 reproduziert TS18048 vor der Änderung und akzeptiert den korrigierten Initialisierungsblock in einer isolierten Metrikfunktion. Observability- und Retention-Regressionen PASS unter Node 24.22.1. Vollständige lokale Abhängigkeitsinstallation blockiert (Bun EBADF, npm Windows EPERM). Vollständige CI mit gepinnter Toolchain und unabhängige Reviews bleiben erforderlich. Production NO-GO.
+
+
+## CI-Testkorrekturen nach P95-Fix – 23.10.2026
+
+CI 40015958038 bestätigt den vollständigen Typecheck und Functions-Build auf 7828118. Danach: 1180 Tests PASS, drei Testfehler und eine vorzeitig abgewiesene Emulator-Suite. Korrekturen: Widget-Test erwartet Nachweisprüfung offen und CSV-Export gestartet; Ereignisbindungs-Test legt einen berechtigten alternativen Käufer an und prüft fehlende Käufer weiterhin separat; der direkte Art17-Guard liest das tatsächlich gewählte Firebase-Profil (test:ci: firebase.json; dedizierter Runner: firebase.pruefung.json). Produktionslogik und Ablehnung unsicherer Ziele bleiben erhalten. 20 lokale Guard-Regressionen PASS unter Node 24.22.1. Vollständige CI auf dem neuen Head erforderlich; Production NO-GO.
