@@ -12,6 +12,10 @@ const manifestPath = releaseMode ? canonicalManifest : (process.env.KLAR_CLAIM_M
 const data=JSON.parse(readFileSync(manifestPath,'utf8'));
 const trustedEvidence = item => {
  if (typeof item !== 'string' || item.length > 2048 || /[\s\x00-\x1f\x7f]/.test(item)) return null;
+ // Validate the original spelling before URL parsing normalizes dot segments,
+ // encoded traversal, default ports or backslashes into an apparently valid URL.
+ if (!item.startsWith('https://github.com/Veselin-Takev/Klar-Dating/')
+   || /[%\\]/.test(item) || /\/\.{1,2}(?:\/|$)/.test(item)) return null;
  let url;
  try { url = new URL(item); } catch { return null; }
  if (url.protocol !== 'https:' || url.hostname !== 'github.com'
@@ -21,11 +25,11 @@ const trustedEvidence = item => {
  // Require exact GitHub resource shapes. Path ambiguity and percent-encoded
  // separators cannot be treated as independent, inspectable evidence.
  if (segments.some(seg => !seg || seg.includes('%') || seg === '.' || seg === '..')) return null;
- if (segments.length === 4 && segments[2] === 'pull' && /^\d+$/.test(segments[3])) return 'implementation';
+ if (segments.length === 4 && segments[2] === 'pull' && /^[1-9]\d*$/.test(segments[3])) return 'implementation';
  if (segments.length === 4 && segments[2] === 'commit' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
- if (segments.length >= 6 && segments[2] === 'blob' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
+ if (segments.length >= 5 && segments[2] === 'blob' && /^[a-fA-F0-9]{40}$/.test(segments[3])) return 'implementation';
  if (segments.length === 5 && segments[2] === 'actions' && segments[3] === 'runs'
-   && /^\d+$/.test(segments[4])) return 'test';
+   && /^[1-9]\d*$/.test(segments[4])) return 'test';
  return null;
 };
 assert.equal(data.version,1);
@@ -43,7 +47,7 @@ for(const claim of data.claims){
   assert.ok(claim.evidence.some(item => trustedEvidence(item) === 'implementation') && claim.evidence.some(item => trustedEvidence(item) === 'test'),claim.id+' requires implementation AND workflow-run references');
   assert.equal(new Set(claim.evidence).size, claim.evidence.length,claim.id+' cannot reuse evidence references');
   for(const role of ['product','legal','brand'])assert.ok(typeof claim.owners[role]==='string'&&/^@[A-Za-z0-9-]{1,39}$/.test(claim.owners[role]),claim.id+' must name a GitHub reviewer for '+role);
-  assert.equal(new Set(Object.values(claim.owners)).size,3,claim.id+' requires distinct Product/Legal/Brand reviewers');
+  assert.equal(new Set(['product','legal','brand'].map(role => claim.owners[role].toLowerCase())).size,3,claim.id+' requires distinct Product/Legal/Brand reviewers');
  }
 }
 const approved=data.claims.filter(c=>c.state==='approved');
