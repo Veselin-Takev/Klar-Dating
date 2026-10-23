@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const root = mkdtempSync(path.join(tmpdir(),'klar-claims-'));
 const original = JSON.parse(readFileSync(new URL('../docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json',import.meta.url),'utf8'));
 const script = new URL('./check-marketing-claims.mjs',import.meta.url);
 function run(data,release=false) {
  const file=path.join(root,'manifest.json');writeFileSync(file,JSON.stringify(data));
- return spawnSync(process.execPath,[script.pathname,...(release?['--release']:[])],{env:{...process.env,KLAR_CLAIM_MANIFEST_PATH:file},encoding:'utf8'});
+ return spawnSync(process.execPath,[fileURLToPath(script),...(release?['--release']:[])],{env:{...process.env,KLAR_CLAIM_MANIFEST_PATH:file},encoding:'utf8'});
 }
 try {
  const base=run(original);assert.equal(base.status,0,base.stderr);
@@ -41,6 +42,43 @@ try {
  const badRun=structuredClone(good);
  badRun.claims[0].evidence[1]='https://github.com/Veselin-Takev/Klar-Dating/actions/runs/placeholder';
  assert.notEqual(run(badRun).status,0,'Workflow run ID must be numeric');
+ const sha='a'.repeat(40);
+ for (const reference of [
+  'https://github.com/Veselin-Takev/Klar-Dating/blob/'+sha+'/README.md',
+  'https://github.com/Veselin-Takev/Klar-Dating/blob/'+sha+'/phase2_work/src/App.tsx',
+  'https://github.com/Veselin-Takev/Klar-Dating/commit/'+sha,
+ ]) {
+  const valid=structuredClone(good);valid.claims[0].evidence[0]=reference;
+  assert.equal(run(valid).status,0,'Valid pinned implementation reference: '+reference);
+ }
+ for (const reference of [
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/1/../90',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/1/%2e%2e/90',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/./90',
+  'https://github.com:443/Veselin-Takev/Klar-Dating/pull/90',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/0',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/090',
+  'https://github.com/Veselin-Takev/Klar-Dating/blob/'+sha,
+  'https://github.com/Veselin-Takev/Klar-Dating/blob/'+sha+'/',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/90?fake=1',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull/90#fake',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull//90',
+  'https://github.com/Veselin-Takev/Klar-Dating/pull\\90',
+ ]) {
+  const invalid=structuredClone(good);invalid.claims[0].evidence[0]=reference;
+  assert.notEqual(run(invalid).status,0,'Ambiguous resource spelling must be rejected: '+reference);
+ }
+ const aliasedReviewer=structuredClone(good);aliasedReviewer.claims[0].owners.legal='@OWNER-PRODUCT';
+ assert.notEqual(run(aliasedReviewer).status,0,'Reviewer identity is case-insensitive');
+ const canonicalEnv={...process.env};delete canonicalEnv.KLAR_CLAIM_MANIFEST_PATH;
+ const canonical=spawnSync(process.execPath,[fileURLToPath(script),'--release'],{env:canonicalEnv,encoding:'utf8'});
+ assert.equal(canonical.status,1);assert.match(canonical.stderr,/marketing claims are not independently evidenced/);
+ const packageJson=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
+ assert.match(packageJson.scripts['check:enterprise'],/npm run check:marketing-claims/);
+ assert.match(packageJson.scripts['check:marketing-claims'],/check-marketing-claims.mjs/);
+ assert.match(packageJson.scripts['check:marketing-claims'],/test-marketing-claims.mjs/);
+ const production=spawnSync(process.execPath,[fileURLToPath(new URL('./check-production-release-approval.mjs',import.meta.url))],{env:{...process.env,KLAR_CLAIM_MANIFEST_PATH:path.join(root,'manifest.json')},encoding:'utf8'});
+ assert.equal(production.status,1);assert.match(production.stderr,/Marketing claims release gate failed: NO-GO: release manifest override is forbidden/);
  const sameOwner=structuredClone(good);sameOwner.claims[0].owners.legal=sameOwner.claims[0].owners.product;assert.notEqual(run(sameOwner).status,0);
  const missingGo=structuredClone(good);missingGo.releaseStatus='NO-GO';assert.equal(run(missingGo,true).status,1);
  console.log('PASS: canonical release matrix pinned; GO override denied; placeholder evidence and shared reviewers rejected');
