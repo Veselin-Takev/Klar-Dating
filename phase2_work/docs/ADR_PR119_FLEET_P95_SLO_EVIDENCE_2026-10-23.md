@@ -18,6 +18,11 @@ PR #119 imports API-P95 target **300ms** from `ops/slo.json`, and its regression
 
 SRE and Product define SLI/SLO; Security validates privacy-safe telemetry, bounded label cardinality, exporter/trust/alert access; Release Owner approves governed gate changes. Final Security, DPO/Legal, Operations/SRE and Release Owner signatures remain separate. New product code, telemetry schema, CI and cloud changes are **not approved** under audit-only authorization or the exhausted application correction cycle.
 
-**Rollback:** Revert this isolated documentation-only commit. No production SLO/alert policy was changed. Companion [source-to-live-SLO report](PR119_P1_71_P95_SOURCE_TO_LIVE_SLO_GAP_2026-10-23.md) contains five immutable source hashes and remaining evidence gaps.
+**Rollback:** Revert the isolated audit-only source-screen and documentation integration commit. No production SLO/alert policy was changed. Companion [source-to-live-SLO report](PR119_P1_71_P95_SOURCE_TO_LIVE_SLO_GAP_2026-10-23.md) contains five immutable source hashes and remaining evidence gaps.
 
 **P1 #71 OPEN, 0/15 qualified host PASS, 0/4 final approvals, NO-GO.**
+
+
+## 2026-10-23 — Read-only P95 audit screen integrated (NO-GO)
+
+The exact locally tested `scripts/screen-pr119-slo-evidence.mjs` and `scripts/screen-pr119-slo-evidence.test.mjs` now exist **only on the isolated audit branch**. Local Node v22.16.0 tests 19/19 PASS; the supplied original PR119 five-file subset independently matched 5/5 immutable Git blobs and the CLI returned exit **1 / NO-GO** with all eight threshold patterns passing. Checker input hash checks do not attest an entire checkout, the required Node 22.23.3 host, live 30-day fleet metrics, PromQL or pager delivery. See `PR119_RELEASE_DECISION_DEPENDENCIES_2026-10-23.md` for documented PR review/merge and qualified release dependencies. The 300ms source threshold is fixed; #71 stays OPEN, 0/15 host PASS and 0/4 approvals remain. No paid CI, application, staging, cloud, merge or deployment change.

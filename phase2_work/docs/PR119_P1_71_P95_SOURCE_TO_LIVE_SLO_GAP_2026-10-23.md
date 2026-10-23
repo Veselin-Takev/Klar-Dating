@@ -33,6 +33,11 @@ A potential illustrative future expression is `histogram_quantile(0.95, sum by (
 
 ## Audit-only proof and no-GO boundaries
 
-A local read-only checker `screen-pr119-slo-evidence.mjs` plus its 19 focused regression/negative tests were developed and run under **Node.js 22.16.0**, with **19/19 PASS**; the candidate checker is **NOT integrated in this audit commit**. It pins expected Git blob hashes and requires an explicit source directory, but **never certifies an entire host or checkout**. Its successful inspection is deliberately `exit 1 / NO-GO`. Original Git source was separately inspected through GitHub connector. No Firestore, Stripe, Cloud, CI, monitoring network request, paid runner, PR branch, main branch or production deployment was changed.
+A local read-only checker `screen-pr119-slo-evidence.mjs` plus its 19 focused regression/negative tests were developed and run under **Node.js 22.16.0**, with **19/19 PASS**; the tool and its 19 targeted tests are now integrated **only on the separate audit branch**, not approved as Enterprise release gates. It pins expected Git blob hashes and requires an explicit source directory, but **never certifies an entire host or checkout**. Its successful inspection is deliberately `exit 1 / NO-GO`. Original Git source was separately inspected through GitHub connector. No Firestore, Stripe, Cloud, CI, monitoring network request, paid runner, PR branch, main branch or production deployment was changed.
 
 **Qualified enterprise host gates independently evidenced: 0/15. Independent final release approvals: 0/4. Gate 07 policy conflict remains unresolved. NO-GO.**
+
+
+## 2026-10-23 — Read-only P95 audit screen integrated (NO-GO)
+
+The exact locally tested `scripts/screen-pr119-slo-evidence.mjs` and `scripts/screen-pr119-slo-evidence.test.mjs` now exist **only on the isolated audit branch**. Local Node v22.16.0 tests 19/19 PASS; the supplied original PR119 five-file subset independently matched 5/5 immutable Git blobs and the CLI returned exit **1 / NO-GO** with all eight threshold patterns passing. Checker input hash checks do not attest an entire checkout, the required Node 22.23.3 host, live 30-day fleet metrics, PromQL or pager delivery. See `PR119_RELEASE_DECISION_DEPENDENCIES_2026-10-23.md` for documented PR review/merge and qualified release dependencies. The 300ms source threshold is fixed; #71 stays OPEN, 0/15 host PASS and 0/4 approvals remain. No paid CI, application, staging, cloud, merge or deployment change.
