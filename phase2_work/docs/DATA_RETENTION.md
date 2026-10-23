@@ -80,9 +80,9 @@ KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/confi
 gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
 ```
 
-Der zweite Befehl muss für alle 13 dokumentierten Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+Der abschließende, lesende TTL-Nachweis muss für alle **20** im aktuellen technischen Staging-Provisionierungsplan geführten Collection-Groups den Zustand `ACTIVE` zeigen. Die 20er-Matrix ist **nicht** automatisch rechtlich genehmigt oder in der Cloud aktiviert. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
 
-**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 13 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
+**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller **20** Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
 
 ### Kündigungsnachweise nach § 312k BGB
 
@@ -112,7 +112,7 @@ node scripts/check-retention-active-evidence.mjs --evidence staging-ttl-evidence
 node scripts/test-retention-active-evidence.mjs
 ```
 
-Der Prüfer verlangt 13 distinct `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`, exakt zum angegebenen Projekt und zur angegebenen Datenbank. Abweichende, fehlende, doppelte, nicht aktive oder umkonfigurierte Felder verursachen einen Fehler. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projektidentität und Zeitpunkt des `gcloud`-Abrufs müssen im Change-Ticket unabhängig attestiert werden. Dieser Check aktiviert keine TTL, ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung und autorisiert keinen Produktions-Deploy.
+Der Prüfer verlangt im finalen Nachweismodus **20** unterschiedliche `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`, exakt zum angegebenen Projekt und zur angegebenen Datenbank. Abweichende, fehlende, doppelte, nicht aktive oder umkonfigurierte Felder verursachen einen Fehler. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projektidentität und Zeitpunkt des `gcloud`-Abrufs müssen im Change-Ticket unabhängig attestiert werden. Dieser Check aktiviert keine TTL, ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung und autorisiert keinen Produktions-Deploy.
 
 ---
 
@@ -191,3 +191,10 @@ The Rules and Art17 Firebase profile actually reserves Firestore **8085**, hub *
 A real Java21/Firestore Emulator process started locally using `firestore.rules` and `demo-klar`, but the sandbox crashed before any SDK tests; **actual integration was NOT completed**. Issue #70 20-group TTL offline gates PASS, while real staging ACTIVE policies, legal holds, data-lifecycle inventory and independent approval are **NOT VERIFIED**. GitHub Actions job #117997339276 used `ubuntu-latest`, received runner_id=0 and ran zero steps; Actions repository variables list was empty. Runner assignment/billing/platform cause requires administrator diagnostics, not an unverified YAML change. Root supply chain still has outstanding High/Critical advisories. **Release NO-GO**.
 
 See `docs/FINALIZATION_EMULATOR_RUNNER_TTL_2026-10-19.md` and `docs/ADR_FIRESTORE_EMULATOR_PORT_PREFLIGHT_2026-10-19.md` for evidence, rollback and N-1 compatibility.
+
+
+### 2026-10-23 — P0 #70: Klarstellung 20er-Matrix versus ältere 13er-Nachweisangaben
+
+Der aktuelle unveränderte PR-#119-Quellstand (`7fdf29010c85f16a9b38e5c93186f32e92192f3a`) führt bereits **20** Gruppen in `scripts/configure-retention.sh`, `scripts/check-retention-matrix.mjs` und `scripts/check-retention-active-evidence.mjs`. Frühere 13er-Zahlen in den operativen Nachweisabschnitten waren veraltet; historische Angaben zur ursprünglichen 13er-Matrix bleiben als Historie stehen. Im **finalen** Nachweismodus werden exakt 20 `ACTIVE`-Policies mit `expiresAt`, korrekter Projekt-/Datenbankbindung und ohne unautorisierte zusätzliche Policy verlangt. Die `preflight`-Modi erlauben bewusst nur bereits aktive genehmigte Teilmengen und sind **kein** finaler 20/20-Nachweis.
+
+Eine Offline-Prüfung der unveränderten Quellskripte (gegen 13 korrespondierende GitHub-Blob-IDs bestätigt) ergab PASS bei Matrix-, Mutations-, Evidenz- und Mock-gcloud-Tests. **Kein echter Google-Cloud-Abruf, keine TTL-Aktivierung und kein Art.-17-/Legal-Hold-E2E-Nachweis.** Die 20er-Staging-Matrix ist weiterhin gesondert rechtlich und operativ zu genehmigen; Produktivaktivierung und GO sind untersagt. Firestore TTL ist asynchron, bewahrt keinen Legal Hold automatisch und kann bestehende abgelaufene Daten löschen. Produktionsstatus: **NO-GO**. Siehe `docs/PR119_P0_70_TTL_20_GROUP_SOURCE_RECONCILIATION_2026-10-23.md` im isolierten Audit-Branch.
