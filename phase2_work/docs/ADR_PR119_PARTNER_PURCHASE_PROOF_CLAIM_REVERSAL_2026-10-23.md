@@ -38,3 +38,8 @@ A timeout must not permanently lock a buyer: require DPO-approved bounded provis
 **Required approvals:** Product for offer/reward terms; Security for buyer/order binding and key management; DPO/Legal for purposes, retention and Art.17; Finance for entitlement settlement/reversal; SRE for monitoring/recovery and partner contract-version migration. The previous application-remediation HARD STOP requires **new explicit authorization** before product-code or API changes. The user authorizes cost-free audit/documentation only. Mandatory host gates **0/15 evidenced**, final independent approvals **0/4**; Gate 07 contract still unresolved. **NO-GO.**
 
 References: GitHub issues [#55](https://github.com/Veselin-Takev/Klar-Dating/issues/55), [#56](https://github.com/Veselin-Takev/Klar-Dating/issues/56), [#57](https://github.com/Veselin-Takev/Klar-Dating/issues/57).
+
+
+## P1 #57 cross-reference (2026-10-23)
+
+An exact comparison of original PR119 conversion code versus `docs/PARTNER_REFERRAL_SYSTEM.md` found a **stale `earned` claim** in the system description; the audit branch now documents the actual `pending_verification`/`partner_assertion_only` state and no immediate Klar+ grant. Detailed financial liabilities, idempotency, controlled refund/chargeback compensation and required Product/Finance/Legal approvals are tracked in `PR119_P1_57_PARTNER_REWARD_SETTLEMENT_DECISION_2026-10-23.md`. This is **proposal only**, not authorization to change API, accounting or settlement behavior. Release NO-GO.
