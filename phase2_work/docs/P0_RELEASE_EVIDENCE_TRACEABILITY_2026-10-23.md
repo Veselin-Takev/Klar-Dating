@@ -87,3 +87,11 @@ The linked [P0 #48 Member Invitation Zero-Trust Design & Static Audit](P0_ISSUE_
 - The existing `attributed` event/`referralQualified:false` is **not** verified KYC qualification or an entitlement. Referral code rotation/revocation, anti-abuse, consent, Art.17/holds and exactly-once finite Klar+ reward reversals remain unapproved.
 
 No source patch, CI tests, human approvals or Issue #48 closure are claimed by this report. #47, #48, #56 and release #8 remain blockers to a public referral reward launch. Dedicated implementation must not proceed until the official audit lockdown is lifted.
+
+## P0 #55 partner conversion trust evidence reconciliation (2026-10-23)
+
+The [P0 #55 Partner Conversion Trust Audit](P0_ISSUE_55_PARTNER_CONVERSION_TRUST_AUDIT_2026-10-23.md) verifies from current Draft PR #119 SHA `7fdf29010c85f16a9b38e5c93186f32e92192f3a` that **new signed provider callbacks are now stored as `rewardStatus:'pending_verification'` with `proofStatus:'partner_assertion_only'`**, without increasing qualified conversion counters. This is a source-level quarantine improvement over the earlier issue description and older 2026-10-14 source baseline, **not** executed CI or genuine purchase validation.
+
+**Still P0 / BLOCKED:** The signed partner asserts `buyerUid` and transaction fields, so neither an independent buyer-to-order bond nor authentic sale/finality is proven. The inspected callback lacks a verified settlement and refund/reversal contract, historical `earned` records require separately approved Finance reconciliation, and mock-Firestore tests do not demonstrate concurrent transaction or live callback behavior. The report proposes buyer-authorized short-lived attribution intent, separate purchase corroboration, idempotent settlement/reversal and realistic negative/emulator/E2E evidence. Real privacy and partner agreements remain blocked under #56. Preserve the defensive quarantine while defining any future compatibility-migrated schema.
+
+No implementation, test run, issue closure, approval or GO is inferred from this documentation update.
