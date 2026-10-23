@@ -32,3 +32,8 @@ A **locally tested candidate** script `screen-pr119-partner-webhook-boundary.mjs
 
 ## Release/ownership
 Product, Security, DPO/Legal, Finance and Partner Operations must approve the versioned purchase/attribution and reversal state machine, prevent indefinite unverified claim reservations, prove independent buyer/purchase identity, privacy/retention and fraud remediation; subsequently execute all immutable-host tests, original release gates and four independently authenticated final approvals. Gate 07 Bun/npm policy conflict remains unapproved. **0/15 qualified host gates PASS evidenced, 0/4 final approvals evidenced; P0 #55 OPEN; Production NO-GO.** See https://github.com/Veselin-Takev/Klar-Dating/issues/55.
+
+
+## 2026-10-23: Static guard integrated, trust-contract decision outstanding
+
+The read-only source checker and **27/27 local mutation tests** are committed **only to the isolated audit branch**; the original five input blobs were verified against PR119 Git tree. A green structural screen does not establish independent purchase proof or user entitlement. The proposed attribution intent, time-bounded provisional claim release, independent purchase verification and refund/reversal lifecycle is documented in `ADR_PR119_PARTNER_PURCHASE_PROOF_CLAIM_REVERSAL_2026-10-23.md`. It is **not approved**, contains no application/schema implementation and does not authorize any host gate. Issue #55 remains OPEN, release NO-GO.
