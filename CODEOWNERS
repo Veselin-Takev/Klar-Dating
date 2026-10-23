@@ -5,3 +5,27 @@
 /storage.rules @klar/security @klar/engineering
 /.github/ @klar/engineering
 /.gitlab-ci.yml @klar/engineering
+
+# Active application (GitHub patterns are repository-root-relative).
+# Role names are inherited from the existing file; access is NOT verified.
+/phase2_work/ @klar/engineering
+/phase2_work/src/server/routes/ @klar/security @klar/engineering
+/phase2_work/src/server/authorization.ts @klar/security @klar/engineering
+/phase2_work/src/server/trustAndSafety.ts @klar/security @klar/engineering
+/phase2_work/src/server/cspRuntimePolicy.ts @klar/security @klar/engineering
+/phase2_work/src/server/partnerReferralCore.ts @klar/security @klar/engineering
+/phase2_work/src/server/partnerReferralService.ts @klar/security @klar/finance @klar/engineering
+/phase2_work/src/server/routes/partnerReferrals.ts @klar/security @klar/finance @klar/engineering
+/phase2_work/src/server/stripeService.ts @klar/security @klar/finance @klar/engineering
+/phase2_work/server.ts @klar/security @klar/engineering
+/phase2_work/firestore.rules @klar/security @klar/engineering
+/phase2_work/storage.rules @klar/security @klar/engineering
+/phase2_work/scripts/configure-retention.sh @klar/security @klar/engineering
+/phase2_work/scripts/check-production-release-approval.mjs @klar/security @klar/engineering
+/phase2_work/RELEASE_MANIFEST.json @klar/security @klar/engineering
+/phase2_work/docs/DATA_RETENTION.md @klar/security @klar/engineering
+/phase2_work/docs/PRODUCTION_RUNBOOK.md @klar/security @klar/engineering
+/phase2_work/GO_LIVE_CHECKLIST.md @klar/security @klar/engineering
+# Place specific workflow and policy rules AFTER the generic .github rule.
+/.github/workflows/ @klar/security @klar/engineering
+/CODEOWNERS @klar/security @klar/engineering

@@ -1,0 +1,240 @@
+{
+  "date": "2026-10-19",
+  "baseRepositoryCommit": "b40b850b79e4d8c6d41417d5cf727c4219c5d4e9",
+  "rootManager": "Bun 1.4.2",
+  "binaryProvenance": "official oven-sh/bun GitHub release asset SHA-256 36368faef7527875d5ffa52e53cd48021741f2a83eb6208a8dd64068d422a913",
+  "rootLockfile": "bun.lock",
+  "rootAll": {
+    "counts": {
+      "critical": 1,
+      "high": 4,
+      "moderate": 4,
+      "low": 3
+    },
+    "advisories": {
+      "@modelcontextprotocol/sdk": [
+        {
+          "id": 1241339,
+          "url": "https://github.com/advisories/GHSA-6qxp-vccf-f47h",
+          "title": "MCP TypeScript SDK: OAuth client could send credentials to an authorization server chosen by the MCP server",
+          "severity": "high",
+          "vulnerable_versions": ">=1.12.0 <1.31.0",
+          "cwe": [
+            "CWE-345",
+            "CWE-522"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+          }
+        }
+      ],
+      "@opentelemetry/core": [
+        {
+          "id": 1153174,
+          "url": "https://github.com/advisories/GHSA-8988-4f7v-96qf",
+          "title": "OpenTelemetry Core: Unbounded memory allocation in W3C Baggage propagation",
+          "severity": "moderate",
+          "vulnerable_versions": "<2.8.0",
+          "cwe": [
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          }
+        }
+      ],
+      "braces": [
+        {
+          "id": 1240992,
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+          "severity": "high",
+          "vulnerable_versions": "<=3.0.3",
+          "cwe": [
+            "CWE-674"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          }
+        }
+      ],
+      "dompurify": [
+        {
+          "id": 1240621,
+          "url": "https://github.com/advisories/GHSA-p98j-92pf-mc4p",
+          "title": "DOMPurify: IN_PLACE: node-removing afterSanitize hook leaves detached subtree event handlers armed, causing DOM XSS",
+          "severity": "low",
+          "vulnerable_versions": ">=3.4.13 <=3.4.15",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          }
+        },
+        {
+          "id": 1241204,
+          "url": "https://github.com/advisories/GHSA-6688-9rhm-gjv2",
+          "title": "DOMPurify: IN_PLACE returns a force-removed rawtext root whose text carries attacker markup — pure HTML reparse executes",
+          "severity": "low",
+          "vulnerable_versions": "<=3.4.15",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          }
+        }
+      ],
+      "js-yaml": [
+        {
+          "id": 1239991,
+          "url": "https://github.com/advisories/GHSA-r3ph-w7gj-g6xm",
+          "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+          "severity": "moderate",
+          "vulnerable_versions": ">=5.0.0 <=5.4.0",
+          "cwe": [
+            "CWE-400",
+            "CWE-407"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          }
+        }
+      ],
+      "katex": [
+        {
+          "id": 1241206,
+          "url": "https://github.com/advisories/GHSA-238p-pmpm-9mq7",
+          "title": "KaTeX: Existing prototype pollution can bypass trust restrictions",
+          "severity": "low",
+          "vulnerable_versions": ">=0.11.0 <0.18.2",
+          "cwe": [
+            "CWE-807"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          }
+        }
+      ],
+      "sharp": [
+        {
+          "id": 1241331,
+          "url": "https://github.com/advisories/GHSA-wq5f-xc86-pv6w",
+          "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
+          "severity": "high",
+          "vulnerable_versions": "<0.35.5",
+          "cwe": [
+            "CWE-416",
+            "CWE-1395"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          }
+        }
+      ],
+      "shell-quote": [
+        {
+          "id": 1241332,
+          "url": "https://github.com/advisories/GHSA-pqg4-j6r4-53mv",
+          "title": "shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token",
+          "severity": "critical",
+          "vulnerable_versions": ">=1.8.4 <1.11.0",
+          "cwe": [
+            "CWE-78"
+          ],
+          "cvss": {
+            "score": 8.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H"
+          }
+        }
+      ],
+      "smol-toml": [
+        {
+          "id": 1241205,
+          "url": "https://github.com/advisories/GHSA-r4xh-jqrq-34v2",
+          "title": "smol-toml: Quadratic-time parse() from parseKey rescanning to end of document on each key line",
+          "severity": "moderate",
+          "vulnerable_versions": "<=1.8.0",
+          "cwe": [
+            "CWE-407"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          }
+        }
+      ],
+      "source-map-js": [
+        {
+          "id": 1241209,
+          "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+          "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+          "severity": "high",
+          "vulnerable_versions": ">=1.0.0 <1.2.2",
+          "cwe": [
+            "CWE-1284"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          }
+        }
+      ],
+      "uuid": [
+        {
+          "id": 1119441,
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+          "severity": "moderate",
+          "vulnerable_versions": "<11.1.1",
+          "cwe": [
+            "CWE-787",
+            "CWE-1285"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          }
+        }
+      ]
+    }
+  },
+  "rootProductionOnly": {
+    "counts": {
+      "critical": 0,
+      "high": 1,
+      "moderate": 1,
+      "low": 2
+    },
+    "packages": [
+      "dompurify",
+      "source-map-js",
+      "uuid"
+    ]
+  },
+  "functionsNpm": {
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 2,
+      "low": 0
+    },
+    "affected": [
+      "gaxios",
+      "uuid"
+    ],
+    "command": "npm audit --prefix functions --audit-level=high --json",
+    "exitCode": 0
+  },
+  "releaseNote": "LOCKFILE ADVISORY FINDINGS ONLY. Exploitability not proved. Critical and High advisories remain unresolved. No package upgrades were executed because full compatibility tests are blocked.",
+  "rootNpmAudit": "ENOLOCK: Root deliberately Bun-only; never generate npm package-lock.json to hide scan failure."
+}
