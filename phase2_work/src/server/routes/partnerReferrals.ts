@@ -65,13 +65,18 @@ function requireStrictPartnerAdmin(req: Request, res: Response, next: NextFuncti
 }
 
 function optionalVisitorUid(req: Request): Promise<string | null> {
-  const existingUid = (req as Request & { user?: { uid?: unknown } }).user?.uid;
-  if (typeof existingUid === 'string' && existingUid.length > 0) return Promise.resolve(existingUid);
+  // Anonymous Firebase authentication must not grant partner attribution.
+  if (isGuest(req)) return Promise.resolve(null);
+  // Do not trust prepopulated req.user to bypass fresh revocation verification.
+  // Only a separately supplied and freshly checked Firebase ID token permits attribution.
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !/^Bearer\s+\S+$/.test(header)) return Promise.resolve(null);
   const token = header.slice('Bearer '.length).trim();
-  return getAuth(getServerFirebaseApp()).verifyIdToken(token, false)
-    .then(decoded => typeof decoded.uid === 'string' ? decoded.uid : null)
+  return Promise.resolve()
+    .then(() => getAuth(getServerFirebaseApp()).verifyIdToken(token, true))
+    .then(decoded => typeof decoded.firebase?.sign_in_provider === 'string'
+      && decoded.firebase.sign_in_provider !== 'anonymous'
+      && typeof decoded.uid === 'string' && decoded.uid.length > 0 ? decoded.uid : null)
     .catch(() => null);
 }
 

@@ -1,0 +1,74 @@
+# P0 #56: Transactional partner-referral quarantine before Art. 17 erasure
+
+**Date:** 2026-10-18  
+**Status:** Draft / **NO-GO**, no merge or production deployment.
+
+## Risk and fix
+
+Before this change, the account-erasure worker deleted buyer claims by `referralId`, then deleted their parent referral. A partner conversion could create a claim concurrently because it checks an `active` referral inside its Firestore transaction. Consequently a claim could appear after the deletion query had finished, but before the parent was deleted.
+
+`quarantineOwnedPartnerReferral` now runs a Firestore transaction that reads the parent, verifies `ownerUid` has not changed, and atomically switches the referral to `status: 'deleting'` before any buyer-claim purge. The production conversion transaction requires `status === 'active'` and reads the same document. A concurrent transaction reading the parent must be reconciled against its transition. The deletion worker keeps the existing child-before-parent deletion ordering and per-referral cancellation checkpoints.
+
+The quarantine operation returns `updated`, `already_deleting`, or `missing`. The first result records a real mutation; a repeated invocation is read-only and restart-safe. Any changed owner or unavailable Firestore transaction fails closed.
+
+## Tests
+
+- `node --import=tsx --test scripts/test-partner-referral-quarantine.mjs` — six local in-memory functional cases for update, idempotent restart, missing document, changed owner, invalid target and transaction failure.
+- `firebase emulators:exec --project demo-klar --only firestore --config firebase.pruefung.json "vitest run tests/partnerReferralDeletionEmulator.spec.ts"` — targeted actual Firestore emulator cases for concurrent quarantine, restart without new conversion eligibility and fail-closed changed owner.
+
+**Evidence requirement:** Do not count emulator test cases as passed without an executed emulator job. An isolated mock test validates the helper contract but not Firestore's distributed locking, transaction retry behavior, recovery, completeness, or legal holds.
+
+The static Art. 17 gate continues to enforce the quarantine-before-child-delete order; the negative mutation suite must reject removal of the quarantine call. Full Node 22.23.3, TypeScript, Firebase Rules/Emulator, Playwright/build, real TTL policy evidence and independently approved DPO/Security/Legal review remain mandatory. **NO-GO**.
+
+## Verified local check (2026-10-18)
+
+The integrated `npm run check:art17-deletion-audit` command returned exit code 0 under an officially checksum-verified Node 22.23.3 binary for source commit `f83c84acbc3f03fbedb6583cb54ae61abae8eff0`. The **7 storage checks**, **12 static deletion mutation checks** and **6 in-memory quarantine contract tests** passed. The Firestore Emulator scenarios have not been executed. Repeat all gates on the final integration SHA; **NO-GO**.
+
+## Exact-source test evidence — 2026-10-18
+
+- GitHub source commit: `c4d03eae44fa213d0af394fe71ea16a8e3ee1ccd`.
+- Official checksum-verified Node v22.23.3: `npm run check:art17-deletion-audit` exit 0, **7 storage tests, 12 negative mutations, 6 transactional helper contract tests**.
+- `check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`: each exit 0 against the source tree. A temporary test-only dependency symlink was excluded from the secrets scanner's scope; the scan was not suppressed.
+- The Firebase Emulator integration cases are **committed but NOT RUN**. This evidence does not establish Firestore transaction serializability or safe concurrency in production. **NO-GO**.
+
+## 2026-10-18 — Fail-closed Firestore Emulator execution
+
+The dedicated `npm run test:art17-partner-emulator` command starts the Firestore Emulator with project `demo-klar`, then invokes `node scripts/run-art17-partner-emulator.mjs`. That runner refuses missing/non-loopback endpoints, wrong port (from `firebase.pruefung.json`), and mismatched GCP project IDs before launching Vitest. It marks `KLAR_REQUIRE_FIRESTORE_EMULATOR=1` so the target test file cannot silently skip if emulator configuration is missing.
+
+The real Emulator test file now contains **four** scenarios, including a concurrent status-checked conversion writer racing transactional quarantine followed by a child-before-parent sweep and an assertion that no orphan claims remain. These tests are **committed but NOT RUN** in this iteration: the remote execution sandbox has no Java runtime and insufficient memory for the full Emulator toolchain. A passing preflight is **not** a passing Firestore integration test.
+
+**Executed on code commit `5f4edcdd90b3d2fb4a99effb539bf44f2cf4ff03` with official checksum-verified Node 22.23.3:** dedicated preflight safety regressions **6/6 PASS** (missing host, remote endpoint, production-like endpoint, wrong port, wrong project in either environment variable). Integrated `npm run check:art17-deletion-audit` exit 0: 7 storage tests, 12 static mutations, 6 contract tests, and 6 emulator preflight tests. Emulator evidence, full project typecheck/build, security/legal approvals and production TTL remain missing. **NO-GO**.
+
+## 2026-10-18 — Canonical referral path and emulator contention
+
+The transactional quarantine helper now requires a document in the root `partner_referrals/{id}` collection. Checking only `ref.parent.id` is insufficient because a nested `users/{uid}/partner_referrals/{id}` has the same collection ID. An isolated fail-closed regression rejects the nested reference before opening any transaction. The helper's in-memory contract suite now has **seven** cases.
+
+The four real Firestore Emulator integration scenarios now allow up to 90 seconds per test, instead of 20–30 seconds, because [Firebase's emulator documentation](https://firebase.google.com/docs/emulator-suite/connect_firestore#transactions) warns that document locks under concurrent writes may take up to 30 seconds to be released. This is a test timeout only, not an extension of the production deletion lease or SLO. The real Emulator scenarios remain **NOT RUN** until a Java-enabled, fully installed local environment executes them. **NO-GO**.
+
+## 2026-10-18 — Dependency-free transaction contract test under pinned Node
+
+The in-memory quarantine contract test is executed with `node --experimental-strip-types --test scripts/test-partner-referral-quarantine.mjs` under Node **22.23.3**. This removes the separate `tsx` process from the Art.-17 compliance gate and avoids an unrelated remote transpiler `ENOTCONN` failure. The source-level tests verify canonical root collection references as well as deletion restart/idempotency, and the same four real Firestore Emulator tests retain a 90-second per-test timeout for documented lock contention. Node's native type stripping is permitted here because this isolated helper uses only erasable TypeScript syntax; application-wide TSX bundling is unchanged. Running these offline tests still does **not** establish Firestore Emulator or production transaction behavior. **NO-GO.**
+
+
+### 2026-10-18 – Pinned Node22 target gate at code commit `ed91c77580c86dff5da61ac9de11e7e6de3b5dfb`
+
+The whole integrated `npm run check:art17-deletion-audit` exited **0** on the SHA above using Node **v22.23.3** without a separate `tsx` worker. Its seven storage tests, twelve Art. 17 negative mutations, seven in-memory partner-referral transaction tests (including the nested-path denial), and six unsafe-Emulator preflight tests all passed. The four independent static checks—`check-secrets`, `check-auth-boundary`, `check-public-firestore-rules`, `check-ai-pii-sanitizer`—also exited **0** on the unchanged repository files. The full GitHub ZIP of this commit passed CRC validation (1,257 entries, SHA-256 `4f8f5ca718a426700b422fe289577ed939d7ef1ccd83c86f09c0067dbb840c03`).
+
+This is **offline/static and mocked Firestore** evidence. Four real Firestore Emulator integration scenarios are not executed; full TypeScript/Playwright/build/npm audit, production TTL and independent Security/Privacy/Legal approvals are not verified. GitHub Actions is not certified PASS. `main` remains unchanged; **NO-GO**.
+
+## 2026-10-19 — Direct Vitest safety and genuine-emulator evidence boundary
+
+The dedicated `scripts/run-art17-partner-emulator.mjs` wrapper now rejects a mismatching `FIREBASE_PROJECT_ID`, explicit `NODE_ENV=production`, or `KLAR_ALLOW_DURABLE_DB_FALLBACK=true`, in addition to existing host/port/project checks. The Vitest file performs its **own** fail-closed local-host and project checks before constructing the Admin SDK database, so bypassing the wrapper is not an unsafe alternative. The dry-run rejection suite contains nine negative cases. Ordinary Vitest invocation with no emulator host still skips these scenarios; that skip **never** authorizes a release or counts as emulator PASS.
+
+The targeted static gate is a test-harness safety control, not evidence that the four real Firestore Emulator scenarios executed. They remain **NOT RUN**, and the production verdict remains **NO-GO**. Source reviewed against [Firebase Emulator transaction limitations](https://firebase.google.com/docs/emulator-suite/connect_firestore).
+
+## 2026-10-19 — Direct guard executed without Firestore SDK
+
+The nine wrapper rejection scenarios are supplemented by **nine isolated checks of the actual direct Vitest guard source**: one valid local `demo-klar` configuration and eight invalid host/port/project/fallback/production configurations. The latter are executed against the exact guard code in a Node VM without importing Firestore or writing any data. These tests cover guard behavior only; **they do not execute the four real Emulator integration scenarios**. The tests must pass on the final pinned Node 22.23.3 commit. **NO-GO**.
+
+
+### 2026-10-19 — Verified emulator test-harness safety
+
+**Exact code SHA:** `b41f37a06f58aac45c33e6d3ffa61e7ffeca2425`. With an official SHA-256-verified Node **22.23.3** binary, `node --test scripts/test-art17-emulator-preflight.mjs` returned exit **0 (18/18)**: nine negative launcher checks plus one accepted local direct-guard case and eight rejected direct-guard cases. The latter execute the actual guard source in an isolated Node VM with no Firestore SDK. `npm run check:art17-deletion-audit` also exited **0**, incorporating seven storage cases, twelve owner-claim mutations, seven quarantine contracts and eighteen test-harness boundary tests.
+
+These results show fail-closed behavior of the test harness, **not** the execution of the four genuine Firestore Emulator transaction scenarios. The full TypeScript build, Playwright, real TTL ACTIVE state and independent DPO/Security/Legal sign-offs are outstanding. The latest GitHub Actions runner remains unavailable. **Production NO-GO.**

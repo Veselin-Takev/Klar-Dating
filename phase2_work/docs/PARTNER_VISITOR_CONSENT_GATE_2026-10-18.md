@@ -1,0 +1,11 @@
+# P0 #56 — Partner redirect visitor-consent boundary (2026-10-18)
+
+**Production status: NO-GO.** This changes the *click tracking eligibility* check, not the legal authorization of all partner data transfers.
+
+Previously the link-owner's consent could permit forwarding an owner-derived stable `klar_referral` token to an external partner for a guest or other visitor without separately checking the visitor's own partner referral consent. This branch conservatively returns the validated direct destination URL without that token and without a tracked click for unauthenticated visitors, minors, or visitors without current partner consent. A valid authenticated visitor must independently meet `isAdult=true`, `partnerReferralConsent=true`, and have no `account_deletions` record; these checks are repeated within the same Firestore transaction as the tracked click write to reject consent revocations and deletion races.
+
+**Security invariants:** Existing owner consent/version revocation, anti-bot suppression, self-referral exclusion, campaign status, distributed rate limiter, no-store headers and transaction idempotency remain unchanged. No private UID is added to an external URL or log by this patch. External referral token *still* leaves Klar for eligible consented visitors; a privacy review must verify partner role/contract, purpose, third-country transfers, token revocation, legal basis and exact collection retention periods. This code-level fix alone does NOT close issue #56.
+
+## Test and rollout
+
+From `phase2_work`, run `node scripts/check-partner-visitor-consent.mjs`. This static regression verifies both initial and transactional checks; it does not prove runtime correctness. Require a full Firebase Emulator/HTTP integration matrix covering unauthenticated, minor, visitor-withdrawn, owner-withdrawn, account deletion, concurrent withdrawal, automated crawler and valid double-consented visitor. Run full TypeScript, unit, rules, Playwright, security and build gates on exact PR SHA. Confirm that reduced attributed-click counts are expected and reconcile partner reports. Roll back by reverting this code commit; never restore consentless tracking without Security/Privacy authorization. Main, cloud, and production are unchanged.
