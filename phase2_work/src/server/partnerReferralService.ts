@@ -305,27 +305,72 @@ export async function getPartnerConsentState(deps: PartnerReferralServiceDeps, u
   const snapshot = await deps.getFirestore().collection('users').doc(uid).get();
   const data = snapshot.data();
   requirePartnerUserData(data);
-  return { allowed: data?.partnerReferralConsent === true };
+  return { allowed: data?.partnerReferralConsent === true && data?.partnerReferralEpochQuarantined !== true };
 }
 
 export async function setPartnerConsent(
   deps: PartnerReferralServiceDeps,
   uid: string,
   allowed: boolean,
-): Promise<{ allowed: boolean; version: number }> {
+): Promise<{ allowed: boolean; version: number | null }> {
   const db = deps.getFirestore();
   const userRef = db.collection('users').doc(uid);
   const deletionRef = db.collection('account_deletions').doc(uid);
   const now = nowIso(deps);
   const ledger = makeLedger(deps, allowed ? 'partner_consent_granted' : 'partner_consent_withdrawn', uid);
-  let result: { allowed: boolean; version: number } = { allowed, version: 1 };
+  let result: { allowed: boolean; version: number | null } = { allowed, version: null };
   await db.runTransaction(async tx => {
     const userSnap = await tx.get(userRef);
     const deletionSnap = await tx.get(deletionRef);
-    if (deletionSnap.exists) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
+    // A deletion job must block new consent but cannot obstruct withdrawal.
+    // Preserve audit and idempotency while the profile still exists.
+    if (deletionSnap.exists && allowed) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
+    // Once deletion removed the profile, no consent remains to withdraw.
+    // Return a read-only, idempotent denial only when deletion is recorded;
+    // never recreate a deleted user or append a new personal audit entry.
+    if (!allowed && deletionSnap.exists && !userSnap.exists) {
+      result = { allowed: false, version: null };
+      return;
+    }
     const data = userSnap.data();
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
+    const validEpoch = typeof data?.partnerReferralVersion === 'number'
+      && Number.isSafeInteger(data.partnerReferralVersion)
+      && data.partnerReferralVersion >= 1;
+    // Withdrawing an already-denied consent must not synthesize an epoch,
+    // change timestamps or create another personal audit record, regardless
+    // of whether the historical profile has been quarantined.
+    if (!allowed && !currentlyAllowed) {
+      result = {
+        allowed: false,
+        version: data?.partnerReferralEpochQuarantined === true || !validEpoch
+          ? null : data.partnerReferralVersion as number,
+      };
+      return;
+    }
+    if (allowed && data?.partnerReferralEpochQuarantined === true) {
+      throw new PartnerReferralError(409, 'partner_consent_epoch_quarantined', 'Die frühere Einwilligung muss vor einer erneuten Zustimmung geprüft werden.');
+    }
+    // Withdrawing consent must remain possible even when existing history is
+    // corrupt or has exhausted the safe integer range. Never synthesize an
+    // epoch or re-enable privileges: quarantine the epoch for manual review.
+    if (!allowed && currentlyAllowed && (!validEpoch || data.partnerReferralVersion === Number.MAX_SAFE_INTEGER)) {
+      tx.update(userRef, {
+        partnerReferralConsent: false,
+        partnerReferralEpochQuarantined: true,
+        partnerReferralConsentUpdatedAt: now,
+      });
+      tx.create(ledger.ref, withLedgerDetails(deps, ledger, {
+        partnerConsent: false, tokenVersion: validEpoch ? data.partnerReferralVersion : null,
+        epochQuarantined: true,
+      }));
+      result = { allowed: false, version: null };
+      return;
+    }
+    if (currentlyAllowed && !validEpoch) {
+      throw new PartnerReferralError(409, 'partner_consent_epoch_inconsistent', 'Die vorhandene Partner-Einwilligung muss überprüft werden.');
+    }
     let version = current.version;
     if (!allowed && currentlyAllowed) version += 1;
     if (currentlyAllowed === allowed && Number(data?.partnerReferralVersion) === version) {
@@ -379,8 +424,8 @@ async function ensureReferralForCampaign(
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
     if (deletionSnap.exists || !userSnap.exists || userSnap.data()?.isAdult !== true
-      || userSnap.data()?.partnerReferralConsent !== true
-      || (Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) ? Number(userSnap.data()?.partnerReferralVersion) : 1) !== userVersion
+      || userSnap.data()?.partnerReferralConsent !== true || userSnap.data()?.partnerReferralEpochQuarantined === true
+      || (!Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) || userSnap.data()?.partnerReferralVersion < 1 || userSnap.data()?.partnerReferralVersion !== userVersion)
       || !campaignIsActive(campaignSnap.data())) return false;
     if (referralSnap.exists) {
       const existing = referralSnap.data() ?? {};
@@ -411,7 +456,8 @@ export async function listPartnerReferralLinks(
   const userSnap = await db.collection('users').doc(uid).get();
   const data = userSnap.data();
   const userState = requirePartnerUserData(data);
-  if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
+  if (data?.partnerReferralConsent === true && (!Number.isSafeInteger(data?.partnerReferralVersion) || data?.partnerReferralVersion < 1)) throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
+  if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
   const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
   const activeCampaigns = snapshot.docs
     .map(campaignFrom)
@@ -450,7 +496,7 @@ export async function recordPartnerInteraction(
   const userSnap = await userRef.get();
   const data = userSnap.data();
   const state = requirePartnerUserData(data);
-  if (data?.partnerReferralConsent !== true) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
+  if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
   const campaign = campaignFrom(await campaignRef.get());
   if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
   const token = derivePartnerReferralToken(uid, campaign.id, state.version, referralSecret(deps));
@@ -463,8 +509,8 @@ export async function recordPartnerInteraction(
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
     const savedData = savedUser.data();
-    if (deletion.exists || savedData?.partnerReferralConsent !== true
-      || (Number.isSafeInteger(savedData?.partnerReferralVersion) ? Number(savedData?.partnerReferralVersion) : 1) !== state.version
+    if (deletion.exists || savedData?.partnerReferralConsent !== true || savedData?.partnerReferralEpochQuarantined === true
+      || (!Number.isSafeInteger(savedData?.partnerReferralVersion) || savedData?.partnerReferralVersion < 1 || savedData?.partnerReferralVersion !== state.version)
       || !campaignIsActive(savedCampaign.data()) || !referral.exists || referral.data()?.ownerUid !== uid) {
       throw new PartnerReferralError(409, 'partner_interaction_stale', 'Der Partnerlink ist nicht mehr aktuell. Bitte lade die Übersicht neu.');
     }
@@ -511,6 +557,13 @@ export async function recordPartnerClick(
   const referralData = referralSnap.data() ?? {};
   const ownerUid = typeof referralData.ownerUid === 'string' ? referralData.ownerUid : '';
   const campaignId = typeof referralData.campaignId === 'string' ? referralData.campaignId : '';
+  const referralVersion = referralData.version;
+  // A document ID derived from an HMAC token is not proof that its mutable
+  // owner, campaign and epoch fields still correspond to that same token.
+  if (!ownerUid || !campaignId || !Number.isSafeInteger(referralVersion) || referralVersion < 1
+    || derivePartnerReferralToken(ownerUid, campaignId, referralVersion, referralSecret(deps)) !== token) {
+    throw new PartnerReferralError(404, 'partner_link_not_found', 'Dieser Partnerlink ist nicht verfügbar.');
+  }
   const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
   const ownerRef = db.collection('users').doc(ownerUid);
   const [campaignSnap, ownerSnap] = await Promise.all([campaignRef.get(), ownerRef.get()]);
@@ -519,7 +572,8 @@ export async function recordPartnerClick(
   const destination = directDestination(campaign.destinationUrl);
   const ownerData = ownerSnap.data();
   const activeConsent = ownerData?.partnerReferralConsent === true
-    && (Number.isSafeInteger(ownerData?.partnerReferralVersion) ? Number(ownerData?.partnerReferralVersion) : 1) === referralData.version
+    && ownerData?.partnerReferralEpochQuarantined !== true
+    && (Number.isSafeInteger(ownerData?.partnerReferralVersion) && ownerData?.partnerReferralVersion >= 1 && ownerData?.partnerReferralVersion === referralData.version)
     && referralData.status === 'active';
   // Preview crawlers and the link owner's authenticated visit never earn clicks.
   if (!activeConsent || !visitorUid || visitorUid === ownerUid || request.method !== 'GET'
@@ -530,9 +584,13 @@ export async function recordPartnerClick(
   const visitorDeletionRef = db.collection('account_deletions').doc(visitorUid);
   const visitorSnap = await visitorRef.get();
   if (!visitorSnap.exists || visitorSnap.data()?.isAdult !== true
-    || visitorSnap.data()?.partnerReferralConsent !== true) {
+    || visitorSnap.data()?.partnerReferralConsent !== true || visitorSnap.data()?.partnerReferralEpochQuarantined === true
+    || !Number.isSafeInteger(visitorSnap.data()?.partnerReferralVersion) || visitorSnap.data()?.partnerReferralVersion < 1) {
     return { url: destination, tracked: false };
   }
+  // Pin the visitor consent epoch observed before the transactional eligibility read.
+  // An epoch change between these reads is a new authorization period.
+  const visitorConsentVersion = visitorSnap.data()?.partnerReferralVersion;
   const ledger = makeLedger(deps, 'referral_click_counted', null, { ownerUid, campaignId, referralId });
   const now = nowIso(deps);
   const tracked = await db.runTransaction(async tx => {
@@ -545,10 +603,17 @@ export async function recordPartnerClick(
     const referral = savedReferral.data();
     if (visitorDeletion.exists || !savedVisitor.exists
       || savedVisitor.data()?.isAdult !== true
-      || savedVisitor.data()?.partnerReferralConsent !== true
+      || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
+      || !Number.isSafeInteger(savedVisitor.data()?.partnerReferralVersion) || savedVisitor.data()?.partnerReferralVersion < 1
+      || savedVisitor.data()?.partnerReferralVersion !== visitorConsentVersion
+      // A campaign destination edit after preflight invalidates attribution.
+      // Never forward a referral token to a destination that was not rechecked.
+      || savedCampaign.data()?.destinationUrl !== campaign.destinationUrl
+      || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
+      || referral?.version !== referralVersion
       || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
-      || owner?.partnerReferralConsent !== true
-      || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
+      || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
+      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || referral?.status !== 'active') return false;
     tx.update(referralRef, { clickCount: FieldValue.increment(1), lastClickAt: now, updatedAt: now });
     tx.update(campaignRef, { clickCount: FieldValue.increment(1), updatedAt: now });
@@ -574,6 +639,14 @@ export async function recordPartnerConversion(
   const ownerUid = typeof initial.ownerUid === 'string' ? initial.ownerUid : '';
   if (!ownerUid || ownerUid === payload.buyerUid) throw new PartnerReferralError(409, 'self_referral_rejected', 'Selbst-Empfehlungen sind nicht prämienberechtigt.');
   const campaignId = typeof initial.campaignId === 'string' ? initial.campaignId : '';
+  const initialVersion = initial.version;
+  // A referral document ID does not prove mutable owner/campaign/version fields
+  // still belong to the signed token; verify the HMAC binding before processing
+  // any provider assertion.
+  if (!campaignId || !Number.isSafeInteger(initialVersion) || initialVersion < 1
+    || derivePartnerReferralToken(ownerUid, campaignId, initialVersion, referralSecret(deps)) !== payload.referralToken) {
+    throw new PartnerReferralError(404, 'partner_link_not_found', 'Der verknüpfte Partnerlink wurde nicht gefunden.');
+  }
   const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
   const ownerRef = db.collection('users').doc(ownerUid);
   const buyerRef = db.collection('users').doc(payload.buyerUid);
@@ -583,10 +656,17 @@ export async function recordPartnerConversion(
   // claim identifiers use the stable audit key, not the rotating campaign webhook key.
   const idempotencySecret = auditSecret(deps);
   const eventIdHash = partnerWebhookEventDocumentId(slug, payload.eventId, idempotencySecret);
+  // The event ID is an idempotency key, not permission to change its buyer or referral.
+  // Bind the original provider assertion with a domain-separated stable HMAC,
+  // never storing the plain buyer UID, token, or partner event ID.
+  const eventBinding = crypto.createHmac('sha256', idempotencySecret)
+    .update(JSON.stringify(['klar-partner-event-binding:v1', slug, payload.eventId, payload.referralToken, payload.buyerUid]), 'utf8')
+    .digest('hex');
   const eventRef = db.collection(CONVERSIONS).doc(eventIdHash);
   const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret));
   const now = nowIso(deps);
-  const audit = makeLedger(deps, 'partner_conversion_verified', null, {
+  // A partner signature attests only the provider assertion, never the purchase.
+  const audit = makeLedger(deps, 'partner_conversion_asserted', null, {
     ownerUid,
     buyerUid: payload.buyerUid,
     campaignId,
@@ -600,7 +680,6 @@ export async function recordPartnerConversion(
     if (!referralSnap || !campaignSnap || !ownerSnap || !buyerSnap || !ownerDeletion || !buyerDeletion || !eventSnap || !buyerClaimSnap) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    if (eventSnap.exists) return { duplicate: true as const };
     const referral = referralSnap.data();
     const campaign = campaignSnap.data();
     const owner = ownerSnap.data();
@@ -608,10 +687,58 @@ export async function recordPartnerConversion(
     if (ownerDeletion.exists || buyerDeletion.exists || !campaignIsActive(campaign)
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
-      || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true
-      || (Number.isSafeInteger(owner?.partnerReferralVersion) ? Number(owner?.partnerReferralVersion) : 1) !== referral?.version
-      || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true) {
+      || referral?.version !== initialVersion
+      || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
+      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
+      || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true || buyer?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
+    }
+    // A withdrawn/re-granted consent is a different authorization epoch.
+    // Version changes must never resurrect an old partner assertion.
+    const buyerConsentVersion = buyer?.partnerReferralVersion;
+    // Do not infer a consent epoch for absent, corrupt, negative or fractional
+    // values. A legacy user must re-establish a recorded consent epoch.
+    if (typeof buyerConsentVersion !== 'number'
+      || !Number.isSafeInteger(buyerConsentVersion) || buyerConsentVersion < 1) {
+      throw new PartnerReferralError(403, 'buyer_consent_epoch_missing', 'Die Partner-Einwilligung muss erneut bestätigt werden.');
+    }
+    // A previously recorded event does not bypass fresh consent, legal hold,
+    // deletion or campaign-eligibility checks on a provider retry.
+    if (eventSnap.exists) {
+      // Legacy records lacking a binding must be reviewed, never silently trusted.
+      if (eventSnap.data()?.eventBinding !== eventBinding) {
+        throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
+      }
+      // Both conversion and buyer-claim documents were atomically created.
+      // Missing/mismatched links indicate tampering or incomplete migration:
+      // do not acknowledge a corrupt replay as a successful duplicate.
+      // A valid HMAC binding cannot attest that persisted event fields were
+      // never changed independently. Quarantine inconsistent event records.
+      if (eventSnap.data()?.campaignId !== campaignId
+        || eventSnap.data()?.referralId !== referralId
+        || eventSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || eventSnap.data()?.ownerRef !== pseudonymousPartnerUid(ownerUid, idempotencySecret)
+        || eventSnap.data()?.proofStatus !== 'partner_assertion_only'
+        || eventSnap.data()?.rewardStatus !== 'pending_verification'
+        || eventSnap.data()?.buyerConsentVersion !== buyerConsentVersion) {
+        throw new PartnerReferralError(409, 'partner_event_inconsistent', 'Der Partner-Ereignisdatensatz muss unabhängig überprüft werden.');
+      }
+      if (!buyerClaimSnap.exists
+        || buyerClaimSnap.data()?.conversionId !== eventIdHash
+        || buyerClaimSnap.data()?.campaignId !== campaignId
+        || buyerClaimSnap.data()?.referralId !== referralId
+        || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || buyerClaimSnap.data()?.buyerConsentVersion !== buyerConsentVersion
+        // Conversion assertion and buyer claim are created together. An
+        // inconsistent timestamp indicates incomplete or altered evidence.
+        || typeof eventSnap.data()?.createdAt !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(eventSnap.data()!.createdAt)
+        || !Number.isFinite(Date.parse(eventSnap.data()!.createdAt))
+        || new Date(Date.parse(eventSnap.data()!.createdAt)).toISOString() !== eventSnap.data()!.createdAt
+        || buyerClaimSnap.data()?.createdAt !== eventSnap.data()?.createdAt) {
+        throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
+      }
+      return { duplicate: true as const };
     }
     if (buyerClaimSnap.exists) throw new PartnerReferralError(409, 'duplicate_conversion', 'Für dieses Klar-Konto wurde bereits eine Prämie zu dieser Kampagne berücksichtigt.');
     const buyerRefHash = pseudonymousPartnerUid(payload.buyerUid, auditSecret(deps));
@@ -622,6 +749,8 @@ export async function recordPartnerConversion(
       buyerRef: buyerRefHash,
       rewardStatus: 'pending_verification',
       proofStatus: 'partner_assertion_only',
+      buyerConsentVersion,
+      eventBinding,
       rewardLabel: String(campaign.rewardLabel ?? ''),
       createdAt: now,
     });
@@ -630,6 +759,7 @@ export async function recordPartnerConversion(
       referralId,
       conversionId: eventIdHash,
       buyerRef: buyerRefHash,
+      buyerConsentVersion,
       createdAt: now,
     });
     // Partner HMAC proves message origin, not purchase or buyer attribution. Never credit

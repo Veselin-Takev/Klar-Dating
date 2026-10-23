@@ -9,10 +9,12 @@ function fail(reason) {
   process.exitCode = 1;
 }
 const [major, minor, patch] = process.versions.node.split('.').map(Number);
-if (major !== 22 || minor < 23 || (minor === 23 && patch < 3)) {
+if (process.env.NODE_ENV === 'production' || process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true') {
+  fail('Firestore emulator tests cannot run against a production runtime or with durable fallback enabled.');
+} else if (major !== 22 || minor < 23 || (minor === 23 && patch < 3)) {
   fail('Node >=22.23.3 on Node 22 is required; run nvm use from phase2_work.');
 } else if (!existsSync(path.join(root, 'node_modules/firebase-tools/lib/bin/firebase.js'))) {
-  fail('Local firebase-tools is missing; run npm ci in phase2_work.');
+  fail('Local firebase-tools is missing; use bun ci from the committed bun.lock in phase2_work (npm ci is forbidden by the root lockfile policy).');
 } else {
   const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 10_000 });
   const output = String(java.stdout ?? '') + '\n' + String(java.stderr ?? '');
