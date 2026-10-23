@@ -19,7 +19,7 @@
 
 ## Required result contract
 
-The host handoff must include the original `gates.tsv` with **exactly 15 rows** and `number, command, exit_code, status, log_sha256`, plus `gate-01.log` through `gate-15.log` and `gate-01.exit-code` through `gate-15.exit-code` (zero for success). Additional receipts: `SHA256SUMS`, `baseline.txt` (`commit`, `node`, `bun`), `host-preflight.txt` (`target_sha`), `container-toolchain.log`, `install.log`/`install.exit-code`, `docker-build.log`/`docker-build.exit-code`, `docker-run.log`/`docker-run.exit-code`, `container-toolchain.exit-code`, host/runner stdout/stderr. Must also contain SHA-bound independent approval receipts or have them separately attached as an immutable, signed approval bundle cross-referenced to the host attestation. If any gate is skipped or fails, record **NO-GO** with the exact RC, do not invent zero.
+The host handoff must include the original `gates.tsv` with **exactly 15 rows** and `number, command, exit_code, status, log_sha256`, plus `gate-01.log` through `gate-15.log` and `gate-01.exit-code` through `gate-15.exit-code` (zero for success). Additional receipts: `SHA256SUMS`, `baseline.txt` (`commit`, `node`, `bun`), `host-preflight.txt` (`target_sha`), `container-toolchain.log`, `install.log`/`install.exit-code`, `docker-build.log`/`docker-build.exit-code`, `docker-run.log`/`docker-run.exit-code`, `container-toolchain.exit-code`, host/runner stdout/stderr. Four independent approvals are **separate post-audit artifacts**; they can be kept in an independently signed approval bundle bound to the host manifest hash and exact commit. Approval receipts are optional for technical screening, and must never be confused with identity-authenticated sign-offs. If any gate is skipped or fails, record **NO-GO** with the exact RC, do not invent zero.
 
 Structural offline screening (on an isolated workstation) uses the optional `node scripts/verify-host-gate-evidence.mjs --dir /secure/quarantined/results --commit <full-sha>` and never returns GO by itself. Inspect the JSON error list. Reject any missing, tampered or self-asserted evidence; independently verify host attestations and reviewer identity. A synthetic test fixture **does not constitute** application evidence.
 
@@ -38,3 +38,27 @@ GitHub PR #119 remained Draft/unmerged with exact HEAD SHA; 15 open issues, no i
 ## Evidence sealing ordering (mandatory)
 
 Close all processes writing `host.stdout.log`, `host.stderr.log`, `runner.stdout.log`, `runner.stderr.log` and Docker-run logs **before** generating the final `SHA256SUMS`. In particular, avoid printing additional status messages into hashed logs after the manifest is calculated. Validate the finalized manifest in a separate read-only step and publish or externally sign its SHA-256 digest using a trusted channel. The previously prepared host launcher used `tee` while hashing its own stdout; it must be reviewed and fixed on the authorized host before accepting final evidence. A self-consistent checksum proves only integrity, not authenticity.
+
+
+## Verified evidence closure contract (2026-10-23, local-only tooling update)
+
+The earlier `execute-on-authorized-host.sh` wrote `SHA256SUMS` while inherited process-substitution `tee` processes could still append to `host.stdout.log` and `host.stderr.log`; the old script therefore **must not be used as trusted final evidence**. Run it only after formal host-script review and correction.
+
+**Strict phase separation:**
+
+1. Record exact immutable checkout and runtime inside the container. Execute the original 15 gates, capture *all* logs and actual exit codes (including failures), and let every writer of the result directory terminate. Host-side `docker-run.exit-code` and host log writers must also be complete. Do not generate `SHA256SUMS` inside an active `tee` or other process-substitution pipeline.
+2. From an approved, pinned and separately validated copy of `seal-host-gate-evidence.mjs`, run on the **closed** result directory:
+
+   ```bash
+   # This tool is supplied by the dedicated audit tooling branch, NOT the PR119
+   # application checkout. Pin and validate its Git blob before deployment.
+   node /opt/approved-audit-tools/seal-host-gate-evidence.mjs \
+     --dir /srv/klar-audit/results > /srv/klar-audit/seal-report.json
+   (cd /srv/klar-audit/results && sha256sum --check SHA256SUMS)
+   ```
+
+   `seal-report.json` is deliberately **outside** the sealed `results/` directory; never append to hashed logs after sealing. Sealing works even with nonzero gate results, preserving failure evidence. The sealer refuses to overwrite an existing `SHA256SUMS`, symbolic links, nested entries, or noncanonical file names. It calculates SHA-256 twice before finalization and rechecks afterwards; it cannot prove that a third-party host is authentic or that late writes are impossible.
+3. Transfer evidence by the approved secure channel and separately verify the published SHA256SUMS hash against signed runner/build provenance. Run `verify-host-gate-evidence.mjs --dir /read-only/results --commit 7fdf29010c85f16a9b38e5c93186f32e92192f3a` from the pinned audit tooling commit, **not from the mutable application checkout**.
+4. The scanner's `technical_evidence_pass=true` means only *internal integrity and mandatory technical checks* passed. Because approvals are signed **after** host checks, missing `approval-*.json` receipts are not fatal to this technical screening. If such receipts are present but malformed, they are fatal. In all cases `release_decision=NO-GO` and `approvals_identity_verified=false` until independent signatories and the Release Owner authorize a separately documented human GO. The four signatures must be bound to the host manifest digest and immutable commit.
+
+**No CI/merge/deploy is authorized by this procedure.** The new tools have only been tested locally under Node.js v22.16.0; a qualified Node.js v22.23.3 host run remains missing.

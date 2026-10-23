@@ -112,15 +112,25 @@ export async function screenEvidence(dir, expectedSha) {
     try { return readSmall(join(root, name)); }
     catch (e) { error('cannot read ' + name + ': ' + e.message); return null; }
   };
+  // Reject contradictory duplicate identity lines; extra host diagnostics may
+  // remain in host-preflight.txt without weakening the identity boundary.
+  const requireUniqueFact = (body, filename, key, expectedValue) => {
+    const prefix = `${key}=`;
+    const matches = canonicalLines(body).filter((line) => line.startsWith(prefix));
+    if (matches.length !== 1 || matches[0] !== `${prefix}${expectedValue}`) {
+      error(`${filename} must have exactly one ${prefix}${expectedValue}`);
+    }
+  };
   const baseline = read('baseline.txt');
   if (baseline !== null) {
-    const lines = canonicalLines(baseline);
-    for (const want of [`commit=${expectedSha}`, 'node=v22.23.3', 'bun=1.4.2']) {
-      if (!lines.includes(want)) error('baseline.txt missing exact ' + want);
-    }
+    requireUniqueFact(baseline, 'baseline.txt', 'commit', expectedSha);
+    requireUniqueFact(baseline, 'baseline.txt', 'node', 'v22.23.3');
+    requireUniqueFact(baseline, 'baseline.txt', 'bun', '1.4.2');
   }
   const host = read('host-preflight.txt');
-  if (host !== null && !canonicalLines(host).includes(`target_sha=${expectedSha}`)) error('host-preflight target mismatch');
+  if (host !== null) {
+    requireUniqueFact(host, 'host-preflight.txt', 'target_sha', expectedSha);
+  }
   const toolchain = read('container-toolchain.log');
   if (toolchain !== null && canonicalLines(toolchain).slice(0, 2).join('\n') !== 'v22.23.3\n1.4.2') {
     error('container runtime mismatch');
@@ -149,11 +159,13 @@ export async function screenEvidence(dir, expectedSha) {
       else if (row[4] !== hashes.get(logName)) error('gate log hash differs from manifest: ' + id);
     }
   }
-  // A self-asserted JSON approval does NOT authenticate a human reviewer; these are receipt-presence checks.
+  // Independent approvals are produced AFTER the sealed technical host run.
+  // Receipts, if supplied inside the bundle, must be hash-validated and structurally
+  // sound; they are optional for technical screening and NEVER confer GO.
   const approvalReceiptChecks = [];
   for (const [suffix, role] of APPROVALS) {
     const name = `approval-${suffix}.json`;
-    const txt = read(name);
+    const txt = hashes.has(name) ? read(name) : null;
     let present = false;
     if (txt !== null) {
       try {
@@ -174,7 +186,7 @@ export async function screenEvidence(dir, expectedSha) {
     approvals_identity_verified: false,
     approval_receipts: approvalReceiptChecks,
     errors,
-    disclaimer: 'Automated hashes and self-asserted approval receipts do not prove origin, independent reviewer identity or production GO. Require independently verified signatures and human release decision.',
+    disclaimer: 'Technical evidence can be screened before independent approvals. Approval receipts may arrive in a separate, independently sealed and authenticated bundle. Automated hashes and self-asserted receipts do not prove origin or reviewer identity. Human release decision is always required.',
   };
 }
 

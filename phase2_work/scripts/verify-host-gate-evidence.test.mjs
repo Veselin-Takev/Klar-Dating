@@ -70,8 +70,17 @@ test('missing log fails',async () =>caseOf(f=>unlinkSync(join(f.dir,'gate-12.log
 test('nonzero exit code fails even if checksums updated',async ()=>caseOf(f=>{f.files.set('gate-11.exit-code','2\n');writeFileSync(join(f.dir,'gate-11.exit-code'),'2\n');f.refresh()},'gate exit file nonzero: 11'));
 test('wrong command fails even if whole TSV rehashed',async ()=>caseOf(f=>{const changed=f.files.get('gates.tsv').replace('npx semgrep --config=auto --error','echo PASS');f.files.set('gates.tsv',changed);writeFileSync(join(f.dir,'gates.tsv'),changed);f.refresh()},'gate row invalid or non-PASS: 09'));
 test('wrong runtime fails',async()=>caseOf(f=>{const txt=f.files.get('container-toolchain.log').replace('1.4.2','1.4.1');f.files.set('container-toolchain.log',txt);writeFileSync(join(f.dir,'container-toolchain.log'),txt);f.refresh()},'container runtime mismatch'));
-test('wrong commit fails',async()=>caseOf(f=>{const txt=f.files.get('baseline.txt').replace(SHA,'a'.repeat(40));f.files.set('baseline.txt',txt);writeFileSync(join(f.dir,'baseline.txt'),txt);f.refresh()},'baseline.txt missing exact'));
-test('unapproved missing receipt fails',async()=>caseOf(f=>unlinkSync(join(f.dir,'approval-security.json')),'unverifiable file approval-security.json'));
+test('wrong commit fails',async()=>caseOf(f=>{const txt=f.files.get('baseline.txt').replace(SHA,'a'.repeat(40));f.files.set('baseline.txt',txt);writeFileSync(join(f.dir,'baseline.txt'),txt);f.refresh()},'baseline.txt must have exactly one commit='));
+test('independent approval receipt may arrive after technical seal, without ever granting GO',async()=>{
+  const f=fixture();try {
+    f.files.delete('approval-security.json');unlinkSync(join(f.dir,'approval-security.json'));f.refresh();
+    const r=await screenEvidence(f.dir,SHA);
+    assert.equal(r.technical_evidence_pass,true);
+    assert.equal(r.release_decision,'NO-GO');
+    assert.equal(r.approvals_identity_verified,false);
+    assert.equal(r.approval_receipts.find(x=>x.role==='Security').receipt_present,false);
+  } finally {f.cleanup();}
+});
 test('invalid reviewer metadata fails even when hashed',async()=>caseOf(f=>{const txt=f.files.get('approval-security.json').replace('APPROVED','PENDING');f.files.set('approval-security.json',txt);writeFileSync(join(f.dir,'approval-security.json'),txt);f.refresh()},'approval receipt structurally invalid'));
 test('extra unmanifested file fails',async()=>caseOf(f=>writeFileSync(join(f.dir,'gate-99.log'),'not hashed'),'file omitted from SHA256SUMS'));
 test('unexpected gate-16 output is rejected even if hashed', async()=>caseOf(f=>{f.files.set('gate-16.log','extra\n');writeFileSync(join(f.dir,'gate-16.log'),'extra\n');f.refresh()},'unexpected numbered gate artifact'));
@@ -92,5 +101,31 @@ test('required gate log symlink outside evidence is rejected',async()=>caseOf(f=
 test('host preflight target commit mismatch fails',async()=>caseOf(f=>{
   const txt=f.files.get('host-preflight.txt').replace(SHA,'a'.repeat(40));
   f.files.set('host-preflight.txt',txt);writeFileSync(join(f.dir,'host-preflight.txt'),txt);f.refresh();
-},'host-preflight target mismatch'));
+},'host-preflight.txt must have exactly one target_sha='));
 test('receipt without identity proof can never authorize GO',async()=>{const f=fixture();try{const r=await screenEvidence(f.dir,SHA);assert.equal(r.release_decision,'NO-GO');assert.equal(r.approvals_identity_verified,false);}finally{f.cleanup();}});
+
+// Duplicate but conflicting identity assertions must never pass inclusion checks.
+test('contradictory duplicate baseline commit rejected even with correct SHA also present', async()=>caseOf(f=>{
+ const text=f.files.get('baseline.txt')+`commit=${'a'.repeat(40)}\n`;
+ f.files.set('baseline.txt',text);writeFileSync(join(f.dir,'baseline.txt'),text);f.refresh();
+},'baseline.txt must have exactly one commit='));
+test('contradictory duplicate Node runtime rejected even when expected runtime is also present', async()=>caseOf(f=>{
+ const text=f.files.get('baseline.txt')+'node=v22.16.0\n';
+ f.files.set('baseline.txt',text);writeFileSync(join(f.dir,'baseline.txt'),text);f.refresh();
+},'baseline.txt must have exactly one node='));
+test('duplicate identical Bun declaration rejected',async()=>caseOf(f=>{
+ const text=f.files.get('baseline.txt')+'bun=1.4.2\n';
+ f.files.set('baseline.txt',text);writeFileSync(join(f.dir,'baseline.txt'),text);f.refresh();
+},'baseline.txt must have exactly one bun='));
+test('contradictory duplicate target SHA rejected despite one correct line',async()=>caseOf(f=>{
+ const text=f.files.get('host-preflight.txt')+'target_sha='+'a'.repeat(40)+'\n';
+ f.files.set('host-preflight.txt',text);writeFileSync(join(f.dir,'host-preflight.txt'),text);f.refresh();
+},'host-preflight.txt must have exactly one target_sha='));
+test('no approval receipt files can screen technical evidence but never release',async()=>{
+ const f=fixture();try{
+  for(const name of [...f.files.keys()].filter(n=>n.startsWith('approval-'))){f.files.delete(name);unlinkSync(join(f.dir,name));}
+  f.refresh();const r=await screenEvidence(f.dir,SHA);
+  assert.equal(r.technical_evidence_pass,true);assert.equal(r.release_decision,'NO-GO');
+  assert(r.approval_receipts.every(x=>!x.receipt_present&&!x.identity_verified));
+ }finally{f.cleanup();}
+});
