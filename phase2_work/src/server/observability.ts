@@ -5,10 +5,13 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import sloPolicy from '../../ops/slo.json';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'klar-api';
-const API_P95_SLO_MS = sloPolicy.objectives.find(objective => objective.name === 'api-latency-p95-ms')?.target;
-if (typeof API_P95_SLO_MS !== 'number' || !Number.isFinite(API_P95_SLO_MS) || API_P95_SLO_MS <= 0) {
-  throw new Error('Invalid API P95 SLO configuration');
-}
+const API_P95_SLO_MS = (() => {
+  const target = sloPolicy.objectives.find(objective => objective.name === 'api-latency-p95-ms')?.target;
+  if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) {
+    throw new Error('Invalid API P95 SLO configuration');
+  }
+  return target;
+})();
 const MAX_SPANS = 5000;
 const MINUTE_MS = 60_000;
 
