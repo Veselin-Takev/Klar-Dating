@@ -27,7 +27,7 @@ vi.mock('../src/components/InterestsSettings', () => ({
   ),
 }));
 
-afterEach(() => { cleanup(); vi.resetAllMocks(); });
+afterEach(() => { cleanup(); vi.resetAllMocks(); mocks.user = { uid: 'person-1' }; });
 
 describe('profile settings server-confirmed persistence', () => {
   it('does not call onSave when Firestore confirmation fails, and shows an accessible error', async () => {
@@ -62,5 +62,29 @@ describe('profile settings server-confirmed persistence', () => {
     rerender(<ProfileSettings initialInterests={['Wandern']} onSave={onSave} />);
     fireEvent.click(screen.getByRole('button', { name: 'actions.save' }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ interests: ['Wandern'] }));
+  });
+
+  it('ignores a previous account save that completes after an account switch', async () => {
+    let complete!: () => void;
+    mocks.save.mockImplementationOnce(() => new Promise<void>(resolve => { complete = resolve; }));
+    const onSave = vi.fn();
+    const { rerender } = render(<ProfileSettings initialInterests={['Lesen']} onSave={onSave} />);
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }));
+    mocks.user = { uid: 'person-2' };
+    rerender(<ProfileSettings initialInterests={['Wandern']} onSave={onSave} />);
+    await act(async () => complete());
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'actions.save' })).not.toBeDisabled();
+  });
+
+  it('does not report success after the settings screen unmounts', async () => {
+    let complete!: () => void;
+    mocks.save.mockImplementationOnce(() => new Promise<void>(resolve => { complete = resolve; }));
+    const onSave = vi.fn();
+    const { unmount } = render(<ProfileSettings initialInterests={['Lesen']} onSave={onSave} />);
+    fireEvent.click(screen.getByRole('button', { name: 'actions.save' }));
+    unmount();
+    await act(async () => complete());
+    expect(onSave).not.toHaveBeenCalled();
   });
 });
