@@ -339,3 +339,10 @@ Das §312k-Audit-Widget zeigt nur begrenzte Marker-Zählwerte statt falscher 100
 #### Finale Validierungsrunde — 2026-10-19
 
 Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wurde mit SHA-256-verifiziertem Node 22.23.3 geprüft: **Enterprise-Dashboard 10/10 PASS**, CODEOWNERS 24/24 PASS, Release-GO-Review 55/55 PASS. Weitere statische/Offline-Tests für 20 TTL-Retention-Gruppen, Art.17 (18 Preflight-Fälle), Lockfiles und Release-Workflow PASS. Auf demselben Code: **5/14 Pflichtgates PASS** (Secrets, Auth-Boundary, Public Firestore Rules, AI PII Sanitizer, Art.17 Boundary), **9/14 FAIL oder nicht ausführbar** (Enterprise/TypeScript-Modul fehlt; Root-npm-audit ENOLOCK im Bun-only-Root; Gitleaks und Semgrep nicht vorhanden; tsc, Vitest, Firebase CLI, Playwright und Vite fehlen). Zusätzliches `npx --no-install eslint . --max-warnings=0`: **FAIL/nicht ausführbar**. Deshalb **AI-Code-Review gesamt NICHT PASS** und **Production NO-GO**. Echtzeit-Dashboard-SLO-, Art.17-/TTL-, KI-Budget- und Security-Gates bleiben ohne geeignete autorisierte Live-Messquelle ausdrücklich unbekannt; rechtliche Abnahmen und echte E2E-Tests fehlen.
+
+
+## P95-Typecheck-Korrektur – 23.10.2026
+
+Die SLO-Initialisierung liefert erst nach Validierung einen Zahlenwert. Fehlende, nichtnumerische, nichtendliche und nichtpositive Ziele verhindern weiterhin den Modulstart; das 300-ms-Ziel bleibt erhalten.
+
+Vor Merge vollständige CI auf dem korrigierten Commit unter gepinnter Toolchain prüfen und unabhängige Reviews einholen. PR #121 baut auf #119 auf. Production bleibt NO-GO; reale TTL-/Art17-/SRE-Nachweise bleiben offen. Rollback: Codeänderung und ergänzte Regressionen revertieren; keine Datenmigration oder Änderung produktiver Einstellungen.
