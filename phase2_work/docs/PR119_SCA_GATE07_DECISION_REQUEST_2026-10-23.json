@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "artifact_type": "unapproved_governance_decision_request",
+  "request_status": "PENDING_HUMAN_APPROVAL",
+  "release_status": "NO-GO",
+  "target_pr": 119,
+  "target_commit": "7fdf29010c85f16a9b38e5c93186f32e92192f3a",
+  "target_git_tree": "05f22f0ca387ae37573b1f81e85ead901dce3da9",
+  "static_inputs_git_blob_verified": 5,
+  "static_inputs_total": 5,
+  "mandatory_gate_count": 15,
+  "host_gate_pass_evidenced": 0,
+  "independent_release_approvals_evidenced": 0,
+  "current_gate_07": "npm audit --audit-level=high",
+  "proposed_unapproved_composite_gate_07": [
+    "(cd phase2_work && bun audit --audit-level=high)",
+    "(cd phase2_work/functions && npm audit --audit-level=high)"
+  ],
+  "decision_requirements": [
+    "authenticated_security_approval",
+    "authenticated_release_owner_approval",
+    "registry_and_scanner_provenance",
+    "complete_Bun_and_npm_dependency_coverage",
+    "reconciled_15_gate_policy_version",
+    "zero_cost_authorized_host"
+  ],
+  "tooling_tests": {
+    "local_pass": 91,
+    "total": 91,
+    "node_version": "22.16.0",
+    "production_gate_qualified": false
+  },
+  "source_screen": {
+    "exit_code": 1,
+    "status": "BLOCKED",
+    "release_decision": "NO-GO",
+    "scanner_executions": 0
+  },
+  "unsigned": true,
+  "do_not_treat_as_approval": true
+}
