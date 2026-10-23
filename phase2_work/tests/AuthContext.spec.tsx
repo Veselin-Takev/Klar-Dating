@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from 'firebase/auth';
-import { browserLocalPersistence, createUserWithEmailAndPassword, setPersistence, signInWithEmailAndPassword } from 'firebase/auth';
+import { browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, setPersistence, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
 import { AuthProvider, useAuth } from '../src/lib/AuthContext';
 import { hasDiagnosticsConsent, setDiagnosticsConsent } from '../src/lib/telemetryPrivacy';
 
@@ -16,6 +16,7 @@ vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, _collection: string, uid: string) => ({ uid }),
   getDocFromServer: mocks.read,
   setDoc: vi.fn(), updateDoc: vi.fn(),
+  waitForPendingWrites: vi.fn().mockResolvedValue(undefined),
   onSnapshot: (_ref: unknown, _options: unknown, callback: typeof mocks.snapshot) => { mocks.snapshot = callback; return vi.fn(); },
 }));
 vi.mock('firebase/auth', () => ({
@@ -111,15 +112,47 @@ describe('authoritative profile state', () => {
       persist.mockReset();
       login.mockReset();
       signup.mockReset();
-      persist.mockResolvedValue(undefined);
+      let finishPersistence!: () => void;
+      persist.mockImplementationOnce(() => new Promise<void>(resolve => { finishPersistence = resolve; }));
       login.mockResolvedValue({} as Awaited<ReturnType<typeof signInWithEmailAndPassword>>);
       signup.mockResolvedValue({} as Awaited<ReturnType<typeof createUserWithEmailAndPassword>>);
-      await act(async () => { await context[operation]('test@example.invalid', 'test-password'); });
+      const authentication = context[operation]('test@example.invalid', 'test-password');
+      expect(login).not.toHaveBeenCalled();
+      expect(signup).not.toHaveBeenCalled();
+      await act(async () => { finishPersistence(); await authentication; });
       expect(persist).toHaveBeenCalledWith(mocks.auth, browserLocalPersistence);
       const authCall = operation === 'signInWithEmail' ? login : signup;
       expect(authCall).toHaveBeenCalledTimes(1);
-      expect(persist.mock.invocationCallOrder[0]).toBeLessThan(authCall.mock.invocationCallOrder[0]);
     },
   );
 
+  it('rejects profile save confirmation when the server view still has pending writes', async () => {
+    mocks.read.mockResolvedValue(snapshot({ uid: 'alice', isAdult: true }));
+    await signIn('alice');
+    mocks.read.mockResolvedValueOnce({
+      ...snapshot({ uid: 'alice', interests: ['Musik'] }),
+      metadata: { fromCache: false, hasPendingWrites: true },
+    });
+    await act(async () => {
+      await expect(context.updateProfileData({ interests: ['Musik'] })).rejects.toThrow('serverseitig bestätigt');
+    });
+  });
+
+  it.each(['signInWithEmail', 'signUpWithEmail'] as const)(
+    'does not authenticate through %s when persistence fails', async operation => {
+      vi.mocked(setPersistence).mockRejectedValueOnce(new Error('Persistence unavailable'));
+      const authCall = operation === 'signInWithEmail' ? vi.mocked(signInWithEmailAndPassword) : vi.mocked(createUserWithEmailAndPassword);
+      authCall.mockClear();
+      await expect(context[operation]('test@example.invalid', 'test-password')).rejects.toThrow('Persistence unavailable');
+      expect(authCall).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps guest authentication scoped to the browser session', async () => {
+    vi.mocked(setPersistence).mockResolvedValueOnce(undefined);
+    vi.mocked(signInAnonymously).mockClear();
+    await context.signInAsGuest();
+    expect(setPersistence).toHaveBeenLastCalledWith(mocks.auth, browserSessionPersistence);
+    expect(signInAnonymously).toHaveBeenCalledTimes(1);
+  });
 });
