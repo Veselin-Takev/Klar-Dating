@@ -169,7 +169,7 @@ it('sets webhook privacy headers before limiter infrastructure failure', async (
 });
 
 it.each([undefined,{uid:'visitor',role:'admin'}])('sets admin privacy headers before strict authorization %j',async user=>{
- const app=express();if(user)app.use((req,_res,next)=>{req.user=user as Request['user'];next()});
+ const app=express();if(user)app.use((req,_res,next)=>{req.user=user as unknown as Request['user'];next()});
  const firestore=vi.fn(()=>{throw new Error('Authorization must deny before database access')});
  app.use('/api',createPartnerReferralRouter({currentUserId:()=>null,getFirestore:firestore,tokenSecret:()=>secret,auditSecret:()=>secret,publicUrl:()=>destination,webhookSecrets:()=>({})}));
  const server=app.listen(0,'127.0.0.1');servers.push(server);await new Promise<void>(resolve=>server.once('listening',resolve));
