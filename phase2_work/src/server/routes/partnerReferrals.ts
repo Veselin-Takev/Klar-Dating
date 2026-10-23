@@ -135,7 +135,14 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     }
   });
 
-  router.post('/partner/webhook/:slug', webhookLimiter, async (req, res) => {
+  // Protect webhook responses before distributed limiting or HMAC validation.
+  const protectWebhookResponse = (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+  router.post('/partner/webhook/:slug', protectWebhookResponse, webhookLimiter, async (req, res) => {
     try {
       const slug = String(req.params.slug ?? '');
       if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug)) {
@@ -233,7 +240,12 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
     catch (error) { return handleError(res, error, 'Der Partnerlink konnte nicht sicher geöffnet werden.'); }
   });
 
-  router.use('/admin/partners', requireStrictPartnerAdmin, adminLimiter);
+  router.use('/admin/partners', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  }, requireStrictPartnerAdmin, adminLimiter);
   router.get('/admin/partners', async (_req, res) => {
     try { return res.json({ campaigns: await listPartnerCampaignsForAdmin(deps) }); }
     catch (error) { return handleError(res, error, 'Die Partnerkampagnen konnten nicht geladen werden.'); }
