@@ -2,8 +2,16 @@ import { context, trace, SpanStatusCode, ROOT_CONTEXT, type Context, type Span, 
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor, SimpleSpanProcessor, type ReadableSpan, type SpanExporter, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import sloPolicy from '../../ops/slo.json';
 
 const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || 'klar-api';
+const API_P95_SLO_MS = (() => {
+  const target = sloPolicy.objectives.find(objective => objective.name === 'api-latency-p95-ms')?.target;
+  if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) {
+    throw new Error('Invalid API P95 SLO configuration');
+  }
+  return target;
+})();
 const MAX_SPANS = 5000;
 const MINUTE_MS = 60_000;
 
@@ -148,7 +156,7 @@ export function observabilityPrometheus(): string {
   return [
     '# HELP klar_http_request_duration_ms HTTP server request latency.', '# TYPE klar_http_request_duration_ms gauge',
     `klar_http_request_duration_ms{quantile="0.95"} ${p95}`,
-    '# HELP klar_http_p95_slo_breach P95 latency over the 1500ms enterprise target.', '# TYPE klar_http_p95_slo_breach gauge', `klar_http_p95_slo_breach ${p95 > 1500 ? 1 : 0}`,
+    `# HELP klar_http_p95_slo_breach P95 latency over the ${API_P95_SLO_MS}ms configured SLO target.`, '# TYPE klar_http_p95_slo_breach gauge', `klar_http_p95_slo_breach ${p95 > API_P95_SLO_MS ? 1 : 0}`,
     '# HELP klar_gemini_requests_total Gemini requests in the rolling observability window.', '# TYPE klar_gemini_requests_total gauge', `klar_gemini_requests_total ${gemini.requests}`,
     '# HELP klar_gemini_input_tokens_total Gemini input tokens in the rolling observability window.', '# TYPE klar_gemini_input_tokens_total gauge', `klar_gemini_input_tokens_total ${gemini.input}`,
     '# HELP klar_gemini_output_tokens_total Gemini output tokens in the rolling observability window.', '# TYPE klar_gemini_output_tokens_total gauge', `klar_gemini_output_tokens_total ${gemini.output}`,

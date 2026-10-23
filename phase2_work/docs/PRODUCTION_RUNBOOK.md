@@ -78,3 +78,278 @@ CI #38602779698 failed: invalid `/api/partner/click/:token` test received HTTP 5
 ### 2026-10-14 — Partner click rate-limiter non-bypass acceptance
 
 The public `/api/partner/click/:token` must reject malformed syntax with 404 before Firestore I/O but **must** send well-formed tokens through the distributed limiter. Regression simulates an unavailable limiter database; a valid-shape request must fail closed while response privacy headers remain present. This test deliberately expects 500 for an injected infrastructure fault only. Run the targeted HTTP test and all Node/lockfile/enterprise/E2E CI gates on the current exact PR head after every change; do not merge based on older successful runs. Production **NO-GO / NOT CONFIRMED**.
+
+
+### 2026-10-18 — Partner event-ID conflict guard (#55)
+On a signed webhook retry with an existing event ID, the stored stable event HMAC must match the new buyer/referral assertion; otherwise return 409 without credit. Historical conversion docs with no binding also return 409 pending reconciliation. Run `npx vitest run tests/partnerReferralService.spec.ts`, exact-commit full security/emulator gates, and review partner retry semantics before merge. No production deployment. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 provider replay after buyer consent revocation
+An identical partner webhook retry is acknowledged only after current eligibility checks within the Firestore transaction. If buyer consent is withdrawn or the account deleted, retries fail closed rather than accepting old event status. Execute `npx vitest run tests/partnerReferralService.spec.ts`, emulator tests and all mandatory gates on the exact integrated SHA. Provider retries may change from 200 to 403; coordinate handling with Privacy/Partner Operations. No reward may become earned solely from partner assertion. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 replay buyer-claim consistency
+A replay with a valid event HMAC but missing or inconsistent buyer claim must yield `partner_claim_inconsistent` (409) and be quarantined for authorized reconciliation; do not auto-create missing claims. Validate with `npx vitest run tests/partnerReferralService.spec.ts` and Firestore Emulator concurrency/retention tests. Separate finance, fraud, privacy and partner-contract approval required. **NO-GO.**
+
+
+### 2026-10-18 — Partner replay event record guard (#55)
+Validate that an existing conversion's campaign/referral, pseudonymous buyer/owner and assertion-only pending statuses are unchanged before duplicate acknowledgment. A 409 `partner_event_inconsistent` requires authorized quarantine/reconciliation, never auto-repair. Before future settlement features, explicitly version this invariant and test legitimate verified-state transitions. Execute pinned Node22.23.3 Vitest and Emulator suites; obtain Privacy/Security/Finance approval. **NO-GO.**
+
+
+### 2026-10-18 — P0 #55 Audit-Ledger: Partnerbehauptung ist keine Kaufverifikation
+Bei neuen Providerwebhooks nur `partner_conversion_asserted` als Auditereignis erwarten; `partner_conversion_verified` als Legacy-Auditlabel vor unabhängiger Kaufverifikation NICHT als echten Kauf interpretieren. Bestehende HMAC-Audit-Einträge nie überschreiben; nachgelagerte Dashboard-/Alert-/Report-Filter versionsbewusst migrieren. `npx vitest run tests/partnerReferralService.spec.ts` und vollständige Emulator-/Security-Gates vor Freigabe ausführen. **NO-GO.**
+
+
+### 2026-10-18 — P0 partner webhook buyer consent versions
+New pending provider assertions store the buyer consent epoch in the conversion and buyer-claim records. On replay, require both recorded epochs to match current consent version, otherwise quarantine (`partner_event_inconsistent` / `partner_claim_inconsistent`); never auto-repair old records. Confirm `setPartnerConsent` increments partnerReferralVersion on withdrawal and re-grant, verify emulator concurrency and signed webhook semantics. Full mandatory gates and Finance/Privacy approval required. **NO-GO.**
+
+
+### 2026-10-18 — Reject absent/malformed buyer consent epochs
+A partner conversion requires current buyer `partnerReferralVersion` to be a positive safe integer; otherwise return 403 `buyer_consent_epoch_missing`, with no conversion/claim/audit created. Legacy consent data must be resolved via an approved explicit consent migration, not default version 1. Run Node22.23.3 Vitest, Firebase Emulator and all privacy/finance review gates. **NO-GO.**
+
+
+### 2026-10-18 — Consent version writer fail-closed (#55/#56)
+For an already-granted partner consent, missing/malformed `partnerReferralVersion` must yield 409 `partner_consent_epoch_inconsistent` and not rewrite the user. Overflow on withdrawal yields 409 `partner_consent_epoch_exhausted`. Run Node22 Vitest/Firestore Emulator tests and confirm there is a privacy-approved administrative withdrawal path for corrupt legacy records. Never treat source-code assertions as full release gates. **NO-GO.**
+
+
+### 2026-10-18 — Consent withdrawal cannot be blocked by epoch corruption
+If a previously allowed partner consent has malformed/exhausted `partnerReferralVersion`, its withdrawal MUST still set `partnerReferralConsent=false` transactionally and flag quarantine. Preserve original version, sign audit (`partner_consent_withdrawn`), return `version:null` and block any new grant until authorized reconciliation. Validate all clients tolerate `version:null` and ensure no downstream partner tracking may use quarantined consent. Run pinned Node22 Vitest, Firebase emulator and full mandatory gates. **NO-GO.**
+
+
+### 2026-10-18 — Quarantine must deny partner privileges everywhere
+Reject partner activity whenever `partnerReferralEpochQuarantined === true`, regardless of a stale restored `partnerReferralConsent=true`. Check both buyer/owner conversions and click attribution. Withdrawal remains available. Run full Vitest and Firebase Emulator matrix and verify rules against unauthorized profile updates; release NO-GO until approved.
+
+
+### 2026-10-18 — Visitor consent preserved across stacked partner fixes
+During full-source integration, restored the authenticated visitor, adult-consent and transactionally checked visitor deletion safeguards from draft #87 to the latest partner service; now also blocks visitor, buyer and owner quarantine state. Static gate `scripts/check-partner-visitor-consent.mjs` extended for quarantine. Full HTTP and emulator behavior not verified. **NO-GO.**
+
+
+### 2026-10-18 – Idempotent withdrawal for quarantined consent
+When consent is already false and `partnerReferralEpochQuarantined=true`, repeated revocations must be read-only: return `version:null`, do not backfill the missing epoch, update profile timestamps or emit a new audit. Only the initial revocation is signed and counted. Reverify against Firestore emulator, audit ledger and UI response contracts before release. **NO-GO**.
+
+
+### 2026-10-18 – Withdrawal must remain possible while account deletion is pending
+During queued account deletion, do not block `setPartnerConsent(false)`; continue rejecting new grants. Verify the withdrawal is HMAC-audited once and processing is disabled, and that the deletion worker handles cases where it removes the user record first. Run exact-SHA emulator, Node22, typecheck and privacy review. **NO-GO.**
+
+
+### 2026-10-18 – Withdrawal API after user-document purge
+If deletion marker exists and user doc is absent, treat a later `allowed=false` request as read-only, idempotently withdrawn; never recreate profile or personal audit solely for retries. Verify cleanup of all other copies separately. A new grant and missing profile without deletion evidence must remain denied. Run full Node22/Emulator/Privacy/Art17 gates. **NO-GO.**
+
+
+### 2026-10-18 — Idempotent already-denied partner consent
+When `partnerReferralConsent=false`, repeated `setPartnerConsent(false)` must be read-only and must not synthesize epoch 1, update timestamps or append audit. Return the valid unchanged version or `null` for legacy/malformed/quarantined version. Run Node22.23.3 Vitest + Firebase Emulator and verify client handling of nullable response. **NO-GO**.
+
+
+### 2026-10-18 – Owner consent epoch must be explicit
+For partner owner account, prohibit implicit version 1 in referral issuance, interactions, click tracking and signed conversion. Reject invalid epoch at link-list boundary with `partner_consent_epoch_missing`; ensure actual clicks/conversions stay uncredited. Run pinned Node22 Vitest and emulator concurrency tests plus all mandatory security and privacy gates before production. **NO-GO**.
+
+
+### 2026-10-18 – Besucher-Epoche vor Partner-Klicktracking
+Besucher-Consent erfordert eine explizite positive sichere Ganzzahl als Version, sowohl vor dem Klick als auch in der atomaren Transaktion. Fehlende/ungültige Version → keine Attribution, kein Ledger und keine `klar_referral`-Weiterleitung. Node22.23.3 Vitest, echte Firebase Emulator/Rules, Datenschutzprüfung und E2E-Tests verpflichtend. **NO-GO**.
+
+
+### 2026-10-18 – Visitor epoch must remain constant across click preflight and transaction
+Reject tracked click if transactional visitor `partnerReferralVersion` differs from the positive safe version read during preflight; perform direct untracked redirect, no ledger/counter. Test the withdrawal/regrant race on pinned Node22 with Firestore Emulator before any release. **NO-GO**.
+
+
+### 2026-10-18 – Stable campaign destination during partner attribution
+A click may forward a `klar_referral` token only if transactionally re-read campaign `destinationUrl` equals preflight validated destination. Mismatch must disable attribution and ledger write; returning the old prevalidated URL is untracked. Verify with Node22 Vitest/Firebase Emulator and full release/privacy gates. **NO-GO**.
+
+
+### 2026-10-18 – Validate signed referral token against mutable record metadata
+Before redirecting, recompute the HMAC referral token for ownerUid, campaignId and positive safe consent version in the stored referral. An invalid binding must return partner_link_not_found without referencing the stored campaign target. Recheck unchanged owner/campaign/version inside the Firestore transaction before counting or forwarding a token. Run Node22.23.3 Vitest, Emulator, Firestore Rules and full release review; **NO-GO**.
+
+
+### 2026-10-18 – Signed referral metadata on conversion webhook
+Never acknowledge provider assertion or duplicate replay solely from referral document ID. Recompute signed token from original referral owner/campaign/consent epoch before processing; compare referral version in transaction with preflight. Invalid binding denies the conversion; do not credit rewards. Execute full Node22 Vitest/Emulator/security verification before release. **NO-GO**.
+
+
+### 2026-10-18 – Conversion event/claim timestamp consistency on retries
+Before acknowledging `duplicate:true`, verify that the original conversion event timestamp is a parseable string and that the buyer claim timestamp is identical; fail closed with `partner_claim_inconsistent` on mismatch. Never auto-migrate corrupt evidence. Run Node22.23.3 Vitest + Firebase Emulator and all independent evidence gates. **NO-GO**.
+
+
+### 2026-10-18 – Canonical event/claim time on partner webhooks
+Before acknowledging a replay, enforce UTC ISO-8601 millisecond event `createdAt` with exact round-trip, then equality to the buyer-claim timestamp; otherwise 409 `partner_claim_inconsistent`. Syntactic checks cannot attest storage immutability. Full pinned Node22 test/emulator/privacy controls required. **NO-GO**.
+
+
+### 2026-10-18 – P0 #56 cascade owner referral claims before deleting link
+Before deleting `partner_referrals` owned by a departing user, delete linked `partner_referral_buyer_claims` using `referralId`; otherwise claims for different buyers can outlive the deleted link. Keep the parent until child deletion finishes so interruption/resume remains safe. Execute `node scripts/check-art17-deletion-audit.mjs` and full emulator/restart tests; independently review Legal Holds, DPO and retained business records. **NO-GO**.
+
+### 2026-10-18 — Art. 17 owner-referral quarantine (P0 #56)
+
+When erasing an owner account, the worker must transactionally mark every owned partner referral `status: 'deleting'` **before** deleting related `partner_referral_buyer_claims`. Provider conversion transactions reject referrals that are not `active`. Do **not** manually restore a tombstoned referral to active: this would reopen the attribution race. Failed and interrupted purges must resume from the existing parent record and delete children before parent removal; parent ownership mismatches stop processing and require Security/Privacy review.
+
+Preflight: execute `npm run check:art17-deletion-audit` under Node 22.23.3; it includes the transactional helper contract tests. The dedicated real Firestore Emulator suite is `npm run test:art17-partner-emulator` and **must be demonstrated running**, not inferred from committed tests. Prove rollback/retry/fault injection, absence of orphan buyer claims, legal-hold controls and independent DPO/Security/Legal approval before integration. A passing static audit **does not** authorize production. **NO-GO**.
+
+### 2026-10-18 — Mandatory fail-closed partner erasure emulator preflight
+
+Run `npm run test:art17-partner-emulator` from `phase2_work` under Node 22.23.3 **after dependencies and Java are installed**. The command uses `firebase.pruefung.json`, `demo-klar`, and a local Firestore port; the child runner `scripts/run-art17-partner-emulator.mjs` rejects missing or unsafe emulator environment values. A test report with skipped scenarios or a failed subprocess must **not** be counted as PASS. Before approval, confirm all four real Firestore transaction scenarios executed and passed and then verify restart/fault-injection, retention and security-rule boundaries against the full application.
+
+If GitHub Actions shows an immediate failed `validate` job with `runner_id=0`, no steps and empty logs, investigate runner scheduling/account billing and GitHub service state first; do not attribute this to TypeScript, Firebase or application code without test logs. Retain local-first checks, do not repeatedly dispatch paid CI to diagnose a job that never started. **NO-GO**.
+
+### 2026-10-18 — Referral root collection boundary and Emulator lock duration
+
+Account-erasure quarantine may only update root `partner_referrals/{referralId}` documents. A similarly named nested collection must be rejected before any Firestore transaction. When testing concurrent Firestore Emulator writes, allow the dedicated scenarios their 90-second timeout, since Emulator document locks can last up to 30 seconds. A pass in these scenarios still requires independent production-equivalent concurrency verification; do not change the production deletion time-slice budget to compensate for Emulator slowness. **NO-GO until required signoffs and gates.**
+
+### 2026-10-18 — Root referral deletion boundary and pinned TypeScript contract runtime
+
+Do not quarantine nested `partner_referrals` collections; only `partner_referrals/{id}` at the root is valid. Run `npm run check:art17-deletion-audit` under pinned Node 22.23.3; the isolated TypeScript helper contract tests use native `--experimental-strip-types` without launching the external `tsx` transpiler. For the true Firestore Emulator concurrency suite (`npm run test:art17-partner-emulator`), use a Java-enabled machine and allow 90 seconds per test; emulator lock behavior differs from production. The official Node runtime requirement and existing deployment gates are unchanged. **NO-GO pending real Emulator and independent controls.**
+
+### 2026-10-19 — Proving that the Art. 17 tests use the REAL Firestore Emulator
+
+Use `npm run test:art17-partner-emulator` under Node 22.23.3 in a Java-enabled local environment. Do not set `KLAR_ALLOW_DURABLE_DB_FALLBACK=true` or `NODE_ENV=production`. Both the wrapper and the test suite independently reject non-loopback hosts, incorrect configured ports and project IDs other than `demo-klar`. Ordinary unit runs may skip emulator scenarios; **a skip is never a passing integration result**. Preserve terminal output proving all four tests actually executed and passed; do not merge or deploy while this evidence and independent privacy/legal signoff are absent.
+
+### 2026-10-19 — Stacked P0 #70 TTL / P0 #56 Art. 17 integration
+
+This branch is an *integration candidate*, not a production merge. The original Draft PRs #116 and #118 remain open. Run `npm run check:retention-p0` under the pinned Node v22.23.3 in `phase2_work`; this runs only source/fixture/mock staging checks, **not** any live policy update. The aggregate `check:enterprise` now includes that check immediately after Art. 17 audit.
+
+Do not set `KLAR_APPLY_RETENTION=true` except after independent confirmation of approved staging project/database IDs, legal retention-matrix approval, expired-data/legal-hold inventory and an independently observed GCP staging environment label. Capture `gcloud firestore fields ttls list --project ... --database ... --format=json` as a separate read-only LIVE evidence step, verify all 13 required `expiresAt` TTL policies ACTIVE and store change-ticket provenance. None of those live steps have occurred. **NO-GO.**
+
+### 2026-10-19 — Read-only LIVE TTL capture with target guard
+
+`scripts/verify-retention-staging-live.sh` is a *read-only* Staging TTL evidence command. Unlike the file-only `check-retention-active-evidence.mjs`, it directly obtains the policy list through `gcloud firestore fields ttls list` **only after** independently checking the GCP project `labels.environment=staging`, exact approved project/database identity and an explicit staging vs production distinction. No `gcloud ... update/create/delete` command is present. It refuses `KLAR_APPLY_RETENTION=true`, prevents overwriting a previous evidence file, and will not save raw evidence inside the repository. When `KLAR_TTL_EVIDENCE_PATH` points to a new absolute location outside the repository, the tool stores mode-0600 JSON and prints a UTC timestamp and SHA-256 for the change ticket. It validates that all **13** TTL policies are ACTIVE before exporting any file.
+
+**Operational invocation from `phase2_work`, only for authorized staging reviewers:**
+
+```bash
+export KLAR_ENVIRONMENT=staging
+export KLAR_PROJECT_ID='<approved-staging-project>'
+export KLAR_DATABASE_ID='(default)'
+export KLAR_APPROVED_STAGING_PROJECT_ID="$KLAR_PROJECT_ID"
+export KLAR_PRODUCTION_PROJECT_ID='<actual-distinct-production-project>'
+export KLAR_CONFIRM_RETENTION="$KLAR_PROJECT_ID/$KLAR_DATABASE_ID"
+export KLAR_TTL_EVIDENCE_PATH='/absolute/private/path/to/fresh-staging-ttl-evidence.json'
+npm run verify:retention-staging-live
+```
+
+**Local/CI check:** `npm run check:retention-p0` includes `scripts/test-retention-staging-live-readonly.sh`; it uses a stub `gcloud` to prove denial of 12 bad or dangerous situations without any provider changes. A mocked test and an unsigned JSON snapshot are **not** proof of live cloud configuration. The independent reviewer must verify the authenticated GCP identity, evidence capture time, platform state, legal holds and expiry behavior before signing off. No cloud environment was queried or modified in this change. **NO-GO**.
+
+
+### 2026-10-19 — 13→20 TTL-Matrixänderung: erneute Freigabe erforderlich
+
+Der Plan umfasst nun 20 Collection-Groups; sieben zusätzliche `expiresAt`-Schreibpfade wurden unter `docs/DATA_RETENTION.md` nachgewiesen. Die Staging-Aktivierung ist durch einen **neuen Revisions-Gate** gesperrt: `KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19` darf erst gesetzt werden, nachdem Legal/DPO und Operations die **gesamte 20er-Matrix**, Bestands-Ablaufstempel und Legal Holds unabhängig geprüft, signiert und im Change-Ticket archiviert haben. Der Marker ist allein keine Freigabe. Alle bestehenden Staging-ID, Datenbank, Cloud-Label und Inventarprüfungen bleiben obligatorisch. Vorher ausschließlich Dry-Run nutzen; keine produktiven TTL-Änderungen.
+
+Tests: `npm run check:retention-p0` muss jetzt **20** Pläne und ACTIVE-Nachweise erwarten. Der Live-Nachweis erfordert 20 tatsächlich ACTIVE-Policies, nicht 13. Bei unerfüllter Retention-/Rechtsgrundlage niemals `KLAR_APPLY_RETENTION=true` setzen. **NO-GO**.
+
+
+### 2026-10-19 — Per-write TTL timestamp regression gate
+
+`npm run check:retention-p0` executes `scripts/check-retention-expiry-writers.mjs` and `scripts/test-retention-expiry-writers.mjs`. These now independently protect both `set` and `update` expiry-field writers for reset/email/account deletion/KYC-start rate limiters, both shared chat limiter write branches, and KYC reconciliation event writes. A passing guard is **source-only** evidence. The 20-group Staging activation still requires the revised legal/operations matrix, inventory and hold review, and independently captured Google Cloud ACTIVE evidence. Do not convert this test result into a production GO.
+
+
+### 2026-10-19 — P0 #70: Undokumentierte zusätzliche TTL-Policies strikt ablehnen
+
+**Quellbefund:** `scripts/check-retention-active-evidence.mjs` ignorierte bisher mit `if (!required.includes(group)) continue` jede TTL-Policy einer nicht in der genehmigten 20er-Matrix enthaltenen Collection-Group. Da `gcloud firestore fields ttls list` sämtliche konfigurierten TTL-Felder der gewählten Datenbank auflistet, konnte ein erfolgreicher 20/20-ACTIVE-Nachweis gleichzeitig eine **zusätzliche, potenziell rechtswidrige Löschrichtlinie verschweigen**.
+
+**Korrektur:** Die Read-only-Evidenzprüfung bricht jetzt bei **jeder** unerwarteten TTL-Policy sofort ab, auch bei `CREATING` und alternativen Feldnamen. Zusätzliche Richtlinien müssen zuerst in der vollständigen Matrix erfasst, auf Rechtsgrundlage, Aufbewahrung und Legal Holds geprüft und gesondert genehmigt werden; der Validator bietet absichtlich keine automatische `ignore`-Ausnahme. `test-retention-active-evidence.mjs` enthält nun **12** Negativmutationen statt 9. Das Mock-Staging-Skript verweigert zusätzlich eine unautorisierte aktive Policy (**13** Fail-Closed-Szenarien statt 12). Vor der Korrektur hätte der Validator die unautorisierte ACTIVE-Policy akzeptiert.
+
+**Wichtige Grenze:** Das sind lokale JSON-/Mock-/Quellcode-Tests, **kein** realer Google-Cloud-Abruf. Diese Änderung aktiviert/deaktiviert/löscht keine TTL-Policies. Für eine GO-Entscheidung fehlen insbesondere die unabhängig genehmigte *vollständige* 20er-Policy-Matrix, die Auswertung **aller** tatsächlich vorhandenen Policies im freigegebenen Staging, Bestands-/Legal-Hold-Nachweise, echte Firestore-Emulator-Transaktionen und die vollständigen Enterprise-Release-Gates. Produktionsfreigabe **NO-GO**.
+
+Google-Cloud-Dokumentation: https://docs.cloud.google.com/sdk/gcloud/reference/firestore/fields/ttls/list und https://firebase.google.com/docs/firestore/ttl
+
+
+## 2026-10-19 — Integration der SLO-Korrektur aus Draft-PR #77 (Issue #71)
+
+Der ursprünglich auf `main` gemeldete P95-Widerspruch ist in diesem **separaten Integrationszweig** korrigiert: `src/server/observability.ts` importiert den kanonischen Zielwert `api-latency-p95-ms` aus `ops/slo.json` (aktuell **300 ms**) und setzt `klar_http_p95_slo_breach` ab `p95 > API_P95_SLO_MS`, nicht erst oberhalb von 1500 ms. Die bestehende statische Prüfung `scripts/check-observability.mjs` wurde ebenfalls von ihrer **historischen 1500-ms-Annahme** befreit; diese war im ursprünglichen Draft-PR #77 nicht korrigiert und hätte den `check:enterprise`-Pfad nach dem Import blockiert. `check:observability` führt nun zwingend zusätzlich `scripts/test-slo-policy.mjs` aus, einschließlich der tatsächlichen Metrik-Ausdrucksgrenzen 299/300/301/1500 ms. Die Korrektur verwendet die bereits in PR #77 geprüfte minimale Änderung, belässt diese Draft-PR jedoch eigenständig und ungemergt.
+
+**Wichtige Messgrenzen:** Die exporterinterne P95-Berechnung erfolgt aus höchstens 15 Minuten lokaler Trace-Latenzen, und die ausgegebene Metrik ist ein einzelner Gauge. Daraus folgt **kein** 30-Tage-SLO für alle Serverinstanzen, keine aggregierte Prometheus-Histogramm-Verteilung, keine gültige Error-Budget-/Burn-Rate-Ableitung und kein verifizierter Pager. Solche Flotten-Quantile sollten separat aus aggregierbaren Histogramm-Buckets mit `histogram_quantile()` berechnet werden; Prometheus warnt ausdrücklich vor dem Aggregieren von quantile-Gauges. Ein SLO-GO braucht daher bestätigte SLI-Filter, Produktions-/Staging-Telemetrie, 30-Tage-Fenster, Alert-Delivery und unabhängige SRE-Freigabe. **Issue #71 bleibt offen / Produktionsfreigabe NO-GO**.
+
+Offizielle Quelle: https://prometheus.io/docs/practices/histograms/ .
+
+
+## 2026-10-19 — P0 #70: Read-only preflight before any staging TTL update
+
+**Confirmed source gap (base commit `7adc5c1e0320cfd9826136f2f206bb78ea3dd749`):** `scripts/configure-retention.sh` gated the staging target, environment label, DPO/legal inventory approval and 20-group matrix revision, but issued 20 sequential `gcloud firestore fields ttls update` operations **without first reading the database's existing TTL policies**. Thus an unapproved pre-existing policy, nonzero expiry offset, alternate field, or unfinished `CREATING` operation could go unnoticed until after writes had started. The separate ACTIVE evidence checker did not prevent this scenario because it ran only when the operator deliberately requested evidence afterward.
+
+**Correction:** Before any “update” call, the script now runs the read-only, explicit-project-and-database `gcloud firestore fields ttls list --format=json` command. It uses `check-retention-active-evidence.mjs --mode preflight` to permit only a subset of the **approved 20 “expiresAt” policies**, each already ACTIVE with zero/default expiration offset. An empty policy list is safe for the preflight; unknown groups/fields, wrong scope, duplicates, nonzero offset, `CREATING`, malformed JSON or cloud-list failure abort **before the first write**. Full final ACTIVE evidence still requires all 20 groups in the separate standard validator mode; preflight must never substitute for after-activation independent proof.
+
+**Offline negative proofs:** The mock `gcloud` stage test asserts **zero TTL update calls** for an unapproved existing policy, an unfinished policy and a failing list command, and exactly 20 updates for a safe mocked empty list after all approvals. The source-matrix gate also enforces that the read-only list/validation precedes the first update and has three mutation regressions against a removed/bypassed preflight. The checker accepts an empty or approved existing subset and rejects seven malicious existing-policy fixture types. **No cloud TTL settings have been read or modified during these tests.**
+
+**Residual risk:** The preflight is a snapshot and cannot rule out changes by a concurrent administrator after it completes (TOCTOU); a protected change window, least-privilege Cloud IAM and independent change approval are still necessary. Since policies are applied sequentially, an operational error after the first write could result in **partial activation**, which must be independently reconciled. Existing expired-data and legal-hold review is mandatory because activating TTL can trigger deletion of historical records. Firestore TTL deletion is asynchronous, non-recursive, and billable. No production deploy/merge and no human GO authorized.
+
+Sources: https://firebase.google.com/docs/firestore/ttl and local scripts/tests described above. **PRODUCTION NO-GO**.
+
+
+### 2026-10-19 — TTL staging idempotence and mandatory 3-iteration NO-GO review
+
+The staging TTL provisioner now uses the existing fail-closed scoped policy preflight to retrieve validated ACTIVE group identifiers and skips already ACTIVE policies. Mocked GCP tests show **20/18/0 update requests** when **0/2/20 policies** were already ACTIVE, and unsafe policy fixtures still cause zero writes. Three additional static matrix mutations cover an omitted skip or ID-validation step; the regular full-20 ACTIVE evidence check remains unchanged. See `docs/ADR_TTL_STAGING_IDEMPOTENCE_2026-10-19.md` and `docs/ENTERPRISE_REVIEW_3_ITERATIONS_2026-10-19.md`.
+
+The mandatory tests cannot yet all pass in the isolated checkout: root Bun-only lock policy forbids npm package-lock, `npm audit` exits ENOLOCK, and the full TS/Vitest/Playwright/Emulator/build toolchain is absent. Do not fabricate zero vulnerabilities or GO from static checks; the final third-iteration result is recorded in the associated Draft PR description. **NO-GO.**
+
+
+### 2026-10-19 — P0 production CSP runtime bypass closed; SCA Critical / NO-GO
+
+The `VITE_EMULATOR=true` build flag previously disabled enforced production Helmet CSP. Production/recognized Cloud runtimes now always enforce CSP. Emulator origin expansions require explicit non-Cloud local smoke authorization, and the local smoke command opts in deliberately. The mandatory `check:csp` script includes three new Node22 regression tests in addition to twelve static CSP directive checks. See `docs/ADR_CSP_PRODUCTION_FAIL_CLOSED_2026-10-19.md` for N-1 and rollback.
+
+**Important independent supply-chain finding:** Official SHA-256-verified Bun 1.4.2 `bun audit` on the existing `bun.lock` reports **1 Critical, 4 High, 4 Moderate, 3 Low** advisories; production scope still has **1 High** (`source-map-js`). `shell-quote@1.9.0` (via dev-only `concurrently`) is **Critical** and must be remediated safely. Functions npm lock audit: two Moderate, no High/Critical. No package versions were blindly changed, no dependencies installed, and no full Build/Typecheck/E2E tests were achieved. Exact audit evidence and remaining mandatory gate failures are documented in `docs/SECURITY_SCA_2026-10-19.json` and `docs/ENTERPRISE_IMPLEMENTATION_2026-10-19.md`. No GO, no merge, no production config change.
+
+
+### 2026-10-19 — Finalization: emulator port preflight, runner evidence and TTL NO-GO
+
+The Rules and Art17 Firebase profile actually reserves Firestore **8085**, hub **4405**, and logging **4505**; the old hard-coded port check omitted all three. The replacement reads the approved Firebase emulator config instead of guessing. Eight Node22 offline regressions PASS (including denial for port conflicts and unsafe production/fallback settings). All corresponding Rules/Art17 scripts execute this preflight before starting their isolated emulator. Correct dependency install is `bun ci`, not `npm ci` in the root app.
+
+A real Java21/Firestore Emulator process started locally using `firestore.rules` and `demo-klar`, but the sandbox crashed before any SDK tests; **actual integration was NOT completed**. Issue #70 20-group TTL offline gates PASS, while real staging ACTIVE policies, legal holds, data-lifecycle inventory and independent approval are **NOT VERIFIED**. GitHub Actions job #117997339276 used `ubuntu-latest`, received runner_id=0 and ran zero steps; Actions repository variables list was empty. Runner assignment/billing/platform cause requires administrator diagnostics, not an unverified YAML change. Root supply chain still has outstanding High/Critical advisories. **Release NO-GO**.
+
+See `docs/FINALIZATION_EMULATOR_RUNNER_TTL_2026-10-19.md` and `docs/ADR_FIRESTORE_EMULATOR_PORT_PREFLIGHT_2026-10-19.md` for evidence, rollback and N-1 compatibility.
+
+
+### 2026-10-19 — GO-Behauptung aus externem PDF nicht freigegeben (P0 Release-Governance)
+
+**Aktueller Status: NO-GO.** GitHub belegt weiterhin 15 offene Issues und ungemergte Draft-PR #119. Die externe PDF mit "GO / 0 Issues / alle Tests PASS" ist **keine** gültige Build-, Emulator-, Rechts- oder CI-Attestation. Das enthaltene Beispiel `referralRef.delete()` löscht Firestore-Subcollections nicht; die pauschale 30-Tage-Partner-Referral-Löschung ist ohne genehmigte Retention-/Legal-Hold-Matrix unzulässig als automatische Produktionsfreigabe.
+
+Die bisherige Produktionsfreigabeprüfung akzeptierte nur `KLAR_PRODUCTION_RELEASE_APPROVED=true`, selbst während `RELEASE_MANIFEST.json` noch NO-GO meldete. Sie wurde fail-closed um Manifest, vollständige Go-Live-Checkliste, 14 commitgebundene Gate-Belege, 13 Compliance/Emulator/TTL-Belege, sauberes Critical/High-SCA und unabhängige Security/DPO/Legal/SRE-Freigaben erweitert. Positive synthetische Tests belegen lediglich das Prüfungsschema, nicht die Echtheit einer externen Signatur. CI und produktiver Release bleiben bis zu echten Nachweisen gesperrt. ADR/Belege: `docs/ADR_RELEASE_GO_EVIDENCE_2026-10-19.md`, `docs/GO_CLAIM_AUDIT_2026-10-19.md`.
+
+
+### 2026-10-19 — Reproduzierbare Release-Guard-Validierung, weiterhin NO-GO
+
+Unter SHA-256-verifiziertem Node v22.23.3 wurden **45** fail-closed Release-Evidenztests und die Release-Workflow-Quellprüfung erfolgreich ausgeführt. Das reale `check-production-release-approval.mjs` verweigert bei gesetztem Test-Flag `KLAR_PRODUCTION_RELEASE_APPROVED=true` weiterhin die Produktion, solange das GitHub-Manifest NO-GO und fehlende echte Gate-Evidenz meldet. Dies ist das **korrekte erwartete Scheitern**, nicht eine fehlgeschlagene Regression. Der vollständige 14-Gate-Testdurchlauf meldete **5 PASS / 9 FAIL oder blockiert**: Enterprise/TypeScript-Modul fehlt; Root-npm-audit=ENOLOCK wegen Bun-only; Gitleaks/Semgrep fehlen; tsc/Vitest/firebase-tools/Playwright/Vite nicht vorhanden. **Kein GO, keine geschlossene Issue-Liste, keine unabhängigen Legal/DPO/Security/SRE-Signoffs.**
+
+Der unveränderte `bun.lock` darf nicht durch `npm ci` oder ein neues npm-Lockfile umgangen werden. Umfassende Sicherheits- und Integrationsbelege bleiben Pflicht. Weitere Details in `docs/GO_CLAIM_AUDIT_2026-10-19.md`.
+
+
+### 2026-10-19 – CODEOWNERS P1 #73 path alignment, NOT VERIFIED reviews
+
+The repository-root CODEOWNERS policy now explicitly covers active `phase2_work` authorization, Stripe, partner webhooks, Firestore/Storage rules, retention, release and workflows. Static Node path/mutation tests (6 tests) and the new `check:codeowners` source gate are integrated into `check:enterprise`. The repo is owned by a GitHub *User* account, while `@klar/...` organization team role names are inherited and their existence/write access and effective branch reviews remain **NOT VERIFIED**. GitHub CODEOWNERS uses the base branch, so Draft PR #119 cannot itself prove effective reviewer routing. Issue #73 and production status stay **NO-GO**. ADR: `docs/CODEOWNERS_GOVERNANCE_2026-10-19.md`.
+
+
+### 2026-10-19 — GO checklist parser fail-closed security regression
+
+The production release evidence checker formerly accepted an **empty** or title-only checklist and failed to recognize unchecked GitHub Flavored Markdown tasks using `*`, `+`, ordered numeric markers or extra whitespace. The checker now requires at least one task and rejects all unchecked or malformed task markers (`[-*+]`, `1.`, `2)` syntax). **55** synthetic structure/negative Node22 release-evidence regressions PASS; separate TTL, Art.17, emulator profile, CODEOWNERS and workflow source gates PASS. The real release approval checker still rejects the actual `NO-GO` manifest even when `KLAR_PRODUCTION_RELEASE_APPROVED=true` is provided in a negative test.
+
+**Compliance scope:** structural validation is not authentic signed CI evidence; actual Firestore Emulator transactions, live 20-group TTL and legal-hold approvals, full security scanning and independent Security/DPO/Legal/SRE signoff remain unverified. Preserve **NO-GO** and open Issues. ADR: `docs/ADR_GO_CHECKLIST_TASK_PARSER_2026-10-19.md`.
+
+
+#### Lokaler Mandatory-Gate-Lauf (19.10.2026, Node v22.23.3, SHA-256-verifiziert)
+
+**5/14 PASS; 9/14 FAIL oder nicht ausführbar.** PASS: `check-secrets.mjs`, `check-auth-boundary.mjs`, `check-public-firestore-rules.mjs`, `check-ai-pii-sanitizer.mjs` und `check-art17-deletion-audit.mjs 0`. FAIL/BLOCKIERT: `npm run check:enterprise` (TypeScript-Modul nicht installiert), Root-`npm audit --audit-level=high` (kein npm-Lockfile, Bun-only Root), Gitleaks und Semgrep (ohne installierte lokale Executables, kein Auto-Download), TypeScript, Vitest, Firebase Rules (`firebase-tools` fehlt), Playwright (nicht installiert), Build (`vite` fehlt). Dieses Ergebnis belegt **keinen vollständigen** Supply-Chain-/SAST-/Emulator-/Browser-Test; produktive Security/DPO/Legal/SRE-Abnahmen fehlen. Der Release-Status bleibt **NO-GO**. Der Checkout enthält nur den isolierten Arbeitsstand; keine produktive Cloud-Anpassung wurde vorgenommen.
+
+
+### 2026-10-19 — AI-Code-Review / CODEOWNERS bypass hardening, weiterhin NO-GO
+
+Semantisches AI-Code-Review entdeckte einen P1-Review-Guard-Fehler: lokale `CODEOWNERS`-Prüfung akzeptierte zusätzliche GitHub-Glob-/unanchored-Override-Regeln, die Security-/Finance-Zuständigkeit in GitHub überschreiben können. Weitere AI-Review-Runden entdeckten fehlende Prüfung für Literal-Directory ohne Slash, fehlendes globales `*` und fehlerhafte Team-Identitäten. Fail-closed-Korrektur und **24 Node-Regressionen PASS** im lokalen Workspace unter Node v22.23.3. Die unabhängige semantische AI-Quellprüfung der beiden ausführbaren Änderungen meldete nach Korrekturen **PASS (begrenzter Scope)**; der obligatorische statische ESLint-Lauf mit `npx --no-install eslint . --max-warnings=0` war wegen fehlender lokaler Abhängigkeiten **nicht ausführbar**, daher **AI-Code-Review insgesamt NICHT PASS**. Rechtmäßige reale GitHub-Team-/CODEOWNERS-/Branch-Protection-Reviews, echte TTL-/Firestore-Emulator-/SAST- und Supply-Chain-Nachweise fehlen. `zod` ist als Dependency vorhanden, `pino`, `ioredis`, `bullmq` nicht – ohne Architektur- und Security-Prüfung keine spekulativen Infrastrukturdependencies hinzufügen. ADR: `docs/ADR_CODEOWNERS_FAIL_CLOSED_AI_REVIEW_2026-10-19.md`; Review: `docs/AI_CODE_REVIEW_CODEOWNERS_2026-10-19.md`. **Release: NO-GO.**
+
+
+### 2026-10-19 — Enterprise Status & Compliance Dashboard (NO-GO)
+
+Das bestehende AdminHealthStatusWidget wurde als Enterprise-Statusanzeige mit geschütztem, read-only /api/admin/health-check und strict Boolean-/Freshness-Statusmodell neu implementiert. Vorherige /api/check-safety-POST sowie HTTP 400/401 als gesund und irreführende „Alle Systeme gesund“-Behauptungen wurden entfernt. SLO-P95, DSGVO Art.17/TTL, KI-Budget und CI-/Security-Gates werden ohne Datenquelle als **Nicht verifiziert** angezeigt. Auth-Wechsel invalidiert den Status und abgebrochene/alte Antworten werden verworfen.
+
+Das §312k-Audit-Widget zeigt nur begrenzte Marker-Zählwerte statt falscher 100%-/PII-frei-/Rechtskonformitätszusicherungen und verhindert stale Filter-Ergebnisse. Zehn native Node-Tests sind in `check:enterprise` aufgenommen. Diese Quell-/Modellprüfungen sind kein E2E- oder vollständiges AI-Code-Review. ADR: docs/ADR_ENTERPRISE_ADMIN_STATUS_2026-10-19.md; Review: docs/AI_CODE_REVIEW_ENTERPRISE_DASHBOARD_2026-10-19.md. **NO-GO**.
+
+
+#### Finale Validierungsrunde — 2026-10-19
+
+Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wurde mit SHA-256-verifiziertem Node 22.23.3 geprüft: **Enterprise-Dashboard 10/10 PASS**, CODEOWNERS 24/24 PASS, Release-GO-Review 55/55 PASS. Weitere statische/Offline-Tests für 20 TTL-Retention-Gruppen, Art.17 (18 Preflight-Fälle), Lockfiles und Release-Workflow PASS. Auf demselben Code: **5/14 Pflichtgates PASS** (Secrets, Auth-Boundary, Public Firestore Rules, AI PII Sanitizer, Art.17 Boundary), **9/14 FAIL oder nicht ausführbar** (Enterprise/TypeScript-Modul fehlt; Root-npm-audit ENOLOCK im Bun-only-Root; Gitleaks und Semgrep nicht vorhanden; tsc, Vitest, Firebase CLI, Playwright und Vite fehlen). Zusätzliches `npx --no-install eslint . --max-warnings=0`: **FAIL/nicht ausführbar**. Deshalb **AI-Code-Review gesamt NICHT PASS** und **Production NO-GO**. Echtzeit-Dashboard-SLO-, Art.17-/TTL-, KI-Budget- und Security-Gates bleiben ohne geeignete autorisierte Live-Messquelle ausdrücklich unbekannt; rechtliche Abnahmen und echte E2E-Tests fehlen.
+
+
+## P95-Typecheck-Korrektur – 23.10.2026
+
+Die SLO-Initialisierung liefert erst nach Validierung einen Zahlenwert. Fehlende, nichtnumerische, nichtendliche und nichtpositive Ziele verhindern weiterhin den Modulstart; das 300-ms-Ziel bleibt erhalten.
+
+Vor Merge vollständige CI auf dem korrigierten Commit unter gepinnter Toolchain prüfen und unabhängige Reviews einholen. PR #121 baut auf #119 auf. Production bleibt NO-GO; reale TTL-/Art17-/SRE-Nachweise bleiben offen. Rollback: Codeänderung und ergänzte Regressionen revertieren; keine Datenmigration oder Änderung produktiver Einstellungen.
+
+
+## Testprofile und CI-Abnahme – 23.10.2026
+
+Der allgemeine test:ci-Lauf verwendet firebase.json (lokaler Firestore-Port 8080). Der dedizierte Art17-Runner setzt KLAR_REQUIRE_FIRESTORE_EMULATOR=1 und prüft firebase.pruefung.json (8085). Port, lokale Adresse, demo-klar-Projekt, deaktivierter Durable-Fallback und nichtproduktiver Modus bleiben verpflichtend. Keine beliebige Portfreigabe und kein Überspringen der Löschtests. Beide Profile und die Ablehnung eines Profil-Port-Mismatch sind durch lokale Negativtests abgedeckt.
+
+Widget-Erwartungen und Referral-Testdaten wurden an das vorhandene Sicherheitsverhalten angepasst. Vor Merge vollständige CI auf demselben Head prüfen; keine Produktionsfreigabe aus Offline-Checks ableiten. Rollback: zugehörige Test-/Guard-Änderungen revertieren; keine Datenmigration oder Cloud-Änderung.
