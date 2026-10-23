@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { technicalOwner } from './codeowners-review-policy.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 // The policy below deliberately uses only literal repository-root paths,
@@ -23,36 +25,40 @@ export function ownersForPath(source, filePath) {
 }
 
 export const requiredOwnership = Object.freeze({
-  'phase2_work/src/server/authorization.ts': ['@klar/security'],
-  'phase2_work/src/server/trustAndSafety.ts': ['@klar/security'],
-  'phase2_work/src/server/routes/partnerReferrals.ts': ['@klar/security', '@klar/finance'],
-  'phase2_work/src/server/partnerReferralCore.ts': ['@klar/security'],
-  'phase2_work/src/server/partnerReferralService.ts': ['@klar/security', '@klar/finance'],
-  'phase2_work/src/server/stripeService.ts': ['@klar/security', '@klar/finance'],
-  'phase2_work/src/server/cspRuntimePolicy.ts': ['@klar/security'],
-  'phase2_work/server.ts': ['@klar/security'],
-  'phase2_work/firestore.rules': ['@klar/security'],
-  'phase2_work/storage.rules': ['@klar/security'],
-  'phase2_work/scripts/configure-retention.sh': ['@klar/security'],
-  'phase2_work/scripts/check-production-release-approval.mjs': ['@klar/security'],
-  'phase2_work/RELEASE_MANIFEST.json': ['@klar/security'],
-  'phase2_work/docs/DATA_RETENTION.md': ['@klar/security'],
-  'phase2_work/GO_LIVE_CHECKLIST.md': ['@klar/security'],
-  '.github/workflows/release.yml': ['@klar/security'],
-  'CODEOWNERS': ['@klar/security'],
+  'phase2_work/src/server/authorization.ts': [technicalOwner],
+  'phase2_work/src/server/trustAndSafety.ts': [technicalOwner],
+  'phase2_work/src/server/routes/partnerReferrals.ts': [technicalOwner],
+  'phase2_work/src/server/partnerReferralCore.ts': [technicalOwner],
+  'phase2_work/src/server/partnerReferralService.ts': [technicalOwner],
+  'phase2_work/src/server/stripeService.ts': [technicalOwner],
+  'phase2_work/src/server/cspRuntimePolicy.ts': [technicalOwner],
+  'phase2_work/server.ts': [technicalOwner],
+  'phase2_work/firestore.rules': [technicalOwner],
+  'phase2_work/storage.rules': [technicalOwner],
+  'phase2_work/scripts/configure-retention.sh': [technicalOwner],
+  'phase2_work/scripts/check-production-release-approval.mjs': [technicalOwner],
+  'phase2_work/RELEASE_MANIFEST.json': [technicalOwner],
+  'phase2_work/docs/DATA_RETENTION.md': [technicalOwner],
+  'phase2_work/GO_LIVE_CHECKLIST.md': [technicalOwner],
+  '.github/workflows/release.yml': [technicalOwner],
+  'CODEOWNERS': [technicalOwner],
+  'phase2_work/scripts/check-codeowners.mjs': [technicalOwner],
+  'phase2_work/scripts/test-codeowners.mjs': [technicalOwner],
+  'phase2_work/scripts/codeowners-review-policy.mjs': [technicalOwner],
+  'phase2_work/scripts/check-codeowners-owner.mjs': [technicalOwner],
 });
 
 export function checkCodeowners(source) {
   const failures = [];
-  // Require a real repository-wide engineering default. A file-specific
+  // Require a real repository-wide technical owner default. A file-specific
   // ChatView assignment must not substitute ownership of unrelated code.
   if (!source.split(/\r?\n/).some(raw => {
     const [pattern, ...owners] = raw.trim().split(/\s+/);
-    return pattern === '*' && owners.includes('@klar/engineering');
-  })) failures.push('Missing CODEOWNERS repository-wide engineering default');
+    return pattern === '*' && owners.includes(technicalOwner);
+  })) failures.push('Missing CODEOWNERS repository-wide technical owner default');
   // GitHub honors glob patterns and the LAST matching line wins. Our
   // deterministic matcher supports only '/', exact paths and the default '*'.
-  // Any other glob could override a specialist owner without being evaluated:
+  // Any other glob could override an explicit protected-path rule:
   // fail closed rather than pretending the recorded ownership is sufficient.
   for (const [index, raw] of source.split(/\r?\n/).entries()) {
     const line = raw.trim();
@@ -61,18 +67,27 @@ export function checkCodeowners(source) {
     if (pattern !== '*' && (!pattern.startsWith('/') || /[*?\[\]\\]/.test(pattern))) {
       failures.push(`Line ${index + 1}: unsupported CODEOWNERS pattern: ${pattern}`);
     }
+    if (owners.some(owner => owner !== technicalOwner)) failures.push(`Line ${index + 1}: unverified technical owner`);
     if (!owners.length || !owners.every(owner => /^@[A-Za-z0-9][A-Za-z0-9-]*(?:\/[A-Za-z0-9][A-Za-z0-9-]*)?$/.test(owner))) {
       failures.push(`Line ${index + 1}: invalid or missing CODEOWNERS reviewer identity`);
     }
   }
   for (const [file, required] of Object.entries(requiredOwnership)) {
     const owners = ownersForPath(source, file);
+    const expectedPattern = file === '.github/workflows/release.yml' ? '/.github/workflows/' : '/' + file;
+    const matchingPatterns = source.split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'))
+      .map(line => line.split(/\s+/)[0])
+      .filter(pattern => pattern === '*' || (pattern.startsWith('/') &&
+        (file === pattern.slice(1) || file.startsWith(pattern.slice(1).replace(/\/$/, '') + '/'))));
+    if (matchingPatterns.at(-1) !== expectedPattern) failures.push(file + ': missing or overridden explicit protected-path rule');
     for (const owner of required) {
-      if (!owners.includes(owner)) failures.push(file + ': missing specialized owner ' + owner);
+      if (!owners.includes(owner)) failures.push(file + ': missing technical owner ' + owner);
     }
   }
   const general = ownersForPath(source, 'phase2_work/src/components/ChatView.tsx');
-  if (!general.includes('@klar/engineering')) failures.push('Missing engineering default for active app');
+  if (!general.includes(technicalOwner)) failures.push('Missing technical owner default for active app');
   return failures;
 }
 
@@ -83,6 +98,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error('CODEOWNERS path policy FAILED:\n' + errors.join('\n'));
     process.exitCode = 1;
   } else {
-    console.log('CODEOWNERS active-path policy PASS (static paths only; GitHub team permissions and branch rules NOT VERIFIED).');
+    console.log('CODEOWNERS technical ownership PASS; independent specialist approval is a separate production gate.');
   }
 }
