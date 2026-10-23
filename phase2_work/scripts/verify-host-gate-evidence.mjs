@@ -35,10 +35,14 @@ const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 // Open the file descriptor with O_NOFOLLOW so a file replaced by an attacker
 // between directory inspection and opening cannot redirect reads outside results/.
+// Reject hardlinks: O_NOFOLLOW alone protects only symlinks, not an alias to
+// another file on the same filesystem (including a sensitive host-side file).
 function openRegularNoFollow(path) {
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
-    if (!fstatSync(fd).isFile()) throw new Error('not a regular file: ' + basename(path));
+    const stat = fstatSync(fd);
+    if (!stat.isFile()) throw new Error('not a regular file: ' + basename(path));
+    if (stat.nlink !== 1) throw new Error('hard-linked evidence file: ' + basename(path));
     return fd;
   } catch (err) {
     closeSync(fd);
@@ -46,12 +50,30 @@ function openRegularNoFollow(path) {
   }
 }
 
-function readSmall(path, max = 2_000_000) {
+function sameFileSnapshot(before, after) {
+  return before.isFile() && after.isFile() && before.nlink === 1 && after.nlink === 1 &&
+    before.dev === after.dev && before.ino === after.ino && before.size === after.size &&
+    before.mtimeMs === after.mtimeMs && before.ctimeMs === after.ctimeMs;
+}
+
+// The very bytes interpreted as trusted evidence must match the SHA256SUMS
+// entry. Hashing a pathname earlier is insufficient: it may have changed.
+function readSmall(path, max = 2_000_000, expectedHash = null) {
   const fd = openRegularNoFollow(path);
   try {
-    const size = fstatSync(fd).size;
-    if (size > max) throw new Error('not a bounded file: ' + basename(path));
-    return readFileSync(fd, 'utf8');
+    const before = fstatSync(fd);
+    if (before.size > max) throw new Error('not a bounded file: ' + basename(path));
+    const buffer = readFileSync(fd);
+    const after = fstatSync(fd);
+    const finalPath = lstatSync(path);
+    if (buffer.length > max || !sameFileSnapshot(before, after) ||
+        !sameFileSnapshot(before, finalPath)) {
+      throw new Error('evidence modified during read: ' + basename(path));
+    }
+    if (expectedHash !== null && createHash('sha256').update(buffer).digest('hex') !== expectedHash) {
+      throw new Error('SHA256 mismatch on interpreted evidence: ' + basename(path));
+    }
+    return buffer.toString('utf8');
   } finally { closeSync(fd); }
 }
 
@@ -74,10 +96,17 @@ function parseManifest(value) {
 
 async function hashFile(path) {
   const fd = openRegularNoFollow(path);
-  const digest = createHash('sha256');
-  // autoClose:true owns the descriptor after streaming, including read errors.
-  for await (const chunk of createReadStream(path, { fd, autoClose: true })) digest.update(chunk);
-  return digest.digest('hex');
+  try {
+    const before = fstatSync(fd);
+    const digest = createHash('sha256');
+    // Keep the descriptor until the final snapshot checks complete.
+    for await (const chunk of createReadStream(path, { fd, autoClose: false })) digest.update(chunk);
+    if (!sameFileSnapshot(before, fstatSync(fd)) ||
+        !sameFileSnapshot(before, lstatSync(path))) {
+      throw new Error('evidence modified during hashing: ' + basename(path));
+    }
+    return digest.digest('hex');
+  } finally { closeSync(fd); }
 }
 
 export async function screenEvidence(dir, expectedSha) {
@@ -109,7 +138,7 @@ export async function screenEvidence(dir, expectedSha) {
   }
   const read = (name) => {
     if (!hashes.has(name)) { error('required file missing from SHA256SUMS: ' + name); return null; }
-    try { return readSmall(join(root, name)); }
+    try { return readSmall(join(root, name), 2_000_000, hashes.get(name)); }
     catch (e) { error('cannot read ' + name + ': ' + e.message); return null; }
   };
   // Reject contradictory duplicate identity lines; extra host diagnostics may
@@ -157,6 +186,11 @@ export async function screenEvidence(dir, expectedSha) {
       if (exit !== null && exit.trim() !== '0') error('gate exit file nonzero: ' + id);
       if (!hashes.has(logName)) error('gate log missing: ' + id);
       else if (row[4] !== hashes.get(logName)) error('gate log hash differs from manifest: ' + id);
+      // An empty file is not a complete individual test log, even if the
+      // exit-code file and TSV both claim success and all hashes match.
+      try {
+        if (lstatSync(join(root, logName)).size === 0) error('empty mandatory gate log: ' + id);
+      } catch { /* The previous hash/file presence checks already report this. */ }
     }
   }
   // Independent approvals are produced AFTER the sealed technical host run.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync, mkdirSync, readdirSync} from 'node:fs';
+import {mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync, mkdirSync, readdirSync, linkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {sealHostEvidence} from './seal-host-gate-evidence.mjs';
@@ -62,5 +62,15 @@ test('a zero-byte log is hashed rather than omitted',async()=>{
   const r=await sealHostEvidence(f.dir);
   assert.equal(r.entries,1);
   assert.match(readFileSync(join(f.dir,'SHA256SUMS'),'utf8'),new RegExp('^'+hash('')+'  gate-01\\.log'));
+ }finally{f.cleanup();}
+});
+
+test('a hard-linked evidence file is refused instead of leaking an external file through the manifest',async()=>{
+ const f=fixture();try {
+  const outside=join(f.dir,'original.log');
+  writeFileSync(outside,'sensitive local data\n');
+  linkSync(outside,join(f.dir,'gate-01.log'));
+  await assert.rejects(sealHostEvidence(f.dir),/hard-linked evidence file/);
+  assert(!readdirSync(f.dir).includes('SHA256SUMS'));
  }finally{f.cleanup();}
 });

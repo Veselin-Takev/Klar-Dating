@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, symlinkSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, symlinkSync, unlinkSync, linkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { REQUIRED_GATES, screenEvidence } from './verify-host-gate-evidence.mjs';
@@ -129,3 +129,41 @@ test('no approval receipt files can screen technical evidence but never release'
   assert(r.approval_receipts.every(x=>!x.receipt_present&&!x.identity_verified));
  }finally{f.cleanup();}
 });
+
+test('a hard-linked gate log is rejected even if its content and SHA256SUMS are consistent', async()=>{
+  const f=fixture();try {
+    const alias=join(f.dir,'gate-01.log');
+    const elsewhere=join(f.dir,'independent-evidence.log');
+    const contents=f.files.get('gate-01.log');
+    writeFileSync(elsewhere,contents);
+    unlinkSync(alias);
+    linkSync(elsewhere,alias);
+    f.files.set('independent-evidence.log',contents);
+    f.refresh();
+    const r=await screenEvidence(f.dir,SHA);
+    assert.equal(r.technical_evidence_pass,false);
+    assert(r.errors.some(x=>x.includes('hard-linked evidence file: gate-01.log')),JSON.stringify(r.errors));
+    assert.equal(r.release_decision,'NO-GO');
+  } finally {f.cleanup();}
+});
+
+test('empty gate output is incomplete even with a matching log hash and exit code zero',async()=>caseOf(f=>{
+  const log='gate-05.log',body='';
+  const lines=f.files.get('gates.tsv').split('\n');
+  const row=lines[5].split('\t');
+  row[4]=hash(body);
+  lines[5]=row.join('\t');
+  const tsv=lines.join('\n');
+  f.files.set('gates.tsv',tsv);
+  f.files.set(log,body);
+  writeFileSync(join(f.dir,'gates.tsv'),tsv);
+  writeFileSync(join(f.dir,log),body);
+  f.refresh();
+},'empty mandatory gate log: 05'));
+
+test('oversized semantic metadata cannot be parsed as trusted evidence',async()=>caseOf(f=>{
+  const body=f.files.get('baseline.txt')+'comment='+('x'.repeat(2_000_010))+'\n';
+  f.files.set('baseline.txt',body);
+  writeFileSync(join(f.dir,'baseline.txt'),body);
+  f.refresh();
+},'not a bounded file: baseline.txt'));

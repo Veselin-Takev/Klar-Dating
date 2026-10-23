@@ -20,6 +20,7 @@ function fileNoFollow(path) {
   try {
     const st = fstatSync(fd);
     if (!st.isFile()) throw new Error(`not a regular evidence file: ${basename(path)}`);
+    if (st.nlink !== 1) throw new Error(`hard-linked evidence file: ${basename(path)}`);
     return { fd, st };
   } catch (e) { closeSync(fd); throw e; }
 }
@@ -30,7 +31,8 @@ async function hashFile(path) {
   for await (const chunk of createReadStream(path, {fd, autoClose: true})) h.update(chunk);
   const after = lstatSync(path);
   // A change while hashing is cause for rejection, not an acceptable snapshot.
-  if (!after.isFile() || after.ino !== st.ino || after.size !== st.size ||
+  if (!after.isFile() || after.nlink !== 1 || after.dev !== st.dev ||
+      after.ino !== st.ino || after.size !== st.size ||
       after.mtimeMs !== st.mtimeMs || after.ctimeMs !== st.ctimeMs) {
     throw new Error(`file changed while collecting evidence: ${basename(path)}`);
   }
@@ -68,6 +70,12 @@ export async function sealHostEvidence(inputDir) {
   // Re-hash immediately before publishing the manifest to catch unstable writers.
   for (const name of names) {
     if (await hashFile(join(dir,name)) !== hashes.get(name)) throw new Error(`evidence changed during sealing: ${name}`);
+  }
+  // Reject newly created, removed or replaced directory entries before
+  // committing a manifest. A closed evidence directory must remain quiescent.
+  const current = readdirSync(dir, {withFileTypes:true}).map(f=>f.name).sort();
+  if (current.length !== names.length || current.some((n,i)=>n !== names[i])) {
+    throw new Error('evidence directory entries changed during sealing');
   }
   const content = names.map(name => `${hashes.get(name)}  ${name}`).join('\n') + '\n';
   const temp = join(dir, `SHA256SUMS.tmp-${randomBytes(12).toString('hex')}`);
