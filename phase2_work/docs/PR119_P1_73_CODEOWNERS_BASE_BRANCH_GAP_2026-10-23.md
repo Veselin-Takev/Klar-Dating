@@ -39,3 +39,8 @@ Local targeted regression tests: **26/26 PASS** on Node v22.16.0 (unqualified ru
 Official docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners . Issue: https://github.com/Veselin-Takev/Klar-Dating/issues/73 .
 
 **P1 #73 OPEN. Mandatory host PASS 0/15 evidenced. Independent final approvals 0/4. PRODUCTION NO-GO.**
+
+
+## Read-only checker integration (2026-10-23)
+
+The exact tested `scripts/screen-pr119-base-codeowners.mjs`, its 26 local tests and pinned base/head `CODEOWNERS` fixtures are now integrated on **the isolated audit branch only**. Repeated local tests: **26/26 PASS** on Node.js **22.16.0**. Actual pinned-source CLI: **exit 1 / `BASE_CODEOWNERS_SPECIALIST_GAP` / NO-GO**, base **0/17** specialist paths and head **17/17**. Historical input blobs match the immutable PR base/head trees. This tool does **not** authenticate a live GitHub permissions/ruleset configuration; CODEOWNERS of the actual base branch and authenticated independent reviews remain missing. No original source, main, base or PR branch modification; no CI, paid runner or production change. P1 #73 OPEN, 0/15 qualified host-gate PASS, 0/4 final independent approvals.

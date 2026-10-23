@@ -18,7 +18,7 @@ GitHub's documented behavior is to evaluate CODEOWNERS on the PR **base**, while
 
 ## Verification and rollback
 
-The new base-vs-head screen is a **local, nonintegrated candidate**, pinned to the exact two Git blobs and limited to observed anchored patterns. It intentionally reports **exit 1 / NO-GO**. 26/26 local tests passed under Node.js 22.16.0, not the mandatory 22.23.3 host. Any future integration belongs only on the isolated audit branch. Revert this audit-only ADR/companion report to undo its documentation, but note that rollback cannot correct missing GitHub reviews.
+The base-vs-head screen and its 26 tests are integrated **on the isolated audit branch only**, pinned to the exact two Git blobs and limited to observed anchored patterns. It intentionally reports **exit 1 / NO-GO**. 26/26 local tests passed under Node.js 22.16.0, not the mandatory 22.23.3 host. The integration changes **no base-branch CODEOWNERS enforcement**, verifies no identities and grants no release-gate credit. Revert this audit-only ADR/companion report to undo its documentation, but note that rollback cannot correct missing GitHub reviews.
 
 **0/15 qualified host gate PASS; 0/4 authenticated independent final release approvals. Issue #73 remains OPEN.**
 

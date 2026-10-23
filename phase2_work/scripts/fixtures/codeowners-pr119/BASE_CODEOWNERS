@@ -1,0 +1,7 @@
+* @klar/engineering
+/src/server/authorization.ts @klar/security @klar/engineering
+/src/server/stripeService.ts @klar/finance @klar/engineering
+/firestore.rules @klar/security @klar/engineering
+/storage.rules @klar/security @klar/engineering
+/.github/ @klar/engineering
+/.gitlab-ci.yml @klar/engineering
