@@ -43,3 +43,46 @@ Die App ist als Single-Page Application (React/Vite) mit einem Express-Backend u
 - [ ] **Soft-Launch (Beta):** Freigabe an eine geschlossene Gruppe.
 - [ ] **Wartungsmodus:** Verifizieren, dass der Wartungsmodus über das Firestore-Dokument `config/maintenance` in Echtzeit (ohne Neuladen) gesteuert werden kann.
 - [ ] **Marketing & App-Store:** Bereitstellung von Screenshots und Metadaten für den Release.
+
+
+### 2026-10-19 — GO-Behauptung aus externem PDF nicht freigegeben (P0 Release-Governance)
+
+**Aktueller Status: NO-GO.** GitHub belegt weiterhin 15 offene Issues und ungemergte Draft-PR #119. Die externe PDF mit "GO / 0 Issues / alle Tests PASS" ist **keine** gültige Build-, Emulator-, Rechts- oder CI-Attestation. Das enthaltene Beispiel `referralRef.delete()` löscht Firestore-Subcollections nicht; die pauschale 30-Tage-Partner-Referral-Löschung ist ohne genehmigte Retention-/Legal-Hold-Matrix unzulässig als automatische Produktionsfreigabe.
+
+Die bisherige Produktionsfreigabeprüfung akzeptierte nur `KLAR_PRODUCTION_RELEASE_APPROVED=true`, selbst während `RELEASE_MANIFEST.json` noch NO-GO meldete. Sie wurde fail-closed um Manifest, vollständige Go-Live-Checkliste, 14 commitgebundene Gate-Belege, 13 Compliance/Emulator/TTL-Belege, sauberes Critical/High-SCA und unabhängige Security/DPO/Legal/SRE-Freigaben erweitert. Positive synthetische Tests belegen lediglich das Prüfungsschema, nicht die Echtheit einer externen Signatur. CI und produktiver Release bleiben bis zu echten Nachweisen gesperrt. ADR/Belege: `docs/ADR_RELEASE_GO_EVIDENCE_2026-10-19.md`, `docs/GO_CLAIM_AUDIT_2026-10-19.md`.
+
+
+### 2026-10-19 — Reproduzierbare Release-Guard-Validierung, weiterhin NO-GO
+
+Unter SHA-256-verifiziertem Node v22.23.3 wurden **45** fail-closed Release-Evidenztests und die Release-Workflow-Quellprüfung erfolgreich ausgeführt. Das reale `check-production-release-approval.mjs` verweigert bei gesetztem Test-Flag `KLAR_PRODUCTION_RELEASE_APPROVED=true` weiterhin die Produktion, solange das GitHub-Manifest NO-GO und fehlende echte Gate-Evidenz meldet. Dies ist das **korrekte erwartete Scheitern**, nicht eine fehlgeschlagene Regression. Der vollständige 14-Gate-Testdurchlauf meldete **5 PASS / 9 FAIL oder blockiert**: Enterprise/TypeScript-Modul fehlt; Root-npm-audit=ENOLOCK wegen Bun-only; Gitleaks/Semgrep fehlen; tsc/Vitest/firebase-tools/Playwright/Vite nicht vorhanden. **Kein GO, keine geschlossene Issue-Liste, keine unabhängigen Legal/DPO/Security/SRE-Signoffs.**
+
+Der unveränderte `bun.lock` darf nicht durch `npm ci` oder ein neues npm-Lockfile umgangen werden. Umfassende Sicherheits- und Integrationsbelege bleiben Pflicht. Weitere Details in `docs/GO_CLAIM_AUDIT_2026-10-19.md`.
+
+
+### 2026-10-19 — GO checklist parser fail-closed security regression
+
+The production release evidence checker formerly accepted an **empty** or title-only checklist and failed to recognize unchecked GitHub Flavored Markdown tasks using `*`, `+`, ordered numeric markers or extra whitespace. The checker now requires at least one task and rejects all unchecked or malformed task markers (`[-*+]`, `1.`, `2)` syntax). **55** synthetic structure/negative Node22 release-evidence regressions PASS; separate TTL, Art.17, emulator profile, CODEOWNERS and workflow source gates PASS. The real release approval checker still rejects the actual `NO-GO` manifest even when `KLAR_PRODUCTION_RELEASE_APPROVED=true` is provided in a negative test.
+
+**Compliance scope:** structural validation is not authentic signed CI evidence; actual Firestore Emulator transactions, live 20-group TTL and legal-hold approvals, full security scanning and independent Security/DPO/Legal/SRE signoff remain unverified. Preserve **NO-GO** and open Issues. ADR: `docs/ADR_GO_CHECKLIST_TASK_PARSER_2026-10-19.md`.
+
+
+#### Lokaler Mandatory-Gate-Lauf (19.10.2026, Node v22.23.3, SHA-256-verifiziert)
+
+**5/14 PASS; 9/14 FAIL oder nicht ausführbar.** PASS: `check-secrets.mjs`, `check-auth-boundary.mjs`, `check-public-firestore-rules.mjs`, `check-ai-pii-sanitizer.mjs` und `check-art17-deletion-audit.mjs 0`. FAIL/BLOCKIERT: `npm run check:enterprise` (TypeScript-Modul nicht installiert), Root-`npm audit --audit-level=high` (kein npm-Lockfile, Bun-only Root), Gitleaks und Semgrep (ohne installierte lokale Executables, kein Auto-Download), TypeScript, Vitest, Firebase Rules (`firebase-tools` fehlt), Playwright (nicht installiert), Build (`vite` fehlt). Dieses Ergebnis belegt **keinen vollständigen** Supply-Chain-/SAST-/Emulator-/Browser-Test; produktive Security/DPO/Legal/SRE-Abnahmen fehlen. Der Release-Status bleibt **NO-GO**. Der Checkout enthält nur den isolierten Arbeitsstand; keine produktive Cloud-Anpassung wurde vorgenommen.
+
+
+### 2026-10-19 — AI-Code-Review / CODEOWNERS bypass hardening, weiterhin NO-GO
+
+Semantisches AI-Code-Review entdeckte einen P1-Review-Guard-Fehler: lokale `CODEOWNERS`-Prüfung akzeptierte zusätzliche GitHub-Glob-/unanchored-Override-Regeln, die Security-/Finance-Zuständigkeit in GitHub überschreiben können. Weitere AI-Review-Runden entdeckten fehlende Prüfung für Literal-Directory ohne Slash, fehlendes globales `*` und fehlerhafte Team-Identitäten. Fail-closed-Korrektur und **24 Node-Regressionen PASS** im lokalen Workspace unter Node v22.23.3. Die unabhängige semantische AI-Quellprüfung der beiden ausführbaren Änderungen meldete nach Korrekturen **PASS (begrenzter Scope)**; der obligatorische statische ESLint-Lauf mit `npx --no-install eslint . --max-warnings=0` war wegen fehlender lokaler Abhängigkeiten **nicht ausführbar**, daher **AI-Code-Review insgesamt NICHT PASS**. Rechtmäßige reale GitHub-Team-/CODEOWNERS-/Branch-Protection-Reviews, echte TTL-/Firestore-Emulator-/SAST- und Supply-Chain-Nachweise fehlen. `zod` ist als Dependency vorhanden, `pino`, `ioredis`, `bullmq` nicht – ohne Architektur- und Security-Prüfung keine spekulativen Infrastrukturdependencies hinzufügen. ADR: `docs/ADR_CODEOWNERS_FAIL_CLOSED_AI_REVIEW_2026-10-19.md`; Review: `docs/AI_CODE_REVIEW_CODEOWNERS_2026-10-19.md`. **Release: NO-GO.**
+
+
+### 2026-10-19 — Enterprise Status & Compliance Dashboard (NO-GO)
+
+Das bestehende AdminHealthStatusWidget wurde als Enterprise-Statusanzeige mit geschütztem, read-only /api/admin/health-check und strict Boolean-/Freshness-Statusmodell neu implementiert. Vorherige /api/check-safety-POST sowie HTTP 400/401 als gesund und irreführende „Alle Systeme gesund“-Behauptungen wurden entfernt. SLO-P95, DSGVO Art.17/TTL, KI-Budget und CI-/Security-Gates werden ohne Datenquelle als **Nicht verifiziert** angezeigt. Auth-Wechsel invalidiert den Status und abgebrochene/alte Antworten werden verworfen.
+
+Das §312k-Audit-Widget zeigt nur begrenzte Marker-Zählwerte statt falscher 100%-/PII-frei-/Rechtskonformitätszusicherungen und verhindert stale Filter-Ergebnisse. Zehn native Node-Tests sind in `check:enterprise` aufgenommen. Diese Quell-/Modellprüfungen sind kein E2E- oder vollständiges AI-Code-Review. ADR: docs/ADR_ENTERPRISE_ADMIN_STATUS_2026-10-19.md; Review: docs/AI_CODE_REVIEW_ENTERPRISE_DASHBOARD_2026-10-19.md. **NO-GO**.
+
+
+#### Finale Validierungsrunde — 2026-10-19
+
+Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wurde mit SHA-256-verifiziertem Node 22.23.3 geprüft: **Enterprise-Dashboard 10/10 PASS**, CODEOWNERS 24/24 PASS, Release-GO-Review 55/55 PASS. Weitere statische/Offline-Tests für 20 TTL-Retention-Gruppen, Art.17 (18 Preflight-Fälle), Lockfiles und Release-Workflow PASS. Auf demselben Code: **5/14 Pflichtgates PASS** (Secrets, Auth-Boundary, Public Firestore Rules, AI PII Sanitizer, Art.17 Boundary), **9/14 FAIL oder nicht ausführbar** (Enterprise/TypeScript-Modul fehlt; Root-npm-audit ENOLOCK im Bun-only-Root; Gitleaks und Semgrep nicht vorhanden; tsc, Vitest, Firebase CLI, Playwright und Vite fehlen). Zusätzliches `npx --no-install eslint . --max-warnings=0`: **FAIL/nicht ausführbar**. Deshalb **AI-Code-Review gesamt NICHT PASS** und **Production NO-GO**. Echtzeit-Dashboard-SLO-, Art.17-/TTL-, KI-Budget- und Security-Gates bleiben ohne geeignete autorisierte Live-Messquelle ausdrücklich unbekannt; rechtliche Abnahmen und echte E2E-Tests fehlen.

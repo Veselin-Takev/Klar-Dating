@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InterestsSettings } from '../components/InterestsSettings';
 import { BackNavigation } from '../components/BackNavigation';
@@ -7,19 +7,48 @@ import { useModalAccessibility } from '../lib/useModalAccessibility';
 
 export function ProfileSettings({ initialInterests, onSave }: { initialInterests: string[], onSave: (interests: string[]) => void }) {
   const { t } = useTranslation();
-  const { logOut } = useAuth();
-  const [interests, setInterests] = useState<string[]>(initialInterests || []);
+  const { user, logOut, updateProfileData } = useAuth();
+  const initialInterestsKey = JSON.stringify(initialInterests ?? []);
+  const [interests, setInterests] = useState<string[]>(() => [...(initialInterests ?? [])]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const saveRequest = useRef(0);
+  const saveInFlight = useRef(false);
+  useEffect(() => {
+    saveInFlight.current = false;
+    setSaving(false);
+    return () => { ++saveRequest.current; };
+  }, [user?.uid]);
+  // A different profile/authoritative prop update invalidates local draft state.
+  // The stable serialized key avoids resetting edits on parent re-renders.
+  useEffect(() => {
+    setInterests(JSON.parse(initialInterestsKey) as string[]);
+    setSaveError(false);
+  }, [initialInterestsKey, user?.uid]);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const logoutTitleId = useId();
   const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(() => setShowLogoutConfirm(false), showLogoutConfirm);
 
   const handleSave = async () => {
-    await fetch('/api/profile/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ interests }),
-    });
-    onSave(interests);
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    const request = ++saveRequest.current;
+    const savedInterests = [...interests];
+    setSaving(true);
+    setSaveError(false);
+    try {
+      // AuthContext writes via Firebase and validates the authoritative server
+      // readback. Never report success based only on an HTTP response status.
+      await updateProfileData({ interests: savedInterests });
+      if (request === saveRequest.current) onSave(savedInterests);
+    } catch {
+      if (request === saveRequest.current) setSaveError(true);
+    } finally {
+      if (request === saveRequest.current) {
+        saveInFlight.current = false;
+        setSaving(false);
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -39,11 +68,18 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
 
       <button
         type="button"
-        onClick={handleSave}
-        className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+        onClick={() => { void handleSave(); }}
+        disabled={saving}
+        aria-describedby={saveError ? 'profile-settings-save-error' : undefined}
+        className="w-full min-h-11 disabled:opacity-50 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition-colors"
       >
-        {t('actions.save')}
+        {saving ? 'Speichert …' : t('actions.save')}
       </button>
+      {saveError && (
+        <p id="profile-settings-save-error" role="alert" className="text-sm text-red-700 dark:text-red-300">
+          Die Änderungen konnten nicht bestätigt werden. Bitte erneut versuchen.
+        </p>
+      )}
 
       <div className="pt-4 border-t border-gray-200">
         <p className="text-sm text-gray-500 mb-3">App-Version</p>

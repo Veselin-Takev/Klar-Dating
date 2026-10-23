@@ -9,6 +9,19 @@ const file = path.join(workflowDir, "release.yml");
 const text = fs.readFileSync(file, "utf8");
 const identityText = fs.readFileSync(path.join(scriptDir, "write-release-identity.mjs"), "utf8");
 const failures = [];
+const releaseApprovalText = fs.readFileSync(path.join(scriptDir, 'check-production-release-approval.mjs'), 'utf8');
+const packageScripts = JSON.parse(fs.readFileSync(path.join(scriptDir, '..', 'package.json'), 'utf8')).scripts;
+if (!String(packageScripts['check:enterprise'] ?? '').includes('npm run check:release-go-evidence') ||
+    !String(packageScripts['check:release-go-evidence'] ?? '').includes('test-release-go-evidence.mjs')) {
+  failures.push('Enterprise CI must execute the fail-closed GO release evidence regression suite.');
+}
+
+if (!releaseApprovalText.includes('collectReleaseApprovalFailures') ||
+    !releaseApprovalText.includes('RELEASE_MANIFEST.json') ||
+    !releaseApprovalText.includes('GO_LIVE_CHECKLIST.md')) {
+  failures.push('Production approval must verify the repository manifest and Go-Live evidence, not just a protected variable.');
+}
+
 const releaseImage = 'ghcr.io/${{ github.repository_owner }}/klar-app';
 if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !text.includes("uses: actions/attest@7d8b1cacecb65f487779b3b98fd5296a018d1a1b") || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
   failures.push("Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.");
