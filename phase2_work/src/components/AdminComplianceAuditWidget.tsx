@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileSpreadsheet,
   Download,
@@ -22,41 +22,48 @@ export function AdminComplianceAuditWidget() {
   const [filterKind, setFilterKind] = useState<'all' | 'cancel' | 'withdraw'>('all');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const loadSequence = useRef(0);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    const request = ++loadSequence.current;
     setLoading(true);
+    setRecords([]);
     setErrorMessage(null);
     try {
       const data = await fetchComplianceAuditLogs({ kind: filterKind, limit: 100 });
-      setRecords(data);
-    } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Fehler beim Laden der Konformitäts-Logs');
+      if (request === loadSequence.current) setRecords(data);
+    } catch {
+      if (request === loadSequence.current) setErrorMessage('Audit-Auszug nicht verfügbar.');
     } finally {
-      setLoading(false);
+      if (request === loadSequence.current) setLoading(false);
     }
-  };
+  }, [filterKind]);
 
   useEffect(() => {
-    loadData();
-  }, [filterKind]);
+    void loadData();
+    return () => { loadSequence.current += 1; };
+  }, [loadData]);
+  useEffect(() => () => { if (successTimer.current !== null) clearTimeout(successTimer.current); }, []);
 
   const handleExportCSV = async () => {
     setExporting(true);
+    if (successTimer.current !== null) clearTimeout(successTimer.current);
     setSuccessMessage(null);
     setErrorMessage(null);
     try {
       const filename = await downloadComplianceAuditCSV({ kind: filterKind, delimiter: ';' });
-      setSuccessMessage(`CSV-Export erfolgreich heruntergeladen: ${filename}`);
-      setTimeout(() => setSuccessMessage(null), 6000);
-    } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Export fehlgeschlagen');
+      setSuccessMessage(`CSV-Export gestartet: ${filename}`);
+      successTimer.current = setTimeout(() => { setSuccessMessage(null); successTimer.current = null; }, 6000);
+    } catch {
+      setErrorMessage('CSV-Export derzeit nicht verfügbar.');
     } finally {
       setExporting(false);
     }
   };
 
   const cancellationCount = records.filter(r => r.legalBasis.includes('312k')).length;
-  const confirmedCount = records.filter(r => r.statutoryConfirmationStatus.includes('312k')).length;
+  const confirmedCount = records.filter(r => r.legalBasis.includes('312k') && r.statutoryConfirmationStatus.includes('312k')).length;
 
   return (
     <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-200 dark:border-stone-700 overflow-hidden mb-6">
@@ -69,11 +76,11 @@ export function AdminComplianceAuditWidget() {
               § 312k BGB Konformitäts-Audit
             </h2>
             <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-300/50">
-              Audit-Ready
+              Nachweisprüfung offen
             </span>
           </div>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Anonymisierter Export aller Kündigungs- und Widerrufserklärungen inklusive Nachweis der sofortigen Eingangsbestätigung (§ 312k Abs. 4 BGB).
+            Begrenzter Audit-Protokollauszug (maximal 100 Einträge). Vollständigkeit und Rechtskonformität müssen unabhängig geprüft werden.
           </p>
         </div>
 
@@ -121,26 +128,26 @@ export function AdminComplianceAuditWidget() {
         <div className="bg-stone-50 dark:bg-stone-900/60 p-3.5 rounded-xl border border-stone-100 dark:border-stone-800">
           <div className="flex items-center gap-1.5 text-stone-500 text-xs font-medium mb-1">
             <FileCheck2 size={14} className="text-brand" />
-            <span>§ 312k Abs. 4 Bestätigungsquote</span>
+            <span>§ 312k – Einträge mit Bestätigungsmarker</span>
           </div>
           <div className="text-2xl font-bold text-stone-900 dark:text-white">
-            100%
+            {cancellationCount > 0 ? `${confirmedCount} / ${cancellationCount}` : 'Keine Daten'}
           </div>
           <div className="text-[11px] text-stone-500 mt-0.5">
-            {confirmedCount} von {records.length} mit unverzüglicher Textform-Bestätigung
+            Beobachtete Statusmarker, kein Nachweis fristgerechter Bestätigung (max. 100 Einträge)
           </div>
         </div>
 
         <div className="bg-stone-50 dark:bg-stone-900/60 p-3.5 rounded-xl border border-stone-100 dark:border-stone-800">
           <div className="flex items-center gap-1.5 text-stone-500 text-xs font-medium mb-1">
             <ShieldCheck size={14} className="text-emerald-600" />
-            <span>DSGVO-Anonymisierungsgrad</span>
+            <span>Datenschutz-Nachweisstatus</span>
           </div>
           <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            100% PII-Frei
+            Nicht verifiziert
           </div>
           <div className="text-[11px] text-stone-500 mt-0.5">
-            Kryptografische Pseudonymisierung (SHA-256)
+            Pseudonymisierung ist kein Nachweis vollständiger Anonymität
           </div>
         </div>
 
@@ -153,7 +160,7 @@ export function AdminComplianceAuditWidget() {
             {cancellationCount}
           </div>
           <div className="text-[11px] text-stone-500 mt-0.5">
-            Revisionssicher im Firestore-Audit-Ledger dokumentiert
+            Im begrenzten Audit-Protokollauszug dokumentiert
           </div>
         </div>
       </div>
@@ -284,9 +291,9 @@ export function AdminComplianceAuditWidget() {
         <ShieldCheck size={16} className="text-brand shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold text-stone-700 dark:text-stone-300">
-            Rechtskonformität nach § 312k Abs. 4 BGB & DSGVO:
+            Hinweis zur Audit-Nachweisgrenze:
           </span>{' '}
-          Dieser Audit-Export dokumentiert die unverzügliche Bestätigung des Inhalts sowie das Datum und die Uhrzeit des Zugangs der Kündigungserklärung in Textform. Alle personenbezogenen Daten werden vor der Bereitstellung nach den Grundsätzen der Datenminimierung (Art. 5 Abs. 1 lit. c DSGVO) anonymisiert.
+          Ein begrenzter Audit-Auszug belegt weder eine fristgerechte § 312k-Bestätigung noch vollständige Anonymität oder DSGVO-Konformität. Belege, Pseudonymisierung und Aufbewahrungsfristen müssen unabhängig geprüft werden.
         </div>
       </div>
     </div>

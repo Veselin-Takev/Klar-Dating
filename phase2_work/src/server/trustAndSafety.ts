@@ -12,6 +12,7 @@ import { getDb as getFirestore } from './db';
 import { evaluateAccountRisk } from './platform/riskEngine';
 import { consentAuditSecret } from './consentAudit';
 import { pseudonymousPartnerUid } from './partnerReferralCore';
+import { quarantineOwnedPartnerReferral } from './partnerReferralDeletion';
 import {
   recordModerationDecision,
   submitDsaAppeal,
@@ -504,7 +505,33 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     // Klar & Partner Art. 17: remove account-bound referrals, verified claims and
     // signed ledger entries using keyed pseudonyms. Contract metadata/aggregates remain.
     const partnerUidRef = pseudonymousPartnerUid(meineUid, consentAuditSecret());
-    await loescheAbfrage(db.collection('partner_referrals').where('ownerUid', '==', meineUid));
+    // Owner deletion must also remove claims made by *other* buyers against
+    // the owner's referrals. These claim documents lack ownerRef and therefore
+    // cannot be found using the owner's pseudonym alone. Delete children first:
+    // interrupted deletion slices then safely resume from surviving referral docs.
+    for (;;) {
+      checkDeletionSlice();
+      const ownedReferrals = await db.collection('partner_referrals')
+        .where('ownerUid', '==', meineUid).limit(BATCH).get();
+      if (ownedReferrals.empty) break;
+      for (const referral of ownedReferrals.docs) {
+        checkDeletionSlice();
+        // Quarantine first: conversion transactions must not create new claims
+        // after our deletion sweep has begun. Resumed slices keep this tombstone.
+        const quarantine = await quarantineOwnedPartnerReferral(db, referral.ref, meineUid);
+        if (quarantine === 'missing') continue;
+        if (quarantine === 'updated') recordDeletionProgress();
+        checkDeletionSlice();
+        await loescheAbfrage(db.collection('partner_referral_buyer_claims')
+          .where('referralId', '==', referral.id));
+        // The claim purge may span many batches. Stop before parent removal if the lease expired.
+        checkDeletionSlice();
+        // Do not remove the parent pointer until dependent buyer claims are gone.
+        await referral.ref.delete();
+        recordDeletionProgress();
+      }
+      if (ownedReferrals.size < BATCH) break;
+    }
     for (const field of ['ownerRef', 'buyerRef']) {
       await loescheAbfrage(db.collection('partner_referral_conversions').where(field, '==', partnerUidRef));
     }
