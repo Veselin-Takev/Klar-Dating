@@ -71,3 +71,9 @@ For new checks after this snapshot, append dated evidence records with exact SHA
 The detailed [CI Host Evidence Intake Runbook](CI_HOST_EVIDENCE_INTAKE_RUNBOOK_2026-10-23.md) provides a **provisional** row-by-row mapping of the **14 source-defined mandatory release-gate names** against the separate request for **15 host logs**, leaving the 15th explicitly **UNMAPPED** pending an authorized owner decision. It also inventories all **13 source-defined integration receipt keys**, defines cryptographic intake and independent provenance checks, and keeps the Bun-only root `npm audit` incompatibility a hard blocker rather than manufacturing a clean security PASS.
 
 This link records **instructions and missing evidence**, not executed steps, acquired artifacts, validated signatures or any permission to run CI. The dedicated documentation branch intentionally remains isolated from Draft PR #119, `main`, the release pipeline and production.
+
+## P0 issue-to-evidence register (2026-10-23)
+
+The companion [P0 Release Evidence and Owner Traceability register](P0_RELEASE_EVIDENCE_TRACEABILITY_2026-10-23.md) maps the open P0 product, referral, partner-conversion, privacy and TTL issues to specific required real-world evidence and **proposed**, not approved, independent reviewer roles. It covers release operations #8, CODEOWNERS #73 and SLO #71. This is acceptance planning, **not** proof of issue closure, successful CI or regulatory approval.
+
+At exact Draft PR #119 HEAD, `ops/slo.json` defines API p95 **300 ms** and `src/server/observability.ts` reads the canonical target. The older Issue #8 text still mentions a **1500-ms** production p95 alarm. This discrepancy is **documentation/control expectation drift**, not independently verified live Cloud alert misconfiguration; true fleet-wide SLI aggregation and pager delivery remain unverified. Only the authorized SRE/Product/Release Owner may approve operational policy correction after evidence review.
