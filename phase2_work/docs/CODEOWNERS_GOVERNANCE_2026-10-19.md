@@ -1,25 +1,19 @@
-# CODEOWNERS Governance – active phase2_work (2026-10-19)
+# CODEOWNERS: Solo-Betrieb und unabhängige Freigaben (2026-10-24)
 
-**Status:** Proposed, unmerged Draft branch. **Production:** NO-GO.
+Der Eigentümer hat bestätigt, derzeit allein am persönlichen Repository zu arbeiten. GitHub meldete die bisherigen @klar/engineering-, @klar/security- und @klar/finance-Teamzuordnungen auf main als Unknown owner. Diese Zeichenketten waren keine wirksame Reviewer-Zuordnung.
 
-## Verified issue #73
+## Technische Dateizuständigkeit
 
-The original root CODEOWNERS specialized /src/server/authorization.ts, /src/server/stripeService.ts and /firestore.rules, while the active application and Firestore rules live under phase2_work/. The broad engineering default did not provide the specialized security or finance assignments on those real paths. GitHub uses repository-root-relative patterns and the last matching rule.
+@Veselin-Takev ist der technische CODEOWNER. Alle bisherigen kritischen Pfade bleiben erhalten; explizite Regeln für die vier Governance-Prüfdateien kommen hinzu. check-codeowners.mjs prüft 21 geschützte Pfade, die zuletzt wirksame Regel, Identitäten, globale Zuständigkeit, Verzeichnisgrenzen und unzulässige Glob-/unanchored Overrides. Ein globaler Eigentümer ersetzt keine explizite kritische Regel. check-codeowners-owner.mjs delegiert an dieselbe vollständige Prüfung.
 
-## Remediation and reproducible checks
+## Unabhängigkeit und Produktionsblockade
 
-Root CODEOWNERS now covers the actual authorization, Trust & Safety, webhook/partner referral, Stripe, Firestore/Storage rules, retention, release manifest, Go-Live and workflow paths. Existing security, finance and engineering role identifiers have been preserved without inventing any new accounts.
+Dateizuständigkeit bestätigt keine unabhängige Security-/Finance-Abnahme. codeowners-review-policy.mjs enthält bewusst leere Reviewer-Listen für beide Rollen. check-production-release-approval.mjs führt den zusätzlichen Check zusammen mit allen bisherigen Release-Evidence-Prüfungen aus. Solange diese Rollen unbesetzt sind, bleibt die Produktionsfreigabe blockiert. Der technische Eigentümer wird auch bei abweichender Großschreibung als unabhängiger Reviewer abgewiesen; Security und Finance benötigen unterschiedliche Personen.
 
-The pure Node gate check:codeowners parses only the literal and directory CODEOWNERS patterns actually used for these sensitive paths. Six regression tests cover effective ownership, ordering, root/phase2 isolation, missing finance/security assignments and later general override. Integrated into check:enterprise. This static check **does not validate GitHub account/team authorization**.
+Nach späterer Besetzung sind kontengebundene Signoffs auf dem exakten Commit und passende Review-Belege erforderlich. Diese Strukturprüfung authentifiziert keine Identität und prüft keine tatsächlichen GitHub-Rechte: der geschützte Release-Prozess muss die Belege und Berechtigungen zusätzlich überprüfen. Keine Freigabe wird erfunden oder automatisch erteilt.
 
-## Outstanding permissions and independent approvals
+## Validierung und Umfang
 
-The repository owner is a personal GitHub User (Veselin-Takev), while the original CODEOWNERS roles are @klar/engineering, @klar/security and @klar/finance. Team existence, visibility, write permission, GitHub CODEOWNERS API errors, base-branch CODEOWNERS and required code-owner reviews have **not** been verified. Do not mark P1 #73 as resolved. Even where multiple owners appear on one line, GitHub's CODEOWNERS approval rule does not automatically require unanimous Security+Finance reviews: independent protected-branch/environment controls remain mandatory.
+87 lokale Governance-/Release-Regressionen bestehen. Die bestehende Release-Workflow-Prüfung besteht; der Produktionscheck verweigert den aktuellen NO-GO-Stand einschließlich unbesetzter Fachrollen wie vorgesehen. Vollständige CI und GitHub-CODEOWNERS-Validierung auf dem PR-Head stehen vor Veröffentlichung noch aus.
 
-**Required administrator evidence:** verify the intended reviewer identities or approved repository migration, GitHub CODEOWNERS errors for the base SHA, team/write access, protected review ruleset, and positive/negative PR reviewer routing. No unverified substitution with the sole repository owner is authorized.
-
-## N-1 and rollback
-
-No Firestore indexes, schema, collection fields, user data, secrets, API contracts or runtime deployment change. Prior data remains N-1 compatible. Rollback of this policy on the feature branch restores missing phase2_work specialization; do not use rollback to bypass independent security review. Main, release, TTL and Cloud resources remain untouched.
-
-Official reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+Keine Änderung an Branchschutz, Zugriffsrechten, produktiven Ressourcen oder Release-Freigaben. Issues #73 und #8 bleiben bis zur jeweils erforderlichen externen Evidenz offen.
