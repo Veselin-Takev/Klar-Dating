@@ -346,3 +346,10 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 Die SLO-Initialisierung liefert erst nach Validierung einen Zahlenwert. Fehlende, nichtnumerische, nichtendliche und nichtpositive Ziele verhindern weiterhin den Modulstart; das 300-ms-Ziel bleibt erhalten.
 
 Vor Merge vollständige CI auf dem korrigierten Commit unter gepinnter Toolchain prüfen und unabhängige Reviews einholen. PR #121 baut auf #119 auf. Production bleibt NO-GO; reale TTL-/Art17-/SRE-Nachweise bleiben offen. Rollback: Codeänderung und ergänzte Regressionen revertieren; keine Datenmigration oder Änderung produktiver Einstellungen.
+
+
+## Testprofile und CI-Abnahme – 23.10.2026
+
+Der allgemeine test:ci-Lauf verwendet firebase.json (lokaler Firestore-Port 8080). Der dedizierte Art17-Runner setzt KLAR_REQUIRE_FIRESTORE_EMULATOR=1 und prüft firebase.pruefung.json (8085). Port, lokale Adresse, demo-klar-Projekt, deaktivierter Durable-Fallback und nichtproduktiver Modus bleiben verpflichtend. Keine beliebige Portfreigabe und kein Überspringen der Löschtests. Beide Profile und die Ablehnung eines Profil-Port-Mismatch sind durch lokale Negativtests abgedeckt.
+
+Widget-Erwartungen und Referral-Testdaten wurden an das vorhandene Sicherheitsverhalten angepasst. Vor Merge vollständige CI auf demselben Head prüfen; keine Produktionsfreigabe aus Offline-Checks ableiten. Rollback: zugehörige Test-/Guard-Änderungen revertieren; keine Datenmigration oder Cloud-Änderung.
