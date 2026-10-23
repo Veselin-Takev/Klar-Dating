@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InterestsSettings } from '../components/InterestsSettings';
 import { BackNavigation } from '../components/BackNavigation';
@@ -12,6 +12,13 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
   const [interests, setInterests] = useState<string[]>(() => [...(initialInterests ?? [])]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const saveRequest = useRef(0);
+  const saveInFlight = useRef(false);
+  useEffect(() => {
+    saveInFlight.current = false;
+    setSaving(false);
+    return () => { ++saveRequest.current; };
+  }, [user?.uid]);
   // A different profile/authoritative prop update invalidates local draft state.
   // The stable serialized key avoids resetting edits on parent re-renders.
   useEffect(() => {
@@ -23,18 +30,24 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
   const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(() => setShowLogoutConfirm(false), showLogoutConfirm);
 
   const handleSave = async () => {
-    if (saving) return;
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    const request = ++saveRequest.current;
+    const savedInterests = [...interests];
     setSaving(true);
     setSaveError(false);
     try {
       // AuthContext writes via Firebase and validates the authoritative server
       // readback. Never report success based only on an HTTP response status.
-      await updateProfileData({ interests });
-      onSave([...interests]);
+      await updateProfileData({ interests: savedInterests });
+      if (request === saveRequest.current) onSave(savedInterests);
     } catch {
-      setSaveError(true);
+      if (request === saveRequest.current) setSaveError(true);
     } finally {
-      setSaving(false);
+      if (request === saveRequest.current) {
+        saveInFlight.current = false;
+        setSaving(false);
+      }
     }
   };
 
@@ -44,7 +57,7 @@ export function ProfileSettings({ initialInterests, onSave }: { initialInterests
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto px-4 py-5 sm:p-6 space-y-5 sm:space-y-6">
+    <div className="max-w-xl mx-auto p-6 space-y-6">
       <BackNavigation fallback="/profile" dirty={JSON.stringify(interests) !== JSON.stringify(initialInterests || [])} />
       <h2 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h2>
       
