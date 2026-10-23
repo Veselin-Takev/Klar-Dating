@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { runInNewContext } from 'node:vm';
 
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policy = JSON.parse(readFileSync(path.join(projectRoot, 'ops/slo.json'), 'utf8'));
 const objective = policy.objectives.filter(item => item.name === 'api-latency-p95-ms');
@@ -14,6 +15,18 @@ const source = readFileSync(path.join(projectRoot, 'src/server/observability.ts'
 assert.match(source, /import sloPolicy from ['"]\.\.\/\.\.\/ops\/slo\.json['"]/);
 assert.match(source, /p95 > API_P95_SLO_MS \? 1 : 0/);
 assert.doesNotMatch(source, /p95 > 1500/);
+// Exercise configuration validation without bootstrapping the tracing SDK.
+const initialization = source.match(/const API_P95_SLO_MS = ([\s\S]*?);\r?\nconst MAX_SPANS/);
+assert(initialization, 'Validated P95 initialization is missing');
+function configuredTarget(objectives) {
+  return runInNewContext(initialization[1], { sloPolicy: { objectives } }, { timeout: 1500 });
+}
+assert.equal(configuredTarget(policy.objectives), target);
+assert.throws(() => configuredTarget([]), /Invalid API P95 SLO configuration/);
+for (const invalid of [undefined, null, '300', 0, -1, NaN, Infinity]) {
+  assert.throws(() => configuredTarget([{ name: 'api-latency-p95-ms', target: invalid }]),
+    /Invalid API P95 SLO configuration/);
+}
 // Exercise the exact metric expression, not a duplicated numeric comparison.
 const valueExpression = source.match(/`klar_http_p95_slo_breach \${([^}]+)}`/);
 assert(valueExpression, 'P95 Prometheus emission is missing');
@@ -28,4 +41,6 @@ assert.match(gate, /Canonical P95 SLO threshold/);
 assert.match(gate, /p95 > API_P95_SLO_MS/);
 assert.doesNotMatch(gate, /1500ms SLO|p95 > 1500/);
 
+
 console.log('PASS: canonical API P95 threshold, 299/300/301 ms boundary and no legacy 1500ms hardcode');
+
