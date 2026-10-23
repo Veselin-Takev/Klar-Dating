@@ -77,3 +77,13 @@ Pending independent host evidence and the release-owner's explicit audit unlock,
 The companion [P0 #47 Product Claim Source Audit](P0_ISSUE_47_PRODUCT_CLAIM_SOURCE_AUDIT_2026-10-23.md) inspects exact Draft PR #119 source and identifies a **P0 static UI trust defect**: the chat list always renders a verified-connection badge while its parsed DTO drops `isVerified`; the header also shows an unconditional verified label. It specifies fail-closed conditional rendering and proposed regression cases, **not an implemented patch or a runtime exploit demonstration**.
 
 It also distinguishes the **8-new-contacts/day** rule from the **1–30-per-request** recommendations API (default 12), and documents that current source marks advertising rewards removed and `Klar+` as not yet purchasable. Claims of guaranteed daily 8–12 suggestions, ad-supported extras, manual human curation and currently purchasable Klar+ remain **unapproved** absent feature-level and legal evidence. Issue #47 is **OPEN**; authoritative Product/Brand/Legal decisions, a separate production-code remediation and current exact-SHA CI/E2E are required after governance unlock.
+
+## Issue #48 member-invitation zero-trust source audit (2026-10-23)
+
+The linked [P0 #48 Member Invitation Zero-Trust Design & Static Audit](P0_ISSUE_48_REFERRAL_ZERO_TRUST_DESIGN_2026-10-23.md) establishes **new, source-verifiable design blockers** at Draft PR #119 SHA `7fdf29010c85f16a9b38e5c93186f32e92192f3a`:
+
+- The issuer uses `HMAC-SHA256(...).digest('base64url').slice(0,10).toUpperCase()`, potentially emitting `-`/`_`, while the claim endpoint accepts `^[A-Z0-9]{10}$`. This source contract is inconsistent; the original unit test covers only one UID and the route mock hardcodes a compatible code.
+- A transaction can return without new attribution when `referredBy` is already set or inviter code changed, but the API still returns `{ok:true}`; the client treats any HTTP success as grounds to discard a stored code. The proposed remedy distinguishes a same-inviter idempotent success from conflict or revoked/expired issuance.
+- The existing `attributed` event/`referralQualified:false` is **not** verified KYC qualification or an entitlement. Referral code rotation/revocation, anti-abuse, consent, Art.17/holds and exactly-once finite Klar+ reward reversals remain unapproved.
+
+No source patch, CI tests, human approvals or Issue #48 closure are claimed by this report. #47, #48, #56 and release #8 remain blockers to a public referral reward launch. Dedicated implementation must not proceed until the official audit lockdown is lifted.
