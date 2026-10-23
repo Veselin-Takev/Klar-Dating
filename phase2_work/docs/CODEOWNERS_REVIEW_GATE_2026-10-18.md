@@ -1,12 +1,7 @@
-# Issue #73 — CODEOWNERS governance gate (2026-10-18)
+# Issue #73 — CODEOWNERS: historischer Prüfplan und aktueller Stand
 
-**Status: NO-GO.** The previous root CODEOWNERS patterns `/src/server/...` and `/firestore.rules` did not match the active files under `phase2_work/`. This branch maps actual paths to Security/Finance/Engineering reviewer groups.
+Der Team-basierte Entwurf vom 2026-10-18 ist durch die am 2026-10-24 bestätigte Solo-Zuordnung ersetzt. GitHub hat die damaligen @klar-Teamzuordnungen als unbekannt gemeldet. Aktueller technischer Dateizuständiger im überarbeiteten PR ist @Veselin-Takev; alle kritischen Pfadregeln bleiben explizit geschützt.
 
-## Required before merging
-1. Verify that `@klar/engineering`, `@klar/security`, and `@klar/finance` exist as GitHub teams **and have write access to this repository**. An invalid owner entry will be ignored by GitHub.
-2. Check CODEOWNERS parsing errors in GitHub and verify last-match owner behavior on each high-risk path.
-3. Require branch rulesets with `require_code_owner_reviews`, status checks, dismissal on changed code, and enforce independent Security/Privacy and Finance approval where relevant. The CODEOWNERS file alone does **not** implement multi-person segregation of duties.
-4. Verify that the workflows themselves do not bypass repository rules, and require exact SHA tested PRs before merge.
-5. Keep #73 and #8 open until observed ruleset and required-review evidence is recorded.
+Maßgeblich sind docs/CODEOWNERS_GOVERNANCE_2026-10-19.md und scripts/codeowners-review-policy.mjs. Technische Dateizuständigkeit ist keine unabhängige Fachfreigabe. Security und Finance sind derzeit unbesetzt; der zusätzliche Produktionscheck verweigert daher eine Produktionsfreigabe. Tatsächliche Reviewer-Berechtigungen und Review-Evidenz müssen bei späterer Besetzung separat geprüft werden.
 
-No CI/CD or cloud deployment triggered intentionally; exact-head test evidence and branch protection were not inspected. This document is a static code-level safeguard only.
+Branchschutz, Zugriffsrechte und Produktionsumgebungen werden durch diesen PR nicht verändert. Issues #73 und #8 bleiben bis zu den erforderlichen externen Nachweisen offen. Kein Deployment, keine Produktionsfreigabe.
