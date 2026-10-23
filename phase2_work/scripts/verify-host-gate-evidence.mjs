@@ -32,6 +32,7 @@ const APPROVALS = Object.freeze([
 const HEX_SHA = /^[a-f0-9]{64}$/;
 const COMMIT = /^[a-f0-9]{40}$/;
 const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const EMPTY_SHA256 = createHash('sha256').update('').digest('hex');
 
 // Open the file descriptor with O_NOFOLLOW so a file replaced by an attacker
 // between directory inspection and opening cannot redirect reads outside results/.
@@ -168,7 +169,12 @@ export async function screenEvidence(dir, expectedSha) {
     const code = read(name);
     if (code !== null && code.trim() !== '0') error('nonzero prerequisite: ' + name);
   }
-  for (const name of ['install.log', 'docker-build.log', 'docker-run.log', 'runner.stdout.log', 'runner.stderr.log', 'host.stdout.log', 'host.stderr.log']) read(name);
+  // These logs are already SHA-256 checked by the streaming hashFile() pass.
+  // A second bounded read would incorrectly reject legitimate logs >2 MB.
+  // Only structured identity, exit-code and gate-table metadata are parsed.
+  for (const name of ['install.log', 'docker-build.log', 'docker-run.log', 'runner.stdout.log', 'runner.stderr.log', 'host.stdout.log', 'host.stderr.log']) {
+    if (!hashes.has(name)) error('required log missing from SHA256SUMS: ' + name);
+  }
   const tsv = read('gates.tsv');
   if (tsv !== null) {
     const lines = canonicalLines(tsv);
@@ -186,11 +192,9 @@ export async function screenEvidence(dir, expectedSha) {
       if (exit !== null && exit.trim() !== '0') error('gate exit file nonzero: ' + id);
       if (!hashes.has(logName)) error('gate log missing: ' + id);
       else if (row[4] !== hashes.get(logName)) error('gate log hash differs from manifest: ' + id);
-      // An empty file is not a complete individual test log, even if the
-      // exit-code file and TSV both claim success and all hashes match.
-      try {
-        if (lstatSync(join(root, logName)).size === 0) error('empty mandatory gate log: ' + id);
-      } catch { /* The previous hash/file presence checks already report this. */ }
+      // Gate logs can be arbitrarily large and are verified as streams above.
+      // The SHA-256 digest of zero bytes rejects a blank log without loading it.
+      if (hashes.get(logName) === EMPTY_SHA256) error('empty mandatory gate log: ' + id);
     }
   }
   // Independent approvals are produced AFTER the sealed technical host run.

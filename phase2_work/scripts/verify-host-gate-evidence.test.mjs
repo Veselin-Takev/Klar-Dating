@@ -167,3 +167,60 @@ test('oversized semantic metadata cannot be parsed as trusted evidence',async()=
   writeFileSync(join(f.dir,'baseline.txt'),body);
   f.refresh();
 },'not a bounded file: baseline.txt'));
+
+// Large original host logs are valid evidence; only parsed metadata has a 2 MB cap.
+test('valid mandatory gate log larger than 2 MB is streamed, not rejected as metadata', async () => {
+  const f = fixture();
+  try {
+    const name = 'gate-09.log';
+    const body = 'scanner completed successfully\n' + 'X'.repeat(2_200_000);
+    f.files.set(name, body);
+    writeFileSync(join(f.dir, name), body);
+    const rows = f.files.get('gates.tsv').split('\n');
+    const row = rows[9].split('\t');
+    row[4] = hash(body);
+    rows[9] = row.join('\t');
+    f.files.set('gates.tsv', rows.join('\n'));
+    writeFileSync(join(f.dir, 'gates.tsv'), f.files.get('gates.tsv'));
+    f.refresh();
+    const result = await screenEvidence(f.dir, SHA);
+    assert.equal(result.technical_evidence_pass, true, JSON.stringify(result.errors));
+    assert.equal(result.release_decision, 'NO-GO');
+  } finally { f.cleanup(); }
+});
+
+test('valid stdout log larger than 2 MB is streamed, not rejected as metadata', async () => {
+  const f = fixture();
+  try {
+    const name = 'runner.stdout.log';
+    const body = 'long output\n' + 'Y'.repeat(2_200_000);
+    f.files.set(name, body);
+    writeFileSync(join(f.dir, name), body);
+    f.refresh();
+    const result = await screenEvidence(f.dir, SHA);
+    assert.equal(result.technical_evidence_pass, true, JSON.stringify(result.errors));
+    assert.equal(result.release_decision, 'NO-GO');
+  } finally { f.cleanup(); }
+});
+
+test('large log corruption is still detected by full streamed SHA-256', async () => {
+  const f = fixture();
+  try {
+    const name = 'gate-07.log';
+    const original = 'Z'.repeat(2_200_000);
+    f.files.set(name, original);
+    writeFileSync(join(f.dir, name), original);
+    f.refresh();
+    writeFileSync(join(f.dir, name), original.slice(0, -1) + 'Y');
+    const result = await screenEvidence(f.dir, SHA);
+    assert.equal(result.technical_evidence_pass, false);
+    assert(result.errors.some(e => e.includes('SHA256 mismatch: gate-07.log')), JSON.stringify(result.errors));
+    assert.equal(result.release_decision, 'NO-GO');
+  } finally { f.cleanup(); }
+});
+
+test('missing host stderr log still fails even without bounded re-read', async () => caseOf(f => {
+  f.files.delete('host.stderr.log');
+  unlinkSync(join(f.dir, 'host.stderr.log'));
+  f.refresh();
+}, 'required log missing from SHA256SUMS: host.stderr.log'));
