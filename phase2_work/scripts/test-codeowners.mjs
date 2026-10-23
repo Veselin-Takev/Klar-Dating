@@ -5,30 +5,30 @@ import { checkCodeowners, ownersForPath, requiredOwnership } from './check-codeo
 
 const source = readFileSync(new URL('../../CODEOWNERS', import.meta.url), 'utf8');
 
-test('active phase2_work security, finance and workflows have specialized path assignments', () => {
+test('all 21 protected files have explicit technical routing, independent of specialist release approvals', () => {
   assert.deepEqual(checkCodeowners(source), []);
-  assert.equal(Object.keys(requiredOwnership).length, 17);
+  assert.equal(Object.keys(requiredOwnership).length, 21);
 });
 test('last matching CODEOWNERS entry wins, including harmful later generic overrides', () => {
-  const modified = source + '\n/phase2_work/ @klar/engineering\n';
+  const modified = source + '\n/phase2_work/ @Veselin-Takev\n';
   assert(checkCodeowners(modified).some(s => s.includes('authorization.ts')));
 });
 test('GitHub root paths do not implicitly own phase2_work files', () => {
   const oldOnly = source.split('# Active application')[0];
-  assert(!ownersForPath(oldOnly, 'phase2_work/src/server/authorization.ts').includes('@klar/security'));
+  assert(checkCodeowners(oldOnly).some(error => error.includes('authorization.ts')));
 });
-test('removing a partner finance owner fails the sensitive-path policy', () => {
-  const modified = source.replace('/phase2_work/src/server/stripeService.ts @klar/security @klar/finance @klar/engineering',
-    '/phase2_work/src/server/stripeService.ts @klar/security @klar/engineering');
-  assert(checkCodeowners(modified).some(s => s.includes('stripeService.ts') && s.includes('finance')));
+test('removing the explicit Stripe protection fails despite a global technical owner', () => {
+ const modified=source.split(/\r?\n/).filter(line=>!line.startsWith('/phase2_work/src/server/stripeService.ts ')).join('\n');
+ assert(checkCodeowners(modified).some(error=>error.includes('stripeService.ts')));
 });
-test('removing a sensitive owner is rejected', () => {
-  const modified = source.replace('/phase2_work/firestore.rules @klar/security @klar/engineering',
-    '/phase2_work/firestore.rules @klar/engineering');
-  assert(checkCodeowners(modified).some(s => s.includes('firestore.rules')));
+
+test('removing explicit Firestore protection fails despite a global technical owner', () => {
+ const modified=source.split(/\r?\n/).filter(line=>!line.startsWith('/phase2_work/firestore.rules ')).join('\n');
+ assert(checkCodeowners(modified).some(error=>error.includes('firestore.rules')));
 });
+
 test('a later unreviewed catchall would bypass the specialist team and is rejected', () => {
-  const modified = source + '\n* @klar/engineering\n';
+  const modified = source + '\n* @Veselin-Takev\n';
   assert(checkCodeowners(modified).length >= 5);
 });
 
@@ -41,7 +41,7 @@ for (const pattern of [
   '/phase2_work/src/server/[a-z]*',
 ]) {
   test('fail closed on GitHub glob override: ' + pattern, () => {
-    const mutated = source + '\n' + pattern + ' @klar/engineering\n';
+    const mutated = source + '\n' + pattern + ' @Veselin-Takev\n';
     assert(checkCodeowners(mutated).some(x => x.includes('unsupported CODEOWNERS pattern')));
   });
 }
@@ -58,24 +58,24 @@ test('fail closed on malformed owner identity that GitHub might skip', () => {
 
 for (const pattern of ['authorization.ts', 'phase2_work/src/server/authorization.ts']) {
   test('fail closed on unanchored CODEOWNERS override: ' + pattern, () => {
-    const mutated = source + '\n' + pattern + ' @klar/engineering\n';
+    const mutated = source + '\n' + pattern + ' @Veselin-Takev\n';
     assert(checkCodeowners(mutated).some(x => x.includes('unsupported CODEOWNERS pattern')));
   });
 }
 
 test('GitHub anchored directory without trailing slash also overrides descendants', () => {
-  const mutated = source + '\n/phase2_work/src/server @klar/engineering\n';
+  const mutated = source + '\n/phase2_work/src/server @Veselin-Takev\n';
   assert(checkCodeowners(mutated).some(e => e.includes('authorization.ts')));
 });
 test('directory prefix must respect path-segment boundaries', () => {
-  const snippet = '* @klar/engineering\n/phase2_work/src/server @klar/security\n';
-  assert.deepEqual(ownersForPath(snippet, 'phase2_work/src/serverish/authorization.ts'), ['@klar/engineering']);
-  assert.deepEqual(ownersForPath(snippet, 'phase2_work/src/server/authorization.ts'), ['@klar/security']);
+  const snippet = '* @Veselin-Takev\n/phase2_work/src/server @Veselin-Takev\n';
+  assert.deepEqual(ownersForPath(snippet, 'phase2_work/src/serverish/authorization.ts'), ['@Veselin-Takev']);
+  assert.deepEqual(ownersForPath(snippet, 'phase2_work/src/server/authorization.ts'), ['@Veselin-Takev']);
 });
 
 test('a file-specific engineering owner cannot replace the global default', () => {
-  const modified = source.replace('* @klar/engineering', '/phase2_work/src/components/ChatView.tsx @klar/engineering');
-  assert(checkCodeowners(modified).some(x => x.includes('repository-wide engineering default')));
+  const modified = source.replace('* @Veselin-Takev', '/phase2_work/src/components/ChatView.tsx @Veselin-Takev');
+  assert(checkCodeowners(modified).some(x => x.includes('repository-wide technical owner default')));
 });
 test('rejects malformed team path syntax before it silently stops assigning reviewers', () => {
   const modified = source + '\n/phase2_work/src/server/ @klar/.security\n';
@@ -88,15 +88,64 @@ test('effective owner roles for every sensitive path match the exact policy cont
   }
 });
 test('comments and blank lines never override a sensitive owner', () => {
-  const adjusted = source + '\n\n# /phase2_work/ @klar/engineering\n   # comment-only pattern\n';
+  const adjusted = source + '\n\n# /phase2_work/ @Veselin-Takev\n   # comment-only pattern\n';
   assert.deepEqual(checkCodeowners(adjusted), []);
 });
-test('a later duplicate exact path rule replaces an earlier security owner', () => {
-  const modified = source + '\n/phase2_work/firestore.rules @klar/engineering\n';
-  assert(checkCodeowners(modified).some(e => e.includes('firestore.rules')));
+test('a duplicate exact rule cannot substitute an unverified technical owner', () => {
+  const modified = source + '\n/phase2_work/firestore.rules @unverified-reviewer\n';
+  assert(checkCodeowners(modified).some(e => e.includes('unverified technical owner')));
 });
 test('invalid untrusted path input is refused rather than normalized', () => {
   for (const invalid of ['/phase2_work/firestore.rules', '../CODEOWNERS', 'phase2_work/../CODEOWNERS']) {
     assert.throws(() => ownersForPath(source, invalid), /Invalid repository-relative path/);
   }
+});
+
+
+import { technicalOwner, collectIndependentReviewFailures } from './codeowners-review-policy.mjs';
+const sha='a'.repeat(40);
+const evidenceUrl='https://github.com/Veselin-Takev/Klar-Dating/pull/123#pullrequestreview-456';
+// Synthetic identities exercise structure only; they are not real approval evidence.
+const reviewers={Security:['synthetic-security'],Finance:['synthetic-finance']};
+const fixture=()=>({releaseGovernance:{goLiveAttestation:{signoffs:{
+ Security:{approved:true,commit:sha,approver:reviewers.Security[0],evidenceUrl},
+ Finance:{approved:true,commit:sha,approver:reviewers.Finance[0],evidenceUrl},
+}}}});
+test('solo ownership leaves independent Security and Finance unassigned',()=>{
+ const errors=collectIndependentReviewFailures(fixture(),sha);
+ assert(errors.some(error=>error.includes('Security reviewer is unassigned')));
+ assert(errors.some(error=>error.includes('Finance reviewer is unassigned')));
+});
+test('synthetic distinct approvals satisfy only the structural contract',()=>{
+ assert.deepEqual(collectIndependentReviewFailures(fixture(),sha,reviewers),[]);
+});
+test('technical owner cannot substitute for an independent reviewer',()=>{
+ assert(collectIndependentReviewFailures(fixture(),sha,{...reviewers,Security:['vESeLiN-tAkEv']}).length>0);
+});
+test('stale, missing, unassigned and external evidence fails closed',()=>{
+ for(const patch of [{commit:'b'.repeat(40)},{approved:false},{approver:'unassigned'},{evidenceUrl:'https://example.com/review'}]){
+  const manifest=fixture();Object.assign(manifest.releaseGovernance.goLiveAttestation.signoffs.Security,patch);
+  assert(collectIndependentReviewFailures(manifest,sha,reviewers).length>0);
+ }
+ assert(collectIndependentReviewFailures(fixture(),undefined,reviewers).length>0);
+ assert(collectIndependentReviewFailures({},sha,reviewers).length>0);
+});
+test('one person cannot satisfy both independent roles',()=>{
+ const manifest=fixture();manifest.releaseGovernance.goLiveAttestation.signoffs.Finance.approver=reviewers.Security[0];
+ assert(collectIndependentReviewFailures(manifest,sha,{...reviewers,Finance:reviewers.Security}).some(error=>error.includes('distinct independent reviewers')));
+});
+test('unknown technical identities are rejected',()=>{
+ for(const owner of ['@klar/security','@other-user'])assert(checkCodeowners(source.replaceAll(technicalOwner,owner)).some(error=>error.includes('unverified technical owner')));
+});
+test('every explicit critical rule is required despite the global fallback',()=>{
+ for(const file of Object.keys(requiredOwnership)){
+  const pattern=file==='.github/workflows/release.yml'?'/.github/workflows/':'/'+file;
+  const changed=source.split(/\r?\n/).filter(line=>!line.startsWith(pattern+' ')).join('\n');
+  assert(checkCodeowners(changed).some(error=>error.includes(file)),file);
+ }
+});
+test('production entry point retains both existing evidence and independent-review checks',()=>{
+ const entry=readFileSync(new URL('./check-production-release-approval.mjs',import.meta.url),'utf8');
+ assert(entry.includes('collectReleaseApprovalFailures({ manifest, checklist, env: process.env })'));
+ assert(entry.includes('failures.push(...collectIndependentReviewFailures(manifest, process.env.GITHUB_SHA))'));
 });
