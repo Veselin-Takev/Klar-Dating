@@ -539,8 +539,12 @@ describe('Klar & Partner transactional service boundary', () => {
       .toEqual({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
 
 
+    // Keep the alternate buyer eligible so this assertion reaches the event binding check.
+    db._store.set('users/different-buyer', { ...originalBuyer });
     await expect(recordPartnerConversion(deps(db), slug, { ...payload, buyerUid: 'different-buyer' }, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'partner_event_id_conflict' });
+    await expect(recordPartnerConversion(deps(db), slug, { ...payload, buyerUid: 'missing-buyer' }, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
     await expect(recordPartnerConversion(deps(db), slug, { ...payload, referralToken: derivePartnerReferralToken('other-owner', campaignId, 1, tokenSecret) }, 'partner-provider-signing-secret-is-long-enough'))
       .rejects.toMatchObject({ code: 'partner_link_not_found' });
     expect([...db._store.entries()].filter(([key]) => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
