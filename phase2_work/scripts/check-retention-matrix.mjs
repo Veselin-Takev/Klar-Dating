@@ -25,7 +25,8 @@ const approvedGroups = [
 assert.deepEqual(groups, approvedGroups, 'TTL collection group matrix mismatch / unsafe drift');
 assert.equal(new Set(groups).size, groups.length, 'Duplicate TTL groups are prohibited');
 for (const group of groups) {
-  assert(docs.includes('--collection-group=' + group), 'Missing documented TTL group: ' + group);
+  assert(new RegExp('--collection-group=' + group + '(?![A-Za-z0-9_-])').test(docs),
+    'Missing exact documented TTL group: ' + group);
 }
 for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_STAGING_PROJECT_ID',
   'KLAR_PRODUCTION_PROJECT_ID', 'KLAR_CONFIRM_RETENTION', 'KLAR_DATABASE_ID',
