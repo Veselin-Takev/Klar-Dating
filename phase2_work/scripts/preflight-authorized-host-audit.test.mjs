@@ -9,7 +9,7 @@ import { TARGET_COMMIT, evaluateReadiness, inspectHost } from './preflight-autho
 const goodImage = 'ghcr.io/approved/klar-audit:2026-10-23@sha256:' + 'a'.repeat(64);
 function good() {
   return {
-    checkout: {ok:true,state:'git checkout inspected',head:TARGET_COMMIT,tree:'05f22f0ca387ae37573b1f81e85ead901dce3da9',clean:true},
+    checkout: {ok:true,state:'git checkout inspected',head:TARGET_COMMIT,tree:'05f22f0ca387ae37573b1f81e85ead901dce3da9',clean:true,index_flags_safe:true},
     commit: TARGET_COMMIT, node: 'v22.23.3', bun: '1.4.2', image: goodImage,
     authorizationReference: 'SECURITY-AND-RELEASE-OWNER-TICKET-119',
     probes: Array.from({length:5},()=>({ok:true,output:'available'})),
@@ -140,4 +140,62 @@ test('untracked files in real source repository are rejected',()=>{
   assert.equal(x.checkout_clean,false);
   assert.ok(x.findings.some(f=>f.code==='CHECKOUT_DIRTY'));
  } finally {rmSync(d,{recursive:true,force:true})}
+});
+
+
+// Regression: Git's assume-unchanged/skip-worktree flags can conceal modified files
+// from `git status --porcelain`, even though the worktree no longer matches HEAD.
+function createCheckoutFixture(prefix) {
+  const d = mkdtempSync(join(tmpdir(), prefix));
+  const git = (...args) => execFileSync('git', ['-C', d, ...args], {encoding:'utf8',stdio:'pipe'}).trim();
+  git('init', '-q');
+  writeFileSync(join(d, 'tracked.txt'), 'trusted\n');
+  git('add','tracked.txt');
+  git('-c','user.name=QA','-c','user.email=qa@example.invalid','commit','-qm','initial');
+  const probe=(exe,args)=> exe==='git' && (args.includes('rev-parse') || args.includes('status') || args.includes('ls-files'))
+    ? {ok:true,output:execFileSync(exe,args,{encoding:'utf8',stdio:'pipe'}).trim()}
+    : {ok:true,output:exe==='node'?'v22.23.3':exe==='bun'?'1.4.2':'available'};
+  return {d,git,probe};
+}
+
+test('pure policy refuses hidden Git index flags even when status says clean',()=>{
+  const x=good();x.checkout={...x.checkout,index_flags_safe:false,clean:true};
+  finding(x,'CHECKOUT_INDEX_FLAGS_UNSAFE');
+});
+test('pure policy refuses index flag inspection omitted',()=>{
+  const x=good();delete x.checkout.index_flags_safe;
+  finding(x,'CHECKOUT_INDEX_FLAGS_UNSAFE');
+});
+test('real assume-unchanged flag hiding tampered content is rejected',()=>{
+  const {d,git,probe}=createCheckoutFixture('klar-git-index-assume-');
+  try {
+    git('update-index','--assume-unchanged','tracked.txt');
+    writeFileSync(join(d,'tracked.txt'),'forged!\n');
+    assert.equal(git('status','--porcelain=v1'),'');
+    assert.match(git('ls-files','-v'),/^h /);
+    const report=inspectHost({checkoutDir:d,probe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.equal(report.checkout_index_flags_safe,false);
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_INDEX_FLAGS_UNSAFE'));
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+test('real skip-worktree flag hiding modified content is rejected',()=>{
+  const {d,git,probe}=createCheckoutFixture('klar-git-index-skip-');
+  try {
+    git('update-index','--skip-worktree','tracked.txt');
+    writeFileSync(join(d,'tracked.txt'),'forged!\n');
+    assert.equal(git('status','--porcelain=v1'),'');
+    assert.match(git('ls-files','-v'),/^S /);
+    const report=inspectHost({checkoutDir:d,probe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.equal(report.checkout_index_flags_safe,false);
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_INDEX_FLAGS_UNSAFE'));
+  } finally {rmSync(d,{recursive:true,force:true})}
+});
+test('ls-files command failure fails the checkout inspection closed',()=>{
+  const {d,probe}=createCheckoutFixture('klar-git-index-failure-');
+  try {
+    const failProbe=(exe,args)=>exe==='git' && args.includes('ls-files')?{ok:false,reason:'test injected failure'}:probe(exe,args);
+    const report=inspectHost({checkoutDir:d,probe:failProbe,inspectDirectory:()=>({ok:true,state:'absent'}),image:goodImage,authorizationReference:'SECURITY-AND-RELEASE-OWNER-119'});
+    assert.ok(report.findings.some(f=>f.code==='CHECKOUT_UNAVAILABLE'));
+    assert.equal(report.technical_preflight_pass,false);
+  } finally {rmSync(d,{recursive:true,force:true})}
 });

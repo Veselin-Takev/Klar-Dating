@@ -24,3 +24,13 @@ See `ADR_PR119_READ_ONLY_HOST_PREFLIGHT_2026-10-23.md` and `PR119_AUTHORIZED_HOS
 **Evidence:** 24/24 preflight tests and 43/43 prior verifier/sealer tests PASS locally using Node.js v22.16.0. Real local preflight exits 1 / NO-GO with 7 blockers, including unavailable Node.js v22.23.3, Bun, Docker, approved image digest, independent host authorization, and actual Git checkout. Host Mandatory Gates **0/15 evidenced**, independent four release sign-offs **0/4 evidenced**. Nothing in this update certifies production GO.
 
 **Scope:** Two audit-only JavaScript files and governance documentation; PR #119, main, production, application dependencies, paid actions and workflows remain unchanged. See `ADR_PR119_VERIFIED_IMMUTABLE_CHECKOUT_2026-10-23.md`.
+
+## Cost-free immutable checkout index-flag guard (2026-10-23)
+
+A reproducible local test showed that `git status --porcelain=v1` reports no changes after editing a tracked file if that file is marked `assume-unchanged` (`git ls-files -v` shows `h`); likewise `skip-worktree` (`S`) can conceal changes. The previous PR119 host preflight checked Git HEAD/tree and status but did not reject these flags.
+
+The audit-branch-only `preflight-authorized-host-audit.mjs` now runs read-only `git ls-files --cached -v -z`, demands a nonempty set of ordinary `H` entries and rejects any other index prefix or a failed probe. The reported fields include `checkout_index_flags_safe`; the mandatory decision logic raises `CHECKOUT_INDEX_FLAGS_UNSAFE` and never issues release GO. No `git update-index` or other source mutation occurs in the actual preflight; regression fixtures use throwaway Git repositories only. The command-output buffer is capped at 4 MiB and fails closed if exceeded.
+
+Verification: **29/29 focused preflight tests PASS and 72/72 combined audit-tooling tests PASS** locally under Node.js **v22.16.0**, not the release-pinned v22.23.3. The real local read-only preflight still exits **1 / NO-GO** (Bun/Docker/pinned runtime/host authorization and authentic PR checkout absent). **0/15 qualified application gates** and **0/4 independently authenticated human release approvals** evidenced. The user's authorization is limited to cost-free preparation and does not constitute Security/Release Owner host authorization.
+
+Limitations: these checks reject known Git index blind spots but do **not** independently hash every working-tree byte against a trusted signed source snapshot. A compromised host, forged Git commands, adversarial index manipulation, symlinked dependencies or stale runner attestations require independent host provenance and immutable artifacts. Do not infer GO, execute CI, or deploy. New ADR: `ADR_PR119_GIT_INDEX_FLAG_FAIL_CLOSED_2026-10-23.md`.

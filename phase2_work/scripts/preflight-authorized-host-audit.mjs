@@ -22,7 +22,7 @@ const REQUIRED_TOOLS = Object.freeze([
 function commandProbe(executable, args) {
   try {
     const out = execFileSync(executable, args, {
-      encoding: 'utf8', timeout: 6_000, maxBuffer: 65_536,
+      encoding: 'utf8', timeout: 6_000, maxBuffer: 4_194_304,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, DOCKER_CLI_HINTS: 'false', GIT_OPTIONAL_LOCKS: '0' },
     });
@@ -73,15 +73,27 @@ export function inspectCheckout(checkoutDir, probe = commandProbe) {
   const head = git('rev-parse', '--verify', 'HEAD');
   const tree = git('rev-parse', '--verify', 'HEAD^{tree}');
   const dirty = git('status', '--porcelain=v1', '--untracked-files=all');
-  if (![root, head, tree, dirty].every(p => p.ok)) {
+  // Git status intentionally trusts index assume-unchanged and skip-worktree flags.
+  // A tampered worktree can therefore appear clean; reject either flag fail-closed.
+  // -z avoids ambiguous line escaping for tracked filenames containing whitespace.
+  const indexFlags = git('ls-files', '--cached', '-v', '-z');
+  if (![root, head, tree, dirty, indexFlags].every(p => p.ok)) {
     return { ok: false, state: 'checkout git inspection failed' };
   }
+  const entries = indexFlags.output.split('\0').filter(Boolean);
+  const hiddenFlags = entries.filter(entry => {
+    // Git ls-files -v prefixes lowercase for assume-unchanged and S for skip-worktree.
+    // Other unexpected entry types are not qualified immutable release checkouts.
+    const flag = entry.charAt(0);
+    return entry.charAt(1) !== ' ' || flag !== 'H';
+  });
   return {
     ok: root.output === dir,
     state: root.output === dir ? 'git checkout inspected' : 'path is not the repository root',
     head: head.output,
     tree: tree.output,
-    clean: dirty.output === '',
+    clean: dirty.output === '' && hiddenFlags.length === 0 && entries.length > 0,
+    index_flags_safe: hiddenFlags.length === 0 && entries.length > 0,
   };
 }
 
@@ -107,7 +119,8 @@ export function evaluateReadiness({commit, node, bun, image, authorizationRefere
   if (!checkout?.ok) fail('CHECKOUT_UNAVAILABLE', checkout?.state || 'actual source checkout not inspected');
   if (checkout?.ok && checkout.head !== TARGET_COMMIT) fail('CHECKOUT_COMMIT_MISMATCH', 'actual git HEAD is not target PR #119 commit');
   if (checkout?.ok && checkout.tree !== TARGET_GIT_TREE) fail('CHECKOUT_TREE_MISMATCH', 'actual git tree is not target PR #119 tree');
-  if (checkout?.ok && checkout.clean !== true) fail('CHECKOUT_DIRTY', 'source checkout has modifications or untracked files');
+  if (checkout?.ok && checkout.index_flags_safe !== true) fail('CHECKOUT_INDEX_FLAGS_UNSAFE', 'tracked index flags hide files or index entries are not ordinary cached files');
+  if (checkout?.ok && checkout.clean !== true) fail('CHECKOUT_DIRTY', 'source checkout has modifications, hidden index flags or untracked files');
   return {
     target_commit: TARGET_COMMIT,
     checked_commit: commit,
@@ -121,6 +134,7 @@ export function evaluateReadiness({commit, node, bun, image, authorizationRefere
     observed_checkout_commit: checkout?.head || null,
     observed_checkout_tree: checkout?.tree || null,
     checkout_clean: checkout?.clean === true,
+    checkout_index_flags_safe: checkout?.index_flags_safe === true,
     technical_preflight_pass: findings.length === 0,
     release_decision: 'NO-GO',
     execution_authorized: false,
