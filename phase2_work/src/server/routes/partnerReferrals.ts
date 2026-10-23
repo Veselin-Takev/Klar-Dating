@@ -72,8 +72,11 @@ function optionalVisitorUid(req: Request): Promise<string | null> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !/^Bearer\s+\S+$/.test(header)) return Promise.resolve(null);
   const token = header.slice('Bearer '.length).trim();
-  return getAuth(getServerFirebaseApp()).verifyIdToken(token, true)
-    .then(decoded => decoded.firebase?.sign_in_provider !== 'anonymous' && typeof decoded.uid === 'string' ? decoded.uid : null)
+  return Promise.resolve()
+    .then(() => getAuth(getServerFirebaseApp()).verifyIdToken(token, true))
+    .then(decoded => typeof decoded.firebase?.sign_in_provider === 'string'
+      && decoded.firebase.sign_in_provider !== 'anonymous'
+      && typeof decoded.uid === 'string' && decoded.uid.length > 0 ? decoded.uid : null)
     .catch(() => null);
 }
 
