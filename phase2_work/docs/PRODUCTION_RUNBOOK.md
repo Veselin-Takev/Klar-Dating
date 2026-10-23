@@ -397,3 +397,22 @@ Validierung: 16 neue HTTP-Tests mit echtem Express-Router, Referral-Service und 
 ## 2026-10-24 — CODEOWNERS im bestätigten Solo-Betrieb
 
 GitHub meldet die bisherigen @klar-Teamzuordnungen als unbekannt. Der Eigentümer hat Solo-Betrieb bestätigt. @Veselin-Takev wird technischer Dateizuständiger; die explizite Abdeckung aller kritischen Pfade sowie Glob-/Override-Schutz bleiben erhalten. Die technische Zuordnung ist keine unabhängige Security-/Finance-Freigabe. Ein zusätzlicher Produktionscheck verweigert die Freigabe bei unbesetzten Rollen, Eigentümer-Selbstfreigabe, identischen Reviewern, fremden/veralteten Belegen oder falschem Commit. Beide Rollen bleiben derzeit unbesetzt, Production NO-GO. 87 lokale Governance-/Release-Regressionen bestehen; vollständige CI und GitHub-Validierung müssen am veröffentlichten Head geprüft werden. Siehe docs/CODEOWNERS_GOVERNANCE_2026-10-19.md. Keine Branchschutz-/Berechtigungsänderung, kein Deployment.
+
+### 2026-10-18 — Marketing claim release gating (#47)
+Before publishing any unverified product claim, review `docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json`, collect actual behavior/test evidence and separately authorized Product, Legal, Brand signoffs. Run `node scripts/check-marketing-claims.mjs --release` as a fail-closed pre-release gate; blocked claims are expected to fail. Review all DE/EN/ES/FR UI copy and referral share content. These checks do not replace full security/privacy/emulator CI or human approval. **NO-GO**.
+
+
+### 2026-10-18 — Claim release gate must prove independent authorization
+Run `node scripts/test-marketing-claims.mjs`, then `node scripts/check-marketing-claims.mjs --release` (expected NO-GO unless Product, Legal and Brand approve all linked evidence). Distinct reviewer handles and evidence URL shape are syntactic only and DO NOT authenticate approvals. Enforce separate trusted CI/branch reviews and verify actual behavior and URLs before changing manifest to GO. **NO-GO.**
+
+
+### 2026-10-18 — Pin claim release evidence to repository matrix
+`node scripts/check-marketing-claims.mjs --release` must never accept a manifest-path environment override. Confirm canonical matrix is used and all unapproved claims cause NO-GO. Run `node scripts/test-marketing-claims.mjs` and inspect signoffs independently. Trusted CI and protected refs are still necessary; local file edits can falsify the canonical matrix. No production authorization from this gate alone. **NO-GO.**
+
+
+### 2026-10-18 — Trusted claim evidence URL preflight
+Approved product claims require at least one repository commit/PR/file reference and an actual, reviewed Actions run on the corresponding source revision; the local gate validates only trusted URL format and required classes. Review status/subject, SHA, successful test results and authorized Product/Legal/Brand approvals independently before using a GO status. `node scripts/test-marketing-claims.mjs` and `node scripts/check-marketing-claims.mjs --release` are mandatory local preflights. **NO-GO**.
+
+
+### 2026-10-18 – Marketing-Nachweispfade (P0 #47)
+Den Gate-Test `node scripts/test-marketing-claims.mjs` und den erwarteten NO-GO-Releasecheck auf exaktem Source-Stand ausführen. Nur echte numerische PR-/Run-IDs bzw. vollständige Git-Commit-Referenzen verwenden. Jede Referenz im authentifizierten GitHub prüfen (Existenz, CI-Status, Commit-SHA, Review-Berechtigung). Die URL-Prüfung selbst beweist keine Freigabe. **NO-GO.**

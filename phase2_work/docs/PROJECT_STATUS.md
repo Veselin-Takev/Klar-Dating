@@ -1372,3 +1372,22 @@ Validierung: 16 neue HTTP-Tests mit echtem Express-Router, Referral-Service und 
 ## 2026-10-24 — CODEOWNERS im bestätigten Solo-Betrieb
 
 GitHub meldet die bisherigen @klar-Teamzuordnungen als unbekannt. Der Eigentümer hat Solo-Betrieb bestätigt. @Veselin-Takev wird technischer Dateizuständiger; die explizite Abdeckung aller kritischen Pfade sowie Glob-/Override-Schutz bleiben erhalten. Die technische Zuordnung ist keine unabhängige Security-/Finance-Freigabe. Ein zusätzlicher Produktionscheck verweigert die Freigabe bei unbesetzten Rollen, Eigentümer-Selbstfreigabe, identischen Reviewern, fremden/veralteten Belegen oder falschem Commit. Beide Rollen bleiben derzeit unbesetzt, Production NO-GO. 87 lokale Governance-/Release-Regressionen bestehen; vollständige CI und GitHub-Validierung müssen am veröffentlichten Head geprüft werden. Siehe docs/CODEOWNERS_GOVERNANCE_2026-10-19.md. Keine Branchschutz-/Berechtigungsänderung, kein Deployment.
+
+### 2026-10-18 — P0 #47 machine-readable marketing claim evidence gate (draft)
+Added `docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json` with verification, 8–12 local suggestions, Free-use, human-curation and referral claims **BLOCKED** until genuine evidence and Product/Legal/Brand approvals. Local schema gate `node scripts/check-marketing-claims.mjs`; `--release` intentionally returns NO-GO while blocked. See `docs/MARKETING_CLAIM_RELEASE_GATE_2026-10-18.md`. No invented approvals. #47/#8 still open, no production release.
+
+
+### 2026-10-18 — P0 #47 approval-evidence hardening (draft)
+The claim gate rejects placeholder evidence, same-person role endorsements and absent explicit top-level GO. Added local mutation test `node scripts/test-marketing-claims.mjs` and `docs/MARKETING_CLAIM_APPROVAL_VALIDATION_2026-10-18.md`. The test only checks structure; reviewer identity/evidence authenticity requires independent external verification. All claims remain blocked. **NO-GO.**
+
+
+### 2026-10-18 — P0 #47 canonical claim manifest pinned (draft)
+Release-mode `scripts/check-marketing-claims.mjs --release` now rejects `KLAR_CLAIM_MANIFEST_PATH` and always reads the committed matrix; local mutation tests may still supply fixtures outside release mode. Test checks forged GO override fails. Claims remain 0/5 approved; independent evidence verification, review authority, trusted CI, branch protection and full Mandatory Gates remain outstanding. Details: `docs/MARKETING_CANONICAL_MANIFEST_RELEASE_GATE_2026-10-18.md`. **NO-GO.**
+
+
+### 2026-10-18 — P0 #47 trusted evidence URL gate (draft)
+Claim approval references now require implementation and Actions-run URL shapes scoped to `github.com/Veselin-Takev/Klar-Dating`. External URLs, userinfo, missing test runs and alternate release manifests are rejected by mutation checks. `docs/MARKETING_TRUSTED_EVIDENCE_ORIGIN_2026-10-18.md` details external evidence and reviewer validation still missing. Five claims remain BLOCKED; NO-GO.
+
+
+### 2026-10-18 – P0 #47 GitHub-Nachweisreferenzen eindeutig validiert (Draft)
+Der lokale Freigabecheck akzeptiert nur numerische PR-/Actions-IDs, vollständige Commit-SHAs und Blob-Links mit Commit-SHA und Dateipfad; kodierte oder mehrdeutige Pfade werden abgewiesen. Negativtests und `docs/MARKETING_EVIDENCE_REFERENCE_SHAPES_2026-10-18.md` ergänzt. Echte GitHub-Nachweise, Rollenfreigaben und vollständige Gates weiterhin UNBESTÄTIGT. **NO-GO.**
