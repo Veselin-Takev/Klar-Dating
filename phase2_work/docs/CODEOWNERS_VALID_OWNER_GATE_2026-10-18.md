@@ -1,11 +1,19 @@
-# CODEOWNERS verified ownership fallback — 2026-10-18
+# CODEOWNERS: Solo-Betrieb und unabhängige Freigaben (2026-10-24)
 
-**Status: Draft / Production NO-GO.** Repository `Veselin-Takev/Klar-Dating` is owned by a GitHub `User`, not the assumed `klar` organization. The GitHub connector verified `Veselin-Takev` has `admin` permission on this private repository. As a conservative intermediate safeguard, replace all unverified `@klar/security`, `@klar/engineering`, and `@klar/finance` CODEOWNERS identifiers with the confirmed owner `@Veselin-Takev`.
+Der Eigentümer hat bestätigt, derzeit allein am persönlichen Repository zu arbeiten. GitHub meldete die bisherigen @klar/engineering-, @klar/security- und @klar/finance-Teamzuordnungen auf main als Unknown owner. Diese Zeichenketten waren keine wirksame Reviewer-Zuordnung.
 
-**Limitations:** This is a valid *owner identity fallback*, not an independent reviewer. The repository owner might author, approve, and merge changes; CODEOWNERS alone cannot require separate Security/Finance/Privacy approvals or enforce separation of duties. Draft PRs do not automatically request CODEOWNERS review. GitHub rulesets/branch protection, protected `main`, signed approvals from independent reviewers with write access, and audit/CI mandatory gates require separate verification and implementation before GO.
+## Technische Dateizuständigkeit
 
-## Local validation
-From `phase2_work`, run `node scripts/check-codeowners-owner.mjs`. The check verifies only a syntactic owner invariant and a critical-path inventory. It does not prove live branch protection, enforce independent approvals, or validate every CODEOWNERS gitignore pattern. Validate exact-head GitHub CODEOWNERS errors via the repository CODEOWNERS errors API with appropriate permissions.
+@Veselin-Takev ist der technische CODEOWNER. Alle bisherigen kritischen Pfade bleiben erhalten; explizite Regeln für die vier Governance-Prüfdateien kommen hinzu. check-codeowners.mjs prüft 21 geschützte Pfade, die zuletzt wirksame Regel, Identitäten, globale Zuständigkeit, Verzeichnisgrenzen und unzulässige Glob-/unanchored Overrides. Ein globaler Eigentümer ersetzt keine explizite kritische Regel. check-codeowners-owner.mjs delegiert an dieselbe vollständige Prüfung.
 
-## Future ownership migration
-If this repository is transferred into a real GitHub organization, first create the approved teams and verify their visible existence and explicit write permission; then replace the fallback assignments atomically with appropriate new CODEOWNERS entries and independently enforced required reviewer policies. Revert this patch if a verified richer owner mapping is already available; never restore nonexistent organization teams. No production or GitHub Actions changes in this draft.
+## Unabhängigkeit und Produktionsblockade
+
+Dateizuständigkeit bestätigt keine unabhängige Security-/Finance-Abnahme. codeowners-review-policy.mjs enthält bewusst leere Reviewer-Listen für beide Rollen. check-production-release-approval.mjs führt den zusätzlichen Check zusammen mit allen bisherigen Release-Evidence-Prüfungen aus. Solange diese Rollen unbesetzt sind, bleibt die Produktionsfreigabe blockiert. Der technische Eigentümer wird auch bei abweichender Großschreibung als unabhängiger Reviewer abgewiesen; Security und Finance benötigen unterschiedliche Personen.
+
+Nach späterer Besetzung sind kontengebundene Signoffs auf dem exakten Commit und passende Review-Belege erforderlich. Diese Strukturprüfung authentifiziert keine Identität und prüft keine tatsächlichen GitHub-Rechte: der geschützte Release-Prozess muss die Belege und Berechtigungen zusätzlich überprüfen. Keine Freigabe wird erfunden oder automatisch erteilt.
+
+## Validierung und Umfang
+
+87 lokale Governance-/Release-Regressionen bestehen. Die bestehende Release-Workflow-Prüfung besteht; der Produktionscheck verweigert den aktuellen NO-GO-Stand einschließlich unbesetzter Fachrollen wie vorgesehen. Vollständige CI und GitHub-CODEOWNERS-Validierung auf dem PR-Head stehen vor Veröffentlichung noch aus.
+
+Keine Änderung an Branchschutz, Zugriffsrechten, produktiven Ressourcen oder Release-Freigaben. Issues #73 und #8 bleiben bis zur jeweils erforderlichen externen Evidenz offen.
