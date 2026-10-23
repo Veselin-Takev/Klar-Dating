@@ -65,3 +65,9 @@ This **documentation-only branch** exists to make the audit trail durable withou
 - Next decision: **HOLD until independently authenticated evidence and responsible-owner unlock**
 
 For new checks after this snapshot, append dated evidence records with exact SHA, source, scope and verification result; do not rewrite earlier observations into unqualified PASS.
+
+## Supplementary evidence-intake protocol (2026-10-23)
+
+The detailed [CI Host Evidence Intake Runbook](CI_HOST_EVIDENCE_INTAKE_RUNBOOK_2026-10-23.md) provides a **provisional** row-by-row mapping of the **14 source-defined mandatory release-gate names** against the separate request for **15 host logs**, leaving the 15th explicitly **UNMAPPED** pending an authorized owner decision. It also inventories all **13 source-defined integration receipt keys**, defines cryptographic intake and independent provenance checks, and keeps the Bun-only root `npm audit` incompatibility a hard blocker rather than manufacturing a clean security PASS.
+
+This link records **instructions and missing evidence**, not executed steps, acquired artifacts, validated signatures or any permission to run CI. The dedicated documentation branch intentionally remains isolated from Draft PR #119, `main`, the release pipeline and production.
