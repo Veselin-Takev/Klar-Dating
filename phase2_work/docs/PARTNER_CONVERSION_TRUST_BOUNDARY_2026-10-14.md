@@ -1,5 +1,8 @@
 # Klar & Partner — P0 conversion trust-boundary decision record (2026-10-14)
 
+> **Nachtrag PR #119 (2026-10-23):** Diese Datei beschreibt ausdrücklich einen **historischen** Code-Stand (`f423afeb60cdce82a94330b2daf2d3c4a332e512`). Für den unveränderten PR #119 (`7fdf29010c85f16a9b38e5c93186f32e92192f3a`) gilt **nicht** mehr die unten historische Sofortgutschrift `earned`. Der geprüfte Conversion-Pfad speichert nur `pending_verification` / `partner_assertion_only`, ohne qualifizierte Zähler zu erhöhen. Unabhängige Kauf-/Buyer-Nachweise, Refund/Settlement und Claim-Expiry fehlen weiterhin; **P0 #55 OPEN, NO-GO**. Siehe [aktueller PR119-Quell-Audit](PR119_P0_55_PARTNER_WEBHOOK_TRUST_SOURCE_AUDIT_2026-10-23.md).
+
+
 Status: **OPEN, NO-GO for paid/credited partner conversion settlement**. Source: `src/server/routes/partnerReferrals.ts`, `src/server/partnerReferralCore.ts`, `src/server/partnerReferralService.ts` at main `f423afeb60cdce82a94330b2daf2d3c4a332e512`.
 
 ## Observed and proved in source
