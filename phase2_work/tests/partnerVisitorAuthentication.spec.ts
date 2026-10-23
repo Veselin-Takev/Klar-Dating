@@ -21,11 +21,11 @@ const token = derivePartnerReferralToken('owner', 'campaign', 1, secret);
 const destination = 'https://partner.example/offer';
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 
-function database(consent = true) {
+function database(consent = true, campaignDestination = destination) {
   const store = new Map<string, Row>([
     ['users/owner', { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }],
     ['users/visitor', { isAdult: true, partnerReferralConsent: consent, partnerReferralVersion: 1 }],
-    ['partner_campaigns/campaign', { name: 'Partner', slug: 'partner', destinationUrl: destination, rewardLabel: 'Benefit', termsSummary: 'Partner terms apply.', status: 'active', brandVerified: true, clickCount: 0 }],
+    ['partner_campaigns/campaign', { name: 'Partner', slug: 'partner', destinationUrl: campaignDestination, rewardLabel: 'Benefit', termsSummary: 'Partner terms apply.', status: 'active', brandVerified: true, clickCount: 0 }],
     ['partner_referrals/' + partnerReferralDocumentId(token), { ownerUid: 'owner', campaignId: 'campaign', version: 1, status: 'active', clickCount: 0 }],
   ]);
   const snapshot = (ref: Ref) => ({ id: ref.id, exists: store.has(ref.path), data: () => store.get(ref.path) });
@@ -58,8 +58,8 @@ function database(consent = true) {
   return { firestore: db as unknown as Firestore, store };
 }
 
-async function request(options: { header?: string; user?: Row; consent?: boolean; pathToken?: string } = {}) {
-  const db = database(options.consent);
+async function request(options: { header?: string; user?: Row; consent?: boolean; pathToken?: string; destination?: string } = {}) {
+  const db = database(options.consent, options.destination);
   const app = express();
   if (options.user) app.use((req, _res, next) => {
     req.user = options.user as Request['user']; next();
@@ -136,6 +136,25 @@ describe('public partner visitor authentication over HTTP', () => {
   it('retains malformed-link rejection before authentication or tracking', async () => {
     const result = await request({ header: 'Bearer valid-token', pathToken: 'malformed' });
     expect(result.response.status).toBe(404);
+    expect(auth.getAuth).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('unsafe configured partner destinations over HTTP', () => {
+  it.each([
+    'https://partner.example/offer?klar_referral=preseeded',
+    'https://partner.example/offer?%6Blar_referral=preseeded',
+    'https://partner.example/offer?KLAR_REFERRAL=preseeded',
+    'https://partner.example/offer#klar_referral=preseeded',
+  ])('blocks an existing unsafe destination without a bearer: %s', async destination => {
+    const result = await request({ destination });
+    expect(result.response.status).toBe(400);
+    expect(result.response.headers.get('location')).toBeNull();
+    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(result.store.get('partner_campaigns/campaign')?.clickCount).toBe(0);
+    expect([...result.store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
     expect(auth.getAuth).not.toHaveBeenCalled();
   });
 });
