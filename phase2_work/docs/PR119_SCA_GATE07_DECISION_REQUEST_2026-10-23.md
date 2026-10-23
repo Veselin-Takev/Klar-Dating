@@ -35,6 +35,11 @@ Before an authorized host run, Security/SRE must separately approve and pin the 
 The user's allowance for **cost-free** work does not stand in for independent Security/Release Owner approval. No CI jobs, merges, deployments, production operations, edits to the original gate catalog, or new application correction cycles are authorized.
 
 ## Audit guard and rollback
-A new **locally tested only** read-only contract-screen candidate (13/13 targeted tests; combined local audit suites 91/91) maps the immutable 15 commands and detects this discrepancy. It must be separately reviewed and remote-integrated before being used as an official audit prerequisite. A static output, even if structurally clean, never grants GO or proves host provenance. Revert this isolated documentation commit to roll back these review notes; no schema, dependency, product code or workflow change is included.
+A new **locally tested only** read-only contract-screen candidate (13/13 targeted tests; combined local audit suites 91/91) maps the immutable 15 commands and detects this discrepancy. It is now integrated on the isolated audit branch but must be **independently reviewed and separately authorized** before use as an official host-audit prerequisite; integration alone does not modify or approve Gate 07. A static output, even if structurally clean, never grants GO or proves host provenance. Revert this isolated documentation commit to roll back these review notes; no schema, dependency, product code or workflow change is included.
 
 References: [prior static reconciliation](PR119_GATE_CONTRACT_STATIC_RECONCILIATION_2026-10-23.md), [SCA ADR](ADR_PR119_SCA_LOCKFILE_GATE_RECONCILIATION_2026-10-23.md), [npm audit v10](https://docs.npmjs.com/cli/v10/commands/npm-audit/), [Bun audit](https://bun.com/docs/pm/cli/audit).
+
+
+## Tooling integration evidence (2026-10-23)
+
+The read-only contract screen and its 13 local tests were integrated on `audit/pr119-host-evidence-governance-2026-10-23` only. Repeated combined local test suite: **91/91 PASS** on Node v22.16.0. Actual offline screen on Git-blob-verified PR119 source subset: **exit 1 / BLOCKED / NO-GO**; scanners executed: **0**. This remains a proposal with **no authenticated Security or Release Owner decision**, **0/15** host-gate PASS evidence and **0/4** independent production approvals. Do not treat this code integration as endorsement of the composite Gate 07 proposal.

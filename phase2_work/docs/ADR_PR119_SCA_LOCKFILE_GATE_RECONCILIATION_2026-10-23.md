@@ -19,3 +19,8 @@ Gates 08–09 invoke unpinned `npx gitleaks` and `npx semgrep`; neither is an ap
 This ADR is based on GitHub's immutable tree and static source review, official npm/Bun docs and the offline npm control experiment. It was **not** validated on the required host (Node v22.23.3/Bun 1.4.2/Docker) and no real SCA network advisory assessment occurred. Remaining release status: **0/15 qualified mandatory gates PASS, 0/4 independent sign-offs; NO-GO**.
 
 No application code, schema, dependency lock, CI workflow, PR #119, main or production change. Rollback: revert this ADR and associated audit-only status/runbook entry on the isolated audit branch.
+
+
+## Implemented read-only screen (audit branch only, 2026-10-23)
+
+The nonexecuting `scripts/screen-pr119-sca-gate-contract.mjs` and its 13 targeted tests have been integrated on the isolated audit branch, and 91/91 combined local tooling tests passed under Node 22.16.0. The Git-blob-verified original PR119 dependency inputs produced **exit 1 / BLOCKED / NO-GO**. This action does **not** authorize the proposed two-graph replacement, change mandatory Gate 07, execute a vulnerability scan or qualify any host gate. Security/Release Owner approval remains **PENDING**; four production sign-offs remain unproven. Revert this audit-only integration commit to roll back this change.

@@ -37,5 +37,18 @@
     "scanner_executions": 0
   },
   "unsigned": true,
-  "do_not_treat_as_approval": true
+  "do_not_treat_as_approval": true,
+  "tooling_integration": {
+    "status": "ISOLATED_AUDIT_BRANCH_ONLY_NOT_HOST_QUALIFIED",
+    "source_path": "phase2_work/scripts/screen-pr119-sca-gate-contract.mjs",
+    "test_path": "phase2_work/scripts/screen-pr119-sca-gate-contract.test.mjs",
+    "targeted_tests_pass": 13,
+    "total_local_tool_tests_pass": 91,
+    "tests_node_version": "22.16.0",
+    "actual_static_source_screen_exit": 1,
+    "actual_static_screen_result": "BLOCKED / NO-GO",
+    "host_gate_credit": 0,
+    "authorized_composite_sca_contract": false,
+    "requires_independent_security_and_release_owner_approval": true
+  }
 }
