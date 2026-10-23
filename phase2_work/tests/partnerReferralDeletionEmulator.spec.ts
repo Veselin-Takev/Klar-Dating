@@ -14,7 +14,10 @@ const EMULATOR_CONTENTION_TIMEOUT_MS = 90_000;
 // Fail closed before getDb() can create any Admin SDK client.
 const activeEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
 if (activeEmulatorHost || process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1') {
-  const config = JSON.parse(readFileSync(resolve(process.cwd(), 'firebase.pruefung.json'), 'utf8'));
+  // The dedicated Art17 runner uses the isolated Rules profile; test:ci uses
+  // the default Auth/Firestore/Storage profile. Validate the selected profile.
+  const configFile = process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' ? 'firebase.pruefung.json' : 'firebase.json';
+  const config = JSON.parse(readFileSync(resolve(process.cwd(), configFile), 'utf8'));
   const local = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(activeEmulatorHost);
   const ids = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
   if (!local || Number(local[2]) !== config?.emulators?.firestore?.port
