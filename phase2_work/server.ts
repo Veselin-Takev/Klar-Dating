@@ -1,4 +1,5 @@
 import { createAnalyticsRouter } from './src/server/routes/analytics';
+import { shouldEnforceContentSecurityPolicy, shouldPermitEmulatorCspSources } from './src/server/cspRuntimePolicy';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT
@@ -267,7 +268,10 @@ export async function baueApp() {
   //
   // In der Entwicklung bleibt sie aus: Vite braucht inline-Skripte und
   // eval fuer Hot-Reload. In Produktion gilt sie.
-  const istProduktion = process.env.NODE_ENV === "production" && process.env.VITE_EMULATOR !== "true";
+  // NODE_ENV=production must always enforce CSP. A client-side Vite build flag
+  // must never turn off a security header in the running server.
+  const istProduktion = shouldEnforceContentSecurityPolicy(process.env);
+  const emulatorCspFreigegeben = shouldPermitEmulatorCspSources(process.env);
 
   // ── BEFUND 14.08.2026, beim ersten Lauf von `npm run start:lokal` ───────
   // Der gebaute Stand lief gegen die Emulatoren — und die CSP hat JEDE
@@ -283,9 +287,9 @@ export async function baueApp() {
   // `start:lokal` setzt `NODE_ENV=production`, weil genau der
   // Produktionszustand geprueft werden soll; damit greift sie.
   //
-  // Erweitert wird deshalb NUR, wenn die Emulator-Variablen gesetzt sind.
-  // `firebase emulators:exec` setzt sie; in der Produktion gibt es sie
-  // nicht, und dann bleibt die Liste unveraendert eng.
+  // Fuer gebaute lokale Smoke-Tests ist die Erweiterung nur mit explizitem
+  // KLAR_RUNTIME_ENV=local + KLAR_ALLOW_LOCAL_EMULATOR_CSP=true zulaessig.
+  // Cloud-Runtime-Indikatoren sperren diese Ausnahme unabhaengig vom Schalter.
   //
   // NACHTRAG 14.08.2026: Die Liste ging bisher NUR an `connect-src`. Damit
   // blieb der Anmelde-Rahmen von Firebase Auth gesperrt:
@@ -296,15 +300,15 @@ export async function baueApp() {
   // Die Entscheidung liegt jetzt in src/server/emulatorCsp.ts und ist dort
   // geprueft (tests/emulatorCsp.spec.ts).
   const { verbindung: emulatorQuellen, rahmen: emulatorRahmen } = emulatorCsp(
-    process.env.FIRESTORE_EMULATOR_HOST,
-    process.env.FIREBASE_AUTH_EMULATOR_HOST,
+    emulatorCspFreigegeben ? process.env.FIRESTORE_EMULATOR_HOST : undefined,
+    emulatorCspFreigegeben ? process.env.FIREBASE_AUTH_EMULATOR_HOST : undefined,
   );
   if (emulatorQuellen.length > 0) {
     console.warn(
       `\n  HINWEIS: Die CSP ist um die Emulatoren erweitert:\n` +
       `  connect-src  ${emulatorQuellen.join("  ")}\n` +
       `  frame-src    ${emulatorRahmen.join("  ") || "(keiner)"}\n` +
-      `  Das geschieht nur, weil die Emulator-Variablen gesetzt sind.\n`,
+      `  Quellen sind nur im freigegebenen lokalen Emulator-Modus erweitert.\n`,
     );
   }
   app.use(helmet({

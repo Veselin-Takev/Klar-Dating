@@ -45,6 +45,30 @@ describe('Klar & Partner security core', () => {
 
   it('allows only public HTTPS destinations', () => {
     expect(validatePartnerDestinationUrl('https://www.hellofresh.com/offer')).toBe('https://www.hellofresh.com/offer');
+    expect(validatePartnerDestinationUrl('https://www.hellofresh.com/offer?campaign=fall&channel=partner'))
+      .toContain('campaign=fall');
+    // Browser fragments are visible to partner scripts and could expose hidden tokens.
+    for (const destination of [
+      'https://partner.example/offer#klar_referral=secret',
+      'https://partner.example/offer#/continue?KLAR_REFERRAL=secret',
+      'https://partner.example/offer#%6Blar_referral%3Dsecret',
+      'https://partner.example/offer#offer-section',
+    ]) {
+      expect(() => validatePartnerDestinationUrl(destination)).toThrowError(
+        expect.objectContaining({ code: 'unsafe_destination' }),
+      );
+    }
+    // Reserved attribution parameters must not survive a consentless direct redirect.
+    for (const destination of [
+      'https://partner.example/offer?klar_referral=secret',
+      'https://partner.example/offer?KLAR_REFERRAL=secret',
+      'https://partner.example/offer?%6Blar_referral=secret',
+      'https://partner.example/offer?campaign=fall&klar_referral=secret',
+    ]) {
+      expect(() => validatePartnerDestinationUrl(destination)).toThrowError(
+        expect.objectContaining({ code: 'unsafe_destination' }),
+      );
+    }
     for (const unsafe of [
       'javascript:alert(1)',
       'http://www.hellofresh.com/',
