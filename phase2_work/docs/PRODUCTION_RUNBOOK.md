@@ -421,3 +421,8 @@ Den Gate-Test `node scripts/test-marketing-claims.mjs` und den erwarteten NO-GO-
 ## 2026-10-24 — PR #80 adversarial conversion tests prepared on current main
 
 Seven targeted in-memory cases cover withdrawn buyer/owner consent, minor buyers, revoked owner version, altered campaign slug, self-referral and duplicate buyer assertions with zero qualified credit. Updated fixtures include current buyer consent epochs and referral campaign bindings; all existing service tests are preserved. Seven new cases PASS locally in an isolated runtime; full exact-head CI remains pending publication. See docs/PARTNER_CONVERSION_ADVERSARIAL_TEST_GATE_2026-10-18.md for limits. No deployment; #55/#8 remain open, production NO-GO.
+
+
+## 2026-10-24 — Historical documentation PR reconciliation prepared
+
+PRs #63/#65/#68 contain the same missing partner dataflow document; #72 contains a missing historical enterprise audit. Reconciled drafts preserve historical evidence while recording current 20-group TTL, canonical P95, technical CODEOWNERS and exact-main CI status. Direct signed-in partner opens still disclose the referral token; live recipient/retention/purchase and independent review evidence remains outstanding. See docs/PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md and docs/ENTERPRISE_END_TO_END_AUDIT_2026-10-14.md. No production code change, no deployment, production NO-GO.
