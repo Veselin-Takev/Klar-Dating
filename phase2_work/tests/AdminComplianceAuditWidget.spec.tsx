@@ -51,7 +51,8 @@ describe('AdminComplianceAuditWidget Component', () => {
     render(<AdminComplianceAuditWidget />);
 
     expect(screen.getByText(/§ 312k BGB Konformitäts-Audit/i)).toBeInTheDocument();
-    expect(screen.getByText(/Audit-Ready/i)).toBeInTheDocument();
+    expect(screen.getByText('Nachweisprüfung offen')).toBeInTheDocument();
+    expect(screen.queryByText(/Audit-Ready/i)).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('AUDIT-312K-A1B2C3D4E5F6')).toBeInTheDocument();
@@ -79,7 +80,7 @@ describe('AdminComplianceAuditWidget Component', () => {
         kind: 'all',
         delimiter: ';',
       });
-      expect(screen.getByText(/CSV-Export erfolgreich heruntergeladen/i)).toBeInTheDocument();
+      expect(screen.getByText('CSV-Export gestartet: klar_bgb_312k_compliance_audit_20261001.csv')).toBeInTheDocument();
     });
   });
 

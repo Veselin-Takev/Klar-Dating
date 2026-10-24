@@ -10,12 +10,13 @@ const checks = [
   ['Firestore transaction spans', /observeFirestoreTransaction\('runTransaction'/],
   ['Gemini spans', /observeGeminiCall\(context\.endpoint/],
   ['Gemini token usage', /gen_ai\.usage\.total_tokens/],
-  ['P95 1500ms SLO', /p95 > 1500/],
+  ['Canonical P95 SLO policy import', /import sloPolicy from ['"]\.\.\/\.\.\/ops\/slo\.json['"]/,],
+  ['Canonical P95 SLO threshold', /p95 > API_P95_SLO_MS \? 1 : 0/],
   ['Prometheus metrics', /observabilityPrometheus/],
   ['OTLP trace exporter', /OTLPTraceExporter/],
 ];
 for (const [label, re] of checks) {
-  const source = label === 'OpenTelemetry SDK provider' || label === 'W3C traceparent extraction' || label === 'P95 1500ms SLO' || label === 'Prometheus metrics' || label === 'Gemini token usage' || label === 'OTLP trace exporter' ? obs : label === 'Express HTTP spans' ? server : label === 'Firestore transaction spans' ? db : ai;
+  const source = label === 'OpenTelemetry SDK provider' || label === 'W3C traceparent extraction' || label === 'Canonical P95 SLO policy import' || label === 'Canonical P95 SLO threshold' || label === 'Prometheus metrics' || label === 'Gemini token usage' || label === 'OTLP trace exporter' ? obs : label === 'Express HTTP spans' ? server : label === 'Firestore transaction spans' ? db : ai;
   if (!re.test(source)) throw new Error(`Observability boundary failed: ${label}`);
 }
 console.log('Observability boundary: PASS');
