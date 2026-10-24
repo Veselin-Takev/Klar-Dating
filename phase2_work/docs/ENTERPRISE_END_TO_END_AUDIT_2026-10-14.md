@@ -1,3 +1,24 @@
+# Reconciliation of historical enterprise audit — 2026-10-24
+
+Current source baseline: main 58600c5e7f43d015753357dff0e5365823287db4. The audit below is retained as a historical snapshot of bee87ae, not a current inventory. Historical priorities, owners, estimates and unverified findings must not be treated as newly validated facts.
+
+| Historical finding | Current source/evidence status |
+| --- | --- |
+| Four provisioned TTL groups versus documented 13 | Superseded in source: the plan and fail-closed matrix now cover 20 groups, with expiry-writer mutations, scoped ACTIVE/preflight checks, staging identity and separate revision/legal/inventory approvals. Live Cloud policies, holds and approval still require evidence. |
+| 1500-ms P95 breach versus 300-ms policy | Corrected in source: canonical ops/slo.json target, validated initialization, emitted-expression boundary tests and enterprise gate. Fleet-level 30-day SLI and pager delivery remain unconfirmed. |
+| Specialized CODEOWNERS patterns miss active app | Explicit critical phase2_work paths and override regressions now exist. Technical owner is @Veselin-Takev in confirmed solo operation; independent Security/Finance production roles remain unassigned and the release gate denies approval. |
+| Partner assertions and recipient token lifecycle | Assertions remain pending independent proof with zero qualified credit. Authenticated visitor, consent epoch, immutable binding and replay checks strengthened; direct signed-in opens still pass a referral token to the external partner. Contracts, downstream erasure and independent purchase verification remain open. |
+| No current complete test evidence in the original audit | Main CI at 58600c5 SUCCESS: 1230/1230 tests in 182 files, build, smoke and browser acceptance. This does not authenticate production configuration, live provider behavior or independent signoffs. |
+| Retry/cache, global budget, FinOps and TCO claims | Not re-audited in this reconciliation. Historical source observations and scenario estimates below cannot establish current bugs, measured savings, quotas or a production GO. |
+
+Evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40044983802 . Source references: scripts/configure-retention.sh, scripts/check-retention-matrix.mjs, scripts/check-retention-active-evidence.mjs, scripts/check-retention-expiry-writers.mjs, src/server/observability.ts, scripts/test-slo-policy.mjs, scripts/check-codeowners.mjs, scripts/codeowners-review-policy.mjs and src/server/partnerReferralService.ts. See PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md for reconciled partner flow.
+
+Release decision remains NO-GO. No live Cloud/provider assessment, external legal opinion, deployment or new approval is claimed. #55/#56/#70/#71/#73/#8 remain open pending their required evidence.
+
+---
+
+## Historical audit — original source snapshot, 2026-10-14
+
 # Klar Enterprise End-to-End Audit — 2026-10-14
 
 **Review target:** `main` commit `bee87aea09a8d10b2e2c3fb74e38e5ecb12be008`.
