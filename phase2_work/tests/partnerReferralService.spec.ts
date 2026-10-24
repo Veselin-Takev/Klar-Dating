@@ -571,13 +571,12 @@ describe('Klar & Partner transactional service boundary', () => {
 
   });
 
-
   it.each([
-    { scenario: 'buyer consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: false }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
-    { scenario: 'buyer is a minor', buyer: { isAdult: false, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
-    { scenario: 'owner consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
-    { scenario: 'owner version revoked', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 2 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
-    { scenario: 'campaign slug altered', buyer: { isAdult: true, partnerReferralConsent: true }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'different-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'buyer consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'buyer is a minor', buyer: { isAdult: false, partnerReferralConsent: true, partnerReferralVersion: 1 }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'owner consent withdrawn', buyer: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, owner: { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'owner version revoked', buyer: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 2 }, campaignSlug: 'example-partner', expectCode: 'conversion_not_eligible' },
+    { scenario: 'campaign slug altered', buyer: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, owner: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }, campaignSlug: 'different-partner', expectCode: 'conversion_not_eligible' },
   ])('rejects an ineligible signed assertion: $scenario', async ({ buyer, owner, campaignSlug, expectCode }) => {
     const ownerUid = 'owner-adversarial';
     const buyerUid = 'buyer-adversarial';
@@ -587,7 +586,7 @@ describe('Klar & Partner transactional service boundary', () => {
       { collection: 'users', id: ownerUid, data: owner },
       { collection: 'users', id: buyerUid, data: buyer },
       { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, slug: campaignSlug, brandVerified: true, status: 'active', qualifiedConversions: 0 } },
-      { collection: 'partner_referrals', id: partnerReferralDocumentId(token), data: { ownerUid, campaignId, version: 1, status: 'active', qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: partnerReferralDocumentId(token), data: { ownerUid, campaignId, campaignSlug: 'example-partner', version: 1, status: 'active', qualifiedConversions: 0 } },
     ]);
     await expect(recordPartnerConversion(deps(db), 'example-partner', {
       event: 'qualified_conversion', eventId: 'provider-claim-adversarial', referralToken: token, buyerUid,
@@ -619,9 +618,9 @@ describe('Klar & Partner transactional service boundary', () => {
     const refId = partnerReferralDocumentId(token);
     const db = makeFirestore([
       { collection: 'users', id: ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
-      { collection: 'users', id: buyerUid, data: { isAdult: true, partnerReferralConsent: true } },
+      { collection: 'users', id: buyerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
       { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, slug, brandVerified: true, status: 'active', qualifiedConversions: 0 } },
-      { collection: 'partner_referrals', id: refId, data: { ownerUid, campaignId, version: 1, status: 'active', qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: refId, data: { ownerUid, campaignId, campaignSlug: 'example-partner', version: 1, status: 'active', qualifiedConversions: 0 } },
     ]);
     const payload = { event: 'qualified_conversion' as const, eventId: 'provider-repeat-0001', referralToken: token, buyerUid };
     await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough')).resolves.toMatchObject({ rewardStatus: 'pending_verification' });
@@ -631,6 +630,7 @@ describe('Klar & Partner transactional service boundary', () => {
     expect(db._store.get('partner_referrals/' + refId)?.qualifiedConversions).toBe(0);
     expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(1);
   });
+
 
 
 });
