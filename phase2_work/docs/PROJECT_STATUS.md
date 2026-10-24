@@ -1391,3 +1391,8 @@ Claim approval references now require implementation and Actions-run URL shapes 
 
 ### 2026-10-18 – P0 #47 GitHub-Nachweisreferenzen eindeutig validiert (Draft)
 Der lokale Freigabecheck akzeptiert nur numerische PR-/Actions-IDs, vollständige Commit-SHAs und Blob-Links mit Commit-SHA und Dateipfad; kodierte oder mehrdeutige Pfade werden abgewiesen. Negativtests und `docs/MARKETING_EVIDENCE_REFERENCE_SHAPES_2026-10-18.md` ergänzt. Echte GitHub-Nachweise, Rollenfreigaben und vollständige Gates weiterhin UNBESTÄTIGT. **NO-GO.**
+
+
+## 2026-10-24 — PR #80 adversarial conversion tests prepared on current main
+
+Seven targeted in-memory cases cover withdrawn buyer/owner consent, minor buyers, revoked owner version, altered campaign slug, self-referral and duplicate buyer assertions with zero qualified credit. Updated fixtures include current buyer consent epochs and referral campaign bindings; all existing service tests are preserved. Seven new cases PASS locally in an isolated runtime; full exact-head CI remains pending publication. See docs/PARTNER_CONVERSION_ADVERSARIAL_TEST_GATE_2026-10-18.md for limits. No deployment; #55/#8 remain open, production NO-GO.

@@ -416,3 +416,8 @@ Approved product claims require at least one repository commit/PR/file reference
 
 ### 2026-10-18 – Marketing-Nachweispfade (P0 #47)
 Den Gate-Test `node scripts/test-marketing-claims.mjs` und den erwarteten NO-GO-Releasecheck auf exaktem Source-Stand ausführen. Nur echte numerische PR-/Run-IDs bzw. vollständige Git-Commit-Referenzen verwenden. Jede Referenz im authentifizierten GitHub prüfen (Existenz, CI-Status, Commit-SHA, Review-Berechtigung). Die URL-Prüfung selbst beweist keine Freigabe. **NO-GO.**
+
+
+## 2026-10-24 — PR #80 adversarial conversion tests prepared on current main
+
+Seven targeted in-memory cases cover withdrawn buyer/owner consent, minor buyers, revoked owner version, altered campaign slug, self-referral and duplicate buyer assertions with zero qualified credit. Updated fixtures include current buyer consent epochs and referral campaign bindings; all existing service tests are preserved. Seven new cases PASS locally in an isolated runtime; full exact-head CI remains pending publication. See docs/PARTNER_CONVERSION_ADVERSARIAL_TEST_GATE_2026-10-18.md for limits. No deployment; #55/#8 remain open, production NO-GO.
