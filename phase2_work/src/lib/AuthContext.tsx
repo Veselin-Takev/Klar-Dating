@@ -86,7 +86,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [claims, setClaims] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const profileRequest = useRef(0);
-  const profileDataRef = useRef<UserProfileData | null>(null);
 
   const session = useMemo(() => {
     return loadAuthSession(user, profileData, claims, loading);
@@ -122,14 +121,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof raw?.photoURL === 'string' && raw.photoURL.includes('/_/upload/')) {
       delete raw.photoURL;
     }
-    if (raw && typeof raw.isAdult === 'undefined' && profileDataRef.current?.isAdult === true) {
-      raw.isAdult = true;
-    }
-    if (raw && typeof raw.einwilligung === 'undefined' && profileDataRef.current?.einwilligung) {
-      raw.einwilligung = profileDataRef.current.einwilligung;
-    }
+    // A missing server field must never inherit a previous authorization or
+    // consent decision. Revocations and incomplete snapshots fail closed.
     const profile = raw ? validateUserProfile(raw, auth.currentUser?.uid) : null;
-    profileDataRef.current = profile;
     setProfileData(profile);
     setDiagnosticsConsent(zweckErlaubt(profile?.einwilligung, 'fehlerberichte'));
     // Display preferences only. Nothing is ever read back into authorization.
@@ -197,6 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // authority; the live listener will apply the next server-confirmed snapshot.
       if (snapshot.metadata.hasPendingWrites) {
         setDiagnosticsConsent(false);
+        if (expectedFields) throw new Error('Die Profiländerung konnte nicht serverseitig bestätigt werden.');
         return data;
       }
       applyServerProfile(data);
@@ -288,7 +283,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(!!currentUser);
       const isCurrent = () => !stopped && version === authVersion && auth.currentUser?.uid === currentUser?.uid;
       if (!currentUser) {
-        profileDataRef.current = null;
         setClaims(null);
         return;
       }
@@ -378,21 +372,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
-    try {
-      await withAuthRetry(() => signInWithEmailAndPassword(auth, email, pass));
-      // Skip email verification in demo/dev environment so users can test immediately.
-    } catch (error) {
-      throw error;
-    }
+    // A preceding anonymous session intentionally uses session persistence.
+    // Set the permanent account policy before authentication, as for Google.
+    await setPersistence(auth, browserLocalPersistence);
+    await withAuthRetry(() => signInWithEmailAndPassword(auth, email, pass));
   };
 
   const signUpWithEmail = async (email: string, pass: string) => {
-    try {
-      await withAuthRetry(() => createUserWithEmailAndPassword(auth, email, pass));
-      // Skip email verification in demo/dev environment so users can test immediately.
-    } catch (error) {
-      throw error;
-    }
+    await setPersistence(auth, browserLocalPersistence);
+    await withAuthRetry(() => createUserWithEmailAndPassword(auth, email, pass));
   };
 
   // ═════════════════════════════════════════════════════════════════════════

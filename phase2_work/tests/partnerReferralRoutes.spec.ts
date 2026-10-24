@@ -75,6 +75,9 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const result = await requestAdmin({ uid: 'user-1', role: 'admin', roles: ['admin'] });
     expect(result.response.status).toBe(403);
     expect(result.getFirestore).not.toHaveBeenCalled();
+    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response.headers.get('pragma')).toBe('no-cache');
+    expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
   it('accepts explicit Firebase admin:true claim', async () => {
@@ -82,6 +85,9 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(result.response.status).toBe(200);
     expect(await result.response.json()).toEqual({ campaigns: [] });
     expect(result.getFirestore).toHaveBeenCalled();
+    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response.headers.get('pragma')).toBe('no-cache');
+    expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
   });
   it('disables caching of personalized partner link responses, including failures', async () => {
     const getFirestore = vi.fn(() => makeDb([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]));
@@ -182,6 +188,31 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(validShape.headers.get('cache-control')).toContain('no-store');
     expect(validShape.headers.get('pragma')).toBe('no-cache');
     expect(validShape.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
+  it('protects webhook response headers even when the distributed limiter fails', async () => {
+    const app = express();
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore: () => { throw new Error('Simulated limiter infrastructure outage'); },
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    const response = await fetch(origin + '/api/partner/webhook/test-partner', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ event: 'invalid' }),
+    });
+    expect(response.status).toBe(500);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
 });
