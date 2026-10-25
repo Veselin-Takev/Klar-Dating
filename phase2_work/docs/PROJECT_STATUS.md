@@ -1401,3 +1401,12 @@ Seven targeted in-memory cases cover withdrawn buyer/owner consent, minor buyers
 ## 2026-10-24 — Historical documentation PR reconciliation prepared
 
 PRs #63/#65/#68 contain the same missing partner dataflow document; #72 contains a missing historical enterprise audit. Reconciled drafts preserve historical evidence while recording current 20-group TTL, canonical P95, technical CODEOWNERS and exact-main CI status. Direct signed-in partner opens still disclose the referral token; live recipient/retention/purchase and independent review evidence remains outstanding. See docs/PARTNER_TOKEN_DATAFLOW_ART17_GATES_2026-10-14.md and docs/ENTERPRISE_END_TO_END_AUDIT_2026-10-14.md. No production code change, no deployment, production NO-GO.
+
+
+## 2026-10-25 — #56: Token-free owner partner opens
+
+POST /api/partner/open/:campaignId now returns the validated current campaign destination without a referral token or new referral documents. User adult/consent/epoch state, account deletion and campaign/destination are read together in one transaction with the signed tokenForwarded:false audit. No click/conversion credit is awarded. The {url} API, private response headers and rate limits remain unchanged. Targeted in-memory service tests: 35/35 PASS (Node 24.22.1, Vitest 5.0.5); full exact-head CI/emulator/browser evidence remains required. Other eligible visitors' tracked redirects still transmit tokens. Partner-side logs/retention, legal approvals, live TTL/Art.-17 evidence and purchase authenticity remain open; production NO-GO. See docs/ADR_PARTNER_OWNER_OPEN_NO_TOKEN_2026-10-25.md. Historical entries above describe their then-current source, not this correction.
+
+## 2026-10-25 — #48: Preserve the actual generated invitation-code alphabet
+
+The member claim endpoint now accepts ten-character uppercased Base64url codes, including hyphen and underscore, matching referralCodeFor. Existing codes, HMAC secret, lookup, anti-self-referral checks and response shapes are preserved. Twenty local HTTP/platform tests PASS (isolated runtime; no emulator claim). REFERRAL_MEMBER_CONTRACT_ZERO_TRUST_2026-10-25.md distinguishes current attribution from the proposed KYC/qualification/reward lifecycle, supplies migration/acceptance gates and records remaining deletion/consent/fulfillment gaps. #48 remains open; no new reward or production authorization.
