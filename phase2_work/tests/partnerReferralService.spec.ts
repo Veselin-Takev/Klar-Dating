@@ -406,17 +406,63 @@ describe('Klar & Partner transactional service boundary', () => {
     const destination = new URL(opened.url);
     expect(destination.origin).toBe('https://partner.example');
     expect(destination.pathname).toBe('/offer');
-    expect(destination.searchParams.get('klar_referral')).toMatch(/^[a-f0-9]{64}$/);
+    expect(destination.searchParams.has('klar_referral')).toBe(false);
     expect(opened.url).not.toContain('/api/partner/click/');
 
     const referrals = [...db._store.entries()].filter(([key]) => key.startsWith('partner_referrals/'));
-    expect(referrals).toHaveLength(1);
-    expect(referrals[0]?.[1].clickCount).toBe(0);
+    expect(referrals).toHaveLength(0);
+    expect(db._store.get('partner_campaigns/' + draft.id)?.clickCount).toBe(0);
     const ledger = [...db._store.entries()]
       .filter(([key]) => key.startsWith('partner_referral_ledger/'))
       .map(([, record]) => record);
-    expect(ledger.some(record => record.eventType === 'referral_open_link')).toBe(true);
+    const openAudit = ledger.find(record => record.eventType === 'referral_open_link');
+    expect(openAudit).toMatchObject({ tokenForwarded: false, referralId: null });
+    expect(verifyHmacAuditPayload(openAudit!, auditSecret)).toBe(true);
   });
+
+  it('opens an untracked destination without token or public-origin infrastructure', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'owner', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: 'campaign', data: { ...campaignInput, status: 'active', brandVerified: true, destinationUrl: 'https://partner.example/offer?lang=de' } },
+    ]);
+    await expect(openPartnerReferral({ ...deps(db), tokenSecret: () => { throw new Error('must not issue tokens'); }, publicUrl: () => undefined }, 'owner', 'campaign'))
+      .resolves.toEqual({ url: 'https://partner.example/offer?lang=de' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referrals/'))).toHaveLength(0);
+  });
+
+  it.each([
+    { isAdult: false }, { partnerReferralConsent: false }, { partnerReferralEpochQuarantined: true },
+    { partnerReferralVersion: 0 }, { partnerReferralVersion: '1' }, { partnerReferralVersion: undefined },
+  ])('denies an owner open with invalid transactional authorization: %j', async patch => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'owner', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1, ...patch } },
+      { collection: 'partner_campaigns', id: 'campaign', data: { ...campaignInput, status: 'active', brandVerified: true } },
+    ]);
+    await expect(openPartnerReferral(deps(db), 'owner', 'campaign')).rejects.toBeDefined();
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
+  it('checks deletion and destination against the transactional snapshot', async () => {
+    for (const mutation of ['deletion', 'destination', 'inactive', 'consent']) {
+      const db = makeFirestore([
+        { collection: 'users', id: 'owner', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+        { collection: 'partner_campaigns', id: 'campaign', data: { ...campaignInput, status: 'active', brandVerified: true } },
+      ]);
+      const originalTransaction = db.runTransaction.bind(db);
+      Object.defineProperty(db, 'runTransaction', {
+        value: async (callback: Parameters<typeof db.runTransaction>[0]) => {
+          if (mutation === 'deletion') db._seed('account_deletions', 'owner', {});
+          if (mutation === 'destination') db._seed('partner_campaigns', 'campaign', { ...campaignInput, status: 'active', brandVerified: true, destinationUrl: 'https://partner.example/offer?klar_referral=legacy' });
+          if (mutation === 'inactive') db._seed('partner_campaigns', 'campaign', { ...campaignInput, status: 'inactive', brandVerified: true });
+          if (mutation === 'consent') db._seed('users', 'owner', { isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 2 });
+          return originalTransaction(callback);
+        },
+      });
+      await expect(openPartnerReferral(deps(db), 'owner', 'campaign')).rejects.toBeDefined();
+      expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+    }
+  });
+
   it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
     const uid = 'owner-1';
     const buyer = 'buyer-1';
