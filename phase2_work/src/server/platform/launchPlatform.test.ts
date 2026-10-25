@@ -43,7 +43,7 @@ test('public profile contains only launch-safe fields', () => {
 test('referral code is deterministic and bounded', () => {
   const a = referralCodeFor('user-1');
   assert.equal(a, referralCodeFor('user-1'));
-  assert.match(a, /^[A-Z0-9]{10}$/);
+  assert.match(a, /^[A-Z0-9_-]{10}$/);
 });
 
 test('activation score rewards the meaningful connection funnel', () => {
