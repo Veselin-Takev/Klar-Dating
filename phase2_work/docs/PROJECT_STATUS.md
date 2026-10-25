@@ -1414,3 +1414,7 @@ The member claim endpoint now accepts ten-character uppercased Base64url codes, 
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+## 2026-10-25 — Hosting migration: staging-only controller draft
+
+Hosting/runtime portability retains Firebase Auth and Firestore; no database migration or production dual writes. Added deterministic staging plans, identity/N-1 gates, canary metrics and mandatory rollback rehearsal with explicit fault scenarios. Reference-model tests are local simulation only. Target hosting, isolated staging Firebase project, reviewed live provider adapter and privacy approval remain missing. No live-staging dry-run or live test executed; no zero-downtime or GDPR certification claimed. See HOSTING_MIGRATION_STAGING_ROLLBACK_2026-10-25.md. Production NO-GO.

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "environment": "staging",
+  "projectId": "example-isolated-staging",
+  "productionProjectId": "striped-antler-500815-e6",
+  "databaseId": "(default)",
+  "sourceRevision": "example-source",
+  "targetRevision": "example-candidate",
+  "sourceArtifactSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "targetArtifactSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "compatibilitySuiteSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "strategy": "same-database",
+  "privacy": {
+    "dataset": "synthetic",
+    "productionDataCopied": false,
+    "evidenceRetentionDays": 7,
+    "reviewReference": "pending"
+  },
+  "schema": {
+    "source": 1,
+    "target": 1,
+    "expandOnly": true,
+    "contractDuringRollbackWindow": false
+  },
+  "triggers": {
+    "maxErrorRate": 0.05,
+    "maxErrorRateIncrease": 0.01,
+    "maxP95Ms": 300,
+    "healthFailures": 3,
+    "minRequests": 100,
+    "minWindowMs": 60000,
+    "maxAgeMs": 120000
+  },
+  "operationTimeoutMs": 10000,
+  "scenario": "happy-path",
+  "canaryPercent": [
+    1,
+    10,
+    50,
+    100
+  ]
+}

@@ -37,6 +37,9 @@ jobs:
       - name: Preflight timeout regression
         if: steps.scope.outputs.full == 'true'
         run: node --test scripts/local-preflight-timeout.test.mjs
+      - name: Staging migration controller regressions
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/test-staging-migration.mjs
       - name: Runtime policy preflight
         if: steps.scope.outputs.full == 'true'
         run: |
