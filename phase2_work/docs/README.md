@@ -1,18 +1,18 @@
 # Klar documentation
 
 
-**Aktueller P0-Arbeitsstand:** [Excel-Abgleich, KYC, Verträge, Löschung und Freigabegates](P0_RELEASE_BLOCKERS_2026-09-28.md). Produktionsfreigabe ist nicht bestätigt.
+**Aktueller Issue-/Nachweisstand:** [Register vom 25.10.2026](OPEN_ISSUE_EVIDENCE_REGISTER_2026-10-25.md). Implementierte Kontrollen, PR-Kandidaten und ausstehende Freigaben sind getrennt; Produktionsfreigabe bleibt unbestätigt.
 
 Start with the current status, then use the audit and runbooks to distinguish implemented behavior from remaining release evidence.
 
 1. [Project status](PROJECT_STATUS.md)
-2. [Current audit 28 September 2026](AUDIT_2026-09-28.md) and [Word report](Klar_App_Audit_2026-09-28.docx); previous [audit 27 September 2026](AUDIT_2026-09-27.md) and [Word report](Klar_App_Audit_2026-09-27.docx)
+2. [Historical audit 28 September 2026](AUDIT_2026-09-28.md) and [Word report](Klar_App_Audit_2026-09-28.docx); previous [audit 27 September 2026](AUDIT_2026-09-27.md) and [Word report](Klar_App_Audit_2026-09-27.docx)
 3. [Developer guide](DEVELOPMENT.md)
 4. [Firebase operations and upstream issues](FIREBASE_OPERATIONS.md)
 5. [Component inventory](evidence/component-inventory.csv) and [JSON inventory](evidence/component-inventory.json)
 6. [Improvement program](IMPROVEMENT_PROGRAM.md), [workflow permissions](WORKFLOW_PERMISSIONS.md), [production runbook](PRODUCTION_RUNBOOK.md), [accessibility](ACCESSIBILITY.md)
 
-The September 20 and 21 audit reports remain historical snapshots. Their test counts and release claims do not describe PR 51.
+The September 20 and 21 audit reports remain historical snapshots. Their test counts and release claims do not describe the current branch or replace revision-specific evidence.
 
 ## Source-of-truth rules
 
