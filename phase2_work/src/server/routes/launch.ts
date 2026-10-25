@@ -126,7 +126,17 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         return res.status(503).json({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
       }
       const code = deps.referralCodeFor(uid);
-      await deps.getFirestore().collection('users').doc(uid).set({ referralCode: code }, { merge: true });
+      const db = deps.getFirestore();
+      const userRef = db.collection('users').doc(uid);
+      const deletionRef = db.collection('account_deletions').doc(uid);
+      const available = await db.runTransaction(async tx => {
+        const [user, deletion] = await tx.getAll(userRef, deletionRef);
+        if (!user || !deletion || !user.exists || deletion.exists) return false;
+        tx.update(userRef, { referralCode: code });
+        return true;
+      });
+      if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+
       return res.json({ code, shareUrl: `${publicUrl.replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}` });
     } catch (error) {
       console.error('Referral generation failed', error);
@@ -145,16 +155,25 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       if (inviterSnap.empty || inviterSnap.docs[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
       const userRef = db.collection('users').doc(uid);
       const inviterRef = inviterSnap.docs[0]?.ref;
-      await db.runTransaction(async (tx: Transaction) => {
-        const userSnap = await tx.get(userRef);
-        if (!inviterRef) return;
-        const inviter = await tx.get(inviterRef);
-        if (userSnap.data()?.referredBy || inviter.data()?.referralCode !== code) return;
-        tx.set(userRef, { referredBy: inviterRef.id, referralQualified: false }, { merge: true });
+      const available = await db.runTransaction(async (tx: Transaction) => {
+        if (!inviterRef) return false;
+        const [userSnap, inviter, userDeletion, inviterDeletion] = await tx.getAll(
+          userRef, inviterRef,
+          db.collection('account_deletions').doc(uid),
+          db.collection('account_deletions').doc(inviterRef.id),
+        );
+        if (!userSnap || !inviter || !userDeletion || !inviterDeletion
+          || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
+          || inviter.data()?.referralCode !== code) return false;
+        if (userSnap.data()?.referredBy) return true;
+        tx.update(userRef, { referredBy: inviterRef.id, referralQualified: false });
         tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
           inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
         }, { merge: true });
+        return true;
       });
+      if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+
       return res.json({ ok: true });
     } catch (error) {
       console.error('Referral claim failed', error);
