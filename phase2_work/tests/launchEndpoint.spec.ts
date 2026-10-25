@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
+import { referralCodeFor } from '../src/server/platform/launchPlatform';
 import type { AddressInfo } from 'node:net';
 import { createLaunchRouter, type LaunchRouterDeps } from '../src/server/routes/launch';
 
@@ -8,6 +9,7 @@ const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => {
   await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve()))));
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function baseDb() {
@@ -19,6 +21,52 @@ function baseDb() {
     runTransaction: vi.fn(async (fn: any) => fn({ get: vi.fn(async () => ({ exists: false, data: () => undefined })), set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() })),
   } as any;
 }
+
+function referralDb() {
+  const store = new Map<string, Record<string, unknown>>([
+    ['users/user-a', { isAdult: true, isVerified: false }],
+    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isVerified: false }],
+  ]);
+  const writes: Array<{ path: string; data: Record<string, unknown> }> = [];
+  let beforeRead: (() => void) | undefined;
+  const ref = (collection: string, id: string) => ({ id, path: collection + '/' + id });
+  const snapshot = (r: { id: string; path: string }) => ({
+    ...r, ref: r, exists: store.has(r.path), data: () => store.get(r.path),
+  });
+  const db = {
+    collection: (collection: string) => ({
+      doc: (id: string) => ref(collection, id),
+      where: (field: string, _operator: string, value: unknown) => ({
+        limit: (_limit: number) => ({
+          get: async () => {
+            const docs = [...store].filter(([key, data]) => key.startsWith(collection + '/') && data[field] === value)
+              .map(([key]) => snapshot(ref(collection, key.slice(collection.length + 1))));
+            return { docs, empty: docs.length === 0 };
+          },
+        }),
+      }),
+    }),
+    runTransaction: async (callback: (tx: any) => unknown) => callback({
+      get: async (r: { id: string; path: string }) => snapshot(r),
+      getAll: async (...refs: Array<{ id: string; path: string }>) => {
+        beforeRead?.();
+        beforeRead = undefined;
+        return refs.map(snapshot);
+      },
+      update: (r: { path: string }, data: Record<string, unknown>) => {
+        if (!store.has(r.path)) throw new Error('NOT_FOUND');
+        store.set(r.path, { ...store.get(r.path), ...data });
+        writes.push({ path: r.path, data });
+      },
+      set: (r: { path: string }, data: Record<string, unknown>) => {
+        store.set(r.path, { ...store.get(r.path), ...data });
+        writes.push({ path: r.path, data });
+      },
+    }),
+  };
+  return { db: db as any, store, writes, beforeRead: (callback: () => void) => { beforeRead = callback; } };
+}
+
 
 async function api(overrides: Partial<LaunchRouterDeps> = {}) {
   const db = baseDb();
@@ -67,6 +115,83 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(ctx.db.collection).toHaveBeenCalledTimes(1);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
+
+
+  it('accepts generated base64url invitation codes before resolving their owner', async () => {
+    vi.stubEnv('REFERRAL_CODE_SECRET', 'test-only-referral-contract-secret-0123456789');
+    const generated = Array.from({ length: 500 }, (_, index) => referralCodeFor('contract-user-' + index));
+    const code = generated.find(value => /[_-]/.test(value));
+    expect(code).toBeDefined();
+    const ctx = await api();
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: code!.toLowerCase() }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+    expect(ctx.db.collection).toHaveBeenCalledWith('users');
+  });
+
+  it.each(['ABC!EFGHIJ', 'ABCDEFGHI', 'ABCDEFGHIJK', 'ABCD/EFGHI', 'ABCD.EFGHI', 'ÄBCDEFGHIJ'])(
+    'rejects invalid invitation code %s before owner lookup', async code => {
+      const ctx = await api();
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Ungültiger Einladungslink.' });
+      expect(ctx.db.collection).not.toHaveBeenCalledWith('users');
+    },
+  );
+
+
+
+  it.each(['missing', 'deleting'])('does not issue a code for a %s profile', async state => {
+    const fixture = referralDb();
+    if (state === 'missing') fixture.store.delete('users/user-a');
+    else fixture.beforeRead(() => { fixture.store.set('account_deletions/user-a', {}); });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(409);
+    expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
+    if (state === 'missing') expect(fixture.store.has('users/user-a')).toBe(false);
+  });
+
+  it.each(['missing-invitee', 'missing-inviter', 'deleting-invitee', 'deleting-inviter'])(
+    'rejects a claim when the transactional state becomes %s', async state => {
+      const fixture = referralDb();
+      fixture.beforeRead(() => {
+        if (state === 'missing-invitee') fixture.store.delete('users/user-a');
+        if (state === 'missing-inviter') fixture.store.delete('users/inviter');
+        if (state === 'deleting-invitee') fixture.store.set('account_deletions/user-a', {});
+        if (state === 'deleting-inviter') fixture.store.set('account_deletions/inviter', {});
+      });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+    },
+  );
+
+  it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
+    const issued = await fetch(ctx.base + '/referral');
+    expect(issued.status).toBe(200);
+    expect(await issued.json()).toEqual({ code: 'SELFKEY123', shareUrl: 'https://klar.app/?ref=SELFKEY123' });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true });
+    }
+    expect(fixture.store.get('users/user-a')).toMatchObject({ referredBy: 'inviter', referralQualified: false, isVerified: false });
+    expect(fixture.writes.filter(write => write.path.startsWith('referral_events/'))).toHaveLength(1);
+    expect(fixture.store.get('users/inviter')?.isVerified).toBe(false);
+  });
+
 
   it('fails closed when the referral public origin is not configured', async () => {
     const ctx = await api({ publicUrl: () => undefined });
