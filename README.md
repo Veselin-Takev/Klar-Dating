@@ -1,19 +1,14 @@
-> Fortsetzung 28.09.2026: [Zahlung, KI-Budgets, Matching und Lokalisierung](docs/AUDIT_2026-09-28.md). [PR 52](https://github.com/veselin8606-source/Klar-App/pull/52) baut auf PR 51 auf. [Aktueller Word-Bericht](docs/Klar_App_Audit_2026-09-28.docx); revisionsbezogene Tests und offene Produktionsfreigaben im Audit.
-
-
-**Aktueller P0-Arbeitsstand:** [Excel-Abgleich, KYC, Verträge, Löschung und Freigabegates](docs/P0_RELEASE_BLOCKERS_2026-09-28.md). Produktionsfreigabe ist nicht bestätigt.
-
-> Aktueller Prüfzweig: [Audit vom 27.09.2026](docs/AUDIT_2026-09-27.md). Enthält Befunde, Änderungen und offene Freigaben. Frühere Freigabeaussagen ersetzen keine aktuellen CI- und Betriebsnachweise.
-
 # Klar
 
 Klar is a conversation-first dating application. The repository contains the React client, Express API, Firebase security rules, operational tooling, tests, and production release workflows.
 
 ## Current status
 
-The current remediation is [PR 52](https://github.com/veselin8606-source/Klar-App/pull/52), building on [PR 51](https://github.com/veselin8606-source/Klar-App/pull/51), based on main `a2a37cda1431000101a6e56a25f174e2ff55d065`. It is a review candidate, not a production deployment. Earlier merged PRs remain historical evidence.
+Current issue evidence is tracked in the [25 October register](phase2_work/docs/OPEN_ISSUE_EVIDENCE_REGISTER_2026-10-25.md), with [project status](phase2_work/docs/PROJECT_STATUS.md) and the [production runbook](phase2_work/docs/PRODUCTION_RUNBOOK.md). The active application and CI commands live in `phase2_work/`.
 
-Read the [28 September audit](docs/AUDIT_2026-09-28.md), [Word report](docs/Klar_App_Audit_2026-09-28.docx), [project status](docs/PROJECT_STATUS.md), and [Firebase operations](docs/FIREBASE_OPERATIONS.md). The inventory maps source modules, UI components, routes and direct test imports; it does not claim complete runtime coverage.
+PR [#122](https://github.com/Veselin-Takev/Klar-Dating/pull/122) corrected selected unsupported copy; PR [#123](https://github.com/Veselin-Takev/Klar-Dating/pull/123) removed attribution tokens from own partner visits. These are engineering changes, not production approval. Open issue acceptance still requires the specified product, privacy, security, finance and operational evidence.
+
+September reports remain dated historical assessments: [28 September audit](phase2_work/docs/AUDIT_2026-09-28.md), [Word report](phase2_work/docs/Klar_App_Audit_2026-09-28.docx) and [Firebase operations](phase2_work/docs/FIREBASE_OPERATIONS.md). Their test counts and prior repository PR references do not establish the current branch or release status.
 
 ## Important release limitations
 
@@ -21,12 +16,12 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 
 ## Start here
 
-- [Documentation index](docs/README.md)
-- [Project status and release gates](docs/PROJECT_STATUS.md)
-- [Developer guide](docs/DEVELOPMENT.md)
-- [End-to-end audit](docs/END_TO_END_AUDIT_2026-09-20.md)
-- [Production runbook](docs/PRODUCTION_RUNBOOK.md)
-- [Accessibility standard](docs/ACCESSIBILITY.md)
+- [Documentation index](phase2_work/docs/README.md)
+- [Project status and release gates](phase2_work/docs/PROJECT_STATUS.md)
+- [Developer guide](phase2_work/docs/DEVELOPMENT.md)
+- [End-to-end audit](phase2_work/docs/END_TO_END_AUDIT_2026-09-20.md)
+- [Production runbook](phase2_work/docs/PRODUCTION_RUNBOOK.md)
+- [Accessibility standard](phase2_work/docs/ACCESSIBILITY.md)
 
 ## Architecture at a glance
 
@@ -39,7 +34,7 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 
 ## Requirements
 
-- Node.js **22.23.3** or a compatible Node 22 release satisfying `package.json#engines`
+- Node.js **22.23.3** or a compatible Node 22 release satisfying `phase2_work/package.json#engines`
 - npm 10+
 - Java 21 for Firebase emulators
 - Docker for production-image verification
@@ -51,6 +46,7 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 Install the locked dependency graph:
 
 ```bash
+cd phase2_work
 npm ci
 ```
 
@@ -63,7 +59,7 @@ npm run dev:lokal
 
 For an isolated Auth and Firestore emulator environment, use the same `npm run dev:lokal` path. Emulator traffic must use an isolated `demo-*` project and the default database; it must never point at production.
 
-See [Developer guide](docs/DEVELOPMENT.md) for emulator usage, validation commands, architecture boundaries, and contribution rules.
+See [Developer guide](phase2_work/docs/DEVELOPMENT.md) for emulator usage, validation commands, architecture boundaries, and contribution rules.
 
 ## Quality gates
 
@@ -86,7 +82,7 @@ Never commit credentials or personal production data. Runtime secrets belong in 
 
 ## Production delivery
 
-Production releases use protected semantic-version tags. Build once, publish an immutable image digest, deploy a no-traffic candidate, verify liveness/readiness, run the approved canary, and preserve SBOM, provenance, checksums, approvals, and rollback evidence. Never deploy a mutable tag, placeholder digest, or unverified workstation build. See [Production runbook](docs/PRODUCTION_RUNBOOK.md).
+Production releases use protected semantic-version tags. Build once, publish an immutable image digest, deploy a no-traffic candidate, verify liveness/readiness, run the approved canary, and preserve SBOM, provenance, checksums, approvals, and rollback evidence. Never deploy a mutable tag, placeholder digest, or unverified workstation build. See [Production runbook](phase2_work/docs/PRODUCTION_RUNBOOK.md).
 
 ## Known release blockers
 
@@ -100,7 +96,7 @@ Before broad production traffic, close or formally accept every blocking item:
 - restore, rollback, and incident drills;
 - remaining moderate dependency findings and the music-coach integration gap.
 
-The detailed rationale, ownership model, and acceptance criteria are in [Project status](docs/PROJECT_STATUS.md) and the [audit report](docs/END_TO_END_AUDIT_2026-09-20.md).
+The detailed rationale, ownership model, and acceptance criteria are in [Project status](phase2_work/docs/PROJECT_STATUS.md) and the [audit report](phase2_work/docs/END_TO_END_AUDIT_2026-09-20.md).
 
 ## Documentation policy
 
@@ -119,9 +115,9 @@ Detaillierte Richtlinien und Releasemechanismen finden sich in [VERSIONING.md](.
 
 The repository now contains the Phase-2 AI control plane for Technical Foundations, Guardrails, Agentic Orchestration and Governance.
 
-- [Phase-2 Solution Design](docs/architecture/SOLUTION_DESIGN.md) — C4 architecture, data flows, RAG boundary and security controls
-- [AI Governance RACI](docs/governance/AI_GOVERNANCE_RACI.md) — risk classes, autonomy levels and Human-in-the-Loop thresholds
-- [AI Budget & Telemetry](docs/finops/BUDGET_AND_TELEMETRY.md) — token economics, caps, alerting and telemetry
+- [Phase-2 Solution Design](phase2_work/docs/architecture/SOLUTION_DESIGN.md) — C4 architecture, data flows, RAG boundary and security controls
+- [AI Governance RACI](phase2_work/docs/governance/AI_GOVERNANCE_RACI.md) — risk classes, autonomy levels and Human-in-the-Loop thresholds
+- [AI Budget & Telemetry](phase2_work/docs/finops/BUDGET_AND_TELEMETRY.md) — token economics, caps, alerting and telemetry
 - `src/security/piiSanitizer.ts` — provider-bound PII sanitization
 - `src/middleware/guardrailMiddleware.ts` — input/output guardrails
 - `src/security/rbacControl.ts` — agent action authorization
