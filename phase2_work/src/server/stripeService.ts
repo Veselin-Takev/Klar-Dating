@@ -115,7 +115,7 @@ export async function createCheckoutSession(userId: string, returnUrl: string, d
       line_items: [{
         price_data: {
           currency: 'eur',
-          product_data: { name: 'Klar+ Abonnement', description: 'Maximale Klarheit, erweiterte Filter, keine Werbung.' },
+          product_data: { name: 'Klar+ Abonnement', description: 'Klar+ Abonnement.' },
           unit_amount: 1199,
           recurring: { interval: 'month' },
         },

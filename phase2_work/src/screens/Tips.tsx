@@ -13,7 +13,7 @@ import { DATE_PREP_CHECKLIST_DEFAULTS, enqueueDatePrepChecklist, flushDatePrepCh
 
 function KlarManifest() {
   const pillars = [
-    ['01 · LIMITIERUNG', 'Nur 8–12 Profile am Tag', 'Ruhe statt Reizüberflutung: weniger Auswahl, mehr Aufmerksamkeit.'],
+    ['01 · LIMITIERUNG', 'Profilvorschläge nach Verfügbarkeit', 'Ruhe statt Reizüberflutung: weniger Auswahl, mehr Aufmerksamkeit.'],
     ['02 · TRANSPARENZ', 'Klare Absichten statt Spielchen', 'Beziehungsziele und Erwartungen werden früh und verständlich sichtbar.'],
     ['03 · SICHERHEIT', 'Verifizierung und respektvolle Grenzen', 'Echte Konten, klare Grenzen und ein sicherer Rahmen für Begegnungen.'],
     ['04 · FAIRNESS', 'Kernfunktionen ohne Paywall-Druck', 'Klar hält den Kern zugänglich; monetäre Optionen dürfen keine Manipulation ersetzen.'],
@@ -24,7 +24,7 @@ function KlarManifest() {
       <div className="rounded-3xl bg-stone-900 text-white p-6 md:p-8">
         <p className="text-xs uppercase tracking-widest text-amber-200 font-semibold">Das Klar-Manifest</p>
         <h3 id="klar-manifest-heading" className="mt-2 text-3xl font-serif leading-tight">Weniger tippen. Mehr echte Verbindungen.</h3>
-        <p className="mt-4 text-sm md:text-base text-stone-200 leading-relaxed">Klar ersetzt Katalog-Mentalität durch eine begrenzte Tagesauswahl, klare Absichten und Gespräche mit echtem Gegenüber. Das Produktversprechen ist Ruhe, Transparenz, Sicherheit und Respekt vor der Zeit der Menschen.</p>
+        <p className="mt-4 text-sm md:text-base text-stone-200 leading-relaxed">Klar setzt auf verfügbare Profilvorschläge, klare Absichten und bewusste Gespräche. Das Produktversprechen ist Ruhe, Transparenz, Sicherheit und Respekt vor der Zeit der Menschen.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-4 mt-6">
         <div className="p-5 rounded-2xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
@@ -36,7 +36,7 @@ function KlarManifest() {
         <div className="p-5 rounded-2xl bg-white dark:bg-stone-800 border-2 border-stone-900 dark:border-stone-300">
           <h4 className="font-semibold mb-3">Das Klar-Prinzip</h4>
           <ul className="space-y-2 text-sm text-stone-700 dark:text-stone-300 list-disc pl-5">
-            <li><strong>8–12</strong> Vorschläge pro Tag statt Katalog</li><li><strong>Gespräch zuerst</strong> statt Auswahl-Schleife</li><li><strong>Klare Absichten</strong> statt Ratespiel</li><li><strong>Freier Kernzugang</strong> ohne manipulativen Druck</li><li><strong>Verifizierung</strong> als Schutzschicht für echte Begegnungen</li>
+            <li><strong>Profilvorschläge</strong> je nach Verfügbarkeit</li><li><strong>Gespräch zuerst</strong> statt Auswahl-Schleife</li><li><strong>Klare Absichten</strong> statt Ratespiel</li><li><strong>Freier Kernzugang</strong> ohne manipulativen Druck</li><li><strong>Verifizierung</strong> als Schutzschicht für echte Begegnungen</li>
           </ul>
         </div>
       </div>
