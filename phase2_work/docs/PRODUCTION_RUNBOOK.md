@@ -435,3 +435,7 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+## Hosting portability: mandatory isolated staging gate (2026-10-25)
+
+See [Hosting migration and rollback](HOSTING_MIGRATION_STAGING_ROLLBACK_2026-10-25.md) before changing hosting/runtime providers. Firebase Auth/Firestore remain shared across production app versions; staging must use a separate synthetic Firebase project. The staging controller has no production mode. Local reference-model PASS is not a live-staging, zero-downtime or GDPR approval. Target/provider adapter, live dry-run, live successful/failed-canary rollback drills and measured RTO/RPO are outstanding. Existing deploy-prod.sh and rollback-cloud-run.sh do not satisfy this new gate by themselves. **Production NO-GO.**
