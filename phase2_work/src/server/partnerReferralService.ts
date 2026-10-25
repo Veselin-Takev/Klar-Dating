@@ -525,21 +525,35 @@ export async function openPartnerReferral(
   uid: string,
   campaignId: string,
 ): Promise<{ url: string }> {
-  const campaignRef = deps.getFirestore().collection(CAMPAIGNS).doc(campaignId);
-  const campaign = campaignFrom(await campaignRef.get());
-  if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
-  const links = await listPartnerReferralLinks(deps, uid);
-  const item = links.referrals.find(referral => referral.campaign.id === campaignId);
-  if (!item) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
-  // Opening a partner from the signed-in profile must not traverse the
-  // click-counting redirect. Attach the same referral token directly to the
-  // validated partner destination and keep this UI action separately audited.
-  const token = new URL(item.url).pathname.split('/').pop();
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) {
-    throw new PartnerReferralError(503, 'referral_link_invalid', 'Der Partnerlink konnte nicht sicher geöffnet werden.');
-  }
-  await recordPartnerInteraction(deps, uid, campaignId, 'open_link');
-  return { url: trackedDestination(campaign.destinationUrl, token) };
+  const db = deps.getFirestore();
+  const userRef = db.collection('users').doc(uid);
+  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
+  const deletionRef = db.collection('account_deletions').doc(uid);
+  const ledger = makeLedger(deps, 'referral_open_link', uid, { campaignId });
+  // An owner's own visit is not an attributed referral. Resolve the current
+  // destination and authorization together; do not issue or disclose a token.
+  return db.runTransaction(async tx => {
+    const [user, campaignSnapshot, deletion] = await tx.getAll(userRef, campaignRef, deletionRef);
+    if (!user || !campaignSnapshot || !deletion) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
+    const data = user.data();
+    requirePartnerUserData(data);
+    if (deletion.exists) throw new PartnerReferralError(409, 'partner_interaction_stale', 'Das Konto wird gelöscht.');
+    if (data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true) {
+      throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
+    }
+    if (!Number.isSafeInteger(data?.partnerReferralVersion) || Number(data?.partnerReferralVersion) < 1) {
+      throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
+    }
+    const campaign = campaignFrom(campaignSnapshot);
+    if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) {
+      throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
+    }
+    const url = directDestination(campaign.destinationUrl);
+    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { tokenForwarded: false }));
+    return { url };
+  });
 }
 
 export async function recordPartnerClick(
