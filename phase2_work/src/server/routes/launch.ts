@@ -139,7 +139,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const code = typeof req.body?.code === 'string' ? req.body.code.trim().toUpperCase() : '';
-      if (!/^[A-Z0-9]{10}$/.test(code)) return res.status(400).json({ error: 'Ungültiger Einladungslink.' });
+      if (!/^[A-Z0-9_-]{10}$/.test(code)) return res.status(400).json({ error: 'Ungültiger Einladungslink.' });
       const db = deps.getFirestore();
       const inviterSnap = await db.collection('users').where('referralCode', '==', code).limit(1).get();
       if (inviterSnap.empty || inviterSnap.docs[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
