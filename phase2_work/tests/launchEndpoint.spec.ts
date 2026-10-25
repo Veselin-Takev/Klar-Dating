@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
+import { referralCodeFor } from '../src/server/platform/launchPlatform';
 import type { AddressInfo } from 'node:net';
 import { createLaunchRouter, type LaunchRouterDeps } from '../src/server/routes/launch';
 
@@ -8,6 +9,7 @@ const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => {
   await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve()))));
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function baseDb() {
@@ -67,6 +69,34 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(ctx.db.collection).toHaveBeenCalledTimes(1);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
+
+
+  it('accepts generated base64url invitation codes before resolving their owner', async () => {
+    vi.stubEnv('REFERRAL_CODE_SECRET', 'test-only-referral-contract-secret-0123456789');
+    const generated = Array.from({ length: 500 }, (_, index) => referralCodeFor('contract-user-' + index));
+    const code = generated.find(value => /[_-]/.test(value));
+    expect(code).toBeDefined();
+    const ctx = await api();
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: code!.toLowerCase() }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+    expect(ctx.db.collection).toHaveBeenCalledWith('users');
+  });
+
+  it.each(['ABC!EFGHIJ', 'ABCDEFGHI', 'ABCDEFGHIJK', 'ABCD/EFGHI', 'ABCD.EFGHI', 'ÄBCDEFGHIJ'])(
+    'rejects invalid invitation code %s before owner lookup', async code => {
+      const ctx = await api();
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Ungültiger Einladungslink.' });
+      expect(ctx.db.collection).not.toHaveBeenCalledWith('users');
+    },
+  );
+
 
   it('fails closed when the referral public origin is not configured', async () => {
     const ctx = await api({ publicUrl: () => undefined });
