@@ -1,3 +1,4 @@
+import { requestRouteForTelemetry } from './src/server/requestTelemetry';
 import { createAnalyticsRouter } from './src/server/routes/analytics';
 import { shouldEnforceContentSecurityPolicy, shouldPermitEmulatorCspSources } from './src/server/cspRuntimePolicy';
 /**
@@ -227,7 +228,7 @@ export async function baueApp() {
       : crypto.randomUUID();
 
     const parentContext = extractTraceContext(typeof req.headers.traceparent === 'string' ? req.headers.traceparent : undefined);
-    const httpSpan = startHttpSpan(req.method, req.path, parentContext);
+    const httpSpan = startHttpSpan(req.method, requestRouteForTelemetry(req), parentContext);
     const traceId = httpSpan.spanContext().traceId;
     const traceparent = `00-${traceId}-${httpSpan.spanContext().spanId}-01`;
 
@@ -239,7 +240,7 @@ export async function baueApp() {
 
     res.on("finish", () => {
       httpSpan.setAttribute('http.response.status_code', res.statusCode);
-      httpSpan.setAttribute('http.route', req.route?.path || req.path);
+      httpSpan.setAttribute('http.route', requestRouteForTelemetry(req));
       if (res.statusCode >= 500) httpSpan.setStatus({ code: 2 });
       httpSpan.end();
       if (!req.path.startsWith("/api/health") && !req.path.startsWith("/api/metrics")) {
@@ -249,7 +250,7 @@ export async function baueApp() {
           requestId,
           traceId,
           method: req.method,
-          route: req.route?.path || "unmatched",
+          route: requestRouteForTelemetry(req),
           status: res.statusCode,
           durationMs: Date.now() - startedAt,
         }));
@@ -503,7 +504,7 @@ const adminHealthCheckLimiter = rateLimit({
     res.send = function (_body) {
       if (res.statusCode >= 400 && req.path.startsWith('/api/')) {
         failedApiCalls.unshift({
-          path: req.path,
+          path: requestRouteForTelemetry(req),
           method: req.method,
           status: res.statusCode,
           time: new Date().toISOString()
