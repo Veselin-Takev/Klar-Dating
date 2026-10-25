@@ -1,19 +1,14 @@
-> Fortsetzung 28.09.2026: [Zahlung, KI-Budgets, Matching und Lokalisierung](docs/AUDIT_2026-09-28.md). [PR 52](https://github.com/veselin8606-source/Klar-App/pull/52) baut auf PR 51 auf. [Aktueller Word-Bericht](docs/Klar_App_Audit_2026-09-28.docx); revisionsbezogene Tests und offene Produktionsfreigaben im Audit.
-
-
-**Aktueller P0-Arbeitsstand:** [Excel-Abgleich, KYC, Verträge, Löschung und Freigabegates](docs/P0_RELEASE_BLOCKERS_2026-09-28.md). Produktionsfreigabe ist nicht bestätigt.
-
-> Aktueller Prüfzweig: [Audit vom 27.09.2026](docs/AUDIT_2026-09-27.md). Enthält Befunde, Änderungen und offene Freigaben. Frühere Freigabeaussagen ersetzen keine aktuellen CI- und Betriebsnachweise.
-
 # Klar
 
 Klar is a conversation-first dating application. The repository contains the React client, Express API, Firebase security rules, operational tooling, tests, and production release workflows.
 
 ## Current status
 
-The current remediation is [PR 52](https://github.com/veselin8606-source/Klar-App/pull/52), building on [PR 51](https://github.com/veselin8606-source/Klar-App/pull/51), based on main `a2a37cda1431000101a6e56a25f174e2ff55d065`. It is a review candidate, not a production deployment. Earlier merged PRs remain historical evidence.
+Current issue evidence is tracked in the [25 October register](docs/OPEN_ISSUE_EVIDENCE_REGISTER_2026-10-25.md), with [project status](docs/PROJECT_STATUS.md) and the [production runbook](docs/PRODUCTION_RUNBOOK.md). Run the application and CI commands below from this directory (`phase2_work/`).
 
-Read the [28 September audit](docs/AUDIT_2026-09-28.md), [Word report](docs/Klar_App_Audit_2026-09-28.docx), [project status](docs/PROJECT_STATUS.md), and [Firebase operations](docs/FIREBASE_OPERATIONS.md). The inventory maps source modules, UI components, routes and direct test imports; it does not claim complete runtime coverage.
+PR [#122](https://github.com/Veselin-Takev/Klar-Dating/pull/122) corrected selected unsupported copy; PR [#123](https://github.com/Veselin-Takev/Klar-Dating/pull/123) removed attribution tokens from own partner visits. These are engineering changes, not production approval. Open issue acceptance still requires the specified product, privacy, security, finance and operational evidence.
+
+September reports remain dated historical assessments: [28 September audit](docs/AUDIT_2026-09-28.md), [Word report](docs/Klar_App_Audit_2026-09-28.docx) and [Firebase operations](docs/FIREBASE_OPERATIONS.md). Their test counts and prior repository PR references do not establish the current branch or release status.
 
 ## Important release limitations
 
