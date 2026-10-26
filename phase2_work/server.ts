@@ -1,3 +1,4 @@
+import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
 import { createRequestDiagnostics } from './src/server/middleware/requestDiagnostics';
@@ -447,14 +448,14 @@ const adminHealthCheckLimiter = rateLimit({
       await db.collection('system_health').doc('ping').get();
       fsOk = true;
     } catch (e: unknown) {
-      console.warn("Firestore health check failed:", e instanceof Error ? e.message : e);
+      logSafeFailure('firestore_health_failure');
     }
     try {
       const { getAuth } = await import("firebase-admin/auth");
       await getAuth().listUsers(1);
       authOk = true;
     } catch (e: unknown) {
-      console.warn("Auth health check failed:", e instanceof Error ? e.message : e);
+      logSafeFailure('auth_health_failure');
     }
     res.json({
       firestore: fsOk,
@@ -764,7 +765,7 @@ const adminHealthCheckLimiter = rateLimit({
     try {
       daten = (await getFirestore().collection("users").doc(meineUid).get()).data();
     } catch (e: unknown) {
-      console.error("Alters-/Einwilligungsprüfung fehlgeschlagen:", e);
+      logSafeFailure('adult_consent_check_failure');
       return res.status(503).json({ error: "Prüfung derzeit nicht möglich. Bitte später erneut." });
     }
 
@@ -1186,7 +1187,7 @@ const adminHealthCheckLimiter = rateLimit({
             metadata: { inputDigest, outputDigest },
           });
         } catch (err) {
-          console.error("Failed to write audit log:", err);
+          logSafeFailure('audit_log_write_failure');
         }
       }
 
@@ -1761,7 +1762,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
           // Kein stiller Ausfall: Wer ein Bild mitschickt, erwartet, dass es
           // bewertet wird. Eine Auswertung ohne Bild waere eine andere
           // Antwort als die angeforderte.
-          console.error("smart-audit/bild:", imgError instanceof Error ? imgError.message : imgError);
+          logSafeFailure('smart_audit_image_failure');
           return res.status(400).json({ error: "Das Profilbild konnte nicht geladen werden." });
         }
       }
@@ -1813,7 +1814,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
       // Faengt jetzt nur noch, was VOR oder NEBEN dem KI-Aufruf schiefgeht
       // — das Laden des Bildes etwa. Der Aufruf selbst wird von
       // `beantworte` behandelt.
-      console.error(e);
+      logSafeFailure('smart_audit_failure');
       res.status(500).json({ error: "Audit failed" });
     }
   });
@@ -1854,7 +1855,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
       );
       res.status(antwort.status).json(antwort.koerper);
     } catch (e) {
-      console.error(e);
+      logSafeFailure('dating_readiness_failure');
       res.status(500).json({ error: "Internal error" });
     }
   });
@@ -1890,7 +1891,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
       );
       res.status(antwort.status).json(antwort.koerper);
     } catch (e) {
-      console.error(e);
+      logSafeFailure('daily_coach_failure');
       res.status(500).json({ error: "Internal error" });
     }
   });
@@ -2114,7 +2115,7 @@ export async function startServer() {
     process.once("SIGTERM", () => shutdown("SIGTERM"));
     process.once("SIGINT", () => shutdown("SIGINT"));
   } catch (err) {
-    console.error("CRITICAL: startServer failed:", err);
+    logSafeFailure('server_start_failure');
     import('express').then((express) => {
       const crashApp = express.default();
       crashApp.use( (_req, res) => res.status(503).json({ error: 'Service unavailable' }));
