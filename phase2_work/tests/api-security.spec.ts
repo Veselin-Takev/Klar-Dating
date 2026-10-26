@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-describe("Enterprise Security & API Guardrails (IDOR / RBAC)", () => {
+describe("API authentication and signature guardrails", () => {
   const API_HOST = "http://localhost:3000";
 
   it("schützt /api/chats vor unautorisiertem Zugriff (401/403)", async () => {
@@ -13,13 +13,13 @@ describe("Enterprise Security & API Guardrails (IDOR / RBAC)", () => {
     expect([401, 403, 404, 405]).toContain(res.status);
   });
 
-  it("verhindert IDOR-Zugriff auf fremde Chat-Historien", async () => {
-    const fakeTokenUserA = "Bearer invalid_or_frenzied_token_b";
-    const res = await fetch(`${API_HOST}/api/chats/:chatId`, {
+  it("weist ein ungültiges Token vor dem Zugriff auf einen konkreten Chat-Pfad ab", async () => {
+    const invalidToken = "Bearer invalid_or_frenzied_token_b";
+    const res = await fetch(`${API_HOST}/api/chats/security-audit-chat`, {
       method: "GET",
-      headers: { "Authorization": fakeTokenUserA }
+      headers: { "Authorization": invalidToken }
     });
-    expect([401, 403, 404]).toContain(res.status);
+    expect(res.status).toBe(401);
   });
 
   it("schützt den produktiven AI-Coach und liefert keine Dummy-Antwort", async () => {
