@@ -1,3 +1,4 @@
+import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
 import { createRequestDiagnostics } from './src/server/middleware/requestDiagnostics';
 import { createAnalyticsRouter } from './src/server/routes/analytics';
@@ -1747,17 +1748,12 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
           if (!mimeType.startsWith("image/")) {
             throw new Error(`Kein Bild: ${mimeType || "ohne Angabe"}`);
           }
-          // Content-Length ist nur ein Hinweis; die harte Grenze zieht die
-          // Pruefung der tatsaechlich gelesenen Bytes darunter.
-          const angekuendigt = Number(imageRes.headers.get("content-length") || 0);
-          if (angekuendigt > BILD_MAX_BYTES) throw new Error("Bild zu gross");
-
-          const arrayBuffer = await imageRes.arrayBuffer();
-          if (arrayBuffer.byteLength > BILD_MAX_BYTES) throw new Error("Bild zu gross");
+          // Bound decoded stream bytes before buffering or base64 encoding.
+          const imageBytes = await readBoundedResponse(imageRes, BILD_MAX_BYTES, 'Bild zu gross');
 
           promptParts.push({
             inlineData: {
-              data: Buffer.from(arrayBuffer).toString("base64"),
+              data: Buffer.from(imageBytes).toString("base64"),
               mimeType,
             },
           });
