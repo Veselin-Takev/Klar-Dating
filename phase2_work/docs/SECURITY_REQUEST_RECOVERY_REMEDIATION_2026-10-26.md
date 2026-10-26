@@ -1,5 +1,8 @@
 # Security-Folgestand: Anfrageparser und Kontowiederherstellung
 
+**CI-Nachtrag 26.10.2026:** PR #131 ist nach vollständiger erfolgreicher [CI 40346165390](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40346165390) integriert. Getesteter Head: 822ea20d6994796b620a5fb7dcaef3eb74c8a817. Die untenstehenden lokalen/pending-Angaben dokumentieren den früheren Prüfzeitpunkt. Aktueller Befund-/Freigabestatus: [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md). Produktion bleibt **NO-GO**.
+
+
 Stand 26.10.2026. Basis: main c17e7c3af0ce2ad158565f49334346459e6821d3.
 **Technische Teilkorrektur; Produktion weiterhin NO-GO.**
 
