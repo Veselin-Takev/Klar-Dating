@@ -7,17 +7,18 @@ This guide is the shortest safe path from a clean checkout to a reviewable chang
 ## Prerequisites
 
 - Node.js 22.23.3 or a compatible Node 22 release satisfying `package.json#engines`
-- npm 10.9.8 (paired with Node 22.23.3 in CI)
+- Bun 1.4.2 for the app; npm 10.9.2 for the separately locked Functions package
 - Java 21
 - Docker
-- Firebase CLI dependencies installed through `npm ci`
+- Firebase CLI dependencies installed through `bun ci`
 - A Firebase project for integrated development, or the local Auth, Firestore and Storage emulators
 
 ## Initial setup
 
 ```bash
-npm ci
-npm ci --prefix functions
+# Run from phase2_work/
+bun ci
+npm ci --prefix functions --ignore-scripts --no-audit --no-fund
 cp .env.example .env.local
 ```
 
@@ -209,7 +210,7 @@ Use [Documentation index](README.md) to find the authoritative document. Update 
 
 ### Container dependency installation
 
-The builder stage uses npm ci --foreground-scripts. This preserves package lifecycle scripts while running them in the foreground, avoiding transient ETXTBSY failures observed when the esbuild installer validates its freshly written binary on Docker overlay filesystems. The runtime stage remains npm ci --omit=dev --ignore-scripts because it only needs production dependencies and should not execute install hooks.
+The active phase2_work/Dockerfile uses the pinned Bun build image and bun install --frozen-lockfile. After building, it reinstalls the production dependency graph with --production. The Node runtime receives the built output and production dependencies. Do not substitute npm ci for the app graph: its canonical lockfile is bun.lock. Functions retain their separate npm lockfile.
 
 CI policy: the Enterprise CI/CD and Playwright workflows run for **every pull request**, including stacked pull requests whose base is another review branch. Push-triggered CI remains limited to `main`. Do not treat documentation-only checks on a stacked PR as sufficient release evidence; both the full `validate-and-test` gate and critical browser journeys must run on the exact integration head.
 
@@ -217,7 +218,7 @@ Run `npm run check:functions` to compile maintenance jobs and verify their Frank
 
 Use `npm run test:ci` for the API and isolated emulator suite, `npm run test:production` for the built server, and `npm run audit:inventory` after structural changes. CI uses the locked Firebase CLI 15.31.0, Node 22.23.3 and Java 21. Emulator tests run serially across files to avoid shared database resets; Playwright retries remain zero. Port preflight fails rather than terminating unrelated processes.
 
-Audit both dependency graphs: `npm audit --audit-level=high`, `npm audit --omit=dev --audit-level=high`, and `npm audit --prefix functions --omit=dev --audit-level=high`. A green threshold gate still allows moderate findings; retain and review the full report.
+Audit the app with the pinned Bun toolchain and the Functions package with npm against their respective committed lockfiles. Follow the SCA/release workflow rather than generating a competing app package-lock.json to satisfy an npm audit command. A green threshold gate still allows moderate findings; retain and review the full report.
 
 
 ## Increment 28 September 2026
