@@ -61,3 +61,12 @@ damaligen Umfang und dürfen diesen aktuellen Nachweisstand nicht ersetzen.
 ## Technischer Folgestand
 
 Eine nachfolgende Teilkorrektur für Anfrageparser, Paketstände und Kontowiederherstellung ist in [Security-Folgestand](SECURITY_REQUEST_RECOVERY_REMEDIATION_2026-10-26.md) dokumentiert. Der obige Auditstand ist ein datierter Snapshot. Teilfixes oder technische CI-Nachweise ersetzen keine unabhängige Security-/Produktionsfreigabe; verbleibende Befunde bleiben ausdrücklich offen.
+
+## 2026-10-26: Trace exception minimization
+
+The Firestore/Gemini tracing wrappers now export fixed exception categories instead
+of arbitrary thrown values. Thirteen real-SDK/batched-export boundary tests pass locally;
+full exact-head CI is pending. SEC-04 remains partially open for other logging paths
+and real sink controls. See [trace checkpoint](SECURITY_TRACE_MINIMIZATION_2026-10-26.md).
+Production remains **NO-GO**; PR #131 passed full CI before integration, independently
+of the remaining production acceptance evidence.
