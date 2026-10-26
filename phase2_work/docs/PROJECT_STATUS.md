@@ -1466,3 +1466,13 @@ is unchanged. The invalid-token API test is honestly labeled and requires 401;
 it does not establish authenticated A/B IDOR protection. Full exact-head CI is pending.
 See [evidence checkpoint](SECURITY_PROMPT_EVIDENCE_2026-10-26.md). SEC-06 remains
 partially open. PR #134 passed full CI and is integrated. Production remains **NO-GO**.
+
+## 2026-10-26: Real-token HTTP chat ownership evidence
+
+Eight emulator integration cases now target the actual chat read/read-receipt HTTP
+mounts using registered accounts and verified real emulator tokens. They cover
+participant positives, an adult outsider, blocks in both directions, deletion/age
+boundaries and rejected writes without mutation. Execution is pending full exact-head
+CI; no local emulator success is claimed. See [checkpoint](SECURITY_CHAT_HTTP_OWNERSHIP_2026-10-26.md).
+PR #135 passed full CI and is integrated. SEC-06 remains partial for other routes/rules.
+Production remains **NO-GO**.
