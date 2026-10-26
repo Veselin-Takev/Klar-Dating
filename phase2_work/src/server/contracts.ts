@@ -182,7 +182,7 @@ export function createPublicContractsRouter(db: () => Firestore = getDb) {
       `<p><label for="reason">${escape(t('contracts.reason'))}</label><br><textarea id="reason" name="reason" maxlength="2000"></textarea></p>` +
       `<button type="submit">${escape(t(kind === 'cancel' ? 'contracts.confirmCancel' : 'contracts.confirmWithdraw'))}</button></form>`));
   });
-  router.post('/erklaerung', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }), urlencoded({ extended: false, limit: '10kb' }), async (req, res) => {
+  router.post('/erklaerung', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }), urlencoded({ inflate: false, extended: false, limit: '10kb' }), async (req, res) => {
     const language = normalizeLanguage(req.body?.language); const { t } = createRequestI18n(language);
     const input = declarationSchema.safeParse(req.body);
     if (!input.success) return res.status(400).type('html').send(page(language, t('contracts.error'), `<p role="alert">${escape(t('contracts.invalid'))}</p><p>${escape(t('contracts.back'))}</p>`));
