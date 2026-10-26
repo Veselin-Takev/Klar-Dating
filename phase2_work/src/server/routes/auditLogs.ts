@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router } from 'express';
 import type { Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
@@ -72,7 +73,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
 
       return res.json({ logs });
     } catch (error) {
-      console.error('Error fetching audit logs', error);
+      logSafeFailure('audit_log_read_failure');
       return res.status(503).json({ error: 'Audit logs are temporarily unavailable' });
     }
   });

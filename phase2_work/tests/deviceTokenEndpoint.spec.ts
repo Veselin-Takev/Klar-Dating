@@ -89,9 +89,11 @@ describe('device-token HTTP boundary', () => {
   });
 
   it('does not acknowledge persistence failures or expose private errors', async () => {
+    const sink = vi.spyOn(console, 'error').mockImplementation(() => {});
     const api = await endpoint({ fail: true });
     const response = await api.send({ token: validToken });
 
+    expect(sink.mock.calls).toEqual([[JSON.stringify({ level: 'ERROR', event: 'device_token_storage_failure' })]]);
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain('private storage detail');
   });
