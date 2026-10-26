@@ -1,48 +1,30 @@
-# server.ts modularization
+# Server-Modularisierung
 
-**Program:** [IMPROVEMENT_PROGRAM.md](IMPROVEMENT_PROGRAM.md) · Issue #27
+Stand: 2026-10-26. Aktiver Server: phase2_work/server.ts.
+Frühere Statusangaben zu noch nicht ausgelagerten Webhook-/Chat-Routern waren veraltet.
 
-## Status
+| Bereich | Aktueller Zustand |
+|---|---|
+| Health / Account | Router in src/server/routes/health.ts und account.ts |
+| Stripe-Webhooks | routes/webhooks.ts; Raw-Body-Mount vor JSON-Parser erhalten |
+| Chat / Gates | routes/chat.ts; gemeinsame API-Zugriffskontrolle im Server |
+| Billing, Partner, Launch, Date-Plans, Empfehlungen u.a. | Weitere eigene Router vorhanden |
+| Request-Korrelation, Traces, Metriken, Fehler-Snapshots | In diesem Review nach middleware/requestDiagnostics.ts ausgelagert |
+| Verbleibende KI-Handler | Noch umfangreich inline in server.ts |
+| Bootstrap-only server.ts | Noch nicht erreicht |
 
-| Step | State |
-|------|--------|
-| Phase 1a: `health` + `account` routers | **Merged** (PR #29) |
-| Phase 1b: webhooks (raw body order) | In progress (`refactor/server-webhooks-routes`) |
-| Phase 1c: chat / gate | Not started |
-| Phase 1d: remaining routes | Not started |
-| `server.ts` bootstrap-only | Not started |
+## Modulgrenzen
 
-## Phase 1a (done)
+- server.ts: App-Zusammenbau, Middleware-Reihenfolge und fachliche Router-Mounts.
+- src/server/middleware/: übergreifender HTTP-Lifecycle ohne fachliche Handler.
+- src/server/routes/: Transport, Eingabegrenzen und explizite Abhängigkeiten.
+- src/server/platform/ und bestehende Services: fachliche Regeln und Infrastrukturzugriff.
+- tests/: HTTP-Verträge, Auth-/Policy-Negativfälle und echte Emulatorprüfungen gemäß Testsuite.
 
-**Move-only.** Handlers for account/consent already lived in `datenschutz.ts` and `trustAndSafety.ts`.
+Die drei Diagnose-Middlewares bleiben an ihren bisherigen Positionen. Eine gemeinsame Verlagerung an den App-Anfang
+würde etwa verändern, welche CSP-/Parser-/Auth-Abweisungen in den einzelnen Metriken enthalten sind.
+Beim Auslagern weiterer Routen müssen Scanner, Request-Policy-Listen und tatsächliche Mounts zusammen geprüft werden.
+Der Stripe-Webhook benötigt weiterhin unveränderte Requestbytes vor dem JSON-Parser.
 
-- `src/server/routes/health.ts` — `/api/health`, `/api/ready`, `/api/metrics`, `/api/system-health`
-- `src/server/routes/account.ts` — delete, alter, export, einwilligung, status
-
-## Phase 1b (this change)
-
-**Move-only.** Stripe webhook registration only.
-
-- `src/server/routes/webhooks.ts`
-  - `mountStripeRawBody(app)` — **must** run before `express.json()`
-  - `createWebhooksRouter()` — `POST /api/webhooks/stripe` (mount at `/api/webhooks`)
-
-Handler remains in `stripeService.ts` (`handleStripeWebhook`).
-
-### Ordering (do not break)
-
-```ts
-mountStripeRawBody(app);           // path-scoped express.raw
-app.use(express.json({ limit: '1mb' }));
-// ...
-app.use('/api/webhooks', createWebhooksRouter());
-```
-
-### Out of scope for 1b
-
-- AdMob `/api/ads/callback` (501 stub) — leave in `server.ts` for now
-- Checkout session routes
-
-### Next
-
-Phase 1c: chat / gate routers.
+[Prüfbefunde, Validierung und nächste Arbeitspakete](CODE_STRUCTURE_REVIEW_2026-10-26.md).
+Die vorhandenen produktionsbezogenen Freigaben werden durch diesen Strukturumbau nicht ersetzt.
