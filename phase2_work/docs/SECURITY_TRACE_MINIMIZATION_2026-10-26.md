@@ -48,3 +48,13 @@ No staging project exists yet; production approval remains separate and blocked.
 Next: review remaining logging sinks and bounded response consumption, then validate
 real storage authorization with emulator rules tests. Keep independent acceptance,
 isolated live staging and rollback evidence open until actually demonstrated.
+
+## CI regression follow-up
+
+Run 40349105480 passed install, static gates, typecheck and Functions build; all
+13 new export-boundary tests passed. The full test step reported 1303 passed and
+one failure: the existing four-way Firestore transaction contention test exceeded
+its default five-second Vitest timeout. That integration case now has an explicit
+30-second bound for real emulator locking/SDK backoff. All quota assertions remain
+unchanged; no production timeout, retry policy, rate limit or latency SLO is altered.
+A new exact-head full CI run is required; the failed run is not acceptance evidence.
