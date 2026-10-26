@@ -1490,3 +1490,7 @@ versions / 39 unique advisories among 1,438 queried versions; remaining risks st
 This documentation refresh changes no runtime code, dependency graph or release decision.
 No independent approval, live staging/rollback or actual container build/scan is inferred.
 Production remains **NO-GO**.
+
+## Enterprise-Abgleich und Checkout-Härtung – 26.10.2026
+
+Alle drei aktiven GitHub-Workflows deaktivieren persistierte Checkout-Anmeldedaten. Vier-Punkte-Status und verbleibende Nachweise: [Enterprise-Maßnahmenabgleich](ENTERPRISE_REMEDIATION_STATUS_2026-10-26.md). Vollständige CI des neuen Stands ausstehend; Produktion NO-GO.
