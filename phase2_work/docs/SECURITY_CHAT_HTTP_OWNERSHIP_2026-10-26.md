@@ -1,5 +1,8 @@
 # Security checkpoint: authenticated HTTP chat ownership — 2026-10-26
 
+**CI-Nachtrag 26.10.2026:** PR #136 ist nach vollständiger erfolgreicher [CI 40387030005](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40387030005) integriert. Getesteter Head: dd59e548e0dbf037279b716d9c2eec0b3044700a. Die untenstehenden lokalen/pending-Angaben dokumentieren den früheren Prüfzeitpunkt. Aktueller Befund-/Freigabestatus: [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md). Produktion bleibt **NO-GO**.
+
+
 Status: eight new integration cases prepared; real emulator execution/full exact-head
 CI pending. No local emulator pass is claimed. Production: **NO-GO**.
 

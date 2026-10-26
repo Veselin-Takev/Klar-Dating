@@ -2,7 +2,47 @@
 
 **Produktionsentscheidung: NO-GO. Keine offizielle Security-/Produktionsfreigabe.**
 
-## Prüfstand und Umfang
+## Aktueller technischer Stand nach PR #136
+
+Die nachstehenden alten Audit-/lokalen Checkpoints sind historische Snapshots.
+Maßgeblich für den aktuellen technischen Nachweis sind die folgenden ausgeführten
+CI-Läufe; eine unabhängige Befundabnahme oder Produktionsfreigabe ersetzen sie nicht.
+
+| Änderung | Erfolgreiche vollständige CI | Getesteter Head | Main-Merge |
+| --- | --- | --- | --- |
+| [#131 Request-/Reset-Grenzen](https://github.com/Veselin-Takev/Klar-Dating/pull/131) | [40346165390](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40346165390) | `822ea20d6994796b620a5fb7dcaef3eb74c8a817` | `fc92b41fcebc1bfefb29a5261eeace74468dc6d1` |
+| [#132 Trace-Minimierung](https://github.com/Veselin-Takev/Klar-Dating/pull/132) | [40351278302](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40351278302) | `fb9810b7156f2838841cfa6cabf91345d47492cd` | `272fb7b6c1830949054ff048447c3e069c8d4688` |
+| [#133 Stream-Limits](https://github.com/Veselin-Takev/Klar-Dating/pull/133) | [40354560343](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40354560343) | `5df84128aa46ffca842bb7e6126706664d94b377` | `91b66c9985a358ec4d64ce59f8bf3f73490ce355` |
+| [#134 Docker-Pins](https://github.com/Veselin-Takev/Klar-Dating/pull/134) | [40379168480](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40379168480) | `cfd9ed4920a64cc37069e2a6c3208373e90da101` | `ba9adcb4c76014f0eb207828fa33d495f5f2491c` |
+| [#135 Prompt-Testaufruf](https://github.com/Veselin-Takev/Klar-Dating/pull/135) | [40383735092](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40383735092) | `8f8c299b52324ab32c920ccdf29622267c28e68b` | `cb135c886bd21619c0a55107ba7a1e9fcb4fadcf` |
+| [#136 HTTP-Eigentümerzugriff](https://github.com/Veselin-Takev/Klar-Dating/pull/136) | [40387030005](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40387030005) | `dd59e548e0dbf037279b716d9c2eec0b3044700a` | `95e62dd5f8627391b35e65fbd917c01a32846848` |
+
+Der CI-Job von #136 bestätigt ausdrücklich `tests/chatHttpOwnership.spec.ts (8 tests)`;
+die Standardsuite meldet **189 Dateien / 1.333 Tests bestanden**. Die acht neuen Fälle
+wurden ausgeführt, nicht übersprungen. Die elf Prompt-Fälle laufen separat im statischen
+Enterprise-Gate. Die Main-Trees wurden nach jedem Merge gegen den geprüften Stand verglichen.
+
+Erneute versionsgenaue OSV-Abfrage am 26.10.2026, 19:38 UTC: **1.438 eindeutige Versionen,
+21 betroffene Versionen, 39 eindeutige Advisories** aus Root-/App-/Functions-Lockfiles.
+Keine Lockfiles wurden dabei neu aufgelöst. Dies umfasst Entwicklungs-/optionale
+Abhängigkeiten und ist weder eine Ausnutzbarkeitsanalyse noch eine vollständige
+Container-/OS-SCA. Detaillierte Abfrageergebnisse bleiben im lokalen Evidenzpaket.
+
+| Befund | Technischer Stand | Noch offene Nachweisgrenze |
+| --- | --- | --- |
+| SEC-01 | Offen; benannte Datenbank verhindert direkte Storage-cross-service Lösung | Medienauslieferung, Token/Widerruf, reale Regeln und Betriebsvalidierung |
+| SEC-02 | Teilweise korrigiert/minimiert; SCA weiterhin auffällig | Restliche Dependency-Triage, Updates und Laufzeit-/Build-Abgrenzung |
+| SEC-03 | Initialisierung/Quota-Persistenz technisch korrigiert, CI-validiert | Unabhängige Security-Abnahme und tatsächliche Umgebung |
+| SEC-04 | Zwei Trace-Grenzen minimiert, reale SDK-Exporttests bestanden | Andere Logpfade, tatsächliche Senken, Zugriffe und Retention |
+| SEC-05 | Vier aktive Verbraucher mit Stream-Limits korrigiert, CI-validiert | Tatsächliche Betriebs-/Last- und externe Integrationsnachweise |
+| SEC-06 | Prompt-Suite explizit aktiv; echte HTTP-Chatfälle ausgeführt | Weitere Routen-/Regelmatrix und historische Scanner-Lücken |
+| SEC-07 | Beide Docker-Pins konsistent, Policy-/Regressionstests in CI | Tatsächlicher Container-Build, Image-/OS-Scan und Laufzeitnachweis |
+
+Keine Zeile bedeutet eine unabhängige Abnahme des gesamten Befunds. Ein separates
+Staging-Projekt, reale Live-Staging-/Rollback-Nachweise und Fachfreigaben fehlen weiter.
+**Produktion bleibt NO-GO.**
+
+## Ursprünglicher Auditstand vor den Korrekturen
 
 Repository-Basis: f8654ee21d866191aff23b67f155971c6fac693b.
 Der zugehörige [main-CI-Lauf 40300630969](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40300630969) ist erfolgreich.
@@ -13,7 +53,7 @@ Es ist keine unabhängige Drittprüfung und keine vollständige ASVS-Zertifizier
 Der Eigentümer hat bestätigt: **Noch kein separates Staging-Projekt.**
 Priorität ist zuerst das Security-Audit und sein Bericht; die Staging-/Hosting-Arbeit folgt anschließend.
 
-## Ergebnis und Nachweisgrenzen
+## Ergebnisse und Grenzen dieses ursprünglichen Snapshots
 
 - Sieben offene priorisierte Befunde: zwei hoch, vier mittel, einer niedrig.
   Diese Befunde sind noch nicht als behoben abgenommen.
