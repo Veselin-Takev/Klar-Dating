@@ -57,3 +57,7 @@ damaligen Umfang und dürfen diesen aktuellen Nachweisstand nicht ersetzen.
 [OWASP API Security Top 10 2023](https://owasp.github.io/blog/2023/07/03/owasp-api-top10-2023),
 [NIST SSDF SP 800-218](https://csrc.nist.gov/pubs/sp/800/218/final),
 [OSV API](https://google.github.io/osv.dev/post-v1-querybatch/).
+
+## Technischer Folgestand
+
+Eine nachfolgende Teilkorrektur für Anfrageparser, Paketstände und Kontowiederherstellung ist in [Security-Folgestand](SECURITY_REQUEST_RECOVERY_REMEDIATION_2026-10-26.md) dokumentiert. Der obige Auditstand ist ein datierter Snapshot. Teilfixes oder technische CI-Nachweise ersetzen keine unabhängige Security-/Produktionsfreigabe; verbleibende Befunde bleiben ausdrücklich offen.
