@@ -1,4 +1,4 @@
-import { requestRouteForTelemetry } from './src/server/requestTelemetry';
+import { createRequestDiagnostics } from './src/server/middleware/requestDiagnostics';
 import { createAnalyticsRouter } from './src/server/routes/analytics';
 import { shouldEnforceContentSecurityPolicy, shouldPermitEmulatorCspSources } from './src/server/cspRuntimePolicy';
 /**
@@ -95,7 +95,7 @@ import { getServerFirebaseApp, initServerDb } from './src/server/db';
 import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
-import { extractTraceContext, startHttpSpan, runInSpan } from './src/server/observability';
+
 import { appendAuditLog } from './src/server/platform/auditLog';
 
 
@@ -219,45 +219,8 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
 export async function baueApp() {
   const app = express();
 
-  // Enterprise request correlation. Never log raw Authorization headers or sensitive payloads.
-  app.use((req, res, next) => {
-    const startedAt = Date.now();
-    const incoming = req.headers["x-request-id"];
-    const requestId = typeof incoming === "string" && /^[A-Za-z0-9._:-]{8,128}$/.test(incoming)
-      ? incoming
-      : crypto.randomUUID();
-
-    const parentContext = extractTraceContext(typeof req.headers.traceparent === 'string' ? req.headers.traceparent : undefined);
-    const httpSpan = startHttpSpan(req.method, requestRouteForTelemetry(req), parentContext);
-    const traceId = httpSpan.spanContext().traceId;
-    const traceparent = `00-${traceId}-${httpSpan.spanContext().spanId}-01`;
-
-    res.setHeader("X-Request-ID", requestId);
-    res.setHeader("X-Trace-ID", traceId);
-    res.setHeader("traceparent", traceparent);
-    (req as express.Request & { requestId?: string; traceId?: string }).requestId = requestId;
-    (req as express.Request & { requestId?: string; traceId?: string }).traceId = traceId;
-
-    res.on("finish", () => {
-      httpSpan.setAttribute('http.response.status_code', res.statusCode);
-      httpSpan.setAttribute('http.route', requestRouteForTelemetry(req));
-      if (res.statusCode >= 500) httpSpan.setStatus({ code: 2 });
-      httpSpan.end();
-      if (!req.path.startsWith("/api/health") && !req.path.startsWith("/api/metrics")) {
-        console.log(JSON.stringify({
-          level: res.statusCode >= 500 ? "ERROR" : "INFO",
-          event: "http_request",
-          requestId,
-          traceId,
-          method: req.method,
-          route: requestRouteForTelemetry(req),
-          status: res.statusCode,
-          durationMs: Date.now() - startedAt,
-        }));
-      }
-    });
-    void runInSpan(httpSpan, async () => { next(); });
-  });
+  const diagnostics = createRequestDiagnostics();
+  app.use(diagnostics.correlation);
 
   // Security: Befund 1 - Helmet und CSP (P0)
   // ── SEC-07 (Final Audit 08.08.2026) ─────────────────────────────────
@@ -418,37 +381,8 @@ export async function baueApp() {
     next();
   });
 
-  // System Health Monitoring Data (in-memory for demo purposes)
-  const healthStats = {
-    startedAt: Date.now(),
-    apiRequests: 0,
-    apiErrors: 0,
-    apiLatencies: [] as { route: string, duration: number, timestamp: number }[],
-    firebaseLatencies: [] as { operation: string, duration: number, timestamp: number }[],
-    statusCodes: new Map<number, number>(),
-  };
-
-  // Logging Middleware for API latency
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) {
-      const start = Date.now();
-      res.on('finish', () => {
-        const duration = Date.now() - start;
-        healthStats.apiRequests += 1;
-        if (res.statusCode >= 500) healthStats.apiErrors += 1;
-        healthStats.statusCodes.set(res.statusCode, (healthStats.statusCodes.get(res.statusCode) || 0) + 1);
-        healthStats.apiLatencies.push({
-          route: req.route?.path || 'unmatched',
-          duration,
-          timestamp: Date.now()
-        });
-        // Bounded memory: metrics are operational signals, not request history.
-        if (healthStats.apiLatencies.length > 1000) healthStats.apiLatencies.shift();
-      });
-    }
-    next();
-  });
-
+  const { healthStats } = diagnostics;
+  app.use(diagnostics.apiMetrics);
 
   // ENTFERNT 14.08.2026: `historicalApiData` — eine 7-Tage-Latenzreihe aus
   // `120 + Math.random() * 80`, mit absichtlich eingebautem Ausschlag an
@@ -490,38 +424,14 @@ const adminHealthCheckLimiter = rateLimit({
 });
 
 
-  interface FailedApiCall {
-    path: string;
-    method: string;
-    status: number;
-    time: string;
-  }
+  app.use(diagnostics.failedResponses);
 
-  let failedApiCalls: FailedApiCall[] = [];
-
-  app.use((req, res, next) => {
-    const originalSend = res.send;
-    res.send = function (_body) {
-      if (res.statusCode >= 400 && req.path.startsWith('/api/')) {
-        failedApiCalls.unshift({
-          path: requestRouteForTelemetry(req),
-          method: req.method,
-          status: res.statusCode,
-          time: new Date().toISOString()
-        });
-        if (failedApiCalls.length > 10) failedApiCalls.pop();
-      }
-      return originalSend.call(res, _body);
-    };
-    next();
-  });
-
-app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'), (_req, res) => {
+  app.get('/api/admin/build-info', requireAuth, requireRole('admin', 'super_admin'), (_req, res) => {
     res.json({ commit: process.env.COMMIT_HASH || 'unknown', time: process.env.BUILD_TIME || new Date().toISOString() });
   });
 
   app.get('/api/admin/failed-apis', requireAuth, requireRole('admin', 'trust_safety', 'super_admin'), (_req, res) => {
-    res.json(failedApiCalls);
+    res.json(diagnostics.failedApiCalls());
   });
 
   app.get('/api/admin/health-check', requireAuth, requireRole('admin', 'trust_safety', 'super_admin'), adminHealthCheckLimiter, async (_req, res) => {
@@ -2219,4 +2129,3 @@ export async function startServer() {
 if (process.env.KLAR_NICHT_STARTEN !== "1") {
   startServer();
 }
-
