@@ -1,3 +1,4 @@
+import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
 import { createRequestDiagnostics } from './src/server/middleware/requestDiagnostics';
 import { createAnalyticsRouter } from './src/server/routes/analytics';
 import { shouldEnforceContentSecurityPolicy, shouldPermitEmulatorCspSources } from './src/server/cspRuntimePolicy';
@@ -381,6 +382,9 @@ export async function baueApp() {
     next();
   });
 
+  // Reject encoded entities before every mounted parser, including signed webhooks.
+  app.use(rejectEncodedRequestBodies);
+
   const { healthStats } = diagnostics;
   app.use(diagnostics.apiMetrics);
 
@@ -478,7 +482,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
   app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
-  app.use(express.json({ limit: "900kb", strict: true }));
+  app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
 
   // Setup basic rate limiting
    const apiLimiter = rateLimit({
@@ -828,8 +832,8 @@ const adminHealthCheckLimiter = rateLimit({
   app.use("/api/verification", verificationRouter);
   app.use('/api/kyc', createKycRouter(kycDependencies));
   app.post("/api/report", trustSafetyWriteLimiter, handleReport);
-  app.post("/api/auth/send-verification", express.json({ limit: '8kb', strict: true }), verificationMailLimiter, handleSendVerification);
-  app.post("/api/auth/forgot-password", express.json({ limit: "8kb", strict: true }), forgotPasswordIpLimiter, handleForgotPassword);
+  app.post("/api/auth/send-verification", express.json({ inflate: false, limit: '8kb', strict: true }), verificationMailLimiter, handleSendVerification);
+  app.post("/api/auth/forgot-password", express.json({ inflate: false, limit: "8kb", strict: true }), forgotPasswordIpLimiter, handleForgotPassword);
   app.post("/api/auth/verify-reset-token", handleVerifyResetToken);
   app.post("/api/auth/reset-password", handleResetPassword);
   app.post("/api/block", trustSafetyWriteLimiter, handleBlock);
