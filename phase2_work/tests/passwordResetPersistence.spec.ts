@@ -29,7 +29,9 @@ describe.runIf(Boolean(process.env.FIRESTORE_EMULATOR_HOST))('password recovery 
     const email = address();
     const outcomes = await Promise.all(Array.from({ length: 4 }, () => checkAccountRateLimit(email)));
     expect(outcomes.filter(Boolean)).toHaveLength(3); expect((await ref(email).get()).data()!.count).toBe(3);
-  });
+    // Real emulator lock contention can trigger SDK transaction backoff. This
+    // bounded integration-test timeout is not an HTTP latency/SLO allowance.
+  }, 30_000);
   it('replaces an expired window rather than retaining its old expiry', async () => {
     const email = address(), started = Date.now() - 3_600_001;
     await ref(email).set({ count: 3, windowStartedAt: started, expiresAt: new Date(started + 3_600_000) });

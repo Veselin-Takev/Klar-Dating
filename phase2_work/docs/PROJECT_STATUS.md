@@ -1429,3 +1429,12 @@ The owner confirmed that no separate staging project exists and requested the se
 ## 2026-10-26 — Request parser and recovery security remediation
 
 The active app rejects encoded request bodies before all parser mounts and sets inflate:false at all 14 JSON/raw/text/form parsers, preserving identity JSON and exact webhook bytes. Direct Zod pins advance to 4.6.6 in App/Root; npm 10.9.2 updates the Functions body-parser to 2.4.0 and required qs to 6.16.1. The initial password-reset limiter transaction now creates a missing document; strict update semantics in its test double and three isolated real-emulator transaction cases cover creation, expiry and concurrent quotas. Twenty-one local targeted tests PASS; full exact-head frozen-install, Node-22, emulator and browser CI is required. OSV now reports 21 affected versions / 39 unique advisories over 1,438 queried versions, so SEC-02 remains partially open. SEC-03 is technically corrected, independent acceptance remains separate. SEC-01 and the remaining audit findings and live staging/operational approvals stay open; production NO-GO. See SECURITY_REQUEST_RECOVERY_REMEDIATION_2026-10-26.md. Refs #8 / #56; no issue is closed on the basis of local tests alone.
+
+## 2026-10-26: Trace exception minimization
+
+The Firestore/Gemini tracing wrappers now export fixed exception categories instead
+of arbitrary thrown values. Thirteen real-SDK/batched-export boundary tests pass locally;
+full exact-head CI is pending. SEC-04 remains partially open for other logging paths
+and real sink controls. See [trace checkpoint](SECURITY_TRACE_MINIMIZATION_2026-10-26.md).
+Production remains **NO-GO**; PR #131 passed full CI before integration, independently
+of the remaining production acceptance evidence.

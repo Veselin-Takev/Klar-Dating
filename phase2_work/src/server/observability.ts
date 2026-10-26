@@ -108,7 +108,8 @@ export async function observeFirestoreTransaction<T>(name: string, fn: () => Pro
     const failedMetric = firestoreTransactions.get(name) ?? { requests: 0, errors: 0 };
     failedMetric.errors += 1;
     firestoreTransactions.set(name, failedMetric);
-    span.recordException(error as Error);
+    // Never inspect or export arbitrary thrown values: they can contain user data.
+    span.addEvent('exception', { 'exception.type': 'FirestoreOperationFailure' });
     span.setStatus({ code: SpanStatusCode.ERROR });
     throw error;
   } finally {
@@ -127,7 +128,8 @@ export async function observeGeminiCall<T>(endpoint: string, model: string, fn: 
     span.setStatus({ code: SpanStatusCode.OK });
     return result;
   } catch (error) {
-    span.recordException(error as Error);
+    // Never inspect or export arbitrary thrown values: they can contain user data.
+    span.addEvent('exception', { 'exception.type': 'GeminiOperationFailure' });
     span.setStatus({ code: SpanStatusCode.ERROR });
     throw error;
   } finally {
