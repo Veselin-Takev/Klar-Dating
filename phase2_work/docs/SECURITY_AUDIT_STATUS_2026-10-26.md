@@ -70,3 +70,12 @@ full exact-head CI is pending. SEC-04 remains partially open for other logging p
 and real sink controls. See [trace checkpoint](SECURITY_TRACE_MINIMIZATION_2026-10-26.md).
 Production remains **NO-GO**; PR #131 passed full CI before integration, independently
 of the remaining production acceptance evidence.
+
+## 2026-10-26: Bounded upstream response streams
+
+SEC-05 technical remediation now caps decoded stream bytes before buffering/parsing
+in translation, image and both Didit consumers. Twenty-one local regression tests
+pass, including actual gzip fetch decoding and early stream cancellation. Full
+exact-head CI is pending. See [stream checkpoint](SECURITY_BOUNDED_RESPONSES_2026-10-26.md).
+PR #132 is integrated after full CI40351278302 success; remaining audit and independent
+release evidence stay open. Production remains **NO-GO**.
