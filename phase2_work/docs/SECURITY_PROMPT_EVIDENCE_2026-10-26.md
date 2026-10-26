@@ -1,5 +1,8 @@
 # Security checkpoint: deterministic prompt evidence — 2026-10-26
 
+**CI-Nachtrag 26.10.2026:** PR #135 ist nach vollständiger erfolgreicher [CI 40383735092](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40383735092) integriert. Getesteter Head: 8f8c299b52324ab32c920ccdf29622267c28e68b. Die untenstehenden lokalen/pending-Angaben dokumentieren den früheren Prüfzeitpunkt. Aktueller Befund-/Freigabestatus: [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md). Produktion bleibt **NO-GO**.
+
+
 Status: 11 focused local tests passed; full exact-head CI pending. Production: **NO-GO**.
 
 ## SEC-06 prompt-suite correction
