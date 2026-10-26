@@ -43,3 +43,7 @@ Rollback: Override, Lockänderung und zugehörigen Test-/Buildschritt gemeinsam
 regulär revertieren; eingefrorene Installation und Build prüfen. Dies würde die
 vorherige Abhängigkeitsversion wiederherstellen und erfordert neue Sicherheitsbewertung.
 Keine Cloud-Ressourcen oder Produktionsdeployments durch diese Änderung.
+
+## CI-Korrektur: Trennung der Test-Runner
+
+CI40399374675 führte die beiden Node-Kompatibilitätstests erfolgreich aus, scheiterte aber anschließend daran, dass Vitest dieselbe Node-Testdatei nochmals einsammelte und keine Vitest-Suite fand. Die exakte Datei wird deshalb aus Vitest ausgeschlossen; der explizite node --test-Aufruf im Functions-Build bleibt erhalten. 190 reguläre Vitest-Dateien bestanden im fehlgeschlagenen Lauf. Keine fehlgeschlagene fachliche Assertion wurde entfernt. Vollständige CI des korrigierten Heads steht aus.
