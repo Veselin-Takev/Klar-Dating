@@ -11,7 +11,7 @@ const required = [
   "'Resubmitted': 'review'",
   "'Declined': 'pending'",
   "X-Signature-V2",
-  "text({ type: 'application/json', limit: '256kb' })",
+  "text({ inflate: false, type: 'application/json', limit: '256kb' })",
 ];
 for (const marker of required) if (!source.includes(marker)) throw new Error(`Missing Didit KYC integrity control: ${marker}`);
 if (source.includes('X-Signature-Simple')) throw new Error('Didit Simple signature fallback must not be enabled');
