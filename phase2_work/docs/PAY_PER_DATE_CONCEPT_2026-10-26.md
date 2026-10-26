@@ -172,3 +172,80 @@ unterdrücken. Schwellen, Stichprobe und Dauer sind vor Start offen zu genehmige
 
 Externe Quellen sind Orientierung für die spätere Prüfung, keine Abnahme dieses
 Entwurfs. Der bereitgestellte Blueprint begründet keine rechtliche Zertifizierung.
+
+## 10. Optimierungsvorschläge für die nächste Konzeptprüfung
+
+Ergänzt auf Nutzerwunsch am 26.10.2026. **Empfehlungen zur Bewertung**, keine
+beschlossenen Produktregeln, Preisfestlegung, Implementierung oder Pilotfreigabe.
+Die offenen Entscheidungen PPD-01 bis PPD-09 bleiben bestehen.
+
+Leithypothese: Klar schafft durch passende Auswahl und hilfreiche Organisation
+so viel zusätzlichen Wert, dass Menschen nach einem tatsächlichen Treffen
+freiwillig für die vereinbarte Leistung bezahlen möchten. Diese Hypothese ist
+mit Interviews und einem später freigegebenen Pilot zu prüfen, nicht als Erfolg
+vorauszusetzen.
+
+### 10.1 Vereinfachte Ausgestaltung
+
+| Bereich | Empfehlung | Zu prüfen vor einer Entscheidung |
+| --- | --- | --- |
+| Leistungsversprechen | Passende Begegnung organisieren; keine Garantie für Sympathie oder Beziehung. | Verstehen Nutzer Leistung und Erfolgsereignis ohne falsche Erwartungen? PPD-01. |
+| Zahlung | Ein verständlicher Einzelpreis, Gesamtbetrag vor Zustimmung sichtbar; zunächst keine Token-Pakete oder Zusatzgebühren. | Preis pro Person/Paar, Zahlungsbereitschaft, Steuer-/Gebührenbasis und Abrechnungszeitpunkt. PPD-02/03. |
+| Verbindlichkeit | Terminbestätigung, einfache Umbuchung und ggf. Warteliste zuerst testen; Strafgebühren und automatische Sperren zurückstellen. | Nutzen, Supportaufwand, Fairness und Missbrauch; Ersatzmatches nur bei neuer beiderseitiger Zustimmung. PPD-04. |
+| Sicherheit | Absagen, Blockieren, Melden und vorzeitiges Verlassen jederzeit zugänglich; Sicherheitsmeldungen unabhängig von Zahlungsstreit behandeln. | Kein finanzieller/sozialer Druck und keine Zustimmung des Gegenübers für Schutzmaßnahmen. PPD-04/09. |
+| Treffpunkte | Wenige geeignete öffentliche, zugängliche Orte; alkoholfreie Angebote und Cafés einschließen. | Sicherheit, Erreichbarkeit, Barrierefreiheit und Partnerzuverlässigkeit; kein Konsumzwang. PPD-06. |
+| Kommunikation | Freiwilligen kurzen Kennenlern-/Sicherheitsdialog ermöglichen; starre Vier-Stunden-Öffnung nicht voraussetzen. | Erwartungen, Moderation und Einbindung in bestehende Klar-Chats/Icebreaker. PPD-07. |
+| Nachweis | Beiderseitige Bestätigung als Pilotoption; QR-Check-in nur ergänzend, keine Standortüberwachung. | Nichtantwort, abweichende Aussagen, Weitergabe/Replay und Supportfall. PPD-01/05/09. |
+| Partnerangebot | Zuerst Vermittlung und Organisation validieren; Getränke-Bundles/Umsatzbeteiligung nachgelagert prüfen. | Tatsächlicher Mehrwert und Aufwand statt vorausgesetzter Partnererlöse. PPD-06. |
+
+### 10.2 Drei zentrale Bewertungsregeln
+
+1. **Zahlungsfähigkeit ist kein Beleg für Verbindlichkeit.** Zahlungsbereitschaft
+   beweist weder respektvolles Verhalten noch ernsthafte Absichten. Erwartungen,
+   reale Verfügbarkeit und gegenseitige Zustimmung sollen die Vermittlungsqualität
+   bestimmen; Einkommen oder Zahlung allein sind kein Vertrauenssignal.
+2. **Ein Modellversprechen wählen.** Für den ersten Pilot empfiehlt sich weiterhin
+   das reine Erfolgsmodell. Einnahmeausfälle bewusst erfassen. Eine abweichende
+   Reservierungs-/Absagegebühr ist eine eigene Produkt- und Vertragsentscheidung,
+   kein stilles Detail desselben Versprechens. Rechtliche Prüfung bleibt erforderlich.
+3. **Qualität vor bloßer Anzahl.** Mehr Treffen sind nicht automatisch bessere
+   Vermittlung. Feedback zu respektvollem Ablauf, Profiltreue und hilfreicher
+   Organisation ergänzen die Conversion. Eine gewünschte Beziehung oder positive
+   Bewertung ist keine Voraussetzung für Abrechnung oder Unterstützung.
+
+### 10.3 Empfohlener kleinster Pilotumfang
+
+Eine Stadt, freiwillige Teilnahme, ein klarer noch zu bestimmender Preis,
+wenige geeignete Partnerorte und ein begrenzter manueller Supportprozess.
+Zunächst keine zusätzliche komplexe Empfehlungs-KI, Getränkegutscheine,
+automatischen Sanktionen oder umfassende Partnerabrechnung bauen.
+Bestehende Sicherheits-, Alters-, Einwilligungs- und Zahlungsprüfungen dürfen
+auch im kleinen Pilot nicht reduziert werden. Erst belegte Abläufe automatisieren.
+
+Mögliche Experimente vor dem bezahlten Pilot: Konzeptinterviews zur Leistung und
+Preisverständlichkeit, klickbarer Prototyp mit synthetischen Personen, simulierte
+Absage-/Streitfälle und Zahlungsanbieter-Sandbox. Keine echten Belastungen oder
+Treffen aus dieser Dokumentation auslösen. Die Staging-/Review-Gates aus Abschnitt8
+bleiben Voraussetzung; Stichprobe, Zeit, Budget und Stoppschwellen sind offen.
+
+### 10.4 Qualitäts- und Wirtschaftlichkeitsmessung
+
+Zusätzlich zum Funnel aus Abschnitt8 freiwillig und datensparsam erfragen:
+
+- War das Treffen gewünscht und der Ablauf respektvoll?
+- Entsprach die Person ihrem Profil?
+- War die Organisation hilfreich?
+- Würde die Person Klar Date erneut nutzen?
+
+Getrennt davon messen: Bestätigungs-/Zahlungsausfälle, Widerspruchsquote,
+Supportminuten, Erstattungen/Chargebacks und Deckungsbeitrag einschließlich der
+Kosten erfolgloser Versuche. Nenner, Zeitraum, fehlende Antworten und Rücklaufquote
+angeben; freiwilliges Feedback ist keine repräsentative Erfolgsgarantie.
+Sicherheitsmeldungen dienen dem Schutz, nicht einer schlechten Nutzerbewertung;
+keine Sanktion für Meldung oder Rücknahme einer Date-Zusage. Sicherheitssignale
+nicht mit kommerziellen Erfolgsquoten verrechnen.
+
+Nächster fachlicher Schritt: PPD-01/03/04/07 gemeinsam anhand dieser Empfehlungen
+entscheiden und erst danach einen konkret begrenzten Prototyp spezifizieren.
+Die Aufnahme dieses Abschnitts dokumentiert die Vorschläge; sie ist keine
+Zustimmung zu jedem Detail und keine Freigabe zur autonomen Realisierung.
