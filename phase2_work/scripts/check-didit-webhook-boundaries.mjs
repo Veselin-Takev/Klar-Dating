@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 const source = fs.readFileSync('src/server/verification/diditKyc.ts', 'utf8');
 const required = [
-  "text({ type: 'application/json', limit: '256kb' })",
+  "text({ inflate: false, type: 'application/json', limit: '256kb' })",
   'event_id: z.string().uuid()',
   'id_verifications: z.array(step).max(16)',
   'liveness_checks: z.array(step).max(16)',
