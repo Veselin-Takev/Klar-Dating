@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "document_version": "1.0",
-  "as_of": "2026-10-09",
-  "repository_base_sha": "b9808179d26cd4bb21644c4d8f871a439ea09157",
+  "document_version": "1.1",
+  "as_of": "2026-10-26",
+  "repository_base_sha": "9bad13d6f0c5aa6154a6e5f9ddc5ed65e046e192",
   "documentation_status": "prepared_pending_business_review",
   "pilot_status": "not_started",
   "production_approval": "not_confirmed",
@@ -19,7 +19,9 @@
       "accountable_role": "Business Owner",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     },
     {
       "id": "G1",
@@ -27,7 +29,9 @@
       "accountable_role": "Change Lead",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     },
     {
       "id": "G2",
@@ -35,7 +39,9 @@
       "accountable_role": "Workflow Owner",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     },
     {
       "id": "G3",
@@ -43,7 +49,9 @@
       "accountable_role": "QA",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     },
     {
       "id": "G4",
@@ -51,15 +59,19 @@
       "accountable_role": "Business Owner",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     },
     {
       "id": "G5",
       "status": "not_evidenced",
-      "accountable_role": "Change Lead / Sponsor",
+      "accountable_role": "Change Lead",
       "named_approver": null,
       "approved_at": null,
-      "evidence_refs": []
+      "evidence_refs": [],
+      "approval_commit": null,
+      "independent_review": null
     }
   ],
   "requirements": [
@@ -67,37 +79,43 @@
       "id": "ADKAR",
       "artifact": "ADOPTION_PLAYBOOK.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     },
     {
       "id": "PERSONA_WORKFLOW",
       "artifact": "ADOPTION_PLAYBOOK.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     },
     {
       "id": "FOUR_WEEK_ENABLEMENT",
       "artifact": "ENABLEMENT_AND_TEMPLATES.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     },
     {
       "id": "PROMPT_FEEDBACK",
       "artifact": "ENABLEMENT_AND_TEMPLATES.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     },
     {
       "id": "COMMUNICATION_WORKSHOPS",
       "artifact": "ENABLEMENT_AND_TEMPLATES.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     },
     {
       "id": "ADOPTION_SCORECARD",
       "artifact": "SCORECARD_AND_ACCEPTANCE.md",
       "delivery_status": "documented",
-      "execution_status": "not_evidenced"
+      "execution_status": "not_evidenced",
+      "evidence_refs": []
     }
   ],
   "follow_up_reviews": [
@@ -123,5 +141,11 @@
       "evidence_refs": []
     }
   ],
-  "execution_note": "No participants, measurements, approvals or completed workshops have been asserted. Schedule after G0; no automation has been configured."
+  "execution_note": "Solo technical owner confirmed by the repository owner. No pilot, training, measurements or specialist approvals asserted. Protected production release approval remains separate.",
+  "operating_model": {
+    "mode": "solo",
+    "technical_owner": "Veselin-Takev",
+    "independent_qa_login": null
+  },
+  "pilot_completed_at": null
 }

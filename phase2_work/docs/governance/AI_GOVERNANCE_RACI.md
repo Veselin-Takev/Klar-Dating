@@ -1,5 +1,9 @@
 # AI Governance RACI — Phase 2
 
+## Current operating model (2026-10-26)
+
+Klar currently operates with one confirmed technical owner, @Veselin-Takev. The table below describes functions, not appointed employees or granted access. Low-risk functions may be combined where the policy permits; one person holding several roles is still one person. Each decision has one accountable function. Independent QA, Security, Finance and legal/privacy review remain separate where required; unassigned reviewers mean no approval, not an exemption. See [the solo pilot and evidence controls](../phase3/SOLO_PILOT_AND_EVIDENCE_CONTROLS_2026-10-26.md).
+
 ## Risk classes
 
 | Risk | Typical examples | Required approval |
@@ -44,14 +48,14 @@ The default for unknown risk is **High**.
 | Architecture review | R | C | R | A | C | I | I | I |
 | Data assessment | A | R | C | C | R | C | I | I |
 | Prompt/workflow engineering | C | A | R | I | C | I | I | I |
-| Security testing | A | C | R | C | A/R | I | C | I |
+| Security testing | C | C | R | C | A/R | I | C | I |
 | AI evaluation | A | R | R | C | C | I | C | I |
 | Compliance approval | C | R | C | C | C | A/R | C | I |
 | Business acceptance | C | A/R | R | I | C | C | I | I |
 | Production approval | R | C | C | C | C | C | C | A for material High Risk |
 | Release | A | R | R | C | C | I | I | I |
 | Monitoring | A | R | R | C | R | C | C | I |
-| Incident response | A | R | R | C | A/R | C | C | I |
+| Incident response | C | R | R | C | A/R | C | C | I |
 | Retirement | A | R | R | C | C | C | C | I |
 
 **A = Accountable, R = Responsible, C = Consulted, I = Informed.**

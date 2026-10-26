@@ -1,9 +1,13 @@
 # Phase 3 — KI-Einführung und Workflow-Adoption für Klar
 
-Stand: 2026-10-09 · Version 1.0 · Verantwortliche Funktion: Change Lead.
+Stand: 2026-10-26 · Version 1.1 · Verantwortliche Funktion: Change Lead.
 
 **Status: Dokumentationspaket erstellt; fachliche Freigabe und Durchführung offen.**
 Dieses Paket erfüllt die schriftlichen Liefergegenstände des angehängten „AI Change Management & Workflow Adoption Playbook (Pillar 3)“. Es ist kein Nachweis abgeschlossener Schulungen, erfolgreicher Nutzung oder einer Produktionsfreigabe.
+
+## Aktueller Solo-Stand
+
+Ein technischer Owner ist bestätigt; echte unabhängige QA-/Fachfreigaben, Pilot und Messungen bleiben offen. [Solo-Pilot und Evidenzkontrollen](SOLO_PILOT_AND_EVIDENCE_CONTROLS_2026-10-26.md) konkretisiert den nächsten A1-Entwurfspilot und die Registerprüfung. Ein CI-PASS bestätigt die Konsistenz des Registers, keine absolvierte Einführung oder Produktionsfreigabe.
 
 ## Arbeitsunterlagen
 
@@ -21,7 +25,7 @@ Dieses Paket erfüllt die schriftlichen Liefergegenstände des angehängten „A
 - Kein Versand, keine Berechtigungsänderung, keine Zahlung, keine Identitätsentscheidung und keine irreversible Löschung allein aufgrund eines KI-Entwurfs.
 - Freigaben gelten für bezeichneten Anwendungsfall, Datenklasse, Version und Personenkreis; eine Schulung erteilt keine zusätzlichen Systemrechte.
 - Messwerte, Teilnehmer, Verantwortliche und Abnahmen werden nicht erfunden. `null` im Register bedeutet nicht erhoben bzw. nicht freigegeben.
-- Dieses Dokument aktiviert keine Telemetrie und keine Automatisierung. Kein weiterer CI-Lauf ist für das Erstellen dieses Pakets ausgelöst worden.
+- Das Paket aktiviert keine Pilot-Telemetrie und startet keine Schulung. Die Register-Konsistenzprüfung läuft in CI; eine gesondert vom Nutzer beauftragte Chat-Nachverfolgung ersetzt keine fachliche Abnahme.
 
 ## Quellen und Einordnung
 
