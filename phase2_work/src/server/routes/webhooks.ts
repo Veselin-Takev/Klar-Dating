@@ -16,7 +16,7 @@ import { handleStripeWebhook } from '../stripeService';
  */
 export function mountStripeRawBody(app: Express): void {
   // Stripe signatures require the untouched request bytes. Parse this path before the global JSON parser.
-  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '256kb' }));
+  app.use('/api/webhooks/stripe', express.raw({ inflate: false, type: 'application/json', limit: '256kb' }));
 }
 
 export function createWebhooksRouter(): Router {
