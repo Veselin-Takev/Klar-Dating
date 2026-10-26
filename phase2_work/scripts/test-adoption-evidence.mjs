@@ -64,6 +64,8 @@ for (const [name,mutate,expected] of mutations) test('rejects '+name,()=> {
   const data=base();mutate(data);assert(check(data).some(code=>code.includes(expected)));
 });
 const approvalMutations = [
+  ['pilot starts before G2 approval',d=>d.pilot_start='2026-01-02T12:00:00Z','PILOT_START_GATE'],
+  ['pilot completes before G4 approval',d=>d.pilot_completed_at='2026-01-20T09:30:00Z','PILOT_COMPLETION'],
   ['future approval',d=>d.gates[0].approved_at='2099-01-01T00:00:00Z','APPROVAL_EVIDENCE'],
   ['missing approval link',d=>d.gates[0].evidence_refs=[],'APPROVAL_EVIDENCE'],
   ['wrong approval commit',d=>d.gates[0].approval_commit='f'.repeat(40),'APPROVAL_EVIDENCE'],
