@@ -26,7 +26,7 @@ export function createFeedbackRouter({ getFirestore, now = () => new Date() }: F
   });
   // This router is mounted at /api. Scope the quota to the actual write endpoint;
   // router.use() here would consume feedback quota for every sibling /api route.
-  router.post('/feedback', feedbackLimiter, express.json({ limit: '10kb', strict: true }), async (req, res) => {
+  router.post('/feedback', feedbackLimiter, express.json({ inflate: false, limit: '10kb', strict: true }), async (req, res) => {
     const parsed = payloadSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Bitte gib eine Bewertung von 1 bis 5 an.' });

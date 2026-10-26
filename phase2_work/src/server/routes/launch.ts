@@ -144,7 +144,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/referral/claim', express.json({ limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
+  router.post('/referral/claim', express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -181,7 +181,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/activation', express.json({ limit: '8kb', strict: true }), activationWriteLimiter, async (req, res) => {
+  router.post('/activation', express.json({ inflate: false, limit: '8kb', strict: true }), activationWriteLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -200,7 +200,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/launch/founding-claim', express.json({ limit: '8kb', strict: true }), foundingClaimLimiter, async (req, res) => {
+  router.post('/launch/founding-claim', express.json({ inflate: false, limit: '8kb', strict: true }), foundingClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });

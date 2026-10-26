@@ -4,10 +4,10 @@ const server = fs.readFileSync('server.ts', 'utf8');
 const audio = fs.readFileSync('src/server/platform/journalAudioBoundary.ts', 'utf8');
 
 const failures = [];
-if (!server.includes('app.use(express.json({ limit: "900kb", strict: true }));')) {
+if (!server.includes('app.use(express.json({ inflate: false, limit: "900kb", strict: true }));')) {
   failures.push('Global JSON parser must enforce a strict 900kb body limit.');
 }
-if (server.includes('app.use(express.json({ limit: "1mb"')) {
+if (server.includes('app.use(express.json({ inflate: false, limit: "1mb"')) {
   failures.push('Legacy 1mb global JSON parser limit must not return.');
 }
 const audioMatch = audio.match(/JOURNAL_AUDIO_MAX_BYTES\s*=\s*(\d+)\s*\*\s*1024/);

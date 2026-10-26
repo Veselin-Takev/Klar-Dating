@@ -9,7 +9,7 @@ const required = [
   "rateLimit({",
   "windowMs: 60_000",
   "limit: 10",
-  "express.json({ limit: '10kb', strict: true })",
+  "express.json({ inflate: false, limit: '10kb', strict: true })",
 ];
 const emailRequired = [
   'verificationMailLimiter',

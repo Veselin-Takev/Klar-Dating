@@ -303,7 +303,7 @@ function respondError(res: import('express').Response, error: unknown) {
 }
 export function createDiditWebhookRouter(deps: KycDependencies) {
   const router = Router();
-  router.post('/didit', text({ type: 'application/json', limit: '256kb' }), async (req, res) => {
+  router.post('/didit', text({ inflate: false, type: 'application/json', limit: '256kb' }), async (req, res) => {
     if (typeof req.body !== 'string') return res.status(400).json({ code: 'invalid_webhook' });
     let body: unknown;
     try { body = JSON.parse(req.body) as unknown; }
@@ -316,7 +316,7 @@ export function createDiditWebhookRouter(deps: KycDependencies) {
 
 export function createKycReconciliationRouter(deps: KycDependencies, secret = process.env.KYC_RECONCILIATION_JOB_SECRET ?? '') {
   const router = Router();
-  router.post('/reconcile', text({ type: 'application/json', limit: '1kb' }), async (req, res) => {
+  router.post('/reconcile', text({ inflate: false, type: 'application/json', limit: '1kb' }), async (req, res) => {
     if (!Buffer.isBuffer(req.body) || !validKycReconciliationJobSignature(req.body, req.get('X-Klar-Job-Signature'), secret)) return res.sendStatus(401);
     try { return res.json({ ok: true, ...(await reconcileDiditSessions(deps, 10)) }); }
     catch { return res.status(503).json({ code: 'kyc_reconciliation_unavailable' }); }

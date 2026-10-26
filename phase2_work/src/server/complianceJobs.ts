@@ -68,7 +68,7 @@ export function validJobSignature(body: Buffer, signature: string | undefined, s
 /** Invoke from the Frankfurt scheduler. No polling timers or background CPU assumption in Cloud Run. */
 export function createComplianceJobsRouter(db: () => Firestore = getDb) {
   const router = express.Router();
-  router.post('/drain', express.raw({ type: 'application/json', limit: '1kb' }), async (req, res) => {
+  router.post('/drain', express.raw({ inflate: false, type: 'application/json', limit: '1kb' }), async (req, res) => {
     if (!Buffer.isBuffer(req.body) || !validJobSignature(req.body, req.get('X-Klar-Job-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
     const firestore = db(); const lock = firestore.doc('system/compliance_worker'); const now = Date.now();
     try {

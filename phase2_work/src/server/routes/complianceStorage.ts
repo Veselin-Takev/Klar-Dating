@@ -39,7 +39,7 @@ export function createVerificationStoragePurgeRouter(deps: {
   getBucket?: () => { file: (path: string) => { delete: (options?: unknown) => Promise<unknown> } };
 }): Router {
   const router = Router();
-  router.post('/purge-verification-storage', express.raw({ type: 'application/json', limit: '2kb' }), async (req, res) => {
+  router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
     if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
 

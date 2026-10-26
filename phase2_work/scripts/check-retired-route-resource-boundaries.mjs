@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const server = readFileSync('server.ts', 'utf8');
 const required = [
   ['retired verification route must not parse JSON', 'app.use("/api/verification", verificationRouter);'],
-  ['forgot-password must use bounded strict JSON', 'app.post("/api/auth/forgot-password", express.json({ limit: "8kb", strict: true }), forgotPasswordIpLimiter, handleForgotPassword);'],
+  ['forgot-password must use bounded strict JSON', 'app.post("/api/auth/forgot-password", express.json({ inflate: false, limit: "8kb", strict: true }), forgotPasswordIpLimiter, handleForgotPassword);'],
   ['retired reset-token verification route must not parse JSON', 'app.post("/api/auth/verify-reset-token", handleVerifyResetToken);'],
   ['retired reset-password route must not parse JSON', 'app.post("/api/auth/reset-password", handleResetPassword);'],
 ];
