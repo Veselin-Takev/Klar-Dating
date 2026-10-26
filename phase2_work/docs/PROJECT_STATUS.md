@@ -1476,3 +1476,17 @@ boundaries and rejected writes without mutation. Execution is pending full exact
 CI; no local emulator success is claimed. See [checkpoint](SECURITY_CHAT_HTTP_OWNERSHIP_2026-10-26.md).
 PR #135 passed full CI and is integrated. SEC-06 remains partial for other routes/rules.
 Production remains **NO-GO**.
+
+## 2026-10-26: Verified remediation checkpoint after PR #136
+
+PRs #131–136 are integrated after their full exact-head validation runs. CI40387030005
+explicitly executed all eight real-token HTTP chat ownership cases and passed all
+189 standard test files / 1,333 tests, plus the separate enterprise gates and browser
+acceptance. The tested head and merge identities are recorded in the
+[current audit-status table](SECURITY_AUDIT_STATUS_2026-10-26.md).
+Historical pending/local checkpoint statements remain preserved and are now annotated
+with their subsequent actual CI outcomes. A fresh OSV query still reports 21 affected
+versions / 39 unique advisories among 1,438 queried versions; remaining risks stay open.
+This documentation refresh changes no runtime code, dependency graph or release decision.
+No independent approval, live staging/rollback or actual container build/scan is inferred.
+Production remains **NO-GO**.
