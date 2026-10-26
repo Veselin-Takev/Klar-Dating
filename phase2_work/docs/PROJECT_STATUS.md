@@ -1414,3 +1414,7 @@ The member claim endpoint now accepts ten-character uppercased Base64url codes, 
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+## 2026-10-26 — Request diagnostics boundary and structural review
+
+Request correlation/tracing, completed API metrics and bounded failure snapshots are extracted into src/server/middleware/requestDiagnostics.ts at their existing mount positions. Lifecycle-based collection replaces res.send interception; disconnected requests close spans without claiming a completed 200 response. Nine new HTTP lifecycle regressions plus twelve existing route-privacy tests PASS locally; 39 auth/CSP/release tests PASS. CODE_STRUCTURE_REVIEW_2026-10-26.md records existing stale gates, large-screen follow-ups and validation limits; SERVER_MODULARISIERUNG.md now reflects actual router extraction. Exact-head CI is required. No production deployment or blanket enterprise/compliance approval.
