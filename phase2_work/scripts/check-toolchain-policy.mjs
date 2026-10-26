@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+import { dockerToolchainFailures } from './docker-toolchain.mjs';
 import fs from 'node:fs';
 import process from 'node:process';
 
@@ -17,6 +19,12 @@ if (functionsPackage.packageManager !== 'npm@10.9.2') {
   failures.push(`Functions packageManager must be npm@10.9.2 (found ${functionsPackage.packageManager ?? 'missing'}).`);
 }
 if (!fs.existsSync('eslint.config.mjs')) failures.push('eslint.config.mjs is missing.');
+
+for (const relative of ['../../Dockerfile', '../Dockerfile']) {
+  const dockerfile = fileURLToPath(new URL(relative, import.meta.url));
+  if (!fs.existsSync(dockerfile)) failures.push(`Missing Dockerfile: ${relative}`);
+  else for (const failure of dockerToolchainFailures(fs.readFileSync(dockerfile, 'utf8'))) failures.push(`${relative}: ${failure}`);
+}
 
 if (failures.length) {
   console.error(`Toolchain policy FAILED (${failures.length}):`);
