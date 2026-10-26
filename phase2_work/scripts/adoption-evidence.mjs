@@ -91,11 +91,15 @@ export function collectAdoptionEvidenceFailures(data, { now = Date.now() } = {})
     check(data.metrics?.pilot === null, 'UNSTARTED_PILOT_METRICS');
     check(!approved('G3') && !approved('G4') && !approved('G5'), 'UNSTARTED_PILOT_APPROVAL');
   } else {
-    check(instant(data.pilot_start) && Date.parse(data.pilot_start) <= now && approved('G2'), 'PILOT_START_GATE');
+    check(instant(data.pilot_start) && Date.parse(data.pilot_start) <= now && approved('G2')
+      && Date.parse(data.pilot_start) >= Date.parse(gates[2]?.approved_at)
+      && Date.parse(data.pilot_start) < Date.parse(data.as_of)+86_400_000, 'PILOT_START_GATE');
     if (data.pilot_status === 'paused') check(safeEvidenceReference(data.pause_evidence_ref), 'PAUSE_EVIDENCE');
     if (data.pilot_status === 'completed') {
       check(instant(data.pilot_completed_at) && Date.parse(data.pilot_completed_at) >= Date.parse(data.pilot_start)
-        && Date.parse(data.pilot_completed_at) <= now && approved('G4'), 'PILOT_COMPLETION');
+        && Date.parse(data.pilot_completed_at) <= now && approved('G4')
+        && Date.parse(data.pilot_completed_at) >= Date.parse(gates[4]?.approved_at)
+        && Date.parse(data.pilot_completed_at) < Date.parse(data.as_of)+86_400_000, 'PILOT_COMPLETION');
     } else check(data.pilot_completed_at === null, 'INCOMPLETE_PILOT_HAS_COMPLETION_DATE');
   }
   check(exactKeys(data.metrics, ['baseline','pilot']), 'METRICS_OBJECT');
