@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import { readBoundedResponse } from './boundedResponse';
 /**
  * Orchestriert die Anbindung an lokale/Open-Source Übersetzungsmodelle
@@ -48,7 +49,7 @@ export async function translateText(
     if (typeof data.textTranslated !== 'string' || !data.textTranslated.trim() || data.textTranslated.length > TRANSLATION_TEXT_MAX_CHARS) throw new Error('Invalid translation response');
     return { textTranslated: data.textTranslated, sourceLang, targetLang, usedFallback: false };
   } catch (error) {
-    console.warn("Translation failed or timed out, using fallback:", error);
+    logSafeFailure('translation_fallback');
     return {
       textTranslated: null,
       sourceLang,
