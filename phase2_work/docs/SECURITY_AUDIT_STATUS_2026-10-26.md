@@ -89,3 +89,12 @@ container build/scan evidence remains separate. See [checkpoint](SECURITY_DOCKER
 SEC-01 remains open: direct cross-service Storage checks cannot read the configured
 named Firestore database. An incompatible prototype was withheld; live rules/IAM
 were not changed. PR #133 passed full CI and is integrated. Production remains **NO-GO**.
+
+## 2026-10-26: Deterministic prompt evidence
+
+The previously excluded prompt suite now has an explicit deterministic CI invocation
+and corrected redaction/escaping expectations: 11 local tests pass. Runtime protection
+is unchanged. The invalid-token API test is honestly labeled and requires 401;
+it does not establish authenticated A/B IDOR protection. Full exact-head CI is pending.
+See [evidence checkpoint](SECURITY_PROMPT_EVIDENCE_2026-10-26.md). SEC-06 remains
+partially open. PR #134 passed full CI and is integrated. Production remains **NO-GO**.
