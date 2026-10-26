@@ -27,7 +27,7 @@ Dadurch entfallen rund 100 Zeilen Inline-Implementierung im Server-Einstieg.
   Die Daten bleiben pro App-Instanz und sind keine flotteweite SLO-/Staging-Evidenz.
 
 Auth-/Rollenprüfungen, CSP, globale API-Limits, Stripe-Raw-Body-Reihenfolge, KI-Budgets und fachliche Handler
-werden in diesem Block nicht umgebaut. Keine Abhängigkeiten oder Lockfiles geändert.
+werden in diesem Block nicht umgebaut. Keine Abhängigkeiten oder Lockfiles geändert. README und Developer-Guide verwenden jetzt die tatsächlich gepinnte Bun-App-/npm-Functions-Installation statt des nicht vorhandenen App-npm-Lockfiles; veraltete Docker-Installationshinweise sind berichtigt.
 
 ## Validierung und Grenzen
 
