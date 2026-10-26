@@ -1490,3 +1490,7 @@ versions / 39 unique advisories among 1,438 queried versions; remaining risks st
 This documentation refresh changes no runtime code, dependency graph or release decision.
 No independent approval, live staging/rollback or actual container build/scan is inferred.
 Production remains **NO-GO**.
+
+## Fehlerlog-Minimierung – 26.10.2026
+
+Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; vollständige CI dieses Stands ausstehend. SEC-04 und Produktions-NO-GO bleiben offen. Details: [Checkpoint](SECURITY_ERROR_LOG_MINIMIZATION_2026-10-26.md).
