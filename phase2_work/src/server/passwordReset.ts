@@ -33,7 +33,7 @@ export async function checkAccountRateLimit(email: string): Promise<boolean> {
     const windowStartedAt = Number(data?.windowStartedAt) || now;
     const count = Number(data?.count) || 0;
     const withinWindow = now - windowStartedAt < ACCOUNT_RATE_LIMIT_WINDOW_MS;
-    if (!withinWindow) {
+    if (!snap.exists || !withinWindow) {
       tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + ACCOUNT_RATE_LIMIT_WINDOW_MS) });
       return true;
     }
