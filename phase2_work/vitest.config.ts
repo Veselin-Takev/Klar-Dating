@@ -7,6 +7,8 @@ export default mergeConfig(viteConfig({} as any), defineConfig({
       '**/node_modules/**',
       // Node built-in test runner suites execute through explicit node --test CI gates.
       '**/scripts/*.test.mjs',
+      // Executed by the Functions build via node --test; not a Vitest suite.
+      '**/functions/tests/gaxios-compatibility.test.cjs',
       '**/e2e/**',
       '**/tests/e2e/**',
       '**/rules-diagnose.spec.ts',
