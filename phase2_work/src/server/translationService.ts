@@ -1,3 +1,4 @@
+import { readBoundedResponse } from './boundedResponse';
 /**
  * Orchestriert die Anbindung an lokale/Open-Source Übersetzungsmodelle
  * (z. B. LibreTranslate, MarianMT, NLLB-200).
@@ -41,10 +42,7 @@ export async function translateText(
     });
     if (!response.ok) throw new Error(`Translation service returned ${response.status}`);
 
-    const announcedLength = Number(response.headers.get('content-length') || 0);
-    if (Number.isFinite(announcedLength) && announcedLength > TRANSLATION_RESPONSE_MAX_BYTES) throw new Error('Translation response too large');
-    const responseText = await response.text();
-    if (new TextEncoder().encode(responseText).byteLength > TRANSLATION_RESPONSE_MAX_BYTES) throw new Error('Translation response too large');
+    const responseText = new TextDecoder().decode(await readBoundedResponse(response, TRANSLATION_RESPONSE_MAX_BYTES, 'Translation response too large'));
     let data: { textTranslated?: unknown };
     try { data = JSON.parse(responseText) as { textTranslated?: unknown }; } catch { throw new Error('Invalid translation response'); }
     if (typeof data.textTranslated !== 'string' || !data.textTranslated.trim() || data.textTranslated.length > TRANSLATION_TEXT_MAX_CHARS) throw new Error('Invalid translation response');

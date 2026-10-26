@@ -1,3 +1,4 @@
+import { readBoundedResponse } from '../boundedResponse';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Router, text, type Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
@@ -7,10 +8,7 @@ import { z } from 'zod';
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
 async function readDiditJson(response: Response): Promise<unknown> {
-  const announcedLength = Number(response.headers.get('content-length') || 0);
-  if (Number.isFinite(announcedLength) && announcedLength > DIDIT_RESPONSE_MAX_BYTES) throw new Error('didit_response_too_large');
-  const body = await response.arrayBuffer();
-  if (body.byteLength > DIDIT_RESPONSE_MAX_BYTES) throw new Error('didit_response_too_large');
+  const body = await readBoundedResponse(response, DIDIT_RESPONSE_MAX_BYTES, 'didit_response_too_large');
   return JSON.parse(Buffer.from(body).toString('utf8'));
 }
 

@@ -3,9 +3,7 @@ const source = fs.readFileSync('src/server/translationService.ts', 'utf8');
 const required = [
   /TRANSLATION_RESPONSE_MAX_BYTES\s*=\s*64 \* 1024/,
   /TRANSLATION_TEXT_MAX_CHARS\s*=\s*12_000/,
-  /content-length/,
-  /response\.text\(\)/,
-  /TextEncoder\(\)\.encode\(responseText\)\.byteLength/,
+  /readBoundedResponse\(response, TRANSLATION_RESPONSE_MAX_BYTES/,
   /JSON\.parse\(responseText\)/,
   /data\.textTranslated\.length\s*>\s*TRANSLATION_TEXT_MAX_CHARS/,
 ];
