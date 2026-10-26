@@ -1491,6 +1491,9 @@ This documentation refresh changes no runtime code, dependency graph or release 
 No independent approval, live staging/rollback or actual container build/scan is inferred.
 Production remains **NO-GO**.
 
+## Enterprise-Abgleich und Checkout-Härtung – 26.10.2026
+
+Alle drei aktiven GitHub-Workflows deaktivieren persistierte Checkout-Anmeldedaten. Vier-Punkte-Status und verbleibende Nachweise: [Enterprise-Maßnahmenabgleich](ENTERPRISE_REMEDIATION_STATUS_2026-10-26.md). Vollständige CI des neuen Stands ausstehend; Produktion NO-GO.
 ## Fehlerlog-Minimierung – 26.10.2026
 
 Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; vollständige CI dieses Stands ausstehend. SEC-04 und Produktions-NO-GO bleiben offen. Details: [Checkpoint](SECURITY_ERROR_LOG_MINIMIZATION_2026-10-26.md).
