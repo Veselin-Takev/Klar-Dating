@@ -107,7 +107,7 @@
     "check:ai-provider-boundary": "node scripts/check-ai-provider-boundary.mjs",
     "check:translation-ai-policy-boundary": "node scripts/check-translation-ai-policy-boundary.mjs",
     "check:dependency-locks": "node scripts/check-dependency-locks.mjs",
-    "check:toolchain-policy": "node scripts/check-toolchain-policy.mjs",
+    "check:toolchain-policy": "node --test scripts/docker-toolchain.test.mjs && node scripts/check-toolchain-policy.mjs",
     "check:ci-toolchain-pins": "node --test scripts/toolchain-pin-policy-check.mjs && node scripts/check-ci-toolchain-pins.mjs",
     "check:local-firebase-adc": "node scripts/check-local-firebase-adc.mjs",
     "test:local-firebase-adc": "node --test scripts/localFirebaseAdc-check.mjs",

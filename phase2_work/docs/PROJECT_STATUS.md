@@ -1447,3 +1447,13 @@ pass, including actual gzip fetch decoding and early stream cancellation. Full
 exact-head CI is pending. See [stream checkpoint](SECURITY_BOUNDED_RESPONSES_2026-10-26.md).
 PR #132 is integrated after full CI40351278302 success; remaining audit and independent
 release evidence stay open. Production remains **NO-GO**.
+
+## 2026-10-26: Docker toolchain consistency and Storage compatibility review
+
+SEC-07 pin drift is corrected: active and root Docker build stages now use the
+approved Bun 1.4.2 image/digest. Both Dockerfiles are checked by the enterprise
+policy gate; 12 local regression tests pass. Full exact-head CI is pending; actual
+container build/scan evidence remains separate. See [checkpoint](SECURITY_DOCKER_TOOLCHAIN_2026-10-26.md).
+SEC-01 remains open: direct cross-service Storage checks cannot read the configured
+named Firestore database. An incompatible prototype was withheld; live rules/IAM
+were not changed. PR #133 passed full CI and is integrated. Production remains **NO-GO**.
