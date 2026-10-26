@@ -148,3 +148,7 @@ boundaries and rejected writes without mutation. Execution is pending full exact
 CI; no local emulator success is claimed. See [checkpoint](SECURITY_CHAT_HTTP_OWNERSHIP_2026-10-26.md).
 PR #135 passed full CI and is integrated. SEC-06 remains partial for other routes/rules.
 Production remains **NO-GO**.
+
+## Fehlerlog-Minimierung – 26.10.2026
+
+Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; vollständige CI dieses Stands ausstehend. SEC-04 und Produktions-NO-GO bleiben offen. Details: [Checkpoint](SECURITY_ERROR_LOG_MINIMIZATION_2026-10-26.md).
