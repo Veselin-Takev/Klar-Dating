@@ -35,7 +35,7 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 ## Requirements
 
 - Node.js **22.23.3** or a compatible Node 22 release satisfying `package.json#engines`
-- npm 10+
+- Bun 1.4.2 for the app dependency graph; npm 10.9.2 for Functions
 - Java 21 for Firebase emulators
 - Docker for production-image verification
 - Firebase project with Auth, Firestore, and Storage
@@ -46,7 +46,7 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 Install the locked dependency graph:
 
 ```bash
-npm ci
+bun ci
 ```
 
 Create the local environment file from the checked-in example. Never commit the result:
