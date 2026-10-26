@@ -1,5 +1,7 @@
 # ADKAR-Roadmap und Workflow-Neugestaltung
 
+Aktualisierung 2026-10-26: Klar arbeitet derzeit mit einem bestätigten technischen Owner. Die folgenden Mehrpersonen-/Teamannahmen sind Vorlagen und keine bestätigte Besetzung. Maßgeblich für die nächste konkrete Vorbereitung ist der [Solo-Pilot](SOLO_PILOT_AND_EVIDENCE_CONTROLS_2026-10-26.md); G0 und Durchführung bleiben offen.
+
 ## 1. Auftrag, Annahmen und Pilotumfang
 
 Ziel: Klar-Teams können geeignete KI-Unterstützung sicher anwenden, Ergebnisse prüfen, Fehler melden und einen messbaren Nutzen ohne Qualitätsverlust nachweisen.
