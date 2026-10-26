@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import express, { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -45,7 +46,7 @@ export function createFeedbackRouter({ getFirestore, now = () => new Date() }: F
       await getFirestore().collection('app_feedback').add(feedbackDoc);
       return res.json({ ok: true, message: 'Vielen Dank für dein Feedback!' });
     } catch (error) {
-      console.warn('Feedback storage unavailable', error);
+      logSafeFailure('feedback_storage_failure');
       return res.status(503).json({ error: 'Feedback konnte nicht gespeichert werden.' });
     }
   });
