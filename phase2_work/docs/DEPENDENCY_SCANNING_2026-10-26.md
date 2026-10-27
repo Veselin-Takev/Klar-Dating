@@ -62,3 +62,17 @@ Erneute vollständige lokale OSV-Abfrage am27.10.2026 nach Main-Synchronisierung
 1.439eindeutige Versionen,21betroffene Versionen,39Advisories. Alle drei Lock-Hashes
 wurden ermittelt. Die zusätzliche Version stammt aus der geänderten Functions-Auflösung;
 dieser lokale Scan ersetzt nicht den ausstehenden CI-Lauf des neuen Heads.
+
+## Gezieltes Review von PR #140 — 27.10.2026
+
+Geprüfter bisheriger Head: `a9ab1a0262fa84bc6dfcc9dbdcb7ab173a2e3e38`. Normale Pflicht-CI [40470518973](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40470518973) erfolgreich. Der separate [Scan 40470518914](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40470518914) bestand alle zehn damaligen Scanner-Tests und meldete 1.439 eindeutige Versionen, 21 betroffene Versionen und 39 eindeutige Advisories mit Exit 1. **Die rote Prüfung ist ein vollständiges Ergebnis mit Befunden, kein Scanner-Absturz.** Frühere Aussagen über einen noch ausstehenden Lauf dieses Heads sind damit historisch.
+
+Das Review fand zusätzlich eine Lücke in der Inventarvalidierung: Eine einzelne leere Lockdatei konnte unbemerkt bleiben, wenn andere Dateien Pakete lieferten. Der Scanner verlangt jetzt mindestens einen tatsächlich aufgelösten Eintrag pro Eingabedatei und verweigert Arrays als `packages`-Container. Root-Einträge und npm-Links zählen nicht als aufgelöste Pakete. Identische Versionen in mehreren gültigen Locks bleiben erlaubt und werden weiterhin dedupliziert. Unvollständiges Inventar führt im CLI weiterhin zu Exit 2, niemals zu einer sauberen Bewertung.
+
+**15 lokale Node-Regressionen bestanden** unter Node 24.22.1. Die fünf zusätzlichen Tests prüfen vier ungültige Einzeldateien jeweils vor und nach einer gültigen Datei sowie ein gültiges gemischtes Bun-/npm-Inventar mit Duplikaten. Die Inventarisierung aller drei tatsächlichen lokalen Locks ergibt weiterhin 1.439 eindeutige Versionen; dies war keine erneute OSV-Abfrage. Hashes beziehen sich auf die gelesenen Bytes, daher können CRLF-Checkouts andere Hashes als Linux-CI liefern.
+
+PR #150 ist nach erfolgreicher vollständiger CI [40478331492](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40478331492) auf Head `cbb65fb41185fcd82734beb6c0476ecc1c01851b` integriert. Main `c30f6f8fa8fcf64b8bcefcd38a671ee91fe66e3e` wurde auf identischen Tree geprüft und erhaltend in die Scanner-Arbeit übernommen. Der neue Scanner-Head benötigt eine neue Pflicht-CI und einen Scan; alte erfolgreiche CI gilt nicht für den neuen Head.
+
+Offene Grenzen: Die 21 betroffenen Versionen sind nicht durch diese Prüferkorrektur behoben. Keine Ignoreliste/Baseline und keine geänderte Befundschwelle. Der separate Workflow läuft durch Pfadfilter nicht für jede beliebige Quelländerung und ist noch keine konfigurierte Branchschutzpflicht. Die Parser-Installation verwendet weiterhin den App-Dependency-Graph; minimaler isolierter Scanner-Build, SAST, Container-/OS-Scan und OpenSSF-Scorecard sind nicht nachgewiesen. Es besteht kein vollständiges Supply-Chain- oder Compliance-Testat.
+
+Nächste Schritte: den neuen exakten Head prüfen, Advisory-Triage versionsgenau und vertraulich fortführen, Abhängigkeiten kontrolliert beheben und danach die dauerhafte Integration des Scanners entscheiden. PR bleibt bis zur Triage Draft. **Produktion weiterhin NO-GO.**
