@@ -8,17 +8,17 @@ assert.ok(changed.length > 0 && changed.every(file => allowed.includes(file)), '
 for (const file of ['package.json', 'phase2_work/package.json']) {
   const original = JSON.parse(execFileSync('git', ['show', `HEAD:${file}`], { encoding: 'utf8' }));
   const candidate = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.deepEqual(candidate, original, 'Transitive follow-redirects refresh must not change manifest dependencies');
+  assert.deepEqual(candidate, original, 'Transitive source-map-js refresh must not change manifest dependencies');
 }
 for (const file of ['bun.lock', 'phase2_work/bun.lock']) {
-  assert.ok(fs.readFileSync(file, 'utf8').includes('["follow-redirects@1.16.2"'), 'Reviewed follow-redirects version missing from candidate lock');
+  assert.ok(fs.readFileSync(file, 'utf8').includes('["source-map-js@1.2.2"'), 'Reviewed source-map-js version missing from candidate lock');
 }
 const sourceHead = process.env.SOURCE_HEAD;
 assert.match(sourceHead ?? '', /^[a-f0-9]{40}$/, 'Missing exact PR source revision');
 const evidence = {
   schemaVersion: 1, purpose: 'review candidate; not approved or deployed',
   sourceHead, checkoutCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  target: { package: 'follow-redirects', version: '1.16.2' },
+  target: { package: 'source-map-js', version: '1.2.2' },
   node: process.version, bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
   hashes: Object.fromEntries(allowed.map(file => [file, {
     before: crypto.createHash('sha256').update(execFileSync('git', ['show', `HEAD:${file}`])).digest('hex'),

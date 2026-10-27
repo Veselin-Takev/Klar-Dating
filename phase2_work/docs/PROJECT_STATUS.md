@@ -1,3 +1,15 @@
+## Source-Map-Kandidat mit weiter reduzierten Befunden — 2026-10-27
+
+Generator 40552680151 erfolgreich mit beiden isolierten Frozen-Installationen; Artefakt-Digest/Source-/Dateihashes geprüft. Pro Lock zwei ältere verschachtelte `source-map-js`-1.2.1-Auflösungen entfernt; 1.2.2 bleibt, Manifeste/übrige Pakete unverändert. Kandidatenlocks übernommen. Differenzieller OSV-Vergleich: 1.440 Versionen / 19 betroffene / 27 Advisories → **1.439 / 18 / 26**. Pflicht-CI auf übernommenen Dateien ausstehend; keine globale Entwarnung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
+## Redirect-Teilfix integriert; Source-Map-Kandidat — 2026-10-27
+
+PR #153 nach vollständiger erfolgreicher CI 40542268993 auf `edf3d1953440f2eb211a63014e07b6adb0cfb7f5` integriert; Main `5304bbd8c53a99a76b30f6ea97a0781a03b163f9` auf exakt gleichen Tree geprüft. Nächster fester Kandidat `source-map-js` 1.2.2 ist für den bestehenden read-only Linux-Generator vorbereitet; neue Lockerzeugung und tatsächlicher Graph-/Scan-/CI-Nachweis stehen noch aus. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Geprüfter Redirect-Lockkandidat — 2026-10-27
 
 Generator 40541640098 erfolgreich mit beiden isolierten Frozen-Installationen. Artefakt-Digest/Source-/Dateihashes geprüft; exakt ein geänderter Eintrag je Lock, `follow-redirects` 1.16.0 → 1.16.2, Manifeste unverändert. Kandidat übernommen. Ein differenzieller OSV-Kontrollscan mit gemeinsamem Datenbestand ergibt Ausgangsgraph 20 betroffene Versionen / 29 Advisories und Kandidat **19 / 27** bei je 1.440 Versionen. Historische 19 / 28 sind wegen inzwischen veränderter Befunddaten kein direkter Vergleichsmaßstab. Neue Pflicht-CI auf übernommenen Dateien ausstehend; keine globale Entwarnung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
