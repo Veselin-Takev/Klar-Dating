@@ -72,8 +72,10 @@ describe('audit log metadata boundary', () => {
   });
 
   it('fails closed without exposing datastore details', async () => {
+    const sink = vi.spyOn(console, 'error').mockImplementation(() => {});
     const api = await endpoint({ fail: true });
     const response = await fetch(api.url);
+    expect(sink.mock.calls).toEqual([[JSON.stringify({ level: 'ERROR', event: 'audit_log_read_failure' })]]);
     expect(response.status).toBe(503);
     const text = await response.text();
     expect(text).not.toContain('private firestore detail');

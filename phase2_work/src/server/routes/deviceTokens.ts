@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import { distributedRateLimit } from '../distributedRateLimiter';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -51,7 +52,7 @@ export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceT
 
       return res.json({ ok: true });
     } catch (error) {
-      console.error('Device token persistence failed', error);
+      logSafeFailure('device_token_storage_failure');
       return res.status(503).json({ error: 'Device token storage unavailable' });
     }
   });
