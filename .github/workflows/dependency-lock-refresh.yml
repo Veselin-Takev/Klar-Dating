@@ -20,7 +20,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: '1.4.4'
-      - name: Generate targeted concurrently candidate without lifecycle scripts
+      - name: Generate range-compatible body-parser candidate without lifecycle scripts
         shell: bash
         run: |
           set -euo pipefail
@@ -31,7 +31,7 @@ jobs:
           for project in root app; do
             (
               cd "$candidate_dir/$project"
-              bun update concurrently@10.0.6 --exact --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+              bun update body-parser --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
               bun ci --ignore-scripts --no-env-file --registry https://registry.npmjs.org
             )
           done
@@ -44,7 +44,7 @@ jobs:
       - name: Publish review candidate only
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: concurrently-lock-candidate-${{ github.sha }}
+          name: body-parser-lock-candidate-${{ github.sha }}
           retention-days: 3
           if-no-files-found: error
           path: |
