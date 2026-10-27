@@ -22,3 +22,20 @@ test('deduplicates exact npm versions across lockfiles and hashes source bytes',
   const result = inventory([['one/package-lock.json', 'a'], ['two/package-lock.json', 'b']], parsed);
   assert.equal(result.packages.length, 1); assert.notEqual(result.hashes['one/package-lock.json'], result.hashes['two/package-lock.json']);
 });
+for (const invalid of [{}, [], { '': { name: 'root' } }, { 'node_modules/link': { link: true } }]) {
+  test('rejects an empty or malformed individual lock even when another lock resolves packages: ' + JSON.stringify(invalid), () => {
+    const files = [['valid/package-lock.json', 'valid'], ['invalid/package-lock.json', 'invalid']];
+    const parse = (_file, text) => ({ config: { packages: text === 'valid'
+      ? { 'node_modules/synthetic': { version: '1.0.0' } } : invalid } });
+    assert.throws(() => inventory(files, parse));
+    assert.throws(() => inventory([...files].reverse(), parse));
+  });
+}
+test('counts duplicate packages as evidence that each lock was inspected', () => {
+  const files = [['bun.lock', 'bun'], ['functions/package-lock.json', 'npm']];
+  const result = inventory(files, (_file, text) => ({ config: { packages: text === 'bun'
+    ? { synthetic: ['synthetic@1.0.0', '', {}, 'sha512-test'] }
+    : { 'node_modules/synthetic': { version: '1.0.0' } } } }));
+  assert.deepEqual(result.packages, packages);
+  assert.equal(Object.keys(result.hashes).length, 2);
+});
