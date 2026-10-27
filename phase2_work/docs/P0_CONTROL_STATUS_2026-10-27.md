@@ -33,6 +33,12 @@ PR #148 bestand die vollständige CI [40474779359](https://github.com/Veselin-Ta
 
 Vier weitere Fehlerlog-Aufrufe sind auf feste Ereigniscodes umgestellt: Checkout-Erstellung, Compliance-Abfrage, CSV-Export und der darunterliegende Abfrage-Helfer. Die bestehende 503-Verweigerung bleibt erhalten; fachliche Checkout-Konflikte behalten ihre gesonderten Antworten. Die erweiterten HTTP-Tests prüfen die gesamte aufgerufene Logkette einschließlich des Helfers und synthetischer Providerdaten. **43 lokale Tests in fünf Dateien bestanden** unter Node 24.22.1 (Billing, Audit-HTTP, Compliance-Export, Account-HTTP und Logger). Vollständige CI dieser neuen Änderung bleibt vor Integration erforderlich. Dies ist weder eine Aktivierung von Klar+ noch eine globale Zusicherung für Logs/Traces oder Produktionssenken.
 
+## Nachtrag: bestätigte Billing-CI und Date-Planung
+
+PR #149 ist nach vollständiger erfolgreicher CI [40477051741](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40477051741) auf Head `9a6a9841e6b4ae3d1e7af8774bbf1a32580a80e7` regulär integriert. Main `529662e366e1da8fb10a283191d88c5e15807a01` wurde auf den exakt geprüften Dateistand verglichen. Die zuvor ausstehende CI der Billing-/Compliance-Änderung ist damit bestätigt.
+
+Acht weitere Fehlerlog-Aufrufe in der vorhandenen Date-Planung verwenden feste Ereigniscodes: Verbindungs-/Ideenabfrage, Plan lesen/anlegen/löschen und Verfügbarkeit lesen/anlegen/löschen. Bestehende Zugriffskontrollen und Antworten bleiben erhalten. **33 lokale Tests in drei Dateien bestanden** unter Node 24.22.1: 17 neue HTTP-Testfälle sowie bestehende Date-Privacy-/Logger-Tests. Jeder der acht Fehlerpfade wird mit drei synthetischen Fehlerformen ausgeführt (Error, Providerobjekt, Objekt mit werfendem Getter); hinzu kommen acht nicht authentifizierte Zugriffe und ein fehlgeschlagener Plan-Write nach erfolgreichen Verbindungsprüfungen. Die Tests prüfen vollständige Log-Aufrufe und 503-/401-Antworten. Vollständige CI der Date-Änderung bleibt vor Integration erforderlich. Keine Aussage über tatsächliche Produktionssenken, kein Live-Staging und keine Umsetzung des Pay-per-Date-Konzepts.
+
 ## Retention-Prüfungen richtig einordnen
 
 `check-retention-matrix.mjs` bestand lokal für 20 Gruppen. `test-retention-active-evidence.mjs` bestand mit synthetischen akzeptierten und abgewiesenen Evidenzen. Das beweist die Validatoren, nicht einen tatsächlich aktivierten Cloud-Zustand.

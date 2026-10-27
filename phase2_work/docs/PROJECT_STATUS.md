@@ -1,3 +1,9 @@
+## Date-Planung: Fehlerlog-Minimierung — 2026-10-27
+
+Acht bestehende Fehlerpfade auf feste Ereigniscodes begrenzt. 33 lokale Tests in drei Dateien bestanden unter Node 24.22.1, einschließlich vollständiger HTTP-Log-Aufrufe für alle acht Pfade; Pflicht-CI vor Integration ausstehend. PR #149 ist nach vollständiger erfolgreicher CI 40477051741 auf Head `9a6a9841e6b4ae3d1e7af8774bbf1a32580a80e7` integriert. Main `529662e366e1da8fb10a283191d88c5e15807a01` hat den exakt geprüften Tree. Details: [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md). Retention-/Staging-/Freigabenachweise offen; **Produktion: NO-GO**.
+
+---
+
 ## Billing-/Compliance-Fehlerlogs — 2026-10-27
 
 Vier weitere Log-Aufrufe auf feste Ereigniscodes begrenzt, einschließlich des Compliance-Abfrage-Helfers. 43 lokale Tests in fünf Dateien bestehen unter Node 24.22.1; vollständige Pflicht-CI vor Integration ausstehend. PR #148 ist nach erfolgreicher CI 40474779359 auf Head `5db26426bb09d424e07b024bc2a07d0e24b1bc8c` integriert, Main `0c600b86c7232cf82dc6109a8f791ba2326199e2` auf identischen Tree geprüft. [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md) aktualisiert. Retention-/Staging-/Freigabenachweise bleiben offen; **Produktion: NO-GO**.
