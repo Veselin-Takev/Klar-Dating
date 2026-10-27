@@ -1,3 +1,8 @@
+## Parser integriert; qs-Remediation vorbereitet — 2026-10-27
+
+PR #156 nach vollständiger CI 40571110349 auf `ef84c9bf151ee4654bc40b55c07266e4e0281ac1` integriert. Main `faf4cc084cd904454077c2cd7052087bdaa4b853` exakt geprüft. Nächster Kandidat: qs 6.16.2 / 6.17.0 innerhalb bestehender Parent-Ranges; Manifeste unverändert, Generator-/Artefakt-/Graph-/Scan-/CI-Prüfung ausstehend. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
 ## Parent-Teilfix integriert; zwei Parser-Linien vorbereitet — 2026-10-27
 
 PR #155 nach vollständiger CI 40561835992 auf `b13ec308a59540e1c43982b173b8f26d77dc7fec` integriert; Main `073382804805727f3f69b9945713655a6eef6e46` hat exakt geprüften Tree. Neuer PR-#140-Scan 40569766249 bestätigt 15 Tests und aktuell 17 betroffene Versionen / 31 Advisories; externe Befunddaten sind gegenüber früheren 25 fortgeschrieben. Nächster kontrollierter Kandidat aktualisiert body-parser innerhalb bestehender Parent-Ranges auf exakt 1.20.9 und 2.4.0; Manifeste bleiben unverändert. Generator 40570374455, Artefakt-Hashes und vollständiger Graphreview bestanden; zwei Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 17 / 31 → 1.439 / 15 / 30. Vollständige CI am übernommenen Commit steht aus. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
