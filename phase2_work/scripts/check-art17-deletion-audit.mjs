@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
 
-const purge = readFileSync('src/server/trustAndSafety.ts', 'utf8');
-const accounting = readFileSync('src/server/deletionAccounting.ts', 'utf8');
-const worker = readFileSync('src/server/accountDeletion.ts', 'utf8');
-const retention = readFileSync('docs/DATA_RETENTION.md', 'utf8');
-const catalog = readFileSync('scripts/loeschkaskade.mjs', 'utf8');
+// Git checkouts may use CRLF; assertions below compare canonical source text.
+const readSource = path => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+
+const purge = readSource('src/server/trustAndSafety.ts');
+const accounting = readSource('src/server/deletionAccounting.ts');
+const worker = readSource('src/server/accountDeletion.ts');
+const retention = readSource('docs/DATA_RETENTION.md');
+const catalog = readSource('scripts/loeschkaskade.mjs');
 const failures = [];
 
 for (const token of [
@@ -41,7 +44,7 @@ const quarantine = ownerCascade.indexOf('await quarantineOwnedPartnerReferral(db
 if (quarantine < 0 || !(quarantine < claimDeletion)) {
   failures.push('owner referral must be transactionally quarantined before buyer claims are purged');
 }
-const quarantineSource = readFileSync('src/server/partnerReferralDeletion.ts', 'utf8');
+const quarantineSource = readSource('src/server/partnerReferralDeletion.ts');
 for (const required of [
   'return db.runTransaction<OwnerReferralQuarantineResult>(async tx =>',
   'const snapshot = await tx.get(referralRef);',
