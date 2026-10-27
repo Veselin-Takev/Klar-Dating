@@ -27,8 +27,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file
-          (cd phase2_work && bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file)
+          candidate_dir=$(mktemp -d)
+          mkdir "$candidate_dir/root" "$candidate_dir/app"
+          cp package.json bun.lock "$candidate_dir/root/"
+          cp phase2_work/package.json phase2_work/bun.lock "$candidate_dir/app/"
+          for project in root app; do
+            (
+              cd "$candidate_dir/$project"
+              bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+              bun ci --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+            )
+          done
+          cp "$candidate_dir/root/package.json" "$candidate_dir/root/bun.lock" .
+          cp "$candidate_dir/app/package.json" "$candidate_dir/app/bun.lock" phase2_work/
       - name: Verify scope and bind candidate hashes to source revision
         env:
           SOURCE_HEAD: ${{ github.event.pull_request.head.sha }}
