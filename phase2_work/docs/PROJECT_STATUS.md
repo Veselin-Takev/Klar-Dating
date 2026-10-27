@@ -1,3 +1,9 @@
+## Vite-Updatekandidat mit verifizierten Linux-Locks — 2026-10-27
+
+PR #151s isolierter Generator 40482798433 auf `1d27fb42d66b17f804f56d032953a9121e0c3b29` bestand beide Frozen-Installationen; CI 40482798388 dieses Generator-Heads erfolgreich. Artefakt-Digest, fünf Einträge, Source-Head und Datei-Hashes überprüft; vier erzeugte Manifest-/Lockdateien als Vite-8.3.5-Kandidat übernommen. Neuer vollständiger lokaler OSV-Scan: 1.440 Versionen / 20 betroffene / 33 Advisories. **Teilreduktion, keine Entwarnung; vollständige CI mit den tatsächlich übernommenen Dateien noch ausstehend.** Hilfsgenerator jetzt nur manuell, ohne Schreibrechte. Details: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Dependency-Remediation: kontrollierte Lockerzeugung — 2026-10-27
 
 PR #140s Enterprise-CI 40480201394 auf `76fc32257120062513b1e72ab972c5156f29e55e` ist erfolgreich; Scan 40480201383 meldet nach 15 bestandenen Tests weiterhin 21 betroffene Versionen / 39 Advisories. Ein begrenzter read-only Linux-Generator für den Vite-8.3.5-Kandidaten ist vorbereitet, um die lokale Windows-Lockerzeugungsblockade zu umgehen. Lokal nur Syntax-/Toolchain-/Layout-Gates bestätigt; Generator-Artefakt, Frozen-Install, Kompatibilität und Teilremediation noch nicht belegt. Details: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). Keine geänderten Schutzregeln oder Cloud-Ressourcen; **Produktion: NO-GO**.
