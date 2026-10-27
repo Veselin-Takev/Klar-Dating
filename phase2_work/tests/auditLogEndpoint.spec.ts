@@ -12,7 +12,7 @@ afterEach(async () => {
 
 async function endpoint(options: { fail?: boolean } = {}) {
   const get = vi.fn(async () => {
-    if (options.fail) throw new Error('private firestore detail');
+    if (options.fail) throw Object.assign(new Error('private firestore detail'), { authorization: 'Bearer synthetic-secret', email: 'synthetic@example.invalid' });
     return {
       docs: [{
         id: 'log-1',
@@ -28,7 +28,7 @@ async function endpoint(options: { fail?: boolean } = {}) {
   });
   const limit = vi.fn(() => ({ get }));
   const orderBy = vi.fn(() => ({ limit }));
-  const db = { collection: vi.fn(() => ({ orderBy })) } as any;
+  const db = { collection: vi.fn(() => ({ orderBy, limit })) } as any;
 
   const app = express();
   app.use('/api/admin', createAuditLogRouter({ getFirestore: () => db }));
@@ -79,5 +79,21 @@ describe('audit log metadata boundary', () => {
     expect(response.status).toBe(503);
     const text = await response.text();
     expect(text).not.toContain('private firestore detail');
+  });
+  it.each([
+    ['/compliance/audit-logs', 'compliance_audit_read_failure'],
+    ['/compliance/audit-logs/csv', 'compliance_audit_export_failure'],
+  ])('minimizes provider failures for %s without returning success', async (path, event) => {
+    const sink = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const api = await endpoint({ fail: true });
+    const response = await fetch(api.url.replace('/audit-logs', path));
+    expect(response.status).toBe(503);
+    const text = await response.text();
+    for (const marker of ['private firestore detail', 'synthetic-secret', 'synthetic@example.invalid']) expect(text).not.toContain(marker);
+    expect(api.db.collection).toHaveBeenCalledWith('contract_requests');
+    expect(sink.mock.calls).toEqual([
+      [JSON.stringify({ level: 'ERROR', event: 'compliance_audit_query_failure' })],
+      [JSON.stringify({ level: 'ERROR', event })],
+    ]);
   });
 });

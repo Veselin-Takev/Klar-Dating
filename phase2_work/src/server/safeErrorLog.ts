@@ -16,6 +16,10 @@ const failureEvents = {
   account_deletion_limit_failure: 'error',
   account_logout_failure: 'error',
   account_status_read_failure: 'error',
+  billing_checkout_failure: 'error',
+  compliance_audit_query_failure: 'error',
+  compliance_audit_read_failure: 'error',
+  compliance_audit_export_failure: 'error',
   unclassified_failure: 'error',
 } as const;
 export type SafeFailureEvent = keyof typeof failureEvents;

@@ -87,7 +87,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
       const records = await getAnonymizedComplianceAuditLogs(db, { limit, kind });
       return res.json({ ok: true, count: records.length, records });
     } catch (error) {
-      console.error('Error fetching compliance audit logs:', error);
+      logSafeFailure('compliance_audit_read_failure');
       return res.status(503).json({ ok: false, error: 'Compliance audit logs are temporarily unavailable' });
     }
   });
@@ -103,7 +103,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       return res.status(200).send(csv);
     } catch (error) {
-      console.error('Error exporting compliance audit CSV:', error);
+      logSafeFailure('compliance_audit_export_failure');
       return res.status(503).send('Fehler beim Exportieren der Konformitäts-Logs als CSV');
     }
   });
