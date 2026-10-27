@@ -1,3 +1,9 @@
+## DOMPurify-Lockkandidat mit weiter reduzierten Befunden — 2026-10-27
+
+Generator 40485769378 auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, beide isolierten Frozen-Installationen bestanden. Artefakt-Digest/Source-/Dateihashes geprüft; genau ein geänderter Eintrag je Lock, Manifeste unverändert. DOMPurify 3.4.17 als Kandidat übernommen. Vollständige lokale OSV-Abfrage: 1.440 Versionen / **19 betroffene / 28 Advisories**, gegenüber 20 / 33 im Vite-Stand. Neue Pflicht-CI auf übernommenen Dateien ausstehend; keine globale Entwarnung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Vite-Teilfix integriert; weiterer Dependency-Kandidat — 2026-10-27
 
 PR #151 ist nach vollständiger erfolgreicher CI 40483947064 auf `0962ff12e1d5dc5f8ab248dec78350cd2f081803` integriert. Main `7fefc9dd5d78224575ce40b69066bbb1f1befe91` entspricht exakt dem geprüften Tree; PR #140 ist regulär aktualisiert. Für den nächsten transitiven DOMPurify-3.4.17-Kandidaten wird der bestehende manuelle Linux-Generator mit unveränderter Manifest-Grenze vorbereitet. Noch keine neuen Paketdateien oder Befundreduktion aus diesem Schritt. Nachweise: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
