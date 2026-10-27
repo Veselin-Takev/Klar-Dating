@@ -1,5 +1,15 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Fortschreibung: Vite integriert, nächster transitive Update-Kandidat
+
+PR #151 ist nach vollständiger erfolgreicher CI [40483947064](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40483947064) auf `0962ff12e1d5dc5f8ab248dec78350cd2f081803` regulär integriert. Main `7fefc9dd5d78224575ce40b69066bbb1f1befe91` wurde auf identischen Dateistand geprüft. Die weiter unten als ausstehend bezeichnete CI der übernommenen Vite-Dateien ist damit bestätigt. PR #140 wurde regulär mit diesem Main aktualisiert; neue Scan-/CI-Ergebnisse sind separat zu bewerten.
+
+Nächster **vorbereiteter** Kandidat ist die transitive DOMPurify-Version 3.4.17, im offiziellen npm-Register bestätigt. Der manuelle Hilfsworkflow verwendet weiterhin getrennte temporäre Projekte, Frozen-Installationen, feste Toolchain und read-only Token. Das feste Ziel ist nun DOMPurify statt Vite; eine neue direkte Manifest-Abhängigkeit ist ausdrücklich unzulässig. Der Verifikator verlangt semantisch unveränderte Root-/App-Manifeste und den exakten Zieleintrag in beiden Bun-Locks.
+
+Für den tatsächlichen manuellen Aufruf ist die Source-Bindung auf den Dispatch-Commit ergänzt (`github.sha`, wenn kein PR-Event vorliegt); Artefaktname und Concurrency verwenden ebenfalls den zutreffenden Ref/Commit. Keine freien Paketparameter, Secrets oder Pushrechte. Dies korrigiert die vorher nur für PR-Events passende Source-Umgebungsvariable.
+
+Lokal bestanden: Verifikator-Syntax, bestehende Toolchain-Pin-/Workflow-Layout-Gates. Generatorlauf, Artefaktprüfung, neuer vollständiger Scan und CI des später tatsächlich übernommenen DOMPurify-Kandidaten fehlen noch. Aktuelle Paket-/Lockdateien bleiben in diesem Vorbereitungsschritt unverändert. Keine zusätzliche Entwarnung und keine Produktionsfreigabe.
+
 ## Aktueller Stand: isoliert erzeugten Kandidaten übernommen
 
 Der zweite Generator [40482798433](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798433) auf `1d27fb42d66b17f804f56d032953a9121e0c3b29` bestand einschließlich **beider getrennten Frozen-Installationen** mit deaktivierten Lifecycle-Skripten. Enterprise-CI [40482798388](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798388) dieses Generator-Heads ebenfalls erfolgreich; diese CI gilt noch nicht für die später übernommenen Paketdateien.
