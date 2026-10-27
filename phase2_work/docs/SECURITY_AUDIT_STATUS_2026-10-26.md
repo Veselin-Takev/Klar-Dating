@@ -2,7 +2,7 @@
 
 **Produktionsentscheidung: NO-GO. Keine offizielle Security-/Produktionsfreigabe.**
 
-## Aktueller technischer Stand nach PR #136
+## Aktueller technischer Stand nach PR #142
 
 Die nachstehenden alten Audit-/lokalen Checkpoints sind historische Snapshots.
 Maßgeblich für den aktuellen technischen Nachweis sind die folgenden ausgeführten
@@ -16,6 +16,10 @@ CI-Läufe; eine unabhängige Befundabnahme oder Produktionsfreigabe ersetzen sie
 | [#134 Docker-Pins](https://github.com/Veselin-Takev/Klar-Dating/pull/134) | [40379168480](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40379168480) | `cfd9ed4920a64cc37069e2a6c3208373e90da101` | `ba9adcb4c76014f0eb207828fa33d495f5f2491c` |
 | [#135 Prompt-Testaufruf](https://github.com/Veselin-Takev/Klar-Dating/pull/135) | [40383735092](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40383735092) | `8f8c299b52324ab32c920ccdf29622267c28e68b` | `cb135c886bd21619c0a55107ba7a1e9fcb4fadcf` |
 | [#136 HTTP-Eigentümerzugriff](https://github.com/Veselin-Takev/Klar-Dating/pull/136) | [40387030005](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40387030005) | `dd59e548e0dbf037279b716d9c2eec0b3044700a` | `95e62dd5f8627391b35e65fbd917c01a32846848` |
+| [#138 Server-Fehlerlogs](https://github.com/Veselin-Takev/Klar-Dating/pull/138) | [40393650472](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40393650472) | `4d384a961083842243c5224c79e5f28d8b03495d` | `deeb0e47831cb2000138f7ec80218abe3e9f4397` |
+| [#139 Checkout-Credentials](https://github.com/Veselin-Takev/Klar-Dating/pull/139) | [40397481367](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40397481367) | `12db5cf6f51613730c1b8b0f444cd263e3bd7152` | `f11e8b5bb550d614c1cabcc63e3fc18bbe035226` |
+| [#141 Functions-Abhängigkeit](https://github.com/Veselin-Takev/Klar-Dating/pull/141) | [40401540775](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40401540775) | `1becdf979492482a87ba1d7dd8518d1771d87a16` | `aa430e5d99e26834093db37b124de999b61a68d7` |
+| [#142 Endpunkt-Fehlerlogs](https://github.com/Veselin-Takev/Klar-Dating/pull/142) | [40405215048](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40405215048) | `7bc07747e281bff2adbde4adba51ddf51ce7264f` | `ed077e62f536b757908f07565418a49bbfd33638` |
 
 Der CI-Job von #136 bestätigt ausdrücklich `tests/chatHttpOwnership.spec.ts (8 tests)`;
 die Standardsuite meldet **189 Dateien / 1.333 Tests bestanden**. Die acht neuen Fälle
@@ -33,7 +37,7 @@ Container-/OS-SCA. Detaillierte Abfrageergebnisse bleiben im lokalen Evidenzpake
 | SEC-01 | Offen; benannte Datenbank verhindert direkte Storage-cross-service Lösung | Medienauslieferung, Token/Widerruf, reale Regeln und Betriebsvalidierung |
 | SEC-02 | Teilweise korrigiert/minimiert; SCA weiterhin auffällig | Restliche Dependency-Triage, Updates und Laufzeit-/Build-Abgrenzung |
 | SEC-03 | Initialisierung/Quota-Persistenz technisch korrigiert, CI-validiert | Unabhängige Security-Abnahme und tatsächliche Umgebung |
-| SEC-04 | Zwei Trace-Grenzen minimiert, reale SDK-Exporttests bestanden | Andere Logpfade, tatsächliche Senken, Zugriffe und Retention |
+| SEC-04 | Zwei Trace-Grenzen und 13 weitere Server-/Router-Fehlerlog-Aufrufe minimiert; CI-validiert | Andere Logpfade, tatsächliche Senken, Zugriffe und Retention |
 | SEC-05 | Vier aktive Verbraucher mit Stream-Limits korrigiert, CI-validiert | Tatsächliche Betriebs-/Last- und externe Integrationsnachweise |
 | SEC-06 | Prompt-Suite explizit aktiv; echte HTTP-Chatfälle ausgeführt | Weitere Routen-/Regelmatrix und historische Scanner-Lücken |
 | SEC-07 | Beide Docker-Pins konsistent, Policy-/Regressionstests in CI | Tatsächlicher Container-Build, Image-/OS-Scan und Laufzeitnachweis |
@@ -41,6 +45,36 @@ Container-/OS-SCA. Detaillierte Abfrageergebnisse bleiben im lokalen Evidenzpake
 Keine Zeile bedeutet eine unabhängige Abnahme des gesamten Befunds. Ein separates
 Staging-Projekt, reale Live-Staging-/Rollback-Nachweise und Fachfreigaben fehlen weiter.
 **Produktion bleibt NO-GO.**
+
+
+### Aktuelle Teilkorrekturen und Scannergrenzen
+
+PR141 bestätigt nach der Test-Runner-Korrektur 190 Vitest-Dateien / 1.347 Tests.
+Die Node-Kompatibilitätstests bleiben explizit im Functions-Build. Der erste
+fehlgeschlagene Lauf40399374675 ist historisch und wird nicht als erfolgreich gezählt.
+Die erfolgreiche Wiederholung40401540775 enthält eine relevante Korrektur der
+Vitest-Erfassung, keine Abschwächung fachlicher Assertions.
+
+Functions: eingefrorene npm-Installation und tatsächliche lokale OSV-Abfrage aller
+266 Lockeinträge nach dem gezielten Override:0betroffene Einträge zum Abfragezeitpunkt.
+Das ist keine globale Clean-Bewertung. Root-/App-Bun-Locks sind weiterhin betroffen;
+kein Befund wird ohne versionsgenaue Prüfung geschlossen.
+
+PR140 bleibt Draft: reguläre CI40397909542 erfolgreich, separater Scan40397909553
+meldete nach10bestandenen Scannerregressionen1.438Versionen/21betroffeneVersionen/
+39Advisories und Exit1. Dieser echte Befund ist kein Scanner-Absturz und kein GO.
+Keine Ignoreliste oder pauschale Baseline. Die Scanprüfung ist noch keine konfigurierte
+Branchschutzpflicht. Detaillierte unbehandelte Befunde bleiben im lokalen Auditpaket.
+
+Einzelne frühere pending-Angaben in den Checkpoint-Dokumenten sind historische
+Momentaufnahmen; maßgeblich ist die Tabelle oben. Quellen:
+[Serverlogs](SECURITY_ERROR_LOG_MINIMIZATION_2026-10-26.md),
+[Checkout und Enterprise-Abgleich](ENTERPRISE_REMEDIATION_STATUS_2026-10-26.md),
+[Functions](FUNCTIONS_DEPENDENCY_REMEDIATION_2026-10-26.md),
+[Routerlogs](SECURITY_ENDPOINT_LOG_MINIMIZATION_2026-10-26.md).
+
+Keine unabhängige Security-/Finance-/Privacy-Abnahme, echte Staging-/Rollbackprobe
+oder Produktionsfreigabe durch diese Nachweisaktualisierung.
 
 ## Ursprünglicher Auditstand vor den Korrekturen
 

@@ -10,6 +10,9 @@ const failureEvents = {
   dating_readiness_failure: 'error',
   daily_coach_failure: 'error',
   server_start_failure: 'error',
+  feedback_storage_failure: 'warn',
+  device_token_storage_failure: 'error',
+  audit_log_read_failure: 'error',
   unclassified_failure: 'error',
 } as const;
 export type SafeFailureEvent = keyof typeof failureEvents;

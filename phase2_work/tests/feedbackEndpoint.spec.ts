@@ -73,8 +73,10 @@ describe('public feedback HTTP boundary', () => {
   });
 
   it('returns 503 without exposing storage details when persistence fails', async () => {
+    const sink = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const api = await endpoint({ fail: true });
     const response = await api.send({ rating: 4, text: 'ok' });
+    expect(sink.mock.calls).toEqual([[JSON.stringify({ level: 'WARN', event: 'feedback_storage_failure' })]]);
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain('private storage detail');
   });
