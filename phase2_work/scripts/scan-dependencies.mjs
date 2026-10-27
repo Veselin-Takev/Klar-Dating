@@ -7,7 +7,8 @@ export function inventory(files, parse) {
   for (const [file, text] of files) {
     hashes[file] = crypto.createHash('sha256').update(text).digest('hex');
     const result = parse(file, text);
-    if (result.error || !result.config?.packages || typeof result.config.packages !== 'object') throw Error('Invalid lockfile');
+    if (result.error || !result.config?.packages || typeof result.config.packages !== 'object' || Array.isArray(result.config.packages)) throw Error('Invalid lockfile');
+    let resolvedEntries = 0;
     for (const [key, entry] of Object.entries(result.config.packages)) {
       if (!key) continue;
       let name, version;
@@ -19,8 +20,10 @@ export function inventory(files, parse) {
         name = entry.name || key.split('node_modules/').pop(); version = entry.version;
       }
       if (!name || typeof version !== 'string' || !/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(version)) throw Error('Unresolved package version');
+      resolvedEntries++;
       versions.set(name + '@' + version, { name, version });
     }
+    if (!resolvedEntries) throw Error('Empty lockfile inventory');
   }
   if (!versions.size) throw Error('Empty dependency inventory');
   return { packages: [...versions.values()], hashes };
