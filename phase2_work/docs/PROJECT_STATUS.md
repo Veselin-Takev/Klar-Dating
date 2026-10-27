@@ -1,3 +1,9 @@
+## Parent-Teilfix integriert; zwei Parser-Linien vorbereitet — 2026-10-27
+
+PR #155 nach vollständiger CI 40561835992 auf `b13ec308a59540e1c43982b173b8f26d77dc7fec` integriert; Main `073382804805727f3f69b9945713655a6eef6e46` hat exakt geprüften Tree. Neuer PR-#140-Scan 40569766249 bestätigt 15 Tests und aktuell 17 betroffene Versionen / 31 Advisories; externe Befunddaten sind gegenüber früheren 25 fortgeschrieben. Nächster kontrollierter Kandidat aktualisiert body-parser innerhalb bestehender Parent-Ranges auf exakt 1.20.9 und 2.4.0; Manifeste bleiben unverändert. Generator 40570374455, Artefakt-Hashes und vollständiger Graphreview bestanden; zwei Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 17 / 31 → 1.439 / 15 / 30. Vollständige CI am übernommenen Commit steht aus. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Verifizierter Parent-/Shell-Quote-Kandidat — 2026-10-27
 
 Generator 40561359438 auf `50ad824f31c3cb247b3b833e8a27b77559d3a401` erfolgreich, beide isolierten Frozen-Installationen bestanden. Artefakt-Digest/Source-/Dateihashes und vollständiger Remote-/Local-Tree über GitHub-API geprüft. Manifeste ändern nur concurrently auf 10.0.6; Locks ändern genau Parent und shell-quote auf 1.12.0. Vier Artefaktdateien übernommen. Differenzieller Scan: 1.439 Versionen / 18 betroffene / 26 Advisories → **1.439 / 17 / 25**. Vollständige CI am übernommenen Commit ausstehend. Fehlgeschlagener direkter Child-Versuch bleibt dokumentiert, keine Prüfgrenze gelockert. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
