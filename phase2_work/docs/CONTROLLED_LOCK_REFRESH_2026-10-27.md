@@ -1,100 +1,59 @@
-# Kontrollierte Dependency-Lockerzeugung — 2026-10-27
+# Kontrollierte Dependency-Remediation — 2026-10-27
 
-## Source-Map-Kandidat: verschachtelte ältere Auflösungen entfernt
+**Produktion: NO-GO.** Einzelne Dependency-Fixes und grüne CI ersetzen weder die offenen Security-Befunde noch unabhängige Freigaben oder echte Staging-/Rollback-Nachweise. Dieser Status ist kein Compliance-Testat.
 
-Generator [40552680151](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552680151) auf `8cad18c718ba11924b38ef5d33ece179fb28f631` erfolgreich, einschließlich beider getrennten Frozen-Installationen und Manifestprüfung. ZIP-Digest `fc92968e4ca6fb144a10a48b37c2b04824dc0bb1466da7bcf7339e18a3e2e276` mit GitHub verglichen; fünf erwartete Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft. Beide neuen Lock-Hashes `4fe5123fe2ed93c82eeb77c35f8a8d47013b6136e1199ed78c07e4b1205fcdbc`.
+## Integrierte Teilfixes
 
-Graphreview: Je Lock entfallen genau die zwei verschachtelten `source-map-js`-1.2.1-Einträge unter `@tailwindcss/node` und `css-tree`; die bereits vorhandene 1.2.2-Auflösung bleibt erhalten. Keine weiteren Paketänderungen oder semantischen Manifeständerungen. Kein alter 1.2.1-Eintrag verbleibt in den beiden Kandidatenlocks. Die zwei von Bun erzeugten Locks sind im Entwicklungsbranch übernommen.
+| PR / Änderung | Erfolgreiche vollständige CI / geprüfter Head | Verifizierter Main nach Integration |
+| --- | --- | --- |
+| #151: Vite 8.3.5, erzeugte Root-/App-Locks | [40483947064](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40483947064), `0962ff12e1d5dc5f8ab248dec78350cd2f081803` | `7fefc9dd5d78224575ce40b69066bbb1f1befe91` |
+| #152: DOMPurify 3.4.17, ein Eintrag je Lock | [40486060641](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40486060641), `da33f21bfb8d3a83a258b36cf2fd52e3d8c7d8ab` | `4977ab50bf822838e01eb604770e29bc295d3998` |
+| #153: follow-redirects 1.16.2, ein Eintrag je Lock | [40542268993](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40542268993), `edf3d1953440f2eb211a63014e07b6adb0cfb7f5` | `5304bbd8c53a99a76b30f6ea97a0781a03b163f9` |
+| #154: zwei verschachtelte source-map-js-1.2.1-Einträge je Lock entfernt; vorhandene 1.2.2-Auflösung bleibt | [40552980574](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552980574), `f02f921c2e076675604c8c766ef922d02733bef6` | `00a1f5fb97ccdf73021405e73372796c80fd20b4` |
 
-Differenzieller vollständiger OSV-Kontrollscan mit gemeinsamem Datenbestand am 27.10.2026: Ausgangsgraph **1.440 Versionen / 19 betroffene / 27 Advisories**, Kandidat **1.439 / 18 / 26**. Der tatsächliche vorangegangene PR-#140-Scan [40552429356](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552429356) auf `c277b4e2a8f0c4f87cfd573ede81d91f6b5041c3` bestätigte nach 15 bestandenen Tests den Redirect-Ausgangsstand 1.440 / 19 / 27, Exit 1. Befunddaten bleiben zeitabhängig; daraus wird keine globale Entwarnung abgeleitet.
+Jeder Main-Tree wurde nach regulärer Integration exakt mit dem geprüften Branch verglichen. DOMPurify-, Redirect- und Source-Map-Fixes verändern die Manifeste und übrigen Paketversionen nicht. Vite umfasst überprüfte transitive Build-Paketänderungen und die Auflösung bereits deklarierter Abhängigkeiten.
 
-Vollständige Pflicht-CI auf dem exakten neuen Commit mit übernommenen Locks ist noch erforderlich. Erfolgreiche Generator-/Vorbereitungs-CI ersetzt sie nicht. Weitere Befunde, unabhängige Abnahmen und reale Staging-/Rollback-Nachweise bleiben offen. **Produktion: NO-GO.**
+## Aktueller Kandidat
 
-## Fortschreibung: Redirect-Teilfix integriert, Source-Map-Kandidat vorbereitet
+Festes transitive Ziel: **shell-quote 1.12.0**. Im offiziellen npm-Register verfügbar; die gezielte vollständige OSV-Antwort vom 27.10.2026 meldete für diesen Kandidaten keine Advisories. Workflow und Verifikator sind vorbereitet, Syntax-/Toolchain-Pin-/Layout-/Whitespace-Gates lokal bestanden. Noch keine neuen Kandidatenlocks übernommen. Generator, Artefaktreview, differenzieller Gesamt-Scan und Pflicht-CI am übernommenen Commit fehlen noch. Eine saubere Zielversionsabfrage belegt keine globale Befundfreiheit oder Kompatibilität.
 
-PR #153 ist nach vollständiger erfolgreicher CI [40542268993](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40542268993) auf `edf3d1953440f2eb211a63014e07b6adb0cfb7f5` regulär integriert. Main `5304bbd8c53a99a76b30f6ea97a0781a03b163f9` hat exakt den geprüften Dateistand. PR #140 wurde regulär aktualisiert; der neue tatsächliche Scan ist separat zu prüfen. Frühere ausstehende CI-Angaben zu PR #153 sind damit historisch.
+## Verifizierte Erzeugungsnachweise
 
-Nächster vorbereiteter Kandidat: transitive `source-map-js`-Version 1.2.2. Offizielles npm-Register und gezielte vollständige OSV-Antwort ohne Advisories für diese Version geprüft. Der feste Zielwert des bestehenden manuellen Generators ist entsprechend angepasst. Semantisch unveränderte Manifeste, getrennte temporäre Projekte, beide Frozen-Installationen, read-only Token und exakte Artefakt-/Quellhashes bleiben Voraussetzung. Verschachtelte ältere Auflösungen müssen im tatsächlichen Graphreview ausdrücklich geprüft werden; eine einzelne passende Zielzeile allein belegt keine vollständige Ablösung.
+Die folgenden Generatorläufe bestanden jeweils beide getrennten Linux-Frozen-Installationen. ZIP-Digest wurde mit GitHub verglichen; genau fünf Einträge, Source-Commit und alle vier Vorher-/Kandidatenhashes wurden lokal geprüft. Artefakte/Detailreviews liegen lokal außerhalb des Repositorys; unveränderte ältere Dokumentfassungen und Zwischenschritte sind über die Git-Historie nachvollziehbar.
 
-Lokale Syntax-/Toolchain-/Layout-/Whitespace-Gates bestanden. Noch keine neuen Kandidatenlocks übernommen. Generator, Artefaktreview, vollständiger differenzieller Scan und Pflicht-CI am übernommenen Commit fehlen noch. Keine neue Befundschließung oder Produktionsfreigabe.
+| Ziel | Generator / Source-Head | ZIP SHA-256 | Beide Kandidaten-Lockhashes |
+| --- | --- | --- | --- |
+| Vite 8.3.5 | [40482798433](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798433), `1d27fb42d66b17f804f56d032953a9121e0c3b29` | `719871e56b9b72c4d015624d26f265fc146e921df07f6cd885fb84d8ea27ccee` | `420c1a107d3f8a4e54e7d359333feb2c2dd0631874354856b22c6ec4004a6dda` |
+| DOMPurify 3.4.17 | [40485769378](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485769378), `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` | `ab412a2b68afa42ba0c65531eab8a1a165b134b106b0b31648eaf8846556566b` | `a82fb3b798a38da2ca8adb9a6bda0f6ebe4041642fcdfe9ec70b8fbe345b07ca` |
+| follow-redirects 1.16.2 | [40541640098](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40541640098), `e3a591be7a5c7a2cd8b25507a8e4fd189942387b` | `aaf68b1c6a55e3d75be951e7beadd05e35d08908fc36ef6e1165f721aa628a32` | `e3fd4a98ab0e1599503d859ca451689629a10f37ab7dcb6288033efc830ee4f1` |
+| source-map-js 1.2.2 | [40552680151](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552680151), `8cad18c718ba11924b38ef5d33ece179fb28f631` | `fc92968e4ca6fb144a10a48b37c2b04824dc0bb1466da7bcf7339e18a3e2e276` | `4fe5123fe2ed93c82eeb77c35f8a8d47013b6136e1199ed78c07e4b1205fcdbc` |
 
-## Redirect-Kandidat: Frozen- und differenzieller Scan-Nachweis
+Der erste Vite-Generator 40482007791 wurde nicht als Übernahmenachweis verwendet, da eigene Frozen-Prüfungen fehlten. Die dort beobachteten identischen Root-/App-Locks reproduzierten auch mit getrennter Erzeugung und bestanden anschließend beide Frozen-Prüfungen; eine gegenseitige Verzeichnisbeeinflussung ist nicht bestätigt.
 
-Manueller Generator [40541640098](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40541640098) auf `e3a591be7a5c7a2cd8b25507a8e4fd189942387b` erfolgreich, einschließlich beider getrennter Frozen-Installationen. ZIP-Digest `aaf68b1c6a55e3d75be951e7beadd05e35d08908fc36ef6e1165f721aa628a32` mit GitHub verglichen; exakt fünf Einträge, Quell-Commit und alle Vorher-/Kandidatenhashes lokal überprüft. Jeweils genau ein geänderter Lockeintrag: `follow-redirects` 1.16.0 → 1.16.2. Manifeste und alle übrigen Paketversionen unverändert. Beide neuen Lock-Hashes: `e3fd4a98ab0e1599503d859ca451689629a10f37ab7dcb6288033efc830ee4f1`. Die zwei erzeugten Locks sind im Entwicklungsbranch als Kandidat übernommen.
+## Scanergebnisse richtig vergleichen
 
-Vollständiger lokaler Kandidatenscan am 27.10.2026: 1.440 eindeutige Versionen / 19 betroffene / 27 Advisories. Da der historische Ausgangsscan 19 / 28 keine isolierte Wirkungszuordnung erlaubte, wurde ein begründeter differenzieller Kontrollscan mit der Vereinigung beider Paketgraphen ausgeführt. **Gleicher abgefragter Datenbestand:** Ausgangsgraph 1.440 / 20 / 29, Kandidat 1.440 / 19 / 27. Eine gezielte vollständige OSV-Antwort bestätigt zwei Advisories für die alte Zielversion und keine für 1.16.2. Die externen Befunddaten des unveränderten Ausgangsgraphs haben sich seit dem früheren Scan geändert; dies wird nicht als Codeänderung oder Entwarnung ausgegeben. Unbehandelte Detailbefunde bleiben lokal.
+| Geprüfter Snapshot / Kontrollvergleich | Versionen / betroffene Versionen / eindeutige Advisories |
+| --- | --- |
+| Vite-Kandidat samt unveränderter Functions-Lock | 1.440 / 20 / 33 |
+| DOMPurify-Kandidat | 1.440 / 19 / 28 |
+| Redirect-Kontrollscan: gemeinsamer Datenbestand, Ausgang → Kandidat | 1.440 / 20 / 29 → 1.440 / 19 / 27 |
+| Source-Map-Kontrollscan: gemeinsamer Datenbestand, Ausgang → Kandidat | 1.440 / 19 / 27 → 1.439 / 18 / 26 |
 
-Syntax-/Toolchain-/Layout-/Whitespace-Gates lokal bestanden. Die vollständige Pflicht-CI auf dem exakten neuen Commit mit übernommenen Dateien ist noch erforderlich. Erfolgreicher Generator und Vorbereitungs-CI ersetzen sie nicht. PR #140 bleibt Draft; verbleibende Befunde und unabhängige Betriebs-/Freigabenachweise bleiben offen. **Produktion: NO-GO.**
+Befunddaten sind zeitabhängig. Der unveränderte historische Redirect-Ausgangsgraph meldete zunächst 19 / 28, später 20 / 29; die Feedänderung wird nicht als Codewirkung ausgegeben. Präzise Wirkungsvergleiche erfolgen über die gemeinsam abgefragte Vereinigung beider Paketgraphen. Unbehandelte Detailbefunde bleiben vertraulich lokal, öffentliche Nachweise sind aggregiert.
 
-## Fortschreibung: DOMPurify integriert, Redirect-Kandidat vorbereitet
+PR #140 bleibt Draft. Tatsächliche Scans nach integrierten Teilfixes: [40538555128](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555128) auf `77a3e94228c85f613a282c081fec6ad2bd7d7a5d` bestätigte 1.440 / 19 / 28; [40552429356](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552429356) auf `c277b4e2a8f0c4f87cfd573ede81d91f6b5041c3` bestätigte 1.440 / 19 / 27. Jeweils 15 Scanner-Tests bestanden, Exit 1 wegen Befunden. Nach #154 ist PR #140 regulär aktualisiert; neue tatsächliche CI-/Scan-Ergebnisse separat prüfen. Keine Ignoreliste, pauschale Baseline oder geänderte Befundschwelle. Exit 2 bedeutet unvollständige Prüfung.
 
-PR #152 ist nach vollständiger erfolgreicher CI [40486060641](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40486060641) auf `da33f21bfb8d3a83a258b36cf2fd52e3d8c7d8ab` regulär integriert. Main `4977ab50bf822838e01eb604770e29bc295d3998` entspricht exakt dem geprüften Dateistand. PR #140 wurde regulär aktualisiert; auf `77a3e94228c85f613a282c081fec6ad2bd7d7a5d` bestand die normale CI [40538555190](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555190). Der separate [Scan 40538555128](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555128) bestätigte nach 15 bestandenen Tests 1.440 Versionen / 19 betroffene / 28 Advisories, Exit 1. Dies ist der neue tatsächliche Ausgangsstand, kein sauberer Gesamtbefund.
+## Verfahren und Sicherheitsgrenzen
 
-Nächster vorbereiteter Kandidat: transitive `follow-redirects`-Version 1.16.2. Im offiziellen npm-Register verfügbar; die gezielte vollständige OSV-Antwort vom 27.10.2026 meldete für diesen Kandidaten keine Advisories. Der feste Zielwert des bestehenden manuellen Generators und des Verifikators ist entsprechend angepasst. Manifeste müssen semantisch unverändert bleiben; beide Locks müssen die Zielversion enthalten. Alle übrigen read-only-/Toolchain-/Frozen-/Hash-Grenzen bleiben bestehen.
+- Manueller GitHub-hosted Ubuntu-Lauf, maximal 15 Minuten. Token nur `contents: read`; keine persistierte Checkout-Anmeldung, Secrets, Produktionsumgebung, Cloud-Zugänge, Pushes oder automatischen Merges.
+- Genehmigte immutable Action-Pins, Node 22.23.3 und Bun 1.4.4. Festes geprüftes Paket/Version statt freier Shellparameter.
+- Root-/App-Manifest und jeweilige Lock in getrennten temporären Verzeichnissen. Offizielles npm-Register, `bun update --exact --lockfile-only --ignore-scripts --no-env-file`, danach jeweils `bun ci --ignore-scripts --no-env-file` vor Upload. Integritäts-/TLS-Prüfung bleibt aktiv.
+- Verifikator verlangt begrenzten Datei-Diff, unveränderte Manifest-Abhängigkeiten und exakten Zieleintrag. Zusätzlicher vollständiger Graphreview muss ältere/nested Auflösungen und unbeabsichtigte Änderungen prüfen. Einzelne passende Zielzeile genügt nicht.
+- Artefakt enthält nur vier Manifest-/Lockdateien plus Quell-/Toolchain-/Vorher-/Kandidatenhashes. Aufbewahrung drei Tage. Dispatch bindet an `github.sha`; Ref-gebundene Concurrency.
+- Erst nach Artefaktprüfung Dateien übernehmen, vollständigen Scan und Pflicht-CI auf dem exakten übernommenen Commit verlangen. Generator-/Vorbereitungs-CI ersetzt diese CI nicht. Danach regulär integrieren und Main-Tree vergleichen.
 
-Lokal Syntax-, Toolchain-Pin-, Layout- und Whitespace-Gates bestanden. Noch keine Kandidatenlocks übernommen. Neuer Generatorlauf, Artefakt-/Graphprüfung, Gesamt-Scan und Pflicht-CI am später übernommenen Commit bleiben erforderlich. Keine neue Produktionsfreigabe.
+Die lokale Windows-Bun-Auflösung bleibt trotz offizieller Binary und eigener D:-Temp-/Cachepfade mit EBADF blockiert; Linux ist der belegte Erzeugungsweg. WSL ist nicht installiert, keine Installation wurde versucht. Hashes binden gelesene Bytes; CRLF-Checkouts können andere Hashes als Linux erzeugen. [Bun Update](https://bun.com/docs/pm/cli/update), [Lockfile-Dokumentation](https://bun.com/docs/pm/lockfile).
 
-## DOMPurify-Kandidat: isoliert erzeugt, geprüft und übernommen
+## Verbleibende Freigabegrenzen
 
-Manueller Generator [40485769378](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485769378) auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, einschließlich beider getrennten Frozen-Installationen und unveränderter Manifest-Abhängigkeiten. Neues ZIP-Digest `ab412a2b68afa42ba0c65531eab8a1a165b134b106b0b31648eaf8846556566b` mit GitHub verglichen; exakt fünf Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft.
-
-Graph-Diff: **jeweils genau ein geänderter Eintrag pro Bun-Lock**, DOMPurify 3.4.15 → 3.4.17. Keine sonstigen Paketversionen oder semantischen Manifeständerungen. Beide Lock-Hashes `a82fb3b798a38da2ca8adb9a6bda0f6ebe4041642fcdfe9ec70b8fbe345b07ca`. Die zwei erzeugten Locks sind jetzt als Kandidat im Entwicklungsbranch übernommen.
-
-Vollständige lokale OSV-Abfrage des Kandidaten samt unveränderter Functions-Lock am 27.10.2026: **1.440 eindeutige Versionen / 19 betroffene Versionen / 28 Advisories**, zuvor beim integrierten Vite-Stand 1.440 / 20 / 33. Das ist eine weitere Teilreduktion, keine globale Entwarnung. Die Pflicht-CI muss auf dem neuen Commit mit den tatsächlich übernommenen DOMPurify-Locks bestehen; erfolgreiche Generator-/Vorbereitungs-CI ersetzt sie nicht. Keine neue Live-Staging-/Produktionsfreigabe.
-
-Der tatsächliche PR-#140-Scan nach Vite-Main-Synchronisierung [40485345691](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485345691) auf `5d8fa4588a89b5605544f0b3666f986c0558ffdd` bestätigt 15 bestandene Scanner-Tests und 1.440 / 20 / 33 mit Exit 1. Er gilt noch nicht für den DOMPurify-Kandidaten. PR #140 bleibt Draft, verbleibende Befunde werden nicht ignoriert.
-
-## Fortschreibung: Vite integriert, nächster transitive Update-Kandidat
-
-PR #151 ist nach vollständiger erfolgreicher CI [40483947064](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40483947064) auf `0962ff12e1d5dc5f8ab248dec78350cd2f081803` regulär integriert. Main `7fefc9dd5d78224575ce40b69066bbb1f1befe91` wurde auf identischen Dateistand geprüft. Die weiter unten als ausstehend bezeichnete CI der übernommenen Vite-Dateien ist damit bestätigt. PR #140 wurde regulär mit diesem Main aktualisiert; neue Scan-/CI-Ergebnisse sind separat zu bewerten.
-
-Nächster **vorbereiteter** Kandidat ist die transitive DOMPurify-Version 3.4.17, im offiziellen npm-Register bestätigt. Der manuelle Hilfsworkflow verwendet weiterhin getrennte temporäre Projekte, Frozen-Installationen, feste Toolchain und read-only Token. Das feste Ziel ist nun DOMPurify statt Vite; eine neue direkte Manifest-Abhängigkeit ist ausdrücklich unzulässig. Der Verifikator verlangt semantisch unveränderte Root-/App-Manifeste und den exakten Zieleintrag in beiden Bun-Locks.
-
-Für den tatsächlichen manuellen Aufruf ist die Source-Bindung auf den Dispatch-Commit ergänzt (`github.sha`, wenn kein PR-Event vorliegt); Artefaktname und Concurrency verwenden ebenfalls den zutreffenden Ref/Commit. Keine freien Paketparameter, Secrets oder Pushrechte. Dies korrigiert die vorher nur für PR-Events passende Source-Umgebungsvariable.
-
-Lokal bestanden: Verifikator-Syntax, bestehende Toolchain-Pin-/Workflow-Layout-Gates. Generatorlauf, Artefaktprüfung, neuer vollständiger Scan und CI des später tatsächlich übernommenen DOMPurify-Kandidaten fehlen noch. Aktuelle Paket-/Lockdateien bleiben in diesem Vorbereitungsschritt unverändert. Keine zusätzliche Entwarnung und keine Produktionsfreigabe.
-
-## Aktueller Stand: isoliert erzeugten Kandidaten übernommen
-
-Der zweite Generator [40482798433](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798433) auf `1d27fb42d66b17f804f56d032953a9121e0c3b29` bestand einschließlich **beider getrennten Frozen-Installationen** mit deaktivierten Lifecycle-Skripten. Enterprise-CI [40482798388](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798388) dieses Generator-Heads ebenfalls erfolgreich; diese CI gilt noch nicht für die später übernommenen Paketdateien.
-
-Neues Artefakt-ZIP: SHA-256 `719871e56b9b72c4d015624d26f265fc146e921df07f6cd885fb84d8ea27ccee`, mit GitHub-Digest verglichen. Exakt fünf Einträge, Source-Head, alle vier Vorher-/Kandidatenhashes und Paketgraph-Differenzen lokal geprüft. Die Root-/App-Locks werden auch bei getrennter Erzeugung identisch und bestehen beide Frozen-Prüfungen; die frühere Vermutung einer gegenseitigen Verzeichnisbeeinflussung ist damit nicht bestätigt. Der initiale fehlende Frozen-Nachweis wurde durch diesen neuen Lauf ergänzt.
-
-Die vier überprüften Artefaktdateien sind jetzt als Update-Kandidat im Entwicklungsbranch übernommen: beide Manifeste pinnen Vite 8.3.5; die Locks wurden von Bun erzeugt, nicht manuell bearbeitet. Graphreview: 38 geänderte Root- und 23 App-Lockeinträge, einschließlich transitiver Build-Pakete und Auflösung bereits deklarierter Abhängigkeiten. Beide Lock-Hashes: `420c1a107d3f8a4e54e7d359333feb2c2dd0631874354856b22c6ec4004a6dda`.
-
-Vollständige lokale OSV-Abfrage des neuen Kandidaten samt unveränderter Functions-Lockdatei am 27.10.2026: **1.440 eindeutige Versionen / 20 betroffene Versionen / 33 Advisories**. Gegenüber dem geprüften Ausgangsgraphen 1.439 / 21 / 39 ist das eine Teilreduktion, keine saubere Gesamtbewertung und keine unabhängige Freigabe. Weitere Befunde bleiben Release-Blocker.
-
-Der Hilfsworkflow ist nun ausschließlich manuell auslösbar, damit jeder nachfolgende PR-Commit keinen weiteren Kandidatenlauf erzeugt. Keine automatische Übernahme oder Schreibrechte. Vollständige Pflicht-CI am exakten neuen Commit mit übernommenen Paketdateien bleibt **ausstehend**; erst danach darf regulär integriert werden. Die folgenden Abschnitte dokumentieren den historischen Aufbau und die ursprünglichen Prüfgrenzen. **Produktion bleibt NO-GO.**
-
-**Vorbereiteter Prüflauf, keine behobenen Paketbefunde und keine Produktionsfreigabe.** Ziel ist ein regulär von Bun erzeugter, überprüfbarer Update-Kandidat für Vite 8.3.5 in Root und App. Manifest und Locks werden erst nach Artefaktprüfung in einem separaten Änderungsschritt übernommen.
-
-## Anlass und aktueller Nachweis
-
-PR #140: vollständige Enterprise-CI [40480201394](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40480201394) auf `76fc32257120062513b1e72ab972c5156f29e55e` erfolgreich. Separater [Security-Scan 40480201383](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40480201383): 15 Scanner-Tests bestanden, 1.439 eindeutige Versionen / 21 betroffene Versionen / 39 Advisories, Exit 1. PR #140 bleibt Draft bis zur Triage. Kein Scanner-Absturz und keine Ignoreliste/Baseline.
-
-Das offizielle npm-Register meldete Vite 8.3.5 als verfügbar. Eine gezielte OSV-querybatch-Abfrage für diesen Kandidaten lieferte am 27.10.2026 eine vollständige Antwort ohne Advisories. Das ist keine globale Entwarnung und kein Kompatibilitätsnachweis. Paketgraph, Lock-Hashes und Scan müssen nach der tatsächlichen Auflösung neu geprüft werden.
-
-Die lokale offizielle Bun-1.4.4-Binary startet, die Paketauflösung unter Windows bleibt jedoch mit EBADF blockiert. Eine lesende WSL-Inventur bestätigte: keine Linux-Installation vorhanden. Es wurde kein WSL installiert und keine kostenpflichtige Cloud-Ressource eingerichtet. Wiederholungen unveränderter fehlgeschlagener Kommandos sind kein Fortschrittsnachweis.
-
-## Begrenzter GitHub-Actions-Lauf
-
-- Eigener kurzlebiger GitHub-hosted Ubuntu-Job, maximal 15 Minuten; vorhandene CI-Infrastruktur.
-- Token ausschließlich `contents: read`; Checkout-Anmeldung wird nicht persistiert. Keine Secrets, Produktionsumgebung, Cloud-Zugänge, Pushes oder automatischen PR-/Merge-Schritte.
-- Bestehende genehmigte SHA-Pins für Checkout, Setup-Node, Setup-Bun und Artefakt-Upload. Node 22.23.3, Bun 1.4.4.
-- Festes Ziel Vite 8.3.5, keine frei übergebenen Paket-/Shellparameter. `bun update` jeweils in Root und App mit `--exact --lockfile-only --ignore-scripts --no-env-file`.
-- Der Verifikator erlaubt nur Änderungen an den vier bekannten Manifest-/Lockdateien. In den Manifesten darf sich ausschließlich `devDependencies.vite` auf exakt 8.3.5 ändern. Beide Locks bleiben vollständig reviewpflichtig, einschließlich transitiver Änderungen.
-- Artefakt enthält nur diese vier Dateien und ein Manifest mit SHA-256 vor/nach Erzeugung, PR-Source-Head, tatsächlich ausgechecktem Commit und Toolchain-Versionen. Aufbewahrung drei Tage. Keine automatische Übernahme oder Produktionseignung.
-
-Grundlage der Flags: [Bun Update](https://bun.com/docs/pm/cli/update), [Lockfile-Dokumentation](https://bun.com/docs/pm/lockfile). Lockfile-only schreibt keine node_modules, kann aber Registry-Metadaten/Artefakte im Runner-Cache abrufen. Lebenszyklusskripte bleiben deaktiviert, Integritäts-/TLS-Prüfung bleibt aktiv.
-
-## Prüfstand und nächste Schritte
-
-Lokal bestanden: Node-Syntaxprüfung des Verifikators, bestehende Toolchain-Pin- und Workflow-Layout-Gates. Der Linux-Generator und seine Artefakte sind vor dem ersten Lauf **noch nicht validiert**. Die normale CI dieses PR bleibt ebenfalls erforderlich.
-
-Nach erfolgreichem Generatorlauf Artefakt-Source-Head und Hashes prüfen, Änderungen an allen vier Dateien reviewen, Kandidaten versionsgenau scannen und regulär committen. Danach unveränderte Frozen-Install-, Build-, Browser-/Emulator- und Pflicht-CI-Nachweise am exakten neuen Commit verlangen. Erst diese spätere Evidenz kann einen Teilfix belegen. Alle weiteren Befunde sowie reale Staging-/Rollback- und unabhängige Freigaben bleiben offen. **Produktion: NO-GO.**
-
-## Erste Linux-Ausführung und zusätzliche Isolation
-
-Der erste Generatorlauf [40482007791](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482007791) auf `657fd84622f0142828c489e177c6db95ea356d5a` bestand. Das heruntergeladene ZIP hatte den auf GitHub angezeigten Digest `e35aa9a5253752571ce7e3820331f847aa36f1898551aba13c81df61f9ff9ba2`; genau fünf erwartete Archiveinträge, Source-Head und alle Vorher-/Kandidatenhashes wurden lokal geprüft. Der erste Kandidat hatte 1.440 eindeutige Versionen / 20 betroffene Versionen / 33 Advisories in einer vollständigen lokalen OSV-Abfrage. **Nicht übernommen:** Root-/App-Locks waren nach der verschachtelten Erzeugung identisch; ein eigener Frozen-Install-Nachweis fehlte. Die Befundreduktion ist noch kein integrierter Fix.
-
-Der Generator arbeitet jetzt pro Manifest/Lockpaar in getrennten temporären Verzeichnissen außerhalb des Checkout-Baums und führt dort jeweils `bun ci --ignore-scripts --no-env-file` vor dem Zurückkopieren aus. Beide Befehle verwenden explizit das offizielle npm-Register. Damit wird eine gegenseitige Beeinflussung verschachtelter Projektverzeichnisse vermieden und fehlgeschlagene Frozen-Installationen verhindern den Artefakt-Upload. Neues Artefakt und neuer exakter Head bleiben erneut zu prüfen; der erste Download wird nicht als Freigabenachweis wiederverwendet. Lokale Windows-Frozen-Installation bleibt unbestätigt. Vollständige App-CI muss auf dem späteren Commit mit den tatsächlich übernommenen Kandidatendateien laufen.
+Scanner noch keine konfigurierte Branchschutzpflicht; Pfadfilter erfassen nicht jede Quelländerung. Parserinstallation verwendet Appgraph. Minimaler isolierter Scannerbuild, SAST, Container-/OS-Scans und vollständige OpenSSF-Scorecard sind nicht nachgewiesen. Kein separates Staging-Projekt; echte Retention-, Last-, Lösch- und Rollback-Nachweise sowie unabhängige Security-/Datenschutz-/Finance-Abnahmen bleiben offen. Keine neue Cloud-Ressource oder reale Abrechnung aus diesen Prüfläufen. **Keine Produktionsfreigabe.**
