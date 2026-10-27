@@ -1,0 +1,47 @@
+name: Klar Controlled Dependency Lock Refresh
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/dependency-lock-refresh.yml'
+      - 'phase2_work/scripts/verify-lock-refresh.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: dependency-lock-refresh-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.23.3'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.4'
+      - name: Generate targeted Vite candidate without lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file
+          (cd phase2_work && bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file)
+      - name: Verify scope and bind candidate hashes to source revision
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: node phase2_work/scripts/verify-lock-refresh.mjs
+      - name: Publish review candidate only
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: vite-lock-candidate-${{ github.event.pull_request.head.sha }}
+          retention-days: 3
+          if-no-files-found: error
+          path: |
+            package.json
+            bun.lock
+            phase2_work/package.json
+            phase2_work/bun.lock
+            lock-refresh-evidence.json
