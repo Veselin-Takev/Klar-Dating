@@ -1,6 +1,6 @@
 ## Parser integriert; qs-Remediation vorbereitet — 2026-10-27
 
-PR #156 nach vollständiger CI 40571110349 auf `ef84c9bf151ee4654bc40b55c07266e4e0281ac1` integriert. Main `faf4cc084cd904454077c2cd7052087bdaa4b853` exakt geprüft. Nächster Kandidat: qs 6.16.2 / 6.17.0 innerhalb bestehender Parent-Ranges; Manifeste unverändert, Generator-/Artefakt-/Graph-/Scan-/CI-Prüfung ausstehend. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+PR #156 nach vollständiger CI 40571110349 auf `ef84c9bf151ee4654bc40b55c07266e4e0281ac1` integriert. Main `faf4cc084cd904454077c2cd7052087bdaa4b853` exakt geprüft. Nächster Kandidat: qs 6.16.2 / 6.17.0 innerhalb bestehender Parent-Ranges; Manifeste unverändert, Generator 40573458955 und beide Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, zwei Locks übernommen. Differenzieller OSV-Scan 1.439 / 15 / 30 → 1.439 / 14 / 29. Vollständige CI am übernommenen Commit steht aus. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
 
 ---
 ## Parent-Teilfix integriert; zwei Parser-Linien vorbereitet — 2026-10-27
