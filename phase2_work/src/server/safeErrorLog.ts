@@ -13,6 +13,9 @@ const failureEvents = {
   feedback_storage_failure: 'warn',
   device_token_storage_failure: 'error',
   audit_log_read_failure: 'error',
+  account_deletion_limit_failure: 'error',
+  account_logout_failure: 'error',
+  account_status_read_failure: 'error',
   unclassified_failure: 'error',
 } as const;
 export type SafeFailureEvent = keyof typeof failureEvents;
