@@ -1,3 +1,9 @@
+## Source-Map-Teilfix integriert; Shell-Quote-Kandidat vorbereitet — 2026-10-27
+
+PR #154 nach vollständiger erfolgreicher CI 40552980574 auf `f02f921c2e076675604c8c766ef922d02733bef6` integriert; Main `00a1f5fb97ccdf73021405e73372796c80fd20b4` auf exakt gleichen Tree geprüft. Nächster fester Kandidat `shell-quote` 1.12.0 ist für den read-only Linux-Generator vorbereitet; noch keine neuen Locks übernommen. Die bisher chronologische Lockerzeugungsdokumentation ist als aktuelle Status-/Nachweistabellen strukturiert; historische Zwischenschritte bleiben in Git nachvollziehbar. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Source-Map-Kandidat mit weiter reduzierten Befunden — 2026-10-27
 
 Generator 40552680151 erfolgreich mit beiden isolierten Frozen-Installationen; Artefakt-Digest/Source-/Dateihashes geprüft. Pro Lock zwei ältere verschachtelte `source-map-js`-1.2.1-Auflösungen entfernt; 1.2.2 bleibt, Manifeste/übrige Pakete unverändert. Kandidatenlocks übernommen. Differenzieller OSV-Vergleich: 1.440 Versionen / 19 betroffene / 27 Advisories → **1.439 / 18 / 26**. Pflicht-CI auf übernommenen Dateien ausstehend; keine globale Entwarnung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
