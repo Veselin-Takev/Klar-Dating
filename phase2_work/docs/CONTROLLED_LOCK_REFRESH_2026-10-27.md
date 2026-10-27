@@ -1,5 +1,15 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Source-Map-Kandidat: verschachtelte ältere Auflösungen entfernt
+
+Generator [40552680151](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552680151) auf `8cad18c718ba11924b38ef5d33ece179fb28f631` erfolgreich, einschließlich beider getrennten Frozen-Installationen und Manifestprüfung. ZIP-Digest `fc92968e4ca6fb144a10a48b37c2b04824dc0bb1466da7bcf7339e18a3e2e276` mit GitHub verglichen; fünf erwartete Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft. Beide neuen Lock-Hashes `4fe5123fe2ed93c82eeb77c35f8a8d47013b6136e1199ed78c07e4b1205fcdbc`.
+
+Graphreview: Je Lock entfallen genau die zwei verschachtelten `source-map-js`-1.2.1-Einträge unter `@tailwindcss/node` und `css-tree`; die bereits vorhandene 1.2.2-Auflösung bleibt erhalten. Keine weiteren Paketänderungen oder semantischen Manifeständerungen. Kein alter 1.2.1-Eintrag verbleibt in den beiden Kandidatenlocks. Die zwei von Bun erzeugten Locks sind im Entwicklungsbranch übernommen.
+
+Differenzieller vollständiger OSV-Kontrollscan mit gemeinsamem Datenbestand am 27.10.2026: Ausgangsgraph **1.440 Versionen / 19 betroffene / 27 Advisories**, Kandidat **1.439 / 18 / 26**. Der tatsächliche vorangegangene PR-#140-Scan [40552429356](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40552429356) auf `c277b4e2a8f0c4f87cfd573ede81d91f6b5041c3` bestätigte nach 15 bestandenen Tests den Redirect-Ausgangsstand 1.440 / 19 / 27, Exit 1. Befunddaten bleiben zeitabhängig; daraus wird keine globale Entwarnung abgeleitet.
+
+Vollständige Pflicht-CI auf dem exakten neuen Commit mit übernommenen Locks ist noch erforderlich. Erfolgreiche Generator-/Vorbereitungs-CI ersetzt sie nicht. Weitere Befunde, unabhängige Abnahmen und reale Staging-/Rollback-Nachweise bleiben offen. **Produktion: NO-GO.**
+
 ## Fortschreibung: Redirect-Teilfix integriert, Source-Map-Kandidat vorbereitet
 
 PR #153 ist nach vollständiger erfolgreicher CI [40542268993](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40542268993) auf `edf3d1953440f2eb211a63014e07b6adb0cfb7f5` regulär integriert. Main `5304bbd8c53a99a76b30f6ea97a0781a03b163f9` hat exakt den geprüften Dateistand. PR #140 wurde regulär aktualisiert; der neue tatsächliche Scan ist separat zu prüfen. Frühere ausstehende CI-Angaben zu PR #153 sind damit historisch.
