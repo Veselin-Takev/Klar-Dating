@@ -8,16 +8,17 @@ assert.ok(changed.length > 0 && changed.every(file => allowed.includes(file)), '
 for (const file of ['package.json', 'phase2_work/package.json']) {
   const original = JSON.parse(execFileSync('git', ['show', `HEAD:${file}`], { encoding: 'utf8' }));
   const candidate = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.equal(candidate.devDependencies.vite, '8.3.5', 'Candidate must pin the reviewed Vite version');
-  candidate.devDependencies.vite = original.devDependencies.vite;
-  assert.deepEqual(candidate, original, 'Only the direct Vite manifest entry may change');
+  assert.deepEqual(candidate, original, 'Transitive DOMPurify refresh must not change manifest dependencies');
+}
+for (const file of ['bun.lock', 'phase2_work/bun.lock']) {
+  assert.ok(fs.readFileSync(file, 'utf8').includes('["dompurify@3.4.17"'), 'Reviewed DOMPurify version missing from candidate lock');
 }
 const sourceHead = process.env.SOURCE_HEAD;
 assert.match(sourceHead ?? '', /^[a-f0-9]{40}$/, 'Missing exact PR source revision');
 const evidence = {
   schemaVersion: 1, purpose: 'review candidate; not approved or deployed',
   sourceHead, checkoutCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  target: { package: 'vite', version: '8.3.5' },
+  target: { package: 'dompurify', version: '3.4.17' },
   node: process.version, bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
   hashes: Object.fromEntries(allowed.map(file => [file, {
     before: crypto.createHash('sha256').update(execFileSync('git', ['show', `HEAD:${file}`])).digest('hex'),

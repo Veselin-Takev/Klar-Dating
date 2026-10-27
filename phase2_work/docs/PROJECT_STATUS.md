@@ -1,3 +1,15 @@
+## DOMPurify-Lockkandidat mit weiter reduzierten Befunden — 2026-10-27
+
+Generator 40485769378 auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, beide isolierten Frozen-Installationen bestanden. Artefakt-Digest/Source-/Dateihashes geprüft; genau ein geänderter Eintrag je Lock, Manifeste unverändert. DOMPurify 3.4.17 als Kandidat übernommen. Vollständige lokale OSV-Abfrage: 1.440 Versionen / **19 betroffene / 28 Advisories**, gegenüber 20 / 33 im Vite-Stand. Neue Pflicht-CI auf übernommenen Dateien ausstehend; keine globale Entwarnung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
+## Vite-Teilfix integriert; weiterer Dependency-Kandidat — 2026-10-27
+
+PR #151 ist nach vollständiger erfolgreicher CI 40483947064 auf `0962ff12e1d5dc5f8ab248dec78350cd2f081803` integriert. Main `7fefc9dd5d78224575ce40b69066bbb1f1befe91` entspricht exakt dem geprüften Tree; PR #140 ist regulär aktualisiert. Für den nächsten transitiven DOMPurify-3.4.17-Kandidaten wird der bestehende manuelle Linux-Generator mit unveränderter Manifest-Grenze vorbereitet. Noch keine neuen Paketdateien oder Befundreduktion aus diesem Schritt. Nachweise: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Vite-Updatekandidat mit verifizierten Linux-Locks — 2026-10-27
 
 PR #151s isolierter Generator 40482798433 auf `1d27fb42d66b17f804f56d032953a9121e0c3b29` bestand beide Frozen-Installationen; CI 40482798388 dieses Generator-Heads erfolgreich. Artefakt-Digest, fünf Einträge, Source-Head und Datei-Hashes überprüft; vier erzeugte Manifest-/Lockdateien als Vite-8.3.5-Kandidat übernommen. Neuer vollständiger lokaler OSV-Scan: 1.440 Versionen / 20 betroffene / 33 Advisories. **Teilreduktion, keine Entwarnung; vollständige CI mit den tatsächlich übernommenen Dateien noch ausstehend.** Hilfsgenerator jetzt nur manuell, ohne Schreibrechte. Details: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
