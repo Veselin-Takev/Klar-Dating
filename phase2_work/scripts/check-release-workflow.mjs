@@ -23,7 +23,7 @@ if (!releaseApprovalText.includes('collectReleaseApprovalFailures') ||
 }
 
 const releaseImage = 'ghcr.io/${{ github.repository_owner }}/klar-app';
-if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !text.includes("uses: actions/attest@7a37fbbab9669658a566371acd1cf2f8c7a40d32") || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
+if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !text.includes("uses: actions/attest@b60c2628ab941b449db82e38ba8d500980ce8a54") || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
   failures.push("Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.");
 }
 const workflowFiles = fs.readdirSync(workflowDir).filter(name => /\.ya?ml$/.test(name));

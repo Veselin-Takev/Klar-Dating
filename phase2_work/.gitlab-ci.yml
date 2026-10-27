@@ -9,7 +9,7 @@ verify:
   stage: verify
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
-    - npm install --global bun@1.4.2
+    - npm install --global bun@1.4.4
     - bun --version
     - node scripts/check-toolchain-policy.mjs
     - node scripts/check-dependency-locks.mjs
@@ -42,7 +42,7 @@ e2e:
   stage: e2e
   needs: [verify]
   before_script:
-    - npm install --global bun@1.4.2
+    - npm install --global bun@1.4.4
     - bun --version
     - bun ci
   script:

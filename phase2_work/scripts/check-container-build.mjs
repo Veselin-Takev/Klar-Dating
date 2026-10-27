@@ -6,7 +6,7 @@ if (!existsSync(dockerfile)) throw new Error('Dockerfile is required because CI 
 const text = readFileSync(dockerfile, 'utf8');
 const required = [
   ['multi-stage build', /^FROM .+ AS build$/m],
-  ['digest-pinned Bun build image', /^FROM oven\/bun:1\.4\.2@sha256:[0-9a-f]{64} AS build$/m],
+  ['digest-pinned Bun build image', /^FROM oven\/bun:1\.4\.4@sha256:[0-9a-f]{64} AS build$/m],
   ['digest-pinned Node runtime image', /^FROM node:22\.23\.3-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runtime$/m],
   ['frozen Bun lockfile install', /bun install --frozen-lockfile/],
   ['production dependency pruning', /bun install --frozen-lockfile --production/],

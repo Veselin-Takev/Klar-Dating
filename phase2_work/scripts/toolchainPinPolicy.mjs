@@ -22,5 +22,9 @@ export function checkWorkflowToolchain(source, file, expectedNode = '22.23.3') {
   if (!versionLines.length || versionLines.some(line => !/^\s*node-version:\s*['"]?22\.23\.3['"]?\s*(?:#.*)?$/.test(line))) {
     failures.push(`${file} must pin Node ${expectedNode}.`);
   }
+  const bunVersions = active.filter(line => /^\s*bun-version\s*:/.test(line));
+  if (!bunVersions.length || bunVersions.some(line => !/^\s*bun-version:\s*['"]?1\.4\.4['"]?\s*(?:#.*)?$/.test(line))) {
+    failures.push(`${file} must pin Bun 1.4.4.`);
+  }
   return failures;
 }

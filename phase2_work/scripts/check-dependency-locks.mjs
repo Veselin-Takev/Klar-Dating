@@ -15,7 +15,7 @@ for (const name of optionalRootWorkflows) {
   if (!fs.existsSync(workflowPath)) continue;
   const workflowText = fs.readFileSync(workflowPath, 'utf8');
   if (workflowText.includes('package-lock.json')) failures.push(`${name} must not reference root package-lock.json under the Bun-only root dependency policy.`);
-  if (!workflowText.includes("bun-version: '1.4.2'")) failures.push(`${name} must pin Bun 1.4.2 for the root package graph.`);
+  if (!workflowText.includes("bun-version: '1.4.4'")) failures.push(`${name} must pin Bun 1.4.4 for the root package graph.`);
 }
 if (!fs.existsSync(path.join(repoRoot, 'phase2_work/functions/package-lock.json'))) {
   failures.push('functions/: package-lock.json is missing. Functions use npm@10.9.2 and require a committed npm lockfile for reproducible CI/CD installs.');

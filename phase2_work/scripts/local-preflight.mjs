@@ -33,7 +33,7 @@ try {
   assertExpectedReleaseSha(report.gitSha, process.env.KLAR_EXPECTED_SHA);
   if (process.versions.node !== '22.23.3') throw new Error('Use Node 22.23.3 before preflight.');
   const bun = spawnSync('bun', ['--version'], { encoding: 'utf8', timeout: 15_000 });
-  if (bun.error || bun.status !== 0 || bun.stdout?.trim() !== '1.4.2') throw new Error('Use Bun 1.4.2 before preflight.');
+  if (bun.error || bun.status !== 0 || bun.stdout?.trim() !== '1.4.4') throw new Error('Use Bun 1.4.4 before preflight.');
   const java = spawnSync('java', ['-version'], { encoding: 'utf8', timeout: 15_000 });
   if (java.error || java.status !== 0 || !/version \"21[.\"]/.test((java.stdout ?? '') + (java.stderr ?? ''))) throw new Error('Use Java 21 before preflight.');
   // Record toolchain identity in the exact-SHA preflight evidence after validation.

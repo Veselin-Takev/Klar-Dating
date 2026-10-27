@@ -33,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          persist-credentials: false
           fetch-depth: 0
           fetch-tags: true
 
@@ -47,7 +48,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
-          bun-version: '1.4.2'
+          bun-version: '1.4.4'
 
       - name: Production release approval
         run: node scripts/check-production-release-approval.mjs
@@ -86,7 +87,7 @@ jobs:
           echo "KLAR_RELEASE_DIGEST=$digest" >> "$GITHUB_ENV"
 
       - name: Generate GitHub container provenance attestation
-        uses: actions/attest@7a37fbbab9669658a566371acd1cf2f8c7a40d32
+        uses: actions/attest@b60c2628ab941b449db82e38ba8d500980ce8a54
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/klar-app
           subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}
