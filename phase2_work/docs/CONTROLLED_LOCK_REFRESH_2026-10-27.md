@@ -69,3 +69,9 @@ Die lokale Windows-Bun-Auflösung bleibt trotz offizieller Binary und eigener D:
 ## Verbleibende Freigabegrenzen
 
 Scanner noch keine konfigurierte Branchschutzpflicht; Pfadfilter erfassen nicht jede Quelländerung. Parserinstallation verwendet Appgraph. Minimaler isolierter Scannerbuild, SAST, Container-/OS-Scans und vollständige OpenSSF-Scorecard sind nicht nachgewiesen. Kein separates Staging-Projekt; echte Retention-, Last-, Lösch- und Rollback-Nachweise sowie unabhängige Security-/Datenschutz-/Finance-Abnahmen bleiben offen. Keine neue Cloud-Ressource oder reale Abrechnung aus diesen Prüfläufen. **Keine Produktionsfreigabe.**
+
+### Parser-Artefakt übernommen; vollständige CI ausstehend
+
+Generator [40570374455](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40570374455) auf `d2e8272332329f67009f7efa43d3014977c79e47` bestand beide getrennten Linux-Frozen-Installationen. ZIP-SHA256 `0d25dc7076f896ec42a4a0a577fc57a97bb676835cea098da8d90b1da37384f9`, exakt fünf Einträge sowie Source-/Vorher-/Kandidatenhashes geprüft. Nur zwei Locks übernommen; Manifeste unverändert. Pro Lock genau drei geänderte Einträge: body-parser 1.20.8 → 1.20.9, Express-Parser 2.3.0 → 2.4.0 sowie zusätzliche verschachtelte qs-6.17.0-Auflösung innerhalb der neuen Parent-Range. Übrige Pakete unverändert.
+
+Differenzieller vollständiger OSV-Vergleich mit gemeinsamem Datenbestand am 27.10.2026: **1.439 / 17 / 31 → 1.439 / 15 / 30** (Versionen / betroffene Versionen / Advisories). Keine globale Entwarnung. Generator-Erfolg ersetzt die noch ausstehende vollständige CI am übernommenen Commit nicht.
