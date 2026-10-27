@@ -4,7 +4,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: dependency-lock-refresh-${{ github.event.pull_request.number }}
+  group: dependency-lock-refresh-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   generate:
@@ -20,7 +20,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: '1.4.4'
-      - name: Generate targeted Vite candidate without lifecycle scripts
+      - name: Generate targeted DOMPurify candidate without lifecycle scripts
         shell: bash
         run: |
           set -euo pipefail
@@ -31,7 +31,7 @@ jobs:
           for project in root app; do
             (
               cd "$candidate_dir/$project"
-              bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+              bun update dompurify@3.4.17 --exact --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
               bun ci --ignore-scripts --no-env-file --registry https://registry.npmjs.org
             )
           done
@@ -39,12 +39,12 @@ jobs:
           cp "$candidate_dir/app/package.json" "$candidate_dir/app/bun.lock" phase2_work/
       - name: Verify scope and bind candidate hashes to source revision
         env:
-          SOURCE_HEAD: ${{ github.event.pull_request.head.sha }}
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node phase2_work/scripts/verify-lock-refresh.mjs
       - name: Publish review candidate only
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: vite-lock-candidate-${{ github.event.pull_request.head.sha }}
+          name: dompurify-lock-candidate-${{ github.sha }}
           retention-days: 3
           if-no-files-found: error
           path: |
