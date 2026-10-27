@@ -1,6 +1,6 @@
 /** Both build contexts must use the approved, immutable toolchain images. */
 export const approvedDockerImages = Object.freeze({
-  build: 'oven/bun:1.4.2@sha256:9114c058aeae42162ee16dd5084b95fe9473970bb6bcb5b232ab1630f0546895',
+  build: 'oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d',
   runtime: 'node:22.23.3-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c',
 });
 

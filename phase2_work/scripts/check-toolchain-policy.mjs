@@ -7,8 +7,8 @@ const failures = [];
 const rootPackage = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const functionsPackage = JSON.parse(fs.readFileSync('functions/package.json', 'utf8'));
 
-if (rootPackage.packageManager !== 'bun@1.4.2') {
-  failures.push(`Root packageManager must be bun@1.4.2 (found ${rootPackage.packageManager ?? 'missing'}).`);
+if (rootPackage.packageManager !== 'bun@1.4.4') {
+  failures.push(`Root packageManager must be bun@1.4.4 (found ${rootPackage.packageManager ?? 'missing'}).`);
 }
 if (!fs.existsSync('bun.lock')) failures.push('Root bun.lock is missing.');
 if (fs.existsSync('package-lock.json')) failures.push('Root package-lock.json must not exist under the Bun-only root policy.');

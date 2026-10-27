@@ -46,11 +46,11 @@ test('Codespaces guard rejects a missing exact Bun pin', () => {
   try {
     const file = join(dir, setupRel);
     const before = readFileSync(file, 'utf8');
-    assert.match(before, /bun@1\.4\.2/);
-    writeFileSync(file, before.replace('bun@1.4.2', 'bun@latest'));
+    assert.match(before, /bun@1\.4\.4/);
+    writeFileSync(file, before.replace('bun@1.4.4', 'bun@latest'));
     const result = run(dir);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Bun 1\.4\.2 installation/);
+    assert.match(result.stderr, /Bun 1\.4\.4 installation/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -59,10 +59,10 @@ test('Codespaces guard ignores an old Bun pin kept only in a comment', () => {
   try {
     const file = join(dir, setupRel);
     const before = readFileSync(file, 'utf8');
-    assert.match(before, /bun@1\.4\.2/);
-    writeFileSync(file, before.replace('bun@1.4.2', 'bun@latest') + '\n# historic command: npm install --global bun@1.4.2\n');
+    assert.match(before, /bun@1\.4\.4/);
+    writeFileSync(file, before.replace('bun@1.4.4', 'bun@latest') + '\n# historic command: npm install --global bun@1.4.4\n');
     const result = run(dir);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Bun 1\.4\.2 installation/);
+    assert.match(result.stderr, /Bun 1\.4\.4 installation/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

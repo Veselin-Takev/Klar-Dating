@@ -25,8 +25,8 @@ nvm use 22.23.3
 [[ "$(node -v)" == 'v22.23.3' ]] || { echo 'Node 22.23.3 required' >&2; exit 1; }
 
 # Install the exact Bun package version in the nvm-scoped npm prefix.
-npm install --global --no-audit --no-fund bun@1.4.2
-[[ "$(bun --version)" == '1.4.2' ]] || { echo 'Bun 1.4.2 required' >&2; exit 1; }
+npm install --global --no-audit --no-fund bun@1.4.4
+[[ "$(bun --version)" == '1.4.4' ]] || { echo 'Bun 1.4.4 required' >&2; exit 1; }
 
 java_version="$(java -version 2>&1)"
 printf '%s\n' "$java_version"

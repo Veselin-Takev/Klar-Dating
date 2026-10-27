@@ -7,7 +7,7 @@ This guide is the shortest safe path from a clean checkout to a reviewable chang
 ## Prerequisites
 
 - Node.js 22.23.3 or a compatible Node 22 release satisfying `package.json#engines`
-- Bun 1.4.2 for the app; npm 10.9.2 for the separately locked Functions package
+- Bun 1.4.4 for the app; npm 10.9.2 for the separately locked Functions package
 - Java 21
 - Docker
 - Firebase CLI dependencies installed through `bun ci`

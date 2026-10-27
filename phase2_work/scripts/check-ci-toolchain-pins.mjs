@@ -36,4 +36,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
-console.log(`CI toolchain pin gate PASS: supported GitHub workflows pin Node ${expectedNode} and Bun 1.4.2.`);
+console.log(`CI toolchain pin gate PASS: supported GitHub workflows pin Node ${expectedNode} and Bun 1.4.4.`);
