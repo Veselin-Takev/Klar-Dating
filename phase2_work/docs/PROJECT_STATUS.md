@@ -1,3 +1,9 @@
+## P0-Kontrollnachweise — 2026-10-27
+
+Die sechs angefragten P0-Kontrollen sind **nicht vollständig geschlossen**. Architektur, lokale Nachweise und offene Betriebsgrenzen stehen in [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). Ein CRLF-Fehlalarm im Art.-17-Quellprüfer wurde bei unveränderten Sicherheitsbedingungen korrigiert: 2 gültige Baselines, 24 abgewiesene Mutationen und 34 weitere lokale Tests bestanden unter Node 24.22.1. Vollständige Pflicht-CI und reale Staging-Nachweise bleiben ausstehend. Historische Foto-Retention-Prüfung separat abgleichen. **Produktion: NO-GO.**
+
+---
+
 ## P0: Idempotente Chat-Bestätigung trotz KI-Ausfall — 2026-10-10
 
 **Entwicklungsbranch-Fix:** Der Chat-Sendepfad prüft nach authentifizierter Chat-Zugehörigkeit eine bereits gespeicherte Kombination `uid + clientMessageId` vor einem erneuten externen KI-Safety-Aufruf. Derselbe Nachrichteninhalt erhält die vorhandene Quittung; Konflikte bleiben 409. Neue Nachrichten werden weiterhin vollständig KI-geprüft und innerhalb einer Firestore-Transaktion autorisiert/geschrieben. **3/3 lokale Node-Quellregressionen tatsächlich ausgeführt und bestanden** (beide getesteten Dateien byteidentisch zu GitHub), aber unter Node 20.20.2 statt der gepinnten Enterprise-Toolchain. **Vier neue Firestore-Emulator-Testfälle** (Provider-Ausfall nach Write, Konflikt, gleichzeitige identische Sends, Block nach Write) committed, **nicht ausgeführt**. Früher CI- und lokaler Preflight-Gate ergänzt. TCO-Vorteil bei Duplikaten und zusätzlicher Firestore-Leseaufwand bei neuen Sends noch nicht gemessen. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 eingefroren, keine manuell gestartete CI, **NO-GO**.
