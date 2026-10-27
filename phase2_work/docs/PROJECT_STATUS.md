@@ -1,3 +1,9 @@
+## Verifizierter Parent-/Shell-Quote-Kandidat — 2026-10-27
+
+Generator 40561359438 auf `50ad824f31c3cb247b3b833e8a27b77559d3a401` erfolgreich, beide isolierten Frozen-Installationen bestanden. Artefakt-Digest/Source-/Dateihashes und vollständiger Remote-/Local-Tree über GitHub-API geprüft. Manifeste ändern nur concurrently auf 10.0.6; Locks ändern genau Parent und shell-quote auf 1.12.0. Vier Artefaktdateien übernommen. Differenzieller Scan: 1.439 Versionen / 18 betroffene / 26 Advisories → **1.439 / 17 / 25**. Vollständige CI am übernommenen Commit ausstehend. Fehlgeschlagener direkter Child-Versuch bleibt dokumentiert, keine Prüfgrenze gelockert. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## Shell-Quote: Parent-Update statt Child-Override — 2026-10-27
 
 Direkter Generatorlauf 40560759151 wurde vom Verifikator abgewiesen; kein Artefakt und keine Locks übernommen. Concurrently 10.0.5 bindet shell-quote exakt an 1.9.0. Geprüfter nächster Kandidat ist der kompatible Parent-Patch concurrently 10.0.6 mit exakt shell-quote 1.12.0. Verifikator erlaubt nur den direkten Parent-Eintrag in beiden Manifesten und verlangt beide Zielversionen ohne alten Child-Eintrag. Neuer Generator-/Graph-/Scan-/CI-Nachweis noch ausstehend; keine gelockerte Schutzbedingung. [Nachweise](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
