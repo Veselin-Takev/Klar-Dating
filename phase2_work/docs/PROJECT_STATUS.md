@@ -1,3 +1,9 @@
+## Dependency-Remediation: kontrollierte Lockerzeugung — 2026-10-27
+
+PR #140s Enterprise-CI 40480201394 auf `76fc32257120062513b1e72ab972c5156f29e55e` ist erfolgreich; Scan 40480201383 meldet nach 15 bestandenen Tests weiterhin 21 betroffene Versionen / 39 Advisories. Ein begrenzter read-only Linux-Generator für den Vite-8.3.5-Kandidaten ist vorbereitet, um die lokale Windows-Lockerzeugungsblockade zu umgehen. Lokal nur Syntax-/Toolchain-/Layout-Gates bestätigt; Generator-Artefakt, Frozen-Install, Kompatibilität und Teilremediation noch nicht belegt. Details: [CONTROLLED_LOCK_REFRESH_2026-10-27.md](CONTROLLED_LOCK_REFRESH_2026-10-27.md). Keine geänderten Schutzregeln oder Cloud-Ressourcen; **Produktion: NO-GO**.
+
+---
+
 ## Date-Planung: Fehlerlog-Minimierung — 2026-10-27
 
 Acht bestehende Fehlerpfade auf feste Ereigniscodes begrenzt. 33 lokale Tests in drei Dateien bestanden unter Node 24.22.1, einschließlich vollständiger HTTP-Log-Aufrufe für alle acht Pfade; Pflicht-CI vor Integration ausstehend. PR #149 ist nach vollständiger erfolgreicher CI 40477051741 auf Head `9a6a9841e6b4ae3d1e7af8774bbf1a32580a80e7` integriert. Main `529662e366e1da8fb10a283191d88c5e15807a01` hat den exakt geprüften Tree. Details: [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md). Retention-/Staging-/Freigabenachweise offen; **Produktion: NO-GO**.
