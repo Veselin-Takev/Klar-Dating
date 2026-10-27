@@ -27,6 +27,12 @@ Drei zusätzliche Account-Fehlerpfade verwenden jetzt feste, auch zur Laufzeit v
 
 Die Foto-Retention-Analyse bestätigt weiteren Abstimmungsbedarf zwischen Entscheidungsfrist, Writer und konkreter Objektversion. Eine reine Anpassung des Prüfskripts würde keinen sicheren Laufzeitnachweis liefern. Dieser Blocker bleibt offen; keine neue Löschlogik oder Live-Ausführung wurde daraus freigegeben.
 
+## Nachtrag: Account-CI und Billing-/Compliance-Fehlerketten
+
+PR #148 bestand die vollständige CI [40474779359](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40474779359) auf Head `5db26426bb09d424e07b024bc2a07d0e24b1bc8c` und wurde regulär integriert. Main `0c600b86c7232cf82dc6109a8f791ba2326199e2` entspricht exakt dem geprüften Dateistand. Damit ist die oben noch ausstehende CI der Account-Änderung bestätigt.
+
+Vier weitere Fehlerlog-Aufrufe sind auf feste Ereigniscodes umgestellt: Checkout-Erstellung, Compliance-Abfrage, CSV-Export und der darunterliegende Abfrage-Helfer. Die bestehende 503-Verweigerung bleibt erhalten; fachliche Checkout-Konflikte behalten ihre gesonderten Antworten. Die erweiterten HTTP-Tests prüfen die gesamte aufgerufene Logkette einschließlich des Helfers und synthetischer Providerdaten. **43 lokale Tests in fünf Dateien bestanden** unter Node 24.22.1 (Billing, Audit-HTTP, Compliance-Export, Account-HTTP und Logger). Vollständige CI dieser neuen Änderung bleibt vor Integration erforderlich. Dies ist weder eine Aktivierung von Klar+ noch eine globale Zusicherung für Logs/Traces oder Produktionssenken.
+
 ## Retention-Prüfungen richtig einordnen
 
 `check-retention-matrix.mjs` bestand lokal für 20 Gruppen. `test-retention-active-evidence.mjs` bestand mit synthetischen akzeptierten und abgewiesenen Evidenzen. Das beweist die Validatoren, nicht einen tatsächlich aktivierten Cloud-Zustand.
