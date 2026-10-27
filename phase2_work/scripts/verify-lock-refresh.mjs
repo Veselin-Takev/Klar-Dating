@@ -8,22 +8,19 @@ assert.ok(changed.length > 0 && changed.every(file => allowed.includes(file)), '
 for (const file of ['package.json', 'phase2_work/package.json']) {
   const original = JSON.parse(execFileSync('git', ['show', `HEAD:${file}`], { encoding: 'utf8' }));
   const candidate = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.equal(candidate.devDependencies.concurrently, '10.0.6', 'Parent patch must pin the reviewed version');
-  candidate.devDependencies.concurrently = original.devDependencies.concurrently;
-  assert.deepEqual(candidate, original, 'Only the direct concurrently manifest entry may change');
+  assert.deepEqual(candidate, original, 'Transitive parser refresh must not change manifest dependencies');
 }
 for (const file of ['bun.lock', 'phase2_work/bun.lock']) {
   const lock = fs.readFileSync(file, 'utf8');
-  assert.ok(lock.includes('["concurrently@10.0.6"'), 'Reviewed parent version missing');
-  assert.ok(lock.includes('["shell-quote@1.12.0"'), 'Reviewed child version missing');
-  assert.ok(!lock.includes('["shell-quote@1.9.0"'), 'Older child version remains');
+  const versions = [...new Set([...lock.matchAll(/\["body-parser@([^"]+)"/g)].map(match => match[1]))].sort();
+  assert.deepEqual(versions, ['1.20.9', '2.4.0'], 'Both reviewed parser lines required; no older or unreviewed version allowed');
 }
 const sourceHead = process.env.SOURCE_HEAD;
 assert.match(sourceHead ?? '', /^[a-f0-9]{40}$/, 'Missing exact PR source revision');
 const evidence = {
   schemaVersion: 1, purpose: 'review candidate; not approved or deployed',
   sourceHead, checkoutCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  target: { package: 'concurrently', version: '10.0.6', child: { package: 'shell-quote', version: '1.12.0' } },
+  target: { package: 'body-parser', versions: ['1.20.9', '2.4.0'] },
   node: process.version, bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
   hashes: Object.fromEntries(allowed.map(file => [file, {
     before: crypto.createHash('sha256').update(execFileSync('git', ['show', `HEAD:${file}`])).digest('hex'),
