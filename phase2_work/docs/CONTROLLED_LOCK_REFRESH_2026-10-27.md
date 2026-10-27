@@ -1,5 +1,13 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Fortschreibung: Redirect-Teilfix integriert, Source-Map-Kandidat vorbereitet
+
+PR #153 ist nach vollständiger erfolgreicher CI [40542268993](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40542268993) auf `edf3d1953440f2eb211a63014e07b6adb0cfb7f5` regulär integriert. Main `5304bbd8c53a99a76b30f6ea97a0781a03b163f9` hat exakt den geprüften Dateistand. PR #140 wurde regulär aktualisiert; der neue tatsächliche Scan ist separat zu prüfen. Frühere ausstehende CI-Angaben zu PR #153 sind damit historisch.
+
+Nächster vorbereiteter Kandidat: transitive `source-map-js`-Version 1.2.2. Offizielles npm-Register und gezielte vollständige OSV-Antwort ohne Advisories für diese Version geprüft. Der feste Zielwert des bestehenden manuellen Generators ist entsprechend angepasst. Semantisch unveränderte Manifeste, getrennte temporäre Projekte, beide Frozen-Installationen, read-only Token und exakte Artefakt-/Quellhashes bleiben Voraussetzung. Verschachtelte ältere Auflösungen müssen im tatsächlichen Graphreview ausdrücklich geprüft werden; eine einzelne passende Zielzeile allein belegt keine vollständige Ablösung.
+
+Lokale Syntax-/Toolchain-/Layout-/Whitespace-Gates bestanden. Noch keine neuen Kandidatenlocks übernommen. Generator, Artefaktreview, vollständiger differenzieller Scan und Pflicht-CI am übernommenen Commit fehlen noch. Keine neue Befundschließung oder Produktionsfreigabe.
+
 ## Redirect-Kandidat: Frozen- und differenzieller Scan-Nachweis
 
 Manueller Generator [40541640098](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40541640098) auf `e3a591be7a5c7a2cd8b25507a8e4fd189942387b` erfolgreich, einschließlich beider getrennter Frozen-Installationen. ZIP-Digest `aaf68b1c6a55e3d75be951e7beadd05e35d08908fc36ef6e1165f721aa628a32` mit GitHub verglichen; exakt fünf Einträge, Quell-Commit und alle Vorher-/Kandidatenhashes lokal überprüft. Jeweils genau ein geänderter Lockeintrag: `follow-redirects` 1.16.0 → 1.16.2. Manifeste und alle übrigen Paketversionen unverändert. Beide neuen Lock-Hashes: `e3fd4a98ab0e1599503d859ca451689629a10f37ab7dcb6288033efc830ee4f1`. Die zwei erzeugten Locks sind im Entwicklungsbranch als Kandidat übernommen.
