@@ -55,3 +55,7 @@
 ### UX & Content
 - [ ] **Design-Audit:** Keine Farbverläufe, keine Schlagschatten, Buttons ≥ 44px, Kontrast ≥ 4.5:1 gemessen.
 - [ ] **Glossar-Konsistenz:** Keine Erwähnung von "Swipes", "Likes", "Matches" im UI (ersetzt durch "Vorschläge", "Nachrichten", "Kontakte").
+
+## Konzept-Backlog: Klar Date / Pay-per-Date (26.10.2026)
+
+Vom Produktverantwortlichen als passend zum Klar-Konzept zur weiteren Prüfung aufgenommen. [Konzept, Entscheidungsregister und Prüfphasen](PAY_PER_DATE_CONCEPT_2026-10-26.md). Status: Discovery; keine Implementierungs-, Preis-, Pilot- oder Produktionsfreigabe und kein Sprinttermin zugesagt. Insbesondere Erfolgsdefinition, Zahlungs-/Stornoregeln, Datenschutz, Sicherheit, Partnerverträge und Deckungsbeitrag sind offen. Bestehende Klar-Mechaniken bleiben unverändert.
