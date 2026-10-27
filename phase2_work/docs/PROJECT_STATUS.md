@@ -1497,3 +1497,7 @@ Alle drei aktiven GitHub-Workflows deaktivieren persistierte Checkout-Anmeldedat
 ## Fehlerlog-Minimierung – 26.10.2026
 
 Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; vollständige CI dieses Stands ausstehend. SEC-04 und Produktions-NO-GO bleiben offen. Details: [Checkpoint](SECURITY_ERROR_LOG_MINIMIZATION_2026-10-26.md).
+
+## Bestätigter Security-Stand nach PR142 – 26.10.2026
+
+PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
