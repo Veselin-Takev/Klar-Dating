@@ -19,6 +19,14 @@ Zwei bestehende Kontrollbedingungen verglichen mehrzeilige Quelltexte mit LF. Wi
 
 Die bestehende Mutationstestreihe prüft alle Fixture-Dateien mit LF und CRLF: **2 gültige Baselines und 24 verweigerte Mutationen**. Darunter fehlende Quarantäne, fehlende Slice-Guards, nicht abgewartete Kindlöschung und vorgezogene Elternlöschung. Zusätzlich lokal bestanden: **7 Storage-Löschtests, 7 Quarantäne-Tests und 20 Emulator-Preflight-Tests**. Ausführung unter Node **24.22.1**; vollständige gepinnte CI bleibt vor Integration erforderlich. Preflight-Tests sind kein ausgeführter Emulator- oder Live-Staging-Test.
 
+## Nachtrag: bestätigte CI und weitere Account-Log-Minimierung
+
+PR #147 wurde nach erfolgreicher vollständiger CI [40473081801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40473081801) auf Head `2056cee999d41ab745dd598967fd9716003f79a5` regulär integriert. Main `9d9876f3fa05cce63fb02a47a8b58a44f43d7038` wurde auf identischen Dateistand geprüft. Die CI meldete unter anderem 190 bestandene Vitest-Dateien / 1347 Tests. Dies ergänzt die zuvor als ausstehend bezeichnete CI dieses eng begrenzten Prüfer-Fixes; die Betriebsgrenzen bleiben offen.
+
+Drei zusätzliche Account-Fehlerpfade verwenden jetzt feste, auch zur Laufzeit validierte Ereigniscodes: Löschantrags-Limitierung, Logout-Bereinigung und Accountstatus-Abfrage. Fehlerobjekte werden an diesen Stellen nicht mehr an die Logsenke übergeben. **20 lokale Tests in zwei Dateien bestanden** unter Node 24.22.1: sechs neue HTTP-Fälle mit injizierten Provider-/Datenbankfehlern bzw. fehlender Authentifizierung sowie 14 bestehende Logger-Tests. Assertions prüfen den vollständigen Log-Aufruf und unveränderte 503-/401-Grenzen. Vollständige CI der Account-Änderung bleibt vor deren Integration erforderlich. Keine globale Zusicherung für alle Logging-Pfade oder tatsächliche Produktionssenken.
+
+Die Foto-Retention-Analyse bestätigt weiteren Abstimmungsbedarf zwischen Entscheidungsfrist, Writer und konkreter Objektversion. Eine reine Anpassung des Prüfskripts würde keinen sicheren Laufzeitnachweis liefern. Dieser Blocker bleibt offen; keine neue Löschlogik oder Live-Ausführung wurde daraus freigegeben.
+
 ## Retention-Prüfungen richtig einordnen
 
 `check-retention-matrix.mjs` bestand lokal für 20 Gruppen. `test-retention-active-evidence.mjs` bestand mit synthetischen akzeptierten und abgewiesenen Evidenzen. Das beweist die Validatoren, nicht einen tatsächlich aktivierten Cloud-Zustand.
