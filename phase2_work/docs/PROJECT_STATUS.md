@@ -1,3 +1,9 @@
+## Billing-/Compliance-Fehlerlogs — 2026-10-27
+
+Vier weitere Log-Aufrufe auf feste Ereigniscodes begrenzt, einschließlich des Compliance-Abfrage-Helfers. 43 lokale Tests in fünf Dateien bestehen unter Node 24.22.1; vollständige Pflicht-CI vor Integration ausstehend. PR #148 ist nach erfolgreicher CI 40474779359 auf Head `5db26426bb09d424e07b024bc2a07d0e24b1bc8c` integriert, Main `0c600b86c7232cf82dc6109a8f791ba2326199e2` auf identischen Tree geprüft. [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md) aktualisiert. Retention-/Staging-/Freigabenachweise bleiben offen; **Produktion: NO-GO**.
+
+---
+
 ## Account-Fehlerlogs und P0-Nachweise — 2026-10-27
 
 Drei weitere Account-Fehlerpfade auf feste Ereigniscodes umgestellt; 20 lokale Logger-/HTTP-Tests bestehen. Pflicht-CI vor Integration ausstehend. PR #147 ist inzwischen nach vollständiger erfolgreicher CI 40473081801 auf Head `2056cee999d41ab745dd598967fd9716003f79a5` integriert; Main `9d9876f3fa05cce63fb02a47a8b58a44f43d7038` hat den exakt geprüften Dateistand. Die Foto-Retention-Abweichung bleibt nach Writer-/Worker-Abgleich offen. Details und verbleibende Nachweisgrenzen: [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). **Produktion: NO-GO.**
