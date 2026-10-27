@@ -23,7 +23,7 @@ for (const [pattern, label] of [
   [/\bnvm install 22\.23\.3\b/, 'Node 22.23.3 installation'],
   [/\bnvm alias default 22\.23\.3\b/, 'Node 22.23.3 default persistence'],
   [/\bnvm use 22\.23\.3\b/, 'Node 22.23.3 activation'],
-  [/\bbun@1\.4\.2\b/, 'Bun 1.4.2 installation'],
+  [/\bbun@1\.4\.4\b/, 'Bun 1.4.4 installation'],
   [/\bbun ci\b/, 'frozen Bun root install'],
   [/\bnpm ci --prefix functions\b/, 'frozen Functions install'],
   [/\bcheck-dependency-locks\.mjs\b/, 'lockfile policy validation'],
