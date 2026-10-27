@@ -1,5 +1,17 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Aktueller Stand: isoliert erzeugten Kandidaten übernommen
+
+Der zweite Generator [40482798433](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798433) auf `1d27fb42d66b17f804f56d032953a9121e0c3b29` bestand einschließlich **beider getrennten Frozen-Installationen** mit deaktivierten Lifecycle-Skripten. Enterprise-CI [40482798388](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40482798388) dieses Generator-Heads ebenfalls erfolgreich; diese CI gilt noch nicht für die später übernommenen Paketdateien.
+
+Neues Artefakt-ZIP: SHA-256 `719871e56b9b72c4d015624d26f265fc146e921df07f6cd885fb84d8ea27ccee`, mit GitHub-Digest verglichen. Exakt fünf Einträge, Source-Head, alle vier Vorher-/Kandidatenhashes und Paketgraph-Differenzen lokal geprüft. Die Root-/App-Locks werden auch bei getrennter Erzeugung identisch und bestehen beide Frozen-Prüfungen; die frühere Vermutung einer gegenseitigen Verzeichnisbeeinflussung ist damit nicht bestätigt. Der initiale fehlende Frozen-Nachweis wurde durch diesen neuen Lauf ergänzt.
+
+Die vier überprüften Artefaktdateien sind jetzt als Update-Kandidat im Entwicklungsbranch übernommen: beide Manifeste pinnen Vite 8.3.5; die Locks wurden von Bun erzeugt, nicht manuell bearbeitet. Graphreview: 38 geänderte Root- und 23 App-Lockeinträge, einschließlich transitiver Build-Pakete und Auflösung bereits deklarierter Abhängigkeiten. Beide Lock-Hashes: `420c1a107d3f8a4e54e7d359333feb2c2dd0631874354856b22c6ec4004a6dda`.
+
+Vollständige lokale OSV-Abfrage des neuen Kandidaten samt unveränderter Functions-Lockdatei am 27.10.2026: **1.440 eindeutige Versionen / 20 betroffene Versionen / 33 Advisories**. Gegenüber dem geprüften Ausgangsgraphen 1.439 / 21 / 39 ist das eine Teilreduktion, keine saubere Gesamtbewertung und keine unabhängige Freigabe. Weitere Befunde bleiben Release-Blocker.
+
+Der Hilfsworkflow ist nun ausschließlich manuell auslösbar, damit jeder nachfolgende PR-Commit keinen weiteren Kandidatenlauf erzeugt. Keine automatische Übernahme oder Schreibrechte. Vollständige Pflicht-CI am exakten neuen Commit mit übernommenen Paketdateien bleibt **ausstehend**; erst danach darf regulär integriert werden. Die folgenden Abschnitte dokumentieren den historischen Aufbau und die ursprünglichen Prüfgrenzen. **Produktion bleibt NO-GO.**
+
 **Vorbereiteter Prüflauf, keine behobenen Paketbefunde und keine Produktionsfreigabe.** Ziel ist ein regulär von Bun erzeugter, überprüfbarer Update-Kandidat für Vite 8.3.5 in Root und App. Manifest und Locks werden erst nach Artefaktprüfung in einem separaten Änderungsschritt übernommen.
 
 ## Anlass und aktueller Nachweis
