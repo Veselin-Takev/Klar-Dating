@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 /**
  * Account / consent routes.
  * Handlers live in datenschutz.ts and trustAndSafety.ts — this file only mounts them (move-only).
@@ -55,8 +56,8 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       });
       if (!allowed) return res.status(429).json({ error: 'Zu viele Löschanträge. Bitte später erneut versuchen.' });
       return next();
-    } catch (error) {
-      console.error('Account deletion rate-limit unavailable', error);
+    } catch {
+      logSafeFailure('account_deletion_limit_failure');
       return res.status(503).json({ error: 'Löschantrag derzeit nicht verfügbar.' });
     }
   };
@@ -123,8 +124,8 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
 
       res.clearCookie('__session');
       return res.json({ success: true, timestamp: new Date().toISOString() });
-    } catch (error) {
-      console.error('Auth logout cleanup failed', error);
+    } catch {
+      logSafeFailure('account_logout_failure');
       return res.status(503).json({ error: 'Abmeldung konnte serverseitig nicht vollständig abgeschlossen werden.' });
     }
   });
@@ -171,8 +172,8 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
           isAdult: data?.isAdult === true,
           einwilligung: data?.einwilligung ?? null,
         });
-      } catch (dbErr) {
-        console.error('/account/status database lookup failed:', dbErr);
+      } catch {
+        logSafeFailure('account_status_read_failure');
         return res.status(503).json({ error: 'Account status unavailable' });
       }
     } catch {
