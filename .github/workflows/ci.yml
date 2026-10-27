@@ -57,7 +57,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         if: steps.scope.outputs.full == 'true'
         with:
-          bun-version: '1.4.2'
+          bun-version: '1.4.4'
       - name: Codespaces bootstrap regression
         if: steps.scope.outputs.full == 'true'
         run: |
@@ -83,7 +83,7 @@ jobs:
             ~/.bun/install/cache
             ~/.cache/firebase/emulators
             ~/.npm
-          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.2-java-21-${{ hashFiles('phase2_work/bun.lock', 'phase2_work/functions/package-lock.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-1.4.4-java-21-${{ hashFiles('phase2_work/bun.lock', 'phase2_work/functions/package-lock.json') }}
       - name: Install dependencies
         if: steps.scope.outputs.full == 'true'
         run: |
