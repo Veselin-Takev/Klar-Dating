@@ -1,5 +1,13 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Fortschreibung: DOMPurify integriert, Redirect-Kandidat vorbereitet
+
+PR #152 ist nach vollständiger erfolgreicher CI [40486060641](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40486060641) auf `da33f21bfb8d3a83a258b36cf2fd52e3d8c7d8ab` regulär integriert. Main `4977ab50bf822838e01eb604770e29bc295d3998` entspricht exakt dem geprüften Dateistand. PR #140 wurde regulär aktualisiert; auf `77a3e94228c85f613a282c081fec6ad2bd7d7a5d` bestand die normale CI [40538555190](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555190). Der separate [Scan 40538555128](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555128) bestätigte nach 15 bestandenen Tests 1.440 Versionen / 19 betroffene / 28 Advisories, Exit 1. Dies ist der neue tatsächliche Ausgangsstand, kein sauberer Gesamtbefund.
+
+Nächster vorbereiteter Kandidat: transitive `follow-redirects`-Version 1.16.2. Im offiziellen npm-Register verfügbar; die gezielte vollständige OSV-Antwort vom 27.10.2026 meldete für diesen Kandidaten keine Advisories. Der feste Zielwert des bestehenden manuellen Generators und des Verifikators ist entsprechend angepasst. Manifeste müssen semantisch unverändert bleiben; beide Locks müssen die Zielversion enthalten. Alle übrigen read-only-/Toolchain-/Frozen-/Hash-Grenzen bleiben bestehen.
+
+Lokal Syntax-, Toolchain-Pin-, Layout- und Whitespace-Gates bestanden. Noch keine Kandidatenlocks übernommen. Neuer Generatorlauf, Artefakt-/Graphprüfung, Gesamt-Scan und Pflicht-CI am später übernommenen Commit bleiben erforderlich. Keine neue Produktionsfreigabe.
+
 ## DOMPurify-Kandidat: isoliert erzeugt, geprüft und übernommen
 
 Manueller Generator [40485769378](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485769378) auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, einschließlich beider getrennten Frozen-Installationen und unveränderter Manifest-Abhängigkeiten. Neues ZIP-Digest `ab412a2b68afa42ba0c65531eab8a1a165b134b106b0b31648eaf8846556566b` mit GitHub verglichen; exakt fünf Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft.
