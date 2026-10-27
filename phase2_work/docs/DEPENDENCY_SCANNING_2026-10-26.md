@@ -32,3 +32,33 @@ Nach Integration zuerst den echten Scanlauf und seine Lock-Hashes dokumentieren,
 Befunde versionsgenau behandeln und danach die verpflichtende Integration bewerten.
 Keine unabhängige Security-Abnahme, Cloud-Billing-Kontrolle, Lasttest- oder
 Staging-/Produktionsfreigabe wird daraus abgeleitet.
+
+## Fortschreibung 27.10.2026: genehmigte Toolchain und tatsächlicher Scan
+
+Der echte Scan40397909553 auf42a50838b53e157069119ddb2297b8e98ad320df führte alle
+zehn Regressionen erfolgreich aus und meldete1.438Versionen/21betroffeneVersionen/
+39Advisories, Exit1. Das ist ein vollständiger Scan mit Befunden. Die damalige
+reguläre CI40397909542 bestand; ihre grüne Bewertung hebt die Befunde nicht auf.
+Der PR bleibt Draft, keine pauschale Baseline oder Ignoreliste.
+
+Nach Integration des koordinierten Bun-Updates143 wird auch dieser neue Workflow
+auf Bun1.4.4 synchronisiert. Setup-Action-SHA, Node22.23.3, read-only Token und
+persist-credentials:false bleiben erhalten. Keine zusätzlichen Rechte oder
+geänderte Befundschwelle. Der neue Head benötigt erneut vollständige CI und Scan.
+Die Functions-Teilkorrektur141 ist im übernommenen Main enthalten; Root-/App-Locks
+sind weiterhin betroffen. Keine neue globale Scan-Zahl vor Ausführung behaupten.
+
+PR143 bestand vollständige CI40468901898 auf e87ba310da10ea81c470a0912df90791d072368c
+und wurde als05e2cdc1525b7d6fc417b67502b473348217545e in Main integriert;
+exakter Tree-Vergleich bestanden. Neue offizielle lokale Bun1.4.4 startet, aber ein
+isolierter zod-Lockfile-Probelauf scheitert weiterhin an EBADF beim Temp-Verzeichnis,
+auch mit eigenen BUN_TMPDIR/BUN_INSTALL/Temp-/Cache-Verzeichnissen auf D:.
+Das ist kein behobener Paketbefund und kein lokaler Frozen-Install-Erfolg.
+Keine unveränderten Wiederholungen oder Abschaltung von TLS-Prüfungen.
+
+Produktionsstatus bleibt NO-GO. Keine neue Cloud-Ressource oder reale Abrechnung.
+
+Erneute vollständige lokale OSV-Abfrage am27.10.2026 nach Main-Synchronisierung:
+1.439eindeutige Versionen,21betroffene Versionen,39Advisories. Alle drei Lock-Hashes
+wurden ermittelt. Die zusätzliche Version stammt aus der geänderten Functions-Auflösung;
+dieser lokale Scan ersetzt nicht den ausstehenden CI-Lauf des neuen Heads.
