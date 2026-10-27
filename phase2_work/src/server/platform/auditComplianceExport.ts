@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { createHash } from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
 import { getDb } from '../db';
@@ -235,7 +236,7 @@ export async function getAnonymizedComplianceAuditLogs(
       });
     }
   } catch (error) {
-    console.error('[AuditCompliance] Firestore read failed; refusing to substitute synthetic compliance records.', error);
+    logSafeFailure('compliance_audit_query_failure');
     throw new Error('Compliance audit data is unavailable.', { cause: error });
   }
 

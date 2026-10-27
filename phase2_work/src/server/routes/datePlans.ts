@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from '../db';
@@ -83,8 +84,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
         .slice(0, 30)
         .map(doc => ({ id: doc.id, name: String(doc.data().name ?? '').slice(0, 80), age: Number(doc.data().age ?? 0), city }));
       return res.json({ connections });
-    } catch (error) {
-      console.error('Date planner connections failed', error);
+    } catch {
+      logSafeFailure('date_connections_failure');
       return res.status(503).json({ error: 'Verbindungen derzeit nicht verfügbar.', connections: [] });
     }
   });
@@ -112,8 +113,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
         connectionName: String(connection.profile.name ?? 'Verbindung').slice(0, 80),
       }));
       return res.json({ mode: 'kuratiert', ideas });
-    } catch (error) {
-      console.error('Date planner ideas failed', error);
+    } catch {
+      logSafeFailure('date_ideas_failure');
       return res.status(503).json({ error: 'Date-Ideen derzeit nicht verfügbar.' });
     }
   });
@@ -124,8 +125,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     try {
       const snap = await deps.getFirestore().collection('users').doc(uid).collection('datePlans').orderBy('startsAt', 'asc').limit(50).get();
       return res.json({ plans: snap.docs.map(doc => { const data = doc.data(); return { id: doc.id, ...data, date: data.startsAt, matchName: data.connectionName, idea: data.description }; }) });
-    } catch (error) {
-      console.error('Date plans read failed', error);
+    } catch {
+      logSafeFailure('date_plans_read_failure');
       return res.status(503).json({ error: 'Date-Kalender derzeit nicht verfügbar.', plans: [] });
     }
   });
@@ -158,8 +159,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
       };
       await ref.create(data);
       return res.status(201).json({ plan: { id: ref.id, ...data } });
-    } catch (error) {
-      console.error('Date plan create failed', error);
+    } catch {
+      logSafeFailure('date_plan_create_failure');
       return res.status(503).json({ error: 'Date konnte nicht gespeichert werden.' });
     }
   });
@@ -174,8 +175,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
       if (!snap.exists) return res.status(404).json({ error: 'Date nicht gefunden.' });
       await ref.delete();
       return res.json({ ok: true });
-    } catch (error) {
-      console.error('Date plan delete failed', error);
+    } catch {
+      logSafeFailure('date_plan_delete_failure');
       return res.status(503).json({ error: 'Date konnte nicht gelöscht werden.' });
     }
   });
@@ -186,8 +187,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     try {
       const snap = await deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').orderBy('startsAt', 'asc').limit(50).get();
       return res.json({ availability: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) });
-    } catch (error) {
-      console.error('Date availability read failed', error);
+    } catch {
+      logSafeFailure('date_availability_read_failure');
       return res.status(503).json({ error: 'Verfügbarkeit derzeit nicht verfügbar.', availability: [] });
     }
   });
@@ -203,8 +204,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
       const ref = deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').doc();
       await ref.create({ startsAt: startsAt.toISOString(), createdAt: FieldValue.serverTimestamp() });
       return res.status(201).json({ availability: { id: ref.id, startsAt: startsAt.toISOString() } });
-    } catch (error) {
-      console.error('Date availability create failed', error);
+    } catch {
+      logSafeFailure('date_availability_create_failure');
       return res.status(503).json({ error: 'Verfügbarkeit konnte nicht gespeichert werden.' });
     }
   });
@@ -216,8 +217,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     try {
       await deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').doc(req.params.id).delete();
       return res.json({ ok: true });
-    } catch (error) {
-      console.error('Date availability delete failed', error);
+    } catch {
+      logSafeFailure('date_availability_delete_failure');
       return res.status(503).json({ error: 'Verfügbarkeit konnte nicht gelöscht werden.' });
     }
   });

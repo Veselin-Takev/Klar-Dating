@@ -1,3 +1,27 @@
+## Date-Planung: Fehlerlog-Minimierung — 2026-10-27
+
+Acht bestehende Fehlerpfade auf feste Ereigniscodes begrenzt. 33 lokale Tests in drei Dateien bestanden unter Node 24.22.1, einschließlich vollständiger HTTP-Log-Aufrufe für alle acht Pfade; Pflicht-CI vor Integration ausstehend. PR #149 ist nach vollständiger erfolgreicher CI 40477051741 auf Head `9a6a9841e6b4ae3d1e7af8774bbf1a32580a80e7` integriert. Main `529662e366e1da8fb10a283191d88c5e15807a01` hat den exakt geprüften Tree. Details: [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md). Retention-/Staging-/Freigabenachweise offen; **Produktion: NO-GO**.
+
+---
+
+## Billing-/Compliance-Fehlerlogs — 2026-10-27
+
+Vier weitere Log-Aufrufe auf feste Ereigniscodes begrenzt, einschließlich des Compliance-Abfrage-Helfers. 43 lokale Tests in fünf Dateien bestehen unter Node 24.22.1; vollständige Pflicht-CI vor Integration ausstehend. PR #148 ist nach erfolgreicher CI 40474779359 auf Head `5db26426bb09d424e07b024bc2a07d0e24b1bc8c` integriert, Main `0c600b86c7232cf82dc6109a8f791ba2326199e2` auf identischen Tree geprüft. [P0-Kontrollstatus](P0_CONTROL_STATUS_2026-10-27.md) aktualisiert. Retention-/Staging-/Freigabenachweise bleiben offen; **Produktion: NO-GO**.
+
+---
+
+## Account-Fehlerlogs und P0-Nachweise — 2026-10-27
+
+Drei weitere Account-Fehlerpfade auf feste Ereigniscodes umgestellt; 20 lokale Logger-/HTTP-Tests bestehen. Pflicht-CI vor Integration ausstehend. PR #147 ist inzwischen nach vollständiger erfolgreicher CI 40473081801 auf Head `2056cee999d41ab745dd598967fd9716003f79a5` integriert; Main `9d9876f3fa05cce63fb02a47a8b58a44f43d7038` hat den exakt geprüften Dateistand. Die Foto-Retention-Abweichung bleibt nach Writer-/Worker-Abgleich offen. Details und verbleibende Nachweisgrenzen: [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
+## P0-Kontrollnachweise — 2026-10-27
+
+Die sechs angefragten P0-Kontrollen sind **nicht vollständig geschlossen**. Architektur, lokale Nachweise und offene Betriebsgrenzen stehen in [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). Ein CRLF-Fehlalarm im Art.-17-Quellprüfer wurde bei unveränderten Sicherheitsbedingungen korrigiert: 2 gültige Baselines, 24 abgewiesene Mutationen und 34 weitere lokale Tests bestanden unter Node 24.22.1. Vollständige Pflicht-CI und reale Staging-Nachweise bleiben ausstehend. Historische Foto-Retention-Prüfung separat abgleichen. **Produktion: NO-GO.**
+
+---
+
 ## P0: Idempotente Chat-Bestätigung trotz KI-Ausfall — 2026-10-10
 
 **Entwicklungsbranch-Fix:** Der Chat-Sendepfad prüft nach authentifizierter Chat-Zugehörigkeit eine bereits gespeicherte Kombination `uid + clientMessageId` vor einem erneuten externen KI-Safety-Aufruf. Derselbe Nachrichteninhalt erhält die vorhandene Quittung; Konflikte bleiben 409. Neue Nachrichten werden weiterhin vollständig KI-geprüft und innerhalb einer Firestore-Transaktion autorisiert/geschrieben. **3/3 lokale Node-Quellregressionen tatsächlich ausgeführt und bestanden** (beide getesteten Dateien byteidentisch zu GitHub), aber unter Node 20.20.2 statt der gepinnten Enterprise-Toolchain. **Vier neue Firestore-Emulator-Testfälle** (Provider-Ausfall nach Write, Konflikt, gleichzeitige identische Sends, Block nach Write) committed, **nicht ausgeführt**. Früher CI- und lokaler Preflight-Gate ergänzt. TCO-Vorteil bei Duplikaten und zusätzlicher Firestore-Leseaufwand bei neuen Sends noch nicht gemessen. Details: [ENTERPRISE_E2E_AUDIT_2026-10-10.md](ENTERPRISE_E2E_AUDIT_2026-10-10.md). R2 eingefroren, keine manuell gestartete CI, **NO-GO**.

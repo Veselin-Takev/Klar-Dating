@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import { distributedRateLimit } from '../distributedRateLimiter';
@@ -65,7 +66,7 @@ export function createBillingRouter(deps: BillingRouterDeps): Router {
           ? 'Für dieses Konto besteht bereits ein Klar+ Abonnement.'
           : 'Für dieses Konto wird bereits ein Checkout erstellt. Bitte kurz warten.' });
       }
-      console.error('Klar+ checkout creation failed', error);
+      logSafeFailure('billing_checkout_failure');
       return res.status(503).json({ error: 'Checkout unavailable' });
     }
   });

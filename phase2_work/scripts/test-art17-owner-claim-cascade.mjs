@@ -24,14 +24,10 @@ try {
     cpSync(join(root, relative), destination);
   }
 
-  const original = readFileSync(join(work, sourcePath), 'utf8');
+  const original = readFileSync(join(work, sourcePath), 'utf8').replace(/\r\n/g, '\n');
   const runGate = () => spawnSync(process.execPath, ['scripts/check-art17-deletion-audit.mjs', '0'], {
     cwd: work, encoding: 'utf8', timeout: 15000, env: { ...process.env },
   });
-  const baseline = runGate();
-  assert.equal(baseline.status, 0, `baseline gate failed: ${baseline.stderr || baseline.error}`);
-  assert.match(baseline.stdout, /Art\. 17 deletion audit boundary: PASS/);
-
   const cases = [
     {
       name: 'duplicate owner cascade start boundary',
@@ -111,19 +107,30 @@ try {
     },
   ];
 
-  for (const item of cases) {
-    assert.ok(original.includes(item.from), `fixture missing: ${item.name}`);
-    const mutated = item.modify ? item.modify(original) : original.replace(item.from, item.to);
-    assert.notEqual(mutated, original, `mutation did not change source: ${item.name}`);
-    writeFileSync(join(work, sourcePath), mutated, 'utf8');
-    const result = runGate();
-    assert.equal(result.status, 1, `gate accepted invalid cascade: ${item.name}; ${result.stdout}`);
-    assert.match(result.stderr, item.expectedError ?? /owner deletion must remove buyer claims by referralId before deleting referral parent/,
-      `missing expected denial: ${item.name}; ${result.stderr}`);
-    writeFileSync(join(work, sourcePath), original, 'utf8');
-    console.log(`PASS negative: ${item.name}`);
+  for (const [label, newline] of [['LF', '\n'], ['CRLF', '\r\n']]) {
+    // Exercise every source file under the checkout convention, not just the mutation target.
+    for (const relative of relativeFiles) {
+      const canonical = readFileSync(join(root, relative), 'utf8').replace(/\r\n/g, '\n');
+      writeFileSync(join(work, relative), canonical.replace(/\n/g, newline), 'utf8');
+    }
+    const baseline = runGate();
+    assert.equal(baseline.status, 0, `${label} baseline gate failed: ${baseline.stderr || baseline.error}`);
+    assert.match(baseline.stdout, /Art\. 17 deletion audit boundary: PASS/);
+    console.log(`PASS baseline: ${label}`);
+    for (const item of cases) {
+      assert.ok(original.includes(item.from), `fixture missing: ${item.name}`);
+      const mutated = item.modify ? item.modify(original) : original.replace(item.from, item.to);
+      assert.notEqual(mutated, original, `mutation did not change source: ${item.name}`);
+      writeFileSync(join(work, sourcePath), mutated.replace(/\n/g, newline), 'utf8');
+      const result = runGate();
+      assert.equal(result.status, 1, `gate accepted invalid cascade: ${item.name}; ${result.stdout}`);
+      assert.match(result.stderr, item.expectedError ?? /owner deletion must remove buyer claims by referralId before deleting referral parent/,
+        `missing expected denial: ${item.name}; ${result.stderr}`);
+      writeFileSync(join(work, sourcePath), original.replace(/\n/g, newline), 'utf8');
+      console.log(`PASS negative (${label}): ${item.name}`);
+    }
   }
-  console.log('PASS: owner-claim Art. 17 static gate mutation regression (12 cases)');
+  console.log('PASS: owner-claim Art. 17 static gate (2 baselines, 24 negative cases)');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
