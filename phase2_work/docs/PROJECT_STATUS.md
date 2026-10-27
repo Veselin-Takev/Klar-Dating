@@ -1,3 +1,9 @@
+## Account-Fehlerlogs und P0-Nachweise — 2026-10-27
+
+Drei weitere Account-Fehlerpfade auf feste Ereigniscodes umgestellt; 20 lokale Logger-/HTTP-Tests bestehen. Pflicht-CI vor Integration ausstehend. PR #147 ist inzwischen nach vollständiger erfolgreicher CI 40473081801 auf Head `2056cee999d41ab745dd598967fd9716003f79a5` integriert; Main `9d9876f3fa05cce63fb02a47a8b58a44f43d7038` hat den exakt geprüften Dateistand. Die Foto-Retention-Abweichung bleibt nach Writer-/Worker-Abgleich offen. Details und verbleibende Nachweisgrenzen: [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+
 ## P0-Kontrollnachweise — 2026-10-27
 
 Die sechs angefragten P0-Kontrollen sind **nicht vollständig geschlossen**. Architektur, lokale Nachweise und offene Betriebsgrenzen stehen in [P0_CONTROL_STATUS_2026-10-27.md](P0_CONTROL_STATUS_2026-10-27.md). Ein CRLF-Fehlalarm im Art.-17-Quellprüfer wurde bei unveränderten Sicherheitsbedingungen korrigiert: 2 gültige Baselines, 24 abgewiesene Mutationen und 34 weitere lokale Tests bestanden unter Node 24.22.1. Vollständige Pflicht-CI und reale Staging-Nachweise bleiben ausstehend. Historische Foto-Retention-Prüfung separat abgleichen. **Produktion: NO-GO.**
