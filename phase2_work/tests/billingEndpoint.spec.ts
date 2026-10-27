@@ -75,9 +75,14 @@ describe('Klar+ checkout HTTP boundary', () => {
     expect(api.checkout).toHaveBeenCalledWith('user-a', safe);
   });
   it('fails closed when the payment provider is unavailable and hides provider details', async () => {
-    const api = await endpoint({ bookable: true, createCheckoutSession: async () => { throw new Error('private Stripe detail'); } });
+    const sink = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const api = await endpoint({ bookable: true, createCheckoutSession: async () => {
+      throw Object.assign(new Error('private Stripe detail'), { authorization: 'Bearer synthetic-secret', customer: 'private-customer' });
+    } });
     const response = await api.send(payload);
     expect(response.status).toBe(503);
-    expect(await response.text()).not.toContain('private Stripe detail');
+    const text = await response.text();
+    for (const marker of ['private Stripe detail', 'synthetic-secret', 'private-customer']) expect(text).not.toContain(marker);
+    expect(sink.mock.calls).toEqual([[JSON.stringify({ level: 'ERROR', event: 'billing_checkout_failure' })]]);
   });
 });
