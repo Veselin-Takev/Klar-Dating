@@ -2,9 +2,9 @@
 
 ## Scope and provenance
 
-This setup adapts only the useful runtime/Firebase prerequisites from `Klar_Node_Firebase_Fix_2026-10-05.zip`. The earlier patch's npm root lockfile and Node 22.23.0 policy are **not** applied. Current application dependencies are installed from `phase2_work/bun.lock` with **Bun 1.4.2**, Cloud Functions from `phase2_work/functions/package-lock.json` using `npm ci`, and Node is pinned to **22.23.3**. Java **21** runs Firebase emulators.
+This setup adapts only the useful runtime/Firebase prerequisites from `Klar_Node_Firebase_Fix_2026-10-05.zip`. The earlier patch's npm root lockfile and Node 22.23.0 policy are **not** applied. Current application dependencies are installed from `phase2_work/bun.lock` with **Bun 1.4.4**, Cloud Functions from `phase2_work/functions/package-lock.json` using `npm ci`, and Node is pinned to **22.23.3**. Java **21** runs Firebase emulators.
 
-The GitHub Codespaces devcontainer runs `bash phase2_work/scripts/setup-codespace.sh` after creation. This script loads nvm if necessary, installs exact Node 22.23.3 and Bun 1.4.2, checks Java 21, verifies lockfiles, installs both dependency graphs without modifying the lockfiles, and checks the local Firebase CLI. It fails immediately if prerequisites are unavailable.
+The GitHub Codespaces devcontainer runs `bash phase2_work/scripts/setup-codespace.sh` after creation. This script loads nvm if necessary, installs exact Node 22.23.3 and Bun 1.4.4, checks Java 21, verifies lockfiles, installs both dependency graphs without modifying the lockfiles, and checks the local Firebase CLI. It fails immediately if prerequisites are unavailable.
 
 ## In a new Codespace
 
