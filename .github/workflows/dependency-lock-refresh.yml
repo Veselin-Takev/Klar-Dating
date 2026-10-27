@@ -1,0 +1,55 @@
+name: Klar Controlled Dependency Lock Refresh
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dependency-lock-refresh-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.23.3'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.4'
+      - name: Generate targeted Vite candidate without lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_dir=$(mktemp -d)
+          mkdir "$candidate_dir/root" "$candidate_dir/app"
+          cp package.json bun.lock "$candidate_dir/root/"
+          cp phase2_work/package.json phase2_work/bun.lock "$candidate_dir/app/"
+          for project in root app; do
+            (
+              cd "$candidate_dir/$project"
+              bun update vite@8.3.5 --exact --lockfile-only --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+              bun ci --ignore-scripts --no-env-file --registry https://registry.npmjs.org
+            )
+          done
+          cp "$candidate_dir/root/package.json" "$candidate_dir/root/bun.lock" .
+          cp "$candidate_dir/app/package.json" "$candidate_dir/app/bun.lock" phase2_work/
+      - name: Verify scope and bind candidate hashes to source revision
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: node phase2_work/scripts/verify-lock-refresh.mjs
+      - name: Publish review candidate only
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: vite-lock-candidate-${{ github.event.pull_request.head.sha }}
+          retention-days: 3
+          if-no-files-found: error
+          path: |
+            package.json
+            bun.lock
+            phase2_work/package.json
+            phase2_work/bun.lock
+            lock-refresh-evidence.json
