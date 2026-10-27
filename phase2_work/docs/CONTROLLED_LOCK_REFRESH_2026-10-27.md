@@ -1,5 +1,21 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## Redirect-Kandidat: Frozen- und differenzieller Scan-Nachweis
+
+Manueller Generator [40541640098](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40541640098) auf `e3a591be7a5c7a2cd8b25507a8e4fd189942387b` erfolgreich, einschließlich beider getrennter Frozen-Installationen. ZIP-Digest `aaf68b1c6a55e3d75be951e7beadd05e35d08908fc36ef6e1165f721aa628a32` mit GitHub verglichen; exakt fünf Einträge, Quell-Commit und alle Vorher-/Kandidatenhashes lokal überprüft. Jeweils genau ein geänderter Lockeintrag: `follow-redirects` 1.16.0 → 1.16.2. Manifeste und alle übrigen Paketversionen unverändert. Beide neuen Lock-Hashes: `e3fd4a98ab0e1599503d859ca451689629a10f37ab7dcb6288033efc830ee4f1`. Die zwei erzeugten Locks sind im Entwicklungsbranch als Kandidat übernommen.
+
+Vollständiger lokaler Kandidatenscan am 27.10.2026: 1.440 eindeutige Versionen / 19 betroffene / 27 Advisories. Da der historische Ausgangsscan 19 / 28 keine isolierte Wirkungszuordnung erlaubte, wurde ein begründeter differenzieller Kontrollscan mit der Vereinigung beider Paketgraphen ausgeführt. **Gleicher abgefragter Datenbestand:** Ausgangsgraph 1.440 / 20 / 29, Kandidat 1.440 / 19 / 27. Eine gezielte vollständige OSV-Antwort bestätigt zwei Advisories für die alte Zielversion und keine für 1.16.2. Die externen Befunddaten des unveränderten Ausgangsgraphs haben sich seit dem früheren Scan geändert; dies wird nicht als Codeänderung oder Entwarnung ausgegeben. Unbehandelte Detailbefunde bleiben lokal.
+
+Syntax-/Toolchain-/Layout-/Whitespace-Gates lokal bestanden. Die vollständige Pflicht-CI auf dem exakten neuen Commit mit übernommenen Dateien ist noch erforderlich. Erfolgreicher Generator und Vorbereitungs-CI ersetzen sie nicht. PR #140 bleibt Draft; verbleibende Befunde und unabhängige Betriebs-/Freigabenachweise bleiben offen. **Produktion: NO-GO.**
+
+## Fortschreibung: DOMPurify integriert, Redirect-Kandidat vorbereitet
+
+PR #152 ist nach vollständiger erfolgreicher CI [40486060641](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40486060641) auf `da33f21bfb8d3a83a258b36cf2fd52e3d8c7d8ab` regulär integriert. Main `4977ab50bf822838e01eb604770e29bc295d3998` entspricht exakt dem geprüften Dateistand. PR #140 wurde regulär aktualisiert; auf `77a3e94228c85f613a282c081fec6ad2bd7d7a5d` bestand die normale CI [40538555190](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555190). Der separate [Scan 40538555128](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40538555128) bestätigte nach 15 bestandenen Tests 1.440 Versionen / 19 betroffene / 28 Advisories, Exit 1. Dies ist der neue tatsächliche Ausgangsstand, kein sauberer Gesamtbefund.
+
+Nächster vorbereiteter Kandidat: transitive `follow-redirects`-Version 1.16.2. Im offiziellen npm-Register verfügbar; die gezielte vollständige OSV-Antwort vom 27.10.2026 meldete für diesen Kandidaten keine Advisories. Der feste Zielwert des bestehenden manuellen Generators und des Verifikators ist entsprechend angepasst. Manifeste müssen semantisch unverändert bleiben; beide Locks müssen die Zielversion enthalten. Alle übrigen read-only-/Toolchain-/Frozen-/Hash-Grenzen bleiben bestehen.
+
+Lokal Syntax-, Toolchain-Pin-, Layout- und Whitespace-Gates bestanden. Noch keine Kandidatenlocks übernommen. Neuer Generatorlauf, Artefakt-/Graphprüfung, Gesamt-Scan und Pflicht-CI am später übernommenen Commit bleiben erforderlich. Keine neue Produktionsfreigabe.
+
 ## DOMPurify-Kandidat: isoliert erzeugt, geprüft und übernommen
 
 Manueller Generator [40485769378](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485769378) auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, einschließlich beider getrennten Frozen-Installationen und unveränderter Manifest-Abhängigkeiten. Neues ZIP-Digest `ab412a2b68afa42ba0c65531eab8a1a165b134b106b0b31648eaf8846556566b` mit GitHub verglichen; exakt fünf Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft.
