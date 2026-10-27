@@ -1,5 +1,15 @@
 # Kontrollierte Dependency-Lockerzeugung — 2026-10-27
 
+## DOMPurify-Kandidat: isoliert erzeugt, geprüft und übernommen
+
+Manueller Generator [40485769378](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485769378) auf `97cbe5967ee51f0a26f51ea24803a3029d4dd5ef` erfolgreich, einschließlich beider getrennten Frozen-Installationen und unveränderter Manifest-Abhängigkeiten. Neues ZIP-Digest `ab412a2b68afa42ba0c65531eab8a1a165b134b106b0b31648eaf8846556566b` mit GitHub verglichen; exakt fünf Einträge, Source-Commit und alle Vorher-/Kandidatenhashes lokal geprüft.
+
+Graph-Diff: **jeweils genau ein geänderter Eintrag pro Bun-Lock**, DOMPurify 3.4.15 → 3.4.17. Keine sonstigen Paketversionen oder semantischen Manifeständerungen. Beide Lock-Hashes `a82fb3b798a38da2ca8adb9a6bda0f6ebe4041642fcdfe9ec70b8fbe345b07ca`. Die zwei erzeugten Locks sind jetzt als Kandidat im Entwicklungsbranch übernommen.
+
+Vollständige lokale OSV-Abfrage des Kandidaten samt unveränderter Functions-Lock am 27.10.2026: **1.440 eindeutige Versionen / 19 betroffene Versionen / 28 Advisories**, zuvor beim integrierten Vite-Stand 1.440 / 20 / 33. Das ist eine weitere Teilreduktion, keine globale Entwarnung. Die Pflicht-CI muss auf dem neuen Commit mit den tatsächlich übernommenen DOMPurify-Locks bestehen; erfolgreiche Generator-/Vorbereitungs-CI ersetzt sie nicht. Keine neue Live-Staging-/Produktionsfreigabe.
+
+Der tatsächliche PR-#140-Scan nach Vite-Main-Synchronisierung [40485345691](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40485345691) auf `5d8fa4588a89b5605544f0b3666f986c0558ffdd` bestätigt 15 bestandene Scanner-Tests und 1.440 / 20 / 33 mit Exit 1. Er gilt noch nicht für den DOMPurify-Kandidaten. PR #140 bleibt Draft, verbleibende Befunde werden nicht ignoriert.
+
 ## Fortschreibung: Vite integriert, nächster transitive Update-Kandidat
 
 PR #151 ist nach vollständiger erfolgreicher CI [40483947064](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40483947064) auf `0962ff12e1d5dc5f8ab248dec78350cd2f081803` regulär integriert. Main `7fefc9dd5d78224575ce40b69066bbb1f1befe91` wurde auf identischen Dateistand geprüft. Die weiter unten als ausstehend bezeichnete CI der übernommenen Vite-Dateien ist damit bestätigt. PR #140 wurde regulär mit diesem Main aktualisiert; neue Scan-/CI-Ergebnisse sind separat zu bewerten.
