@@ -15,8 +15,11 @@ Jeder Main-Tree wurde nach regulärer Integration exakt mit dem geprüften Branc
 
 ## Aktueller Kandidat
 
-Festes transitive Ziel: **shell-quote 1.12.0**. Im offiziellen npm-Register verfügbar; die gezielte vollständige OSV-Antwort vom 27.10.2026 meldete für diesen Kandidaten keine Advisories. Workflow und Verifikator sind vorbereitet, Syntax-/Toolchain-Pin-/Layout-/Whitespace-Gates lokal bestanden. Noch keine neuen Kandidatenlocks übernommen. Generator, Artefaktreview, differenzieller Gesamt-Scan und Pflicht-CI am übernommenen Commit fehlen noch. Eine saubere Zielversionsabfrage belegt keine globale Befundfreiheit oder Kompatibilität.
+Festes Ziel: **concurrently 10.0.6**, dessen offizielles npm-Metadatum die benötigte Child-Version **shell-quote 1.12.0** exakt deklariert. Node-Anforderung >=22 passt zur gepinnten Toolchain. Gezielte vollständige OSV-Antworten für beide Zielversionen ohne Advisories geprüft. Root-/App-Manifeste dürfen ausschließlich `devDependencies.concurrently` auf exakt 10.0.6 ändern; alle übrigen Einträge müssen unverändert bleiben. Beide Locks müssen Parent-/Child-Zielversionen enthalten und dürfen shell-quote 1.9.0 nicht mehr enthalten.
 
+Der erste direkte Child-Updateversuch [40560759151](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40560759151) auf `b5d76eec60fe10ed5296e1f0f6e75c5aead39f94` scheiterte im Verifikator mit `Unexpected generated change scope`; kein Artefakt wurde freigegeben und keine Locks übernommen. Der vorhandene Parent concurrently 10.0.5 bindet shell-quote exakt an 1.9.0. Statt die Grenze zu lockern oder per Major-/Global-Override zu umgehen, wird der kompatible Parent-Patch erzeugt. Der fehlgeschlagene Lauf bleibt als historischer Nachweis erhalten; neue Ausführung nur wegen der geänderten Update-Strategie.
+
+Lokale Syntax-/Toolchain-Pin-/Layout-/Whitespace-Gates bestanden. Noch keine neuen Kandidatenlocks übernommen. Parent-Generator, Artefaktreview, vollständiger differenzieller Scan und Pflicht-CI am übernommenen Commit fehlen noch. Eine saubere Zielversionsabfrage belegt keine globale Befundfreiheit oder Kompatibilität.
 ## Verifizierte Erzeugungsnachweise
 
 Die folgenden Generatorläufe bestanden jeweils beide getrennten Linux-Frozen-Installationen. ZIP-Digest wurde mit GitHub verglichen; genau fünf Einträge, Source-Commit und alle vier Vorher-/Kandidatenhashes wurden lokal geprüft. Artefakte/Detailreviews liegen lokal außerhalb des Repositorys; unveränderte ältere Dokumentfassungen und Zwischenschritte sind über die Git-Historie nachvollziehbar.
