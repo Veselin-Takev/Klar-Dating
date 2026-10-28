@@ -237,7 +237,12 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const snap = await deps.getFirestore().collection('activation_events').where('uid', '==', uid).limit(100).get();
+      // Suppress readback once the account enters the Art.17 deletion lifecycle.
+      // Fail closed when deletion status cannot be obtained.
+      const db = deps.getFirestore();
+      const deletion = await db.collection('account_deletions').doc(uid).get();
+      if (deletion.exists) return res.status(409).json({ error: 'Aktivierungsstatus für dieses Konto nicht verfügbar.' });
+      const snap = await db.collection('activation_events').where('uid', '==', uid).limit(100).get();
       const events: string[] = snap.docs.map((doc) => String(doc.data()?.eventName ?? ''));
       const unique = Array.from(new Set(events));
       return res.json({ ...deps.activationScore(unique), events: unique });

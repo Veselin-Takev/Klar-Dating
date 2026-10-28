@@ -1,0 +1,13 @@
+# Activation summary read boundary — Art.17 marker (2026-10-28)
+
+**Status: DRAFT / PRODUCTION NO-GO**. Baseline `main` SHA `2808dc1cbb485f70b403681c108cea5a3361d950`.
+
+## Finding
+
+`GET /api/activation/summary` returned the authenticated account's recorded activation history without checking `account_deletions/{uid}`. Once an account deletion begins, this readback can be inconsistent with the privacy lifecycle. This endpoint is independently authenticated and rate-limited, so the fix adds a focused server-side deletion check instead of changing the whole activation subsystem.
+
+## Fix, regression evidence and limitations
+
+The handler reads the account-deletion marker before querying `activation_events`, returns HTTP 409 when deletion is pending and avoids querying historical activation data. If the deletion status cannot be loaded it fails closed with the existing generic HTTP 503 error. Two new HTTP regression tests verify pending deletion and Firestore read failures; the existing success test now explicitly models an absent deletion marker.
+
+**Concurrency limitation:** the marker read and event query are not a single transactional snapshot. This is a defense-in-depth read guard and does not independently prove full Art.17 cascade integrity or close an intervening deletion race. Authoritative deletion controls and emulator/staging race evidence remain mandatory. No client-side activity, reward logic, cloud settings, or retention timeline changed. Require exact-HEAD CI, Security/DPO approvals and no production deployment until formally authorized. Rollback by reverting this isolated PR. **NO-GO**.

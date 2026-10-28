@@ -219,9 +219,45 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(ctx.db.runTransaction).not.toHaveBeenCalled();
   });
 
+  it('suppresses activation-event readback while account deletion is pending', async () => {
+    const db = baseDb();
+    const eventQuery = vi.fn();
+    db.collection = vi.fn((name: string) => {
+      if (name === 'account_deletions') return {
+        doc: vi.fn(() => ({ get: vi.fn(async () => ({ exists: true })) })),
+      } as any;
+      if (name === 'activation_events') return { where: eventQuery } as any;
+      return baseDb().collection(name);
+    });
+    const ctx = await api({ getFirestore: () => db });
+    const response = await fetch(ctx.base + '/activation/summary');
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'Aktivierungsstatus für dieses Konto nicht verfügbar.' });
+    expect(eventQuery).not.toHaveBeenCalled();
+  });
+
+  it('fails closed if deletion marker status cannot be loaded', async () => {
+    const db = baseDb();
+    const eventQuery = vi.fn();
+    db.collection = vi.fn((name: string) => {
+      if (name === 'account_deletions') return {
+        doc: vi.fn(() => ({ get: vi.fn(async () => { throw new Error('Firestore unavailable'); }) })),
+      } as any;
+      if (name === 'activation_events') return { where: eventQuery } as any;
+      return baseDb().collection(name);
+    });
+    const ctx = await api({ getFirestore: () => db });
+    const response = await fetch(ctx.base + '/activation/summary');
+    expect(response.status).toBe(503);
+    expect(eventQuery).not.toHaveBeenCalled();
+  });
+
   it('deduplicates activation event names in the summary', async () => {
     const db = baseDb();
     db.collection = vi.fn((name: string) => {
+      if (name === 'account_deletions') return {
+        doc: vi.fn(() => ({ get: vi.fn(async () => ({ exists: false })) })),
+      } as any;
       if (name === 'activation_events') return {
         where: vi.fn(() => ({ limit: vi.fn(() => ({ get: vi.fn(async () => ({
           docs: [
