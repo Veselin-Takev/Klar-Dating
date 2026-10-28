@@ -73,7 +73,7 @@ afterEach(async () => {
   if (originalSecret === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
   else process.env.COMPLIANCE_JOB_SECRET = originalSecret;
   await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => {
-    server.close(() => resolve);
+    server.close(() => resolve());
     server.closeAllConnections();
   })));
   if (db) await db.terminate();
