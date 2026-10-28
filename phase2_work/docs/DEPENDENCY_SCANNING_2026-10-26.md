@@ -131,3 +131,37 @@ OSV scan; retain other known OSV findings as blockers. The root
 and app lockfiles must remain byte-identical. No expected pass on
 unrelated vulnerable versions may be inferred. Independent Security,
 Privacy, Legal and Release Owner approvals remain mandatory.
+
+## 28 October 2026 – sharp 0.35.5 remediation committed
+
+The first isolated vulnerability fix has been **committed**, not merely
+prepared: `sharp` (dev dependency) is now pinned with manifest range
+`^0.35.5` and resolved as `sharp@0.35.5` in **both** identical Bun
+locks. The generator ran with pinned Bun 1.4.4 in GitHub Actions
+`40653356501`; the reviewed artifact ID is `12800617600`.
+The expected Git blob IDs of its generated files were validated
+*before* the commit: app package manifest
+`232edaed4b9ec0a84b02a7638864ac6176d48ab0`
+and both Bun locks
+`c464789287c750ab58c252b7ca499d186652a1b3`.
+The committed source SHA is
+`72f7cfdd184021e8747a7633a0588c7022e00755`.
+
+Comparison of the 1,651 non-sharp/non-`@img/sharp` resolved
+package rows confirms the rest of their lock metadata remained
+unchanged. The patch updates only the direct `sharp` package and
+its platform-specific `@img/sharp` / `@img/sharp-libvips` packages.
+The upstream vendor advisory
+`https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w`
+lists `0.35.5` as patched. The temporary artifact generator is
+**removed from the maintained PR** after this successful transfer,
+to avoid adding a permanent write-capable or irrelevant workflow.
+
+**Critical:** Neither CI nor OSV results for this new commit may be
+inferred from the generator's successful artifact run. Fresh exact-head
+Enterprise CI (including frozen Bun install) and independent OSV scan
+must pass their respective policies. The OSV scan is expected to remain
+**FAIL** while the other previously observed affected package
+versions are unresolved. Security must verify advisory applicability
+and deployment reachability; no other package's risk is waived.
+Production remains **NO-GO**.
