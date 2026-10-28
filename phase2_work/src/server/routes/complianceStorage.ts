@@ -61,21 +61,38 @@ export function createVerificationStoragePurgeRouter(deps: {
         const statusRaw = data.entscheidung ?? data.status;
         const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
         if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
-        return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
+        return [{ uid, challengeId: doc.id, status, decidedAt, storagePath,
+          storageGeneration: typeof data.storageGeneration === 'string' ? data.storageGeneration : undefined,
+          photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
       });
 
       const bucket = deps.getBucket?.() ?? getStorage().bucket();
       const summary = await executeVerificationRetentionBatch(
         artifacts,
-        async path => {
-          try { await bucket.file(path).delete({ ignoreNotFound: true }); }
-          catch (error) { throw error; }
+        async (path, generation, artifact) => {
+          const snapshot = await db.collection('verification_events').doc(artifact.challengeId).get();
+          const data = snapshot.data();
+          const status = data?.entscheidung ?? data?.status;
+          if (!snapshot.exists || data?.uid !== artifact.uid || data?.storagePath !== path
+            || data?.storageGeneration !== generation || data?.photoPurged === true
+            || !['bestaetigt', 'abgelehnt', 'approved', 'rejected'].includes(status)
+            || data?.legalHold === true || data?.retentionHold === true || data?.photoPurgeHold === true
+            || normalizeTimestamp(data?.decidedAt) !== artifact.decidedAt
+            || (normalizeTimestamp(data?.fotoLoeschenAb) ?? Infinity) > now)
+            throw new Error('VERIFICATION_PURGE_DECISION_CHANGED_OR_HELD');
+          // 404 and 412 are not successful deletion proof. Never ignore either.
+          await bucket.file(path).delete({ ifGenerationMatch: generation });
         },
         async (uid, challengeId, auditData) => {
           const ref = db.collection('verification_events').doc(challengeId);
           await db.runTransaction(async tx => {
             const current = await tx.get(ref);
-            if (!current.exists || current.data()?.uid !== uid) return;
+            const data = current.data();
+            const expected = artifacts.find(a => a.challengeId === challengeId);
+            if (!current.exists || data?.uid !== uid || !expected || data?.storagePath !== expected.storagePath
+              || data?.storageGeneration !== expected.storageGeneration || data?.photoPurged === true
+              || data?.legalHold === true || data?.retentionHold === true || data?.photoPurgeHold === true)
+              throw new Error('VERIFICATION_PURGE_AUDIT_CONFLICT');
             tx.update(ref, auditData);
           });
         },

@@ -57,7 +57,7 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 ## 10. Verifizierungsfotos (Storage)
 - **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
 - **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** Nur `functions/src/purgeVerificationStorage.ts` ruft den signierten, entscheidungsgebundenen API-Purge (`src/server/routes/complianceStorage.ts`) auf. Der alte Scheduler `functions/src/deleteExpiredPhotos.ts` bereinigt ausschließlich `funnel_events`; `deleteExpiredPhotoPage` verweigert altersbasierte Storage-Löschungen. Die atomare GCS-Generationsbindung des API-Purge ist noch nicht implementiert und bleibt Produktionsblocker.
+- **Worker:** Nur `functions/src/purgeVerificationStorage.ts` ruft den signierten, entscheidungsgebundenen API-Purge (`src/server/routes/complianceStorage.ts`) auf. Der alte Scheduler `functions/src/deleteExpiredPhotos.ts` bereinigt ausschließlich `funnel_events`; `deleteExpiredPhotoPage` verweigert altersbasierte Storage-Löschungen. A-06 schlägt die Speicherung der Entscheidungs-GCS-Generation und `ifGenerationMatch` vor. Historische Ereignisse ohne Entscheidungs-Generation bleiben für den automatischen Löschpfad gesperrt. Unabhängige Emulator-/Race-Nachweise und A-15 stehen aus; weiterhin NO-GO.
 - **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
 
 ## Security Rules Architektur (Least Privilege)

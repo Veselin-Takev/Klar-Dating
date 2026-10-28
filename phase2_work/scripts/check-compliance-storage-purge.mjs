@@ -24,4 +24,11 @@ if (rawMount < 0 || jsonMount < 0 || rawMount >= jsonMount
 if (!route.includes('Buffer.isBuffer(req.body)') || route.includes("Buffer.from('{}')")
     || !route.includes(".update(body).digest('hex')"))
   throw new Error('Compliance purge must HMAC original received bytes');
+const engine = fs.readFileSync('src/server/platform/storageRetentionEngine.ts', 'utf8');
+const writer = fs.readFileSync('src/server/klarCore.ts', 'utf8');
+if (!engine.includes('MISSING_DECISION_STORAGE_GENERATION')
+    || !route.includes('ifGenerationMatch: generation')
+    || route.includes('ignoreNotFound: true')
+    || !writer.includes('storagePath, storageGeneration, photoPurged: false'))
+  throw new Error('A-06 missing immutable decision generation / GCS delete precondition');
 console.log('Compliance storage purge boundary: PASS');

@@ -357,6 +357,17 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
 
     const bestaetigt = entscheidung === 'bestaetigt';
     const firestore = db() as Firestore;
+    // Capture immutable GCS generation before making the moderation decision;
+    // the Firestore transaction rechecks this is still the same request/path.
+    const decisionUser = (await firestore.collection('users').doc(ziel).get()).data() ?? {};
+    const decisionRequestId = typeof decisionUser.verificationRequestId === 'string' ? decisionUser.verificationRequestId : '';
+    const decisionPath = typeof decisionUser.verificationPfad === 'string' ? decisionUser.verificationPfad : '';
+    if (!decisionRequestId || !decisionPath.startsWith(`verification/${ziel}/`))
+      throw new InputError('Verifizierungsobjekt fehlt.');
+    const [metadata] = await getAppBucket().file(decisionPath).getMetadata();
+    const storageGeneration = String(metadata.generation ?? '');
+    if (!/^[1-9][0-9]*$/.test(storageGeneration) || metadata.temporaryHold === true || metadata.eventBasedHold === true)
+      throw new InputError('Die Objektversion ist nicht verfügbar.');
     await firestore.runTransaction(async tx => {
       const userRef = firestore.collection('users').doc(ziel);
       const [user, deletion] = await tx.getAll(userRef, firestore.collection('account_deletions').doc(ziel));
@@ -364,7 +375,8 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
       const userData = user.data() ?? {};
       const requestId = typeof userData.verificationRequestId === 'string' ? userData.verificationRequestId : '';
       const storagePath = typeof userData.verificationPfad === 'string' ? userData.verificationPfad : '';
-      if (!requestId || !storagePath) throw new InputError('Verifizierungsantrag ist unvollständig.');
+      if (!requestId || !storagePath || requestId !== decisionRequestId || storagePath !== decisionPath)
+         throw new InputError('Verifizierungsantrag hat sich während der Prüfung geändert.');
       const requestRef = firestore.collection('verification_requests').doc(requestId);
       const request = await tx.get(requestRef);
       if (!request.exists || request.data()?.uid !== ziel) throw new InputError('Verifizierungsantrag ist nicht verfügbar.');
@@ -377,7 +389,7 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
       tx.update(requestRef, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() });
       tx.create(firestore.collection('verification_events').doc(), { uid: ziel, moderatorUid: uid(req),
         entscheidung, begruendung: begruendung || null, at: FieldValue.serverTimestamp(), decidedAt,
-        storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
+        storagePath, storageGeneration, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
       const publicProfile = toPublicProfile(ziel, { ...user.data(), ...decision });
       const publicRef = firestore.collection('public_profiles').doc(ziel);
       if (bestaetigt && publicProfile) tx.set(publicRef, publicProfile); else tx.delete(publicRef);
