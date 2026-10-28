@@ -44,3 +44,15 @@ jobs:
         run: bun ci --ignore-scripts
       - name: Scan all committed npm package versions
         run: node scripts/scan-dependencies.mjs
+        env:
+          KLAR_DEPENDENCY_REPORT_PATH: ${{ runner.temp }}/klar-dependency-findings.json
+      # Upload the full advisory-to-version mapping even when scan correctly
+      # fails. A failed scan is not waived by successful artifact upload.
+      - name: Preserve dependency remediation evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: klar-dependency-findings
+          path: ${{ runner.temp }}/klar-dependency-findings.json
+          if-no-files-found: ignore
+          retention-days: 7

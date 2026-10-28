@@ -39,3 +39,23 @@ test('counts duplicate packages as evidence that each lock was inspected', () =>
   assert.deepEqual(result.packages, packages);
   assert.equal(Object.keys(result.hashes).length, 2);
 });
+
+test('emits only version-bound advisory IDs in deterministic order for remediation', async () => {
+  const observed = [];
+  const sample = [{ name: '@sample/package', version: '1.2.3' }, { name: 'clean', version: '2.0.0' }];
+  const summary = await query(sample, reply([
+    { vulns: [{ id: 'GHSA-synthetic-2' }, { id: 'GHSA-synthetic-1' }, { id: 'GHSA-synthetic-2' }] },
+    {},
+  ]), item => observed.push(item));
+  assert.deepEqual(summary, { queriedVersions: 2, affectedVersions: 1, uniqueAdvisories: 2 });
+  assert.deepEqual(observed, [{
+    name: '@sample/package', version: '1.2.3',
+    advisoryIds: ['GHSA-synthetic-1', 'GHSA-synthetic-2'],
+  }]);
+});
+
+test('rejects malformed advisory identifiers before exposing any invalid records', async () => {
+  const items = [];
+  await assert.rejects(query(packages, reply([{ vulns: [{ id: 'x'.repeat(181) }] }]), item => items.push(item)));
+  assert.deepEqual(items, []);
+});
