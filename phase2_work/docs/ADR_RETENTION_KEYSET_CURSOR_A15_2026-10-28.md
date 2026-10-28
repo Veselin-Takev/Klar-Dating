@@ -108,3 +108,35 @@ must be verified in CI before recording the extension as PASS.
 The daily scheduler processes at most 100 scanned events each invocation,
 so throughput, backlog alerting and late-arrival liveness still need load and
 Operations/SRE signoff. This PR remains **DRAFT/BLOCKED**, production NO-GO.
+
+## Exact CI evidence and additional non-skippable emulator gate (28 October 2026)
+
+**Earlier accepted execution evidence:** PR #162 commit
+`159fc307d01334163f770c9e40fbfd1914bba37d`,
+GitHub Actions run `40614339246`, job `122573579648`:
+`validate: success`; the archived `Tests` log confirms
+`tests/complianceStorageCursorFirestoreEmulator.spec.ts (3 tests)`
+ran and passed with **195 test files passed**. This is a real Firestore
+Emulator test using synthetic data and a fake GCS deleter, **not** live GCS,
+cloud index or independently signed production evidence. Later commits
+require new exact-head validation.
+
+This stacked hardening package adds a dedicated, mandatory
+`test:retention-emulator` step in root `.github/workflows/ci.yml`,
+a separate `scripts/run-retention-emulator.mjs` executable and six
+negative preflight cases. The executable refuses absent/non-loopback
+Firestore Emulator, unexpected port, non-demo Firebase project, production
+runtime and durable database fallback. It then runs **only** the A-15
+Firestore integration suite with an explicit emulator-required environment,
+rather than accepting a green test command with skipped cases.
+
+The command uses `firebase.pruefung.json`, project `demo-klar` and the
+local Java/Node/Firebase toolchain, and never writes production state.
+Run from `phase2_work`: `bun run test:retention-emulator`.
+CI evidence from this new gate and independent Security/DPO/Legal/Ops
+approval are **PENDING** until checks finish on the new commit.
+
+**Still NO-GO:** This test does not establish production Firestore
+composite-index availability, immutable real GCS 404/412/race evidence,
+complete deletion/reconciliation, 20 ACTIVE staging TTL policies, or release
+signatures. No waiver or merge is authorized.
