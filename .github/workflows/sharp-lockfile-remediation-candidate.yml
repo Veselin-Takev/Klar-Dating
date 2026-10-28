@@ -1,0 +1,60 @@
+name: Klar Sharp Lockfile Remediation Candidate
+# Temporary, read-only remediation artifact generator for verified
+# GHSA-wq5f-xc86-pv6w. Does not commit or deploy any changes.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sharp-lockfile-remediation-candidate.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sharp-candidate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  candidate:
+    if: startsWith(github.head_ref, 'security/sharp-remediation-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.23.3'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.4.4'
+      - name: Generate locked single-package patch candidate (no scripts)
+        working-directory: phase2_work
+        run: |
+          bun add --dev --lockfile-only --ignore-scripts 'sharp@^0.35.5'
+      - name: Enforce sharp advisory patch and both canonical Bun locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'phase2_work/bun.lock';
+          const lock = JSON.parse(fs.readFileSync(path, 'utf8').replace(/,(\s*[}\]])/g, '$1'));
+          const pkg = JSON.parse(fs.readFileSync('phase2_work/package.json', 'utf8'));
+          const resolved = lock?.packages?.sharp?.[0];
+          if (pkg.devDependencies?.sharp !== '^0.35.5'
+              || lock?.workspaces?.['']?.devDependencies?.sharp !== '^0.35.5'
+              || resolved !== 'sharp@0.35.5') {
+            throw new Error('SHARP_PATCH_NOT_PINNED');
+          }
+          console.log('Sharp dependency and patched lock candidate verified.');
+          NODE
+          cp phase2_work/bun.lock bun.lock
+          cmp phase2_work/bun.lock bun.lock
+      - name: Upload reproducible lockfile candidate (not an approved fix)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: sharp-ghsa-wq5f-lockfile-candidate
+          path: |
+            phase2_work/package.json
+            phase2_work/bun.lock
+            bun.lock
+          retention-days: 3
+          if-no-files-found: error

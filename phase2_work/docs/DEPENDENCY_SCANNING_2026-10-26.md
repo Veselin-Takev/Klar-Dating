@@ -107,3 +107,27 @@ breaking upgrade risk. No automatic mass update is authorized.
 
 **Production NO-GO:** the affected-version scan, independent
 dependency review and mandatory release gates remain unresolved.
+
+## 28 October 2026 – Isolated sharp 0.35.5 lockfile remediation candidate
+
+The vendor-reviewed `GHSA-wq5f-xc86-pv6w` affects `sharp@0.35.4`;
+the published fix is `0.35.5`. The committed app manifest currently
+declares `sharp: ^0.35.3` in **devDependencies**. It must not be
+conflated with proof of an exploitable production image-processing path.
+
+A separate PR-scoped, read-only workflow builds a candidate
+`bun add --dev --lockfile-only --ignore-scripts 'sharp@^0.35.5'`
+using pinned Bun 1.4.4 and Node 22.23.3. It checks the exact
+`sharp@0.35.5` resolved lock entry and produces an upload-only artifact
+with `phase2_work/package.json` and *both* Bun locks. It never commits
+to main, never deploys, never invokes arbitrary install scripts and is
+intended to be removed or disabled after the reviewed candidate is
+applied. The artifact is only a proposed dependency upgrade.
+
+**Acceptance:** download that exact workflow artifact, inspect its
+entire diff and unexpected transitive changes, apply atomically to a
+new dedicated feature branch, rerun both enterprise CI and independent
+OSV scan; retain other known OSV findings as blockers. The root
+and app lockfiles must remain byte-identical. No expected pass on
+unrelated vulnerable versions may be inferred. Independent Security,
+Privacy, Legal and Release Owner approvals remain mandatory.
