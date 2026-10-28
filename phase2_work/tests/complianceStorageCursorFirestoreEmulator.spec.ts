@@ -124,7 +124,7 @@ describe.runIf(activeEmulator)('A-15 – real Firestore Emulator pagination and 
 
   it('honors a competing live worker lease without querying or deleting data', async () => {
     await db.doc('system/verification_photo_purge_cursor').set({
-      cursorAt: null, cursorId: null, leaseToken: 'other-worker',
+      cursorAt: null, cursorId: null, leaseToken: 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1',
       leaseUntil: new Date(Date.now() + 120_000),
     });
     const origin = await serve(async () => { throw new Error('must not reach storage'); });
@@ -132,7 +132,7 @@ describe.runIf(activeEmulator)('A-15 – real Firestore Emulator pagination and 
     expect(response.status).toBe(202);
     expect(response.body.busy).toBe(true);
     expect((await db.doc('system/verification_photo_purge_cursor').get()).data()?.leaseToken)
-      .toBe('other-worker');
+      .toBe('a2d69550-7835-4a4b-b121-d3b0ab0a6fc1');
   });
 
   it('rejects corrupt persisted lease state without scanning or touching GCS', async () => {
