@@ -218,7 +218,15 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         // An old founding flag never bypasses current adult eligibility.
         // Do not reveal a stored rank for an ineligible account.
         if (user.isAdult !== true) return { member: false, rank: null, reason: 'onboarding_incomplete' };
-        if (user.founding500Member === true) return { member: true, rank: user.founding500Rank ?? null, already: true };
+        if (user.founding500Member === true) {
+          // Legacy/corrupt membership data must not be echoed as a trusted rank.
+          // Reconciliation is an operator task; never silently reassign a rank.
+          const savedRank = user.founding500Rank;
+          if (!Number.isSafeInteger(savedRank) || savedRank < 1 || savedRank > foundingLimit) {
+            throw new Error('Invalid existing founding rank');
+          }
+          return { member: true, rank: savedRank, already: true };
+        }
         if (typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
           return { member: false, rank: null, reason: 'onboarding_incomplete' };
         }
