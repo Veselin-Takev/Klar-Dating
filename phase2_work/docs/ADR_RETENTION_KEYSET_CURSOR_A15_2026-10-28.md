@@ -58,3 +58,24 @@ unpurgeable, every later due event could starve forever.
 6. Prove no GCS delete occurs from invalid/held/legacy decisions.
 7. Prove query index, IAM, actual production deployment composition and
    signed scheduler HTTP semantics in approved Staging.
+
+## Firestore Emulator evidence extension (28 October 2026)
+
+A separate integration suite, `tests/complianceStorageCursorFirestoreEmulator.spec.ts`,
+uses the **real Firestore Emulator**, a uniquely named `demo-klar` test database,
+a locally bound Express endpoint and an injected **fake GCS delete**. It is
+eligible to execute inside the existing `test:ci` emulator environment.
+
+The suite exercises: 100 invalid rows before an eligible 101st, persisted
+cursor advancement through equal expiry timestamps, a generation-pinned
+deletion and its Firestore audit update, end-of-scan reset, a competing lease
+and damaged persisted cursor refusal. It requires an explicit loopback
+`FIRESTORE_EMULATOR_HOST` and refuses production project identities. When
+the emulator is absent, the suite skips; a successful standalone run outside
+emulator is **not** integration evidence.
+
+**Evidence rule:** CI passing must be tied to the exact new commit, and the
+actual test execution/skipped counts must be verified. These checks do not
+assert live GCS generation behavior, customer data deletion, a live index,
+scheduler throughput or independent Privacy/Security/Operations approval.
+Production remains **NO-GO**.
