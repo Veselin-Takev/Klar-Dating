@@ -7,7 +7,9 @@ const docs = readFileSync('docs/DATA_RETENTION.md', 'utf8');
 const messageWriter = readFileSync('src/server/messages.ts', 'utf8');
 const archiveWorker = readFileSync('functions/src/archiveInactiveChats.ts', 'utf8');
 const kycWriter = readFileSync('src/server/verification/diditKyc.ts', 'utf8');
-const photoCron = readFileSync('functions/src/deleteExpiredPhotos.ts', 'utf8');
+const functionExports = readFileSync('functions/src/index.ts', 'utf8');
+const decisionPurge = readFileSync('src/server/routes/complianceStorage.ts', 'utf8');
+const safeCron = readFileSync('functions/src/purgeVerificationStorage.ts', 'utf8');
 const required = ['messages', 'archived_messages', 'ki_zwischenspeicher', 'age_attempts', 'kyc_events', 'deletion_log', 'funnel_events', 'ai_budget', 'account_deletions'];
 const matrix = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 if (!matrix) throw new Error('Missing explicit retention collection-group matrix');
@@ -20,8 +22,12 @@ const sourceViolations = [];
 if (!messageWriter.includes('expiresAt: new Date(Date.now() + 90 * 86400_000)')) sourceViolations.push('messages writer does not set the 90-day expiresAt');
 if (!archiveWorker.includes("collection('archived_messages')") || !archiveWorker.includes('...message.data()')) sourceViolations.push('archival does not preserve the message expiresAt');
 if (!kycWriter.includes("kyc_events/${event.event_id}") || !kycWriter.includes('expiresAt: new Date(now + 30 * 86400_000)')) sourceViolations.push('kyc_events writer does not set the 30-day expiresAt');
-if (!photoCron.includes("collection('verification_events')") || !photoCron.includes("where('fotoLoeschenAb', '<=', now)") || !photoCron.includes('storagePath')) sourceViolations.push('verification photo retention is not driven by decision expiry');
-if (photoCron.includes('deleteExpiredPhotoPage') || photoCron.includes("prefix: 'verification/'")) sourceViolations.push('verification photo retention still uses creation-age scanning');
+if (!decisionPurge.includes("collection('verification_events')")
+  || !decisionPurge.includes(".where('fotoLoeschenAb', '<=', new Date(now))")
+  || !decisionPurge.includes('executeVerificationRetentionBatch')
+  || !decisionPurge.includes('storagePath')) sourceViolations.push('decision-based verification photo purge missing');
+if (!functionExports.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage'") || !safeCron.includes('COMPLIANCE_JOB_SECRET')) sourceViolations.push('authenticated verification purge scheduler missing');
+if (functionExports.includes("export { deleteExpiredPhotosCron } from './deleteExpiredPhotos'")) sourceViolations.push('unsafe legacy creation-age scheduler must not be deployed');
 if (missingScript.length || missingDocs.length || sourceViolations.length) {
   console.error('FAIL retention config:', { missingScript, missingDocs, sourceViolations });
   process.exit(1);

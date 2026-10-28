@@ -7,7 +7,8 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 setGlobalOptions({ region: 'europe-west3', maxInstances: 1, concurrency: 1 });
 if (!getApps().length) initializeApp();
 export { archiveInactiveMessagesCron } from './archiveInactiveChats';
-export { deleteExpiredPhotosCron } from './deleteExpiredPhotos';
+// The creation-age photo scanner is intentionally NOT deployable.
+// Retention is driven by verified decision expiry through the signed API purge.
 export { retryComplianceJobsCron } from './complianceJobs';
 export { sendDateRemindersCron } from './dateReminders';
 export { purgeVerificationStorageCron } from './purgeVerificationStorage';
