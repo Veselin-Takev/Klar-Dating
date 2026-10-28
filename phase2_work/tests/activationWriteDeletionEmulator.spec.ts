@@ -13,7 +13,7 @@ if (host || process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1') {
   const configName = process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1'
     ? 'firebase.pruefung.json' : 'firebase.json';
   const config = JSON.parse(readFileSync(resolve(process.cwd(), configName), 'utf8'));
-  const local = /^(localhost|127\\.0\\.0\\.1|\\[::1\\]):([0-9]{1,5})$/.exec(host);
+  const local = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(host);
   const ids = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
   if (!local || Number(local[2]) !== config?.emulators?.firestore?.port
     || ids.some(id => id !== 'demo-klar')
