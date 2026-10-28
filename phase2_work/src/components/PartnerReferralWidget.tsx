@@ -170,17 +170,17 @@ export function PartnerReferralWidget() {
           <div className="rounded-2xl bg-[#E8E0D5] dark:bg-stone-800 p-3" aria-hidden="true"><Handshake size={24} /></div>
           <div className="min-w-0">
             <h2 id="partner-referral-heading" className="font-serif text-2xl">Klar & Partner</h2>
-            <p className="mt-2 text-sm leading-6 text-stone-700 dark:text-stone-300">Teile von Klar geprüfte Partnerangebote mit einem persönlichen Link oder QR-Code. Dein Name, deine E-Mail-Adresse und dein Profil werden nicht an die Marke übertragen.</p>
+            <p className="mt-2 text-sm leading-6 text-stone-700 dark:text-stone-300">Teile aktivierte Partnerangebote mit einem persönlichen Link oder QR-Code. Dein Name, deine E-Mail-Adresse und dein Profil werden nicht an die Marke übertragen.</p>
           </div>
         </div>
       </header>
 
       <div className="rounded-2xl border border-stone-200 dark:border-stone-700 p-5 space-y-4">
         <h3 className="font-semibold flex items-center gap-2"><ShieldCheck size={18} aria-hidden="true" /> Deine Entscheidung zur Partner-Nachverfolgung</h3>
-        <p className="text-sm leading-6 text-stone-600 dark:text-stone-300">Damit Klar deine Links personalisieren und gültige Empfehlungen zählen darf, benötigen wir deine gesonderte Einwilligung. Wir speichern nur die nötige Zuordnung, aggregierte Klickzahlen und bestätigte Empfehlungen in einem HMAC-SHA256-signierten Audit-Ledger. Keine Drittanbieter-IDs, E-Mail-Adressen, IP-Adressen oder User-Agent-Daten werden im Partner-Ledger gespeichert. Du kannst die Einwilligung jederzeit widerrufen.</p>
+        <p className="text-sm leading-6 text-stone-600 dark:text-stone-300">Damit Klar deine Links personalisieren und gültige Empfehlungen zählen darf, benötigen wir deine gesonderte Einwilligung. Wir speichern nur die nötige Zuordnung, aggregierte Klickzahlen und Partner-Rückmeldungen, deren Gültigkeit gesondert geprüft werden muss in einem HMAC-SHA256-signierten Audit-Ledger. Keine Drittanbieter-IDs, E-Mail-Adressen, IP-Adressen oder User-Agent-Daten werden im Partner-Ledger gespeichert. Du kannst die Einwilligung jederzeit widerrufen.</p>
         <label className="flex items-start gap-3 text-sm leading-6">
           <input type="checkbox" checked={allowed} disabled={!loaded || busy} onChange={event => void changeConsent(event.target.checked)} className="mt-1 h-5 w-5 rounded border-stone-400 accent-stone-800" />
-          <span>Ich willige in die Personalisierung meiner Partnerlinks sowie die Zählung technisch geprüfter Klicks und bestätigter Empfehlungen ein.</span>
+          <span>Ich willige in die Personalisierung meiner Partnerlinks sowie die Zählung technisch geprüfter Klicks und der Erfassung noch zu prüfender Partner-Rückmeldungen ein.</span>
         </label>
         <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">Beim Besuch einer Partnerseite gelten zusätzlich die Datenschutz- und Angebotsbedingungen des jeweiligen Partners.</p>
       </div>
@@ -203,7 +203,7 @@ export function PartnerReferralWidget() {
               <article key={item.campaign.id} className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Geprüfter Partner</p>
+                    <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Aktivierte Partnerkampagne</p>
                     <h4 className="font-serif text-xl mt-1">{item.campaign.name}</h4>
                     <p className="text-sm text-stone-600 dark:text-stone-300 mt-2">{item.campaign.termsSummary}</p>
                   </div>
@@ -216,7 +216,7 @@ export function PartnerReferralWidget() {
                     <p className="text-2xl font-serif tabular-nums mt-1">{item.clickCount}</p>
                   </div>
                   <div className="rounded-xl bg-[#FAF8F5] dark:bg-stone-800 p-3">
-                    <p className="text-xs text-stone-600 dark:text-stone-300">Bestätigte Empfehlungen</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-300">Technisch erfasste Conversions</p>
                     <p className="text-2xl font-serif tabular-nums mt-1">{item.qualifiedConversions}</p>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export function PartnerReferralWidget() {
                 <div className="rounded-xl border border-stone-200 dark:border-stone-700 p-4">
                   <div className="flex items-start gap-2">
                     <Gift size={18} className="mt-0.5" aria-hidden="true" />
-                    <div><p className="font-medium">Prämie laut Kampagne</p><p className="text-sm mt-1">{item.campaign.rewardLabel}</p><p className="text-xs text-stone-500 dark:text-stone-400 mt-2">Es zählen ausschließlich signierte, idempotente Partner-Rückmeldungen mit erfüllten Alters- und Einwilligungsbedingungen. Dieser Zähler bestätigt keine Auszahlung durch Klar.</p></div>
+                    <div><p className="font-medium">Prämie laut Kampagne</p><p className="text-sm mt-1">{item.campaign.rewardLabel}</p><p className="text-xs text-stone-500 dark:text-stone-400 mt-2">Es zählen ausschließlich signierte, idempotente Partner-Rückmeldungen mit erfüllten Alters- und Einwilligungsbedingungen. Signierte Meldungen belegen noch keinen Kauf, keine unabhängige Conversion-Prüfung und keine Auszahlung durch Klar.</p></div>
                   </div>
                 </div>
 
