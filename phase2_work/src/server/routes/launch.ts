@@ -233,12 +233,30 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
+  // Activation history is account-private. Set headers before rate limiting and
+  // authentication so success and error responses are never cacheable.
+  router.use('/activation/summary', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  });
   router.get('/activation/summary', activationSummaryReadLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const snap = await deps.getFirestore().collection('activation_events').where('uid', '==', uid).limit(100).get();
-      const events: string[] = snap.docs.map((doc) => String(doc.data()?.eventName ?? ''));
+      // Read both the deletion marker and activity query in one Firestore
+      // transaction, so a concurrent marker write conflicts with this read.
+      // No activation data is returned when a deletion marker is present.
+      const db = deps.getFirestore();
+      const result = await db.runTransaction(async tx => {
+        const deletion = await tx.get(db.collection('account_deletions').doc(uid));
+        if (deletion.exists) return { deleting: true as const, events: [] as string[] };
+        const snap = await tx.get(db.collection('activation_events').where('uid', '==', uid).limit(100));
+        return { deleting: false as const, events: snap.docs.map(doc => String(doc.data()?.eventName ?? '')) };
+      });
+      if (result.deleting) return res.status(409).json({ error: 'Aktivierungsstatus für dieses Konto nicht verfügbar.' });
+      const events = result.events;
       const unique = Array.from(new Set(events));
       return res.json({ ...deps.activationScore(unique), events: unique });
     } catch (error) {
