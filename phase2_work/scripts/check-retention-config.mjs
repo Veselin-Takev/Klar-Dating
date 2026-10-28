@@ -18,6 +18,15 @@ const configured = new Set(groups);
 if (groups.length !== configured.size) throw new Error('Duplicate retention collection-group entries');
 const missingScript = required.filter(x => !configured.has(x));
 const missingDocs = required.filter(x => !docs.includes(`/${x}`));
+export function photoPurgeExportViolations(exportsSource, cronSource) {
+  const failures = [];
+  const active = exportsSource.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('//'));
+  if (!active.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage';")
+    || !cronSource.includes('COMPLIANCE_JOB_SECRET')) failures.push('authenticated verification purge scheduler missing');
+  if (active.some(line => /^export\s+\{\s*deleteExpiredPhotosCron\s*\}\s+from\s+['"]\.\/deleteExpiredPhotos['"]\s*;?$/.test(line)))
+    failures.push('unsafe legacy creation-age scheduler must not be deployed');
+  return failures;
+}
 const sourceViolations = [];
 if (!messageWriter.includes('expiresAt: new Date(Date.now() + 90 * 86400_000)')) sourceViolations.push('messages writer does not set the 90-day expiresAt');
 if (!archiveWorker.includes("collection('archived_messages')") || !archiveWorker.includes('...message.data()')) sourceViolations.push('archival does not preserve the message expiresAt');
@@ -26,8 +35,7 @@ if (!decisionPurge.includes("collection('verification_events')")
   || !decisionPurge.includes(".where('fotoLoeschenAb', '<=', new Date(now))")
   || !decisionPurge.includes('executeVerificationRetentionBatch')
   || !decisionPurge.includes('storagePath')) sourceViolations.push('decision-based verification photo purge missing');
-if (!functionExports.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage'") || !safeCron.includes('COMPLIANCE_JOB_SECRET')) sourceViolations.push('authenticated verification purge scheduler missing');
-if (functionExports.includes("export { deleteExpiredPhotosCron } from './deleteExpiredPhotos'")) sourceViolations.push('unsafe legacy creation-age scheduler must not be deployed');
+sourceViolations.push(...photoPurgeExportViolations(functionExports, safeCron));
 if (missingScript.length || missingDocs.length || sourceViolations.length) {
   console.error('FAIL retention config:', { missingScript, missingDocs, sourceViolations });
   process.exit(1);
