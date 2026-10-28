@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import express from 'express';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
-import { createVerificationStoragePurgeRouter, readVerificationPurgeCursor } from '../src/server/routes/complianceStorage';
+import { createVerificationStoragePurgeRouter, readVerificationPurgeCursor, readVerificationPurgeLease } from '../src/server/routes/complianceStorage';
 
 const secret = 'synthetic-compliance-cursor-test-secret-12345';
 const priorSecret = process.env.COMPLIANCE_JOB_SECRET;
@@ -134,6 +134,21 @@ describe('A-15 persistent pagination and liveness', () => {
     const base = await origin(fake.db), result = await run(base);
     expect(result.status).toBe(503);
     expect(fake.fetchedPages).toBe(0);
+  });
+
+  it('rejects an invalid or half-present persisted worker lease', () => {
+    const now = Date.now();
+    expect(readVerificationPurgeLease({ leaseToken: null, leaseUntil: null }, now)).toBe(false);
+    expect(readVerificationPurgeLease({}, now)).toBe(false);
+    const token = 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1';
+    expect(readVerificationPurgeLease({ leaseToken: token, leaseUntil: new Date(now + 60_000) }, now)).toBe(true);
+    expect(readVerificationPurgeLease({ leaseToken: token, leaseUntil: new Date(now - 60_000) }, now)).toBe(false);
+    expect(() => readVerificationPurgeLease({ leaseToken: token, leaseUntil: 'damaged-time' }, now))
+      .toThrow('INVALID_VERIFICATION_PURGE_LEASE');
+    expect(() => readVerificationPurgeLease({ leaseToken: token, leaseUntil: null }, now))
+      .toThrow('INVALID_VERIFICATION_PURGE_LEASE');
+    expect(() => readVerificationPurgeLease({ leaseToken: null, leaseUntil: new Date(now + 60_000) }, now))
+      .toThrow('INVALID_VERIFICATION_PURGE_LEASE');
   });
 
   it('blocks competing workers while the lease is valid', async () => {

@@ -135,6 +135,19 @@ describe.runIf(activeEmulator)('A-15 – real Firestore Emulator pagination and 
       .toBe('other-worker');
   });
 
+  it('rejects corrupt persisted lease state without scanning or touching GCS', async () => {
+    await db.doc('system/verification_photo_purge_cursor').set({
+      cursorAt: null, cursorId: null,
+      leaseToken: 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1',
+      leaseUntil: 'broken-timestamp',
+    });
+    const origin = await serve(async () => { throw new Error('must not delete'); });
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect((await db.doc('system/verification_photo_purge_cursor').get()).data()?.leaseUntil)
+      .toBe('broken-timestamp');
+  });
+
   it('rejects a damaged persisted keyset without modifying the lease or deleting files', async () => {
     await db.doc('system/verification_photo_purge_cursor').set({
       cursorAt: 'invalid-timestamp', cursorId: 'a099', leaseToken: null, leaseUntil: null,

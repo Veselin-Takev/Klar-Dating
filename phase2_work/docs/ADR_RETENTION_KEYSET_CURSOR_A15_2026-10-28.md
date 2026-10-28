@@ -79,3 +79,32 @@ actual test execution/skipped counts must be verified. These checks do not
 assert live GCS generation behavior, customer data deletion, a live index,
 scheduler throughput or independent Privacy/Security/Operations approval.
 Production remains **NO-GO**.
+
+## 28 October 2026: positive CI evidence and scope correction
+
+The GitHub Enterprise CI on `159fc307d01334163f770c9e40fbfd1914bba37d`
+completed successfully (Actions run `40614339246`). The full job log
+confirms **195/195 test files and 1,385/1,385 tests passed**, including
+**3 real Firestore Emulator tests** in
+`tests/complianceStorageCursorFirestoreEmulator.spec.ts`. Those tests
+use fake GCS, not a live Storage generation/replacement race.
+
+**Important architectural finding:** `/api/verification/{verify,status,challenge,submit,decide}`
+routes are deliberately retired and return HTTP 410, while actual identity
+authorization flows through Didit V3 under `/api/kyc`. The generation
+writer in `src/server/klarCore.ts` is a **legacy/manual-path safeguard**;
+the active Didit webhook does **not** produce `verification_events` photo
+generation records. A-06/A-15 improvements are **not evidence** that Didit
+provider-side biometric retention, deletion or transfer controls are approved.
+Reconcile actual Didit data location, supplier retention and legal agreements
+separately before any release claim. Do not re-enable the retired routes.
+
+**New lease boundary:** `readVerificationPurgeLease` rejects corrupt
+timestamp, half-populated token/deadline and invalid token instead of treating
+the lock as free. A new real Firestore Emulator negative test proves a
+corrupt persisted lease blocks the signed purge. Test results on the new commit
+must be verified in CI before recording the extension as PASS.
+
+The daily scheduler processes at most 100 scanned events each invocation,
+so throughput, backlog alerting and late-arrival liveness still need load and
+Operations/SRE signoff. This PR remains **DRAFT/BLOCKED**, production NO-GO.

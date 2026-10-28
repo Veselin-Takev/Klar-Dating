@@ -26,6 +26,21 @@ export function readVerificationPurgeCursor(data: Record<string, unknown>): Purg
   return { at: new Timestamp(seconds, nanoseconds), id };
 }
 
+/** Invalid/incomplete persisted lease state is not a free lock. */
+export function readVerificationPurgeLease(data: Record<string, unknown>, now: number): boolean {
+  const token = data.leaseToken;
+  const until = data.leaseUntil;
+  const emptyToken = token === null || token === undefined;
+  const emptyUntil = until === null || until === undefined;
+  if (emptyToken && emptyUntil) return false;
+  const milliseconds = normalizeTimestamp(until);
+  if (typeof token !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,40}$/i.test(token)
+    || !Number.isSafeInteger(milliseconds) || milliseconds! <= 0 || emptyUntil) {
+    throw new Error('INVALID_VERIFICATION_PURGE_LEASE');
+  }
+  return milliseconds! > now;
+}
+
 function expiryFromFirestore(value: unknown): Timestamp {
   if (value instanceof Timestamp) return value;
   if (value instanceof Date && Number.isFinite(value.getTime())) return Timestamp.fromDate(value);
@@ -84,7 +99,7 @@ export function createVerificationStoragePurgeRouter(deps: {
         const stateSnap = await tx.get(stateRef);
         const state = (stateSnap.data() ?? {}) as Record<string, unknown>;
         const cursor = readVerificationPurgeCursor(state);
-        if ((normalizeTimestamp(state.leaseUntil) ?? 0) > now) return { busy: true as const };
+        if (readVerificationPurgeLease(state, now)) return { busy: true as const };
         tx.set(stateRef, { leaseToken, leaseUntil: new Date(now + WORKER_LEASE_MS),
           lastLeaseAt: new Date(now) }, { merge: true });
         return { busy: false as const, cursor };
