@@ -242,6 +242,33 @@ describe('launch/referral/activation HTTP boundary', () => {
   });
 
 
+  it.each([
+    { url: '/referral', method: 'GET', expectedStatus: 200 },
+    { url: '/referral/claim', method: 'POST', expectedStatus: 200 },
+  ])('never caches sensitive invitation response on $method $url', async ({ url, method, expectedStatus }) => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + url, {
+      method,
+      ...(method === 'POST' ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }) } : {}),
+    });
+    expect(response.status).toBe(expectedStatus);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
+  it.each(['/referral', '/referral/claim'])('protects unauthenticated invitation errors from caches on %s', async url => {
+    const ctx = await api({ currentUserId: () => null });
+    const response = await fetch(ctx.base + url, {
+      method: url.endsWith('/claim') ? 'POST' : 'GET',
+      ...(url.endsWith('/claim') ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }) } : {}),
+    });
+    expect(response.status).toBe(401);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
   it('fails closed when the referral public origin is not configured', async () => {
     const ctx = await api({ publicUrl: () => undefined });
     const response = await fetch(ctx.base + '/referral');
