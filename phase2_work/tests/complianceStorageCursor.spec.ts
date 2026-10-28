@@ -153,7 +153,7 @@ describe('A-15 persistent pagination and liveness', () => {
 
   it('blocks competing workers while the lease is valid', async () => {
     const fake = database([]);
-    fake.state.leaseToken = 'other-worker';
+    fake.state.leaseToken = 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1';
     fake.state.leaseUntil = new Date(Date.now() + 60_000);
     const base = await origin(fake.db), result = await run(base);
     expect(result.status).toBe(202);
