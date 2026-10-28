@@ -13,3 +13,12 @@ This verifies source identity, not merge compatibility, branch protection, secur
 
 ## Release evidence
 Base main SHA: 2808dc1cbb485f70b403681c108cea5a3361d950. New PR head and GitHub CI evidence must be recorded after the commit. All 14 mandatory gates, 13 integration proofs, TTL ACTIVE, legal holds, signed EVV and independent Security/DPO/Legal/SRE/Release approvals remain unverified. Production remains NO-GO; productionApproved=false.
+
+## Exact-head CI evidence (verified 2026-10-28)
+
+- PR: #170 (Draft); source commit: `d54687afc2ab75601ab8ebb5cacb8849333f4a00`.
+- GitHub Actions Enterprise CI run: `40683327702`; job `122799315946`; conclusion: SUCCESS.
+- Job log: `Verified exact source checkout: d54687afc2ab75601ab8ebb5cacb8849333f4a00`.
+- Executed (SUCCESS): Verify exact source HEAD, Exact-head checkout regression, scope regression, Enterprise static gates, typecheck, Functions build, tests, build, production smoke, Playwright browser acceptance.
+- This is evidence for the *previous* source commit only. The documentation-only evidence commit that adds this section requires a fresh exact-head CI run; do not inherit the previous PASS.
+- No OSV scan was triggered by the earlier workflow-only commit; supply-chain remediation remains blocked. Full release evidence, staging proofs and independent approvals remain missing. NO-GO / productionApproved=false.
