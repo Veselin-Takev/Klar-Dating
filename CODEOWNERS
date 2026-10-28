@@ -32,6 +32,10 @@
 /.github/workflows/ @Veselin-Takev
 /CODEOWNERS @Veselin-Takev
 
+/phase2_work/functions/src/retention.ts @Veselin-Takev
+/phase2_work/src/server/partnerReferralDeletion.ts @Veselin-Takev
+/phase2_work/src/server/routes/launch.ts @Veselin-Takev
+/phase2_work/src/server/platform/launchPlatform.ts @Veselin-Takev
 /phase2_work/scripts/check-codeowners.mjs @Veselin-Takev
 /phase2_work/scripts/test-codeowners.mjs @Veselin-Takev
 /phase2_work/scripts/codeowners-review-policy.mjs @Veselin-Takev

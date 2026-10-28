@@ -5,9 +5,9 @@ import { checkCodeowners, ownersForPath, requiredOwnership } from './check-codeo
 
 const source = readFileSync(new URL('../../CODEOWNERS', import.meta.url), 'utf8');
 
-test('all 21 protected files have explicit technical routing, independent of specialist release approvals', () => {
+test('all 25 protected files have explicit technical routing, independent of specialist release approvals', () => {
   assert.deepEqual(checkCodeowners(source), []);
-  assert.equal(Object.keys(requiredOwnership).length, 21);
+  assert.equal(Object.keys(requiredOwnership).length, 25);
 });
 test('last matching CODEOWNERS entry wins, including harmful later generic overrides', () => {
   const modified = source + '\n/phase2_work/ @Veselin-Takev\n';
@@ -149,3 +149,16 @@ test('production entry point retains both existing evidence and independent-revi
  assert(entry.includes('collectReleaseApprovalFailures({ manifest, checklist, env: process.env })'));
  assert(entry.includes('failures.push(...collectIndependentReviewFailures(manifest, process.env.GITHUB_SHA))'));
 });
+
+for (const protectedPath of [
+  "phase2_work/functions/src/retention.ts",
+  "phase2_work/src/server/partnerReferralDeletion.ts",
+  "phase2_work/src/server/routes/launch.ts",
+  "phase2_work/src/server/platform/launchPlatform.ts"
+]) {
+  test('sensitive active owner rule cannot silently regress: ' + protectedPath, () => {
+    const without = source.split(/\r?\n/).filter(line => !line.startsWith('/' + protectedPath + ' ')).join('\n');
+    assert(checkCodeowners(without).some(error => error.includes(protectedPath)));
+    assert(ownersForPath(source, protectedPath).includes('@Veselin-Takev'));
+  });
+}
