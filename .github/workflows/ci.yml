@@ -109,6 +109,10 @@ jobs:
       - name: Tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:ci
+      # Non-skippable in full enterprise CI: independent emulator invocation.
+      - name: Retention Firestore emulator mandatory
+        if: steps.scope.outputs.full == 'true'
+        run: bun run test:retention-emulator
       - name: Build
         if: steps.scope.outputs.full == 'true'
         run: bun run build

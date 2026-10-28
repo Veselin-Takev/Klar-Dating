@@ -158,3 +158,29 @@ GCS preconditions or Didit provider deletion.
 **Release status:** these changes and their exact-head CI results
 are pending; do not mark the latest code PASS until the latest CI
 completes. All stacked PRs remain Draft/Blocked and Production NO-GO.
+
+## 28 October 2026 – Mandatory emulator CI gate reconciled after PR #163 conflict
+
+PR #163 (`test/retention-emulator-mandatory-gate-20261028`)
+encountered a genuine conflict because its base PR #162 advanced during
+review. No force-push or removal of the newer A-15 lease-fencing changes
+was permitted. This clean stacked branch starts from the independently
+CI-tested PR #162 head `95654de61fa372eaa9ebbf7efe2f8638517934d4` and *transplants only* the
+dedicated emulator runner, its fail-closed negative tests, the package
+script and the mandatory root CI step. The historical PR #163 remains
+Draft/Blocked for traceability and should not be merged as a parallel copy.
+
+The original mandatory gate run `40645451154` failed because pinned
+Vitest rejected `--minWorkers=1`. The new runner omits that option
+and retains `--maxWorkers=1`, loopback `demo-klar` enforcement,
+production/durable-fallback rejection and a regression test for
+unsupported flags. Existing PR #162 Firestore Emulator tests may pass
+under `test:ci` but are *not a substitute* for the newly required,
+dedicated step.
+
+**Audit evidence remains PENDING on this new branch.** Verify CI at the
+exact new SHA, the dedicated `Retention Firestore emulator mandatory`
+step and the actual (not skipped) test count in its logs. Even a green
+result does not establish production Firestore indexes, live GCS generation
+races, Didit provider deletion, 20 ACTIVE staging TTL policies or
+independent Security/Privacy/Legal/SRE/Release approvals. No release GO.
