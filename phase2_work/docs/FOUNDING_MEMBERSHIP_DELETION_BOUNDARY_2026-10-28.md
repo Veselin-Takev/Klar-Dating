@@ -13,3 +13,7 @@ Read user, deletion marker, and founding cohort in a single Firestore transactio
 ## Evidence and open checks
 
 `tests/launchEndpoint.spec.ts` adds negative cases for pending deletion on new and existing memberships and a positive eligible-account case, asserting zero cohort writes and activation on denial. These mocked transaction tests are **not** a substitute for Firebase emulator races, server-side Art.17 cascade validation, or live staging evidence. Require exact-HEAD enterprise CI, emulator, Security/DPO approval, and retention review. No cloud, production, or TTL mutation. Rollback: revert this isolated PR. **NO-GO.**
+
+## Exact-head CI failure triage — 2026-10-28
+
+Enterprise CI run `40699098974` on `65c9521f6b38a22c6d63ef89c5a6e104678d51f6` failed three new founding HTTP tests (expected 409/200, received 503). Root cause: test-only Firestore mock lacked `tx.get()`, which is required by the UID-scoped distributed rate limiter upstream of the route. The production limiter correctly denied access when its store could not be read. Updated mock transaction implements `get()` and restricts write assertions to the `users/` and `system/` business documents, excluding permitted rate-limit accounting; the route's deletion guard was not bypassed or weakened. This correction must have a new exact-HEAD CI PASS before merging. **NO-GO**.
