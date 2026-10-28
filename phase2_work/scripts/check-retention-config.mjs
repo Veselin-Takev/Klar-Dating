@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+// Reuse the canonical 20-group policy gate; do not independently parse a stale Bash loop.
+import './check-retention-matrix.mjs';
 const script = readFileSync('scripts/configure-retention.sh', 'utf8');
 const docs = readFileSync('docs/DATA_RETENTION.md', 'utf8');
 const messageWriter = readFileSync('src/server/messages.ts', 'utf8');
@@ -7,8 +9,11 @@ const archiveWorker = readFileSync('functions/src/archiveInactiveChats.ts', 'utf
 const kycWriter = readFileSync('src/server/verification/diditKyc.ts', 'utf8');
 const photoCron = readFileSync('functions/src/deleteExpiredPhotos.ts', 'utf8');
 const required = ['messages', 'archived_messages', 'ki_zwischenspeicher', 'age_attempts', 'kyc_events', 'deletion_log', 'funnel_events', 'ai_budget', 'account_deletions'];
-const loop = script.match(/for collection_group in ([^;]+); do/);
-const configured = new Set((loop?.[1] ?? '').trim().split(/\s+/).filter(Boolean));
+const matrix = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
+if (!matrix) throw new Error('Missing explicit retention collection-group matrix');
+const groups = matrix[1].trim().split(/\s+/).filter(Boolean);
+const configured = new Set(groups);
+if (groups.length !== configured.size) throw new Error('Duplicate retention collection-group entries');
 const missingScript = required.filter(x => !configured.has(x));
 const missingDocs = required.filter(x => !docs.includes(`/${x}`));
 const sourceViolations = [];
