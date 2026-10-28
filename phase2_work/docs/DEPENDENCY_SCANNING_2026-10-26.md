@@ -76,3 +76,34 @@ PR #150 ist nach erfolgreicher vollständiger CI [40478331492](https://github.co
 Offene Grenzen: Die 21 betroffenen Versionen sind nicht durch diese Prüferkorrektur behoben. Keine Ignoreliste/Baseline und keine geänderte Befundschwelle. Der separate Workflow läuft durch Pfadfilter nicht für jede beliebige Quelländerung und ist noch keine konfigurierte Branchschutzpflicht. Die Parser-Installation verwendet weiterhin den App-Dependency-Graph; minimaler isolierter Scanner-Build, SAST, Container-/OS-Scan und OpenSSF-Scorecard sind nicht nachgewiesen. Es besteht kein vollständiges Supply-Chain- oder Compliance-Testat.
 
 Nächste Schritte: den neuen exakten Head prüfen, Advisory-Triage versionsgenau und vertraulich fortführen, Abhängigkeiten kontrolliert beheben und danach die dauerhafte Integration des Scanners entscheiden. PR bleibt bis zur Triage Draft. **Produktion weiterhin NO-GO.**
+
+## 28 October 2026 – Audit-evidence extension (stacked draft)
+
+The existing fail-closed OSV scan reports **aggregates only** to the CI
+log. Run `40576879383` on PR #140 found **1,439 queried versions, 13
+affected versions and 25 unique advisory IDs**. These are actual scan
+counts, *not* proof of vulnerability-free dependencies. No dependency
+suppression, waiver, baseline allow-list or severity downgrading is
+permitted.
+
+A separately reviewed stacked candidate now collects only the public
+npm package name, pinned version and sorted OSV advisory IDs, with the
+three committed lockfile SHA-256 hashes and scan timestamp. When the
+full OSV query succeeds, it writes a versioned JSON report to an
+absolute workflow-controlled runner-temp path and uploads it as
+`klar-dependency-findings` for **7 days**. The detailed mapping is
+not printed in public CI logs and is not checked into Git. A scan with
+findings **still exits 1**; incomplete/unavailable OSV results still
+fail closed and produce no clean verdict. Synthetic tests cover
+per-package mapping, deduplication and invalid advisory IDs.
+
+**Acceptance:** check the exact new commit, scanner regressions, scan
+exit status and report artifact. Use the report to identify actual
+packages and remediate pinned direct and transitive dependencies in
+small batches, regenerating every affected lockfile and rerunning
+full CI. Do not infer exploitability from a bare advisory ID: independently
+evaluate reachability, fixed versions, runtime scope and any legal or
+breaking upgrade risk. No automatic mass update is authorized.
+
+**Production NO-GO:** the affected-version scan, independent
+dependency review and mandatory release gates remain unresolved.
