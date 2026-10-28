@@ -9,3 +9,7 @@ The root CODEOWNERS and the deterministic policy already explicitly covered 21 f
 ## Governance boundaries and required evidence
 
 The technical owner `@Veselin-Takev` is **not** an independent Security, Privacy/Legal, Operations or Finance signoff. No non-existent team is introduced; organization/team permissions and branch protection requiring CODEOWNER reviews are not verified. No GitHub branch-protection or cloud configuration is modified. Exact-HEAD enterprise CI and independent functional approvals remain mandatory. Issue #73 and #8 must not be marked closed until all reviewer rights, branch rules and specialist signoffs are evidenced. **PRODUCTION NO-GO**.
+
+## Follow-up: verification, consent and photo deletion (2026-10-28)
+
+The first PR head `298e288ac0a7d45dd0ca8114c3cf58e0f8122f97` passed Enterprise CI run `40717899213`. Four further files containing especially sensitive security/DSGVO behavior had only general technical ownership: `src/server/verification/diditKyc.ts`, `src/server/consentAudit.ts`, `functions/src/deleteExpiredPhotos.ts`, and `src/server/routes/activationEventId.ts`. They now have exact CODEOWNERS rules with negative removal tests, raising the deterministic protected-file contract from 25 to **29**. This is a technical reviewer-routing change, not proof of separate DPO/Security review or actual GitHub branch protection. A fresh exact-HEAD CI run is necessary. **NO-GO.**

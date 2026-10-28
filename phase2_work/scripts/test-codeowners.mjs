@@ -5,9 +5,9 @@ import { checkCodeowners, ownersForPath, requiredOwnership } from './check-codeo
 
 const source = readFileSync(new URL('../../CODEOWNERS', import.meta.url), 'utf8');
 
-test('all 25 protected files have explicit technical routing, independent of specialist release approvals', () => {
+test('all 29 protected files have explicit technical routing, independent of specialist release approvals', () => {
   assert.deepEqual(checkCodeowners(source), []);
-  assert.equal(Object.keys(requiredOwnership).length, 25);
+  assert.equal(Object.keys(requiredOwnership).length, 29);
 });
 test('last matching CODEOWNERS entry wins, including harmful later generic overrides', () => {
   const modified = source + '\n/phase2_work/ @Veselin-Takev\n';
@@ -157,6 +157,19 @@ for (const protectedPath of [
   "phase2_work/src/server/platform/launchPlatform.ts"
 ]) {
   test('sensitive active owner rule cannot silently regress: ' + protectedPath, () => {
+    const without = source.split(/\r?\n/).filter(line => !line.startsWith('/' + protectedPath + ' ')).join('\n');
+    assert(checkCodeowners(without).some(error => error.includes(protectedPath)));
+    assert(ownersForPath(source, protectedPath).includes('@Veselin-Takev'));
+  });
+}
+
+for (const protectedPath of [
+  "phase2_work/src/server/verification/diditKyc.ts",
+  "phase2_work/src/server/consentAudit.ts",
+  "phase2_work/functions/src/deleteExpiredPhotos.ts",
+  "phase2_work/src/server/routes/activationEventId.ts"
+]) {
+  test('KYC/consent/photo active owner rule cannot silently regress: ' + protectedPath, () => {
     const without = source.split(/\r?\n/).filter(line => !line.startsWith('/' + protectedPath + ' ')).join('\n');
     assert(checkCodeowners(without).some(error => error.includes(protectedPath)));
     assert(ownersForPath(source, protectedPath).includes('@Veselin-Takev'));
