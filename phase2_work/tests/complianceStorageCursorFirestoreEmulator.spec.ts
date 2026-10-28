@@ -122,6 +122,76 @@ describe.runIf(activeEmulator)('A-15 – real Firestore Emulator pagination and 
     expect((await stateRef.get()).data()?.cursorId).toBeNull();
   }, 60_000);
 
+
+  it.each([404, 412])('does not audit GCS HTTP %i as a successful deletion', async code => {
+    const ref = db.collection('verification_events').doc('gcs-error');
+    await ref.set({
+      fotoLoeschenAb: readyExpiry,
+      uid: 'syntheticuid', decidedAt, storagePath: 'verification/syntheticuid/error.jpg',
+      storageGeneration: '123456789', entscheidung: 'abgelehnt', photoPurged: false,
+    });
+    const deletions: Array<{path: string; generation: unknown}> = [];
+    const origin = await serve(async (path, options) => {
+      deletions.push({path, generation: (options as {ifGenerationMatch?: unknown})?.ifGenerationMatch});
+      throw Object.assign(new Error('Simulated GCS refusal'), {code});
+    });
+    const first = await signedPurge(origin);
+    expect(first.status).toBe(503);
+    expect(first.body.ok).toBe(false);
+    expect(first.body.purgedCount).toBe(0);
+    expect(first.body.errors).toBe(1);
+    expect(deletions).toEqual([{path:'verification/syntheticuid/error.jpg', generation:'123456789'}]);
+    const record = (await ref.get()).data();
+    expect(record?.photoPurged).toBe(false);
+    expect(record?.auditDigest).toBeUndefined();
+    // Error must not pin the first page forever: scan advances, then restarts.
+    const stateRef = db.doc('system/verification_photo_purge_cursor');
+    expect((await stateRef.get()).data()?.cursorId).toBe('gcs-error');
+    const end = await signedPurge(origin);
+    expect(end.status).toBe(200);
+    expect(end.body.scanned).toBe(0);
+    expect((await stateRef.get()).data()?.cursorId).toBeNull();
+    const retry = await signedPurge(origin);
+    expect(retry.status).toBe(503);
+    expect(deletions).toHaveLength(2);
+    expect((await ref.get()).data()?.photoPurged).toBe(false);
+  });
+
+  it('never invokes GCS for a held verification event', async () => {
+    const ref = db.collection('verification_events').doc('legal-hold');
+    await ref.set({
+      fotoLoeschenAb: readyExpiry, uid: 'syntheticuid', decidedAt,
+      storagePath: 'verification/syntheticuid/held.jpg',
+      storageGeneration: '123456789', entscheidung: 'bestaetigt',
+      photoPurged: false, legalHold: true,
+    });
+    let storageCalls = 0;
+    const origin = await serve(async () => { storageCalls++; throw new Error('should not delete'); });
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect(result.body.purgedCount).toBe(0);
+    expect(result.body.errors).toBe(1);
+    expect(storageCalls).toBe(0);
+    expect((await ref.get()).data()?.photoPurged).toBe(false);
+  });
+
+  it('never infers a missing decision-time GCS generation from the live object', async () => {
+    const ref = db.collection('verification_events').doc('no-generation');
+    await ref.set({
+      fotoLoeschenAb: readyExpiry, uid: 'syntheticuid', decidedAt,
+      storagePath: 'verification/syntheticuid/old.jpg',
+      entscheidung: 'abgelehnt', photoPurged: false,
+    });
+    let storageCalls = 0;
+    const origin = await serve(async () => {storageCalls++;});
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect(result.body.purgedCount).toBe(0);
+    expect(result.body.errors).toBe(1);
+    expect(storageCalls).toBe(0);
+    expect((await ref.get()).data()?.auditDigest).toBeUndefined();
+  });
+
   it('honors a competing live worker lease without querying or deleting data', async () => {
     await db.doc('system/verification_photo_purge_cursor').set({
       cursorAt: null, cursorId: null, leaseToken: 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1',

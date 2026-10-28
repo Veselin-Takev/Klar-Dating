@@ -108,3 +108,23 @@ must be verified in CI before recording the extension as PASS.
 The daily scheduler processes at most 100 scanned events each invocation,
 so throughput, backlog alerting and late-arrival liveness still need load and
 Operations/SRE signoff. This PR remains **DRAFT/BLOCKED**, production NO-GO.
+
+## 28 October 2026 – A-06 negative integration scenarios added
+
+The Firestore Emulator suite now also injects a synthetic GCS client that
+returns HTTP **404** and **412**. These cases must leave `photoPurged=false`
+and must not create an `auditDigest`; they must not starve subsequent due
+items, and an end-of-cycle retry may re-encounter unresolved work. Additional
+checks ensure both a Firestore `legalHold` and a missing decision-time
+`storageGeneration` prevent **any** fake-GCS invocation.
+
+These tests cover real Firestore transactions and the actual signed HTTP
+routing, but GCS errors are *injected*, not received from live Cloud Storage.
+They do not prove atomic deletion and audit under process termination,
+Soft Delete/versioning retention, provider-side Didit photo erasure, or
+legally sufficient deletion evidence. Review these controls independently.
+
+**Evidence protocol:** On the newly published commit inspect the GitHub
+Actions job log for the Firestore Emulator suite and exact individual-test
+PASS counts. Until then this extension is **PENDING**, and the PR stays
+Draft/Blocked with Production NO-GO.
