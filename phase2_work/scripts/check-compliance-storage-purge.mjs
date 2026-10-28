@@ -31,4 +31,12 @@ if (!engine.includes('MISSING_DECISION_STORAGE_GENERATION')
     || route.includes('ignoreNotFound: true')
     || !writer.includes('storagePath, storageGeneration, photoPurged: false'))
   throw new Error('A-06 missing immutable decision generation / GCS delete precondition');
+// A-15: fail if a future refactor restores a fixed first-page query.
+for (const required of ["CURSOR_STATE_PATH", "readVerificationPurgeCursor", ".orderBy('fotoLoeschenAb', 'asc')",
+  "FieldPath.documentId()", ".startAfter(claim.cursor.at, claim.cursor.id)",
+  "leaseToken", "readVerificationPurgeLease(state, now)",
+  "await assertWorkerLeaseOwned()", "leaseState.leaseToken !== leaseToken",
+  "lastScanned: snapshot.docs.length", "completedCycle: next === null"]) {
+  if (!route.includes(required)) throw new Error('A-15 missing persistent keyset/liveness invariant: ' + required);
+}
 console.log('Compliance storage purge boundary: PASS');
