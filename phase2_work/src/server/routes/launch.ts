@@ -215,10 +215,9 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         if (!userSnap || !deletionSnap || !cohortSnap || !userSnap.exists) throw new Error('User not found');
         if (deletionSnap.exists) return { member: false, rank: null, reason: 'account_deleting' };
         const user = userSnap.data() ?? {};
-        if (user.founding500Member === true) return { member: true, rank: user.founding500Rank ?? null, already: true };
-        if (user.isAdult !== true || typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
-          return { member: false, rank: null, reason: 'onboarding_incomplete' };
-        }
+        // An old founding flag never bypasses current adult eligibility.
+        // Do not reveal a stored rank for an ineligible account.
+        if (user.isAdult !== true) return { member: false, rank: null, reason: 'onboarding_incomplete' };
         const rawCount = cohortSnap.exists ? cohortSnap.data()?.count : 0;
         // Never coerce corrupt Firestore values (including strings, null, NaN,
         // negative and fractional counts) into membership ranks.
@@ -226,6 +225,18 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
           throw new Error('Invalid founding cohort counter');
         }
         const current = rawCount;
+        if (user.founding500Member === true) {
+          // Legacy/corrupt membership data must not be echoed as a trusted rank.
+          // Reconciliation is an operator task; never silently reassign a rank.
+          const savedRank = user.founding500Rank;
+          if (!Number.isSafeInteger(savedRank) || savedRank < 1 || savedRank > foundingLimit || savedRank > current) {
+            throw new Error('Invalid existing founding rank');
+          }
+          return { member: true, rank: savedRank, already: true };
+        }
+        if (typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
+          return { member: false, rank: null, reason: 'onboarding_incomplete' };
+        }
         if (current >= foundingLimit) return { member: false, rank: null, reason: 'cohort_full' };
         const rank = current + 1;
         tx.set(cohortRef, { count: rank, updatedAt: deps.serverTimestamp() }, { merge: true });
