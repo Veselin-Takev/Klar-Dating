@@ -128,3 +128,33 @@ legally sufficient deletion evidence. Review these controls independently.
 Actions job log for the Firestore Emulator suite and exact individual-test
 PASS counts. Until then this extension is **PENDING**, and the PR stays
 Draft/Blocked with Production NO-GO.
+
+## 28 October 2026 – Lease fencing at GCS and audit boundaries
+
+Enterprise CI for `dd8db18b9b0f3f580b227fc7dbaa67b75367a6ae`
+(Actions `40645838218`) completed **success**. Its actual job logs
+confirm **195 test files, 1,391 tests passed**, including **8/8 live
+Firestore Emulator integration tests**. This is source-code/Emulator
+evidence for that exact SHA, not for later changes.
+
+Additional candidate hardening: before each GCS delete, re-read the
+persisted lease and require a valid token/deadline owned by this worker.
+The separate Firestore audit transaction reads both the lease and the
+authoritative decision event *inside the same transaction* and rejects
+stolen/expired leases, changed decision status or changed retention due
+timestamp. New synthetic-GCS/real-Firestore-Emulator tests inject loss
+of lease ownership between the fake external delete and audit, mutable
+decision state, and an attempted second delete after a lease theft.
+
+**Residual non-atomicity:** a real GCS deletion in flight is not
+cancellable via Firestore lease expiry; the GCS delete and Firestore
+audit cannot commit atomically. If the deletion succeeds but the audit
+is rejected, operator reconciliation is mandatory and missing-object
+404 is never treated as successful proof. A 10-minute lease still
+requires a production-verified worker deadline and controlled
+concurrency. The new tests inject fake Storage; they do not prove live
+GCS preconditions or Didit provider deletion.
+
+**Release status:** these changes and their exact-head CI results
+are pending; do not mark the latest code PASS until the latest CI
+completes. All stacked PRs remain Draft/Blocked and Production NO-GO.

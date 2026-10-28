@@ -192,6 +192,84 @@ describe.runIf(activeEmulator)('A-15 – real Firestore Emulator pagination and 
     expect((await ref.get()).data()?.auditDigest).toBeUndefined();
   });
 
+
+  it('rejects audit success when decision changes during a Storage request', async () => {
+    const ref = db.collection('verification_events').doc('decision-changes');
+    await ref.set({
+      fotoLoeschenAb: readyExpiry, uid: 'syntheticuid', decidedAt,
+      storagePath: 'verification/syntheticuid/decision-changes.jpg',
+      storageGeneration: '123456789', entscheidung: 'abgelehnt', photoPurged: false,
+    });
+    let fakeDeletes = 0;
+    const origin = await serve(async () => {
+      fakeDeletes += 1;
+      // An adversarial concurrent write can happen after the pre-delete
+      // decision read, but before its audit transaction.
+      await ref.update({ entscheidung: 'in_pruefung' });
+    });
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect(result.body.errors).toBe(1);
+    expect(result.body.purgedCount).toBe(0);
+    expect(fakeDeletes).toBe(1);
+    const saved = (await ref.get()).data();
+    expect(saved?.entscheidung).toBe('in_pruefung');
+    expect(saved?.photoPurged).toBe(false);
+    expect(saved?.auditDigest).toBeUndefined();
+  });
+
+  it('does not audit or release a stolen lease after the fake Storage call', async () => {
+    const ref = db.collection('verification_events').doc('lost-lease');
+    await ref.set({
+      fotoLoeschenAb: readyExpiry, uid: 'syntheticuid', decidedAt,
+      storagePath: 'verification/syntheticuid/lost-lease.jpg',
+      storageGeneration: '123456789', entscheidung: 'bestaetigt', photoPurged: false,
+    });
+    const otherWorker = 'ce9eab12-9fce-4e57-a8c8-5b1813217b90';
+    const stateRef = db.doc('system/verification_photo_purge_cursor');
+    let fakeDeletes = 0;
+    const origin = await serve(async () => {
+      fakeDeletes += 1;
+      // Simulates another worker taking ownership between external side
+      // effect and Firestore audit; no false success or lease release allowed.
+      await stateRef.update({ leaseToken: otherWorker, leaseUntil: new Date(Date.now() + 120_000) });
+    });
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect(fakeDeletes).toBe(1);
+    expect((await stateRef.get()).data()?.leaseToken).toBe(otherWorker);
+    const saved = (await ref.get()).data();
+    expect(saved?.photoPurged).toBe(false);
+    expect(saved?.auditDigest).toBeUndefined();
+  });
+
+  it('prevents a second GCS call after the worker loses its lease', async () => {
+    const events = db.collection('verification_events');
+    for (const id of ['a-first', 'b-second']) {
+      await events.doc(id).set({
+        fotoLoeschenAb: readyExpiry, uid: 'syntheticuid', decidedAt,
+        storagePath: `verification/syntheticuid/${id}.jpg`,
+        storageGeneration: '123456789', entscheidung: 'abgelehnt', photoPurged: false,
+      });
+    }
+    const stateRef = db.doc('system/verification_photo_purge_cursor');
+    let fakeDeletes = 0;
+    const origin = await serve(async () => {
+      fakeDeletes += 1;
+      if (fakeDeletes === 1) {
+        await stateRef.update({
+          leaseToken: 'ce9eab12-9fce-4e57-a8c8-5b1813217b90',
+          leaseUntil: new Date(Date.now() + 120_000),
+        });
+      }
+    });
+    const result = await signedPurge(origin);
+    expect(result.status).toBe(503);
+    expect(fakeDeletes).toBe(1);
+    expect((await events.doc('a-first').get()).data()?.photoPurged).toBe(false);
+    expect((await events.doc('b-second').get()).data()?.photoPurged).toBe(false);
+  });
+
   it('honors a competing live worker lease without querying or deleting data', async () => {
     await db.doc('system/verification_photo_purge_cursor').set({
       cursorAt: null, cursorId: null, leaseToken: 'a2d69550-7835-4a4b-b121-d3b0ab0a6fc1',

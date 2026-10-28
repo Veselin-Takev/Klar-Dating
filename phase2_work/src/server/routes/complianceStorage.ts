@@ -129,6 +129,15 @@ export function createVerificationStoragePurgeRouter(deps: {
       });
 
       const bucket = deps.getBucket?.() ?? getStorage().bucket();
+      // A-15: revalidate worker ownership immediately before each external
+      // deletion. A lease lost between the page query and this operation is
+      // not a valid authorization to delete an object.
+      const assertWorkerLeaseOwned = async () => {
+        const live = await stateRef.get();
+        const data = (live.data() ?? {}) as Record<string, unknown>;
+        if (data.leaseToken !== leaseToken || !readVerificationPurgeLease(data, Date.now()))
+          throw new Error('VERIFICATION_PURGE_LEASE_LOST');
+      };
       const summary = await executeVerificationRetentionBatch(
         artifacts,
         async (path, generation, artifact) => {
@@ -142,17 +151,29 @@ export function createVerificationStoragePurgeRouter(deps: {
             || normalizeTimestamp(data?.decidedAt) !== artifact.decidedAt
             || (normalizeTimestamp(data?.fotoLoeschenAb) ?? Infinity) > now)
             throw new Error('VERIFICATION_PURGE_DECISION_CHANGED_OR_HELD');
+          await assertWorkerLeaseOwned();
           // 404 and 412 are not successful deletion proof. Never ignore either.
           await bucket.file(path).delete({ ifGenerationMatch: generation });
         },
         async (uid, challengeId, auditData) => {
           const ref = db.collection('verification_events').doc(challengeId);
           await db.runTransaction(async tx => {
+            // Both values are read transactionally before writes: a stolen
+            // lease or changed decision cannot produce a false audit success.
+            const lease = await tx.get(stateRef);
             const current = await tx.get(ref);
+            const leaseState = (lease.data() ?? {}) as Record<string, unknown>;
             const data = current.data();
             const expected = artifacts.find(a => a.challengeId === challengeId);
+            const status = data?.entscheidung ?? data?.status;
+            if (leaseState.leaseToken !== leaseToken
+              || !readVerificationPurgeLease(leaseState, Date.now()))
+              throw new Error('VERIFICATION_PURGE_LEASE_LOST');
             if (!current.exists || data?.uid !== uid || !expected || data?.storagePath !== expected.storagePath
               || data?.storageGeneration !== expected.storageGeneration || data?.photoPurged === true
+              || !['bestaetigt', 'abgelehnt', 'approved', 'rejected'].includes(status)
+              || normalizeTimestamp(data?.decidedAt) !== expected.decidedAt
+              || (normalizeTimestamp(data?.fotoLoeschenAb) ?? Infinity) > now
               || data?.legalHold === true || data?.retentionHold === true || data?.photoPurgeHold === true)
               throw new Error('VERIFICATION_PURGE_AUDIT_CONFLICT');
             tx.update(ref, auditData);
