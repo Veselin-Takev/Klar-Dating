@@ -293,6 +293,57 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it.each([false, undefined])('does not disclose existing founding rank without current adult eligibility (%s)', async isAdult => {
+    const writes: string[] = [];
+    const store = new Map<string, Record<string, unknown>>([
+      ['users/user-a', { founding500Member: true, founding500Rank: 7, location: 'München', ...(isAdult === undefined ? {} : { isAdult }) }],
+      ['system/founding_500', { count: 7 }],
+    ]);
+    const db = {
+      collection: (collection: string) => ({ doc: (id: string) => ({ path: collection + '/' + id }) }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+        get: async () => ({ exists: false, data: () => undefined }),
+        getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+          exists: store.has(ref.path), data: () => store.get(ref.path),
+        })),
+        set: (ref: { path: string }) => { writes.push(ref.path); },
+      }),
+    };
+    const recordActivation = vi.fn(async () => ({}));
+    const ctx = await api({ getFirestore: () => db as any, recordActivation });
+    const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ member: false, rank: null, reason: 'onboarding_incomplete' });
+    expect(writes.filter(path => path.startsWith('system/') || path.startsWith('users/'))).toHaveLength(0);
+    expect(recordActivation).not.toHaveBeenCalled();
+    expect(store.get('users/user-a')?.founding500Rank).toBe(7);
+  });
+
+  it('preserves an adult existing founding member without duplicate rank or activation', async () => {
+    const writes: string[] = [];
+    const store = new Map<string, Record<string, unknown>>([
+      ['users/user-a', { isAdult: true, founding500Member: true, founding500Rank: 7, location: 'München' }],
+      ['system/founding_500', { count: 7 }],
+    ]);
+    const db = {
+      collection: (collection: string) => ({ doc: (id: string) => ({ path: collection + '/' + id }) }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+        get: async () => ({ exists: false, data: () => undefined }),
+        getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+          exists: store.has(ref.path), data: () => store.get(ref.path),
+        })),
+        set: (ref: { path: string }) => { writes.push(ref.path); },
+      }),
+    };
+    const recordActivation = vi.fn(async () => ({}));
+    const ctx = await api({ getFirestore: () => db as any, recordActivation });
+    const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ member: true, rank: 7, already: true });
+    expect(writes.filter(path => path.startsWith('system/') || path.startsWith('users/'))).toHaveLength(0);
+    expect(recordActivation).not.toHaveBeenCalled();
+  });
+
   it('requires authentication before founding-claim transactions', async () => {
     const ctx = await api({ currentUserId: () => null });
     const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });

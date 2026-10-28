@@ -215,8 +215,11 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         if (!userSnap || !deletionSnap || !cohortSnap || !userSnap.exists) throw new Error('User not found');
         if (deletionSnap.exists) return { member: false, rank: null, reason: 'account_deleting' };
         const user = userSnap.data() ?? {};
+        // An old founding flag never bypasses current adult eligibility.
+        // Do not reveal a stored rank for an ineligible account.
+        if (user.isAdult !== true) return { member: false, rank: null, reason: 'onboarding_incomplete' };
         if (user.founding500Member === true) return { member: true, rank: user.founding500Rank ?? null, already: true };
-        if (user.isAdult !== true || typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
+        if (typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
           return { member: false, rank: null, reason: 'onboarding_incomplete' };
         }
         const rawCount = cohortSnap.exists ? cohortSnap.data()?.count : 0;
