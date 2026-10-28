@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { assertSuccessfulVerificationPurgePage } from './verificationPurgeSchedulerResponse';
 
 const secret = defineSecret('COMPLIANCE_JOB_SECRET');
 const endpoint = defineString('COMPLIANCE_API_ORIGIN', { description: 'HTTPS origin of the Klar API; no path or credentials.' });
@@ -22,5 +23,7 @@ export const purgeVerificationStorageCron = onSchedule({
     headers: { 'content-type': 'application/json', 'X-Klar-Compliance-Timestamp': timestamp, 'X-Klar-Compliance-Signature': signature },
     body,
   });
-  if (!response.ok) throw new Error(`Verification storage purge failed: HTTP ${response.status}`);
+  // HTTP 202 (worker busy) is not a completed purge. A full 100-row page
+  // is likewise inconclusive: retry until a terminal partial/empty page.
+  await assertSuccessfulVerificationPurgePage(response);
 });
