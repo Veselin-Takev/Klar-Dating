@@ -267,6 +267,32 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(recordActivation).toHaveBeenCalledOnce();
   });
 
+  it.each([null, '0', 'not-a-number', -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+    'fails closed for invalid founding counter %s', async count => {
+      const writes: string[] = [];
+      const data = new Map<string, Record<string, unknown>>([
+        ['users/user-a', { isAdult: true, location: 'München' }],
+        ['system/founding_500', { count }],
+      ]);
+      const db = {
+        collection: (collection: string) => ({ doc: (id: string) => ({ path: collection + '/' + id }) }),
+        runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+          get: async () => ({ exists: false, data: () => undefined }),
+          getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+            exists: data.has(ref.path), data: () => data.get(ref.path),
+          })),
+          set: (ref: { path: string }) => { writes.push(ref.path); },
+        }),
+      };
+      const recordActivation = vi.fn(async () => ({}));
+      const ctx = await api({ getFirestore: () => db as any, recordActivation });
+      const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+      expect(response.status).toBe(503);
+      expect(writes.filter(path => path.startsWith('system/') || path.startsWith('users/'))).toHaveLength(0);
+      expect(recordActivation).not.toHaveBeenCalled();
+    },
+  );
+
   it('requires authentication before founding-claim transactions', async () => {
     const ctx = await api({ currentUserId: () => null });
     const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });

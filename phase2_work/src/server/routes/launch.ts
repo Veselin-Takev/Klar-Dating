@@ -219,7 +219,13 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         if (user.isAdult !== true || typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
           return { member: false, rank: null, reason: 'onboarding_incomplete' };
         }
-        const current = Number(cohortSnap.data()?.count ?? 0);
+        const rawCount = cohortSnap.exists ? cohortSnap.data()?.count : 0;
+        // Never coerce corrupt Firestore values (including strings, null, NaN,
+        // negative and fractional counts) into membership ranks.
+        if (!Number.isSafeInteger(rawCount) || rawCount < 0) {
+          throw new Error('Invalid founding cohort counter');
+        }
+        const current = rawCount;
         if (current >= foundingLimit) return { member: false, rank: null, reason: 'cohort_full' };
         const rank = current + 1;
         tx.set(cohortRef, { count: rank, updatedAt: deps.serverTimestamp() }, { merge: true });
