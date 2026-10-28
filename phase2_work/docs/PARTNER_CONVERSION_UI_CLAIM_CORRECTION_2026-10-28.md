@@ -13,3 +13,5 @@ Keep the UI functional but change claims to `Technisch erfasste Conversions`, `A
 ## Regression, validation, release
 
 `node scripts/test-partner-conversion-copy.mjs` checks the removal of unsubstantiated claims and presence of cautious disclosures. CI must execute exact-HEAD typecheck and test suite; this static check is **not** independent evidence that the partner offer is legitimate. Product/Brand/Legal/DPO approval of all #47 claims and independent buyer/purchase verification under #55 remain necessary. Existing marketing claim matrix remains blocked. No deployment or merge authorized until mandatory gates and applicable reviews. Rollback: revert the isolated PR. **NO-GO**.
+
+The new static regression is wired into `npm run check:marketing-claims`, which is a dependency of the mandatory `check:enterprise` CI path. No standalone unexecuted test is being claimed as a release gate.
