@@ -115,3 +115,32 @@ test('recordActivation rejects a deletion marker appearing on a simulated Firest
   await assert.rejects(recordActivation(db as any, 'uid-a', 'first_contact', 'event0003'), /Account deletion pending/);
   assert.deepEqual(committed, []);
 });
+
+test('recordActivation fails closed when deletion marker cannot be read', async () => {
+  const created: string[] = [];
+  const db = {
+    collection: (name: string) => ({ doc: (id: string) => ({ path: name + '/' + id }) }),
+    runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+      get: async () => { throw new Error('Firestore unavailable'); },
+      create: (ref: { path: string }) => created.push(ref.path),
+    }),
+  };
+  await assert.rejects(recordActivation(db as any, 'uid-a', 'first_contact', 'event0004'), /Firestore unavailable/);
+  assert.deepEqual(created, []);
+});
+
+test('recordActivation maintains create-only semantics for duplicate event IDs', async () => {
+  const created = new Set(['activation_events/event0005']);
+  const db = {
+    collection: (name: string) => ({ doc: (id: string) => ({ path: name + '/' + id }) }),
+    runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+      get: async () => ({ exists: false }),
+      create: (ref: { path: string }) => {
+        if (created.has(ref.path)) throw Object.assign(new Error('Already exists'), { code: 6 });
+        created.add(ref.path);
+      },
+    }),
+  };
+  await assert.rejects(recordActivation(db as any, 'uid-a', 'first_contact', 'event0005'), /Already exists/);
+  assert.deepEqual([...created], ['activation_events/event0005']);
+});
