@@ -212,6 +212,57 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(await response.json()).toEqual({ duplicate: true });
   });
 
+  it.each([false, true])('denies founding membership when deletion is pending (already member: %s)', async already => {
+    const writes: Array<{ path: string; value: Record<string, unknown> }> = [];
+    const store = new Map<string, Record<string, unknown>>([
+      ['users/user-a', { isAdult: true, location: 'München', ...(already ? { founding500Member: true, founding500Rank: 3 } : {}) }],
+      ['account_deletions/user-a', { status: 'pending' }],
+      ['system/founding_500', { count: 3 }],
+    ]);
+    const makeRef = (collection: string, id: string) => ({ path: collection + '/' + id });
+    const db = {
+      collection: (collection: string) => ({ doc: (id: string) => makeRef(collection, id) }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+        getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+          exists: store.has(ref.path), data: () => store.get(ref.path),
+        })),
+        set: (ref: { path: string }, value: Record<string, unknown>) => writes.push({ path: ref.path, value }),
+      }),
+    };
+    const recordActivation = vi.fn(async () => ({}));
+    const ctx = await api({ getFirestore: () => db as any, recordActivation });
+    const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ member: false, rank: null, reason: 'account_deleting' });
+    expect(writes).toHaveLength(0);
+    expect(recordActivation).not.toHaveBeenCalled();
+    expect(store.get('system/founding_500')?.count).toBe(3);
+  });
+
+  it('allows eligible founding claim with no deletion record and writes membership once', async () => {
+    const writes: string[] = [];
+    const data = new Map<string, Record<string, unknown>>([
+      ['users/user-a', { isAdult: true, location: 'München' }],
+      ['system/founding_500', { count: 0 }],
+    ]);
+    const db = {
+      collection: (collection: string) => ({ doc: (id: string) => ({ path: collection + '/' + id }) }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+        getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+          exists: data.has(ref.path), data: () => data.get(ref.path),
+        })),
+        set: (ref: { path: string }) => { writes.push(ref.path); },
+      }),
+    };
+    const recordActivation = vi.fn(async () => ({}));
+    const ctx = await api({ getFirestore: () => db as any, recordActivation });
+    const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ member: true, rank: 1, already: false });
+    expect(writes).toEqual(['system/founding_500', 'users/user-a']);
+    expect(recordActivation).toHaveBeenCalledOnce();
+  });
+
   it('requires authentication before founding-claim transactions', async () => {
     const ctx = await api({ currentUserId: () => null });
     const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
