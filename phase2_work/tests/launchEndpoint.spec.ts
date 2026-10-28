@@ -185,7 +185,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
     expect(fixture.store.get('users/user-a')).toMatchObject({ referredBy: 'first-inviter', referralQualified: false, isVerified: false });
-    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
   });
 
   it('keeps a retry for the existing inviter idempotent without creating a second event', async () => {
@@ -197,7 +197,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
   });
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {

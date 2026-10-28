@@ -13,3 +13,7 @@ The existing `POST /api/referral/claim` handler acknowledged any valid inviter c
 ## Residual security work / rollout
 
 Issue #48 remains open: signed Didit KYC authority, self-referral/sybil defenses, token lifecycle, replay and concurrency under real Firestore emulator, HMAC rotation, capped fixed-duration Klar+ rewards, reversal on fraud, Art. 17 deletion, legal/consent sign-off and E2E are not established by this patch. Deployment and live reward issuance are not authorized. Roll back via revert of this isolated commit if needed. Base SHA: `2808dc1cbb485f70b403681c108cea5a3361d950`. **Production NO-GO.**
+
+## CI failure triage — 2026-10-28
+
+The first exact-SHA Enterprise CI failed in `tests/launchEndpoint.spec.ts` because new negative tests counted **all** `fixture.writes` (including expected pre-handler distributed rate-limit writes) as forbidden business writes. The request limiter runs before the referral transaction. The corrected assertions constrain the invariant to `users/` and `referral_events/`, ensuring that invalid / duplicate requests never mutate referral attribution while permitting legitimate limiter accounting. The test still asserts HTTP status and unchanged business state. Initial failing CI run: 40690457236 (2 failures). A new exact-HEAD CI run is required; prior failures remain part of the audit trail. No local test execution or production approval is claimed.
