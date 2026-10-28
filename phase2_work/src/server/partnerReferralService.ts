@@ -649,6 +649,10 @@ export async function recordPartnerConversion(
   if (!PartnerConversionPayloadSchema.safeParse(payload).success) {
     throw new PartnerReferralError(400, 'invalid_partner_event', 'Die Partner-Rückmeldung ist ungültig.');
   }
+  // Defense in depth: internal callers must not bypass the route slug boundary.
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug)) {
+    throw new PartnerReferralError(404, 'partner_webhook_not_found', 'Der Partner-Rückkanal ist nicht verfügbar.');
+  }
   if (partnerSecret.length < 32) throw new PartnerReferralError(503, 'partner_webhook_unconfigured', 'Der Partner-Rückkanal ist nicht konfiguriert.');
   const db = deps.getFirestore();
   const referralId = partnerReferralDocumentId(payload.referralToken);

@@ -481,6 +481,21 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('rejects malformed campaign slugs before accessing Firestore', async () => {
+    const service = {
+      ...deps(makeFirestore()),
+      getFirestore: () => { throw new Error('Firestore must not be accessed for malformed slug'); },
+    };
+    const payload = { event: 'qualified_conversion' as const,
+      eventId: 'provider-order-00001',
+      referralToken: 'a'.repeat(64),
+      buyerUid: 'buyer-1' };
+    for (const slug of ['', 'A-Partner', '../partner', 'partner/path', 'partner_', 'partner--', '-partner', 'partner-', 'a'.repeat(49)]) {
+      await expect(recordPartnerConversion(service, slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ status: 404, code: 'partner_webhook_not_found' });
+    }
+  });
+
   it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
     const uid = 'owner-1';
     const buyer = 'buyer-1';

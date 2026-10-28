@@ -9,3 +9,7 @@ The HTTP route `POST /partner/webhook/:slug` already applies `PartnerConversionP
 
 ## Residual critical risk
 A valid HMAC and valid schema only prove that a holder of the webhook secret asserted an event. The current service correctly stores `proofStatus: partner_assertion_only` and `rewardStatus: pending_verification` without incrementing qualified conversion counters. **This change does not establish independent buyer identity, payment capture, refund/chargeback finality or partner-contract evidence.** Those are separate P0 release requirements under #55. Require exact-HEAD CI, emulator/E2E, reviewed provider contracts, Security/DPO and Operations approvals before closing #55 or considering production GO. No merge/deploy performed.
+
+## Direct service caller slug boundary — 2026-10-28
+
+The first exact-HEAD CI run on `33c48b2eb0239d6e30eaa99ad80d573b4fdb3190` was SUCCESS (run `40777056211`). Review found that the HTTP route validated campaign slugs, but the exported conversion service did not. Added the same canonical slug regex to `recordPartnerConversion` before any Firestore access or event-ID HMAC derivation. Nine negative fixtures verify that malformed, path-like, uppercase, leading/trailing-hyphen or overlength slugs are rejected at the service boundary. A passing service guard still does not independently prove a purchase, chargeback finality or buyer ownership. New exact-HEAD CI and external evidence remain required; **NO-GO**.
