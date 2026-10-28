@@ -490,7 +490,7 @@ describe('Klar & Partner transactional service boundary', () => {
       eventId: 'provider-order-00001',
       referralToken: 'a'.repeat(64),
       buyerUid: 'buyer-1' };
-    for (const slug of ['', 'A-Partner', '../partner', 'partner/path', 'partner_', 'partner--', '-partner', 'partner-', 'a'.repeat(49)]) {
+    for (const slug of ['', 'A-Partner', '../partner', 'partner/path', 'partner_', 'partner..x', '-partner', 'partner-', 'a'.repeat(49)]) {
       await expect(recordPartnerConversion(service, slug, payload, 'partner-provider-signing-secret-is-long-enough'))
         .rejects.toMatchObject({ status: 404, code: 'partner_webhook_not_found' });
     }
