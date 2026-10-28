@@ -140,3 +140,20 @@ approval are **PENDING** until checks finish on the new commit.
 composite-index availability, immutable real GCS 404/412/race evidence,
 complete deletion/reconciliation, 20 ACTIVE staging TTL policies, or release
 signatures. No waiver or merge is authorized.
+
+## 28 October 2026 – Mandatory emulator CI gate CLI correction
+
+Exact-head CI on `9483760b98560b53108d4209825f5ca277c432a4`
+failed in run `40645451154`, step `Retention Firestore emulator mandatory`.
+The Firestore Emulator started, but the runner exited before executing the
+suite because pinned Vitest rejected `--minWorkers=1`:
+`CACError: Unknown option --minWorkers`. The six fail-closed preflight
+negative tests had passed. This was a **test invocation error**, not proof
+of failing Firestore retention behavior.
+
+The correction removes only the unsupported CLI switch; `--maxWorkers=1`,
+the real Emulator requirement, CI mandatory step and all fail-closed
+environment checks remain. A new source regression asserts the flag
+cannot be reintroduced. Do **not** mark the gate PASS until the corrected
+head is validated in Actions and its logs prove the integration tests
+actually ran (rather than skipped). Production remains NO-GO.

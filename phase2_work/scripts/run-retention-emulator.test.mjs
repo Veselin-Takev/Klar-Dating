@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const script = resolve('scripts/run-retention-emulator.mjs');
 function assertDenied(overrides) {
@@ -22,3 +23,9 @@ test('A-15 refuses incorrect port', () => assertDenied({ FIRESTORE_EMULATOR_HOST
 test('A-15 refuses non-demo project', () => assertDenied({ FIRESTORE_EMULATOR_HOST: 'localhost:8085', GCLOUD_PROJECT: 'production-project' }));
 test('A-15 refuses durable fallback', () => assertDenied({ FIRESTORE_EMULATOR_HOST: 'localhost:8085', KLAR_ALLOW_DURABLE_DB_FALLBACK: 'true' }));
 test('A-15 refuses production runtime', () => assertDenied({ FIRESTORE_EMULATOR_HOST: 'localhost:8085', NODE_ENV: 'production' }));
+
+test('A-15 runner uses only CLI flags accepted by pinned Vitest', () => {
+  const source = readFileSync(script, 'utf8');
+  assert.match(source, /'--maxWorkers=1'/);
+  assert.doesNotMatch(source, /'--minWorkers=1'/);
+});

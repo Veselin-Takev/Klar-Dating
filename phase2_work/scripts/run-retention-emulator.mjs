@@ -30,7 +30,7 @@ if (!Number.isSafeInteger(requiredPort) || !match
   } else {
     const result = spawnSync(process.execPath, [
       vitest, 'run', 'tests/complianceStorageCursorFirestoreEmulator.spec.ts',
-      '--maxWorkers=1', '--minWorkers=1',
+      '--maxWorkers=1', // Vitest 4 does not accept --minWorkers.
     ], {
       cwd: process.cwd(),
       stdio: 'inherit',
