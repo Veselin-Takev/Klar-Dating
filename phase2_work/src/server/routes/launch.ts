@@ -235,12 +235,13 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
 
   // Activation history is account-private. Set headers before rate limiting and
   // authentication so success and error responses are never cacheable.
-  router.get('/activation/summary', (_req, res, next) => {
+  router.use('/activation/summary', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Referrer-Policy', 'no-referrer');
     next();
-  }, activationSummaryReadLimiter, async (req, res) => {
+  });
+  router.get('/activation/summary', activationSummaryReadLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
