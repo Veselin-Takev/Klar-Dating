@@ -13,3 +13,7 @@ The private list now reads the user record and account deletion marker in one re
 ## Verification and limitations
 
 The owner state transaction and later campaign query/response are separate snapshots: this read guard does not claim to close a deletion marker appearing after the transaction commits. No third-party token is released by the empty-list path. CI on exact PR HEAD, emulator concurrency evidence, complete Art.17 cascade, DPO/Security review, third-party contracts and retention approval remain mandatory. No changes to main or production resources. **NO-GO**.
+
+## Firestore emulator integration added (2026-10-28)
+
+Enterprise CI `40770661354` passed on original PR commit `3a6a81a2f978a1e94d806acddad4c935a41e8f09`. The additional `tests/partnerReferralListDeletionEmulator.spec.ts` checks real Firestore transaction behavior for (1) a pending deletion marker with an empty partner campaign list (must return 409 and create no owner referral), and (2) a consenting active user with no campaigns (permitted empty result). The suite rejects non-loopback Firestore hosts, incorrect emulator port, non-demo project IDs, production runtime and durable-store fallback before any Admin client setup. Test records use random IDs and are cleaned up. The database mock tests continue to cover missing snapshot/availability separately. Neither integration test proves a simultaneous deletion-write race, complete Art.17 deletion, or a live production data audit. New exact-HEAD CI and independent DPO/Security/Operations signoff are required. **NO-GO**.
