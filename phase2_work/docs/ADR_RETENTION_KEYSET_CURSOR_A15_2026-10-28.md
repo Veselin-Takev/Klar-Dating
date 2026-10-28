@@ -158,3 +158,19 @@ GCS preconditions or Didit provider deletion.
 **Release status:** these changes and their exact-head CI results
 are pending; do not mark the latest code PASS until the latest CI
 completes. All stacked PRs remain Draft/Blocked and Production NO-GO.
+
+## 28 October 2026 – Signed scheduler completion contract (separate stacked draft)
+
+A separate A-15 scheduler guard treats **HTTP 202 (busy)** as non-success,
+as well as error statuses and malformed HTTP-200 responses. Even an HTTP-200
+reply for a **full 100-row keyset page** is not a verified completed scan:
+the scheduler raises a retryable error and uses the persisted cursor on its
+next invocation, rather than silently acknowledging the day as complete.
+
+The parser checks bounded integer counters, result-count consistency and
+`ok=true` without logging response bodies that may contain UID/path data.
+This does *not* increase guaranteed throughput beyond Cloud Scheduler's
+configured retry limits. Sustained backlogs can still exceed 30-day targets;
+Ops must measure and alert on backlog and review scheduler cadence. No live
+TTL ACTIVE, GCS generation-race, Didit provider-retention or independent
+release evidence is implied. Production remains NO-GO.

@@ -39,4 +39,12 @@ for (const required of ["CURSOR_STATE_PATH", "readVerificationPurgeCursor", ".or
   "lastScanned: snapshot.docs.length", "completedCycle: next === null"]) {
   if (!route.includes(required)) throw new Error('A-15 missing persistent keyset/liveness invariant: ' + required);
 }
+const scheduler = fs.readFileSync('functions/src/verificationPurgeSchedulerResponse.ts', 'utf8');
+if (!fn.includes('await assertSuccessfulVerificationPurgePage(response)')
+    || !scheduler.includes('response.status !== 200')
+    || !scheduler.includes('scanned === MAX_PAGE')
+    || !scheduler.includes('value.ok !== true')
+    || !scheduler.includes('purgedCount + skippedCount !== processed')) {
+  throw new Error('A-15 scheduler must reject busy, malformed and full-page success');
+}
 console.log('Compliance storage purge boundary: PASS');
