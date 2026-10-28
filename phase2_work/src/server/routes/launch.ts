@@ -117,7 +117,16 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.get('/referral', referralGenerationLimiter, async (req, res) => {
+  // Invitation codes are account-bound capability-like tokens. Never allow
+  // shared or browser caches to retain success or failure responses.
+  const protectReferralResponse = (_req: Request, res: import('express').Response, next: import('express').NextFunction) => {
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+
+  router.get('/referral', protectReferralResponse, referralGenerationLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -144,7 +153,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/referral/claim', express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
+  router.post('/referral/claim', protectReferralResponse, express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
