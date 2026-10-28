@@ -4,6 +4,7 @@ import { FieldValue } from './db';
 import { consentAuditSecret, signHmacAuditPayload } from './consentAudit';
 import {
   PartnerReferralError,
+  PartnerConversionPayloadSchema,
   isAutomatedPartnerClick,
   parsePartnerCampaignInput,
   validatePartnerDestinationUrl,
@@ -643,6 +644,11 @@ export async function recordPartnerConversion(
   payload: PartnerConversionPayload,
   partnerSecret: string,
 ): Promise<{ ok: true; duplicate: boolean; rewardStatus: 'pending_verification' | 'already_recorded' }> {
+  // Validate again at the service boundary: callers other than the HTTP route
+  // must never bypass the strict partner-event schema.
+  if (!PartnerConversionPayloadSchema.safeParse(payload).success) {
+    throw new PartnerReferralError(400, 'invalid_partner_event', 'Die Partner-Rückmeldung ist ungültig.');
+  }
   if (partnerSecret.length < 32) throw new PartnerReferralError(503, 'partner_webhook_unconfigured', 'Der Partner-Rückkanal ist nicht konfiguriert.');
   const db = deps.getFirestore();
   const referralId = partnerReferralDocumentId(payload.referralToken);

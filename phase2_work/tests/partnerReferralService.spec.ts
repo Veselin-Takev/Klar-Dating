@@ -463,6 +463,24 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('rejects malformed partner conversions at the service boundary before Firestore access', async () => {
+    const invalid = [
+      { event: 'credited_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'short', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'UNSAFE', buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1', rewardStatus: 'earned' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: '../other' },
+    ];
+    const service = {
+      ...deps(makeFirestore()),
+      getFirestore: () => { throw new Error('Firestore must not be accessed for malformed event'); },
+    };
+    for (const item of invalid) {
+      await expect(recordPartnerConversion(service, 'example-partner', item as any, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ status: 400, code: 'invalid_partner_event' });
+    }
+  });
+
   it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
     const uid = 'owner-1';
     const buyer = 'buyer-1';
