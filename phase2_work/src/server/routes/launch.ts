@@ -131,7 +131,20 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const publicUrl = deps.publicUrl();
-      if (!publicUrl || !/^https:\/\/[^\s]+$/i.test(publicUrl)) {
+      // Only a bare HTTPS origin is permitted. A configured path, credentials,
+      // query or fragment must never alter where an invitation token is sent.
+      let referralOrigin: string | null = null;
+      if (typeof publicUrl === 'string' && !/[\\\\\s]/.test(publicUrl)) {
+        try {
+          const parsed = new URL(publicUrl);
+          if (parsed.protocol === 'https:' && parsed.hostname && !parsed.username && !parsed.password
+            && parsed.pathname === '/' && !parsed.search && !parsed.hash
+            && !publicUrl.includes('?') && !publicUrl.includes('#')) {
+            referralOrigin = parsed.origin;
+          }
+        } catch { /* invalid public origin: fail closed */ }
+      }
+      if (!referralOrigin) {
         return res.status(503).json({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
       }
       const code = deps.referralCodeFor(uid);
@@ -146,7 +159,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       });
       if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
 
-      return res.json({ code, shareUrl: `${publicUrl.replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}` });
+      return res.json({ code, shareUrl: `${referralOrigin}/?ref=${encodeURIComponent(code)}` });
     } catch (error) {
       console.error('Referral generation failed', error);
       return res.status(503).json({ error: 'Einladungslink derzeit nicht verfügbar.' });
