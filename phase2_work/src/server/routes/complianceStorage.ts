@@ -15,7 +15,8 @@ export function validComplianceRequest(body: Buffer, timestampHeader: string | u
   if (secret.length < 32 || !timestampHeader || !/^\d{10,16}$/.test(timestampHeader) || !signatureHeader || !/^[a-f0-9]{64}$/.test(signatureHeader)) return false;
   const timestamp = Number(timestampHeader);
   if (!Number.isSafeInteger(timestamp) || Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS) return false;
-  const expected = complianceSignature(`${timestampHeader}.${body.toString('utf8')}`, secret);
+  // Use original bytes; decoding invalid UTF-8 must never change signed content.
+  const expected = createHmac('sha256', secret).update(`${timestampHeader}.`, 'utf8').update(body).digest('hex');
   const supplied = Buffer.from(signatureHeader, 'hex');
   const expectedBytes = Buffer.from(expected, 'hex');
   return supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
@@ -40,7 +41,9 @@ export function createVerificationStoragePurgeRouter(deps: {
 }): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
-    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
+    // Reject requests if upstream middleware consumed the byte-exact body.
+    if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);
+    const body: Buffer = req.body;
     if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
 
     const db = deps.getDb();

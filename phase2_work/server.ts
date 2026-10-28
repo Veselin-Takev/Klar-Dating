@@ -484,6 +484,9 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
   app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
+  // A-14: preserve exact signed bytes before the global JSON parser.
+  // Restrict raw parsing to this 2 KiB path; downstream rate limit and HMAC still apply.
+  app.use('/api/admin/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }));
   app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
 
   // Setup basic rate limiting
