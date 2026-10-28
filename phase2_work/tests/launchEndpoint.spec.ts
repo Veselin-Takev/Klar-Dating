@@ -249,10 +249,25 @@ describe('launch/referral/activation HTTP boundary', () => {
     return { db: db as any, activityReads, transactionRuns };
   }
 
+  function expectPrivateActivationHeaders(response: Response) {
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('cache-control')).toContain('private');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  }
+
+  it('sets non-cacheable headers on unauthenticated activation requests', async () => {
+    const ctx = await api({ currentUserId: () => null });
+    const response = await fetch(ctx.base + '/activation/summary');
+    expect(response.status).toBe(401);
+    expectPrivateActivationHeaders(response);
+  });
+
   it('suppresses activation-event readback while account deletion is pending', async () => {
     const fixture = activationSummaryDb('pending');
     const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
+    expectPrivateActivationHeaders(response);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'Aktivierungsstatus für dieses Konto nicht verfügbar.' });
     expect(fixture.activityReads).not.toHaveBeenCalled();
@@ -263,6 +278,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     const fixture = activationSummaryDb('unavailable');
     const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
+    expectPrivateActivationHeaders(response);
     expect(response.status).toBe(503);
     expect(fixture.activityReads).not.toHaveBeenCalled();
     expect(fixture.transactionRuns).toHaveBeenCalledTimes(2);
@@ -272,6 +288,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     const fixture = activationSummaryDb('absent');
     const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
+    expectPrivateActivationHeaders(response);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ score: 20, activated: false, events: ['first_contact', 'first_conversation'] });
     expect(fixture.activityReads).toHaveBeenCalledOnce();
