@@ -219,59 +219,92 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(ctx.db.runTransaction).not.toHaveBeenCalled();
   });
 
+  function activationSummaryDb(marker: 'pending' | 'absent' | 'unavailable', names = ['first_contact', 'first_contact', 'first_conversation']) {
+    const docs = names.map(eventName => ({ data: () => ({ eventName }) }));
+    const activityReads = vi.fn(async () => ({ docs }));
+    const transactionRuns = vi.fn();
+    const db = {
+      collection: vi.fn((collection: string) => ({
+        doc: (id: string) => ({ kind: 'doc', path: collection + '/' + id }),
+        where: () => ({
+          limit: () => ({ kind: 'activity-query', collection }),
+        }),
+      })),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => {
+        transactionRuns();
+        return fn({
+          get: async (ref: { kind: string; path?: string }) => {
+            if (ref.kind === 'activity-query') return activityReads();
+            if (ref.path?.startsWith('account_deletions/')) {
+              if (marker === 'unavailable') throw new Error('Firestore unavailable');
+              return { exists: marker === 'pending' };
+            }
+            // Distributed rate limiter obtains its counter in a separate transaction.
+            return { exists: false, data: () => undefined };
+          },
+          set: vi.fn(), update: vi.fn(),
+        });
+      },
+    };
+    return { db: db as any, activityReads, transactionRuns };
+  }
+
   it('suppresses activation-event readback while account deletion is pending', async () => {
-    const db = baseDb();
-    const eventQuery = vi.fn();
-    db.collection = vi.fn((name: string) => {
-      if (name === 'account_deletions') return {
-        doc: vi.fn(() => ({ get: vi.fn(async () => ({ exists: true })) })),
-      } as any;
-      if (name === 'activation_events') return { where: eventQuery } as any;
-      return baseDb().collection(name);
-    });
-    const ctx = await api({ getFirestore: () => db });
+    const fixture = activationSummaryDb('pending');
+    const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'Aktivierungsstatus für dieses Konto nicht verfügbar.' });
-    expect(eventQuery).not.toHaveBeenCalled();
+    expect(fixture.activityReads).not.toHaveBeenCalled();
+    expect(fixture.transactionRuns).toHaveBeenCalledTimes(2);
   });
 
-  it('fails closed if deletion marker status cannot be loaded', async () => {
-    const db = baseDb();
-    const eventQuery = vi.fn();
-    db.collection = vi.fn((name: string) => {
-      if (name === 'account_deletions') return {
-        doc: vi.fn(() => ({ get: vi.fn(async () => { throw new Error('Firestore unavailable'); }) })),
-      } as any;
-      if (name === 'activation_events') return { where: eventQuery } as any;
-      return baseDb().collection(name);
-    });
-    const ctx = await api({ getFirestore: () => db });
+  it('fails closed if deletion marker status cannot be loaded in the transaction', async () => {
+    const fixture = activationSummaryDb('unavailable');
+    const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
     expect(response.status).toBe(503);
-    expect(eventQuery).not.toHaveBeenCalled();
+    expect(fixture.activityReads).not.toHaveBeenCalled();
+    expect(fixture.transactionRuns).toHaveBeenCalledTimes(2);
   });
 
-  it('deduplicates activation event names in the summary', async () => {
-    const db = baseDb();
-    db.collection = vi.fn((name: string) => {
-      if (name === 'account_deletions') return {
-        doc: vi.fn(() => ({ get: vi.fn(async () => ({ exists: false })) })),
-      } as any;
-      if (name === 'activation_events') return {
-        where: vi.fn(() => ({ limit: vi.fn(() => ({ get: vi.fn(async () => ({
-          docs: [
-            { data: () => ({ eventName: 'first_contact' }) },
-            { data: () => ({ eventName: 'first_contact' }) },
-            { data: () => ({ eventName: 'first_conversation' }) },
-          ],
-        })) })) })),
-      } as any;
-      return baseDb().collection(name);
-    });
-    const ctx = await api({ getFirestore: () => db });
+  it('deduplicates activation event names from the transactional query', async () => {
+    const fixture = activationSummaryDb('absent');
+    const ctx = await api({ getFirestore: () => fixture.db });
     const response = await fetch(ctx.base + '/activation/summary');
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ score: 20, activated: false, events: ['first_contact', 'first_conversation'] });
+    expect(fixture.activityReads).toHaveBeenCalledOnce();
+    expect(fixture.transactionRuns).toHaveBeenCalledTimes(2);
   });
+
+  it('does not return event history if the transaction retries after a deletion-marker conflict', async () => {
+    let readingMarker = 0;
+    const activityReads = vi.fn(async () => ({ docs: [{ data: () => ({ eventName: 'first_contact' }) }] }));
+    const db = {
+      collection: (collection: string) => ({
+        doc: (id: string) => ({ kind: 'doc', path: collection + '/' + id }),
+        where: () => ({ limit: () => ({ kind: 'activity-query' }) }),
+      }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => {
+        const tx = {
+          get: async (ref: { kind: string; path?: string }) => {
+            if (ref.kind === 'activity-query') return activityReads();
+            if (ref.path?.startsWith('account_deletions/')) return { exists: ++readingMarker > 1 };
+            return { exists: false, data: () => undefined };
+          },
+          set: vi.fn(), update: vi.fn(),
+        };
+        const result = await fn(tx);
+        // Simulate Firestore serializable retry following a concurrent marker write.
+        if (readingMarker === 1) return fn(tx);
+        return result;
+      },
+    };
+    const ctx = await api({ getFirestore: () => db as any });
+    const response = await fetch(ctx.base + '/activation/summary');
+    expect(response.status).toBe(409);
+    expect(activityReads).toHaveBeenCalledOnce();
+  });
+
 });
