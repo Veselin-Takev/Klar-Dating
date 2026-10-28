@@ -269,6 +269,32 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
+  it.each([
+    'http://klar.app',
+    'https://attacker.example@klar.app',
+    'https://klar.app/path',
+    'https://klar.app/?campaign=test',
+    'https://klar.app/#invitation',
+    'https://klar.app\\\\@evil.example',
+    'https://klar.app extra',
+    'javascript:alert(1)',
+  ])('fails closed on an unsafe public referral origin: %s', async publicUrl => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db, publicUrl: () => publicUrl });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
+    expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
+  });
+
+  it('accepts a bare HTTPS origin with trailing slash and normalizes invitation URL', async () => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db, publicUrl: () => 'https://klar.app/' });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ code: 'ABCDEFGHIJ', shareUrl: 'https://klar.app/?ref=ABCDEFGHIJ' });
+  });
+
   it('fails closed when the referral public origin is not configured', async () => {
     const ctx = await api({ publicUrl: () => undefined });
     const response = await fetch(ctx.base + '/referral');
