@@ -25,7 +25,7 @@ function baseDb() {
 function referralDb() {
   const store = new Map<string, Record<string, unknown>>([
     ['users/user-a', { isAdult: true, isVerified: false }],
-    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isVerified: false }],
+    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: true, isVerified: false }],
   ]);
   const writes: Array<{ path: string; data: Record<string, unknown> }> = [];
   let beforeRead: (() => void) | undefined;
@@ -144,6 +144,29 @@ describe('launch/referral/activation HTTP boundary', () => {
   );
 
 
+
+  it.each(['missing-adult-consent', 'minor'])('refuses invitation generation when adult eligibility is %s', async scenario => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: scenario === 'minor' ? false : undefined, isVerified: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(409);
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+  });
+
+  it.each(['invitee', 'inviter'])('refuses referral attribution when %s has no confirmed adult eligibility', async who => {
+    const fixture = referralDb();
+    const path = who === 'invitee' ? 'users/user-a' : 'users/inviter';
+    fixture.store.set(path, { ...fixture.store.get(path), isAdult: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+  });
 
   it.each(['missing', 'deleting'])('does not issue a code for a %s profile', async state => {
     const fixture = referralDb();

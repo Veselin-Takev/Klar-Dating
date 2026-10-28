@@ -131,7 +131,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const deletionRef = db.collection('account_deletions').doc(uid);
       const available = await db.runTransaction(async tx => {
         const [user, deletion] = await tx.getAll(userRef, deletionRef);
-        if (!user || !deletion || !user.exists || deletion.exists) return false;
+        if (!user || !deletion || !user.exists || deletion.exists || user.data()?.isAdult !== true) return false;
         tx.update(userRef, { referralCode: code });
         return true;
       });
@@ -164,7 +164,8 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         );
         if (!userSnap || !inviter || !userDeletion || !inviterDeletion
           || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
-          || inviter.data()?.referralCode !== code) return false;
+          || inviter.data()?.referralCode !== code
+          || userSnap.data()?.isAdult !== true || inviter.data()?.isAdult !== true) return false;
         // An existing attribution is immutable: only retries for the same inviter
         // are idempotent. Never acknowledge a different code as successful.
         if (userSnap.data()?.referredBy) return userSnap.data()?.referredBy === inviterRef.id;
