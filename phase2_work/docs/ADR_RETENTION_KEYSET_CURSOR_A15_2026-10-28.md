@@ -157,3 +157,23 @@ environment checks remain. A new source regression asserts the flag
 cannot be reintroduced. Do **not** mark the gate PASS until the corrected
 head is validated in Actions and its logs prove the integration tests
 actually ran (rather than skipped). Production remains NO-GO.
+
+## Verification handoff – mandatory emulator CI after CLI correction
+
+The first mandatory gate run `40645451154` is **FAIL** due solely to a
+Vitest CLI parser error for `--minWorkers=1`; the six guard preflight cases
+completed before this error. The correction commit `a478606e17ee7e3580ba4a7c431381f0c7cb76a6` removes
+the unsupported argument and adds a flag-regression test.
+
+This validation note distinguishes the *observed failure* from the *pending
+retest*: it does not claim any green CI on the corrected commit. The
+independent acceptance criterion is a successful root Enterprise CI run on
+the exact corrected (or later reviewed) head with the separately named
+`Retention Firestore emulator mandatory` step and console evidence of
+executed A-15 Firestore integration tests. A skipped step, stale SHA,
+cancelled attempt or successful generic test suite alone is insufficient.
+
+The PR #163 stacked branch is based on PR #162. Its ADR file may
+overlap later #162 changes; resolve and review those overlapping documentation
+updates before any sequential merge. All four PRs #160, #161, #162 and #163
+remain Draft/Blocked and Production NO-GO.
