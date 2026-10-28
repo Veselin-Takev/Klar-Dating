@@ -19,3 +19,9 @@
 6. **A-04/#8:** 14 SHA-bound mandatory gates, 13 integration artifacts and independent Security/Privacy/Legal/SRE/Release approval are still outstanding. `RELEASE_MANIFEST.json` remains NO-GO.
 
 **Governance:** Commit is proposed on an isolated review branch only; existing PRs including audit-locked #119, production deploy, cloud IAM, and main branch are not modified. This document and a source checker PASS cannot attest to actual Firebase emulator/Cloud/production controls. No GO, no automatic closure.
+
+## 2026-10-28 – Follow-up on Draft PR #160
+- PR: https://github.com/Veselin-Takev/Klar-Dating/pull/160. Not approved and not merged. All actual CI results must be evaluated for the latest HEAD SHA.
+- Follow-up regression fixes: `tests/storageRules.spec.ts` now asserts age-only storage deletion is refused and the object remains; `tests/requestBodyPolicy.spec.ts` includes the extra A-14 scoped raw parser in the parser-policy count.
+- Added `tests/complianceStorageRawBody.spec.ts`: real Express HTTP handling on a synthetic in-memory empty-queue stub for the signed scheduler payload, tampered bytes, non-JSON content type, stale timestamp, >2 KiB body and arbitrary binary octets. This does **not** test Firestore/GCS side effects or a live scheduled invocation.
+- Direct GitHub Actions CI is permitted. Passing CI would validate the PR's code-level gates only, never resolve A-02/A-06/A-15 or independent GO requirements.
