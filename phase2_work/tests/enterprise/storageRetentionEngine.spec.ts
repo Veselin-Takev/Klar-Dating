@@ -69,14 +69,16 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
       status: 'approved',
       decidedAt,
       storagePath: '/verification/user-expired-1/gesture.jpg',
+      storageGeneration: '123456',
     };
 
     let storageDeleted = false;
     let dbUpdated = false;
     let recordedAuditDigest = '';
 
-    const mockDeleteStorage = async (path: string) => {
+    const mockDeleteStorage = async (path: string, generation: string) => {
       assert.equal(path, artifact.storagePath);
+      assert.equal(generation, '123456');
       storageDeleted = true;
     };
 
@@ -116,6 +118,7 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
       status: 'approved',
       decidedAt,
       storagePath: '/verification/user-active-1/gesture.jpg',
+      storageGeneration: '123456',
     };
 
     let storageDeleted = false;
@@ -134,6 +137,26 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
     assert.equal(storageDeleted, false);
   });
 
+  it('does not delete legacy records without pinned generation', async () => {
+    let deleted = false;
+    const result = await purgeSingleVerificationArtifact({
+      uid: 'legacy', challengeId: 'legacy-id', status: 'approved',
+      storagePath: 'verification/legacy/photo.jpg', decidedAt: BASE_TIME,
+    }, async () => { deleted = true; }, async () => {}, BASE_TIME + 31 * MS_PER_DAY);
+    assert.equal(result.purged, false); assert.equal(deleted, false);
+    assert.equal(result.error, 'MISSING_DECISION_STORAGE_GENERATION');
+  });
+
+  it('does not audit a GCS 412 generation conflict as a successful deletion', async () => {
+    let audited = false;
+    const result = await purgeSingleVerificationArtifact({
+      uid: 'test', challengeId: 'id', status: 'approved', decidedAt: BASE_TIME,
+      storagePath: 'verification/test/photo.jpg', storageGeneration: '123456',
+    }, async (_path, gen) => { assert.equal(gen, '123456'); throw new Error('GCS 412'); },
+    async () => { audited = true; }, BASE_TIME + 31 * MS_PER_DAY);
+    assert.equal(result.purged, false); assert.equal(audited, false);
+  });
+
   it('executeVerificationRetentionBatch processes heterogeneous artifacts atomically', async () => {
     // Arrange
     const now = BASE_TIME + 35 * MS_PER_DAY;
@@ -144,6 +167,7 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
         status: 'approved',
         decidedAt: BASE_TIME, // 35 days -> expired
         storagePath: '/verification/user-1/gesture.jpg',
+      storageGeneration: '123456',
       },
       {
         uid: 'user-2',
@@ -151,6 +175,7 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
         status: 'approved',
         decidedAt: BASE_TIME + 10 * MS_PER_DAY, // 25 days -> NOT expired
         storagePath: '/verification/user-2/gesture.jpg',
+      storageGeneration: '123456',
       },
       {
         uid: 'user-3',
@@ -158,6 +183,7 @@ describe('StorageRetentionEngine — Biometric Verification Artifacts (Art. 9 DS
         status: 'rejected',
         decidedAt: BASE_TIME, // 35 days -> expired
         storagePath: '/verification/user-3/gesture.jpg',
+      storageGeneration: '123456',
         photoPurged: true, // already purged!
       },
     ];

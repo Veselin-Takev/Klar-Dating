@@ -24,6 +24,8 @@ export interface VerificationArtifactRecord {
   status: 'approved' | 'rejected' | 'pending';
   decidedAt: number; // Unix timestamp in ms
   storagePath: string;
+  /** Generation captured at the decision time; absent for legacy records. */
+  storageGeneration?: string;
   photoPurged?: boolean;
   photoPurgedAt?: number;
 }
@@ -82,10 +84,11 @@ export function generatePurgeAuditDigest(
   uid: string,
   challengeId: string,
   storagePath: string,
-  purgedAt: number
+  purgedAt: number,
+  storageGeneration = ''
 ): string {
   return createHash('sha256')
-    .update(`PURGE:${uid}:${challengeId}:${storagePath}:${purgedAt}`)
+    .update(`PURGE:v2:${uid}:${challengeId}:${storagePath}:${storageGeneration}:${purgedAt}`)
     .digest('hex');
 }
 
@@ -94,7 +97,7 @@ export function generatePurgeAuditDigest(
  */
 export async function purgeSingleVerificationArtifact(
   artifact: VerificationArtifactRecord,
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, generation: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
@@ -129,16 +132,22 @@ export async function purgeSingleVerificationArtifact(
     };
   }
 
+  // Missing decision-time generation must never be repaired using current
+  // GCS metadata: the object may have been replaced since verification.
+  const generation = artifact.storageGeneration;
+  if (!generation || !/^[1-9][0-9]*$/.test(generation))
+    return { uid: artifact.uid, challengeId: artifact.challengeId, storagePath: artifact.storagePath,
+      purged: false, reason: 'error', error: 'MISSING_DECISION_STORAGE_GENERATION' };
   try {
-    // 1. Physische Löschung im Storage
-    await deleteStorageFileFn(artifact.storagePath);
+    await deleteStorageFileFn(artifact.storagePath, generation, artifact);
 
     // 2. Audit-Digest generieren
     const auditDigest = generatePurgeAuditDigest(
       artifact.uid,
       artifact.challengeId,
       artifact.storagePath,
-      now
+      now,
+      generation
     );
 
     // 3. Datenbank-Zustand transactional aktualisieren
@@ -174,7 +183,7 @@ export async function purgeSingleVerificationArtifact(
  */
 export async function executeVerificationRetentionBatch(
   artifacts: VerificationArtifactRecord[],
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, generation: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
