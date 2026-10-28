@@ -370,6 +370,36 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it.each([
+    { label: 'counter lower than saved rank', count: 3, includeCounter: true },
+    { label: 'zero counter with existing rank', count: 0, includeCounter: true },
+    { label: 'missing cohort record', count: 0, includeCounter: false },
+    { label: 'corrupt cohort counter', count: '7', includeCounter: true },
+    { label: 'negative cohort counter', count: -1, includeCounter: true },
+  ])('fails closed for existing member with $label', async ({ count, includeCounter }) => {
+    const writes: string[] = [];
+    const store = new Map<string, Record<string, unknown>>([
+      ['users/user-a', { isAdult: true, founding500Member: true, founding500Rank: 7, location: 'München' }],
+    ]);
+    if (includeCounter) store.set('system/founding_500', { count });
+    const db = {
+      collection: (collection: string) => ({ doc: (id: string) => ({ path: collection + '/' + id }) }),
+      runTransaction: async (fn: (tx: any) => Promise<unknown>) => fn({
+        get: async () => ({ exists: false, data: () => undefined }),
+        getAll: async (...refs: Array<{ path: string }>) => refs.map(ref => ({
+          exists: store.has(ref.path), data: () => store.get(ref.path),
+        })),
+        set: (ref: { path: string }) => { writes.push(ref.path); },
+      }),
+    };
+    const recordActivation = vi.fn(async () => ({}));
+    const ctx = await api({ getFirestore: () => db as any, recordActivation });
+    const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
+    expect(response.status).toBe(503);
+    expect(writes.filter(path => path.startsWith('system/') || path.startsWith('users/'))).toHaveLength(0);
+    expect(recordActivation).not.toHaveBeenCalled();
+  });
+
   it('requires authentication before founding-claim transactions', async () => {
     const ctx = await api({ currentUserId: () => null });
     const response = await fetch(ctx.base + '/launch/founding-claim', { method: 'POST' });
