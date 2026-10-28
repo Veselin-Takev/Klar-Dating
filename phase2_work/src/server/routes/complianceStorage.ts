@@ -16,7 +16,7 @@ export function readVerificationPurgeCursor(data: Record<string, unknown>): Purg
   const at = data.cursorAt;
   const id = data.cursorId;
   if ((at === null || at === undefined) && (id === null || id === undefined)) return null;
-  if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)
+  if (typeof id !== 'string' || !id || id === '.' || id === '..' || id.includes('/') || Buffer.byteLength(id, 'utf8') > 1500
     || !at || typeof at !== 'object') throw new Error('INVALID_VERIFICATION_PURGE_CURSOR');
   const seconds = (at as { seconds?: unknown }).seconds;
   const nanoseconds = (at as { nanoseconds?: unknown }).nanoseconds;
@@ -150,7 +150,10 @@ export function createVerificationStoragePurgeRouter(deps: {
       // reconsidered from the beginning, including late-arriving documents.
       const last = snapshot.docs.at(-1);
       const next = last ? { at: expiryFromFirestore(last.get('fotoLoeschenAb')), id: last.id } : null;
-      const errors = summary.results.filter(item => item.reason === 'error').length;
+      // Malformed document rows are errors too: preserve pagination liveness
+      // without reporting a clean retention run when records were discarded.
+      const errors = summary.results.filter(item => item.reason === 'error').length
+        + (snapshot.docs.length - artifacts.length);
       await db.runTransaction(async tx => {
         const lease = await tx.get(stateRef);
         if (lease.data()?.leaseToken !== leaseToken) throw new Error('VERIFICATION_PURGE_LEASE_LOST');

@@ -21,7 +21,8 @@ unpurgeable, every later due event could starve forever.
   cannot starve one another.
 - The cursor advances to the final scanned document, **not** the final
   successfully deleted event. Held/invalid data therefore cannot block all
-  later events. Errors remain visible as HTTP 503 and are revisited.
+  later events. Invalid records contribute to the persisted failure count;
+  errors remain visible as HTTP 503 and are revisited.
 - An empty page resets the cursor; the *next invocation* scans from the
   beginning, including newly arrived earlier keys and unresolved records.
   If a process crashes before the checkpoint, the old cursor is preserved

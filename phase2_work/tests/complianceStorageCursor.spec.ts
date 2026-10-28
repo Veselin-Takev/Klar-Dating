@@ -108,7 +108,8 @@ describe('A-15 persistent pagination and liveness', () => {
         entscheidung: 'abgelehnt', photoPurged: true } });
     const fake = database(entries), base = await origin(fake.db);
     const first = await run(base);
-    expect(first.status).toBe(200);
+    expect(first.status).toBe(503);
+    expect(first.body.errors).toBe(100);
     expect(first.body.scanned).toBe(100);
     expect(fake.state.cursorId).toBe('a099');
     const second = await run(base);
@@ -122,6 +123,7 @@ describe('A-15 persistent pagination and liveness', () => {
     expect(fake.state.cursorAt).toBeNull();
     expect(fake.state.cursorId).toBeNull();
     const fourth = await run(base);
+    expect(fourth.status).toBe(503);
     expect(fourth.body.scanned).toBe(100);
   });
 
@@ -163,6 +165,7 @@ describe('A-15 persistent pagination and liveness', () => {
   it('validates nanosecond timestamp and document-ID cursor shape', () => {
     expect(readVerificationPurgeCursor({ cursorAt: null, cursorId: null })).toBeNull();
     expect(readVerificationPurgeCursor({ cursorAt: expiry, cursorId: 'valid-id' })?.id).toBe('valid-id');
+    expect(readVerificationPurgeCursor({ cursorAt: expiry, cursorId: 'custom.identifier:01' })?.id).toBe('custom.identifier:01');
     expect(() => readVerificationPurgeCursor({ cursorAt: { seconds: 1, nanoseconds: 1_000_000_000 }, cursorId: 'id' }))
       .toThrow('INVALID_VERIFICATION_PURGE_CURSOR');
     expect(() => readVerificationPurgeCursor({ cursorAt: expiry, cursorId: 'invalid/path' }))
