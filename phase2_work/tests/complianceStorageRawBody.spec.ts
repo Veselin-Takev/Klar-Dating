@@ -28,8 +28,24 @@ async function origin() {
   app.use('/api/admin/purge-verification-storage',
     express.raw({ inflate: false, type: 'application/json', limit: '2kb' }));
   app.use(express.json({ inflate: false, limit: '900kb', strict: true }));
+  const state: Record<string, unknown> = {};
+  const stateRef = { id: 'verification_photo_purge_cursor' };
   const emptyDb = {
-    collection: () => ({ where: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }),
+    doc: () => stateRef,
+    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({
+      get: async () => ({ exists: Object.keys(state).length > 0, data: () => state }),
+      set: (_ref: unknown, value: Record<string, unknown>) => Object.assign(state, value),
+    }),
+    collection: () => ({
+      where: () => ({
+        orderBy: () => ({
+          orderBy: () => ({
+            startAfter: () => { throw new Error('Unexpected cursor in empty DB test'); },
+            limit: () => ({ get: async () => ({ docs: [] }) }),
+          }),
+        }),
+      }),
+    }),
   } as unknown as Firestore;
   app.use('/api/admin', createVerificationStoragePurgeRouter({
     getDb: () => emptyDb,
