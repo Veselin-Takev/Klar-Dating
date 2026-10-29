@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const script = readFileSync(resolve(project, 'scripts/configure-retention.sh'), 'utf8');
 const docs = readFileSync(resolve(project, 'docs/DATA_RETENTION.md'), 'utf8');
+const runbook = readFileSync(resolve(project, 'docs/PRODUCTION_RUNBOOK.md'), 'utf8');
 const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
 const groups = match[1].trim().split(/\s+/);
@@ -34,6 +35,27 @@ for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_S
   'gcloud projects describe', '--format=\'value(labels.environment)\'']) {
   assert(script.includes(code), 'Missing safety condition: ' + code);
 }
+// Current operator instructions must require all 20 policies; historical
+// 13-group statements remain legitimate in dated audit records below.
+const operational = docs.split('## Aktivierung und Nachweis')[1]?.split('### Kündigungsnachweise')[0];
+const reviewer = docs.split('### Gezielter TTL-ACTIVE-Evidenznachweis')[1]?.split('---')[0];
+const runbookOperational = runbook.split('### 2026-10-19 — Stacked P0 #70 TTL / P0 #56 Art. 17 integration')[1]
+  ?.split('### 2026-10-19 — 13→20 TTL-Matrixänderung')[0];
+assert(operational && reviewer && runbookOperational,
+  'Current retention operations/reviewer sections are missing');
+assert(!/\b13\b/.test(operational) && !/\b13\b/.test(reviewer) && !/\b13\b/.test(runbookOperational),
+  'Current TTL operator instructions must not describe the superseded 13-group policy');
+assert(operational.includes('alle 20 dokumentierten Collection-Groups')
+  && operational.includes('aller 20 Gruppen muss')
+  && reviewer.includes('20 distinct')
+  && reviewer.includes('all 20 ACTIVE TTL fields'),
+  'Current retention verification guidance must require 20 ACTIVE TTL policies');
+assert(operational.includes('KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19')
+  && runbook.includes('KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19')
+  && runbookOperational.includes('all 20 required')
+  && runbookOperational.includes('all **20** TTL policies are ACTIVE'),
+  'Operational TTL instructions must retain the independent 20-group matrix approval');
+
 assert(script.includes('DRY RUN ONLY'), 'Provisioning must default to non-mutating dry run');
 assert(script.includes('--database="${KLAR_DATABASE_ID}"'), 'Must pin Firestore database explicitly');
 assert(script.includes('--project="${KLAR_PROJECT_ID}"'), 'Must pin GCP project explicitly');

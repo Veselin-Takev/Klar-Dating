@@ -1,3 +1,8 @@
+## P0 #70 — 20-Gruppen-Retention-Anleitung bereinigt (2026-10-29)
+
+Die aktuelle Staging-TTL-Matrix enthält 20 Collection-Groups; das Provisionierungsskript verlangt bereits die eigene Genehmigung `expiresAt-20-2026-10-19`. Aktuelle Betreiberanweisungen in `docs/DATA_RETENTION.md` und `docs/PRODUCTION_RUNBOOK.md` nannten jedoch noch 13 aktive Policies. Die aktuelle Anleitung wurde auf **20** und das vollständige Freigabebeispiel korrigiert; der statische Matrix-Gate verhindert erneuten Drift durch vier zusätzliche Negativtests. Historische 13er-Einträge bleiben als historische Befunde erhalten. **Kein Cloud-Abruf, keine TTL-Aktivierung, keine unabhängige Staging-/Legal-/Operations-Freigabe; Production NO-GO.** [Audit-Notiz](RETENTION_OPERATOR_GUIDANCE_20_GROUPS_2026-10-29.md).
+
+---
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
