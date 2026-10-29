@@ -212,6 +212,21 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
   });
 
+  it.each([null, '', false, 0, {}, []])(
+    'rejects malformed legacy referredBy %j rather than overwriting attribution', async referredBy => {
+      const fixture = referralDb();
+      fixture.store.set('users/user-a', { isAdult: true, isVerified: false, referredBy });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toEqual(referredBy);
+    },
+  );
+
   it.each(['underage-invitee', 'underage-inviter', 'missing-age-invitee', 'missing-age-inviter'])(
     'does not attribute a referral for an age-ineligible party: %s', async scenario => {
       const fixture = referralDb();
