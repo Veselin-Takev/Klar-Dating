@@ -213,6 +213,38 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
+  it('shares the webhook 429 budget across distinct valid-looking slugs', async () => {
+    const { createHash } = await import('node:crypto');
+    const { ipKeyGenerator } = await import('express-rate-limit');
+    const key = createHash('sha256').update(
+      'klar-rate-limit:partner_referral_webhook_rate_limits:ip:' + ipKeyGenerator('127.0.0.1'),
+    ).digest('hex');
+    const db = makeDb([{
+      collection: 'partner_referral_webhook_rate_limits',
+      id: key,
+      data: { count: 120, windowStartedAt: Date.now() },
+    }]);
+    const app = express();
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore: () => db,
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    for (const slug of ['campaign-one', 'campaign-two']) {
+      const response = await fetch(origin + '/api/partner/webhook/' + slug, { method: 'POST' });
+      expect(response.status).toBe(429);
+      expect(response.headers.get('retry-after')).not.toBeNull();
+      expect(response.headers.get('cache-control')).toContain('no-store');
+    }
+  });
+
   it('protects webhook response headers even when the distributed limiter fails', async () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
