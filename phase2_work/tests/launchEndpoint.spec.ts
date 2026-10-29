@@ -174,6 +174,28 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it('rejects claims for a different inviter after attribution without overwriting the first claim', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', {
+      isAdult: true, isVerified: false, referredBy: 'original-inviter', referralQualified: false,
+    });
+    fixture.store.set('users/original-inviter', { referralCode: 'ZYXWVUTSRQ' });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const rejected = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+    expect(fixture.store.get('users/user-a')?.referredBy).toBe('original-inviter');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+    const retry = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ZYXWVUTSRQ' }),
+    });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toEqual({ ok: true });
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();
     const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
