@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express, { type Request } from 'express';
@@ -19,7 +20,7 @@ function makeDb(seed: Array<{ collection: string; id: string; data: Record<strin
   });
   const db = {
     collection: (name: string) => ({
-      doc: (id: string) => docRef(name, id),
+      doc: (id = crypto.randomUUID()) => docRef(name, id),
       limit: (_count: number) => ({ get: async () => ({ docs: [] }) }),
       where: (_field: string, _op: string, _value: unknown) => ({ limit: (_count: number) => ({ get: async () => ({ docs: [] }) }) }),
     }),
@@ -353,6 +354,66 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect((await response.json()).code).toBe('partner_link_not_found');
     expect(response.headers.get('cache-control')).toContain('no-store');
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
+  it('accepts signed conversions once, retries idempotently, and rejects conflicting event binding', async () => {
+    const { derivePartnerReferralToken, partnerReferralDocumentId, partnerWebhookSignature } =
+      await import('../src/server/partnerReferralCore');
+    const tokenSecret = 'partner-token-secret-at-least-thirty-two-characters';
+    const auditSecret = 'partner-audit-secret-at-least-thirty-two-characters';
+    const webhookSecret = 'webhook-secret-at-least-thirty-two-characters';
+    const ownerUid = 'owner-1';
+    const campaignId = 'campaign-1';
+    const slug = 'test-partner';
+    const referralToken = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const db = makeDb([
+      { collection: 'users', id: ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: 'buyer-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: 'buyer-2', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { status: 'active', brandVerified: true, slug, rewardLabel: 'Klar+ time' } },
+      { collection: 'partner_referrals', id: partnerReferralDocumentId(referralToken),
+        data: { ownerUid, campaignId, version: 1, status: 'active' } },
+    ]);
+    const app = express();
+    app.use(express.json());
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null, getFirestore: () => db,
+      tokenSecret: () => tokenSecret, auditSecret: () => auditSecret,
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({ [slug]: webhookSecret }),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    async function send(buyerUid: string) {
+      const body = {
+        event: 'qualified_conversion' as const, eventId: 'provider-event-12345',
+        referralToken, buyerUid,
+      };
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      const response = await fetch(origin + '/api/partner/webhook/' + slug, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-klar-partner-timestamp': timestamp,
+          'x-klar-partner-signature': partnerWebhookSignature(body, timestamp, webhookSecret),
+        },
+        body: JSON.stringify(body),
+      });
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+      return { status: response.status, body: await response.json() as Record<string, unknown> };
+    }
+    const first = await send('buyer-1');
+    expect(first.status).toBe(201);
+    expect(first.body).toMatchObject({ ok: true, duplicate: false, rewardStatus: 'pending_verification' });
+    const retry = await send('buyer-1');
+    expect(retry.status).toBe(200);
+    expect(retry.body).toMatchObject({ ok: true, duplicate: true, rewardStatus: 'already_recorded' });
+    const conflict = await send('buyer-2');
+    expect(conflict.status).toBe(409);
+    expect(conflict.body.code).toBe('partner_event_id_conflict');
   });
 
   it('protects webhook response headers even when the distributed limiter fails', async () => {
