@@ -13,3 +13,6 @@ Per-IP limiting can penalize multiple legitimate partners behind the same NAT; o
 
 ## Integration
 Branch stacks on draft PR #193 which stacks on draft PR #192. Never merge redundant predecessor branches independently. Resolve and review a single merge path and obtain formal release owner signoff. Open P0 #55, #56, #70 and #8 remain blockers. No main change or deploy. **NO-GO**.
+
+## Additional HTTP regression — 2026-10-29
+Added an actual Express HTTP regression in `tests/partnerReferralRoutes.spec.ts`: malformed `INVALID_SLUG` must return 404 with private no-store/no-referrer headers and must not invoke the Firestore dependency. This verifies the early syntactic rejection behavior in a runtime test (not yet executed at this new HEAD). It does **not** establish 429 behavior under high traffic or fair usage for shared-NAT partner calls. Historical Enterprise CI #40909135829 PASSED at SHA `266148793661d1bba5c06c8641af70760b2d9899` before this additional test; new exact-HEAD CI remains pending. Independent specialist reviews and production GO remain blocked.
