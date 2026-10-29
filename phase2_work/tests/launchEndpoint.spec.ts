@@ -25,7 +25,7 @@ function baseDb() {
 function referralDb() {
   const store = new Map<string, Record<string, unknown>>([
     ['users/user-a', { isAdult: true, isVerified: false }],
-    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isVerified: false }],
+    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: true, isVerified: false }],
   ]);
   const writes: Array<{ path: string; data: Record<string, unknown> }> = [];
   let beforeRead: (() => void) | undefined;
@@ -179,7 +179,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     fixture.store.set('users/user-a', {
       isAdult: true, isVerified: false, referredBy: 'original-inviter', referralQualified: false,
     });
-    fixture.store.set('users/original-inviter', { referralCode: 'ZYXWVUTSRQ' });
+    fixture.store.set('users/original-inviter', { referralCode: 'ZYXWVUTSRQ', isAdult: true });
     const ctx = await api({ getFirestore: () => fixture.db });
     const rejected = await fetch(ctx.base + '/referral/claim', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
@@ -195,6 +195,23 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(await retry.json()).toEqual({ ok: true });
     expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
   });
+
+  it.each(['underage-invitee', 'underage-inviter', 'missing-age-invitee', 'missing-age-inviter'])(
+    'does not attribute a referral for an age-ineligible party: %s', async scenario => {
+      const fixture = referralDb();
+      if (scenario === 'underage-invitee') fixture.store.set('users/user-a', { isAdult: false });
+      if (scenario === 'underage-inviter') fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: false });
+      if (scenario === 'missing-age-invitee') fixture.store.set('users/user-a', {});
+      if (scenario === 'missing-age-inviter') fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ' });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    },
+  );
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();

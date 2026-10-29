@@ -13,3 +13,7 @@ Inside the same Firestore transaction and after account deletion / inviter-code 
 ## Release boundary
 
 This narrows an identity/attribution claim but does not implement signed single-use referral tokens, verified-person safeguards, fraud controls, rewards, or full Art.17 cleanup. Requires exact-HEAD Enterprise CI; emulator concurrency and independent threat-model reviews remain P0 #48 gates. No direct main commit, merge or deployment. **NO-GO**.
+
+## Adult eligibility gate (2026-10-29)
+
+Enterprise CI run `40837058993` succeeded on the original PR SHA `47f635f28f171a388478e80c388420bb4240008e`. Review of the member-referral claim transaction showed that it checked inviter code, deletion markers and existing attribution, but did **not** require either participant's `isAdult` to be `true`. This allowed attribution between underage and/or unverified-age accounts (without rewards). The claim transaction now fails closed unless both invitee and inviter have explicit `isAdult === true`. Four negative HTTP regression cases cover false and absent age flags on both sides; test fixtures were updated to model valid adult inviters. This is an age-eligibility guard, **not Didit identity verification** and does not grant trusted status, rewards, or production authorization. Actual KYC signature trust, concurrency, abuse prevention and formal privacy approval remain open under #48. New exact-head CI is required. **Production NO-GO.**

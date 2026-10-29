@@ -164,7 +164,8 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         );
         if (!userSnap || !inviter || !userDeletion || !inviterDeletion
           || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
-          || inviter.data()?.referralCode !== code) return false;
+          || inviter.data()?.referralCode !== code
+          || userSnap.data()?.isAdult !== true || inviter.data()?.isAdult !== true) return false;
         // A previously accepted attribution is immutable. Only the exact
         // original inviter can be acknowledged as an idempotent retry.
         if (userSnap.data()?.referredBy) return userSnap.data()?.referredBy === inviterRef.id;
