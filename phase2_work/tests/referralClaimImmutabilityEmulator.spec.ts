@@ -39,8 +39,9 @@ describe.skipIf(!host)('member referral attribution on real Firestore emulator',
     const inviteeUid = 'ref-claim-' + suffix;
     const inviterA = 'ref-owner-a-' + suffix;
     const inviterB = 'ref-owner-b-' + suffix;
-    const codeA = 'ABCDEFGHIJ';
-    const codeB = 'ZYXWVUTSRQ';
+    // Unique per test so another emulator suite cannot claim our inviter code.
+    const codeA = suffix.slice(0, 10).toUpperCase();
+    const codeB = suffix.slice(10, 20).toUpperCase();
     const inviteeRef = db.collection('users').doc(inviteeUid);
     const inviterARef = db.collection('users').doc(inviterA);
     const inviterBRef = db.collection('users').doc(inviterB);
@@ -80,11 +81,18 @@ describe.skipIf(!host)('member referral attribution on real Firestore emulator',
       return response.status;
     };
 
-    expect(await claim(codeA)).toBe(200);
-    const retries = await Promise.all([claim(codeA), claim(codeB)]);
+    // Competing *initial* claims race on the same invitee document. Exactly
+    // one may establish attribution, regardless of transaction retry order.
+    const firstClaims = await Promise.all([claim(codeA), claim(codeB)]);
+    expect([...firstClaims].sort()).toEqual([200, 409]);
+    const winner = firstClaims[0] === 200 ? { uid: inviterA, code: codeA, event: eventA }
+      : { uid: inviterB, code: codeB, event: eventB };
+    const loser = firstClaims[0] === 200 ? { code: codeB, event: eventB }
+      : { code: codeA, event: eventA };
+    const retries = await Promise.all([claim(winner.code), claim(loser.code)]);
     expect(retries).toEqual([200, 409]);
-    expect((await inviteeRef.get()).data()).toMatchObject({ referredBy: inviterA, referralQualified: false, isVerified: false });
-    expect((await eventA.get()).data()).toMatchObject({ inviterUid: inviterA, inviteeUid, status: 'attributed' });
-    expect((await eventB.get()).exists).toBe(false);
+    expect((await inviteeRef.get()).data()).toMatchObject({ referredBy: winner.uid, referralQualified: false, isVerified: false });
+    expect((await winner.event.get()).data()).toMatchObject({ inviterUid: winner.uid, inviteeUid, status: 'attributed' });
+    expect((await loser.event.get()).exists).toBe(false);
   }, 90_000);
 });
