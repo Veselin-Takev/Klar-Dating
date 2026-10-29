@@ -132,6 +132,21 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(invalid.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
+  it('rejects ambiguous invitation codes rather than choosing an arbitrary inviter', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/second-inviter', { isAdult: true, referralCode: 'ABCDEFGHIJ' });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+  });
+
   it('rejects malformed referral codes before database lookup', async () => {
     const ctx = await api();
     const response = await fetch(ctx.base + '/referral/claim', {
