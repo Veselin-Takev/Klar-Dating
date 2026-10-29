@@ -142,12 +142,17 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     res.setHeader('Referrer-Policy', 'no-referrer');
     next();
   };
-  router.post('/partner/webhook/:slug', protectWebhookResponse, webhookLimiter, async (req, res) => {
+  // Invalid campaign slugs must not allocate distributed rate-limit state.
+  // Keep the no-store policy ahead of this rejection middleware.
+  const validateWebhookSlug = (req: Request, res: Response, next: NextFunction) => {
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(String(req.params.slug ?? ''))) {
+      return res.status(404).json({ code: 'partner_webhook_not_found', error: 'Der Partner-Rückkanal ist nicht verfügbar.' });
+    }
+    return next();
+  };
+  router.post('/partner/webhook/:slug', protectWebhookResponse, validateWebhookSlug, webhookLimiter, async (req, res) => {
     try {
       const slug = String(req.params.slug ?? '');
-      if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug)) {
-        return res.status(404).json({ code: 'partner_webhook_not_found', error: 'Der Partner-Rückkanal ist nicht verfügbar.' });
-      }
       const parsed = PartnerConversionPayloadSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ code: 'invalid_partner_event', error: 'Die Partner-Rückmeldung ist ungültig.' });
