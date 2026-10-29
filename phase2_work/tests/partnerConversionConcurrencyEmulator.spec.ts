@@ -9,7 +9,7 @@ import { derivePartnerReferralToken, partnerReferralDocumentId } from '../src/se
 const profile = JSON.parse(readFileSync('firebase.pruefung.json', 'utf8'));
 const match = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(process.env.FIRESTORE_EMULATOR_HOST ?? '');
 const projects = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
-if (process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' || process.env.FIRESTORE_EMULATOR_HOST) {
+if (process.env.FIRESTORE_EMULATOR_HOST) {
   if (!match || Number(match[2]) !== profile.emulators.firestore.port
     || projects.some(id => id !== 'demo-klar') || process.env.NODE_ENV === 'production'
     || process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true') {
