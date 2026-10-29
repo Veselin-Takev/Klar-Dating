@@ -198,6 +198,37 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it('does not issue invitation codes for explicitly inactive accounts', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, active: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+  });
+
+  it.each(['inactive-invitee', 'inactive-inviter'])(
+    'does not attribute referrals for an explicitly inactive party: %s', async scenario => {
+      const fixture = referralDb();
+      if (scenario === 'inactive-invitee') {
+        fixture.store.set('users/user-a', { isAdult: true, active: false });
+      } else {
+        fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: true, active: false });
+      }
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    },
+  );
+
   it.each(['missing-invitee', 'missing-inviter', 'deleting-invitee', 'deleting-inviter'])(
     'rejects a claim when the transactional state becomes %s', async state => {
       const fixture = referralDb();
