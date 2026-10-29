@@ -42,3 +42,7 @@ GitHub Actions job `validate` in successful run `40930484509` reported upcoming 
 ## Verified exact-HEAD CI and runner OS — 2026-10-29
 
 GitHub Enterprise CI run `40932161196` completed **success** at exact PR #201 HEAD `b13e62990bec91866ce3e23e88533610ef64b682` (job `validate`, `123653945561`, success). Job log confirms `Runner Image: ubuntu-24.04`. Evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40932161196/job/123653945561 . This is the first independently observed successful full CI on the explicitly pinned runner fallback. The dedicated Firestore emulator concurrency test was not proven by this generic CI run; an explicit demo-klar emulator execution, logs and exit status remain required. The branch remains draft/unmerged; independent security, privacy, operations and release-owner approvals are still absent. **Production NO-GO.**
+
+## Exact-HEAD CI verification — run 40934395144
+
+At HEAD `972cd361b8580c49c9e7762d50d37b87c2c31dd2`, GitHub Enterprise CI run `40934395144` completed **success** (validate job `123660970770`). Its logs explicitly show **193 Vitest files passed, 1 skipped; 1,409 tests passed, 1 skipped**. The skipped suite is `tests/partnerConversionConcurrencyEmulator.spec.ts`, demonstrating that this CI run **does not validate Firestore concurrency**. Job evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40934395144/job/123660970770 . Dedicated demo-klar emulator execution, immutable logs and exit codes are still outstanding. PR remains draft, and production NO-GO remains mandatory.
