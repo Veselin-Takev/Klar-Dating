@@ -54,3 +54,16 @@ Enterprise CI `40935813583` succeeded on exact HEAD `727f38e4643472d01d6227ff373
 ## Exact-HEAD gate result — run 40937141589
 
 On exact HEAD `356753f04490b2c290b1e935d6b9c6a97d8d3d2f`, Enterprise CI run `40937141589` and `validate` job `123671370147` completed **success**. Logs confirm runner image `ubuntu-24.04`, **193 Vitest files / 1,409 tests passed**, and the explicitly dedicated `partnerConversionConcurrencyEmulator.spec.ts` **skipped** (1 test). Source: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40937141589/job/123671370147 . Therefore the emulator concurrency claim is still **UNVERIFIED**, not PASS. Run the guarded dedicated runner on an isolated demo-klar emulator and archive full command, runtime, exact SHA, logs and exit status. No merge/deployment/production GO.
+
+## Runner fail-closed regression (2026-10-29)
+
+Latest prior *exact-HEAD* general CI run [40942898706](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40942898706) completed **success** on `98e3b0343277ad111dd726d50918efff5b719359`. The log shows that `partnerConversionConcurrencyEmulator.spec.ts` remains **skipped** in general CI; no live concurrency proof is inferred.
+
+A new offline Node test, `scripts/run-partner-conversion-concurrency-emulator.test.mjs`, is now included in the existing `check:emulator-profile` gate. It exercises eight **invalid** combinations of host, port, project, production mode and durable fallback, expecting the guarded runner to exit with code 2 before attempting to start Vitest. The tests deliberately never use a *valid* emulator host; they therefore cannot create Firestore data or be mistaken for integration evidence. **These added tests are pending exact-commit CI verification.**
+
+The existing dedicated emulator invocation remains the required independent acceptance gate:
+```sh
+node scripts/check-emulator-ports.mjs --config firebase.pruefung.json
+firebase emulators:exec --project demo-klar --only firestore --config firebase.pruefung.json "node scripts/run-partner-conversion-concurrency-emulator.mjs"
+```
+Capture exact SHA, UTC date, Node and Firebase/Java versions, emulator endpoint/project, sanitized full logs, process exit code, and fixture cleanup; do not claim PASS if skipped or not executed. Partner purchase/buyer binding (#55), anti-fraud (#48), GDPR (#56), live TTL (#70), operations (#8) and independent approvals remain open. **Production NO-GO.**
