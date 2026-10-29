@@ -60,6 +60,15 @@ describe.skipIf(!dedicatedEmulatorRun)('partner conversion concurrency with real
       expect(results.filter(v => v.duplicate === false)).toHaveLength(1);
       expect(results.filter(v => v.duplicate === true)).toHaveLength(3);
       expect(results.every(v => v.ok)).toBe(true);
+      // Provider retries after a successful transaction must remain read-only.
+      const replays = await Promise.all(Array.from({ length: 10 },
+        () => recordPartnerConversion(deps, slug, payload, partnerSecret)));
+      expect(replays.every(v => v.duplicate === true && v.rewardStatus === 'already_recorded')).toBe(true);
+      await expect(recordPartnerConversion(deps, slug,
+        { ...payload, buyerUid: ownerUid }, partnerSecret))
+        .rejects.toMatchObject({ code: 'self_referral_rejected' });
+      await expect(recordPartnerConversion(deps, slug + '-wrong', payload, partnerSecret))
+        .rejects.toMatchObject({ code: 'conversion_not_eligible' });
       expect((await campaignRef.get()).data()?.qualifiedConversions ?? 0).toBe(0);
       expect((await referralRef.get()).data()?.qualifiedConversions ?? 0).toBe(0);
       const event = (await eventRef.get()).data();
@@ -74,6 +83,8 @@ describe.skipIf(!dedicatedEmulatorRun)('partner conversion concurrency with real
       });
       expect(event?.buyerUid).toBeUndefined();
       expect(claim?.buyerUid).toBeUndefined();
+      expect(event?.referralToken).toBeUndefined();
+      expect(claim?.referralToken).toBeUndefined();
       // A new event ID for the same buyer/campaign must not bypass the buyer claim.
       await expect(recordPartnerConversion(deps, slug,
         { ...payload, eventId: payload.eventId + '-other' }, partnerSecret))
@@ -81,8 +92,12 @@ describe.skipIf(!dedicatedEmulatorRun)('partner conversion concurrency with real
       expect((await secondEventRef.get()).exists).toBe(false);
       const otherBuyerUid = 'race-other-' + suffix;
       const otherRef = db.collection('users').doc(otherBuyerUid);
-      await otherRef.set({ isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 });
+      await otherRef.set({ isAdult: true, partnerReferralConsent: false, partnerReferralVersion: 1 });
       try {
+        await expect(recordPartnerConversion(deps, slug,
+          { ...payload, buyerUid: otherBuyerUid }, partnerSecret))
+          .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+        await otherRef.update({ partnerReferralConsent: true });
         await expect(recordPartnerConversion(deps, slug, { ...payload, buyerUid: otherBuyerUid }, partnerSecret))
           .rejects.toMatchObject({ code: 'partner_event_id_conflict' });
       } finally { await otherRef.delete(); }
