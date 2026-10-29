@@ -35,6 +35,8 @@ const cases = [
     d => d.replace('KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19', 'KLAR_RETENTION_MATRIX_REVISION_APPROVED=legacy-13')],
   ['stale runbook active verification count', s => s, d => d,
     r => r.replace('all **20** TTL policies are ACTIVE', 'all **13** TTL policies are ACTIVE')],
+  ['outdated English live reviewer policy count', s => s,
+    d => d.replace('it validates all 20 ACTIVE TTL fields', 'it validates all 13 ACTIVE TTL fields')],
 ];
 const run = (script, document, runbookDocument) => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-ttl-regression-'));

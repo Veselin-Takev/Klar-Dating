@@ -39,16 +39,19 @@ for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_S
 // 13-group statements remain legitimate in dated audit records below.
 const operational = docs.split('## Aktivierung und Nachweis')[1]?.split('### Kündigungsnachweise')[0];
 const reviewer = docs.split('### Gezielter TTL-ACTIVE-Evidenznachweis')[1]?.split('---')[0];
+const reviewerLive = docs.split('## Staging TTL verification (read-only, separate from provisioning)')[1]
+  ?.split('### P0 #70')[0];
 const runbookOperational = runbook.split('### 2026-10-19 — Stacked P0 #70 TTL / P0 #56 Art. 17 integration')[1]
   ?.split('### 2026-10-19 — 13→20 TTL-Matrixänderung')[0];
-assert(operational && reviewer && runbookOperational,
+assert(operational && reviewer && reviewerLive && runbookOperational,
   'Current retention operations/reviewer sections are missing');
-assert(!/\b13\b/.test(operational) && !/\b13\b/.test(reviewer) && !/\b13\b/.test(runbookOperational),
+assert(!/\b13\b/.test(operational) && !/\b13\b/.test(reviewer) && !/\b13\b/.test(reviewerLive)
+  && !/\b13\b/.test(runbookOperational),
   'Current TTL operator instructions must not describe the superseded 13-group policy');
 assert(operational.includes('alle 20 dokumentierten Collection-Groups')
   && operational.includes('aller 20 Gruppen muss')
   && reviewer.includes('20 distinct')
-  && reviewer.includes('all 20 ACTIVE TTL fields'),
+  && reviewerLive.includes('all 20 ACTIVE TTL fields'),
   'Current retention verification guidance must require 20 ACTIVE TTL policies');
 assert(operational.includes('KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19')
   && runbook.includes('KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19')

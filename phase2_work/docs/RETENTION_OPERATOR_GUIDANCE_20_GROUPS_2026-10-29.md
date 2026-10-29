@@ -11,7 +11,7 @@ On base main 2808dc1cbb485f70b403681c108cea5a3361d950, the staging provisioner a
 - Current retention operation and read-only reviewer instructions consistently require 20 ACTIVE expiresAt groups for the authorized project/database.
 - The commented apply example now includes KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19, in addition to all existing independent Legal/Inventory/Project/Database gates.
 - The existing source matrix checker now rejects obsolete 13-group instructions in current sections of both documentation files, while preserving historical audit statements.
-- Four fail-closed fixture mutations cover stale operator and reviewer counts, missing revision approval and stale runbook count. All fixtures are local; no gcloud calls.
+- Five fail-closed fixture mutations cover stale operator and reviewer counts, missing revision approval and stale runbook count. All fixtures are local; no gcloud calls.
 
 ## Remaining release evidence
 

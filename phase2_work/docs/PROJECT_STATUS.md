@@ -1,6 +1,6 @@
 ## P0 #70 — 20-Gruppen-Retention-Anleitung bereinigt (2026-10-29)
 
-Die aktuelle Staging-TTL-Matrix enthält 20 Collection-Groups; das Provisionierungsskript verlangt bereits die eigene Genehmigung `expiresAt-20-2026-10-19`. Aktuelle Betreiberanweisungen in `docs/DATA_RETENTION.md` und `docs/PRODUCTION_RUNBOOK.md` nannten jedoch noch 13 aktive Policies. Die aktuelle Anleitung wurde auf **20** und das vollständige Freigabebeispiel korrigiert; der statische Matrix-Gate verhindert erneuten Drift durch vier zusätzliche Negativtests. Historische 13er-Einträge bleiben als historische Befunde erhalten. **Kein Cloud-Abruf, keine TTL-Aktivierung, keine unabhängige Staging-/Legal-/Operations-Freigabe; Production NO-GO.** [Audit-Notiz](RETENTION_OPERATOR_GUIDANCE_20_GROUPS_2026-10-29.md).
+Die aktuelle Staging-TTL-Matrix enthält 20 Collection-Groups; das Provisionierungsskript verlangt bereits die eigene Genehmigung `expiresAt-20-2026-10-19`. Aktuelle Betreiberanweisungen in `docs/DATA_RETENTION.md` und `docs/PRODUCTION_RUNBOOK.md` nannten jedoch noch 13 aktive Policies. Die aktuelle Anleitung wurde auf **20** und das vollständige Freigabebeispiel korrigiert; der statische Matrix-Gate verhindert erneuten Drift durch fünf zusätzliche Negativtests. Historische 13er-Einträge bleiben als historische Befunde erhalten. **Kein Cloud-Abruf, keine TTL-Aktivierung, keine unabhängige Staging-/Legal-/Operations-Freigabe; Production NO-GO.** [Audit-Notiz](RETENTION_OPERATOR_GUIDANCE_20_GROUPS_2026-10-29.md).
 
 ---
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
