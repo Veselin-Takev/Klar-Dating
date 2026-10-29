@@ -54,7 +54,7 @@ test('signed decision-aware purge path remains registered and validates pending 
   assert.match(route, /ifGenerationMatch/, 'Purge route must use Storage generation preconditions');
   assert.match(route, /temporaryHold === true/, 'Purge route must respect temporary object holds');
   assert.match(route, /eventBasedHold === true/, 'Purge route must respect event-based holds');
-  assert.match(route, /res\.status\(failedCount \? 503 : 200\)/, 'Partial failures must be reported as retryable HTTP errors');
+  assert.match(route, /res\.status\(incomplete \? 503 : 200\)/, 'Partial failures and unfinished pages must be retryable HTTP errors');
   assert.doesNotMatch(route, /res\.json\(\{ ok: true, \.\.\.summary \}\)/, 'Do not disclose per-user purge paths');
   assert.match(engine, /artifact\.status === 'pending'/);
   assert.match(engine, /isVerificationArtifactExpired\(artifact\.decidedAt/);
