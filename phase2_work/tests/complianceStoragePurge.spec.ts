@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -18,5 +18,46 @@ describe('verification storage compliance job authentication', () => {
     const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
     expect(validComplianceRequest(body, timestamp, valid, 'short', Number(timestamp))).toBe(false);
     expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), valid, secret, Number(timestamp))).toBe(false);
+  });
+});
+
+describe('decision-based verification object deletion safety', () => {
+  it('deletes only the inspected Storage generation', async () => {
+    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '1234567890', temporaryHold: false, eventBasedHold: false }],
+      delete: async options => { deletes.push(options); },
+    });
+    expect(deletes).toEqual([{ ifGenerationMatch: '1234567890' }]);
+  });
+
+  it.each([
+    { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
+    { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
+    { label: 'missing generation', metadata: { temporaryHold: false } },
+    { label: 'non-decimal generation', metadata: { generation: 'other' } },
+    { label: 'invalid numeric generation', metadata: { generation: -1 } },
+    { label: 'unsafe integer generation', metadata: { generation: Number.MAX_SAFE_INTEGER + 1 } },
+  ])('does not delete on $label', async ({ metadata }) => {
+    let deleted = false;
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [metadata],
+      delete: async () => { deleted = true; },
+    })).rejects.toThrow();
+    expect(deleted).toBe(false);
+  });
+
+  it('does not convert generation-precondition conflict into success', async () => {
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '100' }],
+      delete: async () => { throw Object.assign(new Error('generation conflict'), { code: 412 }); },
+    })).rejects.toMatchObject({ code: 412 });
+  });
+
+  it('does not consider a missing object a verified successful deletion', async () => {
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
+      delete: async () => { throw new Error('must not execute'); },
+    })).rejects.toMatchObject({ code: 404 });
   });
 });

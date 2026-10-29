@@ -24,3 +24,11 @@ The new offline test `scripts/test-verification-photo-cron-boundary.mjs` rejects
 ## Open dependencies
 
 Issue #202 source mitigation; #70 target-bound ACTIVE Firestore TTL and Legal Hold proof; #8 operational verification; independent end-to-end media lifecycle tests and deletion audit; **PRODUCTION NO-GO**.
+
+## Storage delete generation, hold and partial-failure hardening (2026-10-29)
+
+The signed, decision-based compliance endpoint previously used `bucket.file(path).delete({ ignoreNotFound: true })` after obtaining a Firestore snapshot. It lacked Storage generation preconditions and explicit object hold checks. In addition, `executeVerificationRetentionBatch` converts individual deletion/audit failures to `reason: error` without rejecting the batch; the HTTP route returned status 200 and included raw per-object `uid`/`storagePath` results. This could cause a Scheduler run to treat incomplete purges as success and expose unnecessary personal identifiers.
+
+The isolated follow-up adds `deleteVerificationStorageFile`, which inspects object metadata, refuses temporary/event-based holds or absent/invalid generations, then deletes only with `ifGenerationMatch`. Metadata 404 and generation conflict 412 remain errors for independent reconciliation; a missing object is not falsely logged as a verified deletion. The API now returns aggregate counts only and status **503** if any artifact failed, prompting the signed Scheduler to retry; the transactional audit update rejects missing/rebound event records rather than silently acknowledging them. New pure mocked-file Vitest tests cover generation, holds, invalid metadata, 404 and 412; an offline source regression covers the route's guards.
+
+**Source-only change.** This patch does not prove live Storage legal-hold semantics, a complete moderation-state concurrency lock, cleanup of already missing files, retries under production load, or immutable deletion receipts. Test execution, TypeScript/function builds and independent review remain pending. A deployed legacy cron and its timing must be separately inventoried before any release. **Production NO-GO / P0 #202 remains open.**
