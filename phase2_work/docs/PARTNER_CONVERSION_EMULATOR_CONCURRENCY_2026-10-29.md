@@ -15,3 +15,55 @@ The dedicated runner validates localhost-only `FIRESTORE_EMULATOR_HOST` and the 
 
 ## Evidence boundaries / follow-up
 New test and runner are committed, **not executed in a verified Firebase emulator yet**. The in-repo general CI may skip this integration test; a successful general CI is not proof of its concurrency assertions. Obtain an independently archived local/emulator log, required Node/Java versions, exact SHA and SHA256 checksums. Emulator transaction performance is not production concurrency or provider purchase provenance. Review possible emulator lock delays and delete test-created records after proof collection. Security/DPO/SRE and release owner signoff still required; P0 #55, #56, #70, #8 remain open. No merge/deploy.
+
+## Typecheck remediation — 2026-10-29
+
+- Baseline PR #200 HEAD: `5534149516ca84199551f71af7052bc290295d1c`; Enterprise-CI run `40927111058` failed TypeScript `TS2532` for unchecked indexed Firestore refs in this test. Other gates after typecheck were not established by that run.
+- Isolated fix branch `fix/200-concurrency-fixture-typecheck-20261029`: replace indexed access with named references and retain a fixed tuple for cleanup. This is a source-level correction, **not a verified test PASS**.
+- Required evidence before integration: exact-HEAD typecheck; dedicated `demo-klar` Firestore emulator runner with nonzero-on-failure exit and full logs; cleanup of test-created event/ledger/claim records; independently reviewed replay and buyer-conflict results.
+- Do not infer production purchase authenticity, Cloud Firestore safety, legal approval, or GO from a green generic CI. #55, #56, #70 and #8 remain blocked. No merge, deployment, or release approval.
+
+## CI follow-up — run 40928192396
+
+Enterprise CI on HEAD `c73ff255adfbf3d0284ac2b75a67c87488e97779` failed at the Tests step, **not typecheck**: 193 Vitest files passed and the emulator-concurrency suite failed during import with `partner_conversion_emulator_unsafe_target` (line 16). The test had `describe.skipIf(!FIRESTORE_EMULATOR_HOST)` but a module-level guard also ran when only `KLAR_REQUIRE_FIRESTORE_EMULATOR` was set, before skip could take effect. Follow-up commit `baff95d318b0e42995f3a3dada2359450b4082fd` limits that target check to an actually configured emulator host; when host is present, loopback/port/project/nonproduction/fallback restrictions remain enforced. This is not a verified PASS. Dedicated emulator runner evidence remains mandatory. Do not equate a skipped test with a passing concurrency test. Production NO-GO.
+
+## CI follow-up — run 40929114991 and dedicated opt-in
+
+Run `40929114991` on HEAD `638bc41dfd2a021f759e6e9fe34ba26899e3b33a` failed Tests again (193 files passed, 1 import failure): generic CI supplies `FIRESTORE_EMULATOR_HOST` without the dedicated local demo project constraints, so the import-level guard rejected the environment. This is not an emulator concurrency failure. Commits `71a8bd0ebf5d13f1d7b6607490ca56b216a3c6c8` and `80e0791bf99232d8a516684e5253b34f0af44680` require the explicit `KLAR_RUN_PARTNER_CONVERSION_EMULATOR=1` flag for the suite and set it only in the dedicated guarded runner. A generic CI test run therefore skips the suite; the dedicated runner still validates loopback, configured port, demo-klar project, nonproduction mode and disabled durable fallback before execution. **Skipped is not passed.** New exact-HEAD CI, dedicated emulator logs, fixture cleanup and all release approvals remain pending. Production NO-GO.
+
+## CI verification — run 40930484509
+
+At exact HEAD `7c3d2862e7b085afc86ff85289b1606d3f3c8780`, GitHub Actions **Klar Enterprise CI** run `40930484509` completed **success** (validate job success). Link: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40930484509 . This verifies the general CI gate at that SHA, including the repaired test discovery/skip boundary; **it does not execute or prove the dedicated Firestore concurrency regression**. The independent emulator runner must be executed in the explicitly verified `demo-klar` environment and archived with exact SHA, runtime details, exit codes and logs. #55 buyer/purchase authenticity, #56 GDPR, #70 real TTL ACTIVE and #8 production controls remain release blockers. No production GO or approval.
+
+## GitHub runner migration risk — 2026-10-29
+
+GitHub Actions job `validate` in successful run `40930484509` reported upcoming `ubuntu-latest` migration to Ubuntu 26. The actual CI workflow `.github/workflows/ci.yml` resolved `runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-latest' }}`. Commit `2d0a3aa4020db7ad4fbe37e025a8db9d54604a46` changes the **default fallback** to explicit `ubuntu-24.04` to avoid silent OS migration; repository variable `KLAR_CI_RUNNER` can still override it and must be independently inspected. No independent Ubuntu 26 validation has been carried out; any migration requires explicit toolchain, Firebase emulator, Playwright, and security-gate compatibility evidence. This new commit requires its own SHA-bound CI result; run `40930484509` is evidence only for its preceding HEAD. Production NO-GO remains.
+
+## Verified exact-HEAD CI and runner OS — 2026-10-29
+
+GitHub Enterprise CI run `40932161196` completed **success** at exact PR #201 HEAD `b13e62990bec91866ce3e23e88533610ef64b682` (job `validate`, `123653945561`, success). Job log confirms `Runner Image: ubuntu-24.04`. Evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40932161196/job/123653945561 . This is the first independently observed successful full CI on the explicitly pinned runner fallback. The dedicated Firestore emulator concurrency test was not proven by this generic CI run; an explicit demo-klar emulator execution, logs and exit status remain required. The branch remains draft/unmerged; independent security, privacy, operations and release-owner approvals are still absent. **Production NO-GO.**
+
+## Exact-HEAD CI verification — run 40934395144
+
+At HEAD `972cd361b8580c49c9e7762d50d37b87c2c31dd2`, GitHub Enterprise CI run `40934395144` completed **success** (validate job `123660970770`). Its logs explicitly show **193 Vitest files passed, 1 skipped; 1,409 tests passed, 1 skipped**. The skipped suite is `tests/partnerConversionConcurrencyEmulator.spec.ts`, demonstrating that this CI run **does not validate Firestore concurrency**. Job evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40934395144/job/123660970770 . Dedicated demo-klar emulator execution, immutable logs and exit codes are still outstanding. PR remains draft, and production NO-GO remains mandatory.
+
+## Policy-flag hardening and latest CI — 2026-10-29
+
+Enterprise CI `40935813583` succeeded on exact HEAD `727f38e4643472d01d6227ff3736ee2607983dcb`: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40935813583 . The dedicated test has now been hardened in commit `90d87df442ff31f624730ddd62b4ccbfde2e763f`: when `KLAR_RUN_PARTNER_CONVERSION_EMULATOR=1`, the test additionally requires `KLAR_REQUIRE_FIRESTORE_EMULATOR=1` (already set by the guarded runner) before any Firestore writes. A manually set opt-in without the mandatory policy flag fails closed rather than running. This is source-level protection only, not a substitute for the real emulator concurrency run. The new commit requires fresh exact-SHA CI evidence. No merge, deployment, or release approval; production NO-GO.
+
+## Exact-HEAD gate result — run 40937141589
+
+On exact HEAD `356753f04490b2c290b1e935d6b9c6a97d8d3d2f`, Enterprise CI run `40937141589` and `validate` job `123671370147` completed **success**. Logs confirm runner image `ubuntu-24.04`, **193 Vitest files / 1,409 tests passed**, and the explicitly dedicated `partnerConversionConcurrencyEmulator.spec.ts` **skipped** (1 test). Source: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40937141589/job/123671370147 . Therefore the emulator concurrency claim is still **UNVERIFIED**, not PASS. Run the guarded dedicated runner on an isolated demo-klar emulator and archive full command, runtime, exact SHA, logs and exit status. No merge/deployment/production GO.
+
+## Runner fail-closed regression (2026-10-29)
+
+Latest prior *exact-HEAD* general CI run [40942898706](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40942898706) completed **success** on `98e3b0343277ad111dd726d50918efff5b719359`. The log shows that `partnerConversionConcurrencyEmulator.spec.ts` remains **skipped** in general CI; no live concurrency proof is inferred.
+
+A new offline Node test, `scripts/run-partner-conversion-concurrency-emulator.test.mjs`, is now included in the existing `check:emulator-profile` gate. It exercises eight **invalid** combinations of host, port, project, production mode and durable fallback, expecting the guarded runner to exit with code 2 before attempting to start Vitest. The tests deliberately never use a *valid* emulator host; they therefore cannot create Firestore data or be mistaken for integration evidence. **These added tests are pending exact-commit CI verification.**
+
+The existing dedicated emulator invocation remains the required independent acceptance gate:
+```sh
+node scripts/check-emulator-ports.mjs --config firebase.pruefung.json
+firebase emulators:exec --project demo-klar --only firestore --config firebase.pruefung.json "node scripts/run-partner-conversion-concurrency-emulator.mjs"
+```
+Capture exact SHA, UTC date, Node and Firebase/Java versions, emulator endpoint/project, sanitized full logs, process exit code, and fixture cleanup; do not claim PASS if skipped or not executed. Partner purchase/buyer binding (#55), anti-fraud (#48), GDPR (#56), live TTL (#70), operations (#8) and independent approvals remain open. **Production NO-GO.**

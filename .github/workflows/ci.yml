@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 45
     defaults:
       run:
