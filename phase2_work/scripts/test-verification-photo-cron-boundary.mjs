@@ -47,6 +47,10 @@ test('signed decision-aware purge path remains registered and validates pending 
   assert.match(signedCron, /\/api\/admin\/purge-verification-storage/);
   assert.match(route, /\.where\('fotoLoeschenAb', '<=', new Date\(now\)\)/);
   assert.match(route, /validComplianceRequest\(/);
+  assert.match(route, /scanPurgePages\(/, 'Purge endpoint must use bounded page scanner');
+  assert.match(route, /FieldPath\.documentId\(\)/, 'Purge ordering must use a stable document ID tie breaker');
+  assert.match(route, /leaseId: null, leaseUntil: null/, 'Purge scan lease must be released');
+  assert.match(route, /result\.failed > 0 \|\| result\.hasMore/, 'Unfinished work must not be acknowledged as GO');
   assert.match(route, /ifGenerationMatch/, 'Purge route must use Storage generation preconditions');
   assert.match(route, /temporaryHold === true/, 'Purge route must respect temporary object holds');
   assert.match(route, /eventBasedHold === true/, 'Purge route must respect event-based holds');
