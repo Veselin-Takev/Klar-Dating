@@ -55,10 +55,11 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 - **Setup:** `gcloud firestore fields ttls update expiresAt --collection-group=deletion_log --enable-ttl`
 
 ## 10. Verifizierungsfotos (Storage)
-- **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
-- **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** `functions/src/deleteExpiredPhotos.ts` verarbeitet fällige `verification_events` und löscht mit Generation-Precondition. Offene Prüfungen ohne Entscheidung werden nicht vom Retention-Worker gelöscht.
-- **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
+- **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`.
+- **Frist:** 30 Tage nach einer serverseitig dokumentierten Moderationsentscheidung, **nicht** 30 Tage nach Upload. Offene oder ungültige Entscheidungsdatensätze dürfen nicht durch einen Upload-Alter-Scanner gelöscht werden.
+- **Entscheidungsbasierter Worker:** `functions/src/purgeVerificationStorage.ts` ruft den signierten API-Endpunkt `/api/admin/purge-verification-storage` auf. Die Route `src/server/routes/complianceStorage.ts` ermittelt fällige `verification_events` und nutzt `src/server/platform/storageRetentionEngine.ts` zur Prüfung von Entscheidung und `decidedAt`, zur Löschung und zur Audit-Aktualisierung.
+- **Legacy-Cron:** `functions/src/deleteExpiredPhotos.ts` war zusätzlich als Scheduler registriert und nutzte früher `deleteExpiredPhotoPage` zum Löschen von `verification/`-Objekten allein anhand `timeCreated`. **P0 #202:** Der neue isolierte Quellpatch deaktiviert nur diesen Upload-Alter-Löschpfad; der Scheduler-Einstiegspunkt bleibt für die bestehende `funnel_events`-Bereinigung erhalten. Weder die tatsächliche Cloud-Bereitstellung noch die Scheduler-Migration sind hiermit bestätigt.
+- **Audit:** Der entscheidungsbasierte Pfad aktualisiert nach dem Löschversuch `photoPurged`, `photoPurgedAt` und einen SHA-256-Löschdigest. Vor Produktionsfreigabe sind Storage-Generationsschutz, Holds, Fehlerbehandlung, Retention-Wirksamkeit und Datenschutzfreigabe unabhängig nachzuweisen.
 
 ## Security Rules Architektur (Least Privilege)
 Die `firestore.rules` (siehe Datei) sind nach dem Prinzip "Default Deny" aufgebaut.
@@ -76,13 +77,14 @@ KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/confi
 # KLAR_APPLY_RETENTION=true KLAR_ENVIRONMENT=staging KLAR_APPROVED_STAGING_PROJECT_ID=... \
 # KLAR_PRODUCTION_PROJECT_ID=... KLAR_CONFIRM_RETENTION='<project>/<database>' \
 # KLAR_RETENTION_LEGAL_APPROVED=true KLAR_RETENTION_INVENTORY_APPROVED=true \
+# KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19 \
 # KLAR_PROJECT_ID=... KLAR_DATABASE_ID=... bash scripts/configure-retention.sh
 gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
 ```
 
-Der zweite Befehl muss für alle 13 dokumentierten Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+Der zweite Befehl muss für alle 20 freigegebenen Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
 
-**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 13 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
+**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 20 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
 
 ### Kündigungsnachweise nach § 312k BGB
 
@@ -200,3 +202,7 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+### 2026-10-29 — P0 #202: Zwei konkurrierende Verifizierungsfoto-Worker
+
+Quellcodeprüfung von `functions/src/index.ts` ergab zwei exportierte Scheduler. Der alte `deleteExpiredPhotosCron` nutzte die Upload-Zeit `timeCreated`, unabhängig von Moderationsentscheidungen. Das widerspricht der oben dokumentierten Entscheidungsfrist. Der isolierte Fix entfernt den Zugriff des Legacy-Crons auf Storage, ohne einen Cloud-Scheduler zu löschen; die bestehende signierte `purgeVerificationStorageCron`-Route bleibt die einzige vorgesehene entscheidungsbasierte Foto-Löschung. **Dies ist nur ein Quellcode-Fix, kein Nachweis des Produktionszustands.** Issue #202 verlangt Cloud-Inventar, Staging-Integration, Retention-/Hold-/Generationstests und unabhängige Legal/Security/SRE-Freigaben. Die 20-gruppige Firestore-TTL-Matrix (#70) ist weiterhin nicht durch Live-Cloud-Nachweise freigegeben. **PRODUCTION NO-GO.**

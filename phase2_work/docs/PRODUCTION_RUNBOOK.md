@@ -435,3 +435,15 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+## P0 #202 — Biometric photo retention legacy worker mitigation (draft)
+
+**Status:** Proposed source mitigation only; do not deploy or merge without Security, DPO/Legal, Operations/SRE and Release Owner signoff.
+
+Source review of `functions/src/index.ts` showed **two exported scheduled functions**: `deleteExpiredPhotosCron` and `purgeVerificationStorageCron`. The former called `deleteExpiredPhotoPage` (Storage `verification/` scan, 30 days from `timeCreated`) independent of moderation decisions; the latter signs a request to the compliance endpoint that filters `verification_events.fotoLoeschenAb` and checks `decidedAt` and pending status. This is a source-level conflict with the approved retention policy and a potential premature deletion hazard if the legacy function was deployed. Actual deployment is **unknown**.
+
+The isolated patch retains the exported `deleteExpiredPhotosCron` schedule and its unrelated `funnel_events` expiry cleanup but **removes all Storage access** from that cron. It does not change the authorized `purgeVerificationStorageCron` route, engine, cloud environment or user data. A new offline source regression blocks reinstating upload-age deletion, and is wired to `check:retention-p0`. `DATA_RETENTION.md` also corrects two obsolete **13-group** statements to the current **20-group** approved TTL plan and documents the required `KLAR_RETENTION_MATRIX_REVISION_APPROVED` gate.
+
+**Required independent acceptance evidence:** exact commit SHA-bound CI, function build, unit and emulator tests for pending/approved/rejected/historical cases, 30-day expiry measured from decision, legal holds, generation-precondition concurrent-replace handling, retry/crash idempotence and proof persistence. Inspect current Cloud Functions, Scheduler and IAM deployments; confirm whether the legacy job is active, perform a reversible staging migration, validate non-deletion of pending photos, and collect DPO/Legal/Operations/Release approvals. No staging or production system was accessed or modified.
+
+**Risk/tradeoff:** photo removal by the legacy age-scanner intentionally stops; the signed decision-based purger must be independently operational and complete to avoid *over-retention*. No assertion that verification photos are presently being deleted on schedule. **Production NO-GO.**
