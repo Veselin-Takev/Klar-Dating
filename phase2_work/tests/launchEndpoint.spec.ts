@@ -62,6 +62,11 @@ function referralDb() {
         store.set(r.path, { ...store.get(r.path), ...data });
         writes.push({ path: r.path, data });
       },
+      create: (r: { path: string }, data: Record<string, unknown>) => {
+        if (store.has(r.path)) throw new Error('ALREADY_EXISTS');
+        store.set(r.path, { ...data });
+        writes.push({ path: r.path, data });
+      },
     }),
   };
   return { db: db as any, store, writes, beforeRead: (callback: () => void) => { beforeRead = callback; } };
@@ -315,6 +320,27 @@ describe('launch/referral/activation HTTP boundary', () => {
       expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
     },
   );
+
+  it.each([
+    { status: 'attributed', inviterUid: 'inviter', inviteeUid: 'user-a' },
+    { status: 'rewarded', inviterUid: 'inviter', inviteeUid: 'user-a' },
+    { status: 'attributed', inviterUid: 'unknown-legacy-owner', inviteeUid: 'user-a' },
+  ])('refuses to overwrite pre-existing referral evidence: %j', async priorEvent => {
+    const fixture = referralDb();
+    const eventPath = 'referral_events/inviter_user-a';
+    fixture.store.set(eventPath, { ...priorEvent, historicalEvidence: 'immutable' });
+    const before = structuredClone(fixture.store.get(eventPath));
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.store.get(eventPath)).toEqual(before);
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();

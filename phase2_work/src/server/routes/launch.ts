@@ -169,10 +169,11 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const inviterRef = inviterSnap.docs[0]?.ref;
       const available = await db.runTransaction(async (tx: Transaction) => {
         if (!inviterRef) return false;
-        const [userSnap, inviter, userDeletion, inviterDeletion] = await tx.getAll(
+        const eventRef = db.collection('referral_events').doc(`${inviterRef.id}_${uid}`);
+        const [userSnap, inviter, userDeletion, inviterDeletion, eventSnap] = await tx.getAll(
           userRef, inviterRef,
           db.collection('account_deletions').doc(uid),
-          db.collection('account_deletions').doc(inviterRef.id),
+          db.collection('account_deletions').doc(inviterRef.id), eventRef,
         );
         if (!userSnap || !inviter || !userDeletion || !inviterDeletion
           || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
@@ -189,10 +190,13 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
             && storedInvitee.referredBy.length > 0
             && storedInvitee.referredBy === inviterRef.id;
         }
+        // An orphaned or pre-existing event must not be silently overwritten:
+        // attribution is one-time and its existing evidence is immutable.
+        if (!eventSnap || eventSnap.exists) return false;
         tx.update(userRef, { referredBy: inviterRef.id, referralQualified: false });
-        tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
+        tx.create(eventRef, {
           inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
-        }, { merge: true });
+        });
         return true;
       });
       if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
