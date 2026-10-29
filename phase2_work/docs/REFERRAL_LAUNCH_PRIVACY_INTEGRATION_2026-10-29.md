@@ -10,3 +10,6 @@ PR #187 Enterprise CI [40859593767](https://github.com/Veselin-Takev/Klar-Dating
 
 ## Integration dependencies
 The integration branch contains functionality from both feature PRs. Do not merge #187 and #188 plus this integration PR independently: avoid duplicate commits and stale approvals. Select one reviewed merge path after cross-diff review. Authoritative source security/privacy ADRs remain in each PR until intentionally consolidated.
+
+## Combined-tree CI result — 2026-10-29
+The combined PR #189 HEAD `6f499df54890869d83d4205e1c58bb29f9e66ed7` passed [Klar Enterprise CI run 40869323930](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40869323930). GitHub job 123432023605 independently reports success for Enterprise static gates, typecheck, tests, build, CI production smoke and browser acceptance. This evidence belongs exclusively to the identified HEAD SHA and does not certify any subsequent documentation commit, a full independently executed 10-command local gate matrix, real production telemetry or independently signed Security/DPO/SRE reviews. No PR reviews were recorded at the time of verification. Retain draft, no merge, no deployment. Next: independent specialist reviews, verify test logs and staging/production evidence, then choose one merge path for the overlapping PRs. **PRODUCTION NO-GO.**
