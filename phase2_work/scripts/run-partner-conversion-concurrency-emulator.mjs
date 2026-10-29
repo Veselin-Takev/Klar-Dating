@@ -18,7 +18,7 @@ if (!parsed || Number(parsed[2]) !== config.emulators.firestore.port
     'tests/partnerConversionConcurrencyEmulator.spec.ts', '--maxWorkers=1', '--minWorkers=1',
   ], { cwd: process.cwd(), stdio: 'inherit', timeout: 180000,
     env: { ...process.env, GCLOUD_PROJECT: 'demo-klar', GOOGLE_CLOUD_PROJECT: 'demo-klar',
-      KLAR_REQUIRE_FIRESTORE_EMULATOR: '1' } });
+      KLAR_REQUIRE_FIRESTORE_EMULATOR: '1', KLAR_RUN_PARTNER_CONVERSION_EMULATOR: '1' } });
   process.exitCode = result.status ?? 1;
   if (result.error) console.error(result.error.message);
 }
