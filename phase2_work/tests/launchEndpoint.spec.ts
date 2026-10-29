@@ -273,6 +273,9 @@ describe('launch/referral/activation HTTP boundary', () => {
       isAdult: true, isVerified: false, referredBy: 'original-inviter', referralQualified: false,
     });
     fixture.store.set('users/original-inviter', { referralCode: 'ZYXWVUTSRQ', isAdult: true });
+    fixture.store.set('referral_events/original-inviter_user-a', {
+      inviterUid: 'original-inviter', inviteeUid: 'user-a', status: 'attributed',
+    });
     const ctx = await api({ getFirestore: () => fixture.db });
     const rejected = await fetch(ctx.base + '/referral/claim', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
@@ -286,6 +289,29 @@ describe('launch/referral/activation HTTP boundary', () => {
     });
     expect(retry.status).toBe(200);
     expect(await retry.json()).toEqual({ ok: true });
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
+  it.each([
+    { scenario: 'missing event', event: undefined },
+    { scenario: 'wrong inviter', event: { inviterUid: 'someone-else', inviteeUid: 'user-a', status: 'attributed' } },
+    { scenario: 'wrong invitee', event: { inviterUid: 'inviter', inviteeUid: 'someone-else', status: 'attributed' } },
+    { scenario: 'legacy event missing identities', event: { status: 'attributed' } },
+  ])('denies an idempotent referral claim without matching immutable event evidence: $scenario', async ({ event }) => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, referredBy: 'inviter', referralQualified: false });
+    const eventPath = 'referral_events/inviter_user-a';
+    if (event) fixture.store.set(eventPath, event);
+    const originalEvent = fixture.store.get(eventPath) ? structuredClone(fixture.store.get(eventPath)) : undefined;
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.store.get('users/user-a')?.referredBy).toBe('inviter');
+    expect(fixture.store.get(eventPath)).toEqual(originalEvent);
     expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
   });
 

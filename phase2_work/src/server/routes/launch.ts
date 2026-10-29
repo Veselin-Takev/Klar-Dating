@@ -186,9 +186,14 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         // silently interpreted as a fresh unclaimed account.
         const storedInvitee = userSnap.data() ?? {};
         if (Object.prototype.hasOwnProperty.call(storedInvitee, 'referredBy')) {
+          // An idempotent acknowledgement must be backed by the original
+          // attribution record, not merely an unverified profile field.
+          const priorEvent = eventSnap?.exists ? eventSnap.data() : undefined;
           return typeof storedInvitee.referredBy === 'string'
             && storedInvitee.referredBy.length > 0
-            && storedInvitee.referredBy === inviterRef.id;
+            && storedInvitee.referredBy === inviterRef.id
+            && priorEvent?.inviterUid === inviterRef.id
+            && priorEvent?.inviteeUid === uid;
         }
         // An orphaned or pre-existing event must not be silently overwritten:
         // attribution is one-time and its existing evidence is immutable.
