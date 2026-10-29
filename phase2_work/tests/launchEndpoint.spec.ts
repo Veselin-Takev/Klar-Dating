@@ -106,6 +106,30 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(body.message).toContain('auf');
   });
 
+  it('disables caches and referrer propagation for referral issuance and claim responses', async () => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const requests = [
+      { url: '/referral', method: 'GET' },
+      { url: '/referral/claim', method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }) },
+    ] as const;
+    for (const request of requests) {
+      const response = await fetch(ctx.base + request.url, request);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    }
+    const invalid = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'bad' }),
+    });
+    expect(invalid.status).toBe(400);
+    expect(invalid.headers.get('cache-control')).toContain('no-store');
+    expect(invalid.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
   it('rejects malformed referral codes before database lookup', async () => {
     const ctx = await api();
     const response = await fetch(ctx.base + '/referral/claim', {

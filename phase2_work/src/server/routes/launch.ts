@@ -117,7 +117,16 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.get('/referral', referralGenerationLimiter, async (req, res) => {
+  // Referral codes and attribution results are private, security-sensitive
+  // responses. Disable intermediaries/browser storage even on errors.
+  const noStoreReferralResponse = (_req: Request, res: express.Response, next: express.NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+
+  router.get('/referral', noStoreReferralResponse, referralGenerationLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -144,7 +153,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/referral/claim', express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
+  router.post('/referral/claim', noStoreReferralResponse, express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
