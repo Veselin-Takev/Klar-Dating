@@ -245,6 +245,42 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     }
   });
 
+  it('rejects invalid webhook payload and invalid HMAC without conversion processing', async () => {
+    const db = makeDb();
+    const app = express();
+    app.use(express.json());
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore: () => db,
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({ 'test-partner': 'webhook-secret-at-least-thirty-two-characters' }),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    const payloads = [
+      { body: { event: 'invalid' }, status: 400, code: 'invalid_partner_event' },
+      { body: {
+        event: 'qualified_conversion', eventId: 'test-event-12345',
+        referralToken: 'a'.repeat(64), buyerUid: 'buyer-123',
+      }, status: 401, code: 'invalid_partner_signature' },
+    ];
+    for (const entry of payloads) {
+      const response = await fetch(origin + '/api/partner/webhook/test-partner', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-klar-partner-timestamp': String(Math.floor(Date.now() / 1000)), 'x-klar-partner-signature': 'sha256=' + '0'.repeat(64) },
+        body: JSON.stringify(entry.body),
+      });
+      expect(response.status).toBe(entry.status);
+      expect((await response.json()).code).toBe(entry.code);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    }
+  });
+
   it('protects webhook response headers even when the distributed limiter fails', async () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
