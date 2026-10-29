@@ -94,7 +94,14 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     getDb: deps.getFirestore,
   });
 
-  router.get('/launch/summary', launchSummaryReadLimiter, async (req, res) => {
+  // Even aggregate density responses are derived from a private user's profile.
+  // Apply privacy headers before auth, rate limiting and handler errors.
+  router.get('/launch/summary', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  }, launchSummaryReadLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
