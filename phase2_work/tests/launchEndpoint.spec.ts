@@ -109,6 +109,9 @@ describe('launch/referral/activation HTTP boundary', () => {
   it.each(['deleting', 'missing', 'read-error'])('fails closed for %s launch summary profile', async state => {
     const db = baseDb();
     db.runTransaction = vi.fn(async (callback: any) => callback({
+      // The distributed rate limiter shares this database mock and uses tx.get.
+      get: async () => ({ exists: false, data: () => undefined }),
+      set: vi.fn(),
       getAll: async () => {
         if (state === 'read-error') throw new Error('Firestore unavailable');
         return [
