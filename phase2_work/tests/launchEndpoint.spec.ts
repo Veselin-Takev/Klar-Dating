@@ -18,7 +18,7 @@ function baseDb() {
       doc: vi.fn((id: string) => ({ id, get: vi.fn(async () => ({ exists: true, data: () => ({ location: 'München', isAdult: true }) })), set: vi.fn(async () => undefined) })),
       where: vi.fn(() => ({ limit: vi.fn(() => ({ get: vi.fn(async () => ({ empty: true, docs: [] })) })) })),
     })),
-    runTransaction: vi.fn(async (fn: any) => fn({ get: vi.fn(async () => ({ exists: false, data: () => undefined })), set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() })),
+    runTransaction: vi.fn(async (fn: any) => fn({ get: vi.fn(async () => ({ exists: false, data: () => undefined })), getAll: vi.fn(async () => [{ exists: true, data: () => ({ location: 'München', isAdult: true }) }, { exists: false, data: () => undefined }]), set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() })),
   } as any;
 }
 
@@ -104,6 +104,26 @@ describe('launch/referral/activation HTTP boundary', () => {
     const body = await response.json();
     expect(body).toMatchObject({ city: 'München', activeUsers: 4, verifiedUsers: 2, band: 'building', threshold: 5 });
     expect(body.message).toContain('auf');
+  });
+
+  it.each(['deleting', 'missing', 'read-error'])('fails closed for %s launch summary profile', async state => {
+    const db = baseDb();
+    db.runTransaction = vi.fn(async (callback: any) => callback({
+      // The distributed rate limiter shares this database mock and uses tx.get.
+      get: async () => ({ exists: false, data: () => undefined }),
+      set: vi.fn(),
+      getAll: async () => {
+        if (state === 'read-error') throw new Error('Firestore unavailable');
+        return [
+          { exists: state !== 'missing', data: () => ({ location: 'München' }) },
+          { exists: state === 'deleting' },
+        ];
+      },
+    }));
+    const ctx = await api({ getFirestore: () => db });
+    const response = await fetch(ctx.base + '/launch/summary?city=M%C3%BCnchen');
+    expect(response.status).toBe(state === 'read-error' ? 503 : 409);
+    expect(ctx.deps.getLocalDensity).not.toHaveBeenCalled();
   });
 
   it('rejects malformed referral codes before database lookup', async () => {
