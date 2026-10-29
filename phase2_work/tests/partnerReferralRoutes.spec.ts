@@ -190,6 +190,29 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(validShape.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
+  it('rejects malformed partner webhook slugs before Firestore limiter access', async () => {
+    const getFirestore = vi.fn(() => { throw new Error('Malformed slug must not use Firestore'); });
+    const app = express();
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore,
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({}),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    const response = await fetch(origin + '/api/partner/webhook/INVALID_SLUG', { method: 'POST' });
+    expect(response.status).toBe(404);
+    expect(getFirestore).not.toHaveBeenCalled();
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
   it('protects webhook response headers even when the distributed limiter fails', async () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
