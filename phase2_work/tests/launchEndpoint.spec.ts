@@ -25,7 +25,7 @@ function baseDb() {
 function referralDb() {
   const store = new Map<string, Record<string, unknown>>([
     ['users/user-a', { isAdult: true, isVerified: false }],
-    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isVerified: false }],
+    ['users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: true, isVerified: false }],
   ]);
   const writes: Array<{ path: string; data: Record<string, unknown> }> = [];
   let beforeRead: (() => void) | undefined;
@@ -60,6 +60,11 @@ function referralDb() {
       },
       set: (r: { path: string }, data: Record<string, unknown>) => {
         store.set(r.path, { ...store.get(r.path), ...data });
+        writes.push({ path: r.path, data });
+      },
+      create: (r: { path: string }, data: Record<string, unknown>) => {
+        if (store.has(r.path)) throw new Error('ALREADY_EXISTS');
+        store.set(r.path, { ...data });
         writes.push({ path: r.path, data });
       },
     }),
@@ -104,6 +109,47 @@ describe('launch/referral/activation HTTP boundary', () => {
     const body = await response.json();
     expect(body).toMatchObject({ city: 'München', activeUsers: 4, verifiedUsers: 2, band: 'building', threshold: 5 });
     expect(body.message).toContain('auf');
+  });
+
+  it('disables caches and referrer propagation for referral issuance and claim responses', async () => {
+    const fixture = referralDb();
+    // The code issued to the invitee must differ from the inviter's code:
+    // otherwise the lookup can find the invitee first and correctly reject self-referral.
+    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
+    const requests = [
+      { url: '/referral', method: 'GET' },
+      { url: '/referral/claim', method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }) },
+    ] as const;
+    for (const request of requests) {
+      const response = await fetch(ctx.base + request.url, request);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    }
+    const invalid = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'bad' }),
+    });
+    expect(invalid.status).toBe(400);
+    expect(invalid.headers.get('cache-control')).toContain('no-store');
+    expect(invalid.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
+  it('rejects ambiguous invitation codes rather than choosing an arbitrary inviter', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/second-inviter', { isAdult: true, referralCode: 'ABCDEFGHIJ' });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
   });
 
   it('rejects malformed referral codes before database lookup', async () => {
@@ -156,6 +202,53 @@ describe('launch/referral/activation HTTP boundary', () => {
     if (state === 'missing') expect(fixture.store.has('users/user-a')).toBe(false);
   });
 
+  it.each(['underage', 'missing-age', 'null-age'])(
+    'does not issue invitation codes when account age eligibility is %s', async state => {
+      const fixture = referralDb();
+      const current = fixture.store.get('users/user-a')!;
+      fixture.store.set('users/user-a', {
+        ...current, isAdult: state === 'underage' ? false : state === 'null-age' ? null : undefined,
+      });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral');
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+      expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+    },
+  );
+
+  it('does not issue invitation codes for explicitly inactive accounts', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, active: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+  });
+
+  it.each(['inactive-invitee', 'inactive-inviter'])(
+    'does not attribute referrals for an explicitly inactive party: %s', async scenario => {
+      const fixture = referralDb();
+      if (scenario === 'inactive-invitee') {
+        fixture.store.set('users/user-a', { isAdult: true, active: false });
+      } else {
+        fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: true, active: false });
+      }
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    },
+  );
+
   it.each(['missing-invitee', 'missing-inviter', 'deleting-invitee', 'deleting-inviter'])(
     'rejects a claim when the transactional state becomes %s', async state => {
       const fixture = referralDb();
@@ -173,6 +266,107 @@ describe('launch/referral/activation HTTP boundary', () => {
       expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
     },
   );
+
+  it('rejects claims for a different inviter after attribution without overwriting the first claim', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', {
+      isAdult: true, isVerified: false, referredBy: 'original-inviter', referralQualified: false,
+    });
+    fixture.store.set('users/original-inviter', { referralCode: 'ZYXWVUTSRQ', isAdult: true });
+    fixture.store.set('referral_events/original-inviter_user-a', {
+      inviterUid: 'original-inviter', inviteeUid: 'user-a', status: 'attributed',
+    });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const rejected = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+    expect(fixture.store.get('users/user-a')?.referredBy).toBe('original-inviter');
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+    const retry = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ZYXWVUTSRQ' }),
+    });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toEqual({ ok: true });
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
+  it.each([
+    { scenario: 'missing event', event: undefined },
+    { scenario: 'wrong inviter', event: { inviterUid: 'someone-else', inviteeUid: 'user-a', status: 'attributed' } },
+    { scenario: 'wrong invitee', event: { inviterUid: 'inviter', inviteeUid: 'someone-else', status: 'attributed' } },
+    { scenario: 'legacy event missing identities', event: { status: 'attributed' } },
+  ])('denies an idempotent referral claim without matching immutable event evidence: $scenario', async ({ event }) => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, referredBy: 'inviter', referralQualified: false });
+    const eventPath = 'referral_events/inviter_user-a';
+    if (event) fixture.store.set(eventPath, event);
+    const originalEvent = fixture.store.get(eventPath) ? structuredClone(fixture.store.get(eventPath)) : undefined;
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.store.get('users/user-a')?.referredBy).toBe('inviter');
+    expect(fixture.store.get(eventPath)).toEqual(originalEvent);
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
+  it.each([null, '', false, 0, {}, []])(
+    'rejects malformed legacy referredBy %j rather than overwriting attribution', async referredBy => {
+      const fixture = referralDb();
+      fixture.store.set('users/user-a', { isAdult: true, isVerified: false, referredBy });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toEqual(referredBy);
+    },
+  );
+
+  it.each(['underage-invitee', 'underage-inviter', 'missing-age-invitee', 'missing-age-inviter'])(
+    'does not attribute a referral for an age-ineligible party: %s', async scenario => {
+      const fixture = referralDb();
+      if (scenario === 'underage-invitee') fixture.store.set('users/user-a', { isAdult: false });
+      if (scenario === 'underage-inviter') fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ', isAdult: false });
+      if (scenario === 'missing-age-invitee') fixture.store.set('users/user-a', {});
+      if (scenario === 'missing-age-inviter') fixture.store.set('users/inviter', { referralCode: 'ABCDEFGHIJ' });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+      });
+      expect(response.status).toBe(409);
+      expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    },
+  );
+
+  it.each([
+    { status: 'attributed', inviterUid: 'inviter', inviteeUid: 'user-a' },
+    { status: 'rewarded', inviterUid: 'inviter', inviteeUid: 'user-a' },
+    { status: 'attributed', inviterUid: 'unknown-legacy-owner', inviteeUid: 'user-a' },
+  ])('refuses to overwrite pre-existing referral evidence: %j', async priorEvent => {
+    const fixture = referralDb();
+    const eventPath = 'referral_events/inviter_user-a';
+    fixture.store.set(eventPath, { ...priorEvent, historicalEvidence: 'immutable' });
+    const before = structuredClone(fixture.store.get(eventPath));
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(fixture.store.get(eventPath)).toEqual(before);
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    expect(fixture.writes.filter(x => x.path.startsWith('users/') || x.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();
