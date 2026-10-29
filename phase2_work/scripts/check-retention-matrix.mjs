@@ -48,6 +48,9 @@ assert(operational && reviewer && reviewerLive && runbookOperational,
 assert(!/\b13\b/.test(operational) && !/\b13\b/.test(reviewer) && !/\b13\b/.test(reviewerLive)
   && !/\b13\b/.test(runbookOperational),
   'Current TTL operator instructions must not describe the superseded 13-group policy');
+assert(operational.includes("export KLAR_PROJECT_ID='klar-staging-123'")
+  && operational.includes("export KLAR_DATABASE_ID='(default)'"),
+  'TTL operator example must export scoped project/database for subsequent gcloud evidence command');
 assert(operational.includes('alle 20 dokumentierten Collection-Groups')
   && operational.includes('aller 20 Gruppen muss')
   && reviewer.includes('20 distinct')

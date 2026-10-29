@@ -37,6 +37,10 @@ const cases = [
     r => r.replace('all **20** TTL policies are ACTIVE', 'all **13** TTL policies are ACTIVE')],
   ['outdated English live reviewer policy count', s => s,
     d => d.replace('it validates all 20 ACTIVE TTL fields', 'it validates all 13 ACTIVE TTL fields')],
+  ['unexported project in operational example', s => s,
+    d => d.replace("export KLAR_PROJECT_ID='klar-staging-123'", "KLAR_PROJECT_ID='klar-staging-123'")],
+  ['unexported database in operational example', s => s,
+    d => d.replace("export KLAR_DATABASE_ID='(default)'", "KLAR_DATABASE_ID='(default)'")],
 ];
 const run = (script, document, runbookDocument) => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-ttl-regression-'));

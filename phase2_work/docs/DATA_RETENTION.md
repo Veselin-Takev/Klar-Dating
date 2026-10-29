@@ -71,14 +71,17 @@ Client-seitige Schreibzugriffe sind blockiert (`allow write: if false;`), um Man
 Der aktuelle Provisionierungsplan umfasst **20 Firestore-Collection-Groups**. Repository-Code allein bestätigt keine aktivierte TTL-Policy. Die Richtlinie ist in der jeweiligen Umgebung erst nach unabhängiger Genehmigung und nachgewiesener Cloud-Konfiguration wirksam:
 
 ```bash
-KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/configure-retention.sh  # DRY RUN ONLY
+export KLAR_PROJECT_ID='klar-staging-123'
+export KLAR_DATABASE_ID='(default)'
+bash scripts/configure-retention.sh  # DRY RUN ONLY; no TTL update
 # Nur nach unabhängiger Prüfung und dokumentierter Staging-/Legal-/Inventar-Freigabe:
 # KLAR_APPLY_RETENTION=true KLAR_ENVIRONMENT=staging KLAR_APPROVED_STAGING_PROJECT_ID=... \
 # KLAR_PRODUCTION_PROJECT_ID=... KLAR_CONFIRM_RETENTION='<project>/<database>' \
 # KLAR_RETENTION_LEGAL_APPROVED=true KLAR_RETENTION_INVENTORY_APPROVED=true \
 # KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19 \
 # KLAR_PROJECT_ID=... KLAR_DATABASE_ID=... bash scripts/configure-retention.sh
-gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
+# Lesende Kontrolle NACH genehmigter Staging-Aktivierung; allein kein GO-Nachweis:
+gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID" --format=json
 ```
 
 Der separate, ausdrücklich auf Projekt und Datenbank begrenzte read-only TTL-Statusnachweis muss für alle 20 dokumentierten Collection-Groups den Zustand `ACTIVE` zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
