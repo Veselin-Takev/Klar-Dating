@@ -40,6 +40,9 @@ test('signed decision-aware purge path remains registered and validates pending 
   const engine = read('src/server/platform/storageRetentionEngine.ts');
   assert.match(functionsIndex, /export \{ deleteExpiredPhotosCron \}/);
   assert.match(functionsIndex, /export \{ purgeVerificationStorageCron \}/);
+  const storageRetention = read('functions/src/retention.ts');
+  assert.doesNotMatch(storageRetention, /export\s+(?:async\s+)?function\s+deleteExpiredPhotoPage\b/,
+    'Upload-age photo scanner must not remain exported from the retention module');
   assert.match(signedCron, /createHmac\(/);
   assert.match(signedCron, /\/api\/admin\/purge-verification-storage/);
   assert.match(route, /\.where\('fotoLoeschenAb', '<=', new Date\(now\)\)/);

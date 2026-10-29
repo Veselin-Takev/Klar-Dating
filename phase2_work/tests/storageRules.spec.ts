@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { getAppBucket } from '../src/server/storage';
-import { deleteAccountPhotos, deleteExpiredPhotoPage, PHOTO_RETENTION_MS } from '../functions/src/retention';
+import { deleteAccountPhotos } from '../functions/src/retention';
+import { executeVerificationRetentionBatch, MS_PER_DAY } from '../src/server/platform/storageRetentionEngine';
+import { deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
 
 let env: RulesTestEnvironment;
 const prefix = `storage-${crypto.randomUUID()}`;
@@ -27,12 +29,42 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
     await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
   });
-  it('executes the retention worker against real emulator objects after 30 days', async () => {
+  it('never deletes an old verification photo while moderation is pending', async () => {
     const bucket = getAppBucket();
-    const photo = bucket.file(`verification/${prefix}/photo.jpg`);
+    const path = `verification/${prefix}/pending-test.jpg`;
+    const photo = bucket.file(path);
     await photo.save(image);
+    const now = Date.now();
+    const oldDecisionTime = now - 31 * MS_PER_DAY;
+    const result = await executeVerificationRetentionBatch(
+      [{ uid: prefix, challengeId: 'pending-test', storagePath: path,
+        status: 'pending', decidedAt: oldDecisionTime }],
+      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      async () => { throw new Error('pending verification may not create a purge audit'); },
+      now,
+    );
+    expect(result.purgedCount).toBe(0);
+    expect(result.results[0]?.reason).toBe('pending_decision');
     expect((await photo.exists())[0]).toBe(true);
-    await deleteExpiredPhotoPage(bucket, new Date(Date.now() + PHOTO_RETENTION_MS + 1000));
+    await photo.delete();
+  });
+
+  it('deletes a decided and expired verification photo with a Storage generation precondition', async () => {
+    const bucket = getAppBucket();
+    const path = `verification/${prefix}/decided-test.jpg`;
+    const photo = bucket.file(path);
+    await photo.save(image);
+    const now = Date.now();
+    const audit = vi.fn().mockResolvedValue(undefined);
+    const result = await executeVerificationRetentionBatch(
+      [{ uid: prefix, challengeId: 'decided-test', storagePath: path,
+        status: 'approved', decidedAt: now - 31 * MS_PER_DAY }],
+      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      audit,
+      now,
+    );
+    expect(result.purgedCount).toBe(1);
+    expect(audit).toHaveBeenCalledOnce();
     expect((await photo.exists())[0]).toBe(false);
   });
   it('account erasure deletes both photo prefixes without crossing account boundaries', async () => {
