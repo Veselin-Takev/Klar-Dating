@@ -318,6 +318,43 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
 
+  it('accepts a fresh valid HMAC through verification and rejects an unknown referral', async () => {
+    const { partnerWebhookSignature } = await import('../src/server/partnerReferralCore');
+    const secret = 'webhook-secret-at-least-thirty-two-characters';
+    const payload = {
+      event: 'qualified_conversion' as const, eventId: 'signed-fresh-event-123',
+      referralToken: 'a'.repeat(64), buyerUid: 'buyer-123',
+    };
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const app = express();
+    app.use(express.json());
+    app.use('/api', createPartnerReferralPublicRouter({
+      currentUserId: () => null,
+      getFirestore: () => makeDb(),
+      tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
+      auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
+      publicUrl: () => 'https://klar-app.example',
+      webhookSecrets: () => ({ 'test-partner': secret }),
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+    const response = await fetch(origin + '/api/partner/webhook/test-partner', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-klar-partner-timestamp': timestamp,
+        'x-klar-partner-signature': partnerWebhookSignature(payload, timestamp, secret),
+      },
+      body: JSON.stringify(payload),
+    });
+    expect(response.status).toBe(404);
+    expect((await response.json()).code).toBe('partner_link_not_found');
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
   it('protects webhook response headers even when the distributed limiter fails', async () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
