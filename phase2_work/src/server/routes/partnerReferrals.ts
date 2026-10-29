@@ -94,7 +94,9 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     collection: 'partner_referral_webhook_rate_limits',
     windowMs: 60_000,
     limit: 120,
-    keyGenerator: req => 'campaign:' + String(req.params.slug ?? 'unknown') + ':ip:' + ipKeyGenerator(req.ip ?? ''),
+    // Unknown syntactically valid campaign names must share a bounded IP budget.
+    // The HMAC check below still verifies the campaign-specific secret.
+    keyGenerator: req => 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { code: 'partner_webhook_rate_limited', error: 'Zu viele Partner-Rückmeldungen.' },
     getDb: deps.getFirestore,
   });
