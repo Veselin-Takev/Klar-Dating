@@ -46,3 +46,7 @@ GitHub Enterprise CI run `40932161196` completed **success** at exact PR #201 HE
 ## Exact-HEAD CI verification — run 40934395144
 
 At HEAD `972cd361b8580c49c9e7762d50d37b87c2c31dd2`, GitHub Enterprise CI run `40934395144` completed **success** (validate job `123660970770`). Its logs explicitly show **193 Vitest files passed, 1 skipped; 1,409 tests passed, 1 skipped**. The skipped suite is `tests/partnerConversionConcurrencyEmulator.spec.ts`, demonstrating that this CI run **does not validate Firestore concurrency**. Job evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40934395144/job/123660970770 . Dedicated demo-klar emulator execution, immutable logs and exit codes are still outstanding. PR remains draft, and production NO-GO remains mandatory.
+
+## Policy-flag hardening and latest CI — 2026-10-29
+
+Enterprise CI `40935813583` succeeded on exact HEAD `727f38e4643472d01d6227ff3736ee2607983dcb`: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40935813583 . The dedicated test has now been hardened in commit `90d87df442ff31f624730ddd62b4ccbfde2e763f`: when `KLAR_RUN_PARTNER_CONVERSION_EMULATOR=1`, the test additionally requires `KLAR_REQUIRE_FIRESTORE_EMULATOR=1` (already set by the guarded runner) before any Firestore writes. A manually set opt-in without the mandatory policy flag fails closed rather than running. This is source-level protection only, not a substitute for the real emulator concurrency run. The new commit requires fresh exact-SHA CI evidence. No merge, deployment, or release approval; production NO-GO.
