@@ -156,6 +156,22 @@ describe('launch/referral/activation HTTP boundary', () => {
     if (state === 'missing') expect(fixture.store.has('users/user-a')).toBe(false);
   });
 
+  it.each(['underage', 'missing-age', 'null-age'])(
+    'does not issue invitation codes when account age eligibility is %s', async state => {
+      const fixture = referralDb();
+      const current = fixture.store.get('users/user-a')!;
+      fixture.store.set('users/user-a', {
+        ...current, isAdult: state === 'underage' ? false : state === 'null-age' ? null : undefined,
+      });
+      const ctx = await api({ getFirestore: () => fixture.db });
+      const response = await fetch(ctx.base + '/referral');
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+      expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
+      expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+    },
+  );
+
   it.each(['missing-invitee', 'missing-inviter', 'deleting-invitee', 'deleting-inviter'])(
     'rejects a claim when the transactional state becomes %s', async state => {
       const fixture = referralDb();

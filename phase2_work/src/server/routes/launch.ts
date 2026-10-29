@@ -131,7 +131,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const deletionRef = db.collection('account_deletions').doc(uid);
       const available = await db.runTransaction(async tx => {
         const [user, deletion] = await tx.getAll(userRef, deletionRef);
-        if (!user || !deletion || !user.exists || deletion.exists) return false;
+        if (!user || !deletion || !user.exists || deletion.exists || user.data()?.isAdult !== true) return false;
         tx.update(userRef, { referralCode: code });
         return true;
       });
