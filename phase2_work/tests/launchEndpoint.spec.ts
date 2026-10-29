@@ -108,7 +108,9 @@ describe('launch/referral/activation HTTP boundary', () => {
 
   it('disables caches and referrer propagation for referral issuance and claim responses', async () => {
     const fixture = referralDb();
-    const ctx = await api({ getFirestore: () => fixture.db });
+    // The code issued to the invitee must differ from the inviter's code:
+    // otherwise the lookup can find the invitee first and correctly reject self-referral.
+    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
     const requests = [
       { url: '/referral', method: 'GET' },
       { url: '/referral/claim', method: 'POST',
