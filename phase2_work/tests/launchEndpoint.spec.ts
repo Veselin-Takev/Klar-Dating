@@ -172,6 +172,21 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(ctx.deps.getLocalDensity).not.toHaveBeenCalled();
   });
 
+  it('never caches profile-derived launch summaries, including rejected requests', async () => {
+    const authorized = await api();
+    const ok = await fetch(authorized.base + '/launch/summary?city=M%C3%BCnchen');
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get('cache-control')).toBe('private, no-store');
+    expect(ok.headers.get('pragma')).toBe('no-cache');
+    expect(ok.headers.get('referrer-policy')).toBe('no-referrer');
+
+    const anonymous = await api({ currentUserId: () => null });
+    const denied = await fetch(anonymous.base + '/launch/summary');
+    expect(denied.status).toBe(401);
+    expect(denied.headers.get('cache-control')).toBe('private, no-store');
+    expect(denied.headers.get('referrer-policy')).toBe('no-referrer');
+  });
+
   it('rejects malformed referral codes before database lookup', async () => {
     const ctx = await api();
     const response = await fetch(ctx.base + '/referral/claim', {
