@@ -496,6 +496,38 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('rejects a referral campaign slug changed between preflight and conversion transaction', async () => {
+    const ownerUid = 'owner-slug-race';
+    const buyerUid = 'buyer-slug-race';
+    const campaignId = 'campaign-slug-race';
+    const slug = 'example-partner';
+    const token = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: buyerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid, campaignId, campaignSlug: slug, version: 1, status: 'active', qualifiedConversions: 0 } },
+    ]);
+    const originalTransaction = db.runTransaction.bind(db);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async (callback: Parameters<typeof db.runTransaction>[0]) => {
+        const original = db._store.get('partner_referrals/' + referralId)!;
+        db._store.set('partner_referrals/' + referralId, { ...original, campaignSlug: 'different-partner' });
+        return originalTransaction(callback);
+      },
+    });
+    await expect(recordPartnerConversion(deps(db), slug, {
+      event: 'qualified_conversion', eventId: 'provider-slug-race-0001', referralToken: token, buyerUid,
+    }, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_buyer_claims/'))).toHaveLength(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
   it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
     const uid = 'owner-1';
     const buyer = 'buyer-1';
