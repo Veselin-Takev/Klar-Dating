@@ -548,6 +548,9 @@ describe('Klar & Partner transactional service boundary', () => {
       await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
         .rejects.toMatchObject({ code: 'partner_link_not_found' });
     }
+    db._store.set('partner_referrals/' + referralId, { ...originalReferral, campaignSlug: 'wrong-partner' });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_campaign_binding_conflict' });
     db._store.set('partner_referrals/' + referralId, originalReferral);
     expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
     const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');
