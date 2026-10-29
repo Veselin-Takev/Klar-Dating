@@ -1,3 +1,9 @@
+## 2026-10-29 — Issue #70: TTL-Checker auf 20-Gruppen-Matrix synchronisiert
+
+Isolierter Branch auf Main-Basis `2808dc1cbb485f70b403681c108cea5a3361d950`: veralteten `check-retention-config.mjs` erneuert, sieben negative Source-/Docs-Mutationen ergänzt, beide unter `check:retention-p0` eingebunden und aktive 13er-Angaben der Retention-Anleitung auf 20 geplante Gruppen korrigiert. **Exakte CI-HEAD-, Staging-`ACTIVE`-, Legal-Hold- und Fachfreigaben fehlen; keine Cloud-Änderung.** Details: [DATA_RETENTION.md](DATA_RETENTION.md), [PRODUCTION_RUNBOOK.md](PRODUCTION_RUNBOOK.md). **Production NO-GO.**
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

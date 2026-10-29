@@ -1,27 +1,45 @@
 #!/usr/bin/env node
+// Issue #70: validate current 20-group TTL plan and original expiry writers.
+// Static only: no GCP access, TTL mutation or live ACTIVE proof.
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const script = readFileSync('scripts/configure-retention.sh', 'utf8');
-const docs = readFileSync('docs/DATA_RETENTION.md', 'utf8');
-const messageWriter = readFileSync('src/server/messages.ts', 'utf8');
-const archiveWorker = readFileSync('functions/src/archiveInactiveChats.ts', 'utf8');
-const kycWriter = readFileSync('src/server/verification/diditKyc.ts', 'utf8');
-const photoCron = readFileSync('functions/src/deleteExpiredPhotos.ts', 'utf8');
-const required = ['messages', 'archived_messages', 'ki_zwischenspeicher', 'age_attempts', 'kyc_events', 'deletion_log', 'funnel_events', 'ai_budget', 'account_deletions'];
-const loop = script.match(/for collection_group in ([^;]+); do/);
-const configured = new Set((loop?.[1] ?? '').trim().split(/\s+/).filter(Boolean));
-const missingScript = required.filter(x => !configured.has(x));
-const missingDocs = required.filter(x => !docs.includes(`/${x}`));
-const sourceViolations = [];
-if (!messageWriter.includes('expiresAt: new Date(Date.now() + 90 * 86400_000)')) sourceViolations.push('messages writer does not set the 90-day expiresAt');
-if (!archiveWorker.includes("collection('archived_messages')") || !archiveWorker.includes('...message.data()')) sourceViolations.push('archival does not preserve the message expiresAt');
-if (!kycWriter.includes("kyc_events/${event.event_id}") || !kycWriter.includes('expiresAt: new Date(now + 30 * 86400_000)')) sourceViolations.push('kyc_events writer does not set the 30-day expiresAt');
-if (!photoCron.includes("collection('verification_events')") || !photoCron.includes("where('fotoLoeschenAb', '<=', now)") || !photoCron.includes('storagePath')) sourceViolations.push('verification photo retention is not driven by decision expiry');
-if (photoCron.includes('deleteExpiredPhotoPage') || photoCron.includes("prefix: 'verification/'")) sourceViolations.push('verification photo retention still uses creation-age scanning');
-if (missingScript.length || missingDocs.length || sourceViolations.length) {
-  console.error('FAIL retention config:', { missingScript, missingDocs, sourceViolations });
-  process.exit(1);
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const read = path => readFileSync(resolve(root, path), 'utf8');
+const script = read('scripts/configure-retention.sh');
+const docs = read('docs/DATA_RETENTION.md');
+const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
+assert(match, 'Missing explicit retention groups=(...) in staging plan');
+const groups = match[1].trim().split(/\s+/);
+assert.equal(groups.length, 20, 'Current Firestore TTL plan must contain exactly 20 groups');
+assert.equal(new Set(groups).size, groups.length, 'Duplicate collection groups are prohibited');
+
+const originalGroups = [
+  'messages', 'archived_messages', 'ki_zwischenspeicher', 'age_attempts',
+  'kyc_events', 'deletion_log', 'funnel_events', 'ai_budget', 'account_deletions',
+];
+for (const group of originalGroups) {
+  assert(groups.includes(group), 'Original expiry group missing from plan: ' + group);
 }
-if (!script.includes('KLAR_CONFIRM_RETENTION') || !script.includes('set -euo pipefail')) {
-  console.error('FAIL retention confirmation guard'); process.exit(1);
+for (const group of groups) {
+  assert(new RegExp('--collection-group=' + group + '(?![A-Za-z0-9_-])').test(docs),
+    'Documented Firestore TTL group missing or suffix-colliding: ' + group);
 }
-console.log(`PASS retention config (${required.length} collection groups; writers verified)`);
+assert(docs.includes('alle **20 geplanten Collection Groups**'),
+  'Current TTL evidence instructions must describe the 20-group plan, not historical 13');
+
+const messages = read('src/server/messages.ts');
+assert(messages.includes('expiresAt: new Date(Date.now() + 90 * 86400_000)'),
+  'Message writer must preserve its 90-day expiresAt Date');
+const archive = read('functions/src/archiveInactiveChats.ts');
+assert(archive.includes("collection('archived_messages')") && archive.includes('...message.data()'),
+  'Archival writer must preserve original message expiry');
+const kyc = read('src/server/verification/diditKyc.ts');
+assert(kyc.includes('kyc_events/') && kyc.includes('event.event_id')
+  && kyc.includes('expiresAt: new Date(now + 30 * 86400_000)'),
+  'KYC event writer must preserve its 30-day expiresAt Date');
+
+// Storage photo cleanup is not Firestore TTL; independent gates cover it.
+console.log('PASS: 20-group TTL plan/docs and original expiry writers (static-only; production NO-GO)');

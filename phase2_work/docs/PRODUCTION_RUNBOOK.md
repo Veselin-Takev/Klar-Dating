@@ -435,3 +435,7 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+### 2026-10-29 — Retention-Quell-Gate und 20er-Verifikationsanweisungen (#70)
+
+`npm run check:retention-p0` enthält jetzt zusätzlich `check-retention-config.mjs` und `test-retention-config.mjs` mit sieben Negativregressionen. Sie prüfen die 20 geplanten Gruppen, Dokumentation sowie ursprüngliche Expiry-Writer **ausschließlich offline**. Die freizugebende Staging-Matrix bleibt `scripts/configure-retention.sh`, mit unveränderten Projekt-/Datenbank-/Legal-/Inventar-Gates. Vor dem Staging-Apply: unabhängige Genehmigung und Bestands-/Legal-Hold-Abgleich archivieren; danach 20 echte `ACTIVE`-Policies per lesendem Cloud-Nachweis bestätigen. **Keine automatische Anwendung; Production NO-GO.**

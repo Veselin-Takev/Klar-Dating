@@ -129,7 +129,7 @@
     "pretest:rules-diagnose": "node scripts/check-rules-prerequisites.mjs",
     "pretest:rules-sprache": "node scripts/check-rules-prerequisites.mjs",
     "test:art17-partner-emulator": "node scripts/check-emulator-ports.mjs --config firebase.pruefung.json && firebase emulators:exec --project demo-klar --only firestore --config firebase.pruefung.json \"node scripts/run-art17-partner-emulator.mjs\"",
-    "check:retention-p0": "node scripts/check-retention-matrix.mjs && node scripts/check-retention-expiry-writers.mjs && node scripts/test-retention-expiry-writers.mjs && node scripts/test-retention-matrix.mjs && node scripts/test-retention-active-evidence.mjs && bash scripts/test-retention-gate.sh && bash scripts/test-retention-project-identity.sh && bash scripts/test-retention-staging-live-readonly.sh",
+    "check:retention-p0": "node scripts/check-retention-matrix.mjs && node scripts/check-retention-config.mjs && node scripts/test-retention-config.mjs && node scripts/check-retention-expiry-writers.mjs && node scripts/test-retention-expiry-writers.mjs && node scripts/test-retention-matrix.mjs && node scripts/test-retention-active-evidence.mjs && bash scripts/test-retention-gate.sh && bash scripts/test-retention-project-identity.sh && bash scripts/test-retention-staging-live-readonly.sh",
     "verify:retention-staging-live": "bash scripts/verify-retention-staging-live.sh",
     "check:emulator-profile": "node --test scripts/check-emulator-ports.test.mjs scripts/check-rules-prerequisites.test.mjs",
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
