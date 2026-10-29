@@ -10,3 +10,6 @@ Three HTTP negative regressions in `tests/launchEndpoint.spec.ts` cover deletion
 
 ## Risk / rollback / release decision
 Risk: existing clients for deleted/missing profiles may now receive 409 rather than density data; clients should treat 409 as a terminal account-lifecycle state. Transaction reads add a read of the deletion marker. Rollback: revert this isolated branch/commit after Security+DPO authorization, never bypass deletion protection without an alternative. Do not merge or deploy pending review. Production NO-GO.
+
+## CI diagnosis and test-double repair — 2026-10-29
+Enterprise CI run [40865426235](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40865426235) failed at tests after successful static gates, TypeScript and functions build. Two new negative test cases received 503 instead of 409: the custom mocked Firestore transaction omitted `get`, while the upstream distributed rate limiter calls `tx.get`; limiter failure returned early before the launch handler. This was an invalid test double rather than evidence of a failed account-deletion guard. Test fixture now implements `get` and `set` alongside `getAll` to permit rate-limiter preflight. The production route was not changed by the repair. Exact-head tests must be rerun; this note does not claim a PASS. No manual CI re-run triggered, no main merge or deploy. **Production NO-GO.**
