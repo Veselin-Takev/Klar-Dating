@@ -24,3 +24,11 @@ Der Test ist bis zur eigenen **exakten** CI- und Logprüfung **UNVERIFIED**. Zu 
 Eine grüne CI belegt nur diese synthetische Leased-Worker-Wiederaufnahme. Registry-Altbestandsmigration, aktivierte Claim-/Ausgabe-Routen, Produktions- und Staging-JWT/KYC/Consent, Live-Retention/TTL, echte Prozess-/Scheduler-Failover-Tests und unabhängige Product-, DPO/Legal-, Security-, SRE- und Release-Owner-Abnahmen bleiben ausstehend.
 
 Keine Produktivdaten gelesen oder verändert; keine direkten `main`-Commits, Merges, Deployments, manuellen GitHub-Actions-Auslösungen oder Änderungen an PR #119/RC R2. **P0 #48 OFFEN; PRODUCTION BLOCKED / NO-GO.**
+
+## Exakter CI-Nachweis — 2026-10-30, erfolgreich
+
+- [Draft-PR #227](https://github.com/Veselin-Takev/Klar-Dating/pull/227), unveränderlicher Quell-HEAD `a771e6082ec41254d98f40a219d45660d1fccf94`: automatischer [Enterprise-CI-Lauf #41135818356](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41135818356) **completed / success**; Validate-Job `124337869550` **completed / success**, **0 fehlgeschlagene Schritte**.
+- Original-Testprotokoll zeigt ausdrücklich `tests/accountErasure.spec.ts (7 tests)` und die als **PASS ausgeführte, nicht übersprungene** Testzeile `✓ hands off a real registry deletion after a completed slice to a new worker lease` (837 ms).
+- Gesamte Vitest-Suite: **`203 passed (203)` Testdateien** und **`1483 passed (1483)` Einzeltests**. Static-Gates, Typecheck, Functions-Build, Testphase, Production-Smoke und Browser-Abnahme sind im erfolgreichen Validate-Job durchlaufen.
+- Dieser Nachweis deckt **nur** den getesteten synthetischen Emulator-Worker-Handoff, die Firestore-gestützten Lease-Transaktionen und den getrennten Final-Sweep ab; **keinen** physischen Worker-/Containerabsturz, realen Didit-/Auth-/Stripe-Provider, Scheduler-Failover, Staging- oder Produktionsdatenbestand.
+- Der komplette Referral-Registy-Produktivpfad bleibt **nicht aktiviert**, Migration/Berechtigungsprüfungen sind offen, fachliche Freigaben fehlen: **PRODUCTION BLOCKED / NO-GO**.
