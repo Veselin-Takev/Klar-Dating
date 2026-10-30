@@ -24,6 +24,19 @@ export type MemberReferralPageInventory = MemberReferralInventory & Readonly<{
 const ABSOLUTE_PAGE_LIMIT = 1000;
 const ABSOLUTE_PAGE_RECORDS = 1000;
 
+// Only fixed diagnostics may cross this privacy boundary. An upstream
+// iterator may throw an Error containing a raw UID, code or cursor.
+const SAFE_PAGE_ERROR_CODES = new Set([
+  'member_referral_pages_overflow',
+  'member_referral_pages_integrity_failure',
+  'member_referral_pages_scope_changed',
+  'member_referral_pages_invalid_terminal',
+  'member_referral_pages_invalid_continuation',
+  'member_referral_pages_incomplete',
+  'member_referral_inventory_invalid_limit',
+  'member_referral_inventory_limit_exceeded',
+]);
+
 function validCursor(cursor: unknown): cursor is string {
   return typeof cursor === 'string' && cursor.length > 0 && cursor.length <= 512;
 }
@@ -88,10 +101,19 @@ export async function summarizePagedMemberReferralInventory(
     }
   }
 
-  const counts = await summarizeMemberReferralInventory(validatedRecords(), maxRecords);
-  return Object.freeze({
-    ...counts,
-    pagesRead,
-    pageChain: 'validated_supplied_pages_only' as const,
-  });
+  try {
+    const counts = await summarizeMemberReferralInventory(validatedRecords(), maxRecords);
+    return Object.freeze({
+      ...counts,
+      pagesRead,
+      pageChain: 'validated_supplied_pages_only' as const,
+    });
+  } catch (error) {
+    // Re-throw a fresh fixed diagnostic, never the upstream error object,
+    // stack, cause or user-supplied message.
+    if (error instanceof Error && SAFE_PAGE_ERROR_CODES.has(error.message)) {
+      throw new Error(error.message);
+    }
+    throw new Error('member_referral_pages_source_failure');
+  }
 }
