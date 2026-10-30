@@ -176,7 +176,9 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         if (!userSnap || !inviter || !userDeletion || !inviterDeletion
           || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
           || inviter.data()?.referralCode !== code) return false;
-        if (userSnap.data()?.referredBy) return true;
+        // Idempotence only applies to the same inviter. A different referral
+        // must never be acknowledged as successfully claimed without attribution.
+        if (userSnap.data()?.referredBy) return userSnap.data()?.referredBy === inviterRef.id;
         tx.update(userRef, { referredBy: inviterRef.id, referralQualified: false });
         tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
           inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
