@@ -58,6 +58,11 @@ export class MemberReferralInventoryValidationFailure extends Error {
     super(fixedCode);
     this.name = 'MemberReferralInventoryValidationFailure';
     this.code = fixedCode;
+    // Prevent later mutation or getter replacement on an exported error object.
+    // The privacy boundary rethrows a fresh instance from this fixed value.
+    Object.defineProperty(this, 'code', {
+      value: fixedCode, enumerable: true, writable: false, configurable: false,
+    });
   }
 }
 
