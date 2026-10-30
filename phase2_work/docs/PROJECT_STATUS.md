@@ -1607,3 +1607,11 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## 2026-10-30 – P0 #48: geprüfte Inventurdiagnostik und noch ungeprüfter Runtime-Guard
+
+[Draft PR #222](https://github.com/Veselin-Takev/Klar-Dating/pull/222) ist auf Commit `06fe8509cfda12eed1abc080efa17c9e17b2b8e2` mit [CI #41128352587](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41128352587) vollständig erfolgreich geprüft: **13** paginierte, **10** direkte Inventurtests und **203/203** Testdateien bestanden. Die vier Fehler aus dem ersten #222-Lauf wurden behoben; keine Produktionsmigration wurde durchgeführt.
+
+Ein isolierter, **nicht als PR geöffneter Feature-Branch** ergänzt eine weitere Laufzeitprüfung der zulässigen Fehlercodes im exportierten Inventur-Validierungstyp. Er verhindert, dass ein per JavaScript oder Typ-Cast übergebener Freitext mit UID/Code als interne Diagnose in `message`/`stack` gelangt, und sperrt nachträgliche Änderung dieses Codes. Neue synthetische Tests sind implementiert. **Der neue Branch besitzt keinen eigenen bestätigten Typecheck-/CI-PASS.** Vor Öffnung eines PRs mit automatisch anfallender CI sind die verbleibenden genehmigten GitHub-Actions-Minuten zu klären. [Neuer Auditbericht](MEMBER_REFERRAL_INVENTORY_DIAGNOSTIC_RUNTIME_GUARD_2026-10-30.md).
+
+P0 #48, Stage-Firebase-Identität/Didit, Datenschutz und vollständige Bestands-/Art.-17-Migration sowie #55/#56/#70/#202 und Release #8 sind weiter **BLOCKED / NO-GO**. Kein Merge, Deployment, `main`-Commit, manueller Actions-Start oder Produktivdatenzugriff. PR #119 und RC R2 bleiben eingefroren.

@@ -31,15 +31,38 @@ export type MemberReferralInventoryDiagnostic =
   | 'member_referral_pages_scope_changed'
   | 'member_referral_pages_invalid_terminal'
   | 'member_referral_pages_invalid_continuation'
-  | 'member_referral_pages_incomplete';
+  | 'member_referral_pages_incomplete'
+  | 'member_referral_inventory_source_failure';
+
+const KNOWN_INVENTORY_DIAGNOSTIC_CODES: ReadonlySet<string> = new Set([
+  'member_referral_inventory_invalid_limit',
+  'member_referral_inventory_limit_exceeded',
+  'member_referral_pages_overflow',
+  'member_referral_pages_integrity_failure',
+  'member_referral_pages_scope_changed',
+  'member_referral_pages_invalid_terminal',
+  'member_referral_pages_invalid_continuation',
+  'member_referral_pages_incomplete',
+  'member_referral_inventory_source_failure',
+]);
 
 export class MemberReferralInventoryValidationFailure extends Error {
   readonly code: MemberReferralInventoryDiagnostic;
 
   constructor(code: MemberReferralInventoryDiagnostic) {
-    super(code);
+    // TypeScript types are erased at runtime. A caller-supplied iterator can
+    // construct this exported class with an arbitrary string via JS/casts.
+    // Never allow that raw string into Error.message or Error.stack.
+    const fixedCode = KNOWN_INVENTORY_DIAGNOSTIC_CODES.has(code)
+      ? code : 'member_referral_inventory_source_failure';
+    super(fixedCode);
     this.name = 'MemberReferralInventoryValidationFailure';
-    this.code = code;
+    this.code = fixedCode;
+    // Prevent later mutation or getter replacement on an exported error object.
+    // The privacy boundary rethrows a fresh instance from this fixed value.
+    Object.defineProperty(this, 'code', {
+      value: fixedCode, enumerable: true, writable: false, configurable: false,
+    });
   }
 }
 
