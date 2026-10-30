@@ -143,6 +143,11 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const available = await db.runTransaction(async tx => {
         const [user, deletion] = await tx.getAll(userRef, deletionRef);
         if (!user || !deletion || !user.exists || deletion.exists) return false;
+        // A deterministic 10-character code can collide with legacy records.
+        // Reject a known foreign owner before issuing a misleading share link.
+        // This is a bounded read, not a global uniqueness reservation.
+        const codeOwners = await tx.get(db.collection('users').where('referralCode', '==', code).limit(2));
+        if (codeOwners.docs.some(owner => owner.id !== uid)) return false;
         tx.update(userRef, { referralCode: code });
         return true;
       });
