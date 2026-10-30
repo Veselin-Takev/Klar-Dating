@@ -116,4 +116,61 @@ describe.skipIf(!host)('partner provider assertions / replay (real Firestore emu
     expect(ledger.docs.some(doc => doc.data().eventType === 'partner_conversion_verified')).toBe(false);
     expect((await eventRef.get()).data()?.rewardStatus).toBe('pending_verification');
   }, 120_000);
+  it('serializes different provider events racing for one buyer claim', async () => {
+    const db = getDb();
+    const suffix = randomUUID().replaceAll('-', '');
+    const ownerUid = 'owner-race-' + suffix;
+    const buyerUid = 'buyer-race-' + suffix;
+    const campaignId = 'campaign-race-' + suffix;
+    const slug = 'race-' + suffix.slice(0, 12);
+    const referralToken = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(referralToken);
+    const eventIds = ['provider-order-a-' + suffix, 'provider-order-b-' + suffix];
+    const eventHashes = eventIds.map(id => partnerWebhookEventDocumentId(slug, id, auditSecret));
+    const claimId = partnerBuyerClaimDocumentId(slug, buyerUid, auditSecret);
+    trackedCampaigns.push(campaignId);
+    const fixtures = [
+      { path: 'users/' + ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { path: 'users/' + buyerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { path: 'partner_campaigns/' + campaignId,
+        data: { slug, status: 'active', brandVerified: true, deletedAt: null, rewardLabel: 'Klar+ Zeit' } },
+      { path: 'partner_referrals/' + referralId,
+        data: { ownerUid, campaignId, version: 1, status: 'active' } },
+    ];
+    trackedPaths.push(...fixtures.map(fixture => fixture.path),
+      ...eventHashes.map(id => 'partner_referral_conversions/' + id),
+      'partner_referral_buyer_claims/' + claimId);
+    const batch = db.batch();
+    for (const fixture of fixtures) batch.set(db.doc(fixture.path), fixture.data);
+    await batch.commit();
+
+    // These are different, correctly formed assertions. Only one buyer claim
+    // may exist even when both event IDs are new and sent concurrently.
+    const results = await Promise.allSettled(eventIds.map(eventId =>
+      recordPartnerConversion(deps(), slug, {
+        event: 'qualified_conversion', eventId, referralToken, buyerUid,
+      }, providerSecret)));
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(result => result.status === 'rejected')).toHaveLength(1);
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        expect(result.value).toMatchObject({ duplicate: false, rewardStatus: 'pending_verification' });
+      } else {
+        expect(result.reason).toMatchObject({ code: 'duplicate_conversion' });
+      }
+    }
+
+    const storedEvents = await Promise.all(eventHashes.map(id =>
+      db.collection('partner_referral_conversions').doc(id).get()));
+    expect(storedEvents.filter(snapshot => snapshot.exists)).toHaveLength(1);
+    const claim = await db.collection('partner_referral_buyer_claims').doc(claimId).get();
+    expect(claim.exists).toBe(true);
+    expect(eventHashes).toContain(claim.data()?.conversionId);
+    expect(storedEvents.filter(snapshot => snapshot.exists)[0]?.data())
+      .toMatchObject({ rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' });
+    const ledger = await db.collection('partner_referral_ledger').where('campaignId', '==', campaignId).get();
+    expect(ledger.docs.filter(doc => doc.data().eventType === 'partner_conversion_asserted')).toHaveLength(1);
+    expect(ledger.docs.some(doc => doc.data().eventType === 'partner_conversion_verified')).toBe(false);
+  }, 120_000);
+
 });
