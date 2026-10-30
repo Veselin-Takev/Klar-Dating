@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { MemberReferralInventoryValidationFailure, type MemberReferralInventoryDiagnostic } from '../src/server/memberReferralMigrationInventory';
 import {
   summarizePagedMemberReferralInventory,
   type MemberReferralInventoryPage,
@@ -141,6 +142,26 @@ describe('offline-only paged member-referral inventory integrity (P0 #48)', () =
     }
     await expect(summarizePagedMemberReferralInventory(malicious()))
       .rejects.toThrow('member_referral_pages_source_failure');
+  });
+
+  it('sanitizes an exported typed diagnostic with a spoofed secret code', async () => {
+    const secret = 'user=private-account;code=ABCDEFGHIJ';
+    async function* malicious() {
+      throw new MemberReferralInventoryValidationFailure(
+        secret as MemberReferralInventoryDiagnostic,
+      );
+      yield page(0, null, null, true, []);
+    }
+    let actual: unknown;
+    try {
+      await summarizePagedMemberReferralInventory(malicious());
+    } catch (error) {
+      actual = error;
+    }
+    expect(actual).toBeInstanceOf(Error);
+    expect((actual as Error).message).toBe('member_referral_inventory_source_failure');
+    expect(String((actual as Error).stack)).not.toContain(secret);
+    expect((actual as Error).cause).toBeUndefined();
   });
 
   it('does not accept any pages missing a terminal marker', async () => {
