@@ -29,3 +29,7 @@ The `accountStatus` writer paths, blocked-user relationship policy and actual de
 ## CI regression and targeted fix (2026-10-30)
 
 The initial exact-head [Enterprise CI #41011278498](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41011278498) on `76e7bacebc4ce1957fc96cc67a18593742dc2a7a` **FAILED** in TypeScript tests at `storageRules.spec.ts:105–109`: Firebase `UploadTask` is thenable but does not satisfy the test helper's `Promise` type. The five new negative `put()` assertions now use `Promise.resolve(UploadTask)`, matching existing emulator test conventions. This was a **test helper type mismatch**, not evidence of rule authorization PASS. Full exact-HEAD CI and actual positive/negative Storage Emulator outcomes must be re-evaluated after the fix. Production NO-GO.
+
+## CI syntax correction (2026-10-30)
+
+The second [Enterprise CI #41011509901](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41011509901) on `a905e8285269752d4dd7a26e5a8001c614b8c121` **FAILED** in the TypeScript parser, `TS1005 ')' expected` on the same five assertions at lines 105–109. The previous wrapper edit had introduced `Promise.resolve(...)` but omitted the closing `assertFails` parenthesis. This corrective commit adds **only** the missing five closing parentheses to the test code, with no Storage Rules or application policy change. An exact-head clean CI run is required; **no passing emulator evidence on this patch exists yet**. Production NO-GO.

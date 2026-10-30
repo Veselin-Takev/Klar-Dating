@@ -102,11 +102,11 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       await assertFails(user(deletedUid).ref(path).getMetadata());
       await assertFails(user(guestUid, 'anonymous').ref(path).getMetadata());
       await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getMetadata());
-      await assertFails(Promise.resolve(user(minorUid).ref(`profiles/${minorUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
-      await assertFails(Promise.resolve(user(pendingUid).ref(`profiles/${pendingUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
-      await assertFails(Promise.resolve(user(deletedUid).ref(`profiles/${deletedUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
-      await assertFails(Promise.resolve(forged.ref(`profiles/${unknownUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
-      await assertFails(Promise.resolve(user(readerUid).ref(path).put(image, { contentType: 'image/jpeg' }));
+      await assertFails(Promise.resolve(user(minorUid).ref(`profiles/${minorUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(Promise.resolve(user(pendingUid).ref(`profiles/${pendingUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(Promise.resolve(user(deletedUid).ref(`profiles/${deletedUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(Promise.resolve(forged.ref(`profiles/${unknownUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(Promise.resolve(user(readerUid).ref(path).put(image, { contentType: 'image/jpeg' })));
     } finally {
       if ((await file.exists())[0]) await file.delete();
     }
