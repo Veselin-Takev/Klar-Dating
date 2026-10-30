@@ -2,6 +2,7 @@
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
 import { DeletionPageComplete, DeletionStoragePageComplete, DeletionTimeSliceComplete } from '../src/server/deletionProgress';
+import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -263,6 +264,135 @@ describe('account erasure including archived messages and photos', () => {
       const cleanup = db.batch();
       for (const ref of [...owned, outsider, profile, job]) cleanup.delete(ref);
       await cleanup.commit();
+    }
+  }, 120_000);
+
+  it.runIf(
+    /^(localhost|127[.]0[.]0[.]1|\[::1\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
+    && process.env.NODE_ENV !== 'production'
+    && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
+      .filter(Boolean).every(id => id === 'demo-klar')
+  )('hands off a real registry deletion after a completed slice to a new worker lease', async () => {
+    const db = getDb();
+    const uid = 'registry-worker-handoff-' + randomUUID().replaceAll('-', '');
+    const foreignUid = 'registry-worker-foreign-' + randomUUID().replaceAll('-', '');
+    const requestId = randomUUID();
+    const prefix = randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase();
+    const registry = db.collection('member_referral_code_registry');
+    const code = (index: number) =>
+      prefix + index.toString(36).toUpperCase().padStart(6, '0');
+    const owned = Array.from({ length: 401 }, (_, index) => registry.doc(code(index)));
+    const foreign = registry.doc(code(401));
+    const profile = db.doc('users/' + uid);
+    const job = db.doc('account_deletions/' + uid);
+    const receipt = db.doc('deletion_log/' +
+      createHash('sha256').update('deletion-receipt:' + requestId).digest('hex'));
+
+    let workerNow = Date.now();
+    const firstSliceStart = workerNow;
+    let sliceExpired = false;
+    let acknowledgedBatches = 0;
+    const observedLeases: string[] = [];
+    let firstPurgeException: unknown;
+    const deps: DeletionDependencies = {
+      db, now: () => workerNow,
+      disable: vi.fn(async () => {}),
+      removeAuth: vi.fn(async () => {}),
+      cancelSubscription: vi.fn(async () => {}),
+      eraseProvider: vi.fn(async () => true),
+      purge: vi.fn(async (targetUid, targetRequestId, lease) => {
+        expect(targetUid).toBe(uid);
+        expect(targetRequestId).toBe(requestId);
+        expect(typeof lease).toBe('string');
+        observedLeases.push(lease!);
+        try {
+          return await purgeAccountData(targetUid, targetRequestId, lease,
+            observedLeases.length === 1 ? {
+              now: () => sliceExpired ? firstSliceStart + 60_000 : firstSliceStart,
+              onProgress: () => {
+                acknowledgedBatches += 1;
+                sliceExpired = true;
+              },
+            } : undefined);
+        } catch (error) {
+          if (observedLeases.length === 1) firstPurgeException = error;
+          throw error;
+        }
+      }),
+    };
+
+    try {
+      const setup = db.batch();
+      setup.set(profile, { name: 'Synthetic registry lease handoff account' });
+      setup.set(job, {
+        requestId, status: 'pending', phase: 'purge',
+        accountingVersion: 2, deletedCounts: emptyDeletionCounts(),
+        nextAttemptAt: new Date(workerNow), leaseUntil: 0,
+        attempts: 0, hasDidit: false, subscriptionId: null,
+        customerId: null,
+      });
+      for (const ref of owned) {
+        setup.set(ref, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      }
+      setup.set(foreign, { ownerUid: foreignUid, status: 'active', codeVersion: 1 });
+      await setup.commit();
+
+      // Worker A gets a real durable lease, commits the first 400-record
+      // Firestore batch and reaches the time slice boundary.
+      await runAccountDeletion(uid, deps);
+      expect(firstPurgeException).toBeInstanceOf(DeletionTimeSliceComplete);
+      expect(acknowledgedBatches).toBe(1);
+      expect(observedLeases).toHaveLength(1);
+      const afterA = (await job.get()).data()!;
+      expect(afterA).toMatchObject({
+        requestId, status: 'pending', phase: 'purge', leaseUntil: 0,
+        completedSlices: 1, attempts: 0,
+      });
+      expect((await registry.where('ownerUid', '==', uid).get()).size).toBe(1);
+      expect((await profile.get()).exists).toBe(true);
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
+      expect(deps.removeAuth).not.toHaveBeenCalled();
+      expect((await receipt.get()).exists).toBe(false);
+
+      // Job is not eligible until the persisted nextAttemptAt.
+      await runAccountDeletion(uid, deps);
+      expect(observedLeases).toHaveLength(1);
+      workerNow += 1_001;
+
+      // Worker B acquires a NEW lease and finishes the same deletion request.
+      await runAccountDeletion(uid, deps);
+      expect(observedLeases).toHaveLength(2);
+      expect(observedLeases[1]).not.toBe(observedLeases[0]);
+      const afterB = (await job.get()).data()!;
+      expect(afterB).toMatchObject({
+        requestId, status: 'pending', phase: 'final_sweep',
+      });
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await profile.get()).exists).toBe(false);
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
+      expect(deps.removeAuth).toHaveBeenCalledTimes(1);
+      expect((await receipt.get()).exists).toBe(false);
+
+      // Final sweep must remain behind its independent token-grace boundary.
+      await runAccountDeletion(uid, deps);
+      expect(observedLeases).toHaveLength(2);
+      workerNow += 62 * 60_000;
+      await runAccountDeletion(uid, deps);
+      expect(observedLeases).toHaveLength(3);
+      expect(observedLeases[2]).not.toBe(observedLeases[1]);
+      expect((await job.get()).data()?.status).toBe('completed');
+      expect((await receipt.get()).data()).toMatchObject({
+        schemaVersion: 2, status: 'completed',
+      });
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
+      await runAccountDeletion(uid, deps);
+      expect(observedLeases).toHaveLength(3);
+    } finally {
+      const cleanup = db.batch();
+      for (const ref of [...owned, foreign, profile, job]) cleanup.delete(ref);
+      await cleanup.commit();
+      await receipt.delete();
     }
   }, 120_000);
 
