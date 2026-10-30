@@ -211,6 +211,27 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it.each([
+    { priorInviter: 'other-inviter', expectedStatus: 409, expectedBody: { error: 'Einladung für dieses Konto derzeit nicht verfügbar.' } },
+    { priorInviter: 'inviter', expectedStatus: 200, expectedBody: { ok: true } },
+  ])('preserves an existing attribution for prior inviter $priorInviter', async ({ priorInviter, expectedStatus, expectedBody }) => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', {
+      ...fixture.store.get('users/user-a'), referredBy: priorInviter, referralQualified: false,
+    });
+    const ctx = await api({ getFirestore: () => fixture.db }, 'password');
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(expectedStatus);
+    expect(await response.json()).toEqual(expectedBody);
+    expect(fixture.store.get('users/user-a')).toMatchObject({
+      referredBy: priorInviter, referralQualified: false,
+    });
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();
     const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
