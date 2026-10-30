@@ -145,6 +145,57 @@ describe('account erasure including archived messages and photos', () => {
     }
   }, 60_000);
 
+  it.runIf(
+    /^(localhost|127[.]0[.]0[.]1|\[::1\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
+    && process.env.NODE_ENV !== 'production'
+    && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
+      .filter(Boolean).every(id => id === 'demo-klar')
+  )('deletes 401 owned registry reservations across the 400-document batch boundary', async () => {
+    const db = getDb();
+    const uid = 'registry-multibatch-' + randomUUID().replaceAll('-', '');
+    const unrelatedUid = 'registry-outsider-' + randomUUID().replaceAll('-', '');
+    const requestId = randomUUID();
+    // Use deterministic 10-character valid code IDs within this isolated test.
+    const prefix = randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase();
+    const code = (n: number) => prefix + n.toString(36).toUpperCase().padStart(6, '0');
+    const registry = db.collection('member_referral_code_registry');
+    const owned = Array.from({ length: 401 }, (_, n) => registry.doc(code(n)));
+    const unrelated = registry.doc(code(401));
+    const profile = db.collection('users').doc(uid);
+    const job = db.collection('account_deletions').doc(uid);
+    try {
+      // 401 owned reservations + foreign + profile + deletion job = 404
+      // writes, strictly below Firestore's 500-write batch limit.
+      const setup = db.batch();
+      setup.set(profile, { name: 'Synthetic multi-batch erasure' });
+      setup.set(job, { requestId, status: 'pending',
+        accountingVersion: 2, deletedCounts: emptyDeletionCounts() });
+      for (const ref of owned) {
+        setup.set(ref, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      }
+      setup.set(unrelated, { ownerUid: unrelatedUid, status: 'active', codeVersion: 1 });
+      await setup.commit();
+
+      expect((await registry.where('ownerUid', '==', uid).get()).size).toBe(401);
+      await purgeAccountData(uid, requestId);
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await profile.get()).exists).toBe(false);
+      expect((await unrelated.get()).data()).toMatchObject({
+        ownerUid: unrelatedUid, status: 'active', codeVersion: 1,
+      });
+      // The same request may be retried after an acknowledged batch;
+      // no owned record must reappear and no foreign reservation is affected.
+      await purgeAccountData(uid, requestId);
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await unrelated.get()).data()?.ownerUid).toBe(unrelatedUid);
+    } finally {
+      const cleanup = db.batch();
+      for (const ref of [...owned, unrelated, profile, job]) cleanup.delete(ref);
+      await cleanup.commit();
+    }
+  }, 120_000);
+
   it('requires recent authentication before creating a destructive job', async () => {
     let status = 200;
     const res = { status(code: number) { status = code; return this; }, json() { return this; } };
