@@ -82,6 +82,7 @@ const ENTSCHEIDEN = {
   archived_messages: { art: 'geloescht', grund: 'Archivierte Chatnachrichten sind Teil der Kontoloeschung.' },
   activation_events: { art: 'geloescht', grund: 'Ueber uid.' },
   app_feedback: { art: 'geloescht', grund: 'Zugeordnete Rueckmeldungen ueber uid; anonyme Texte separat pruefen.' },
+  member_referral_code_registry: { art: 'geloescht', grund: 'Künftige serverseitige Code-Reservierung enthält ownerUid; Art.-17-Kaskade löscht vor Profilabschluss, Registrierung noch nicht produktiv aktiviert.' },
   referral_events: { art: 'geloescht', grund: 'Einladende und eingeladene Person.' },
   funnel_events: { art: 'geloescht', grund: 'Ueber serverseitige userId; maximal 30 Tage.' },
   matches: { art: 'geloescht', grund: 'Beide Teilnehmerfelder.' },
