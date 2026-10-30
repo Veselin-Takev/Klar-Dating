@@ -80,6 +80,10 @@ service cloud.firestore {
       );
     }
 
+    // P0 #48: proposed member invitation ownership registry is Admin-only.
+    // No client may reserve, discover or transfer another account's code.
+    match /member_referral_code_registry/{code} { allow read, write: if false; }
+
     // Klar & Partner: all reads/writes are server-authoritative.
     // Firebase Admin SDK bypasses client rules; client claims never grant access.
     match /partner_campaigns/{campaignId} { allow read, write: if false; }
