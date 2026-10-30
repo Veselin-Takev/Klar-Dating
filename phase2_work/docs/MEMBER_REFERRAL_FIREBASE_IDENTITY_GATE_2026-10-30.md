@@ -24,3 +24,9 @@ All referral rewards must remain unavailable until server-authoritative Didit id
 
 ## Change control
 Isolated Draft feature branch stacked on [#217](https://github.com/Veselin-Takev/Klar-Dating/pull/217). Freeze PR #119 and RC R2; do not merge, deploy, trigger workflows manually or change `main`. P0 #48/#55/#56/#70/#202 and release #8 remain open. **NO-GO**.
+
+## Exact-head CI verification and next architecture gate (2026-10-30)
+- Draft [PR #218](https://github.com/Veselin-Takev/Klar-Dating/pull/218) HEAD `263ea6c0111eeeb496d8dfc6acd95b8c9d305d7c`: [GitHub Actions #41118780445](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41118780445) **completed/success**, validate job `124279802948` success with no failed steps. The original log confirms `tests/launchEndpoint.spec.ts (34 tests)` PASS; `tests/memberReferralClaimConcurrencyEmulator.spec.ts (3 tests)` PASS (executed, not skipped), and `199 passed (199)` test files.
+- **This is source/emulator CI evidence, not a live Firebase Admin JWT staging test.** #48 remains P0, with age, consent, Didit, reward and erasure lifecycle unresolved.
+- The separate [atomic code registry ADR](ADR_MEMBER_REFERRAL_ATOMIC_CODE_OWNERSHIP_2026-10-30.md) documents the still-open simultaneous-first-issuance uniqueness risk, proposed transactional reservation, Art. 17 deletion contract, legacy backfill and safe rollback. **PROPOSED / NOT IMPLEMENTED / NOT APPROVED**. No registry, cloud data migration, enforcement flag or production change was introduced.
+- This documentation-only evidence lives on an isolated branch rather than on the CI-validated PR code head; no extra GitHub Actions workflow was manually triggered for prose. **PRODUCTION BLOCKED / NO-GO.**
