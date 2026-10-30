@@ -30,3 +30,9 @@ A future real-data inventory must require approved IAM/read scope and privacy co
 Before any migration, review the proposed [atomic registry ADR](ADR_MEMBER_REFERRAL_ATOMIC_CODE_OWNERSHIP_2026-10-30.md), pending claim-time verification, Art. 17 interrupted recovery, Didit/age/consent authorization and legacy collision-handling policy with Product, DPO/Legal, Security, SRE and Release Owner.
 
 **Governance:** no merge, main changes, manual Actions dispatch, real account reads, registry migration, route activation or deployment. PR #119/RC R2 frozen; issues #48/#8 and other P0 risks remain **BLOCKED / NO-GO**.
+
+## Verified corrected-head CI outcome (2026-10-30)
+- [Draft #221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) **corrected** source HEAD `74e06385e453dd4d2bc8aff6f9d810233b8a778c`: [GitHub Actions #41126197819](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41126197819) **completed / success**, validate job `124305836454` **completed / success** with no failed steps.
+- The original CI log confirms `tests/memberReferralInventoryPages.spec.ts (12 tests)` PASS, `tests/memberReferralMigrationInventory.spec.ts (7 tests)` PASS, **203/203 test files** PASS. The 12 page cases include privacy-safe redaction of malicious upstream iterator errors.
+- This only proves the paginated wrapper's corrected handling and the *previous* direct-inventory tests. A newly found direct-API error boundary is being addressed in [Draft #222](https://github.com/Veselin-Takev/Klar-Dating/pull/222) and is **not** covered by #221's PASS. No deployed log or customer data breach is inferred.
+- No real Firestore scan, migration, issuer activation, merge or deployment. **P0 #48 / Production NO-GO.**
