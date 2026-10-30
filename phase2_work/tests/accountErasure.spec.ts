@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { deletionReceiptId } from '../src/server/deletionAccounting';
 import { DeletionPageComplete, DeletionStoragePageComplete, DeletionTimeSliceComplete } from '../src/server/deletionProgress';
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -388,6 +391,147 @@ describe('account erasure including archived messages and photos', () => {
       expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
       await runAccountDeletion(uid, deps);
       expect(observedLeases).toHaveLength(3);
+    } finally {
+      const cleanup = db.batch();
+      for (const ref of [...owned, foreign, profile, job]) cleanup.delete(ref);
+      await cleanup.commit();
+      await receipt.delete();
+    }
+  }, 120_000);
+
+  it.runIf(
+    process.platform === 'linux'
+    && /^(localhost|127[.]0[.]0[.]1|\[::1\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
+    && process.env.NODE_ENV !== 'production'
+    && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
+      .filter(Boolean).every(id => id === 'demo-klar')
+  )('recovers registry deletion after an actual SIGKILL of the leased child worker', async () => {
+    const db = getDb();
+    const uid = 'registry-real-crash-' + randomUUID().replaceAll('-', '');
+    const foreignUid = 'registry-crash-foreign-' + randomUUID().replaceAll('-', '');
+    const requestId = randomUUID();
+    const prefix = randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase();
+    const registry = db.collection('member_referral_code_registry');
+    const code = (index: number) =>
+      prefix + index.toString(36).toUpperCase().padStart(6, '0');
+    const owned = Array.from({ length: 401 }, (_, index) => registry.doc(code(index)));
+    const foreign = registry.doc(code(401));
+    const profile = db.doc('users/' + uid);
+    const job = db.doc('account_deletions/' + uid);
+    const receipt = db.doc('deletion_log/' + deletionReceiptId(requestId));
+    const authRemoved = vi.fn(async () => {});
+    let clock = Date.now();
+
+    try {
+      const setup = db.batch();
+      setup.set(profile, { name: 'Synthetic hard-crash worker account' });
+      setup.set(job, {
+        requestId, status: 'pending', phase: 'purge',
+        accountingVersion: 2, deletedCounts: emptyDeletionCounts(),
+        nextAttemptAt: new Date(clock), leaseUntil: 0,
+        attempts: 0, hasDidit: false, subscriptionId: null, customerId: null,
+      });
+      for (const ref of owned) {
+        setup.set(ref, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      }
+      setup.set(foreign, { ownerUid: foreignUid, status: 'active', codeVersion: 1 });
+      await setup.commit();
+
+      const childFile = fileURLToPath(
+        new URL('./helpers/accountDeletionCrashChild.ts', import.meta.url),
+      );
+      const child = spawn(process.execPath,
+        ['--import=tsx', childFile, uid, requestId], {
+          cwd: process.cwd(),
+          // Pass ONLY emulator and runtime information, not CI account
+          // secrets, auth keys, tokens or payment/provider credentials.
+          env: {
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            NODE_ENV: 'test',
+            FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
+            FIREBASE_STORAGE_EMULATOR_HOST: process.env.FIREBASE_STORAGE_EMULATOR_HOST,
+            FIREBASE_AUTH_EMULATOR_HOST: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+            GCLOUD_PROJECT: 'demo-klar',
+            GOOGLE_CLOUD_PROJECT: 'demo-klar',
+            FIREBASE_PROJECT_ID: 'demo-klar',
+          },
+          stdio: ['ignore', 'ignore', 'ignore'],
+        });
+      const childExit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+        (resolve, reject) => {
+          const watchdog = setTimeout(() => {
+            child.kill('SIGKILL');
+            reject(new Error('synthetic_crash_worker_timeout'));
+          }, 30_000);
+          child.once('error', error => {
+            clearTimeout(watchdog);
+            reject(error);
+          });
+          child.once('exit', (code, signal) => {
+            clearTimeout(watchdog);
+            resolve({ code, signal });
+          });
+        },
+      );
+      // This MUST be a real OS SIGKILL of a different PID, not an Error,
+      // mocked exception, process.exit(0), or killed Vitest runner.
+      expect(childExit).toEqual({ code: null, signal: 'SIGKILL' });
+      const afterCrash = (await job.get()).data()!;
+      expect(afterCrash).toMatchObject({
+        requestId, status: 'pending', phase: 'purge', attempts: 1,
+      });
+      expect(typeof afterCrash.lease).toBe('string');
+      expect(afterCrash.leaseUntil).toBeGreaterThan(clock);
+      expect((await registry.where('ownerUid', '==', uid).get()).size).toBe(1);
+      expect((await profile.get()).exists).toBe(true);
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
+      expect((await receipt.get()).exists).toBe(false);
+
+      // Restart with the SAME durable Firestore job. The old lease must
+      // block a premature new worker until its persisted expiry.
+      const activeLeases: string[] = [];
+      const deps: DeletionDependencies = {
+        db, now: () => clock,
+        disable: vi.fn(async () => {}),
+        removeAuth: authRemoved,
+        cancelSubscription: vi.fn(async () => {}),
+        eraseProvider: vi.fn(async () => true),
+        purge: vi.fn(async (ownerUid, id, lease) => {
+          activeLeases.push(lease!);
+          return purgeAccountData(ownerUid, id, lease);
+        }),
+      };
+      await runAccountDeletion(uid, deps);
+      expect(activeLeases).toHaveLength(0);
+      expect(authRemoved).not.toHaveBeenCalled();
+      clock = afterCrash.leaseUntil + 1_001;
+      await runAccountDeletion(uid, deps);
+      expect(activeLeases).toHaveLength(1);
+      expect(activeLeases[0]).not.toBe(afterCrash.lease);
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
+      expect((await profile.get()).exists).toBe(false);
+      expect(authRemoved).toHaveBeenCalledTimes(1);
+      expect((await job.get()).data()).toMatchObject({
+        requestId, status: 'pending', phase: 'final_sweep',
+      });
+      expect((await receipt.get()).exists).toBe(false);
+
+      // The final receipt must still respect the independent Auth-token grace.
+      await runAccountDeletion(uid, deps);
+      expect(activeLeases).toHaveLength(1);
+      clock += 62 * 60_000;
+      await runAccountDeletion(uid, deps);
+      expect(activeLeases).toHaveLength(2);
+      expect((await job.get()).data()?.status).toBe('completed');
+      expect((await receipt.get()).data()).toMatchObject({
+        schemaVersion: 2, status: 'completed',
+      });
+      await runAccountDeletion(uid, deps);
+      expect(activeLeases).toHaveLength(2);
+      expect((await foreign.get()).data()?.ownerUid).toBe(foreignUid);
     } finally {
       const cleanup = db.batch();
       for (const ref of [...owned, foreign, profile, job]) cleanup.delete(ref);
