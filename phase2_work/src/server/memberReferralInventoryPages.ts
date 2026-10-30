@@ -102,8 +102,7 @@ export async function summarizePagedMemberReferralInventory(
     if (error instanceof MemberReferralInventoryValidationFailure) {
       // Branded errors originate in our validator, not in arbitrary upstream
       // iterators whose message text can imitate an internal diagnostic.
-      throw new MemberReferralInventoryValidationFailure(error.message as
-        ConstructorParameters<typeof MemberReferralInventoryValidationFailure>[0]);
+      throw new MemberReferralInventoryValidationFailure(error.code);
     }
     throw new Error('member_referral_pages_source_failure');
   }
