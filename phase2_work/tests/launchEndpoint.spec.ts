@@ -48,7 +48,8 @@ function referralDb() {
       }),
     }),
     runTransaction: async (callback: (tx: any) => unknown) => callback({
-      get: async (r: { id: string; path: string }) => snapshot(r),
+      get: async (r: { id: string; path: string } | { get: () => Promise<unknown> }) =>
+        'get' in r ? r.get() : snapshot(r),
       getAll: async (...refs: Array<{ id: string; path: string }>) => {
         beforeRead?.();
         beforeRead = undefined;
@@ -182,6 +183,32 @@ describe('launch/referral/activation HTTP boundary', () => {
   );
 
 
+
+  it('refuses to issue a code already assigned to another member without writing', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/inviter', { referralCode: 'SELFKEY123', isAdult: true });
+    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+    expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
+    expect(fixture.store.get('users/user-a')?.referralCode).toBeUndefined();
+  });
+
+  it('permits an existing member to request their own uniquely assigned code again', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', {
+      ...fixture.store.get('users/user-a'), referralCode: 'SELFKEY123',
+    });
+    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
+    const response = await fetch(ctx.base + '/referral');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      code: 'SELFKEY123', shareUrl: 'https://klar.app/?ref=SELFKEY123',
+    });
+    expect(fixture.store.get('users/user-a')?.referralCode).toBe('SELFKEY123');
+    expect(fixture.writes.filter(write => write.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
 
   it.each(['missing', 'deleting'])('does not issue a code for a %s profile', async state => {
     const fixture = referralDb();
