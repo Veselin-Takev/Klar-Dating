@@ -177,4 +177,64 @@ describe.skipIf(!host)('member referral competing claims (real Firestore emulato
     }
   }, 120_000);
 
+  it('rejects issuing an already-owned code before changing an inviter profile', async () => {
+    const db = getDb();
+    const suffix = randomUUID().replaceAll('-', '');
+    const caller = 'issuance-caller-' + suffix;
+    const priorOwner = 'issuance-owner-' + suffix;
+    const code = 'R3F3RRAL99';
+    const key = createHash('sha256')
+      .update('klar-rate-limit:rate_limit_launch_referral_generation:uid:' + caller)
+      .digest('hex');
+    const paths = [
+      'users/' + caller, 'users/' + priorOwner,
+      'rate_limit_launch_referral_generation/' + key,
+    ];
+    let server: ReturnType<ReturnType<typeof express>['listen']> | undefined;
+    try {
+      const batch = db.batch();
+      batch.set(db.collection('users').doc(caller), { isAdult: true, isVerified: false });
+      batch.set(db.collection('users').doc(priorOwner), {
+        isAdult: true, referralCode: code,
+      });
+      await batch.commit();
+
+      const app = express();
+      app.use('/api', (req, _res, next) => {
+        Object.assign(req, {
+          user: { uid: caller, firebase: { identities: {}, sign_in_provider: 'password' } },
+        });
+        next();
+      });
+      app.use('/api', createLaunchRouter({
+        currentUserId: () => caller,
+        getFirestore: () => db,
+        normalizeLaunchCity: () => 'München',
+        getLocalDensity: async () => ({
+          city: 'München', activeUsers: 0, verifiedUsers: 0, band: 'building', threshold: 5,
+        }),
+        referralCodeFor: () => code,
+        recordActivation: async () => ({}),
+        activationScore: () => ({ score: 0, activated: false }),
+        serverTimestamp: () => new Date(),
+        publicUrl: () => 'https://klar.example',
+      }));
+      server = app.listen(0, '127.0.0.1');
+      await new Promise<void>(resolve => server!.once('listening', resolve));
+      const address = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+      const result = await fetch(address + '/api/referral');
+      expect(result.status).toBe(409);
+      expect(await result.json()).toEqual({
+        error: 'Einladung für dieses Konto derzeit nicht verfügbar.',
+      });
+      expect((await db.collection('users').doc(caller).get()).data()?.referralCode)
+        .toBeUndefined();
+      expect((await db.collection('users').doc(priorOwner).get()).data()?.referralCode)
+        .toBe(code);
+    } finally {
+      if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
+      await Promise.all(paths.map(path => db.doc(path).delete()));
+    }
+  }, 120_000);
+
 });
