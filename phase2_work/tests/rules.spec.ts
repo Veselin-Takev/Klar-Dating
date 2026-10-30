@@ -107,6 +107,25 @@ const alsGast = (uid: string) =>
     })
     .firestore();
 
+// P0 #48: member-code reservations are exclusively owned by the server.
+// Even a signed-in account must not enumerate another account's owner UID.
+describe('Member referral code registry', () => {
+  it('denies authenticated and unauthenticated reads and all client writes', async () => {
+    const path = 'member_referral_code_registry/ABCDEFGHIJ';
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), path), {
+        ownerUid: ANNA, status: 'active', codeVersion: 1,
+      });
+    });
+    await assertFails(getDoc(doc(als(ANNA), path)));
+    await assertFails(getDoc(doc(anonym(), path)));
+    await assertFails(setDoc(doc(als(ANNA),
+      'member_referral_code_registry/ZYXWVUTSRQ'), { ownerUid: ANNA }));
+    await assertFails(updateDoc(doc(als(ANNA), path), { ownerUid: BEA }));
+    await assertFails(deleteDoc(doc(als(ANNA), path)));
+  });
+});
+
 // ── Profile ────────────────────────────────────────────────────────────────
 
 describe('Profile', () => {
