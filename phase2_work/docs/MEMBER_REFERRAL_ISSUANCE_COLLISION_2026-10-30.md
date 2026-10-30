@@ -24,3 +24,9 @@ Do not export/link any real user IDs, codes or secret values into diagnostics. O
 Draft feature branch stacked on #216, not a merge or production deployment. The tested #216 head `3f945950ecff5b8c077997315b7b54de941de24f` passed [CI #41116247314](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41116247314): real emulator (2 tests), launch HTTP (27 tests), and 199 test files. **That PASS does not transfer to this change.**
 
 P0 #48 and #8 remain open. Also P0 #55/#56 partner proofs, #70 active TTL and #202 deployed photo-retention evidence remain unresolved. Require authorized staging verification, 2-person Security/Privacy/Product/SRE/Release Owner signoffs. No direct main changes, merges, manual workflow restarts or production access. Frozen PR #119 and RC R2 untouched. **NO-GO.**
+
+## Exact-head CI evidence – 2026-10-30
+- [Draft PR #217](https://github.com/Veselin-Takev/Klar-Dating/pull/217), exact source HEAD `2172b8f6f9a1c439719539957bcb1dd6c0f44627`: [GitHub Actions #41117581493](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41117581493) **completed/success**, validate job `124275690279` **completed/success** with zero failed steps.
+- The **original CI job log** confirms `tests/launchEndpoint.spec.ts (29 tests)` and `tests/memberReferralClaimConcurrencyEmulator.spec.ts (3 tests)` both executed and passed, `199 passed (199)` total test files. This confirms both the foreign-owner issuance denial and same-user code compatibility; the emulator case ran, not skipped.
+- This is local test evidence only. A bounded query does **not** provide global atomic uniqueness, nor prove Firebase stage JWTs, Didit KYC, GDPR erasure, production token rotation, reserved-code migration, or independent release approval. **Production remains BLOCKED / NO-GO.**
+- The evidence-only documentation update is intentionally on a separate isolated branch with no PR to avoid an additional full CI run. It does not change the exact tested #217 head.
