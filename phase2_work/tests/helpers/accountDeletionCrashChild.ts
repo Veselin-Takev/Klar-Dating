@@ -36,6 +36,7 @@ if (
     cancelSubscription: async () => {},
     eraseProvider: async () => true,
     purge: (ownerUid, id, lease) => purgeAccountData(ownerUid, id, lease, {
+      now: Date.now,
       // Fires synchronously only AFTER an acknowledged destructive batch.
       // Kill exactly this isolated Node process, leaving Firestore persisted.
       onProgress: () => { process.kill(process.pid, 'SIGKILL'); },
