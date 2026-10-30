@@ -21,6 +21,17 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   const router = Router();
   const foundingLimit = deps.foundingLimit ?? 500;
 
+  // Member invitations require a permanent Firebase account. An anonymous
+  // Firebase guest may have a UID, but is not a registered inviter or invitee.
+  // Keep this gate ahead of the distributed limiters and Firestore lookups.
+  const requirePermanentReferralAccount = (req: Request, res: express.Response, next: express.NextFunction) => {
+    const identity = (req as Request & { user?: { firebase?: { sign_in_provider?: unknown } } }).user;
+    if (identity?.firebase?.sign_in_provider === 'anonymous') {
+      return res.status(403).json({ error: 'Einladungen erfordern ein registriertes Konto.' });
+    }
+    return next();
+  };
+
   // Sensitive launch/referral flows are authenticated but still business-write
   // surfaces. Keep their limits UID-scoped so IP rotation cannot multiply the
   // write budget, while preserving a stricter one-time claim limit.
@@ -117,7 +128,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.get('/referral', referralGenerationLimiter, async (req, res) => {
+  router.get('/referral', requirePermanentReferralAccount, referralGenerationLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -144,7 +155,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/referral/claim', express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
+  router.post('/referral/claim', requirePermanentReferralAccount, express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });

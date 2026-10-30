@@ -68,7 +68,7 @@ function referralDb() {
 }
 
 
-async function api(overrides: Partial<LaunchRouterDeps> = {}) {
+async function api(overrides: Partial<LaunchRouterDeps> = {}, firebaseProvider?: string) {
   const db = baseDb();
   const deps: LaunchRouterDeps = {
     currentUserId: () => 'user-a',
@@ -83,6 +83,14 @@ async function api(overrides: Partial<LaunchRouterDeps> = {}) {
     ...overrides,
   };
   const app = express();
+  if (firebaseProvider) {
+    app.use('/api', (req, _res, next) => {
+      Object.assign(req, {
+        user: { firebase: { identities: {}, sign_in_provider: firebaseProvider } },
+      });
+      next();
+    });
+  }
   app.use('/api', createLaunchRouter(deps));
   const server = app.listen(0, '127.0.0.1');
   servers.push(server);
@@ -95,6 +103,35 @@ describe('launch/referral/activation HTTP boundary', () => {
     const ctx = await api({ currentUserId: () => null });
     expect((await fetch(ctx.base + '/launch/summary')).status).toBe(401);
     expect(ctx.deps.getLocalDensity).not.toHaveBeenCalled();
+  });
+
+  it('denies anonymous Firebase guest referrals before limiters or Firestore lookups', async () => {
+    const ctx = await api({ currentUserId: () => 'anonymous-firebase-uid' }, 'anonymous');
+    const issued = await fetch(ctx.base + '/referral');
+    expect(issued.status).toBe(403);
+    expect(await issued.json()).toEqual({ error: 'Einladungen erfordern ein registriertes Konto.' });
+    const claimed = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(claimed.status).toBe(403);
+    expect(await claimed.json()).toEqual({ error: 'Einladungen erfordern ein registriertes Konto.' });
+    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.runTransaction).not.toHaveBeenCalled();
+  });
+
+  it('preserves the normal permanent-account referral route behavior', async () => {
+    const fixture = referralDb();
+    const ctx = await api({ getFirestore: () => fixture.db }, 'password');
+    const claim = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(claim.status).toBe(200);
+    expect(await claim.json()).toEqual({ ok: true });
+    expect(fixture.store.get('users/user-a')).toMatchObject({
+      referredBy: 'inviter', referralQualified: false, isVerified: false,
+    });
   });
 
   it('returns aggregate launch density without exposing profiles', async () => {
