@@ -76,3 +76,8 @@ Emulator tests must use project `demo-klar`, expected local host/port and strict
 5. **Controlled production cutover** only after independent Security, DPO/Legal, Product, SRE and Release Owner acceptance. Rollback must **not** reinstate unsafe unreserved issuance; on uncertainty temporarily suspend *new* code issuance rather than permitting ambiguous ownership.
 
 **No migration, registry collection, IAM/Scheduler change or deployment has been executed by this ADR. The original project and P0 issues #48/#55/#56/#70/#202/#8 remain BLOCKED / NO-GO.** PR #119 and RC R2 remain immutable.
+
+## 2026-10-30 — Implementation checkpoint (proposed ADR remains unapproved)
+A separate isolated Draft prototype now contains an **unconnected** atomic reservation helper (`src/server/memberReferralCodeRegistry.ts`), explicit server-only client Security Rules, a user-`ownerUid` Art.-17 purge query and collection inventory, and local Firestore-emulator/security-rule regression cases. See [staged implementation and acceptance](MEMBER_REFERRAL_REGISTRY_STAGED_IMPL_2026-10-30.md).
+
+This is partial implementation **without** a migration, route wiring, an enabled registry, live account data, independent legal approval, or any production cutover. The original design's shadow migration, claim-time registry check, staged rollback and verified user-identity/reward gates remain requirements. No PROD GO can be inferred from an isolated helper or a green test suite.
