@@ -28,3 +28,9 @@ Für eine Freigabe muss die **eigene** Enterprise-CI des unveränderlichen HEADs
 Die Referral-Registry ist weiter nicht an die produktiven Ausgabe-/Claim-Routen angebunden. Vollständige freigegebene Altbestandsinventur, atomare Backfill-Migration, Didit-/Auth-/Consent-/Age-Berechtigungen, echte Art.-17-Vendor-Nachweise, produktive TTL/Foto-Retention und unabhängige Security-, DPO/Legal-, SRE-, Product- und Release-Owner-Freigaben fehlen.
 
 **Keine Änderung an main, PR #119, RC R2 oder Produktion; keine Merges, Deployments oder manuellen GitHub-Actions-Neustarts. PRODUCTION BLOCKED / NO-GO.**
+
+## CI-Abweichung und gezielte Korrektur — 30.10.2026
+- Erster Quellstand `f168c3c25840c003398dc92ea0f7cae6dcdd7a36`, [Enterprise-CI #41137585203](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41137585203): **completed / failure** im **Typecheck** (Job `124343736557`), bevor die Testphase beginnen konnte. Originalfehlermeldung: `tests/helpers/accountDeletionCrashChild.ts(38,75): error TS2345: Argument of type '{ onProgress: () => void; }' is not assignable to parameter of type '{ now: () => number; onProgress?: (() => void) | undefined; }'.`
+- Minimaler Quell-Fix `0d3531655771657ccd8d8b9a002df562360cc8e6`: setzt beim nur emulatorbasierten Child-Prozess `now: Date.now` zusätzlich zum synthetischen `onProgress`-Callback. Keine Änderungen an Produktiv-API, Löschtransaktionen, Firestore-Queries oder Berechtigungen.
+- Korrigierter automatischer [CI-Lauf #41137823217](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41137823217): **zum Dokumentationszeitpunkt noch nicht abgeschlossen**. Nur ein eigener erfolgreich beendeter CI-Lauf und die ausdrücklich **ausgeführte** `SIGKILL`-Testzeile erlauben die Kennzeichnung „PASS“. Der erste fehlgeschlagene Lauf bleibt als Audit-Historie erhalten.
+- **Keine Produktivmigration, Live-Daten, Merges oder Deployments. PRODUCTION BLOCKED / NO-GO.**
