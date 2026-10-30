@@ -70,7 +70,11 @@ function referralDb() {
 }
 
 
-async function api(overrides: Partial<LaunchRouterDeps> = {}, firebaseProvider?: string) {
+async function api(
+  overrides: Partial<LaunchRouterDeps> = {},
+  firebaseProvider: string | null = 'password',
+  injectedUid?: string,
+) {
   const db = baseDb();
   const deps: LaunchRouterDeps = {
     currentUserId: () => 'user-a',
@@ -85,14 +89,17 @@ async function api(overrides: Partial<LaunchRouterDeps> = {}, firebaseProvider?:
     ...overrides,
   };
   const app = express();
-  if (firebaseProvider) {
-    app.use('/api', (req, _res, next) => {
-      Object.assign(req, {
-        user: { firebase: { identities: {}, sign_in_provider: firebaseProvider } },
-      });
-      next();
+  app.use('/api', (req, _res, next) => {
+    Object.assign(req, {
+      user: {
+        uid: injectedUid ?? deps.currentUserId(req),
+        ...(firebaseProvider === null ? {} : {
+          firebase: { identities: {}, sign_in_provider: firebaseProvider },
+        }),
+      },
     });
-  }
+    next();
+  });
   app.use('/api', createLaunchRouter(deps));
   const server = app.listen(0, '127.0.0.1');
   servers.push(server);
@@ -120,6 +127,47 @@ describe('launch/referral/activation HTTP boundary', () => {
     expect(await claimed.json()).toEqual({ error: 'Einladungen erfordern ein registriertes Konto.' });
     expect(ctx.db.collection).not.toHaveBeenCalled();
     expect(ctx.db.runTransaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { kind: 'no Firebase provider claim', provider: null },
+    { kind: 'empty Firebase provider claim', provider: '' },
+    { kind: 'whitespace Firebase provider claim', provider: '   ' },
+  ])('rejects $kind before member referral reads and limiter writes', async ({ provider }) => {
+    const ctx = await api({}, provider);
+    const issued = await fetch(ctx.base + '/referral');
+    expect(issued.status).toBe(403);
+    const claimed = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(claimed.status).toBe(403);
+    expect(ctx.db.collection).not.toHaveBeenCalled();
+    expect(ctx.db.runTransaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a verified-looking provider with UID inconsistent with the caller', async () => {
+    const ctx = await api({}, 'password', 'a-different-token-uid');
+    const issued = await fetch(ctx.base + '/referral');
+    const claimed = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(issued.status).toBe(403);
+    expect(claimed.status).toBe(403);
+    expect(ctx.db.collection).not.toHaveBeenCalled();
+  });
+
+  it('rejects unauthenticated referral requests before any rate limit/database access', async () => {
+    const ctx = await api({ currentUserId: () => null });
+    const issued = await fetch(ctx.base + '/referral');
+    const claimed = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(issued.status).toBe(401);
+    expect(claimed.status).toBe(401);
+    expect(ctx.db.collection).not.toHaveBeenCalled();
   });
 
   it('preserves the normal permanent-account referral route behavior', async () => {
