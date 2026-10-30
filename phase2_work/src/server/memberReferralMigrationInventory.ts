@@ -47,7 +47,8 @@ export async function summarizeMemberReferralInventory(
   let malformedRecords = 0;
   let repeatedRows = 0;
 
-  for await (const value of records) {
+  try {
+    for await (const value of records) {
     recordsRead += 1;
     if (recordsRead > maxRecords) {
       // Do not return a misleading, partial "clean" report when truncated.
@@ -87,6 +88,14 @@ export async function summarizeMemberReferralInventory(
       codesByOwner.set(uid, codes);
     }
     codes.add(code);
+    }
+  } catch (error) {
+    // Source iterators and record getters may throw arbitrary messages containing
+    // sensitive UIDs/codes. Never propagate an untrusted cause, text or stack.
+    if (error instanceof Error && error.message === 'member_referral_inventory_limit_exceeded') {
+      throw new Error('member_referral_inventory_limit_exceeded');
+    }
+    throw new Error('member_referral_inventory_source_failure');
   }
 
   let uniqueCodeGroups = 0;
