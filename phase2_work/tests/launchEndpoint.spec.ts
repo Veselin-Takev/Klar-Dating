@@ -37,9 +37,10 @@ function referralDb() {
     collection: (collection: string) => ({
       doc: (id: string) => ref(collection, id),
       where: (field: string, _operator: string, value: unknown) => ({
-        limit: (_limit: number) => ({
+        limit: (limit: number) => ({
           get: async () => {
             const docs = [...store].filter(([key, data]) => key.startsWith(collection + '/') && data[field] === value)
+              .slice(0, limit)
               .map(([key]) => snapshot(ref(collection, key.slice(collection.length + 1))));
             return { docs, empty: docs.length === 0 };
           },
@@ -230,6 +231,29 @@ describe('launch/referral/activation HTTP boundary', () => {
       referredBy: priorInviter, referralQualified: false,
     });
     expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
+  it.each([
+    ['two owners', false],
+    ['three owners', true],
+  ])('rejects ambiguous invitation code ownership with %s without attribution writes', async (_label, thirdOwner) => {
+    const fixture = referralDb();
+    fixture.store.set('users/other-inviter', {
+      referralCode: 'ABCDEFGHIJ', isAdult: true, isVerified: false,
+    });
+    if (thirdOwner) fixture.store.set('users/third-inviter', {
+      referralCode: 'ABCDEFGHIJ', isAdult: true, isVerified: false,
+    });
+    const ctx = await api({ getFirestore: () => fixture.db }, 'password');
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+    expect(fixture.store.get('users/user-a')?.referredBy).toBeUndefined();
+    expect(fixture.writes.filter(write =>
+      write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
   });
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
