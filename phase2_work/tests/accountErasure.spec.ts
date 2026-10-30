@@ -96,6 +96,55 @@ describe('account erasure including archived messages and photos', () => {
     }
   }, 30_000);
 
+  it.runIf(
+    /^(localhost|127[.]0[.]0[.]1|\\[::1\\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
+    && process.env.NODE_ENV !== 'production'
+    && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
+      .filter(Boolean).every(id => id === 'demo-klar')
+  )('purges only owned member-code reservations and is idempotent under Art. 17', async () => {
+    const db = getDb();
+    const uid = 'member-registry-erasure-' + randomUUID().replaceAll('-', '');
+    const unrelatedUid = 'member-registry-other-' + randomUUID().replaceAll('-', '');
+    const requestId = randomUUID();
+    const suffix = randomUUID().replaceAll('-', '').slice(0, 9).toUpperCase();
+    const refs = ['A', 'B', 'C'].map(prefix =>
+      db.collection('member_referral_code_registry').doc(prefix + suffix));
+    const profile = db.collection('users').doc(uid);
+    const job = db.collection('account_deletions').doc(uid);
+    try {
+      const batch = db.batch();
+      batch.set(profile, { name: 'Synthetic account to erase' });
+      batch.set(job, {
+        requestId, status: 'pending', accountingVersion: 2,
+        deletedCounts: emptyDeletionCounts(),
+      });
+      batch.set(refs[0]!, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      batch.set(refs[1]!, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      batch.set(refs[2]!, { ownerUid: unrelatedUid, status: 'active', codeVersion: 1 });
+      await batch.commit();
+
+      await purgeAccountData(uid, requestId);
+      expect((await profile.get()).exists).toBe(false);
+      expect((await refs[0]!.get()).exists).toBe(false);
+      expect((await refs[1]!.get()).exists).toBe(false);
+      expect((await refs[2]!.get()).data()).toMatchObject({
+        ownerUid: unrelatedUid, status: 'active', codeVersion: 1,
+      });
+      expect((await db.collection('member_referral_code_registry')
+        .where('ownerUid', '==', uid).get()).empty).toBe(true);
+
+      // Replaying a deletion slice must neither restore the deleted code
+      // reservations nor alter an unrelated account's reservation.
+      await purgeAccountData(uid, requestId);
+      expect((await refs[0]!.get()).exists).toBe(false);
+      expect((await refs[1]!.get()).exists).toBe(false);
+      expect((await refs[2]!.get()).data()?.ownerUid).toBe(unrelatedUid);
+    } finally {
+      for (const ref of [...refs, profile, job]) await ref.delete();
+    }
+  }, 60_000);
+
   it('requires recent authentication before creating a destructive job', async () => {
     let status = 200;
     const res = { status(code: number) { status = code; return this; }, json() { return this; } };
