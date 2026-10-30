@@ -33,11 +33,11 @@ beforeEach(() => {
   state.revoked.mockReset();
   state.getBlob.mockResolvedValue(new Blob(['image'], { type: 'image/jpeg' }));
   vi.stubGlobal('URL', class extends NativeURL {
-    static createObjectURL(blob: Blob) {
+    static override createObjectURL(blob: Blob) {
       state.created(blob);
       return 'blob:authorized-image';
     }
-    static revokeObjectURL(url: string) { state.revoked(url); }
+    static override revokeObjectURL(url: string) { state.revoked(url); }
   });
 });
 afterEach(() => {
