@@ -57,6 +57,31 @@ for (const name of expected) {
   assert.equal(job.state, 'ENABLED', 'Scheduler job is not ENABLED: ' + name);
   assert(typeof job.schedule === 'string' && job.schedule.length > 0, 'Missing job schedule: ' + name);
   assert.equal(job.timeZone, 'UTC', 'Unexpected scheduler timezone: ' + name);
+  // Names alone are not execution evidence: compare actual HTTPS target with
+  // the deployed Cloud Functions v2 service URI, reject unauthenticated jobs.
+  const normalizeTarget = (raw, field) => {
+    assert(typeof raw === 'string' && raw.length < 2048, 'Missing/invalid ' + field);
+    const parsed = new URL(raw);
+    assert(parsed.protocol === 'https:' && !parsed.username && !parsed.password
+      && !parsed.port && !parsed.search && !parsed.hash, 'Unsafe ' + field);
+    return parsed.origin + parsed.pathname.replace(/\\/$/, '');
+  };
+  assert.equal(
+    normalizeTarget(job.httpTarget?.uri, 'Scheduler target URI'),
+    normalizeTarget(fn.serviceConfig?.uri, 'deployed function URI'),
+    'Scheduler target does not match deployed function: ' + name,
+  );
+  assert.equal(job.httpTarget?.httpMethod, 'POST', 'Scheduler HTTP method is not POST: ' + name);
+  const identity = job.httpTarget?.oidcToken?.serviceAccountEmail;
+  assert(typeof identity === 'string'
+    && /^[a-z0-9][a-z0-9._-]*@[a-z0-9.-]+\\.gserviceaccount\\.com$/.test(identity),
+    'Missing/invalid Scheduler OIDC identity: ' + name);
+  const audience = job.httpTarget.oidcToken.audience;
+  if (audience !== undefined && audience !== '') {
+    assert.equal(normalizeTarget(audience, 'OIDC audience'),
+      normalizeTarget(job.httpTarget.uri, 'Scheduler target URI'),
+      'Scheduler OIDC audience mismatch: ' + name);
+  }
 }
 const purge = schedulers.get(expectedJob('purgeVerificationStorageCron'));
 assert.equal(purge.schedule, '0 3 * * *', 'Decision-based purge schedule drift');
