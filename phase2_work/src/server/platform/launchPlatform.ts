@@ -1,4 +1,5 @@
 import type { UserMusicPreferences } from '../../types/user';
+import { canonicalProfileMediaReference } from '../../lib/profileMediaSource';
 import crypto from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -63,7 +64,7 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
     age,
     location: city,
     bio: typeof data.bio === 'string' ? data.bio.trim().slice(0, 800) : '',
-    photoUrl: typeof data.photoUrl === 'string' ? data.photoUrl : '',
+    photoUrl: canonicalProfileMediaReference(data.photoURL || data.photoUrl),
     interests: cleanStringList(data.interests),
     ...(cleanMusicPreferences(data.musicPreferences) ? { musicPreferences: cleanMusicPreferences(data.musicPreferences) } : {}),
     values: cleanStringList(data.values),

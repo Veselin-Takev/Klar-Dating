@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from '../components/AuthorizedProfileImage';
 import { resolveProfileDisplayName } from '../lib/profileDisplayName';
 import { ConsentSettings } from '../components/ConsentSettings';
 import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
@@ -875,7 +876,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <label className="cursor-pointer block group">
             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             <div className="w-14 h-[70px] bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden border-2 border-white dark:border-stone-900 shadow-sm relative">
-              <img
+              <AuthorizedProfileImage
                 src={(profileData?.photoURL && !profileData.photoURL.includes('/_/upload/')) ? profileData.photoURL : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
                 alt="Avatar"
                 onError={(e) => {

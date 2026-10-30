@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from './AuthorizedProfileImage';
 import React, { memo } from "react";
 import type { Profile } from "../data";
 import { Star, Info, ChevronRight, Sparkles, Eye, Copy, Check, MessageSquare } from "lucide-react";
@@ -41,7 +42,7 @@ export const MemoizedKlarMatchCard = memo(function MemoizedKlarMatchCard({
       onClick={() => onProfileClick(verbindung)}
     >
       <div className="h-32 relative bg-stone-200 dark:bg-stone-800 animate-pulse">
-        <img src={verbindung.photoUrl} alt={verbindung.name} className="w-full h-full object-cover absolute inset-0" loading="lazy" />
+        <AuthorizedProfileImage src={verbindung.photoUrl} alt={verbindung.name} className="w-full h-full object-cover absolute inset-0" loading="lazy" />
         <div className="absolute top-2 left-2 px-2 py-0.5 bg-yellow-400 text-stone-900 text-[10px] font-bold rounded-full shadow-sm flex items-center gap-1">
           <Star size={10} className="fill-current" />
           {matchScore}% Klar-Verbindung

@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from './AuthorizedProfileImage';
 import { memo } from "react";
 import { motion } from "motion/react";
 import { X, MessageSquare, Sparkles, MapPin } from "lucide-react";
@@ -64,7 +65,7 @@ export const MemoizedProfileCard = memo(function MemoizedProfileCard({
       }}
     >
       <div className="h-[45%] bg-stone-200 dark:bg-stone-800 relative animate-pulse">
-        <img
+        <AuthorizedProfileImage
           src={profile.photoUrl}
           alt={`Foto von ${profile.name}`}
           className="w-full h-full object-cover absolute inset-0"

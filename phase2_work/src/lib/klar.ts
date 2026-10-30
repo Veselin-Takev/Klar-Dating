@@ -67,20 +67,22 @@ export async function nimmKontaktZurueck(targetUid: string): Promise<void> {
 
 export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
   if (!auth.currentUser) throw new Error('Nicht angemeldet.');
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+  const { getStorage, ref, uploadBytes } = await import('firebase/storage');
 
   const ext = datei.type === 'image/png' ? 'png' : datei.type === 'image/webp' ? 'webp' : 'jpg';
   const fileName = `profiles/${auth.currentUser.uid}/avatar_${Date.now()}.${ext}`;
   const storageRef = ref(getStorage(), fileName);
 
   await uploadBytes(storageRef, datei, { contentType: datei.type || 'image/jpeg' });
-  const url = await getDownloadURL(storageRef);
-
-  // Setze die URL im Profil
+  // Persist only a Storage object reference. Never mint a permanent bearer
+  // URL; image consumers fetch bytes via current Firebase Storage Rules.
+  if (auth.currentUser?.uid !== fileName.split('/')[1]) {
+    throw new Error('Die Sitzung hat sich geändert.');
+  }
   const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(getFirestore(), 'users', auth.currentUser.uid), { photoURL: url }, { merge: true });
+  await setDoc(doc(getFirestore(), 'users', auth.currentUser.uid), { photoURL: fileName }, { merge: true });
 
-  return url;
+  return fileName;
 }
 
 // ── Icebreaker-Gate ────────────────────────────────────────────────────────

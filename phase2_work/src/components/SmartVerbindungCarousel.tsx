@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from './AuthorizedProfileImage';
 import { Sparkles, Heart } from 'lucide-react';
 import type { Profile } from '../data';
 import { calculateMatchScore } from '../services/matchScore';
@@ -35,7 +36,7 @@ export function SmartVerbindungCarousel({ profiles, userInterests, onProfileClic
               onClick={() => onProfileClick(verbindung)}
               className="snap-start shrink-0 w-36 h-48 relative rounded-xl overflow-hidden cursor-pointer group shadow-sm border border-stone-200 dark:border-stone-700"
             >
-              <img
+              <AuthorizedProfileImage
                 src={verbindung.photoUrl}
                 alt={`Foto von ${verbindung.name}`}
                 className="w-full h-full object-cover transition-transform duration-500 group-"

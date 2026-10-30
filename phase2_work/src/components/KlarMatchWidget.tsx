@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from './AuthorizedProfileImage';
 import { useState, useEffect } from "react";
 import { getUserStorageItem, klarStorage } from '../lib/userScopedStorage';
 import { Sparkles, Star, ChevronRight, MessageSquare, Copy, Check, Filter, Info, Eye, X } from "lucide-react";
@@ -125,7 +126,7 @@ Finde eine Gemeinsamkeit oder stelle eine interessante Frage, um das Gespräch z
               className="flex items-center gap-4 p-3 cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
             >
               <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 relative">
-                <img
+                <AuthorizedProfileImage
                   src={verbindung.photoUrl}
                   alt={verbindung.name}
                   loading="lazy" decoding="async" width={56} height={56}
@@ -232,7 +233,7 @@ Finde eine Gemeinsamkeit oder stelle eine interessante Frage, um das Gespräch z
           >
             <div className="flex items-center justify-between p-4 border-b border-stone-100 dark:border-stone-700">
               <div className="flex items-center gap-3">
-                <img src={previewIntro.verbindung.photoUrl} alt={previewIntro.verbindung.name} className="w-10 h-10 rounded-full object-cover" />
+                <AuthorizedProfileImage src={previewIntro.verbindung.photoUrl} alt={previewIntro.verbindung.name} className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <h4 className="font-semibold text-stone-900 dark:text-stone-100">{previewIntro.verbindung.name}</h4>
                   <p className="text-xs text-stone-500">Chat-Vorschau</p>
