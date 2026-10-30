@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { summarizeMemberReferralInventory } from '../src/server/memberReferralMigrationInventory';
+import { summarizeMemberReferralInventory, MemberReferralInventoryValidationFailure, type MemberReferralInventoryDiagnostic } from '../src/server/memberReferralMigrationInventory';
 
 describe('offline member referral legacy inventory (P0 #48)', () => {
   it('counts only aggregated unique and conflicting groups and never approves migration', async () => {
@@ -123,6 +123,22 @@ describe('offline member referral legacy inventory (P0 #48)', () => {
     async function* malicious() {
       throw new Error('member_referral_inventory_limit_exceeded');
       yield { uid: 'a', referralCode: 'ABCDEFGHIJ' };
+    }
+    await expect(summarizeMemberReferralInventory(malicious()))
+      .rejects.toThrow('member_referral_inventory_source_failure');
+  });
+
+  it('redacts a malicious runtime diagnostic despite TypeScript type erasure', async () => {
+    const secret = 'privateUid=demo-user-1/referral=ABCDEFGHIJ';
+    const forged = new MemberReferralInventoryValidationFailure(
+      secret as MemberReferralInventoryDiagnostic,
+    );
+    expect(forged.message).toBe('member_referral_inventory_source_failure');
+    expect(forged.code).toBe('member_referral_inventory_source_failure');
+    expect(String(forged.stack)).not.toContain(secret);
+
+    async function* malicious(): AsyncGenerator<unknown> {
+      throw forged;
     }
     await expect(summarizeMemberReferralInventory(malicious()))
       .rejects.toThrow('member_referral_inventory_source_failure');
