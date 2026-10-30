@@ -106,13 +106,32 @@ describe('offline-only paged member-referral inventory integrity (P0 #48)', () =
     ])).rejects.toThrow('member_referral_pages_integrity_failure');
   });
 
-  it('propagates interrupted asynchronous page sources without partial success', async () => {
+  it('redacts sensitive upstream iterator error messages and still fails closed', async () => {
+    const sensitive = 'private-uid:owner-a/ref:ABCDEFGHIJ/cursor:cursor-a';
     async function* interrupted() {
       yield page(0, null, 'cursor-a', false, [row('a', 'ABCDEFGHIJ')]);
-      throw new Error('offline_fixture_io_interrupted');
+      throw new Error('upstream scanner failure ' + sensitive);
     }
-    await expect(summarizePagedMemberReferralInventory(interrupted()))
-      .rejects.toThrow('offline_fixture_io_interrupted');
+    let thrown: unknown;
+    try {
+      await summarizePagedMemberReferralInventory(interrupted());
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe('member_referral_pages_source_failure');
+    expect(JSON.stringify(thrown)).not.toContain(sensitive);
+    expect(String((thrown as Error).stack)).not.toContain(sensitive);
+    expect((thrown as Error).cause).toBeUndefined();
+  });
+
+  it('redacts even errors thrown as non-Error objects or spoofed diagnostic prefixes', async () => {
+    async function* malicious() {
+      throw { message: 'member_referral_pages_fake_code; uid=private' };
+      yield page(0, null, null, true, []);
+    }
+    await expect(summarizePagedMemberReferralInventory(malicious()))
+      .rejects.toThrow('member_referral_pages_source_failure');
   });
 
   it('does not accept any pages missing a terminal marker', async () => {
