@@ -471,26 +471,23 @@ export async function subscribeKlarPlus() {
   return await res.json();
 }
 
-// High-level wrapper for fetch that automatically records request duration
-// and reports latency metrics (P95/P99) to Sentry without altering request data.
+// Compatibility wrapper for older API consumers. Never stringify Request/
+// URL here: Firebase download URLs can carry long-lived bearer credentials
+// in query parameters, and request paths can contain personal identifiers.
+// Server-owned metrics remain the primary P95/P99 telemetry source.
 export async function monitoredFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const startTime = performance.now();
   try {
     const response = await fetch(input, init);
     const duration = performance.now() - startTime;
-
-    // In a real scenario with Sentry installed, this would be:
-    // Sentry.metrics.distribution('fetch_latency', duration, { tags: { url: input.toString(), status: response.status }});
-    // For now, we mock the Sentry reporting metric logic:
     if (duration > 500) {
-      console.debug(`[Latency Alert] Request to ${input.toString()} took ${Math.round(duration)}ms`);
+      console.debug(`[Latency Alert] Network request took ${Math.round(duration)}ms`);
     }
-
     return response;
   } catch (error) {
-    const duration = performance.now() - startTime;
-    // Sentry.captureException(error, { extra: { duration, url: input.toString() } });
-    melde(`[Fetch Error] Request to ${input.toString()} failed after ${Math.round(duration)}ms`, error);
+    // Keep the original error for the caller. Never send raw URL or provider
+    // error strings (which may include ?token=) to diagnostics or dev console.
+    melde('Fetch/network', new Error('Network request failed'));
     throw error;
   }
 }

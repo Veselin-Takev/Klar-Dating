@@ -279,6 +279,9 @@ export async function baueApp() {
     );
   }
   app.use(helmet({
+    // Firebase token-bearing image URLs must never be sent as referrers.
+    // This is NOT a substitute for revoking capability-style download URLs.
+    referrerPolicy: { policy: 'no-referrer' },
     contentSecurityPolicy: istProduktion
       ? {
           directives: {
