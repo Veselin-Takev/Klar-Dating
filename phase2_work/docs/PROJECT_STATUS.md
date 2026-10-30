@@ -1617,3 +1617,9 @@ Der **nicht aktivierte** Reservierungsbaustein in [Draft-PR #219](https://github
 P0 #48 bleibt OPEN: Authentifizierte Staging-Prüfung, vollständige und genehmigte Altbestandsinventur, atomare Migration mit Konflikt-Quarantäne, Registry-Prüfung beim Claim, wiederaufgenommene Art.-17-Löschung, Didit-/Alters-/Einwilligungsgates und unabhängige Fachfreigaben fehlen. Auch P0 #55/#56 (Partner-Vertrauen/Datenschutz), #70 (produktive TTL-Nachweise), #202 (Foto-Retention) sowie Go-Live #8 bleiben Blocker. Es erfolgten **kein Merge, Deployment, Cloud-Datenzugriff, Secret-Rotation oder manueller Workflow-Start**. PR #119 und RC R2 bleiben eingefroren.
 
 **Release-Entscheidung: BLOCKED / NO-GO.**
+
+## 2026-10-30: CI-Nachweis für #220 und paginierte Offline-Integrität
+
+[Draft-PR #220](https://github.com/Veselin-Takev/Klar-Dating/pull/220), `8091cd6811e2c9ab8713a8c771468dfa22ba4c6a`, hat den vollständigen [CI-Lauf #41123682738](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41123682738) bestanden: sieben Bestandsanalyse-Tests, 88 Security-Rules-Tests und 202/202 Testdateien. Keine produktiven Nutzerdaten wurden gelesen oder verändert.
+
+[Draft-PR #221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) ergänzt **offline** die Validierung übergebener Seitensequenzen und Cursor, um stille Lücken und Replay in bereitgestellten Testdaten zu verhindern. Eigene exakte CI noch nachzuweisen. Keine echte Firestore-Scanvollständigkeit, freigegebene Bestandsmigration oder produktive Aktivierung. P0 #48, #55/#56, #70, #202 und #8 bleiben **BLOCKED / NO-GO**.
