@@ -80,13 +80,43 @@ describe('offline member referral legacy inventory (P0 #48)', () => {
     ], 1)).rejects.toThrow('member_referral_inventory_limit_exceeded');
   });
 
-  it('propagates an interrupted source stream rather than returning a false clean report', async () => {
+  it('redacts arbitrary interrupted source errors rather than leaking private data', async () => {
+    const sensitive = 'private-uid:alice.referralCode=ABCDEFGHIJ';
     async function* interrupted() {
       yield { uid: 'a', referralCode: 'ABCDEFGHIJ' };
-      throw new Error('synthetic_input_interrupted');
+      throw new Error('source failed near ' + sensitive);
     }
-    await expect(summarizeMemberReferralInventory(interrupted()))
-      .rejects.toThrow('synthetic_input_interrupted');
+    let caught: unknown;
+    try {
+      await summarizeMemberReferralInventory(interrupted());
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toBe('member_referral_inventory_source_failure');
+    expect(String((caught as Error).stack)).not.toContain(sensitive);
+    expect((caught as Error).cause).toBeUndefined();
+  });
+
+  it('redacts non-Error source exceptions and record property getter failures', async () => {
+    async function* maliciousSource(): AsyncGenerator<unknown> {
+      throw { uid: 'private-user', message: 'sensitive raw code ABCDEFGHIJ' };
+    }
+    await expect(summarizeMemberReferralInventory(maliciousSource()))
+      .rejects.toThrow('member_referral_inventory_source_failure');
+
+    const malformedRecord = { uid: 'a', get referralCode(): string {
+      throw new Error('private document reference /users/a ABCDEFGHIJ');
+    } };
+    await expect(summarizeMemberReferralInventory([malformedRecord]))
+      .rejects.toThrow('member_referral_inventory_source_failure');
+  });
+
+  it('returns the fixed truncation diagnostic without leaking the upstream error object', async () => {
+    await expect(summarizeMemberReferralInventory([
+      { uid: 'a', referralCode: 'ABCDEFGHIJ' },
+      { uid: 'b', referralCode: 'ZYXWVUTSRQ' },
+    ], 1)).rejects.toThrow('member_referral_inventory_limit_exceeded');
   });
 
   it('never declares full coverage or migration approval even for an empty stream', async () => {
