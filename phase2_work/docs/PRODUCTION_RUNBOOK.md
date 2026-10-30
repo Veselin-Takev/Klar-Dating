@@ -471,3 +471,7 @@ Each attempt must recheck current Firestore decision, due date, audit intent and
 ## Lease takeover during ambiguous GCS deletion (2026-10-30)
 
 A retryable 503 after lease loss is **not** evidence that a Storage object survived: a previously issued conditional delete can complete after the scanner loses ownership. Only a durable, matching generation-bound intent may support a later `absence_reconciled` receipt, not a fabricated `delete_acknowledged` receipt. For incident response, reconcile the exact event decision/path, lease fencing, GCS generation, audit proof method and last checkpoint without leaking UID or photo paths into public logs. Do not alter the scan lease or purge intent manually without SRE and DPO approval. **Production NO-GO.**
+
+## Abwesenheits-Abgleich nach erneutem Upload (2026-10-30)
+
+`absence_reconciled` verlangt einen passenden generationgebundenen Firestore-Löschauftrag **und** einen erneuten GCS-Metadatenabruf unmittelbar vor dem Audit. Wenn die Datei wieder existiert oder Storage andere Fehler als 404 zurückgibt, muss HTTP 503 ohne positives Lösch-Audit erfolgen. Eine reine 404-Beobachtung ist keine atomare, dauerhafte Löschbestätigung; Storage-Writes müssen zusätzlich über IAM/Objektlebenszyklus begrenzt werden. CI-Emulatorbefunde ersetzen keine GCS-Staging-Probe oder Datenschutzfreigabe. **Production NO-GO.**

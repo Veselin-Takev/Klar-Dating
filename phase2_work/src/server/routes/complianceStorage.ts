@@ -61,6 +61,23 @@ function isStorageNotFound(error: unknown): boolean {
   return code === 404 || code === '404';
 }
 
+/**
+ * A persisted intent proves that this worker attempted a deletion, not that a
+ * missing object will remain absent. Confirm absence again immediately before
+ * finalizing an absence-reconciled audit receipt.
+ */
+export async function confirmVerificationStorageAbsence(
+  file: Pick<VerificationStorageFile, 'getMetadata'>,
+): Promise<void> {
+  try {
+    await file.getMetadata();
+  } catch (error) {
+    if (isStorageNotFound(error)) return;
+    throw error;
+  }
+  throw new Error('verification_photo_absence_no_longer_confirmed');
+}
+
 function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactRecord): PurgeIntent | null {
   if (value == null) return null;
   if (!value || typeof value !== 'object') throw new Error('verification_purge_intent_invalid');
@@ -273,16 +290,22 @@ export function createVerificationStoragePurgeRouter(deps: {
               });
             },
             async (uid, challengeId, auditData) => {
+              const expected = artifacts.find(a => a.challengeId === challengeId && a.uid === uid);
+              const proof = proofs.get(challengeId);
+              if (!expected || !proof) {
+                throw new Error('verification_photo_audit_proof_missing');
+              }
+              // If the file reappeared after the original 404, do NOT record
+              // observed absence. This is a second observation, not a claim of
+              // cross-system atomicity; Storage write fencing remains required.
+              if (proof.method === 'absence_reconciled') {
+                await confirmVerificationStorageAbsence(bucket.file(expected.storagePath));
+              }
               const ref = db.collection('verification_events').doc(challengeId);
               await db.runTransaction(async tx => {
                 const [lease, current] = await Promise.all([
                   tx.get(checkpointRef), tx.get(ref),
                 ]);
-                const expected = artifacts.find(a => a.challengeId === challengeId && a.uid === uid);
-                const proof = proofs.get(challengeId);
-                if (!expected || !proof) {
-                  throw new Error('verification_photo_audit_proof_missing');
-                }
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(current.data(), expected, Date.now());
                 const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);

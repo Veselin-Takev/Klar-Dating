@@ -479,4 +479,60 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('does not write an absence-reconciled audit if a photo reappears after the first 404', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      const snapshot = await event.get();
+      const decidedAt = (snapshot.data()?.decidedAt as Timestamp).toMillis();
+      await event.update({
+        photoPurgeIntent: {
+          generation: '773', storagePath: path, decidedAt, status: 'approved',
+          preparedAt: new Date(),
+        },
+      });
+      let metadataCalls = 0;
+      let deleteCalls = 0;
+      const api = await startApi(db, async () => { deleteCalls++; }, async () => {
+        metadataCalls++;
+        if (metadataCalls === 1) {
+          throw Object.assign(new Error('original object was missing'), { code: 404 });
+        }
+        // An object has reappeared between the initial 404 and audit.
+        return [{ generation: '774', temporaryHold: false }];
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({
+          status: 503, data: { ok: false, processed: 1, purgedCount: 0, failedCount: 1 },
+        });
+        expect(metadataCalls).toBe(2);
+        expect(deleteCalls).toBe(0);
+        const data = (await event.get()).data();
+        expect(data?.photoPurged).toBe(false);
+        expect(data?.photoPurgeProof).toBeUndefined();
+        expect(data?.photoPurgeIntent).toMatchObject({ generation: '773', storagePath: path });
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
+  it('rejects a transient metadata failure during final absence confirmation', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      const decidedAt = ((await event.get()).data()?.decidedAt as Timestamp).toMillis();
+      await event.update({
+        photoPurgeIntent: { generation: '773', storagePath: path, decidedAt, status: 'approved' },
+      });
+      let metadataCalls = 0;
+      const api = await startApi(db, async () => { throw new Error('delete must not execute'); }, async () => {
+        metadataCalls++;
+        throw Object.assign(new Error('metadata down'), { code: metadataCalls === 1 ? 404 : 503 });
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({ status: 503, data: { failedCount: 1, purgedCount: 0 } });
+        expect(metadataCalls).toBe(2);
+        expect((await event.get()).data()?.photoPurged).toBe(false);
+        expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
 });

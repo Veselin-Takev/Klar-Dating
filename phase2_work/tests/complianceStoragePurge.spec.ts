@@ -94,4 +94,25 @@ describe('decision-based verification object deletion safety', () => {
     expect(calls).toEqual(['metadata', 'authorization', 'delete']);
   });
 
+  it('reconciles only when Storage confirms object absence', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
+    })).resolves.toBeUndefined();
+  });
+
+  it('never treats an object that reappeared as absent', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => [{ generation: '774' }],
+    })).rejects.toThrow('verification_photo_absence_no_longer_confirmed');
+  });
+
+  it('does not turn metadata service failures into absence proofs', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => { throw Object.assign(new Error('service unavailable'), { code: 503 }); },
+    })).rejects.toMatchObject({ code: 503 });
+  });
+
 });
