@@ -18,6 +18,28 @@ export type MemberReferralInventory = Readonly<{
   migrationAuthorized: false;
 }>;
 
+/**
+ * Branded internal diagnostic; untrusted iterator errors must not be selected
+ * by their message text (which can be spoofed by a data source).
+ * Only the listed constant values may cross the inventory boundary.
+ */
+export type MemberReferralInventoryDiagnostic =
+  | 'member_referral_inventory_invalid_limit'
+  | 'member_referral_inventory_limit_exceeded'
+  | 'member_referral_pages_overflow'
+  | 'member_referral_pages_integrity_failure'
+  | 'member_referral_pages_scope_changed'
+  | 'member_referral_pages_invalid_terminal'
+  | 'member_referral_pages_invalid_continuation'
+  | 'member_referral_pages_incomplete';
+
+export class MemberReferralInventoryValidationFailure extends Error {
+  constructor(code: MemberReferralInventoryDiagnostic) {
+    super(code);
+    this.name = 'MemberReferralInventoryValidationFailure';
+  }
+}
+
 const ABSOLUTE_MAX_RECORDS = 100_000;
 const CODE_PATTERN = /^[A-Z0-9_-]{10}$/;
 
@@ -35,7 +57,7 @@ export async function summarizeMemberReferralInventory(
   maxRecords: number = 50_000,
 ): Promise<MemberReferralInventory> {
   if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > ABSOLUTE_MAX_RECORDS) {
-    throw new Error('member_referral_inventory_invalid_limit');
+    throw new MemberReferralInventoryValidationFailure('member_referral_inventory_invalid_limit');
   }
 
   // Transient, process-local integrity indexes. The result contains ONLY counts.
@@ -52,7 +74,7 @@ export async function summarizeMemberReferralInventory(
       recordsRead += 1;
       if (recordsRead > maxRecords) {
         // Do not return a misleading, partial "clean" report when truncated.
-        throw new Error('member_referral_inventory_limit_exceeded');
+        throw new MemberReferralInventoryValidationFailure('member_referral_inventory_limit_exceeded');
       }
       if (!value || typeof value !== 'object' || Array.isArray(value)) {
         malformedRecords += 1;
@@ -92,8 +114,10 @@ export async function summarizeMemberReferralInventory(
   } catch (error) {
     // Source iterators and record getters may throw arbitrary messages containing
     // sensitive UIDs/codes. Never propagate an untrusted cause, text or stack.
-    if (error instanceof Error && error.message === 'member_referral_inventory_limit_exceeded') {
-      throw new Error('member_referral_inventory_limit_exceeded');
+    if (error instanceof MemberReferralInventoryValidationFailure) {
+      // Reconstruct a fresh known-safe diagnostic; never propagate an
+      // arbitrary upstream Error identified only by its message.
+      throw new MemberReferralInventoryValidationFailure(error.message as MemberReferralInventoryDiagnostic);
     }
     throw new Error('member_referral_inventory_source_failure');
   }
