@@ -24,6 +24,15 @@ service firebase.storage {
     }
     function istBild() { return request.resource != null && request.resource.contentType != null && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
 
+    // Source of truth: the server-owned users/{uid} document. Never use
+    // client-supplied birthdate, mutable age, or an unissued isAdult JWT claim.
+    // Rules are limited to TWO distinct default-Firestore docs per request.
+    // Missing documents, age flags and non-active states fail closed.
+    function istAktiverErwachsener(uid) {
+      return firestore.get(/databases/(default)/documents/users/$(uid)).data.isAdult == true
+          && firestore.get(/databases/(default)/documents/users/$(uid)).data.accountStatus == 'active';
+    }
+
     match /verification/{uid}/{datei} {
       // Zero-client-access: no new biometric uploads, no overwrite after
       // a purge receipt, no reads and no client-side deletion.
@@ -33,10 +42,16 @@ service firebase.storage {
     }
 
     match /profiles/{uid}/{datei} {
-      allow read: if signedIn();
+      // Reader and profile owner must BOTH have a server-authoritative
+      // active-adult account; anonymous users and unknown ages are denied.
+      allow read: if signedIn() && !istGast()
+                  && istAktiverErwachsener(request.auth.uid)
+                  && istAktiverErwachsener(uid);
       allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+                   && istAktiverErwachsener(uid)
                    && istBild() && request.resource.size < 8 * 1024 * 1024;
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow delete: if signedIn() && !istGast() && request.auth.uid == uid
+                    && istAktiverErwachsener(uid);
     }
   }
 }

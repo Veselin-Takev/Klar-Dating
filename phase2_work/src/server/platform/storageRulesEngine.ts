@@ -6,9 +6,11 @@
  *   - all Firebase client operations DENIED: legacy gesture/photo KYC retired
  *   - only IAM-authorized Admin SDK can handle retained files (separate policy)
  * - /profiles/{uid}/{datei}:
- *   - read: requester adult + target owner adult + signedIn() + !istGast()
- *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
- *   - delete: adult gate + signedIn() + !istGast() + auth.uid == uid
+ *   - read: signedIn, non-anonymous, requester AND target server-owned users/{uid}
+ *     isAdult === true AND accountStatus === 'active'
+ *   - write: same active adult owner + own folder + valid image <8MB
+ *   - delete: same active adult owner only
+ *   - users/{uid} is the canonical age source; NOT an optional JWT claim
  */
 
 export interface StorageAuthContext {
@@ -17,7 +19,7 @@ export interface StorageAuthContext {
     firebase?: {
       sign_in_provider?: string;
     };
-    isAdult?: boolean;
+    isAdult?: boolean; // Legacy claim, deliberately ignored for authorization.
     [key: string]: unknown;
   };
 }
@@ -31,8 +33,12 @@ export interface StorageSecurityRequest {
   operation: 'read' | 'write' | 'delete';
   path: string;
   auth: StorageAuthContext | null;
-  /** Server-resolved adult state of the target profile owner. Required for profile reads. */
+  /** Server-authoritative users/{auth.uid}, never mutable age/JWT data. */
+  requesterUserIsAdult?: boolean;
+  requesterAccountStatus?: string;
+  /** Server-authoritative users/{uid} for cross-profile reads. */
   targetUserIsAdult?: boolean;
+  targetAccountStatus?: string;
   resource?: StorageResourceContext;
 }
 
@@ -83,6 +89,10 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
   const signedIn = request.auth !== null && typeof request.auth.uid === 'string' && request.auth.uid.trim().length > 0;
   const isOwner = signedIn && request.auth?.uid === uid;
   const isGuest = isGuestAuth(request.auth);
+  const requesterActiveAdult = request.requesterUserIsAdult === true
+    && request.requesterAccountStatus === 'active';
+  const targetActiveAdult = request.targetUserIsAdult === true
+    && request.targetAccountStatus === 'active';
 
   // ── 1. Match /verification/{uid}/{datei} ─────────────────────────────────
   if (topCollection === 'verification') {
@@ -131,11 +141,11 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder lesen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
+      if (!requesterActiveAdult) {
+        return { allowed: false, reason: 'Serverseitige Altersfreigabe und aktiver Kontostatus erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
-      if (request.targetUserIsAdult !== true) {
-        return { allowed: false, reason: 'Zielprofil ist nicht als volljährig freigegeben.', rulePath, code: 'PERMISSION_DENIED' };
+      if (!targetActiveAdult) {
+        return { allowed: false, reason: 'Zielprofil ist nicht volljährig und aktiv freigegeben.', rulePath, code: 'PERMISSION_DENIED' };
       }
       return { allowed: true, rulePath, code: 'ALLOWED' };
     }
@@ -148,8 +158,8 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
+      if (!requesterActiveAdult) {
+        return { allowed: false, reason: 'Serverseitige Altersfreigabe und aktiver Kontostatus erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (!isOwner) {
         return { allowed: false, reason: 'Profilbilder dürfen nur im eigenen Ordner hochgeladen werden.', rulePath, code: 'PERMISSION_DENIED' };
@@ -172,8 +182,8 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder löschen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
+      if (!requesterActiveAdult) {
+        return { allowed: false, reason: 'Serverseitige Altersfreigabe und aktiver Kontostatus erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (!isOwner) {
         return { allowed: false, reason: 'Nur eigene Profilbilder dürfen gelöscht werden.', rulePath, code: 'PERMISSION_DENIED' };
