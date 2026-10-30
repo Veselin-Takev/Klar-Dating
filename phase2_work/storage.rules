@@ -29,7 +29,9 @@ service firebase.storage {
     // Rules are limited to TWO distinct default-Firestore docs per request.
     // Missing documents, age flags and non-active states fail closed.
     function istAktiverErwachsener(uid) {
-      return firestore.get(/databases/(default)/documents/users/$(uid)).data.isAdult == true
+      // Guard absent records before accessing .data; unknown users deny access.
+      return firestore.exists(/databases/(default)/documents/users/$(uid))
+          && firestore.get(/databases/(default)/documents/users/$(uid)).data.isAdult == true
           && firestore.get(/databases/(default)/documents/users/$(uid)).data.accountStatus == 'active';
     }
 
