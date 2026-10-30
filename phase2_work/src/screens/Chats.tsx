@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from '../components/AuthorizedProfileImage';
 import { Link } from "react-router";
 import type { Profile } from "../data";
 import { motion, AnimatePresence } from "motion/react";
@@ -50,7 +51,7 @@ function DismissableChat({ profile, idx, onRemove }: { profile: ChatListProfile;
       >
         <Link to={`/chat/${profile.chatId ?? profile.id}`} className="flex items-center gap-4 p-4 hover:border-brand/50 dark:hover:border-brand-light/50 transition-colors group">
           <div className="relative">
-            <img src={profile.photoUrl} alt={profile.name} className="w-16 h-16 rounded-full object-cover border border-stone-100 dark:border-stone-700" />
+            <AuthorizedProfileImage src={profile.photoUrl} alt={profile.name} className="w-16 h-16 rounded-full object-cover border border-stone-100 dark:border-stone-700" />
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-stone-900 rounded-full"></div>
           </div>
           <div className="flex-1">

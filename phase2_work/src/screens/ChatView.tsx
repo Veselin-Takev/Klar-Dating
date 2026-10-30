@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from '../components/AuthorizedProfileImage';
 import { klarStorage } from '../lib/userScopedStorage';
 // FE-02 (Final Audit 08.08.2026): Hier stand
 //   import { Languages, Globe, useState, useEffect } from "react";
@@ -1305,7 +1306,7 @@ Verbindung nicht gefunden</div>);
           }} className="klar-icon-button -ml-1 sm:-ml-2" aria-label="Zurück zu den Chats">
             <ArrowLeft size={24} className="text-stone-700 dark:text-stone-300" />
           </button>
-          <img src={profile.photoUrl} alt={profile.name} className="w-10 h-10 rounded-full object-cover mx-3 border border-stone-200 dark:border-stone-700" />
+          <AuthorizedProfileImage src={profile.photoUrl} alt={profile.name} className="w-10 h-10 rounded-full object-cover mx-3 border border-stone-200 dark:border-stone-700" />
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <h2 className="font-serif font-medium text-lg text-stone-900 dark:text-stone-100 leading-tight">{profile.name}</h2>
@@ -1669,7 +1670,7 @@ Verbindung nicht gefunden</div>);
           <div className="chat-focus-overlay absolute inset-0 pointer-events-none z-0 bg-indigo-500/5 dark:bg-indigo-400/10  mix-blend-multiply dark:mix-blend-screen transition-all duration-1000 -[1px]"></div>
         )}
         <div className="flex flex-col items-center justify-center p-8 text-center text-stone-500 mb-8">
-          <img src={profile.photoUrl} alt="" className="w-24 h-24 rounded-full object-cover mb-4 shadow-sm border-2 border-white dark:border-stone-700" />
+          <AuthorizedProfileImage src={profile.photoUrl} alt="" className="w-24 h-24 rounded-full object-cover mb-4 shadow-sm border-2 border-white dark:border-stone-700" />
           <h3 className="font-serif text-xl text-stone-900 dark:text-stone-100 mb-2">Du hast eine Verbindung mit {profile.name}!</h3>
           <p className="text-sm mb-4">Schreib die erste Nachricht.</p>
 

@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from './AuthorizedProfileImage';
 import { useEffect, useRef } from 'react';
 import { X, MapPin, Briefcase, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -38,7 +39,7 @@ export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetai
           className="bg-white dark:bg-stone-800 w-full sm:max-w-md sm:rounded-[24px] rounded-t-[24px] max-h-[90vh] overflow-y-auto"
         >
           <div className="relative">
-            <img
+            <AuthorizedProfileImage
               src={profile.photos?.[0] || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=60'}
               alt={profile.name}
               className="w-full aspect-[4/5] object-cover"

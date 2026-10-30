@@ -1,3 +1,4 @@
+import { AuthorizedProfileImage } from '../components/AuthorizedProfileImage';
 import { Skeleton } from "../components/States";
 import { getUserStorageItem, setUserStorageItem, klarStorage } from '../lib/userScopedStorage';
 import { useUsageAnalytics } from "../lib/useUsageAnalytics";
@@ -1354,7 +1355,7 @@ const discoverProfileCard = useMemo(() => (
           }}
         >
           <div className="h-[45%] bg-stone-200 dark:bg-stone-800 relative animate-pulse">
-            <img
+            <AuthorizedProfileImage
               src={profile.photoUrl}
               alt={`Foto von ${profile.name}`}
               className="w-full h-full object-cover absolute inset-0"
@@ -2438,7 +2439,7 @@ const inspirationWidgets = useMemo(() => (
                 }`}
               >
                 <div className="relative h-2/5 shrink-0 bg-stone-200 dark:bg-stone-800">
-                  <img
+                  <AuthorizedProfileImage
                     src={modalProfile.photoUrl}
                     alt={`Foto von ${modalProfile.name}`}
                     className="w-full h-full object-cover"
