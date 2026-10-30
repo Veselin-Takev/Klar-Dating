@@ -34,9 +34,12 @@ export type MemberReferralInventoryDiagnostic =
   | 'member_referral_pages_incomplete';
 
 export class MemberReferralInventoryValidationFailure extends Error {
+  readonly code: MemberReferralInventoryDiagnostic;
+
   constructor(code: MemberReferralInventoryDiagnostic) {
     super(code);
     this.name = 'MemberReferralInventoryValidationFailure';
+    this.code = code;
   }
 }
 
@@ -117,7 +120,7 @@ export async function summarizeMemberReferralInventory(
     if (error instanceof MemberReferralInventoryValidationFailure) {
       // Reconstruct a fresh known-safe diagnostic; never propagate an
       // arbitrary upstream Error identified only by its message.
-      throw new MemberReferralInventoryValidationFailure(error.message as MemberReferralInventoryDiagnostic);
+      throw new MemberReferralInventoryValidationFailure(error.code);
     }
     throw new Error('member_referral_inventory_source_failure');
   }
