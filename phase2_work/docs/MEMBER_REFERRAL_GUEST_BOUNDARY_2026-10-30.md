@@ -18,3 +18,8 @@
 - [ ] Provider-claim authenticity and independent purchase proofs under #55/#56 are **different** B2B controls and are not changed here.
 
 **Change control:** New isolated Draft PR stacked on current documentation branch; no direct main commits, no deployment, no live data access, no manual workflow dispatch. PR #119 and RC R2 remain frozen. **PRODUCTION NO-GO.**
+
+## Exact-head CI evidence register
+- Draft [PR #214](https://github.com/Veselin-Takev/Klar-Dating/pull/214) initial HEAD `f02873aed2771dfff8fa04c0e1e14dd7b8308731`: [GitHub Actions #41110010141](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41110010141) **FAIL**, validate job `124249683010`. Raw log identifies `TS2322` at `tests/launchEndpoint.spec.ts:89`: incomplete test-only Firebase `req.user.firebase` identity fixture typed incompatibly with the existing Request type. No product-code regression or complete test PASS was claimed.
+- Candidate fix HEAD `59f0231e1eed83d543b7070c98622b309eb3acd8`: test fixture now uses `Object.assign(req, { user: { firebase: { identities: {}, sign_in_provider: firebaseProvider } } })`. Security route guard is unchanged. Follow-up [GitHub Actions #41110293217](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41110293217) was **in_progress** during initial audit. Only exact-head success with the guest tests actually executed can verify the correction.
+- This evidence-only update is on a separate documentation branch and is not merged into the Draft PR head; avoid triggering extra full Actions runs for prose alone. The issue remains P0, staged auth mapping and release signoffs unverified. **PRODUCTION BLOCKED / NO-GO**.
