@@ -24,3 +24,10 @@ The new `tests/accountErasure.spec.ts` case requires Firestore + Storage emulato
 No production member referral endpoint uses the staged atomic registry. The approved legacy-code inventory, transactional unique-only backfill, collision quarantine, claim-time registry check, verified Firebase/Didit/age/consent, actual in-production Art. 17 erasure, scheduler/lease recovery, legal retention and DPO/Legal/Security/SRE/Product/Release Owner signatures remain pending. Related blockers #55/#56/#70/#202/#8 remain OPEN.
 
 **No direct main commits, no merges, no deployment, no manual Actions dispatch, no live Firestore reads, no personal data export, and frozen PR #119/RC R2 unchanged. PRODUCTION BLOCKED / NO-GO.**
+
+## Exact-head CI verification — 2026-10-30
+- [Draft PR #226](https://github.com/Veselin-Takev/Klar-Dating/pull/226), immutable source HEAD `b480fdc855d263dd59a6f9da412568be352b5846`, automatic [Enterprise CI #41134045700](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41134045700) **completed/success**, validate job `124331943342` **completed/success** (0 failed job steps).
+- Original CI log explicitly shows `tests/accountErasure.spec.ts (6 tests)` PASS including **`✓ resumes after 400 acknowledged registry deletions and an expired deletion time slice`**, completed in 677 ms. The test **was executed, not skipped**.
+- Overall Vitest result: **`203 passed (203)` test files**, **`1482 passed (1482)` tests**.
+- This is evidence for real emulator-backed 400-document acknowledged progress, deterministic expired slice, pending durable job and successful same-request retry, not actual OS process termination, lease failover, cloud scheduler, production data or vendor erasure. Parent #225 and initial Art17 #224 remain separate proven checkpoints.
+- Until independent data-protection, identity, source inventory/backfill, Security, Operations and Release approvals, **PRODUCTION BLOCKED / NO-GO**.
