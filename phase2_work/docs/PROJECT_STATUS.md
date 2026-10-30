@@ -1607,3 +1607,9 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## 2026-10-30: P0 #48 – Korrektur eines vierfachen CI-Fehlers der Inventurdiagnostik
+
+Der erste [PR #222](https://github.com/Veselin-Takev/Klar-Dating/pull/222)-Lauf [#41127467161](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41127467161) **scheiterte** im Testschritt: vier Seitenintegritäts-Tests erwarteten feste Diagnosen, aber die direkte Datenquellen-Abschirmung lieferte nur den generischen Quellenfehler. Ursache war die fehlende Unterscheidung zwischen eigenen Validierungsfehlern und beliebigen externen `Error.message`-Texten. Die korrigierte Implementierung in Draft-HEAD `06fe8509cfda12eed1abc080efa17c9e17b2b8e2` kennzeichnet nur intern erzeugte sichere Fehler typisiert und hält weiterhin fremde Fehlertexte, UIDs, Codes und Cursor aus Diagnose und Stacktrace fern. Zwei zusätzliche synthetische Negativtests prüfen ausdrücklich gefälschte Fehlertexte. Die **neue exakte CI #41128352587** ist noch gesondert zu bestätigen.
+
+[Aktualisierter Fehler- und Wiederherstellungsnachweis](MEMBER_REFERRAL_INVENTORY_ERROR_BOUNDARY_2026-10-30.md). Keine reale Bestandsabfrage, Migration oder Aktivierung durchgeführt. #48 und alle unabhängigen Sicherheits-, Datenschutz-, Release- und Retention-Freigaben bleiben **BLOCKED / NO-GO**. `main`, PR #119 und RC R2 unverändert.
