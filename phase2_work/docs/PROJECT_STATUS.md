@@ -1607,3 +1607,11 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## 2026-10-30 – P0 #48: Offline-Inventur – beide Fehlergrenzen privatsphärengerecht
+
+[Draft-PR #221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) mit korrigiertem Quell-HEAD `74e06385e453dd4d2bc8aff6f9d810233b8a778c` hat [CI #41126197819](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41126197819) **bestanden**: 12 paginierte und 7 direkte Bestandsanalyse-Tests, insgesamt 203/203 Testdateien. Dabei wird die unerwartete Fehlermeldung eines paginierten Datenlieferanten durch einen festen Fehlercode ersetzt; keine echte Kundendatenpanne wurde nachgewiesen.
+
+Der anschließende Quellreview erkannte dieselbe Ausnahme-Leckage am **direkten** Aufruf. [Draft-PR #222](https://github.com/Veselin-Takev/Klar-Dating/pull/222) behebt den zweiten Fehlerweg und ergänzt Tests zu personenbezogenen synthetischen Fehlertexten, getterbasierten Ausnahmen und nichtstandardisierten Fehlerobjekten. Dieser neue Quell-HEAD hat einen **eigenen, noch nicht abschließend bestätigten CI-Lauf #41127467161**. [Auditbericht](MEMBER_REFERRAL_INVENTORY_ERROR_BOUNDARY_2026-10-30.md).
+
+Alle Module bleiben offline, ohne Live-Konto-Inventur oder Datenmigration. Registry-Backfill, echte Firestore-Scanvollständigkeit, Art.-17-Wiederaufnahme, KYC-/Alters-/Consent-Gates und unabhängige Produkt-/Security-/DPO-/SRE-/Release-Abnahmen stehen aus. P0 #48/#55/#56/#70/#202 und Go-live #8 bleiben **BLOCKED / NO-GO**. Keine Merges, Deployments oder manuellen CI-Neustarts; PR #119/RC R2 unverändert.
