@@ -40,15 +40,19 @@ afterAll(() => {
 
 type HttpResult = { status: number; data: Record<string, unknown> };
 
-async function startApi(db: Firestore, onDelete: (path: string) => Promise<void>) {
+async function startApi(
+  db: Firestore,
+  onDelete: (path: string) => Promise<void>,
+  metadata: () => Promise<[{ generation: string; temporaryHold: boolean }]> =
+    async () => [{ generation: '773', temporaryHold: false }],
+) {
   process.env.COMPLIANCE_JOB_SECRET = secret;
   const app = express();
   app.use('/api/admin', createVerificationStoragePurgeRouter({
     getDb: () => db,
     getBucket: () => ({
       file: (path: string) => ({
-        getMetadata: async (): Promise<[{ generation: string; temporaryHold: boolean }]> =>
-          [{ generation: '773', temporaryHold: false }],
+        getMetadata: metadata,
         delete: async (options: { ifGenerationMatch: string | number }) => {
           expect(options).toEqual({ ifGenerationMatch: '773' });
           await onDelete(path);
@@ -208,4 +212,120 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       }
     });
   }, 90_000);
+  it('reconciles only a durable prior intent when the Storage delete succeeded but the audit transaction failed', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      let present = true;
+      let shouldFailAudit = false;
+      let storageDeleteCalls = 0;
+      const actualRunTransaction = db.runTransaction.bind(db);
+      // Wrap just the server-side Firestore transaction entry point: once
+      // physical deletion has succeeded, simulate a transient audit outage.
+      const wrappedDb = new Proxy(db, {
+        get(target, property) {
+          if (property === 'runTransaction') {
+            return async (...args: unknown[]) => {
+              if (shouldFailAudit) {
+                shouldFailAudit = false;
+                throw Error('simulated_post_delete_audit_failure');
+              }
+              return (actualRunTransaction as unknown as (...params: unknown[]) => Promise<unknown>)(...args);
+            };
+          }
+          const value = Reflect.get(target, property, target) as unknown;
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      }) as Firestore;
+      const api = await startApi(wrappedDb, async target => {
+        expect(target).toBe(path);
+        storageDeleteCalls++;
+        present = false;
+        shouldFailAudit = true;
+      }, async () => {
+        if (!present) throw Object.assign(Error('Storage object missing'), { code: 404 });
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const initial = await api.request();
+        expect(initial).toMatchObject({ status: 503, data: {
+          ok: false, processed: 1, failedCount: 1, purgedCount: 0,
+        } });
+        const pending = (await event.get()).data();
+        expect(pending?.photoPurged).toBe(false);
+        expect(pending?.photoPurgeIntent).toMatchObject({
+          generation: '773', storagePath: path, status: 'approved',
+        });
+        expect(pending?.photoPurgeProof).toBeUndefined();
+
+        const reconciled = await api.request();
+        expect(reconciled).toMatchObject({ status: 200, data: {
+          ok: true, processed: 1, purgedCount: 1, failedCount: 0,
+        } });
+        expect(storageDeleteCalls).toBe(1);
+        const record = (await event.get()).data();
+        expect(record?.photoPurged).toBe(true);
+        expect(record?.photoPurgeProof).toMatchObject({
+          method: 'absence_reconciled', generation: '773',
+        });
+        expect(record?.photoPurgeProof?.evidenceDigest).toMatch(/^[a-f0-9]{64}$/);
+
+        const replay = await api.request();
+        expect(replay).toMatchObject({ status: 200, data: { purgedCount: 0, skippedCount: 1 } });
+        expect(storageDeleteCalls).toBe(1);
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
+  it('rejects a missing Storage object without a previously committed generation-bound intent', async () => {
+    await withEvent(async ({ db, event }) => {
+      let deleteCalls = 0;
+      const api = await startApi(db, async () => {
+        deleteCalls++;
+      }, async () => {
+        throw Object.assign(Error('Storage object missing'), { code: 404 });
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({ status: 503, data: {
+          ok: false, processed: 1, purgedCount: 0, failedCount: 1,
+        } });
+        expect(deleteCalls).toBe(0);
+        const doc = (await event.get()).data();
+        expect(doc?.photoPurged).toBe(false);
+        expect(doc?.photoPurgeIntent).toBeUndefined();
+        expect(doc?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
+  it('rejects a replaced Storage generation after persisting the original intent', async () => {
+    await withEvent(async ({ db, event }) => {
+      let reads = 0;
+      let deletes = 0;
+      const api = await startApi(db, async () => { deletes++; }, async () => {
+        reads++;
+        return [{ generation: reads === 1 ? '773' : '774', temporaryHold: false }];
+      });
+      try {
+        const first = await api.request();
+        expect(first).toMatchObject({ status: 503, data: {
+          purgedCount: 0, failedCount: 1,
+        } });
+        expect(deletes).toBe(0);
+        expect((await event.get()).data()?.photoPurgeIntent?.generation).toBe('773');
+        const retry = await api.request();
+        expect(retry).toMatchObject({ status: 503, data: {
+          purgedCount: 0, failedCount: 1,
+        } });
+        expect(deletes).toBe(0);
+        expect((await event.get()).data()?.photoPurged).toBe(false);
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
 });

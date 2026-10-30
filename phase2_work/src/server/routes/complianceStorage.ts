@@ -1,9 +1,9 @@
 import express, { Router } from 'express';
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
 import { FieldPath, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { readPurgeCursor, scanPurgePages } from '../platform/verificationPurgeScan';
-import { executeVerificationRetentionBatch, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
+import { executeVerificationRetentionBatch, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 
 const MAX_BATCH = 25;
 const MAX_PAGES = 4;
@@ -18,7 +18,7 @@ export type VerificationStorageFile = {
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
-export async function deleteVerificationStorageFile(file: VerificationStorageFile): Promise<void> {
+export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
   if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
@@ -29,7 +29,64 @@ export async function deleteVerificationStorageFile(file: VerificationStorageFil
     || (typeof generation === 'number' && !Number.isSafeInteger(generation))) {
     throw new Error('verification_photo_generation_missing');
   }
+  return generation;
+}
+
+export async function deleteVerificationStorageFile(
+  file: VerificationStorageFile, expectedGeneration?: string | number,
+): Promise<void> {
+  const generation = await inspectVerificationStorageGeneration(file);
+  if (expectedGeneration !== undefined && String(generation) !== String(expectedGeneration)) {
+    throw new Error('verification_photo_generation_changed');
+  }
   await file.delete({ ifGenerationMatch: generation });
+}
+
+type PurgeIntent = {
+  generation: string;
+  storagePath: string;
+  decidedAt: number;
+  status: 'approved' | 'rejected';
+};
+
+type PurgeProof = { generation: string; method: 'delete_acknowledged' | 'absence_reconciled' };
+
+function isStorageNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 404 || code === '404';
+}
+
+function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactRecord): PurgeIntent | null {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object') throw new Error('verification_purge_intent_invalid');
+  const data = value as Record<string, unknown>;
+  if (typeof data.generation !== 'string' || !/^[1-9][0-9]*$/.test(data.generation)
+    || data.storagePath !== artifact.storagePath
+    || data.decidedAt !== artifact.decidedAt
+    || data.status !== artifact.status) {
+    throw new Error('verification_purge_intent_mismatch');
+  }
+  return {
+    generation: data.generation, storagePath: artifact.storagePath,
+    decidedAt: artifact.decidedAt, status: artifact.status as 'approved' | 'rejected',
+  };
+}
+
+function assertStillEligibleForPurge(
+  data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
+): void {
+  const state = data?.entscheidung ?? data?.status;
+  const status = state === 'bestaetigt' || state === 'approved' ? 'approved'
+    : state === 'abgelehnt' || state === 'rejected' ? 'rejected' : 'pending';
+  const due = normalizeTimestamp(data?.fotoLoeschenAb);
+  if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
+    || status !== artifact.status || status === 'pending'
+    || normalizeTimestamp(data.decidedAt) !== artifact.decidedAt
+    || data.photoPurged === true || due === null || due > now
+    || !isVerificationArtifactExpired(artifact.decidedAt, now)) {
+    throw new Error('verification_photo_eligibility_changed');
+  }
 }
 
 export function complianceSignature(body: string, secret: string): string {
@@ -130,22 +187,91 @@ export function createVerificationStoragePurgeRouter(deps: {
             const invalid = docs.length - artifacts.length;
             if (!artifacts.length) return { purged: 0, skipped: 0, failed: docs.length };
           const bucket = deps.getBucket?.() ?? getStorage().bucket();
+          const proofs = new Map<string, PurgeProof>();
           const summary = await executeVerificationRetentionBatch(
             artifacts,
-            async path => {
-              await deleteVerificationStorageFile(bucket.file(path));
+            async (path, artifact) => {
+              const ref = db.collection('verification_events').doc(artifact.challengeId);
+              const file = bucket.file(path);
+              let generation: string | number;
+              try {
+                generation = await inspectVerificationStorageGeneration(file);
+              } catch (error) {
+                if (!isStorageNotFound(error)) throw error;
+                // 404 is evidence of present absence, NOT proof this worker
+                // deleted an object. Reconcile only a previously persisted,
+                // generation-bound intent for the identical decision/path.
+                const prior = await db.runTransaction(async tx => {
+                  const [lease, record] = await Promise.all([
+                    tx.get(checkpointRef), tx.get(ref),
+                  ]);
+                  if (lease.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
+                  assertStillEligibleForPurge(record.data(), artifact, now);
+                  const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
+                  if (!intent) throw new Error('verification_purge_reconciliation_requires_intent');
+                  return intent;
+                });
+                proofs.set(artifact.challengeId, {
+                  generation: prior.generation, method: 'absence_reconciled',
+                });
+                return;
+              }
+
+              // Commit an immutable-in-place deletion intent BEFORE touching
+              // Storage. A subsequent 404 can then be reconciled conservatively.
+              await db.runTransaction(async tx => {
+                const [lease, record] = await Promise.all([
+                  tx.get(checkpointRef), tx.get(ref),
+                ]);
+                if (lease.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
+                assertStillEligibleForPurge(record.data(), artifact, now);
+                const existing = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
+                if (existing && existing.generation !== String(generation)) {
+                  throw new Error('verification_purge_intent_generation_changed');
+                }
+                if (!existing) {
+                  tx.update(ref, { photoPurgeIntent: {
+                    generation: String(generation), storagePath: path,
+                    decidedAt: artifact.decidedAt, status: artifact.status,
+                    preparedAt: new Date(),
+                  } });
+                }
+              });
+              // Repeat metadata/hold validation to reduce the read/delete
+              // race; use exact generation precondition against replacement.
+              await deleteVerificationStorageFile(file, generation);
+              proofs.set(artifact.challengeId, {
+                generation: String(generation), method: 'delete_acknowledged',
+              });
             },
             async (uid, challengeId, auditData) => {
               const ref = db.collection('verification_events').doc(challengeId);
               await db.runTransaction(async tx => {
-                const current = await tx.get(ref);
-                const expected = artifacts.find(artifact => artifact.challengeId === challengeId && artifact.uid === uid);
-                // A vanished or rebound event is NOT a successful audit receipt.
-                if (!expected || !current.exists || current.data()?.uid !== uid
-                  || current.data()?.storagePath !== expected.storagePath) {
-                  throw new Error('verification_photo_audit_record_changed');
+                const [lease, current] = await Promise.all([
+                  tx.get(checkpointRef), tx.get(ref),
+                ]);
+                const expected = artifacts.find(a => a.challengeId === challengeId && a.uid === uid);
+                const proof = proofs.get(challengeId);
+                if (lease.data()?.leaseId !== leaseId || !expected || !proof) {
+                  throw new Error('verification_photo_audit_proof_missing');
                 }
-                tx.update(ref, auditData);
+                assertStillEligibleForPurge(current.data(), expected, now);
+                const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
+                if (!intent || intent.generation !== proof.generation) {
+                  throw new Error('verification_photo_audit_intent_mismatch');
+                }
+                const evidenceDigest = createHash('sha256')
+                  .update([auditData.auditDigest, proof.method, proof.generation].join(':'))
+                  .digest('hex');
+                tx.update(ref, {
+                  ...auditData,
+                  photoPurgeProof: {
+                    method: proof.method,
+                    generation: proof.generation,
+                    evidenceDigest,
+                    verifiedAt: new Date(),
+                  },
+                });
               });
             },
             now,

@@ -60,4 +60,14 @@ describe('decision-based verification object deletion safety', () => {
       delete: async () => { throw new Error('must not execute'); },
     })).rejects.toMatchObject({ code: 404 });
   });
+  it('rechecks Storage generation before applying the conditional delete', async () => {
+    const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
+    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '9001' }],
+      delete: async opts => { deletes.push(opts); },
+    }, '9000')).rejects.toThrow('verification_photo_generation_changed');
+    expect(deletes).toHaveLength(0);
+  });
+
 });
