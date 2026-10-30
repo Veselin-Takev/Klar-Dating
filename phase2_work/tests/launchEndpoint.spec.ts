@@ -85,9 +85,9 @@ async function api(overrides: Partial<LaunchRouterDeps> = {}, firebaseProvider?:
   const app = express();
   if (firebaseProvider) {
     app.use('/api', (req, _res, next) => {
-      (req as typeof req & { user?: { firebase: { sign_in_provider: string } } }).user = {
-        firebase: { sign_in_provider: firebaseProvider },
-      };
+      Object.assign(req, {
+        user: { firebase: { identities: {}, sign_in_provider: firebaseProvider } },
+      });
       next();
     });
   }
