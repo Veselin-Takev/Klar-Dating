@@ -126,6 +126,29 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     }
   });
 
+  it('fails closed for missing requester and owner Firestore documents', async () => {
+    // The requester and target are deliberately absent from users/{uid}.
+    const absentOwnerUid = `${prefix}-absent-owner`;
+    const absentOwnerPath = `profiles/${absentOwnerUid}/missing-owner.jpg`;
+    const existingOwnerPath = `profiles/${prefix}/missing-reader.jpg`;
+    const bucket = getAppBucket();
+    const ownerFile = bucket.file(absentOwnerPath);
+    const readerFile = bucket.file(existingOwnerPath);
+    await ownerFile.save(image, { contentType: 'image/jpeg' });
+    await readerFile.save(image, { contentType: 'image/jpeg' });
+    try {
+      await assertFails(user(unknownUid).ref(existingOwnerPath).getMetadata());
+      await assertFails(user(readerUid).ref(absentOwnerPath).getMetadata());
+      await assertFails(user(absentOwnerUid).ref(absentOwnerPath).getMetadata());
+      await assertFails(Promise.resolve(user(absentOwnerUid).ref(`profiles/${absentOwnerUid}/create.jpg`).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(user(absentOwnerUid).ref(absentOwnerPath).delete());
+      await assertSucceeds(user(readerUid).ref(existingOwnerPath).getMetadata());
+    } finally {
+      await ownerFile.delete();
+      await readerFile.delete();
+    }
+  });
+
   it('allows approved owner deletion but rejects non-owner or inactive deletion', async () => {
     const path = `profiles/${prefix}/delete-approved.jpg`;
     const file = getAppBucket().file(path);
