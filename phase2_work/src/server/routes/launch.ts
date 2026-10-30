@@ -25,8 +25,16 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
   // Firebase guest may have a UID, but is not a registered inviter or invitee.
   // Keep this gate ahead of the distributed limiters and Firestore lookups.
   const requirePermanentReferralAccount = (req: Request, res: express.Response, next: express.NextFunction) => {
-    const identity = (req as Request & { user?: { firebase?: { sign_in_provider?: unknown } } }).user;
-    if (identity?.firebase?.sign_in_provider === 'anonymous') {
+    const uid = deps.currentUserId(req);
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+    // The global Firebase Admin middleware verifies req.user, including the
+    // provider claim. An UID alone is insufficient for member referral writes.
+    const identity = (req as Request & {
+      user?: { uid?: unknown; firebase?: { sign_in_provider?: unknown } };
+    }).user;
+    const provider = identity?.firebase?.sign_in_provider;
+    if (identity?.uid !== uid || typeof provider !== 'string'
+      || provider.trim().length === 0 || provider === 'anonymous') {
       return res.status(403).json({ error: 'Einladungen erfordern ein registriertes Konto.' });
     }
     return next();
