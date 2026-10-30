@@ -135,6 +135,10 @@ describe('offline member referral legacy inventory (P0 #48)', () => {
     );
     expect(forged.message).toBe('member_referral_inventory_source_failure');
     expect(forged.code).toBe('member_referral_inventory_source_failure');
+    expect(Reflect.set(forged, 'code', secret)).toBe(false);
+    expect(() => Object.defineProperty(forged, 'code', { get: () => secret }))
+      .toThrow();
+    expect(forged.code).toBe('member_referral_inventory_source_failure');
     expect(String(forged.stack)).not.toContain(secret);
 
     async function* malicious(): AsyncGenerator<unknown> {
