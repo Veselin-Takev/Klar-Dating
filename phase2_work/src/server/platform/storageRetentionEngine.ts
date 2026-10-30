@@ -109,7 +109,10 @@ export async function purgeSingleVerificationArtifact(
     };
   }
 
-  if (artifact.status === 'pending') {
+  // Fail closed for every state other than an explicit final moderation
+  // decision. TypeScript's union is erased at runtime; a malformed event,
+  // old adapter or untrusted cast must never reach Storage deletion.
+  if (artifact.status !== 'approved' && artifact.status !== 'rejected') {
     return {
       uid: artifact.uid,
       challengeId: artifact.challengeId,
@@ -156,15 +159,17 @@ export async function purgeSingleVerificationArtifact(
       reason: 'expired',
       auditDigest,
     };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+  } catch {
+    // Cloud Storage and Firestore exceptions can include raw object paths,
+    // user identifiers or request metadata. Expose only a fixed diagnostic,
+    // while the caller records an aggregate retryable failure.
     return {
       uid: artifact.uid,
       challengeId: artifact.challengeId,
       storagePath: artifact.storagePath,
       purged: false,
       reason: 'error',
-      error: errorMsg,
+      error: 'verification_photo_purge_failed',
     };
   }
 }
