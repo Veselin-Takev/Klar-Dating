@@ -3,18 +3,49 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { getAppBucket } from '../src/server/storage';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getServerFirebaseApp } from '../src/server/db';
 import { deleteAccountPhotos } from '../functions/src/retention';
 import { executeVerificationRetentionBatch, MS_PER_DAY } from '../src/server/platform/storageRetentionEngine';
 import { deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
 
 let env: RulesTestEnvironment;
 const prefix = `storage-${crypto.randomUUID()}`;
+const readerUid = `${prefix}-reader`;
+const minorUid = `${prefix}-minor`;
+const pendingUid = `${prefix}-pending`;
+const deletedUid = `${prefix}-deleted`;
+const unknownUid = `${prefix}-unknown`;
+const guestUid = `${prefix}-guest`;
+const profileFixtures = [prefix, readerUid, minorUid, pendingUid, deletedUid, guestUid];
 beforeAll(async () => {
   if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) return;
   const [host, port] = process.env.FIREBASE_STORAGE_EMULATOR_HOST.split(':');
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new Error('profile_storage_firestore_emulator_required');
+  }
   env = await initializeTestEnvironment({ projectId: 'demo-klar', storage: { rules: readFileSync('storage.rules', 'utf8'), host, port: Number(port) } });
+  const db = getFirestore(getServerFirebaseApp());
+  const batch = db.batch();
+  for (const uid of profileFixtures) {
+    batch.set(db.collection('users').doc(uid), {
+      uid, isAdult: uid !== minorUid,
+      accountStatus: uid === minorUid ? 'locked_underage'
+        : uid === pendingUid ? 'pending_age'
+        : uid === deletedUid ? 'deleted' : 'active',
+    });
+  }
+  await batch.commit();
 });
-afterAll(async () => { await env?.cleanup(); });
+afterAll(async () => {
+  if (process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST) {
+    const db = getFirestore(getServerFirebaseApp());
+    const batch = db.batch();
+    for (const uid of profileFixtures) batch.delete(db.collection('users').doc(uid));
+    await batch.commit();
+  }
+  await env?.cleanup();
+});
 const user = (uid: string, provider: 'password' | 'anonymous' = 'password') => env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage('gs://demo-klar.appspot.com');
 const image = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and automatic photo retention', () => {
@@ -55,6 +86,59 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       if ((await file.exists())[0]) await file.delete();
     }
   });
+  it('enforces server-owned adult and active account state for profile reads and writes', async () => {
+    const path = `profiles/${prefix}/adult-visibility.jpg`;
+    const file = getAppBucket().file(path);
+    await file.save(image, { contentType: 'image/jpeg' });
+    try {
+      // Two live adult Firestore profiles: allowed without any age JWT claim.
+      await assertSucceeds(user(readerUid).ref(path).getMetadata());
+      await assertSucceeds(user(prefix).ref(path).getMetadata());
+      // A forged token flag cannot override server-owned user state.
+      const forged = env.authenticatedContext(unknownUid, { isAdult: true }).storage('gs://demo-klar.appspot.com');
+      await assertFails(forged.ref(path).getMetadata());
+      await assertFails(user(minorUid).ref(path).getMetadata());
+      await assertFails(user(pendingUid).ref(path).getMetadata());
+      await assertFails(user(deletedUid).ref(path).getMetadata());
+      await assertFails(user(guestUid, 'anonymous').ref(path).getMetadata());
+      await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getMetadata());
+      await assertFails(user(minorUid).ref(`profiles/${minorUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
+      await assertFails(user(pendingUid).ref(`profiles/${pendingUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
+      await assertFails(user(deletedUid).ref(`profiles/${deletedUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
+      await assertFails(forged.ref(`profiles/${unknownUid}/denied.jpg`).put(image, { contentType: 'image/jpeg' }));
+      await assertFails(user(readerUid).ref(path).put(image, { contentType: 'image/jpeg' }));
+    } finally {
+      if ((await file.exists())[0]) await file.delete();
+    }
+  });
+
+  it('denies profile reads when the target owner is underage or inactive', async () => {
+    for (const uid of [minorUid, pendingUid, deletedUid]) {
+      const path = `profiles/${uid}/not-public.jpg`;
+      const file = getAppBucket().file(path);
+      await file.save(image, { contentType: 'image/jpeg' });
+      try {
+        await assertFails(user(readerUid).ref(path).getMetadata());
+        await assertFails(user(uid).ref(path).getMetadata());
+      } finally {
+        await file.delete();
+      }
+    }
+  });
+
+  it('allows approved owner deletion but rejects non-owner or inactive deletion', async () => {
+    const path = `profiles/${prefix}/delete-approved.jpg`;
+    const file = getAppBucket().file(path);
+    await file.save(image, { contentType: 'image/jpeg' });
+    await assertFails(user(readerUid).ref(path).delete());
+    await assertSucceeds(user(prefix).ref(path).delete());
+    expect((await file.exists())[0]).toBe(false);
+    const rejected = getAppBucket().file(`profiles/${minorUid}/delete-rejected.jpg`);
+    await rejected.save(image, { contentType: 'image/jpeg' });
+    try { await assertFails(user(minorUid).ref(rejected.name).delete()); }
+    finally { await rejected.delete(); }
+  });
+
   it('never deletes an old verification photo while moderation is pending', async () => {
     const bucket = getAppBucket();
     const path = `verification/${prefix}/pending-test.jpg`;

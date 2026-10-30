@@ -78,61 +78,54 @@ test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-si
   assert.equal(ownerDelete.code, 'PERMISSION_DENIED');
 });
 
-test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner write and owner delete', () => {
-  const validResource = { size: 1 * 1024 * 1024, contentType: 'image/png' };
-
-  // 1. Any signed in user can read profile picture
-  const bobReadsAlice = evaluateStorageSecurityRule({
-    operation: 'read',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: USER_BOB,
+test('Storage Rules: profile photos require the live Firestore adult and active status of requester and owner', () => {
+  const valid = { size: 1 * 1024 * 1024, contentType: 'image/png' };
+  const adult = { requesterUserIsAdult: true, requesterAccountStatus: 'active' };
+  const target = { targetUserIsAdult: true, targetAccountStatus: 'active' };
+  // Positive: both server-owned profiles are active adults. No JWT isAdult needed.
+  const allowed = evaluateStorageSecurityRule({
+    operation: 'read', path: '/profiles/usr_alice/avatar.png', auth: USER_BOB, ...adult, ...target,
   });
-  assert.equal(bobReadsAlice.allowed, true);
+  assert.equal(allowed.allowed, true);
+  // Missing / false / pending / deleted profiles fail closed for either side.
+  for (const partial of [
+    { ...adult, targetUserIsAdult: false, targetAccountStatus: 'active' },
+    { ...adult, targetUserIsAdult: true, targetAccountStatus: 'deleted' },
+    { ...adult, targetUserIsAdult: undefined, targetAccountStatus: 'active' },
+    { requesterUserIsAdult: false, requesterAccountStatus: 'active', ...target },
+    { requesterUserIsAdult: true, requesterAccountStatus: 'pending_age', ...target },
+    { requesterUserIsAdult: undefined, requesterAccountStatus: undefined, ...target },
+  ]) {
+    assert.equal(evaluateStorageSecurityRule({
+      operation: 'read', path: '/profiles/usr_alice/avatar.png', auth: USER_BOB, ...partial,
+    }).allowed, false);
+  }
+  assert.equal(evaluateStorageSecurityRule({
+    operation: 'read', path: '/profiles/usr_alice/avatar.png', auth: GAST_USER, ...adult, ...target,
+  }).allowed, false);
+  assert.equal(evaluateStorageSecurityRule({
+    operation: 'read', path: '/profiles/usr_alice/avatar.png', auth: null, ...adult, ...target,
+  }).code, 'UNAUTHENTICATED');
 
-  // 2. Unauthenticated cannot read profile picture
-  const unauthRead = evaluateStorageSecurityRule({
-    operation: 'read',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: null,
-  });
-  assert.equal(unauthRead.allowed, false);
-  assert.equal(unauthRead.code, 'UNAUTHENTICATED');
-
-  // 3. Owner can write profile picture
-  const aliceWrites = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: USER_ALICE,
-    resource: validResource,
-  });
-  assert.equal(aliceWrites.allowed, true);
-
-  // 4. Stranger cannot write to Alice profile folder
-  const bobWritesAlice = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: USER_BOB,
-    resource: validResource,
-  });
-  assert.equal(bobWritesAlice.allowed, false);
-  assert.equal(bobWritesAlice.code, 'PERMISSION_DENIED');
-
-  // 5. Owner can delete own profile picture
-  const aliceDeletes = evaluateStorageSecurityRule({
-    operation: 'delete',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: USER_ALICE,
-  });
-  assert.equal(aliceDeletes.allowed, true);
-
-  // 6. Stranger cannot delete Alice profile picture
-  const bobDeletesAlice = evaluateStorageSecurityRule({
-    operation: 'delete',
-    path: '/profiles/usr_alice/avatar.png',
-    auth: USER_BOB,
-  });
-  assert.equal(bobDeletesAlice.allowed, false);
-  assert.equal(bobDeletesAlice.code, 'PERMISSION_DENIED');
+  // Owner-only writes and deletes also require a server-side active adult.
+  for (const operation of ['write', 'delete'] as const) {
+    assert.equal(evaluateStorageSecurityRule({
+      operation, path: '/profiles/usr_alice/avatar.png', auth: USER_ALICE,
+      resource: valid, ...adult,
+    }).allowed, true);
+    assert.equal(evaluateStorageSecurityRule({
+      operation, path: '/profiles/usr_alice/avatar.png', auth: USER_ALICE,
+      resource: valid, requesterUserIsAdult: false, requesterAccountStatus: 'active',
+    }).allowed, false);
+    assert.equal(evaluateStorageSecurityRule({
+      operation, path: '/profiles/usr_alice/avatar.png', auth: USER_BOB,
+      resource: valid, ...adult,
+    }).allowed, false);
+  }
+  assert.equal(evaluateStorageSecurityRule({
+    operation: 'write', path: '/profiles/usr_alice/avatar.png',
+    auth: USER_ALICE, resource: { size: 1, contentType: 'application/pdf' }, ...adult,
+  }).code, 'INVALID_MIME');
 });
 
 test('Storage Rules: Default deny-all on unregistered collections or incomplete paths', () => {
