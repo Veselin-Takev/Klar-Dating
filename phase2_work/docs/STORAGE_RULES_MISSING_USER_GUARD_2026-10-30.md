@@ -19,3 +19,9 @@
 
 ## Change control
 No production cloud, customer records, secrets, Rules deployment, live tokens or main branch changed by this patch. Existing frozen PR #119 and RC R2 remain untouched. The draft fix is **not** an approved release and no pass is claimed without new evidence.
+
+## Exact-head CI verification — 2026-10-30
+- PR #209 HEAD `881d0981d4ff7a1ade8a440180ec1b4ad810a6fd` — [CI run 41018751334](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41018751334) **completed/success**, job `validate` ID `123940966675` also success. Mandatory Enterprise static gates, typecheck, Functions build, automated tests, build, smoke and browser acceptance succeeded. Browser failure-diagnostics upload skipped normally.
+- Reviewed raw workflow job log: **197 test files passed**. Searches of the returned job log found **no** `Null value error` or `EvaluationException` strings, unlike prior run #41016453582. This is an observed log difference, **not definitive proof** the exact missing-user negative scenario was tested, nor proof of deployed Rules.
+- Toolchain gate reported Node 22.23.3 and Bun 1.4.4. `check-profile-storage-authz` explicitly states **source only; live policy unverified**.
+- Remaining acceptance: add explicit missing requester/owner document denial regression; validate short-circuit semantics with real Storage/Firestore emulator and check quotas; independent review and controlled staging. **NO-GO**, unmerged draft; no manually dispatched CI jobs.
