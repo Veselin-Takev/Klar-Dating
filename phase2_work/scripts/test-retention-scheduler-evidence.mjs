@@ -10,15 +10,25 @@ const script = fileURLToPath(new URL('./check-retention-scheduler-evidence.mjs',
 const project = 'klar-staging-test';
 const region = 'europe-west3';
 const functionNames = ['deleteExpiredPhotosCron', 'purgeVerificationStorageCron'];
+const functionUri = name => `https://${name.toLowerCase()}-abcdef-ew.a.run.app`;
 const functions = functionNames.map(name => ({
   name: `projects/${project}/locations/${region}/functions/${name}`,
   state: 'ACTIVE',
+  serviceConfig: { uri: functionUri(name) },
 }));
 const jobs = functionNames.map((name, i) => ({
   name: `projects/${project}/locations/${region}/jobs/firebase-schedule-${name}-${region}`,
   state: 'ENABLED',
   schedule: i === 0 ? 'every 24 hours' : '0 3 * * *',
   timeZone: 'UTC',
+  httpTarget: {
+    uri: functionUri(name),
+    httpMethod: 'POST',
+    oidcToken: {
+      serviceAccountEmail: `scheduler@${project}.iam.gserviceaccount.com`,
+      audience: functionUri(name),
+    },
+  },
 }));
 const run = (functionRecords, jobRecords, extra = []) => {
   const dir = mkdtempSync(join(tmpdir(), 'klar-scheduler-evidence-'));
@@ -53,6 +63,15 @@ const cases = [
   ['wrong purge schedule', functions, jobs.map((j, i) => i === 1 ? {...j, schedule: '* * * * *'} : j)],
   ['wrong timezone', functions, jobs.map((j, i) => i === 1 ? {...j, timeZone: 'Europe/Berlin'} : j)],
   ['duplicate scheduler', functions, [...jobs, jobs[0]]],
+  ['missing target URL', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, uri: undefined}} : j)],
+  ['wrong function target', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, uri: 'https://wrong-abcdef-ew.a.run.app'}} : j)],
+  ['http target', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, uri: 'http://example.com'}} : j)],
+  ['query on target', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, uri: j.httpTarget.uri + '?token=secret'}} : j)],
+  ['GET instead of POST', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, httpMethod: 'GET'}} : j)],
+  ['missing OIDC', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, oidcToken: undefined}} : j)],
+  ['invalid OIDC principal', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, oidcToken: {...j.httpTarget.oidcToken, serviceAccountEmail: 'not-an-account'}}} : j)],
+  ['wrong OIDC audience', functions, jobs.map((j, i) => i === 1 ? {...j, httpTarget: {...j.httpTarget, oidcToken: {...j.httpTarget.oidcToken, audience: 'https://other.run.app'}}} : j)],
+  ['missing deployed URI', functions.map((f, i) => i === 1 ? {...f, serviceConfig: {}} : f), jobs],
 ];
 for (const [label, f, j] of cases) {
   const result = run(f, j);
@@ -61,4 +80,4 @@ for (const [label, f, j] of cases) {
 }
 assert.notEqual(run(functions, jobs, ['--extra', 'unsafe']).status, 0);
 assert.notEqual(run({wrong: true}, jobs).status, 0);
-console.log('PASS: offline retention scheduler evidence verifier accepts approved metadata and rejects 11 unsafe fixtures.');
+console.log('PASS: offline retention scheduler evidence verifier accepts approved metadata and rejects 20 unsafe fixtures.');
