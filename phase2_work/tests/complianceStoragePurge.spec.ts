@@ -70,4 +70,28 @@ describe('decision-based verification object deletion safety', () => {
     expect(deletes).toHaveLength(0);
   });
 
+  it('never calls Storage delete if the final authorization callback fails', async () => {
+    const calls: string[] = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '55' }]; },
+      delete: async () => { calls.push('deleted'); },
+    }, '55', async () => {
+      calls.push('authorization');
+      throw new Error('decision_revoked');
+    })).rejects.toThrow('decision_revoked');
+    expect(calls).toEqual(['metadata', 'authorization']);
+  });
+
+  it('checks final authorization immediately before generation-conditional delete', async () => {
+    const calls: string[] = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '99' }]; },
+      delete: async options => {
+        calls.push('delete');
+        expect(options).toEqual({ ifGenerationMatch: '99' });
+      },
+    }, '99', async () => { calls.push('authorization'); });
+    expect(calls).toEqual(['metadata', 'authorization', 'delete']);
+  });
+
 });

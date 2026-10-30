@@ -328,4 +328,52 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('blocks physical deletion when moderation is changed after the first eligibility check', async () => {
+    await withEvent(async ({ db, event }) => {
+      let metadataReads = 0;
+      let deletes = 0;
+      const api = await startApi(db, async () => { deletes++; }, async () => {
+        metadataReads++;
+        if (metadataReads === 2) await event.update({ status: 'pending' });
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({ status: 503, data: {
+          purgedCount: 0, failedCount: 1, ok: false,
+        } });
+        expect(metadataReads).toBe(2);
+        expect(deletes).toBe(0);
+        const record = (await event.get()).data();
+        expect(record?.status).toBe('pending');
+        expect(record?.photoPurged).toBe(false);
+        expect(record?.photoPurgeProof).toBeUndefined();
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
+  it('blocks physical deletion if the Firestore lease expires before the final check', async () => {
+    await withEvent(async ({ db, event }) => {
+      let metadataReads = 0;
+      let deletes = 0;
+      const lease = db.collection('system').doc('verification_photo_purge_scan_v1');
+      const api = await startApi(db, async () => { deletes++; }, async () => {
+        metadataReads++;
+        if (metadataReads === 2) {
+          const state = (await lease.get()).data();
+          expect(state?.leaseId).toEqual(expect.any(String));
+          await lease.update({ leaseUntil: new Date(Date.now() - 1_000) });
+        }
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const result = await api.request();
+        expect(result.status).toBe(503);
+        expect(deletes).toBe(0);
+        expect((await event.get()).data()?.photoPurged).toBe(false);
+        expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
 });

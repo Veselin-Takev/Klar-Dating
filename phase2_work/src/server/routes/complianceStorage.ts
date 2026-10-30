@@ -34,11 +34,15 @@ export async function inspectVerificationStorageGeneration(file: VerificationSto
 
 export async function deleteVerificationStorageFile(
   file: VerificationStorageFile, expectedGeneration?: string | number,
+  beforeDelete?: () => Promise<void>,
 ): Promise<void> {
   const generation = await inspectVerificationStorageGeneration(file);
   if (expectedGeneration !== undefined && String(generation) !== String(expectedGeneration)) {
     throw new Error('verification_photo_generation_changed');
   }
+  // Revalidate Firestore authorization after the last Storage metadata read.
+  // A cross-service update after this callback still needs operational fencing.
+  if (beforeDelete) await beforeDelete();
   await file.delete({ ifGenerationMatch: generation });
 }
 
@@ -114,6 +118,13 @@ function normalizeTimestamp(value: unknown): number | null {
     return Number.isFinite(result) ? result : null;
   }
   return null;
+}
+
+function assertActivePurgeLease(state: Record<string, unknown> | undefined, leaseId: string): void {
+  const expiresAt = normalizeTimestamp(state?.leaseUntil);
+  if (state?.leaseId !== leaseId || expiresAt === null || expiresAt <= Date.now()) {
+    throw new Error('verification_purge_lease_expired_or_lost');
+  }
 }
 
 export function createVerificationStoragePurgeRouter(deps: {
@@ -205,7 +216,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                   const [lease, record] = await Promise.all([
                     tx.get(checkpointRef), tx.get(ref),
                   ]);
-                  if (lease.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
+                  assertActivePurgeLease(lease.data(), leaseId);
                   assertStillEligibleForPurge(record.data(), artifact, now);
                   const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                   if (!intent) throw new Error('verification_purge_reconciliation_requires_intent');
@@ -223,7 +234,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 const [lease, record] = await Promise.all([
                   tx.get(checkpointRef), tx.get(ref),
                 ]);
-                if (lease.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
+                assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(record.data(), artifact, now);
                 const existing = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                 if (existing && existing.generation !== String(generation)) {
@@ -239,7 +250,24 @@ export function createVerificationStoragePurgeRouter(deps: {
               });
               // Repeat metadata/hold validation to reduce the read/delete
               // race; use exact generation precondition against replacement.
-              await deleteVerificationStorageFile(file, generation);
+              await deleteVerificationStorageFile(file, generation, async () => {
+                // A moderation change or expired lease between initial read
+                // and the last Storage metadata check must block deletion.
+                await db.runTransaction(async tx => {
+                  const [lease, record] = await Promise.all([
+                    tx.get(checkpointRef), tx.get(ref),
+                  ]);
+                  assertActivePurgeLease(lease.data(), leaseId);
+                  assertStillEligibleForPurge(record.data(), artifact, Date.now());
+                  const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
+                  if (!intent || intent.generation !== String(generation)) {
+                    throw new Error('verification_purge_predelete_intent_mismatch');
+                  }
+                  // Refresh only while still the valid owner. A Storage API call
+                  // can still outlive its lease and must fail audit if it does.
+                  tx.update(checkpointRef, { leaseUntil: new Date(Date.now() + LEASE_MS) });
+                });
+              });
               proofs.set(artifact.challengeId, {
                 generation: String(generation), method: 'delete_acknowledged',
               });
@@ -252,10 +280,11 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 const expected = artifacts.find(a => a.challengeId === challengeId && a.uid === uid);
                 const proof = proofs.get(challengeId);
-                if (lease.data()?.leaseId !== leaseId || !expected || !proof) {
+                if (!expected || !proof) {
                   throw new Error('verification_photo_audit_proof_missing');
                 }
-                assertStillEligibleForPurge(current.data(), expected, now);
+                assertActivePurgeLease(lease.data(), leaseId);
+                assertStillEligibleForPurge(current.data(), expected, Date.now());
                 const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
                 if (!intent || intent.generation !== proof.generation) {
                   throw new Error('verification_photo_audit_intent_mismatch');
@@ -290,8 +319,11 @@ export function createVerificationStoragePurgeRouter(deps: {
           checkpoint: async cursor => {
             await db.runTransaction(async tx => {
               const snapshot = await tx.get(checkpointRef);
-              if (snapshot.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
-              tx.update(checkpointRef, { cursor, lastCheckpointAt: new Date() });
+              assertActivePurgeLease(snapshot.data(), leaseId);
+              tx.update(checkpointRef, {
+                cursor, lastCheckpointAt: new Date(),
+                leaseUntil: new Date(Date.now() + LEASE_MS),
+              });
             });
           },
         });
