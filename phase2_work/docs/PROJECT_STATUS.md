@@ -1607,3 +1607,9 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## 2026-10-30: Referral-Bestandsinventur – paginierte Fehlergrenze nachgehärtet
+
+[Draft #221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) bestand auf erstem Quell-HEAD `1aba8d29ca28143f1b100f87328c71b3d29e42e0` den vollständigen [CI-Lauf #41124913035](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41124913035): **11** Seitenintegritätstests, **7** ursprüngliche Inventurtests und **203/203** Testdateien bestanden. Die anschließende Privacy-Analyse identifizierte **ungefilterte Fehlermeldungen externer Datenquellen** als mögliches Protokollrisiko. Der aktualisierte Draft `74e06385e453dd4d2bc8aff6f9d810233b8a778c` ersetzt unerwartete Iterator-Fehler durch feste Fehlercodes und prüft, dass keine synthetischen UID-/Code-/Cursor-Werte im Fehler oder Stacktrace erscheinen. **Die neue exakte CI ist gesondert ausstehend**; der vorherige PASS gilt nicht für den neuen Commit. [Audit und Prüflinks](MEMBER_REFERRAL_PAGED_INVENTORY_2026-10-30.md).
+
+Beide Inventurbausteine bleiben offline; die Datenherkunft und Scanvollständigkeit sind nicht real verifiziert, keine Produktionsdaten verarbeitet und keine Registry-Migration gestartet. Fachfreigaben für P0 #48 sowie Datenschutz-/Retention-Blocker #55, #56, #70, #202 und Release #8 stehen aus. **PRODUCTION BLOCKED / NO-GO.**
