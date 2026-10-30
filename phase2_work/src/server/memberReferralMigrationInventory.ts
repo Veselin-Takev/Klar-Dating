@@ -49,45 +49,45 @@ export async function summarizeMemberReferralInventory(
 
   try {
     for await (const value of records) {
-    recordsRead += 1;
-    if (recordsRead > maxRecords) {
-      // Do not return a misleading, partial "clean" report when truncated.
-      throw new Error('member_referral_inventory_limit_exceeded');
-    }
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      malformedRecords += 1;
-      continue;
-    }
+      recordsRead += 1;
+      if (recordsRead > maxRecords) {
+        // Do not return a misleading, partial "clean" report when truncated.
+        throw new Error('member_referral_inventory_limit_exceeded');
+      }
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        malformedRecords += 1;
+        continue;
+      }
 
-    const row = value as Record<string, unknown>;
-    if (!isUid(row.uid)) {
-      malformedRecords += 1;
-      continue;
-    }
-    const uid = row.uid;
-    const code = row.referralCode;
-    if (code === undefined || code === null || code === '') {
-      profilesWithoutCode += 1;
-      continue;
-    }
-    if (typeof code !== 'string' || !CODE_PATTERN.test(code)) {
-      malformedRecords += 1;
-      continue;
-    }
+      const row = value as Record<string, unknown>;
+      if (!isUid(row.uid)) {
+        malformedRecords += 1;
+        continue;
+      }
+      const uid = row.uid;
+      const code = row.referralCode;
+      if (code === undefined || code === null || code === '') {
+        profilesWithoutCode += 1;
+        continue;
+      }
+      if (typeof code !== 'string' || !CODE_PATTERN.test(code)) {
+        malformedRecords += 1;
+        continue;
+      }
 
-    let owners = ownerByCode.get(code);
-    if (!owners) {
-      owners = new Set<string>();
-      ownerByCode.set(code, owners);
-    }
-    if (owners.has(uid)) repeatedRows += 1;
-    owners.add(uid);
-    let codes = codesByOwner.get(uid);
-    if (!codes) {
-      codes = new Set<string>();
-      codesByOwner.set(uid, codes);
-    }
-    codes.add(code);
+      let owners = ownerByCode.get(code);
+      if (!owners) {
+        owners = new Set<string>();
+        ownerByCode.set(code, owners);
+      }
+      if (owners.has(uid)) repeatedRows += 1;
+      owners.add(uid);
+      let codes = codesByOwner.get(uid);
+      if (!codes) {
+        codes = new Set<string>();
+        codesByOwner.set(uid, codes);
+      }
+      codes.add(code);
     }
   } catch (error) {
     // Source iterators and record getters may throw arbitrary messages containing
