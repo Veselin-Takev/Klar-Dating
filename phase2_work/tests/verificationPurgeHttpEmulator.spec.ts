@@ -376,4 +376,107 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('does not let an expired worker finalize or erase a successor lease; a later scan reconciles absence', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
+      let firstEntered!: () => void;
+      const entered = new Promise<void>(resolve => { firstEntered = resolve; });
+      let finishFirst!: () => void;
+      const holdFirst = new Promise<void>(resolve => { finishFirst = resolve; });
+      let secondEntered!: () => void;
+      const successorEntered = new Promise<void>(resolve => { secondEntered = resolve; });
+      let finishSecond!: () => void;
+      const holdSecond = new Promise<void>(resolve => { finishSecond = resolve; });
+      let present = true;
+      let deleteCalls = 0;
+      const api = await startApi(db, async target => {
+        expect(target).toBe(path);
+        deleteCalls++;
+        if (deleteCalls === 1) {
+          firstEntered();
+          await holdFirst;
+          present = false;
+        } else {
+          // Keep the successor lease active while the stale worker finishes.
+          secondEntered();
+          await holdSecond;
+          throw Object.assign(Error('conflicting_generation'), { code: 412 });
+        }
+      }, async () => {
+        if (!present) throw Object.assign(Error('no_live_object'), { code: 404 });
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const staleRequest = api.request();
+        let enterTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            entered,
+            new Promise<never>((_, reject) => {
+              enterTimer = setTimeout(() => reject(Error('original_delete_not_started')), 10_000);
+            }),
+          ]);
+        } finally {
+          if (enterTimer) clearTimeout(enterTimer);
+        }
+        const oldLease = (await checkpoint.get()).data();
+        expect(oldLease?.leaseId).toEqual(expect.any(String));
+        await checkpoint.update({ leaseUntil: new Date(Date.now() - 1_000) });
+
+        // The successor must hold a new, active lease when the first
+        // request eventually completes, and must retain ownership.
+        const successorRequest = api.request();
+        let successorTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            successorEntered,
+            new Promise<never>((_, reject) => {
+              successorTimer = setTimeout(() => reject(Error('successor_delete_not_started')), 10_000);
+            }),
+          ]);
+        } finally {
+          if (successorTimer) clearTimeout(successorTimer);
+        }
+        const successorLease = (await checkpoint.get()).data();
+        expect(successorLease?.leaseId).toEqual(expect.any(String));
+        expect(successorLease?.leaseId).not.toBe(oldLease?.leaseId);
+
+        finishFirst();
+        const stale = await staleRequest;
+        expect(stale.status).toBe(503);
+        expect((await checkpoint.get()).data()?.leaseId).toBe(successorLease?.leaseId);
+        const unfinalized = (await event.get()).data();
+        expect(unfinalized?.photoPurged).toBe(false);
+        expect(unfinalized?.photoPurgeProof).toBeUndefined();
+
+        // The successor's own Storage request fails on a mocked generation
+        // conflict. Neither worker can write a false purge receipt.
+        finishSecond();
+        const successor = await successorRequest;
+        expect(successor).toMatchObject({
+          status: 503, data: { purgedCount: 0, failedCount: 1 },
+        });
+        expect((await checkpoint.get()).data()?.leaseId).toBeNull();
+        expect((await event.get()).data()?.photoPurged).toBe(false);
+        expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
+
+        // The first generation really was deleted despite losing its
+        // lease. Its durable pre-delete intent enables later *absence*
+        // reconciliation, not a falsely attributed delete acknowledgement.
+        const recovered = await api.request();
+        expect(recovered).toMatchObject({
+          status: 200, data: { purgedCount: 1, failedCount: 0 },
+        });
+        expect((await event.get()).data()?.photoPurgeProof).toMatchObject({
+          method: 'absence_reconciled', generation: '773',
+        });
+        expect(deleteCalls).toBe(2);
+      } finally {
+        finishFirst();
+        finishSecond();
+        await api.close();
+      }
+    });
+  }, 90_000);
+
 });

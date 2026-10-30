@@ -467,3 +467,7 @@ Only a server-side, generation-bound `verification_events.photoPurgeIntent` may 
 ## Additional pre-delete fencing (2026-10-30)
 
 Each attempt must recheck current Firestore decision, due date, audit intent and lease expiry in a transaction **after** final Storage metadata validation, immediately before conditional generation delete. Expired lease or changed decision returns retryable failure and must not delete or write a success audit. The lease is refreshed when the owner is valid, at the page checkpoint and during pre-delete checking. This is defense in depth, not an atomic Firestore–Cloud Storage transaction; long GCS calls, re-uploads, legal holds and moderation write-path fencing still require staging evidence and independent approvals. **Production NO-GO.**
+
+## Lease takeover during ambiguous GCS deletion (2026-10-30)
+
+A retryable 503 after lease loss is **not** evidence that a Storage object survived: a previously issued conditional delete can complete after the scanner loses ownership. Only a durable, matching generation-bound intent may support a later `absence_reconciled` receipt, not a fabricated `delete_acknowledged` receipt. For incident response, reconcile the exact event decision/path, lease fencing, GCS generation, audit proof method and last checkpoint without leaking UID or photo paths into public logs. Do not alter the scan lease or purge intent manually without SRE and DPO approval. **Production NO-GO.**
