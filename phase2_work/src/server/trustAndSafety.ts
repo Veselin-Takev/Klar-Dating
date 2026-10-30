@@ -380,7 +380,13 @@ async function loescheAbfrage(query: Query): Promise<number> {
 }
 
 /** Repeatable purge: orchestration, provider cleanup and authentication live in accountDeletion.ts. */
-export async function purgeAccountData(meineUid: string, deletionRequestId: string, lease?: string) {
+export async function purgeAccountData(
+  meineUid: string,
+  deletionRequestId: string,
+  lease?: string,
+  /** Optional internal-only clock/progress instrumentation for deterministic emulator tests. */
+  sliceTestClock?: { now: () => number; onProgress?: () => void },
+) {
   return runDeletionSlice(async () => {
     const db = getFirestore();
     const accounting = deletionAccounting(db, meineUid, deletionRequestId, lease);
@@ -587,7 +593,7 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     // Cumulative counters stay in the durable job. Only the worker's final
     // sweep transaction may publish the final receipt and complete the job.
     return bericht;
-  });
+  }, sliceTestClock?.now, sliceTestClock?.onProgress);
 }
 
 export async function handleDeleteAccount(req: Request, res: Response): Promise<void> {
