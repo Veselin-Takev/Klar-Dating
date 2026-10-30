@@ -475,3 +475,7 @@ A retryable 503 after lease loss is **not** evidence that a Storage object survi
 ## Abwesenheits-Abgleich nach erneutem Upload (2026-10-30)
 
 `absence_reconciled` verlangt einen passenden generationgebundenen Firestore-Löschauftrag **und** einen erneuten GCS-Metadatenabruf unmittelbar vor dem Audit. Wenn die Datei wieder existiert oder Storage andere Fehler als 404 zurückgibt, muss HTTP 503 ohne positives Lösch-Audit erfolgen. Eine reine 404-Beobachtung ist keine atomare, dauerhafte Löschbestätigung; Storage-Writes müssen zusätzlich über IAM/Objektlebenszyklus begrenzt werden. CI-Emulatorbefunde ersetzen keine GCS-Staging-Probe oder Datenschutzfreigabe. **Production NO-GO.**
+
+## Legacy verification upload lockdown (2026-10-30, draft PR #203)
+
+Firebase clients must no longer be able to **create or overwrite** `verification/{uid}/{datei}`, nor read or delete it. The gesture/photo client upload was retired; Didit KYC is the supported verification channel. Check source `storage.rules`, confirm rejected owner overwrite/recreate in a local Firebase Storage Emulator, inspect deployed Storage Rules and Cloud IAM (Admin SDK bypass), and perform a staged compatibility review of older installed app versions. Confirm GCS uploads via privileged service identities and signed URLs are separately blocked or traceable for purged prefixes. A successful CI suite does not prove deployed cloud policy. No production Storage Rules deployment is authorized without Security/DPO/SRE/Release approval. **PRODUCTION NO-GO.**

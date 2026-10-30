@@ -18,16 +18,42 @@ afterAll(async () => { await env?.cleanup(); });
 const user = (uid: string, provider: 'password' | 'anonymous' = 'password') => env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage('gs://demo-klar.appspot.com');
 const image = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and automatic photo retention', () => {
-  it('allows only the non-guest owner to upload; no client can read a verification photo', async () => {
+  it('denies all legacy verification photo uploads, reads and deletes including the authenticated owner', async () => {
     const path = `verification/${prefix}/photo.jpg`;
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+    // Legacy gesture/photo verification has been retired in favor of Didit.
+    await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(Promise.resolve(user('another').ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(Promise.resolve(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(Promise.resolve(user(prefix, 'anonymous').ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(user(prefix).ref(path).getDownloadURL());
     await assertFails(user(prefix).ref(path).delete());
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
-    await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
+  });
+
+  it('prevents client overwrite of a retained verification object and recreation after Admin SDK deletion', async () => {
+    const path = `verification/${prefix}/write-locked.jpg`;
+    const file = getAppBucket().file(path);
+    await file.save(image, { contentType: 'image/jpeg' });
+    try {
+      await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+      expect((await file.exists())[0]).toBe(true);
+      await file.delete();
+      await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+      expect((await file.exists())[0]).toBe(false);
+    } finally {
+      if ((await file.exists())[0]) await file.delete();
+    }
+  });
+  it('preserves allowed owner profile uploads while legacy verification uploads are denied', async () => {
+    const path = `profiles/${prefix}/owner-photo.jpg`;
+    const file = getAppBucket().file(path);
+    try {
+      await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+      expect((await file.exists())[0]).toBe(true);
+      await assertFails(Promise.resolve(user('another').ref(path).put(image, { contentType: 'image/jpeg' })));
+    } finally {
+      if ((await file.exists())[0]) await file.delete();
+    }
   });
   it('never deletes an old verification photo while moderation is pending', async () => {
     const bucket = getAppBucket();
