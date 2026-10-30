@@ -97,7 +97,7 @@ describe('account erasure including archived messages and photos', () => {
   }, 30_000);
 
   it.runIf(
-    /^(localhost|127[.]0[.]0[.]1|\\[::1\\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    /^(localhost|127[.]0[.]0[.]1|\[::1\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
     && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
     && process.env.NODE_ENV !== 'production'
     && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
