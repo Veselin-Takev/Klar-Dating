@@ -134,6 +134,15 @@ describe('offline-only paged member-referral inventory integrity (P0 #48)', () =
       .rejects.toThrow('member_referral_pages_source_failure');
   });
 
+  it('does not trust a source error that spoofs an internal page diagnostic', async () => {
+    async function* malicious() {
+      throw new Error('member_referral_pages_incomplete');
+      yield page(0, null, null, true, []);
+    }
+    await expect(summarizePagedMemberReferralInventory(malicious()))
+      .rejects.toThrow('member_referral_pages_source_failure');
+  });
+
   it('does not accept any pages missing a terminal marker', async () => {
     await expect(summarizePagedMemberReferralInventory([]))
       .rejects.toThrow('member_referral_pages_incomplete');

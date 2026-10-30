@@ -1,6 +1,7 @@
 import {
   summarizeMemberReferralInventory,
   type MemberReferralInventory,
+  MemberReferralInventoryValidationFailure,
 } from './memberReferralMigrationInventory';
 
 /**
@@ -23,19 +24,6 @@ export type MemberReferralPageInventory = MemberReferralInventory & Readonly<{
 
 const ABSOLUTE_PAGE_LIMIT = 1000;
 const ABSOLUTE_PAGE_RECORDS = 1000;
-
-// Only fixed diagnostics may cross this privacy boundary. An upstream
-// iterator may throw an Error containing a raw UID, code or cursor.
-const SAFE_PAGE_ERROR_CODES = new Set([
-  'member_referral_pages_overflow',
-  'member_referral_pages_integrity_failure',
-  'member_referral_pages_scope_changed',
-  'member_referral_pages_invalid_terminal',
-  'member_referral_pages_invalid_continuation',
-  'member_referral_pages_incomplete',
-  'member_referral_inventory_invalid_limit',
-  'member_referral_inventory_limit_exceeded',
-]);
 
 function validCursor(cursor: unknown): cursor is string {
   return typeof cursor === 'string' && cursor.length > 0 && cursor.length <= 512;
@@ -64,7 +52,7 @@ export async function summarizePagedMemberReferralInventory(
   async function* validatedRecords(): AsyncGenerator<unknown> {
     for await (const page of pages) {
       if (terminal || pagesRead >= maxPages) {
-        throw new Error('member_referral_pages_overflow');
+        throw new MemberReferralInventoryValidationFailure('member_referral_pages_overflow');
       }
       if (!page || typeof page !== 'object'
         || !Number.isSafeInteger(page.index) || page.index !== pagesRead
@@ -74,20 +62,20 @@ export async function summarizePagedMemberReferralInventory(
         || typeof page.terminal !== 'boolean'
         || !Array.isArray(page.records)
         || page.records.length > ABSOLUTE_PAGE_RECORDS) {
-        throw new Error('member_referral_pages_integrity_failure');
+        throw new MemberReferralInventoryValidationFailure('member_referral_pages_integrity_failure');
       }
       if (scope === undefined) scope = page.scope;
-      if (page.scope !== scope) throw new Error('member_referral_pages_scope_changed');
+      if (page.scope !== scope) throw new MemberReferralInventoryValidationFailure('member_referral_pages_scope_changed');
 
       if (page.terminal) {
         if (page.nextCursor !== null) {
-          throw new Error('member_referral_pages_invalid_terminal');
+          throw new MemberReferralInventoryValidationFailure('member_referral_pages_invalid_terminal');
         }
         terminal = true;
       } else {
         if (!validCursor(page.nextCursor) || seenCursors.has(page.nextCursor)
           || page.records.length === 0) {
-          throw new Error('member_referral_pages_invalid_continuation');
+          throw new MemberReferralInventoryValidationFailure('member_referral_pages_invalid_continuation');
         }
         seenCursors.add(page.nextCursor);
         expectedCursor = page.nextCursor;
@@ -97,7 +85,7 @@ export async function summarizePagedMemberReferralInventory(
       for (const record of page.records) yield record;
     }
     if (!terminal || pagesRead === 0) {
-      throw new Error('member_referral_pages_incomplete');
+      throw new MemberReferralInventoryValidationFailure('member_referral_pages_incomplete');
     }
   }
 
@@ -111,8 +99,10 @@ export async function summarizePagedMemberReferralInventory(
   } catch (error) {
     // Re-throw a fresh fixed diagnostic, never the upstream error object,
     // stack, cause or user-supplied message.
-    if (error instanceof Error && SAFE_PAGE_ERROR_CODES.has(error.message)) {
-      throw new Error(error.message);
+    if (error instanceof MemberReferralInventoryValidationFailure) {
+      // Branded errors originate in our validator, not in arbitrary upstream
+      // iterators whose message text can imitate an internal diagnostic.
+      throw new MemberReferralInventoryValidationFailure(error.code);
     }
     throw new Error('member_referral_pages_source_failure');
   }
