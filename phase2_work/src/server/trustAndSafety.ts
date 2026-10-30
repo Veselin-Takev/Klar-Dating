@@ -489,6 +489,10 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     await loescheAbfrage(db.collection('funnel_events').where('userId', '==', meineUid));
     await loescheAbfrage(db.collection('activation_events').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('app_feedback').where('uid', '==', meineUid));
+    // P0 #48: a future member-code reservation stores ownerUid and must not
+    // outlive the Art. 17 cascade. The deletion tombstone forbids re-issuance.
+    // The collection is not active until migration and policy approval.
+    await loescheAbfrage(db.collection('member_referral_code_registry').where('ownerUid', '==', meineUid));
     for (const field of ['inviterUid', 'inviteeUid']) await loescheAbfrage(db.collection('referral_events').where(field, '==', meineUid));
     for (const field of ['userA', 'userB']) await loescheAbfrage(db.collection('matches').where(field, '==', meineUid));
     checkDeletionSlice();
