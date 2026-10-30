@@ -64,7 +64,7 @@ for (const name of expected) {
     const parsed = new URL(raw);
     assert(parsed.protocol === 'https:' && !parsed.username && !parsed.password
       && !parsed.port && !parsed.search && !parsed.hash, 'Unsafe ' + field);
-    return parsed.origin + parsed.pathname.replace(/\\/$/, '');
+    return parsed.origin + parsed.pathname.replace(/[/]$/, '');
   };
   assert.equal(
     normalizeTarget(job.httpTarget?.uri, 'Scheduler target URI'),
@@ -74,7 +74,7 @@ for (const name of expected) {
   assert.equal(job.httpTarget?.httpMethod, 'POST', 'Scheduler HTTP method is not POST: ' + name);
   const identity = job.httpTarget?.oidcToken?.serviceAccountEmail;
   assert(typeof identity === 'string'
-    && /^[a-z0-9][a-z0-9._-]*@[a-z0-9.-]+\\.gserviceaccount\\.com$/.test(identity),
+    && /^[a-z0-9][a-z0-9._-]*@[a-z0-9.-]+[.]gserviceaccount[.]com$/.test(identity),
     'Missing/invalid Scheduler OIDC identity: ' + name);
   const audience = job.httpTarget.oidcToken.audience;
   if (audience !== undefined && audience !== '') {
