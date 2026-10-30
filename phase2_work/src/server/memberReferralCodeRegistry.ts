@@ -48,7 +48,9 @@ export async function reserveMemberReferralCode(
     const [owner, deletion, reservation] = await tx.getAll(
       ownerRef, deletionRef, reservationRef,
     );
-    if (!owner.exists || deletion.exists) return { status: 'account_unavailable' } as const;
+    if (!owner || !deletion || !reservation || !owner.exists || deletion.exists) {
+      return { status: 'account_unavailable' } as const;
+    }
 
     const priorCode = owner.data()?.referralCode;
     // Never silently rotate a legacy code or repair malformed account data.
