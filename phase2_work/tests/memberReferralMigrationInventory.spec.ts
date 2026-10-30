@@ -119,6 +119,15 @@ describe('offline member referral legacy inventory (P0 #48)', () => {
     ], 1)).rejects.toThrow('member_referral_inventory_limit_exceeded');
   });
 
+  it('does not trust a source exception mimicking an internal inventory limit error', async () => {
+    async function* malicious() {
+      throw new Error('member_referral_inventory_limit_exceeded');
+      yield { uid: 'a', referralCode: 'ABCDEFGHIJ' };
+    }
+    await expect(summarizeMemberReferralInventory(malicious()))
+      .rejects.toThrow('member_referral_inventory_source_failure');
+  });
+
   it('never declares full coverage or migration approval even for an empty stream', async () => {
     const report = await summarizeMemberReferralInventory([]);
     expect(report.coverage).toBe('provided_stream_only');
