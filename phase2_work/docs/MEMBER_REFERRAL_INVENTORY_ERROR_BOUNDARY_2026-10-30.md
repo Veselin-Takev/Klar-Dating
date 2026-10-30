@@ -30,3 +30,9 @@ All work remains disconnected from live Referrals and cloud inventory. Parent #2
 - This repaired code retains no message, cause or source stack from unexpected upstream exceptions, preserving the previous privacy requirement while restoring the user-facing fixed validation semantics.
 - Corrected-head automatic [CI #41128352587](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41128352587) was **pending** at the checkpoint. No PASS for this revised head is asserted until original tests and typecheck/enterprise/browser job status are verified.
 - The entire path remains local/offline, unconnected to deployed member referrals and ineligible to authorize a migration. No personal live data processed; no registry backfill, deployment or production change. **P0 #48; PRODUCTION BLOCKED / NO-GO**.
+
+## Corrected exact-head CI closure (2026-10-30)
+- Corrected source commit `06fe8509cfda12eed1abc080efa17c9e17b2b8e2`, [GitHub Actions #41128352587](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41128352587): **completed / success**, validate job `124312949643`: **completed / success**, 0 failed steps.
+- Original job log: `tests/memberReferralInventoryPages.spec.ts (13 tests)` **PASS**, `tests/memberReferralMigrationInventory.spec.ts (10 tests)` **PASS**, `203 passed (203)` test files. The previously failing four integration tests are no longer failing; typed safe internal diagnostics preserve fixed validation errors while other source errors remain generic.
+- First attempt `d5a2f2d...` and [CI #41127467161](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41127467161) remain recorded as **FAILED**, with four failed page tests. This is historical, not silently overwritten.
+- CI does not prove real customer scan completeness, disclosure safety of production source logs, approved migration/registry activation, or independent release authorization. **P0 #48 and production NO-GO.**
