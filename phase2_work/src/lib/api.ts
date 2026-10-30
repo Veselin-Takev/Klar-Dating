@@ -491,7 +491,7 @@ export async function monitoredFetch(input: RequestInfo | URL, init?: RequestIni
     const duration = performance.now() - startTime;
     // Do not pass raw errors to telemetry: browser fetch errors and wrappers
     // may embed a full request URL (including credentials or sharing tokens).
-    melde(`[Fetch Error] ${MONITORED_FETCH_LABEL} failed after ${Math.round(duration)}ms`);
+    melde(`[Fetch Error] ${MONITORED_FETCH_LABEL} failed after ${Math.round(duration)}ms`, new Error('Outbound fetch failed'));
     throw error;
   }
 }
