@@ -21,3 +21,8 @@ The child [Draft #221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) in
 
 ## Governance and next gates
 All work remains disconnected from live Referrals and cloud inventory. Parent #219's atomic reservation is not activated; #220/#221 are offline prototypes. A credible real-data inventory requires DPO/Security-approved least-privilege source access, true scan completeness evidence, privacy-safe reporting thresholds and retention, plus transactional backfill/migration, Art.17 interrupted-retry tests, explicit claim-time ownership, Didit/age/consent and independently signed Product/SRE/Release decisions. No `main` commit, manual Actions dispatch, merge, deployment or actual customer data access. Frozen PR #119 and RC R2 remain unchanged. **P0 #48 OPEN; PRODUCTION NO-GO.**
+
+## Independent source review checkpoint — 2026-10-30
+- Parent [#221](https://github.com/Veselin-Takev/Klar-Dating/pull/221) at `74e06385e453dd4d2bc8aff6f9d810233b8a778c` passed [CI #41126197819](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41126197819), validate job `124305836454`: 12 page tests, 7 direct inventory tests, 203/203 test files. That CI does **not** cover this child fix.
+- Current [Draft #222](https://github.com/Veselin-Takev/Klar-Dating/pull/222) source HEAD `d5a2f2d127049c54e35fb08c8aff33ddc491feeb`, automatic [CI #41127467161](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41127467161) was **in progress** when last inspected. No green verdict is yet asserted for this head.
+- Source modifies only the pure direct aggregate scanner exception path, with fixed diagnostics. The entry point remains offline/unconnected; no customer inventory, registry migration or product release occurred.
