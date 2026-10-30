@@ -111,4 +111,70 @@ describe.skipIf(!host)('member referral competing claims (real Firestore emulato
       await Promise.all(paths.map(path => db.doc(path).delete()));
     }
   }, 120_000);
+  it('denies duplicate inviter codes from real Firestore without choosing an arbitrary owner', async () => {
+    const db = getDb();
+    const suffix = randomUUID().replaceAll('-', '');
+    const inviteeUid = 'ambiguous-invitee-' + suffix;
+    const inviterA = 'ambiguous-owner-a-' + suffix;
+    const inviterB = 'ambiguous-owner-b-' + suffix;
+    const code = 'C0LL1S10N9';
+    const rateLimitKey = createHash('sha256')
+      .update('klar-rate-limit:rate_limit_launch_referral_claim:uid:' + inviteeUid)
+      .digest('hex');
+    const paths = [
+      'users/' + inviteeUid, 'users/' + inviterA, 'users/' + inviterB,
+      'referral_events/' + inviterA + '_' + inviteeUid,
+      'referral_events/' + inviterB + '_' + inviteeUid,
+      'rate_limit_launch_referral_claim/' + rateLimitKey,
+    ];
+    let server: ReturnType<ReturnType<typeof express>['listen']> | undefined;
+    try {
+      const batch = db.batch();
+      batch.set(db.collection('users').doc(inviteeUid), { isAdult: true, isVerified: false });
+      batch.set(db.collection('users').doc(inviterA), { referralCode: code, isAdult: true });
+      batch.set(db.collection('users').doc(inviterB), { referralCode: code, isAdult: true });
+      await batch.commit();
+
+      const app = express();
+      app.use('/api', (req, _res, next) => {
+        Object.assign(req, {
+          user: { uid: inviteeUid, firebase: { identities: {}, sign_in_provider: 'password' } },
+        });
+        next();
+      });
+      app.use('/api', createLaunchRouter({
+        currentUserId: () => inviteeUid,
+        getFirestore: () => db,
+        normalizeLaunchCity: () => 'München',
+        getLocalDensity: async () => ({
+          city: 'München', activeUsers: 0, verifiedUsers: 0, band: 'building', threshold: 5,
+        }),
+        referralCodeFor: () => code,
+        recordActivation: async () => ({}),
+        activationScore: () => ({ score: 0, activated: false }),
+        serverTimestamp: () => new Date(),
+        publicUrl: () => 'https://klar.example',
+      }));
+      server = app.listen(0, '127.0.0.1');
+      await new Promise<void>(resolve => server!.once('listening', resolve));
+      const origin = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
+      const response = await fetch(origin + '/api/referral/claim', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: 'Einladung nicht verfügbar.' });
+      const invitee = (await db.collection('users').doc(inviteeUid).get()).data();
+      expect(invitee?.referredBy).toBeUndefined();
+      expect(invitee?.referralQualified).not.toBe(true);
+      expect(invitee?.isVerified).toBe(false);
+      for (const inviter of [inviterA, inviterB]) {
+        expect((await db.collection('referral_events').doc(inviter + '_' + inviteeUid).get()).exists).toBe(false);
+      }
+    } finally {
+      if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
+      await Promise.all(paths.map(path => db.doc(path).delete()));
+    }
+  }, 120_000);
+
 });
