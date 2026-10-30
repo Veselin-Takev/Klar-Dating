@@ -24,16 +24,33 @@ export class DeletionTimeSliceComplete extends Error {
   }
 }
 
-const slices = new AsyncLocalStorage<{ deadline: number; progressed: boolean; now: () => number }>();
+type DeletionSliceContext = {
+  deadline: number;
+  progressed: boolean;
+  now: () => number;
+  /** Optional internal instrumentation; never sourced from an HTTP request. */
+  onProgress?: () => void;
+};
 
-export function runDeletionSlice<T>(work: () => Promise<T>, now: () => number = Date.now): Promise<T> {
-  return slices.run({ deadline: now() + 45_000, progressed: false, now }, work);
+const slices = new AsyncLocalStorage<DeletionSliceContext>();
+
+export function runDeletionSlice<T>(
+  work: () => Promise<T>,
+  now: () => number = Date.now,
+  onProgress?: () => void,
+): Promise<T> {
+  return slices.run({ deadline: now() + 45_000, progressed: false, now, onProgress }, work);
 }
 
 /** Call only after a mutation of known existing records has been acknowledged. */
 export function recordDeletionProgress(): void {
   const slice = slices.getStore();
-  if (slice) slice.progressed = true;
+  if (slice) {
+    slice.progressed = true;
+    // Deterministic test seam: the callback observes ACKNOWLEDGED progress.
+    // Production code does not supply this optional hook.
+    slice.onProgress?.();
+  }
 }
 
 export function checkDeletionSlice(): void {

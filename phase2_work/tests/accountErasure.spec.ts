@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionStoragePageComplete, DeletionTimeSliceComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -192,6 +192,76 @@ describe('account erasure including archived messages and photos', () => {
     } finally {
       const cleanup = db.batch();
       for (const ref of [...owned, unrelated, profile, job]) cleanup.delete(ref);
+      await cleanup.commit();
+    }
+  }, 120_000);
+
+  it.runIf(
+    /^(localhost|127[.]0[.]0[.]1|\[::1\]):[0-9]{1,5}$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+    && Boolean(process.env.FIREBASE_STORAGE_EMULATOR_HOST)
+    && process.env.NODE_ENV !== 'production'
+    && [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID]
+      .filter(Boolean).every(id => id === 'demo-klar')
+  )('resumes after 400 acknowledged registry deletions and an expired deletion time slice', async () => {
+    const db = getDb();
+    const uid = 'registry-slice-resume-' + randomUUID().replaceAll('-', '');
+    const outsiderUid = 'registry-slice-outsider-' + randomUUID().replaceAll('-', '');
+    const requestId = randomUUID();
+    const prefix = randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase();
+    const registry = db.collection('member_referral_code_registry');
+    const code = (n: number) => prefix + n.toString(36).toUpperCase().padStart(6, '0');
+    const owned = Array.from({ length: 401 }, (_, n) => registry.doc(code(n)));
+    const outsider = registry.doc(code(401));
+    const profile = db.collection('users').doc(uid);
+    const job = db.collection('account_deletions').doc(uid);
+    try {
+      const setup = db.batch();
+      setup.set(profile, { name: 'Synthetic resumable deletion' });
+      setup.set(job, {
+        requestId, status: 'pending', accountingVersion: 2,
+        deletedCounts: emptyDeletionCounts(),
+      });
+      for (const ref of owned) {
+        setup.set(ref, { ownerUid: uid, status: 'active', codeVersion: 1 });
+      }
+      setup.set(outsider, { ownerUid: outsiderUid, status: 'active', codeVersion: 1 });
+      await setup.commit();
+
+      const startedAt = Date.now();
+      let expired = false;
+      let acknowledgedProgress = 0;
+      // Expire the test-only clock only AFTER a real Firestore batch commit
+      // has been acknowledged by recordDeletionProgress(). No data or timing
+      // injection reaches the HTTP API, Cloud Scheduler or production worker.
+      await expect(purgeAccountData(uid, requestId, undefined, {
+        now: () => expired ? startedAt + 60_000 : startedAt,
+        onProgress: () => {
+          acknowledgedProgress += 1;
+          expired = true;
+        },
+      })).rejects.toBeInstanceOf(DeletionTimeSliceComplete);
+
+      expect(acknowledgedProgress).toBe(1);
+      const remaining = await registry.where('ownerUid', '==', uid).get();
+      expect(remaining.size).toBe(1);
+      expect((await profile.get()).exists).toBe(true);
+      expect((await job.get()).data()).toMatchObject({
+        requestId, status: 'pending',
+      });
+      expect((await outsider.get()).data()?.ownerUid).toBe(outsiderUid);
+
+      // Resumption must use the same durable deletion request, not a new
+      // request ID or a replaced in-memory mock database.
+      await purgeAccountData(uid, requestId);
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await profile.get()).exists).toBe(false);
+      expect((await outsider.get()).data()?.ownerUid).toBe(outsiderUid);
+      await purgeAccountData(uid, requestId);
+      expect((await registry.where('ownerUid', '==', uid).get()).empty).toBe(true);
+      expect((await outsider.get()).data()?.ownerUid).toBe(outsiderUid);
+    } finally {
+      const cleanup = db.batch();
+      for (const ref of [...owned, outsider, profile, job]) cleanup.delete(ref);
       await cleanup.commit();
     }
   }, 120_000);
