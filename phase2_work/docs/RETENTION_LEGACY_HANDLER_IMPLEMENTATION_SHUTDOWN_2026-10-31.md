@@ -14,6 +14,14 @@ Auf dem geprüften vorherigen Commit `03180776003eac4ef2d3268cfd217228eccf508e` 
 - **Negativtests:** Vier zusätzliche Mutationsfälle erkennen die direkte Wiedereinführung eines GCS-Upload-Writers, eines Firestore-Verification-Events-Writers, eines nicht-retired Submit-Handlers sowie die Änderung von 410 auf 200 im internen Legacy-Handler.
 - **Verhaltensprüfung:** `tests/legacyCoreRetired.spec.ts` ruft alle vier Compatibility-Handler ohne authentifizierten Nutzer auf und erwartet den festen 410-Response. Die bestehenden 25 lokalen HTTP-Routen-Checks im Parent-Branch testen ergänzend das externe Router-Verhalten.
 
+## 31.10.2026 – CI-Verifikation und präzise Testfehlerursache
+
+Der erste exakte [CI-Lauf #41184433964](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41184433964) zu diesem Draft-PR endete mit **FAIL** in `Enterprise static gates`; Typecheck, Functions-Build, Tests, Build und Browser-Acceptance waren **übersprungen**, nicht bestanden. Das neue Source-Gate hatte den gültigen Implementierungszustand bereits als PASS akzeptiert; **zwei Mutationstests** scheiterten anschließend: `reintroduce direct GCS writer in legacy core` erwartete eine Exception, erhielt aber keine, und `reintroduce active manual submit implementation` konnte den Source-Fixture-String nicht verändern.
+
+Root Cause: Beide Testmutationen enthielten die **wörtlichen Zeichen** `\\n` statt eines durch die JavaScript-String-Literal-Auswertung entstehenden Zeilenumbruchs. Der kombinierte `getAppBucket`-Identifier war deshalb nicht durch eine Wortgrenze getrennt; beim Handler-Replacement traf der Suchtext nicht auf den tatsächlichen Funktionsblock. **Fix ausschließlich in `scripts/test-legacy-verification-writer-fence.mjs`**: korrekt einfach maskierte JavaScript-Newline-Literale. Die vier inaktiven 410-Handler und ihre Security-Gates bleiben unverändert.
+
+**Ein neuer CI-PASS auf dem exakten Folge-Commit ist erforderlich** und darf nicht vorweggenommen werden. Diese Tests betreffen ausschließlich Quelltext-/Mutationsevidenz, nicht eingesetzte GCS-/IAM-Konfigurationen oder bereits vorhandene Biometrieobjekte.
+
 ## Evidenzgrenzen / Freigabesicherung
 
 - Der [vorherige #235 CI-PASS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41183124372) **gilt nur für den alten Commit**. Für den jetzt geänderten Feature-Branch ist die eigene vollständige CI einschließlich Typecheck, Unit-/Emulator-Tests, Build und Browser-Acceptance nachzuweisen; nicht ausgeführte Schritte bleiben offen.
