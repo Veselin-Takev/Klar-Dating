@@ -1,6 +1,8 @@
 import { closeSync, constants, fstatSync, openSync, readSync, realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import { preflightSignedLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationAttestation';
+import {
+  parseMigrationSignatureEnvelopeBytes, preflightSignedLegacyProfileMapping,
+} from '../src/server/multitenant/tenantMigrationAttestation';
 
 // Read only regular files at canonical absolute paths under strict byte caps.
 // The final O_NOFOLLOW alone does NOT protect symlinked parent directories.
@@ -54,7 +56,7 @@ function main(argv: readonly string[]): void {
   }
   const inventoryBytes = readBoundedFile(inventoryPath, 2 * 1024 * 1024);
   const mappingBytes = readBoundedFile(mappingPath, 2 * 1024 * 1024);
-  const envelope = JSON.parse(readBoundedFile(signaturesPath, 16384).toString('utf8')) as unknown;
+  const envelope = parseMigrationSignatureEnvelopeBytes(readBoundedFile(signaturesPath, 16384));
   const trustAnchorBytes = readBoundedFile(anchorPath, 16384);
   const report = preflightSignedLegacyProfileMapping({
     inventoryBytes, mappingBytes, signatureEnvelope: envelope,

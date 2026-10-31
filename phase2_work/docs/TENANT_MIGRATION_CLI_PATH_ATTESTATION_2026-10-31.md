@@ -20,3 +20,8 @@
 Die Tests beweisen weder die **tatsächliche** Herkunft aus Firestore noch die wirksame Widerrufbarkeit des Trust-Anchors, Signer-Rollenberechtigung, Snapshot-Freshness, Art.-17-Compliance, IAM-/Rules-Konfiguration oder Chat-/Payment-/KYC-BOLA/IDOR. `--dry-run` bleibt der einzige CLI-Modus und der erfolgreiche Output bleibt `BLOCKED_MANUAL_APPROVAL_REQUIRED`; es gibt **keinen** Live-Executor oder Secret-Upload.
 
 Zusätzlich sind die ausdrücklich angeforderten externen npm-audit-/Semgrep-/Gitleaks-/ESLint-Gates im aktiven Enterprise-CI nicht vollständig durch exakte SHA-gebundene Logs nachgewiesen (Issue #8). **Keine globale Freigabe, kein Merge, kein Deployment. Production BLOCKED / NO-GO.**
+
+## CLI-Negativtests für die nicht signierte Signatur-Hülle (31.10.2026)
+
+Der genaue Read-only-CLI-Testpfad akzeptierte bisher eine mehrdeutige `signatures.json`-Datei, wenn `JSON.parse` den letzten von zwei gleich benannten Signatur- oder Versionsschlüsseln als gültig interpretierte. Der neue Parser zwingt für die Signaturdatei ebenfalls reproduzierbares, strikt dekodiertes JSON und die unveränderte Zod-Signaturhülle. Fehlformate werden fail-closed verweigert. [Vollständige Bewertung](SIGNED_SIGNATURE_ENVELOPE_CANONICALIZATION_2026-10-31.md). Diese zusätzliche Prüfung macht die bereits dokumentierte Pfadöffnung **nicht** racefrei.
+
