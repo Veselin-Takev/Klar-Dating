@@ -188,7 +188,8 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
-  it('does not return a false clean 200 after failed rows on an earlier bounded scan invocation', async () => {
+  it.each(['persisted_failures', 'legacy_unknown_cursor'] as const)(
+    'does not return a false clean 200 after earlier failed rows (%s)', async mode => {
     await withEvent(async ({ db, event, path }) => {
       const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
       const initial = await event.get();
@@ -200,11 +201,12 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         ...initial.data(), storagePath: laterPath,
         fotoLoeschenAb: new Date(Date.now() - 3_600_000),
       });
-      // Represents a prior invocation that already committed a failed page.
-      // Resume after its last event, as a real 100-item bounded scan would.
+      // Either a checkpoint with recorded earlier failures or a legacy
+      // cursor with no reliable failure bit. Both must fail closed.
       await checkpoint.set({
         cursor: { seconds: due.seconds, nanos: due.nanoseconds, id: event.id },
-        cycleHadFailures: true, leaseId: null, leaseUntil: null,
+        ...(mode === 'persisted_failures' ? { cycleHadFailures: true } : {}),
+        leaseId: null, leaseUntil: null,
       });
       let deletes = 0;
       const api = await startApi(db, async target => {
