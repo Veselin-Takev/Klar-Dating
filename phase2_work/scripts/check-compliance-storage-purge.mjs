@@ -107,4 +107,18 @@ for (const token of [
     throw new Error('Compliance storage purge boundary failed: unverified scheduler response contract');
   }
 }
+// A forged/completely inconsistent page count cannot be accepted as a
+// successful scheduler receipt even when aggregate record counters match.
+for (const proof of [
+  'const MAX_PURGE_PAGE_SIZE = 25;',
+  'if (pages === 0) return processed === 0;',
+  'processed > (pages - 1) * MAX_PURGE_PAGE_SIZE',
+  'processed <= pages * MAX_PURGE_PAGE_SIZE',
+  '!(pages === 4 && processed === 100)',
+  '!validPageExtent(receipt.processed, receipt.pages)',
+]) {
+  if (!completion.includes(proof)) {
+    throw new Error('Compliance storage purge boundary failed: impossible page/record extent accepted');
+  }
+}
 console.log('Compliance storage purge boundary: PASS');

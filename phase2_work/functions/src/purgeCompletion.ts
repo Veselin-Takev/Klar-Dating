@@ -20,6 +20,20 @@ function validCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
+/**
+ * scanPurgePages only counts nonempty pages. Every page before the last
+ * contains 25 rows; on the fourth full page it returns hasMore:true.
+ * A "complete" receipt can therefore never claim 100 rows in 4 pages.
+ */
+const MAX_PURGE_PAGE_SIZE = 25;
+function validPageExtent(processed: unknown, pages: unknown): boolean {
+  if (!validCount(processed) || !validCount(pages)) return false;
+  if (pages === 0) return processed === 0;
+  return processed > (pages - 1) * MAX_PURGE_PAGE_SIZE
+    && processed <= pages * MAX_PURGE_PAGE_SIZE
+    && !(pages === 4 && processed === 100);
+}
+
 export function assertCompletedVerificationPurge(value: unknown): asserts value is PurgeCompletion {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('verification_purge_response_invalid');
@@ -35,6 +49,7 @@ export function assertCompletedVerificationPurge(value: unknown): asserts value 
       !validCount(receipt.pages) ||
       receipt.pages > 4 ||
       receipt.processed > 100 ||
+      !validPageExtent(receipt.processed, receipt.pages) ||
       receipt.purgedCount + receipt.skippedCount !== receipt.processed) {
     throw new Error('verification_purge_response_incomplete_or_invalid');
   }

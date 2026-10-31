@@ -24,6 +24,15 @@ describe('scheduled verification-photo purge completion contract (P0 #202)', () 
   });
 
   it.each([
+    ['full first page followed by empty fetch', { ...complete, processed: 25, purgedCount: 24, skippedCount: 1, pages: 1 }],
+    ['two-page exact boundary after empty fetch', { ...complete, processed: 50, purgedCount: 49, skippedCount: 1, pages: 2 }],
+    ['three-page partial final page', { ...complete, processed: 51, purgedCount: 50, skippedCount: 1, pages: 3 }],
+    ['four-page partial final page', { ...complete, processed: 99, purgedCount: 98, skippedCount: 1, pages: 4 }],
+  ])('accepts only scan-reachable complete page extents: %s', async (_label, receipt) => {
+    await expect(assertPurgeSchedulerResponse(response(receipt))).resolves.toBeUndefined();
+  });
+
+  it.each([
     ['HTTP 202 Accepted', response(complete, 202)],
     ['HTTP 204 No Content', new Response(null, { status: 204 })],
     ['HTTP 206 Partial Content', response(complete, 206)],
@@ -51,6 +60,12 @@ describe('scheduled verification-photo purge completion contract (P0 #202)', () 
     ['skipped count overflow', { ...complete, skippedCount: 2 }],
     ['fractional processed count', { ...complete, processed: 3.5 }],
     ['fractional page count', { ...complete, pages: 0.5 }],
+    ['nonempty receipt with zero pages', { ...complete, pages: 0 }],
+    ['empty receipt with one page', { ...complete, processed: 0, purgedCount: 0, skippedCount: 0, pages: 1 }],
+    ['two pages but fewer than 26 rows', { ...complete, processed: 25, purgedCount: 24, skippedCount: 1, pages: 2 }],
+    ['two pages but more than 50 rows', { ...complete, processed: 51, purgedCount: 50, skippedCount: 1, pages: 2 }],
+    ['three pages without two full preceding pages', { ...complete, processed: 26, purgedCount: 25, skippedCount: 1, pages: 3 }],
+    ['four full pages falsely marked complete', { ...complete, processed: 100, purgedCount: 99, skippedCount: 1, pages: 4 }],
     ['page count exceeds scanner cap', { ...complete, pages: 5 }],
     ['processed count exceeds scanner cap', { ...complete, processed: 101, purgedCount: 100, skippedCount: 1 }],
     ['empty receipt', {}],

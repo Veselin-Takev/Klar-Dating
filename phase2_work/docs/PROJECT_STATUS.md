@@ -1,3 +1,11 @@
+## P0 #202 – Scanner-Seitenumfang in Scheduler-Erfolgsbeleg fail-closed (31.10.2026)
+
+Auf dem isolierten Parent [Draft #243](https://github.com/Veselin-Takev/Klar-Dating/pull/243) prüft der neue Branch `fix/202-purge-page-count-receipt-invariants-20261031` zusätzlich die **Unvereinbarkeit von Seiten-/Datensatzzählern** im signierten Retention-API-Receipt. Leere Scanzyklen müssen 0 Seiten/0 Datensätze zeigen; positive Seitenzahlen erfordern 25 volle vorangehende Seiten und eine nichtleere letzte Seite. Vier volle Seiten/100 Elemente können bei `hasMore:false` nie vollständig sein. Sechs negative und vier positive Antwortvertrags-Regressionen plus Pflichtquellgate ergänzen die bisherige bounded-JSON-Scheduler-Validierung. [Technischer Bericht](RETENTION_PURGE_PAGE_COUNT_RECEIPT_2026-10-31.md).
+
+**Nicht als CI- oder Production-GO bestätigt:** exakter neuer Head muss noch vollständig durch Enterprise CI, unabhängigen Review und reale Storage-/Scheduler-/IAM-/Art.-17-Evidenz gehen. Keine produktiven Löschungen, kein Merge/Deployment, **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #202 – Signed Photo-Purge-Scheduler prüft vollständigen API-Erfolgsbeleg (31.10.2026)
 
 Die Cloud-Funktion `purgeVerificationStorageCron` wertete bislang ausschließlich `response.ok` aus. Ein HTTP 200 mit ungültiger, unvollständiger oder widersprüchlicher Audit-Antwort konnte dadurch als erfolgreich quittiert werden. Im isolierten Branch `fix/202-scheduler-purge-response-contract-20261031` auf [PR #242](https://github.com/Veselin-Takev/Klar-Dating/pull/242) akzeptiert der neue Helper `functions/src/purgeCompletion.ts` deshalb nur einen **begrenzten (2 KiB) JSON-Response** mit `ok:true`, `failedCount:0`, `hasMore:false`, `unresolvedEarlierPages:false` und widerspruchsfreien sicheren Integer-Zählern. HTTP-Fehler, leere/HTML-/überlange Antworten und unechte Erfolgsmeldungen führen in den Scheduler-Fehler-/Retry-Pfad. Neue Positiv-/Negativtests und das verpflichtende `check:compliance-storage-purge`-Gate sind enthalten. [Technischer Audit](RETENTION_PURGE_SCHEDULER_RESPONSE_RECEIPT_2026-10-31.md).
