@@ -188,6 +188,83 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('does not return a false clean 200 after failed rows on an earlier bounded scan invocation', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
+      const initial = await event.get();
+      const due = initial.get('fotoLoeschenAb') as Timestamp;
+      const afterEvent = db.collection('verification_events').doc('http-followup-' + randomUUID().replace(/-/g, ''));
+      const laterPath = path.replace('capture.jpg', 'followup.jpg');
+      await event.update({ photoUploadGeneration: null }); // unresolved failed row
+      await afterEvent.set({
+        ...initial.data(), storagePath: laterPath,
+        fotoLoeschenAb: new Date(Date.now() - 3_600_000),
+      });
+      // Represents a prior invocation that already committed a failed page.
+      // Resume after its last event, as a real 100-item bounded scan would.
+      await checkpoint.set({
+        cursor: { seconds: due.seconds, nanos: due.nanoseconds, id: event.id },
+        cycleHadFailures: true, leaseId: null, leaseUntil: null,
+      });
+      let deletes = 0;
+      const api = await startApi(db, async target => {
+        expect(target).toBe(laterPath);
+        deletes++;
+      });
+      try {
+        const remainder = await api.request();
+        expect(remainder).toMatchObject({
+          status: 503,
+          data: {
+            ok: false, processed: 1, purgedCount: 1, failedCount: 0,
+            hasMore: false, unresolvedEarlierPages: true,
+          },
+        });
+        expect(deletes).toBe(1);
+        expect((await event.get()).data()?.photoPurged).toBe(false);
+        expect((await afterEvent.get()).data()?.photoPurged).toBe(true);
+        const checkpointAfter = (await checkpoint.get()).data();
+        expect(checkpointAfter?.cursor).toBeNull();
+        expect(checkpointAfter?.cycleHadFailures).toBe(false);
+
+        // A new full sweep must still detect the unresolved row; only
+        // actual resolution followed by a clean sweep may return 200.
+        const stillIncomplete = await api.request();
+        expect(stillIncomplete).toMatchObject({
+          status: 503, data: {
+            failedCount: 1, purgedCount: 0, unresolvedEarlierPages: false,
+          },
+        });
+        await event.update({ photoUploadGeneration: '773' });
+        const recovered = await api.request();
+        expect(recovered).toMatchObject({
+          status: 200, data: {
+            failedCount: 0, purgedCount: 1, unresolvedEarlierPages: false,
+          },
+        });
+      } finally {
+        await api.close();
+        await afterEvent.delete();
+      }
+    });
+  }, 90_000);
+
+  it('rejects malformed persisted cross-invocation failure markers', async () => {
+    await withEvent(async ({ db }) => {
+      const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
+      await checkpoint.set({ cycleHadFailures: 'false', leaseId: null, leaseUntil: null });
+      const api = await startApi(db, async () => { throw Error('must not delete'); });
+      try {
+        const response = await api.request();
+        expect(response).toMatchObject({
+          status: 503, data: { code: 'verification_storage_purge_unavailable' },
+        });
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('quarantines a legacy event without original upload-generation provenance', async () => {
     await withEvent(async ({ db, event }) => {
       await event.update({ photoUploadGeneration: null });
