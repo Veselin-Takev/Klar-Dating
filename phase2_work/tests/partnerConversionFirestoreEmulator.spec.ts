@@ -63,17 +63,17 @@ async function fixture() {
   // Register cleanup BEFORE the first write to prevent orphaned test data.
   activeFixtures.push({ campaignId, paths });
   const batch = db.batch();
-  batch.set(db.doc(paths[0]), {
+  batch.set(db.doc(paths[0]!), {
     isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1,
   });
-  batch.set(db.doc(paths[1]), {
+  batch.set(db.doc(paths[1]!), {
     isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1,
   });
-  batch.set(db.doc(paths[2]), {
+  batch.set(db.doc(paths[2]!), {
     slug, status: 'active', brandVerified: true, deletedAt: null,
     rewardLabel: 'Nonpayable emulator test', qualifiedConversions: 0,
   });
-  batch.set(db.doc(paths[3]), {
+  batch.set(db.doc(paths[3]!), {
     ownerUid: owner, campaignId, version: 1, status: 'active',
   });
   await batch.commit();
