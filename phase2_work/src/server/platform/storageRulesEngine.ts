@@ -4,10 +4,10 @@
  * Formal verification and execution model for storage.rules:
  * - /verification/{uid}/{datei}:
  *   - read: false (Strict zero-read Art. 9 biometric data protection)
- *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
+ *   - write: server-owned reader adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
  *   - delete: false (only server-side admin cleanup)
  * - /profiles/{uid}/{datei}:
- *   - read: requester adult + target owner adult + signedIn() + !istGast()
+ *   - read: server-owned Firestore adult status for reader + target + signedIn() + !istGast()
  *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
  *   - delete: adult gate + signedIn() + !istGast() + auth.uid == uid
  */
@@ -18,7 +18,6 @@ export interface StorageAuthContext {
     firebase?: {
       sign_in_provider?: string;
     };
-    isAdult?: boolean;
     [key: string]: unknown;
   };
 }
@@ -32,6 +31,8 @@ export interface StorageSecurityRequest {
   operation: 'read' | 'write' | 'delete';
   path: string;
   auth: StorageAuthContext | null;
+  /** Derived from server-owned Firestore users/{auth.uid}.isAdult, not a JWT age claim. */
+  requesterUserIsAdult?: boolean;
   /** Server-resolved adult state of the target profile owner. Required for profile reads. */
   targetUserIsAdult?: boolean;
   resource?: StorageResourceContext;
@@ -117,7 +118,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Verifizierungsfotos hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
+      if (request.requesterUserIsAdult !== true) {
         return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (!isOwner) {
@@ -146,7 +147,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder lesen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
+      if (request.requesterUserIsAdult !== true) {
         return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (request.targetUserIsAdult !== true) {
@@ -163,7 +164,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
+      if (request.requesterUserIsAdult !== true) {
         return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (!isOwner) {
@@ -187,7 +188,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (isGuest) {
         return { allowed: false, reason: 'Gäste dürfen keine Profilbilder löschen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
       }
-      if (request.auth?.token?.isAdult !== true) {
+      if (request.requesterUserIsAdult !== true) {
         return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
       }
       if (!isOwner) {
