@@ -37,6 +37,10 @@ Die Offline-Mutationssuite `scripts/check-public-firestore-rules.test.mjs` umfas
 
 **Weitere Grenze:** Reguläre Ausdrücke sind keine vollständige semantische Firestore-Rules-Analyse. Für verschachtelte Match-Blocks, Ausnahmen, indirekte Freigaben und reale Multi-Tenant-RBAC-/Art.-17-Eigenschaften bleiben ein echter Rules-Compiler/Emulator und unabhängige Code-/Security-Reviews zwingend. Keine neue GitHub-CI wegen des bereits erreichten 100-Minuten-Vorsichtslimits.
 
+## Aktualisierung vom 31.10.2026: bisherige Minutenbegrenzung aufgehoben
+
+Der Repository-Owner hat ausdrücklich bestätigt, dass **keine GitHub-Actions-Minutenbegrenzung mehr gilt**. Der nachstehende Abschnitt zu den zuvor geschätzten 100,2 Minuten ist nur noch historische Governance-Evidenz, **keine aktuelle Ausführungssperre**. Die exakten Rules- und CI-Gates werden jetzt in einem isolierten gestapelten Draft-PR ausgelöst; Merges, produktive Daten-/Rules-/IAM-Änderungen und Deployments bleiben untersagt. [Verbindlicher Rules-CI-Audit](FIRESTORE_EMULATOR_MANDATORY_CI_2026-10-31.md).
+
 ## Laufzeit-/Budget-Governance
 
 Die 13 überprüften Enterprise-Workflow-Läufe von #253 bis #266 dauern gemäß GitHub-Zeitstempeln zusammen **ca. 100,2 Minuten**. Das ist eine Schätzung der abgelaufenen Laufzeiten und **keine** offizielle GitHub-Billing-Zahl. Entsprechend der vereinbarten Grenze von maximal 100 zusätzlichen Actions-Minuten wird **kein weiterer PR mit automatischem CI-Trigger** und kein Workflow-Neustart ohne neue ausdrückliche Budgetfreigabe vorgenommen. Der isolierte Branch-Commit allein löst unter der derzeitigen GitHub-Workflow-Konfiguration (`push: main`, `pull_request`) keine CI aus. Die Änderung gilt als **unverifiziert**, solange kein echter Emulator-Test und unabhängige Reviews vorliegen.

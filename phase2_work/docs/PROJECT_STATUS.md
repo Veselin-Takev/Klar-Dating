@@ -1,3 +1,9 @@
+## P0 #254 – Rules-Emulator als verpflichtendes SHA-gebundenes CI-/Release-Gate (31.10.2026)
+
+Die bisherige GitHub-Actions-100-Minuten-Grenze wurde vom Repository-Owner ausdrücklich **aufgehoben**. Der isolierte Rules-Fix-Branch ergänzt den fehlenden **eigenständigen** CI-Schritt `Firestore rules emulator` (`npm run test:rules`, `demo-klar`, Node 22.23.3, Java 21). Der Schritt ist zugleich in den `REQUIRED_STEPS` des Release-CI-Verifiers vorgeschrieben; der zusätzliche Regressionstest prüft seine Einbindung und Reihenfolge. [Audit und Risiken](FIRESTORE_EMULATOR_MANDATORY_CI_2026-10-31.md). Der weitere vollständige CI-PASS, echte Tenant-Isolation der späteren Live-Rules, Storage/Art17/BOLA/IDOR und unabhängige Fachfreigaben sind weiterhin ausstehend. Kein automatisches GO, kein Merge oder Deploy. **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #254 – Public-Firestore-Gate prüft nun beide Firebase-Regeldateien (31.10.2026)
 
 Die Quellprüfung identifizierte, dass sowohl `firebase.json` im Root als auch `phase2_work/firebase.json` jeweils auf ein eigenes `firestore.rules` verweisen. Der statische `check-public-firestore-rules`-Gate untersuchte öffentliche `allow`-Statements und das `public_profiles`-Alters-Gate zuvor nur in Phase2, obwohl Root ebenfalls ein Deployment-Einstieg ist. Der isolierte Feature-Branch prüft jetzt beide Regeldateien und verifiziert die Regeln-Pfade der beiden Firebase-Konfigurationen fail-closed. Acht vorbereitete Offline-Mutationstests decken u. a. einen unautorisierten öffentlichen Root-Zugriff und fehlende Erwachsenen-Gates ab. [Audit](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md).

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 export const REQUIRED_STEPS = [
   'Scope regression tests', 'Runtime policy preflight', 'Release policy regression tests',
   'Dependency lock preflight', 'Install dependencies', 'Enterprise static gates',
-  'Typecheck', 'Functions build', 'Tests', 'Build', 'Production smoke', 'Browser acceptance',
+  'Typecheck', 'Functions build', 'Tests', 'Firestore rules emulator', 'Build', 'Production smoke', 'Browser acceptance',
 ];
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
 
