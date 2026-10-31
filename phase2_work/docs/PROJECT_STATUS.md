@@ -1,3 +1,9 @@
+## Multi-Tenant Strict-Typecheck Regression – 31.10.2026
+
+[Enterprise CI #41211727208](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211727208): statische Enterprise-Gates und **17/17** neue Tenant-Negativtests PASS. Der strenge Typecheck hat zwei reine Testtypfehler (TS6133/TS2352) erkannt; diese wurden auf dem isolierten PR-Branch korrigiert. Erneute vollständige exact-head CI Pflicht, weiterhin **BLOCKED / NO-GO**. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md).
+
+---
+
 ## Multi-Tenant P0-Catalog Gate – 31.10.2026
 
 Der Enterprise-CI-Lauf [#41211522340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211522340) des ersten Multi-Tenant-Draft-Heads scheiterte korrekt am DSGVO-Katalog: `tenants` war neu und noch nicht klassifiziert. Die nachgeführte `sonderfall`-Entscheidung darf ausdrücklich **nicht** als Kontolösch-Cascade verstanden werden; einzelne Mandantenmitglieder und deren Unterkollektionen sind bis zur geprüften Art.-17-Migration P0-blockiert. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). Keine Global-Cutover, kein Production-GO.

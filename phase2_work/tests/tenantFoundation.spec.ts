@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { Request, Response, NextFunction } from 'express';
 import {
-  authorizeTenant, createTenantMiddleware, TenantAccessDenied,
+  authorizeTenant, createTenantMiddleware,
   type TenantAuthDependencies, type TenantContext,
 } from '../src/server/multitenant/tenantAuth';
 import { resolveTenantConfig, safeDeepMerge } from '../src/server/multitenant/tenantConfig';
@@ -92,7 +92,7 @@ describe('Tenant zero-trust identity and routing', () => {
     deniedRes.status.mockReturnValue(deniedRes);
     await createTenantMiddleware(dependency(), 'klar.example')({
       ...req, headers: { authorization: 'Bearer abc.def.ghi', 'x-tenant-id': 'tenant-two' },
-    } as Request, deniedRes as unknown as Response, next);
+    } as unknown as Request, deniedRes as unknown as Response, next);
     expect(deniedRes.status).toHaveBeenCalledWith(403);
     expect(deniedRes.json).toHaveBeenCalledWith({ code: 'tenant_access_denied' });
     expect(next).toHaveBeenCalledTimes(1);
