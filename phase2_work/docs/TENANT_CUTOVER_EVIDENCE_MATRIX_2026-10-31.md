@@ -37,3 +37,8 @@ Green CI on #267 establishes **only** the code tested on that commit. It does **
 
 Run from `phase2_work`: `node scripts/inventory-tenant-access.mjs > tenant-access-candidates.json`. This scans `src/` and `functions/src/` with deterministic file ordering; it emits source-relative paths, source SHA-256, category and line numbers only, without snippets, cloud calls, customer IDs or credentials. Keep the resulting JSON in approved audit storage, **not** in a public commit if filenames themselves are sensitive. The tool is intentionally limited to static textual candidate matching; false positives and false negatives are expected (e.g. aliased imports, dynamic API access, generated code and non-source deployment configurations). A reviewer must independently enumerate Firebase rules, bucket policies, jobs, SDK wrappers, all repository roots, subcollections, UID links, mutations and deletion handlers. Running the utility has not been verified in this environment and does not discharge any acceptance criterion in #254.
 
+
+## Deterministic inventory CI regression (new, unverified head)
+
+The isolated draft now contains `scripts/inventory-tenant-access.test.mjs` and wires `npm run check:tenant-inventory` into `check:enterprise`. The test launches the inventory twice, requires identical output, nonempty candidate results, exact source SHA-256 integrity, bounded source-relative paths and a minimum output schema without code snippets. This detects inventory drift or serialization failures; it **does not** confirm all privileged call sites are enumerated or that access policies are correct. The exact new PR head requires a fresh CI pass; previous passing runs do not prove this commit.
+
