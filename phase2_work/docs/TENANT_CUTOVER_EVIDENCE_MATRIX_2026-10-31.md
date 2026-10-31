@@ -56,3 +56,8 @@ Static matching originally omitted any source file without recognized signatures
 
 An additional regression now demands that the source manifest include the root Express entrypoint, tenant-auth, tenant Admin SDK read adapter and biometric-retention module. It also checks deterministic path order, recognized hit categories, category membership and line-number bounds. This is a guard against *accidental exclusion* of known high-risk modules, not a review of access authorization. New commit `cd2373c3c30ced6b9f6ebeb06c59f8c6853e28e6` requires fresh CI evidence and independent code review. No test result for this commit is asserted here.
 
+
+## 2026-11-01 — CI failure triage: stacked-branch integration gap
+
+Exact previous head `5e0a5707ebbeb89b43632be77e38639316e255e8` failed [Enterprise CI #41251895105](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41251895105) in `Enterprise static gates`: `check:tenant-inventory` asserted the presence of `src/server/multitenant/tenantAuth.ts` on a PR #268 checkout based on `main`, although the file currently exists only in stacked, unmerged tenant PR history. This was a test topology failure; it does **not** mean the tenant authorization implementation passed or failed in this checkout. The test now requires root `server.ts` and `functions/src/retention.ts` unconditionally, and for each stacked multitenant module checks that its inventory inclusion exactly matches on-disk existence. The absent module remains an explicit **unintegrated prerequisite**, never a security PASS. This narrower change requires successful exact-head CI before considering PR #268 validated. A later upstream merge must rerun the inventory test and independently examine the real tenant authentication/migration paths.
+
