@@ -22,7 +22,10 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
   assert.ok(data.files.length > 0, 'inventory may not silently scan an empty tree');
   const paths = data.files.map(f => f.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.ok(paths.includes('server.ts'), 'Express entrypoint must be included');
+  for (const required of ['server.ts', 'src/server/multitenant/tenantAuth.ts', 'src/server/multitenant/tenantData.ts', 'functions/src/retention.ts']) {
+    assert.ok(paths.includes(required), `critical authorization or retention module omitted: ${required}`);
+  }
+  assert.deepEqual(paths, [...paths].sort((a, b) => a.localeCompare(b, 'en')), 'noncanonical path order');
   for (const f of data.files) {
     assert.match(f.path, /^(?:src\/|functions\/src\/|server\.ts$)/);
     assert.doesNotMatch(f.path, /\.\.(?:\/|\\)/);
@@ -30,9 +33,14 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
     const raw = readFileSync(resolve(workdir, f.path));
     assert.equal(f.sha256, createHash('sha256').update(raw).digest('hex'));
     assert.ok(Array.isArray(f.hits), 'zero-hit source files must remain in inventory');
+    const lines = raw.toString('utf8').split(/\r?\n/);
+    const allowed = new Set(['admin_firestore', 'firestore_client', 'storage_access', 'user_sensitive_path', 'database_mutation']);
+    assert.deepEqual(f.categories, [...f.categories].sort());
     for (const hit of f.hits) {
       assert.ok(Number.isSafeInteger(hit.line) && hit.line > 0);
-      assert.equal(typeof hit.category, 'string');
+      assert.ok(hit.line <= lines.length, 'hit beyond source line count');
+      assert.ok(allowed.has(hit.category), 'unrecognized inventory category');
+      assert.ok(f.categories.includes(hit.category));
       assert.deepEqual(Object.keys(hit).sort(), ['category', 'line']);
     }
     assert.deepEqual(Object.keys(f).sort(), ['categories', 'hits', 'path', 'sha256']);
