@@ -20,12 +20,17 @@ export function createTenantReadRepository(db: Firestore, context: TenantContext
       if (!doc.exists) return null;
       // A moved or mislabelled document must fail closed, even at the
       // correct hierarchical path. Legacy unlabelled records are denied.
-      const check = z.object({
+      // The Firestore Admin SDK bypasses security rules. Never return a raw
+      // profile: it may carry internal KYC, contact, payment or moderation
+      // fields that a future route must not disclose merely because the
+      // tenant and UID are correct. This adapter is intentionally minimal.
+      const projected = z.object({
         tenantId: z.literal(identity.tenantId),
         uid: z.literal(identity.uid),
+        name: z.string().trim().min(1).max(100).optional(),
       }).safeParse(data);
-      if (!check.success) throw new Error('tenant_record_inconsistent');
-      return data;
+      if (!projected.success) throw new Error('tenant_record_inconsistent');
+      return Object.freeze(projected.data);
     },
     async getFeatureFlag(name: string): Promise<unknown> {
       const key = flagIdSchema.parse(name);
