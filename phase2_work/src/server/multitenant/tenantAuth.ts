@@ -67,8 +67,14 @@ function subdomainHint(hostname: string, baseDomain: string | undefined): string
   if (baseDomain === undefined) return null;
   if (!/^[a-z0-9.-]+$/.test(baseDomain) || baseDomain.includes('..')) throw new TenantAccessDenied(403);
   const host = hostname.toLowerCase();
-  const suffix = '.' + baseDomain.toLowerCase();
-  if (!host.endsWith(suffix)) return null;
+  const trusted = baseDomain.toLowerCase();
+  // A configured ingress domain is a binding security boundary, not merely
+  // a best-effort hint. Reject foreign/unroutable Host values even if the
+  // verified JWT and X-Tenant-ID agree: otherwise proxy/Host confusion could
+  // bypass the deployment's tenant-routing policy.
+  if (host === trusted) return null; // Explicitly permitted shared apex host.
+  const suffix = '.' + trusted;
+  if (!host.endsWith(suffix)) throw new TenantAccessDenied(403);
   const prefix = host.slice(0, -suffix.length);
   return routingHint(prefix);
 }
