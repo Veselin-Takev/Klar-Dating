@@ -1,3 +1,11 @@
+## P0 #202 – Legacy-KYC-Handler in neuester Purge-Stack-Kette abgeglichen (31.10.2026)
+
+SHA-Vergleich von Draft #250 mit Drafts #235/#236 ergab auseinanderlaufende Commit-Historien. Die alte `klarCore.ts` in #250 enthielt trotz eingestellter Express-Routen weiterhin direkt aufrufbare manuelle Biometrie-Mutatoren. Im isolierten Branch `integration/202-retired-legacy-handler-on-purge-stack-20261031` wurden die vier direkten Exporte als **exakt identischer Blob aus #236** auf HTTP 410 fixiert, der geprüfte Source-Guard mit Mutationstests zum Enterprise-Pflichtgate hinzugefügt und 25 echte HTTP-Router-Negativtests übernommen. [Integrationsbericht](RETENTION_LEGACY_HANDLER_STACK_RECONCILIATION_2026-10-31.md).
+
+Dies schließt nicht automatisch die auseinanderlaufenden Commits #231/#233, die gesamte Retention-Verifikation oder die produktive Cloud-IAM-/Scheduler-/Art.-17-Evidenz. Kein Merge/Deployment und kein formales GO; exakte eigene CI und unabhängige Fachreviews erforderlich. **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #202 – Scanner-Seitenumfang in Scheduler-Erfolgsbeleg fail-closed (31.10.2026)
 
 Auf dem isolierten Parent [Draft #243](https://github.com/Veselin-Takev/Klar-Dating/pull/243) prüft der neue Branch `fix/202-purge-page-count-receipt-invariants-20261031` zusätzlich die **Unvereinbarkeit von Seiten-/Datensatzzählern** im signierten Retention-API-Receipt. Leere Scanzyklen müssen 0 Seiten/0 Datensätze zeigen; positive Seitenzahlen erfordern 25 volle vorangehende Seiten und eine nichtleere letzte Seite. Vier volle Seiten/100 Elemente können bei `hasMore:false` nie vollständig sein. Sechs negative und vier positive Antwortvertrags-Regressionen plus Pflichtquellgate ergänzen die bisherige bounded-JSON-Scheduler-Validierung. [Technischer Bericht](RETENTION_PURGE_PAGE_COUNT_RECEIPT_2026-10-31.md).

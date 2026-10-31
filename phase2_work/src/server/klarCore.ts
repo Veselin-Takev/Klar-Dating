@@ -1,6 +1,4 @@
-import { getAppBucket } from './storage';
-import { toPublicProfile } from './platform/launchPlatform';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { Transaction } from 'firebase-admin/firestore';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT (Ab 500 Nutzer)
@@ -17,16 +15,11 @@ import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
 import { ContractError, acceptDeclaration, declarationSchema } from './contracts';
 import {
-  CHALLENGE_TTL_MS,
   DAILY_CONTACTS,
   InputError,
   contactDay,
   entscheideKontakt,
-  optionalString,
-  pruefeChallenge,
   requireString,
-  verifizierungsStatus,
-  waehleGeste,
   withdrawalPossible,
 } from './pure';
 
@@ -204,188 +197,35 @@ export async function handleContactUndo(req: Request, res: Response): Promise<vo
 
 // ── Verifizierung ──────────────────────────────────────────────────────────
 
-export async function handleVerificationStatus(req: Request, res: Response): Promise<void> {
-  try {
-    const d = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
-    const status = verifizierungsStatus(d);
-    res.json({
-      status,
-      begruendung: d.verificationBegruendung ?? null,
-      offeneGeste: status === 'nicht_begonnen' || status === 'abgelehnt' ? (d.verificationGeste ?? null) : null,
-    });
-  } catch (e) {
-    fehler(res, e, '/api/verification/status');
-  }
-}
-
-export async function handleVerificationChallenge(req: Request, res: Response): Promise<void> {
-  const meine = uid(req);
-  try {
-    const d = (await db().collection('users').doc(meine).get()).data() ?? {};
-    if (d.isVerified === true) {
-      res.status(409).json({ error: 'Das Konto ist bereits verifiziert.' });
-      return;
-    }
-    if (d.verificationStatus === 'in_pruefung') {
-      res.status(409).json({ error: 'Es läuft bereits eine Prüfung.' });
-      return;
-    }
-    const geste = waehleGeste(0);
-    await db().collection('users').doc(meine).set(
-      {
-        verificationGeste: geste,
-        verificationChallengeAt: FieldValue.serverTimestamp(),
-        verificationChallengeUsedAt: null,
-      },
-      { merge: true },
-    );
-    res.json({ geste, gueltigSekunden: Math.floor(CHALLENGE_TTL_MS / 1000), pfad: `verification/${meine}/aktuell.jpg` });
-  } catch (e) {
-    fehler(res, e, '/api/verification/challenge');
-  }
-}
-
-export async function handleVerificationSubmit(req: Request, res: Response): Promise<void> {
-  const meine = uid(req);
-  try {
-    const pfad = requireString(req.body?.pfad, 'pfad', 300);
-    const bildBase64 = requireString(req.body?.bildBase64, 'bildBase64', 20000000);
-    const mimeType = requireString(req.body?.mimeType, 'mimeType', 50);
-
-    // Ein fremder Pfad wäre der Versuch, eine fremde Einreichung als eigene
-    // auszugeben.
-    if (!pfad.startsWith(`verification/${meine}/`)) {
-      throw new InputError('Der Pfad gehört nicht zu diesem Konto.');
-    }
-    const d = (await db().collection('users').doc(meine).get()).data() ?? {};
-    if (d.isVerified === true) {
-      res.status(409).json({ error: 'Das Konto ist bereits verifiziert.' });
-      return;
-    }
-    const p = pruefeChallenge({
-      ausgegebenAm: zuDatum(d.verificationChallengeAt),
-      benutztAm: zuDatum(d.verificationChallengeUsedAt),
-    });
-    if (!p.gueltig) {
-      res.status(409).json({
-        grund: p.grund,
-        error: {
-          keine_challenge: 'Bitte zuerst die Geste anfordern.',
-          abgelaufen: 'Die Geste ist abgelaufen. Bitte eine neue anfordern.',
-          bereits_benutzt: 'Diese Geste wurde bereits eingereicht.',
-        }[p.grund],
-      });
-      return;
-    }
-
-    // This is a manual review queue. A generic image model cannot prove identity.
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType) || !/^[A-Za-z0-9+/]+={0,2}$/.test(bildBase64)) {
-      throw new InputError('Ungültiges Bildformat.');
-    }
-    const bytes = Buffer.from(bildBase64, 'base64');
-    if (!bytes.length || bytes.length >= 8 * 1024 * 1024) throw new InputError('Bild ist zu groß oder leer.');
-    const signatureValid = mimeType === 'image/jpeg' ? bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))
-      : mimeType === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-      : bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
-    if (!signatureValid) throw new InputError('Bildinhalt passt nicht zum Format.');
-    await getAppBucket().file(pfad).save(bytes, { metadata: { contentType: mimeType }, resumable: false });
-
-    const antrag = await db().collection('verification_requests').add({
-      uid: meine,
-      geste: d.verificationGeste ?? null,
-      pfad,
-      eingereichtAm: FieldValue.serverTimestamp(),
-      status: 'in_pruefung',
-      entscheidung: null,
-      begruendung: null,
-    });
-    await db().collection('users').doc(meine).set(
-      {
-        verificationStatus: 'in_pruefung',
-        verificationRequestId: antrag.id,
-        verificationPfad: pfad,
-        verificationChallengeUsedAt: FieldValue.serverTimestamp(),
-        verificationBegruendung: null,
-      },
-      { merge: true },
-    );
-    res.json({
-      ok: true,
-      status: 'in_pruefung',
-      vorgang: antrag.id.slice(0, 8).toUpperCase(),
-      hinweis: 'Wir sehen uns das an. Das dauert in der Regel unter 24 Stunden.',
-    });
-  } catch (e) {
-    fehler(res, e, '/api/verification/submit');
-  }
-}
-
 /**
- * Sichtprüfung durch Moderation; Didit entscheidet ausschließlich über signierte Webhooks.
- * Die Rolle kommt aus dem Token (Custom Claim), nicht aus Firestore: Ein
- * Feld im Nutzerdokument könnte im Grenzfall vom Konto selbst geschrieben
- * werden, ein Claim nicht.
+ * The retired manual verification implementation is intentionally inert at
+ * the implementation boundary, not just at the HTTP-router boundary.
+ * Didit signed webhooks are the only active identity decision authority.
+ *
+ * These compatibility exports remain callable by old integrations, but cannot
+ * mutate Firestore, save a biometric blob, or grant identity verification.
  */
-export async function handleVerificationDecide(req: Request, res: Response): Promise<void> {
-  try {
-    let claims: Record<string, unknown> = req.user ? req.user as unknown as Record<string, unknown> : {};
-    try {
-      const konto = await getAuth().getUser(uid(req));
-      if (konto?.customClaims) {
-        claims = { ...claims, ...konto.customClaims };
-      }
-    } catch {
-      // Fallback to token claims if Identity Toolkit API is unreachable
-    }
-    const role = typeof claims.role === 'string' ? claims.role : '';
-    const roles = Array.isArray(claims.roles) ? (claims.roles as unknown[]).filter((value: unknown): value is string => typeof value === 'string') : [];
-    if (claims.moderator !== true && claims.admin !== true && claims.super_admin !== true && role !== 'moderator' && role !== 'trust_safety' && !roles.includes('moderator') && !roles.includes('trust_safety') && !roles.includes('admin') && !roles.includes('super_admin')) {
-      res.status(401).json({ error: 'Nicht berechtigt.' });
-      return;
-    }
-    const ziel = requireString(req.body?.uid, 'uid', 128);
-    const entscheidung = requireString(req.body?.entscheidung, 'entscheidung', 20);
-    if (entscheidung !== 'bestaetigt' && entscheidung !== 'abgelehnt') {
-      throw new InputError('entscheidung muss "bestaetigt" oder "abgelehnt" sein.');
-    }
-    // DSA Art. 17: Eine Ablehnung ist eine Beschränkung und braucht eine
-    // Begründung. Deshalb Pflichtfeld, nicht optional.
-    const begruendung =
-      entscheidung === 'abgelehnt'
-        ? requireString(req.body?.begruendung, 'begruendung', 1000)
-        : optionalString(req.body?.begruendung, 'begruendung', 1000);
+function retiredManualVerification(res: Response): void {
+  res.status(410).json({
+    code: 'verification_retired',
+    error: 'Use the Didit identity verification flow.',
+  });
+}
 
-    const bestaetigt = entscheidung === 'bestaetigt';
-    const firestore = db() as Firestore;
-    await firestore.runTransaction(async tx => {
-      const userRef = firestore.collection('users').doc(ziel);
-      const [user, deletion] = await tx.getAll(userRef, firestore.collection('account_deletions').doc(ziel));
-      if (!user?.exists || deletion?.exists) throw new InputError('Konto nicht verfügbar.');
-      const userData = user.data() ?? {};
-      const requestId = typeof userData.verificationRequestId === 'string' ? userData.verificationRequestId : '';
-      const storagePath = typeof userData.verificationPfad === 'string' ? userData.verificationPfad : '';
-      if (!requestId || !storagePath) throw new InputError('Verifizierungsantrag ist unvollständig.');
-      const requestRef = firestore.collection('verification_requests').doc(requestId);
-      const request = await tx.get(requestRef);
-      if (!request.exists || request.data()?.uid !== ziel) throw new InputError('Verifizierungsantrag ist nicht verfügbar.');
-      if (request.data()?.status !== 'in_pruefung') throw new InputError('Verifizierungsantrag wurde bereits entschieden.');
-      const decidedAt = new Date();
-      const decision = { isVerified: bestaetigt, verificationStatus: entscheidung,
-        verificationBegruendung: begruendung || null, verificationEntschiedenAm: FieldValue.serverTimestamp(),
-        verificationRequestId: null, verificationPfad: null };
-      tx.update(userRef, decision);
-      tx.update(requestRef, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() });
-      tx.create(firestore.collection('verification_events').doc(), { uid: ziel, moderatorUid: uid(req),
-        entscheidung, begruendung: begruendung || null, at: FieldValue.serverTimestamp(), decidedAt,
-        storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
-      const publicProfile = toPublicProfile(ziel, { ...user.data(), ...decision });
-      const publicRef = firestore.collection('public_profiles').doc(ziel);
-      if (bestaetigt && publicProfile) tx.set(publicRef, publicProfile); else tx.delete(publicRef);
-    });
-    res.json({ ok: true, isVerified: bestaetigt });
-  } catch (e) {
-    fehler(res, e, '/api/verification/decide');
-  }
+export async function handleVerificationStatus(_req: Request, res: Response): Promise<void> {
+  retiredManualVerification(res);
+}
+
+export async function handleVerificationChallenge(_req: Request, res: Response): Promise<void> {
+  retiredManualVerification(res);
+}
+
+export async function handleVerificationSubmit(_req: Request, res: Response): Promise<void> {
+  retiredManualVerification(res);
+}
+
+export async function handleVerificationDecide(_req: Request, res: Response): Promise<void> {
+  retiredManualVerification(res);
 }
 
 // ── § 312k Kündigung und § 356a Widerruf ───────────────────────────────────
