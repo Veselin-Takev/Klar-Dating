@@ -62,13 +62,13 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
   });
   it('enforces both authoritatively adult users at actual Storage + Firestore boundary', async () => {
     const path = `profiles/${prefix}/avatar.jpg`;
-    await assertSucceeds(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' }));
+    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertSucceeds(user('another').ref(path).getDownloadURL());
     await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getDownloadURL());
     await assertFails(user(prefix, 'anonymous').ref(path).getDownloadURL());
     await assertFails(user(prefix + '-minor').ref(path).getDownloadURL());
     await assertFails(user('unknown-adult').ref(path).getDownloadURL());
-    await assertFails(user(prefix + '-minor').ref(`profiles/${prefix}-minor/own.jpg`).put(image, { contentType: 'image/jpeg' }));
+    await assertFails(Promise.resolve(user(prefix + '-minor').ref(`profiles/${prefix}-minor/own.jpg`).put(image, { contentType: 'image/jpeg' })));
     await assertFails(user('another').ref(path).delete());
     await assertSucceeds(user(prefix).ref(path).delete());
     // A synthetically existing minor-owned profile cannot be read by adults.
