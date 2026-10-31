@@ -82,3 +82,8 @@ Nach [vollständigem CI-PASS #41239739422](https://github.com/Veselin-Takev/Klar
 
 Nach erfolgreichem [CI #41240658380](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41240658380) von PR #264 fand die Überprüfung des `evaluateTenantFlag()`-Dienstes eine Lücke: Ungültige Flag-IDs scheiterten durch `flagIdSchema.parse` **vor** dem `finally` und hinterließen keine strukturierte Denial-Auditmeldung. Im isolierten Nachfolgefix erfolgt die Validierung nun innerhalb des `try/finally`; das Audit erhält nur den konstanten Platzhalter `[invalid_flag_id]` statt manipulierter/PII-artiger Eingaben. Neu im bestehenden Pflicht-Gate: Negativtests für fehlenden Firestore-Zugriff, exakt einen Denial-Eintrag je Versuch, keine Rohdaten-Leaks und Fail-Closed bei Auditsink-Ausfall. [Security-Review](TENANT_INVALID_FLAG_AUDIT_2026-10-31.md). Kein globales Live-Routing oder Audit-Storage-GO; neuer exakter CI-PASS und unabhängige Freigaben erforderlich. **Production NO-GO.**
 
+
+## Host/Ingress-Policy: fremde Domains nicht länger als fehlender Tenant-Hinweis (31.10.2026)
+
+Die Tenant-Autorisierung erlaubte bislang bei konfigurierter `trustedBaseDomain` einen Host außerhalb des erwarteten Suffixes und behandelte ihn wie einen fehlenden Subdomain-Hinweis. Ein isolierter Folge-Draft verweigert solche Hosts jetzt mit 403 vor Firestore-Lookups; nur der exakt konfigurierte Apex und einfache verifizierbare Tenant-Subdomains bleiben erlaubt. Zwei Tests prüfen verschiedene fremde Hosts sowie die echte Middleware. [Bedrohungsmodell und Host-Grenzen](TENANT_INGRESS_HOST_BOUNDARY_2026-10-31.md). Die produktive Proxy-Konfiguration/Host-Allowlist ist weiterhin separat nachzuweisen. **BLOCKED / NO-GO.**
+

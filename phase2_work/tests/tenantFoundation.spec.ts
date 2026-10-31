@@ -47,6 +47,44 @@ describe('Tenant zero-trust identity and routing', () => {
       await denied(authorizeTenant({ ...baseInput(), hostname }, dependency()), 403);
     }
   });
+  it('enforces configured ingress domain before any tenant/membership Firestore lookup', async () => {
+    const read = vi.fn(dependency().loadTenantAndMembership);
+    const secured = { ...dependency(), loadTenantAndMembership: read };
+    for (const hostname of [
+      'evil.example', 'tenant-one.evil.example',
+      'tenant-one.klar.example.evil', 'tenant-one.klar.example.',
+      'tenant-one.klar.example:443', 'klar.example.evil', '',
+    ]) {
+      await denied(authorizeTenant({ ...baseInput(), hostname }, secured), 403);
+    }
+    // Invalid Host/Forwarded-Host strings must be blocked even if signed JWT,
+    // routing header, and active membership would otherwise agree.
+    expect(read).not.toHaveBeenCalled();
+    await expect(authorizeTenant({ ...baseInput(), hostname: 'klar.example' }, secured))
+      .resolves.toMatchObject({ tenantId, uid, roles: ['user'] });
+    await expect(authorizeTenant({
+      ...baseInput(), hostname: 'KLAR.EXAMPLE', headerTenant: undefined,
+    }, secured)).resolves.toMatchObject({ tenantId, uid });
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+  it('middleware denies foreign hosts without minting a tenant context', async () => {
+    const reads = vi.fn(dependency().loadTenantAndMembership);
+    const guarded = createTenantMiddleware({
+      ...dependency(), loadTenantAndMembership: reads,
+    }, 'klar.example');
+    const next = vi.fn() as unknown as NextFunction;
+    const res = { locals: {}, status: vi.fn(), json: vi.fn() };
+    res.status.mockReturnValue(res);
+    await guarded({
+      headers: { authorization: 'Bearer abc.def.ghi', 'x-tenant-id': tenantId },
+      hostname: 'outside.example',
+    } as unknown as Request, res as unknown as Response, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ code: 'tenant_access_denied' });
+    expect(next).not.toHaveBeenCalled();
+    expect(res.locals).not.toHaveProperty('tenantContext');
+    expect(reads).not.toHaveBeenCalled();
+  });
   it('denies absent, malformed or failed Firebase verification before DB lookup', async () => {
     const lookup = vi.fn(async () => ({ tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'active', roles: ['user'] } }));
     for (const authorization of [undefined, 'Basic abc', 'Bearer anything with spaces']) {

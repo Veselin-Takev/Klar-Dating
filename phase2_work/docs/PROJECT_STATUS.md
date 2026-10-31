@@ -1,3 +1,9 @@
+## P0 #254 – Strikte Tenant-Ingress-Domain-Bindung (31.10.2026)
+
+Ein nachfolgender Security-Review von `subdomainHint()` fand eine Host-Routing-Policy-Lücke: Ist `trustedBaseDomain` gesetzt, wurde ein fremder Host nicht abgewiesen, sondern als „kein Hinweis“ bewertet. Der isolierte Folge-Draft verlangt jetzt den korrekten Apex oder eine eindeutig zugeordnete einzelne Tenant-Subdomain und verweigert fremde Hosts vor jeder Tenant-/Membership-Datenbankabfrage. Neue Autorisierungs- und Express-Middleware-Negativtests prüfen 403, keinen Kontext und keinen DB-Zugriff. [Security-Audit](TENANT_INGRESS_HOST_BOUNDARY_2026-10-31.md). Die echte Produktiv-Ingress-Allowlist, Proxy-Trust-Policy und Integration aller Legacy-Routen bleiben offen; SHA-gebundener CI-PASS und unabhängige Fachfreigaben sind zwingend. **Production NO-GO.**
+
+---
+
 ## P0 #254 – Ungültige Tenant-Feature-Flags sind künftig auditierbar (31.10.2026)
 
 Der vollständige [Enterprise-CI-Lauf #41240658380](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41240658380) von PR #264 ist PASS. Der nachfolgende Review der Flag-Auswertung zeigte: `flagIdSchema.parse` lief vor dem `try/finally` und protokollierte ungültige Flag-IDs nicht, obwohl andere Denials bereits sicherheitsrelevant auditiert werden. Ein isolierter Folge-Draft verschiebt die Validierung in den auditierten Block, ersetzt sämtliche ungültigen Rohwerte durch `[invalid_flag_id]` und stellt sicher, dass vor der Zurückweisung kein Firestore-Zugriff erfolgt. Zusätzliche echte Service-Negativtests prüfen Audit-Vollständigkeit, PII-Leak-Vermeidung und Fail-Closed bei Logger-Ausfall. [Details](TENANT_INVALID_FLAG_AUDIT_2026-10-31.md). Neue exact-head CI und unabhängige Security-/Datenschutz-/SRE-Freigaben fehlen noch. **NO-GO.**
