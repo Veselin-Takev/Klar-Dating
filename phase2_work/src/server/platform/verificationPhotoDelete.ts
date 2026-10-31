@@ -43,3 +43,42 @@ export async function deleteVerificationPhotoIfUnchanged(
   // GCS returns 412 if the live object was replaced between metadata and DELETE.
   await file.delete({ ifGenerationMatch: generation });
 }
+
+/** Read-only decision check before deletion and again before writing audit. */
+export type PhotoRetentionDecision = {
+  uid: string;
+  challengeId: string;
+  status: 'approved' | 'rejected' | 'pending';
+  decidedAt: number;
+  storagePath: string;
+};
+
+export function retentionTimestamp(value: unknown): number | null {
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (value && typeof (value as { toMillis?: unknown }).toMillis === 'function') {
+    const ms = (value as { toMillis: () => number }).toMillis();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === 'string') {
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) ? ms : null;
+  }
+  return null;
+}
+
+export function matchesActiveRetentionDecision(
+  data: Record<string, unknown> | undefined,
+  artifact: PhotoRetentionDecision,
+  now: number,
+): boolean {
+  if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath ||
+      data.photoPurged === true || data.legalHold === true || data.retentionHold === true) return false;
+  const raw = data.entscheidung ?? data.status;
+  const status = raw === 'bestaetigt' || raw === 'approved' ? 'approved' :
+    raw === 'abgelehnt' || raw === 'rejected' ? 'rejected' : 'pending';
+  if (status === 'pending' || status !== artifact.status) return false;
+  const decidedAt = retentionTimestamp(data.decidedAt);
+  const expiresAt = retentionTimestamp(data.fotoLoeschenAb);
+  return decidedAt === artifact.decidedAt && expiresAt !== null && expiresAt <= now;
+}
