@@ -31,3 +31,10 @@ Der Inventar-Exporter signiert weiterhin `UTF8("klar:tenant-migration:inventory:
 Die Signatur beweist den Besitz zweier Schlüssel und die Zustimmung zur **Bytefolge** eines Mapping-/Inventarpaars – nicht den rechtlichen Eigentümer der Firestore-Daten, die Richtigkeit eingebetteter Datensatz-SHA-Werte, signierte Source-Origin-Provenienz, DPO-/SRE-/Finance-/Release-Freigaben oder Art.-17-Compliance. Die CLI bleibt strikt lokal und **`--dry-run`** ohne Firebase-Write oder Migrations-Executor. Ein erfolgreicher Check liefert niemals ein GO. Keine Änderungen an Firestore Security Rules, IAM, Live-Daten, `main`, Deployments oder bestehenden Drafts.
 
 **Gate:** Exact-head Enterprise-CI des neuen PRs und unabhängige AppSec-/DPO-/SRE-Prüfung erforderlich. P0 #254 und das Production Readiness Gate bleiben **BLOCKED / NO-GO**.
+
+## Signierte JSON-Manifeste: doppelte Schlüssel und Parser-Differenzen verboten (31.10.2026)
+
+Nach [vollständigem CI-PASS #41232693749](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41232693749) des V2-Protokolls in [Draft #257](https://github.com/Veselin-Takev/Klar-Dating/pull/257) wurde die anschließende Parse-Grenze unabhängig geprüft. Der native JSON-Parser behält bei doppelten Keys den letzten Wert, obwohl die **signierten Originalbytes** mehrere unterschiedliche `tenantId`- oder `deletionState`-Werte enthalten können. Die neue isolierte Korrektur verlangt nach erfolgreicher Ed25519-Prüfung und vor der Zod-Reconciliation strikte UTF-8-Dekodierung und exakte Byte-Übereinstimmung mit `JSON.stringify(JSON.parse(original))`. Dasselbe deterministische Profil gilt für den SHA-gepinnten Keyring. Es ist **kein RFC-8785/JCS-Profil**; neu serialisierte Originaldateien brauchen beide gültigen Signaturen. [Bedrohungsmodell und Tests](SIGNED_MANIFEST_JSON_AMBIGUITY_2026-10-31.md).
+
+Vollständig alte, dennoch gültig doppelt signierte Manifeste bleiben ohne separat geprüfte Snapshot-Freshness und fachliche Eigentumsfreigabe weiterhin ein Replay-Risiko. Kein Live-Cutover, kein Executor und kein Freigabestatus. Neuer exact-head-CI-PASS und unabhängige Prüfung erforderlich. **BLOCKED / NO-GO**.
+

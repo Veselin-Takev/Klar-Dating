@@ -46,6 +46,24 @@ function createFixture() {
   return { inventoryBytes, mappingBytes, trustAnchorBytes, expectedTrustAnchorSha256,
     signatureEnvelope, exporter, approver };
 }
+function reSignFixtureWithBytes(f: ReturnType<typeof createFixture>,
+  inventoryBytes: Buffer, mappingBytes: Buffer) {
+  return {
+    ...f, inventoryBytes, mappingBytes,
+    signatureEnvelope: {
+      ...f.signatureEnvelope,
+      inventorySignature: sign(null, Buffer.concat([
+        Buffer.from(INVENTORY_SIGNATURE_DOMAIN), inventoryBytes,
+      ]), f.exporter.privateKey).toString('base64url'),
+      mappingSignature: sign(null, Buffer.concat([
+        Buffer.from(MAPPING_SIGNATURE_DOMAIN),
+        createHash('sha256').update(inventoryBytes).digest(),
+        mappingBytes,
+      ]), f.approver.privateKey).toString('base64url'),
+    },
+  };
+}
+
 describe('separated Ed25519 tenant migration attestation (never GO)', () => {
   it('verifies both roles and returns a minimal, permanently blocked report', () => {
     const f = createFixture();
@@ -119,6 +137,56 @@ describe('separated Ed25519 tenant migration attestation (never GO)', () => {
       ...f, trustAnchorBytes: badAnchor,
       expectedTrustAnchorSha256: createHash('sha256').update(badAnchor).digest('hex'),
     })).toThrow();
+  });
+  it('rejects a fully signed mapping with duplicate tenantId despite the last parsed value being valid', () => {
+    const f = createFixture();
+    const changed = Buffer.from(f.mappingBytes.toString('utf8').replace(
+      '"tenantId":"tenant-one"', '"tenantId":"tenant-two","tenantId":"tenant-one"',
+    ));
+    expect(changed.equals(f.mappingBytes)).toBe(false);
+    expect(() => preflightSignedLegacyProfileMapping(
+      reSignFixtureWithBytes(f, f.inventoryBytes, changed),
+    )).toThrow('migration_json_representation_ambiguous');
+  });
+  it('rejects a fully signed inventory hiding a legal hold behind a duplicate deletionState', () => {
+    const f = createFixture();
+    const changed = Buffer.from(f.inventoryBytes.toString('utf8').replace(
+      '"deletionState":"none"', '"deletionState":"legal_hold","deletionState":"none"',
+    ));
+    expect(changed.equals(f.inventoryBytes)).toBe(false);
+    expect(() => preflightSignedLegacyProfileMapping(
+      reSignFixtureWithBytes(f, changed, f.mappingBytes),
+    )).toThrow('migration_json_representation_ambiguous');
+  });
+  it('rejects correctly signed alternate JSON serializations and byte-order mark', () => {
+    const f = createFixture();
+    for (const alternative of [
+      Buffer.concat([f.inventoryBytes, Buffer.from('\n')]),
+      Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), f.inventoryBytes]),
+      Buffer.from(JSON.stringify(JSON.parse(f.inventoryBytes.toString('utf8')), null, 2)),
+    ]) {
+      expect(() => preflightSignedLegacyProfileMapping(
+        reSignFixtureWithBytes(f, alternative, f.mappingBytes),
+      )).toThrow();
+    }
+  });
+  it('rejects invalid UTF-8 in fully signed input without replacement-character decoding', () => {
+    const f = createFixture();
+    const invalid = Buffer.concat([f.inventoryBytes, Buffer.from([0xc3, 0x28])]);
+    expect(() => preflightSignedLegacyProfileMapping(
+      reSignFixtureWithBytes(f, invalid, f.mappingBytes),
+    )).toThrow();
+  });
+  it('rejects duplicate trusted keyring fields even when its exact digest is pinned', () => {
+    const f = createFixture();
+    const original = f.trustAnchorBytes.toString('utf8');
+    const tampered = Buffer.from(original.replace(
+      '"schemaVersion":1,', '"schemaVersion":1,"schemaVersion":1,',
+    ));
+    expect(() => preflightSignedLegacyProfileMapping({
+      ...f, trustAnchorBytes: tampered,
+      expectedTrustAnchorSha256: createHash('sha256').update(tampered).digest('hex'),
+    })).toThrow('migration_json_representation_ambiguous');
   });
   it('rejects exporter-only re-signing of an otherwise equivalent inventory', () => {
     const f = createFixture();
