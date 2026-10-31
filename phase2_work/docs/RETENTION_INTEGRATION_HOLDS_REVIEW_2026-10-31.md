@@ -30,6 +30,16 @@ Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt**
 - Aktualisiert in Commit `19307901220c63bada9b2d7bd24868ffefc323c7`. **Ein vollständiger neuer exakter CI-PASS nach der Dokumentationsänderung steht aus.** Frühere CI-Läufe `41177957634` PASS und `41178564324` FAIL sowie `41178668396` FAIL sind getrennt zu behandeln.
 - Kein Code-Rollback der strengeren Hold-Prüfung, kein produktiver Scheduler-Eingriff. **NO-GO**.
 
+## 31.10.2026 — nächste P0-Schranke: beschädigte Audit-/Purge-Marker
+
+**Quellbefund:** Die vorangehende `assertStillEligibleForPurge`-Bedingung prüfte bei `photoPurged` ausschließlich `=== true`. Ein vom Legacy-/Migration-/Fehlerzustand abweichender Wert wie `"false"`, `null` oder `0` wäre nicht als bereits verarbeitet erkannt worden; ebenso konnte eine vorhandene `photoPurgeProof` bei gleichzeitigem `photoPurged:false` übergangen werden. Diese inkonsistenten Zustände sind kein ausreichender Autorisierungsnachweis für einen weiteren Delete.
+
+**Korrektur:** Das wiederaufnehmbare Scanner-Design und die generationgebundenen Intents bleiben unverändert. Die Entscheidungsschranke lässt für ein **vorhandenes** `photoPurged`-Feld nur ausdrücklich boolesches `false` zu und verweigert bei einem vorhandenen, nicht-null `photoPurgeProof` die Löschung. Alte Datensätze ohne Marker bleiben zunächst zulässig; das ist eine bewusste Legacy-Kompatibilitätsgrenze, kein Beleg für die ursprüngliche Objektgeneration. Die schon vorhandene `photoPurgeIntent`-Reconciliation bleibt erhalten.
+
+**Tests:** Zusätzliche Negativtests für String-/Null-/Zahl-Marker sowie alte/verfälschte Proofs in `tests/complianceStoragePurge.spec.ts`. Diese Tests verhindern **wiederholte physische Löschung** bei widersprüchlichem Abschlussstatus, ohne die reguläre `photoPurged:false`-Verarbeitung zu blockieren.
+
+**Nachweisstand:** Der vorherige Commit `1516fa21227f0fbec737777f1aed275b7930d894` hat [Enterprise CI #41178811858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178811858) erfolgreich abgeschlossen; **für die neue Schranke steht ein separater exakter CI-PASS noch aus**. Ohne Real-GCS-Tests, Original-Generation-Provenienz, all-writer fencing und DPO/SRE/Security-Freigaben bleibt **BLOCKED / NO-GO**.
+
 ## Evidenzstatus
 **Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
 
