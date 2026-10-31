@@ -37,4 +37,20 @@ for (const proof of [
     throw new Error('Compliance storage purge boundary failed: original upload generation check missing');
   }
 }
+// A prior boolean completion flag cannot be acknowledged without coherent,
+// original-generation-bound intent and audit proof. Missing legacy evidence
+// must contribute to the aggregate failure count without retrying a DELETE.
+for (const proof of [
+  'export function hasVerifiedPhotoPurgeReceipt(',
+  'requireVerifiedPhotoUploadGeneration(data, intent.generation)',
+  'data.auditDigest !== expectedAuditDigest',
+  'receipt.evidenceDigest === expectedEvidenceDigest',
+  'data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact)',
+  'const invalid = docs.length - artifacts.length;',
+  'failed: invalid + pendingOrFailed',
+]) {
+  if (!route.includes(proof)) {
+    throw new Error('Compliance storage purge boundary failed: unverified completion receipt');
+  }
+}
 console.log('Compliance storage purge boundary: PASS');
