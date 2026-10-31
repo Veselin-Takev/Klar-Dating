@@ -120,6 +120,12 @@
 6. **Service → KI/Sentry/Partner-Dritte:** explizite Rechtsgrundlage/Consent, PII-Minimierung, Retention, Auslands-/Subprozessorprüfung und Löschrückmeldung.
 7. **GitHub CI → Release → Cloud:** untrusted PR-Code, Actions-Rechte, Dependencies, Artefakt-Digest, unabhängige Approvals und überprüfbare reale Deployment-Identität.
 
+### Integrations- und Race-Condition-Nachweis (Follow-up 31.10.2026)
+
+Die priorisierte Merge-Reihenfolge, konkrete Prüfinvarianten und die Abhängigkeiten mehrerer überlappender Privacy-/Security-PRs stehen in der [Security-Release-Abhängigkeitsmatrix](SECURITY_RELEASE_DEPENDENCIES_2026-10-31.md). Die dortige Analyse prüft auch den tatsächlichen manuellen Entscheidungs-Writer (`src/server/klarCore.ts`) und trennt den nicht mehr gemounteten Legacy-KYC-Handler von der freigegebenen Didit-Pipeline.
+
+**Neu verifizierte Migrationslücke:** Das historische `verification_events`-Datenschema speichert zwar `decidedAt`, `storagePath` und `fotoLoeschenAb`, aber keine ursprünglich autorisierte Cloud-Storage-Objektgeneration. Eine Generationsprüfung unmittelbar vor dem DELETE schützt einen Austausch **nach** dieser Prüfung, jedoch nicht die bereits **vor** ihr ersetzte Datei. Für vollständige Reconciliation müssen Claim-/Lease- und Generation-Migration mit allen betroffenen Writers geprüft werden. Kein produktiver Altobjektbestand oder aktiver Legacy-KYC-Workflow wird aus Quelltext allein unterstellt.
+
 ## 7. Maßnahmenplan mit Gates und Verantwortlichkeiten
 
 ### Phase A — sofortige Blocker (vor jeder Release-Freigabe)
