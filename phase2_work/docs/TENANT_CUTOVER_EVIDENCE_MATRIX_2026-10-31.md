@@ -42,3 +42,8 @@ Run from `phase2_work`: `node scripts/inventory-tenant-access.mjs > tenant-acces
 
 The isolated draft now contains `scripts/inventory-tenant-access.test.mjs` and wires `npm run check:tenant-inventory` into `check:enterprise`. The test launches the inventory twice, requires identical output, nonempty candidate results, exact source SHA-256 integrity, bounded source-relative paths and a minimum output schema without code snippets. This detects inventory drift or serialization failures; it **does not** confirm all privileged call sites are enumerated or that access policies are correct. The exact new PR head requires a fresh CI pass; previous passing runs do not prove this commit.
 
+
+## 2026-11-01 — Entry-point inventory completeness correction
+
+PR #268 on previously validated SHA `80f716e9943b44890bb5832246f8d036c4bd656f` passed [CI run 41250404123](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41250404123). Subsequent inspection found the candidate inventory overlooked `phase2_work/server.ts`, the app's root Express route entrypoint, because its traversal considered only `src/` and `functions/src/`. A targeted patch now includes `server.ts` in the deterministic SHA/line-category manifest even if zero signatures are matched, with a required-file fail-closed preflight. The regression test requires this path to be present. This corrects *one known inventory scope omission*, but is not proof of exhaustive privileged access coverage: other files, dynamic calls, rules and permissions still require manual analysis. **The new exact head has not yet been validated by CI and retains NO-GO.**
+
