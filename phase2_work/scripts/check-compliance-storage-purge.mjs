@@ -73,4 +73,17 @@ for (const proof of [
     throw new Error('Compliance storage purge boundary failed: cross-invocation failure evidence lost');
   }
 }
+// German legacy moderation and English status fields must not silently
+// override each other. Conflicting states cannot authorize GCS DELETE,
+// and cannot retroactively make a prior purge receipt look verified.
+for (const proof of [
+  'export function reconciledVerificationDecision(',
+  "decision != null && status != null && read(decision) !== read(status)",
+  'const status = reconciledVerificationDecision(data);',
+  'reconciledVerificationDecision(data) !== artifact.status',
+]) {
+  if (!route.includes(proof)) {
+    throw new Error('Compliance storage purge boundary failed: conflicting decision authority');
+  }
+}
 console.log('Compliance storage purge boundary: PASS');
