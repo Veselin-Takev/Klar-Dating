@@ -11,7 +11,7 @@ beforeAll(async () => {
   if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) return;
   const [host, port] = process.env.FIREBASE_STORAGE_EMULATOR_HOST.split(':');
   const firestore = process.env.FIRESTORE_EMULATOR_HOST ?? '';
-  const parsedFirestore = /^(127\\.0\\.0\\.1|localhost):(\\d{1,5})$/.exec(firestore);
+  const parsedFirestore = /^(127\.0\.0\.1|localhost):(\d{1,5})$/.exec(firestore);
   const configured = JSON.parse(readFileSync('firebase.json', 'utf8'));
   if (!parsedFirestore || Number(parsedFirestore[2]) !== configured.emulators.firestore.port
       || ['GCLOUD_PROJECT', 'GOOGLE_CLOUD_PROJECT', 'FIREBASE_PROJECT_ID']
