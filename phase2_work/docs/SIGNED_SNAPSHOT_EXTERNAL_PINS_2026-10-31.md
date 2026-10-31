@@ -29,3 +29,8 @@ Die isolierten Negativtests prüfen falsch gepinnte Inventar-, Mapping- und Reco
 Die zusätzliche Hash-Bindung verhindert nur **Substitution relativ zu einer unabhängig festgelegten erwarteten Version**. Sie kann **nicht** feststellen, ob diese Version tatsächlich die letzte produktive Firestore-Version ist oder ob der Control-Channel selbst veraltet/kompromittiert wurde. Noch zwingend: autoritativer Quellsnapshot aus Firestore mit verifizierbaren Originaldatensatz-Digests, zeitnahe unabhängige DPO-/Security-/Release-Approvals, Pin-Revoke-/Rotation und monotone High-Water-Mark-Evidenz außerhalb dieses Prozesses; gesonderte Art.-17-/Legal-Hold- und Write-Fencing-Kontrollen.
 
 Kein Live-Executor, kein Admin-SDK-Schreibzugriff, keine produktiven Änderungen an Daten/Rules/IAM und kein Merge. **Production bleibt BLOCKED / NO-GO.**
+
+## Integration der signierten CLI in verbindliche Sicherheits-Tests (31.10.2026)
+
+Die bisherige Bibliotheksprüfung deckt die aufrufende Dateiöffnung nicht vollständig ab: Ein ausschließlich finales `O_NOFOLLOW` verweigert keinen Symlink im übergeordneten Verzeichnis. Eine gestapelte, isolierte Korrektur verlangt deshalb kanonische absolute Dateien (Auflösung mittels `realpathSync.native`, anschließend finale `O_NOFOLLOW`-Öffnung) und prüft den tatsächlichen Node/tsx-Dry-Run mit lokal generierten Ed25519-Dateien im Pflicht-Gate. Die Grenzen von TOCTOU und fehlender originaler Firestore-Provenienz sind separat dokumentiert. [Sicherheitsbericht](TENANT_MIGRATION_CLI_PATH_ATTESTATION_2026-10-31.md). **Production NO-GO.**
+

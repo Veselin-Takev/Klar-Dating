@@ -1,3 +1,11 @@
+## P0 #254 – Schlüsselsichere Dry-Run-CLI: Symlink-Ancestors und echte E2E-Abnahme (31.10.2026)
+
+[Draft #259](https://github.com/Veselin-Takev/Klar-Dating/pull/259) hat [Enterprise-CI #41235242388](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41235242388) auf `14d27ad13bc9d80391edcfd8e92a467631046cb4` erfolgreich abgeschlossen. Die danach untersuchte CLI-Pfadöffnung schützt per `O_NOFOLLOW` bislang nur den **letzten Pfadteil**, nicht übergeordnete Symlink-Verzeichnisse. Ein isolierter Folge-Draft prüft daher vor der Dateiöffnung vollständige kanonische absolute Pfade und behält `O_NOFOLLOW` bei. Neu verpflichtende synthetische Node/tsx-End-to-End-Tests prüfen tatsächliche signierte Dry-Run-Reports, fehlende/abweichende Pins, direkte und übergeordnete Symlinks, nicht kanonische Pfade und verbotene Live-Modi. [Technischer Audit](TENANT_MIGRATION_CLI_PATH_ATTESTATION_2026-10-31.md).
+
+**Offene Grenze:** `realpath` und `open` sind nicht atomar (TOCTOU); Pfad-Host-/Mount-Integrität bleibt vor Produktion separat nachzuweisen. Es wurden weder Firestore-Daten geschrieben noch Secrets verarbeitet; unabhängige AppSec-/DPO-/SRE-Freigaben und volle exact-head CI bleiben ausstehend. **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #254 – Unabhängige SHA256-Pins für signierte Profil-Migrations-Snapshots (31.10.2026)
 
 Nach [Enterprise-CI-PASS #41234355771](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41234355771) auf #258 wurde ein weiteres Snapshot-Replay-Risiko dokumentiert. Die schreibfreie Migrationsprüfung verlangt im neuen isolierten Draft nun **zusätzlich** drei extern verwaltete SHA-256-Pins: exakt signierte Inventarbytes, exakt signierte Mappingbytes und Reconciliation-Ergebnis. Fehlende oder abweichende Kontrollwerte stoppen die Auswertung. [Audit](SIGNED_SNAPSHOT_EXTERNAL_PINS_2026-10-31.md). Keine Behauptung einer vollständigen Anti-Replay-Garantie: Die Aktualität und der Revocation-/High-Water-Mark-Prozess des Kontrollkanals bleiben extern zu verifizieren. Neue CI sowie DPO/AppSec/SRE/Release-Abnahmen offen. Kein Merge, keine Migration, **Production NO-GO**.
