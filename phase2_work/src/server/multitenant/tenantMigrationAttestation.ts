@@ -18,6 +18,21 @@ const anchorsSchema = z.strictObject({
   approverPublicKeyPem: z.string().min(64).max(2048),
 });
 
+/**
+ * Restricted JSON.stringify-compatible UTF-8 serialization profile.
+ * This is not RFC 8785/JCS. It forbids duplicate keys, alternate escaped
+ * representations, BOMs, invalid UTF-8, and ambiguous whitespace; signs and
+ * evaluates exactly the same deterministic bytes.
+ */
+function parseDeterministicJson(bytes: Uint8Array): unknown {
+  const decoded = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+  const value: unknown = JSON.parse(decoded);
+  if (JSON.stringify(value) !== decoded) {
+    throw new Error('migration_json_representation_ambiguous');
+  }
+  return value;
+}
+
 export interface SignedMigrationInput {
   inventoryBytes: Uint8Array;
   mappingBytes: Uint8Array;
@@ -45,7 +60,7 @@ export function preflightSignedLegacyProfileMapping(input: SignedMigrationInput)
   const actual = createHash('sha256').update(anchorsBuffer).digest();
   if (!timingSafeEqual(expected, actual)) throw new Error('migration_trust_anchor_not_pinned');
 
-  const anchors = anchorsSchema.parse(JSON.parse(anchorsBuffer.toString('utf8')) as unknown);
+  const anchors = anchorsSchema.parse(parseDeterministicJson(anchorsBuffer));
   const envelope = signatureSchema.parse(input.signatureEnvelope);
   const exporter = createPublicKey(anchors.exporterPublicKeyPem);
   const approver = createPublicKey(anchors.approverPublicKeyPem);
@@ -88,8 +103,8 @@ export function preflightSignedLegacyProfileMapping(input: SignedMigrationInput)
   }
   // Independently signed original bytes are verified before any parse or
   // mapping decision. A valid signature still does not authorize execution.
-  const parsedInventory: unknown = JSON.parse(inventory.toString('utf8'));
-  const parsedMapping: unknown = JSON.parse(mapping.toString('utf8'));
+  const parsedInventory = parseDeterministicJson(inventory);
+  const parsedMapping = parseDeterministicJson(mapping);
   const report = preflightLegacyProfileMapping(parsedInventory, parsedMapping);
   return Object.freeze({
     ...report,

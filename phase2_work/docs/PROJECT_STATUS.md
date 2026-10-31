@@ -1,3 +1,9 @@
+## P0 #254 – Doppelte Tenant-/Löschstatus-Schlüssel in signierten JSON-Dateien abgelehnt (31.10.2026)
+
+Die V2-Signaturkette aus #257 hat [vollständige Enterprise-CI #41232693749](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41232693749) bestanden. Ein nachgelagerter P0-Review fand dennoch, dass `JSON.parse` doppelte Keys still auf den letzten Wert reduziert: Ein korrekt signiertes Inventar könnte so unterschiedliche `tenantId`- oder Löschstatus-Deutungen zwischen Review-Werkzeugen zulassen. Ein isolierter Folge-Draft erzwingt nun nach Signaturprüfung und vor jeder Fachentscheidung **fatal UTF-8** und ein exaktes `JSON.stringify(JSON.parse(bytes))`-Serialisierungsprofil – einschließlich des SHA-gepinnten Trust-Keyrings. Korrekt doppelt signierte Mehrdeutigkeiten werden negativ getestet. [Sicherheitsaudit](SIGNED_MANIFEST_JSON_AMBIGUITY_2026-10-31.md). Die neue exakte CI und unabhängige AppSec/DPO/SRE-Abnahmen stehen aus. Kein Merge/Deployment und **NO-GO**.
+
+---
+
 ## P0 #254 – Mapping-Signatur jetzt auf signierte Originalinventarbytes gebunden (31.10.2026)
 
 Nach vollständigem [CI-PASS #41231738458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41231738458) von #256 wurde im Dual-Ed25519-Protokoll eine Replay-/Inventarsubstitution erkannt: Die Approver-Signatur betraf bislang nur das Mapping, nicht die genaue Inventarversion. Ein gestapelter Draft versieht das Mapping-Protokoll mit der neuen Version `mapping:v2` und signiert zusätzlich den SHA256-Digest der **exakten** exportierten Inventarbytes. Tests verweigern Exporter-Only-Resigning, alte V1-Signaturen und nachträgliche Hold-Zustandsänderungen; selbst korrekt doppelt signierte Legal-Hold-Daten bleiben blockiert. [Technischer Review](DUAL_SIGNER_INVENTORY_BINDING_2026-10-31.md). Die Änderung ist keine echte Quellprovenienz-, DPO- oder produktive Migrationsfreigabe. Neuer exact-head CI-PASS ausstehend. **BLOCKED / NO-GO**.
