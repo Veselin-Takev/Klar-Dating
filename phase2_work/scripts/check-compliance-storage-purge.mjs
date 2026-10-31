@@ -59,7 +59,8 @@ for (const proof of [
 // request reaches the end of the cursor range with zero *new* failures.
 // Persist the whole-sweep failure bit; never report a false HTTP 200.
 for (const proof of [
-  'const priorSweepFailures = state?.cycleHadFailures;',
+  'const storedFailureState = state?.cycleHadFailures;',
+  'storedFailureState === undefined && cursor !== null',
   "throw new Error('verification_purge_scan_failure_state_invalid');",
   'let invocationHadFailures = false;',
   'invocationHadFailures ||= invalid + pendingOrFailed > 0;',
