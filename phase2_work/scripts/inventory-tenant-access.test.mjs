@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,8 +22,14 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
   assert.ok(data.files.length > 0, 'inventory may not silently scan an empty tree');
   const paths = data.files.map(f => f.path);
   assert.equal(new Set(paths).size, paths.length);
-  for (const required of ['server.ts', 'src/server/multitenant/tenantAuth.ts', 'src/server/multitenant/tenantData.ts', 'functions/src/retention.ts']) {
-    assert.ok(paths.includes(required), `critical authorization or retention module omitted: ${required}`);
+  for (const required of ['server.ts', 'functions/src/retention.ts']) {
+    assert.ok(paths.includes(required), `existing critical source omitted: ${required}`);
+  }
+  // Stacked tenant foundation modules are absent from main-based PRs until upstream is integrated.
+  // When a module exists, it MUST be inventoried; absence is not a security PASS.
+  for (const pending of ['src/server/multitenant/tenantAuth.ts', 'src/server/multitenant/tenantData.ts']) {
+    const present = existsSync(resolve(workdir, pending));
+    assert.equal(paths.includes(pending), present, `upstream integration scope drift: ${pending}`);
   }
   assert.deepEqual(paths, [...paths].sort((a, b) => a.localeCompare(b, 'en')), 'noncanonical path order');
   for (const f of data.files) {
