@@ -1,3 +1,11 @@
+## P0 #254 – Firebase-Rules-Definitions-Scope korrigiert; Emulator-CI budgetbedingt ausgesetzt (31.10.2026)
+
+Die Parent-Enterprise-CI [#41242366372](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41242366372) auf [Draft #266](https://github.com/Veselin-Takev/Klar-Dating/pull/266) ist vollständig PASS. Die Prüfung der tatsächlich konfigurierten Firebase-Regeln identifizierte anschließend einen nicht gebundenen \`userId\`-Verweis in der im äußeren Match-Scope definierten Funktion \`validUserMutableUpdate()\`. Der dedizierte Feature-Branch übergibt \`userId\` sowohl in \`firestore.rules\` als auch in \`phase2_work/firestore.rules\` ausdrücklich als Funktionsparameter, ergänzt eine statische Doppeldatei-Prüfung sowie echte Firestore-Emulator-Negativtests einschließlich bereits existierender Tenant-Dokumente. [Technischer Audit](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md).
+
+**Nicht als PASS bewerten:** Der Emulator-/Rules-Compiler wurde für diesen neuen Commit nicht ausgeführt. Die 13 bisherigen GitHub-Workflow-Laufzeiten summieren sich auf ca. 100,2 Minuten (nicht offizielle Abrechnungszahl), womit die vorgegebene 100-Minuten-Grenze vorsorglich erreicht ist. Bis zur ausdrücklichen Freigabe weiterer 200 Minuten erfolgt **kein neuer CI-triggernder PR**. Auch das Fehlen expliziter \`/tenants/...\`-Client-Rules sowie die zu weite Storage-Profile-Read-Policy bleiben separate Go-Live-Blocker. Keine produktiven Daten-/Rules-Änderungen, kein Merge/Deploy. **BLOCKED / NO-GO.**
+
+---
+
 ## P0 #254 – Strikte Tenant-Ingress-Domain-Bindung (31.10.2026)
 
 Ein nachfolgender Security-Review von `subdomainHint()` fand eine Host-Routing-Policy-Lücke: Ist `trustedBaseDomain` gesetzt, wurde ein fremder Host nicht abgewiesen, sondern als „kein Hinweis“ bewertet. Der isolierte Folge-Draft verlangt jetzt den korrekten Apex oder eine eindeutig zugeordnete einzelne Tenant-Subdomain und verweigert fremde Hosts vor jeder Tenant-/Membership-Datenbankabfrage. Neue Autorisierungs- und Express-Middleware-Negativtests prüfen 403, keinen Kontext und keinen DB-Zugriff. [Security-Audit](TENANT_INGRESS_HOST_BOUNDARY_2026-10-31.md). Die echte Produktiv-Ingress-Allowlist, Proxy-Trust-Policy und Integration aller Legacy-Routen bleiben offen; SHA-gebundener CI-PASS und unabhängige Fachfreigaben sind zwingend. **Production NO-GO.**

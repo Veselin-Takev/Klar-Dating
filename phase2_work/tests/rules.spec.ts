@@ -133,6 +133,18 @@ describe('Profile', () => {
     await assertSucceeds(updateDoc(doc(als(ANNA), 'users/anna'), { name: 'Anna B.', updatedAt: '2026-08-09' }));
   });
 
+  it('UID-Scope-Regression: self-update erlaubt, Eigentümerwechsel der UID verboten', async () => {
+    await assertSucceeds(updateDoc(doc(als(ANNA), 'users/anna'), {
+      name: 'Anna (authorisiert)', updatedAt: '2026-10-31',
+    }));
+    await assertFails(updateDoc(doc(als(ANNA), 'users/anna'), {
+      uid: BEA, updatedAt: '2026-10-31',
+    }));
+    await assertFails(updateDoc(doc(als(ANNA), 'users/bea'), {
+      uid: ANNA, updatedAt: '2026-10-31',
+    }));
+  });
+
   it('fremdes Profil bearbeiten geht nicht', async () => {
     await assertFails(updateDoc(doc(als(ANNA), 'users/bea'), { name: 'Hacked', updatedAt: '2026-08-09' }));
   });
@@ -771,5 +783,36 @@ describe('Klar & Partner server-only collections', () => {
     const target = doc(adminDb, collectionName, 'test-record');
     await assertFails(getDoc(target));
     await assertFails(setDoc(target, { clientControlled: true }));
+  });
+});
+
+describe('P0 #254: tenant namespace is default-denied until separately approved cutover rules', () => {
+  // Seed real documents with bypassed test-admin rules so negative reads
+  // cannot pass merely because a document does not exist.
+  const preCutoverPaths = [
+    'tenants/tenant-a',
+    'tenants/tenant-a/users/anna',
+    'tenants/tenant-a/members/anna',
+    'tenants/tenant-a/featureFlags/SAFE_CHAT',
+    'tenants/tenant-b/users/anna',
+  ] as const;
+
+  it.each(preCutoverPaths)('denies authenticated and admin client access to %s', async (path) => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), {
+        tenantId: path.includes('tenant-b') ? 'tenant-b' : 'tenant-a',
+        uid: ANNA, name: 'fixture', status: 'active', enabled: true,
+      });
+    });
+    const normal = doc(als(ANNA), path);
+    const claimedAdminDb = env.authenticatedContext(ANNA, {
+      role: 'admin', roles: ['admin'],
+    }).firestore();
+    const elevated = doc(claimedAdminDb, path);
+    await assertFails(getDoc(normal));
+    await assertFails(getDoc(elevated));
+    await assertFails(setDoc(normal, { tenantId: 'tenant-a', uid: ANNA }));
+    await assertFails(updateDoc(elevated, { name: 'unauthorized' }));
+    await assertFails(deleteDoc(normal));
   });
 });
