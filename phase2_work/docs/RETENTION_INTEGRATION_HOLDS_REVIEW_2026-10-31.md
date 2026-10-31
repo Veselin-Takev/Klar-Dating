@@ -16,6 +16,13 @@ Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt**
 - Die negativen Vitest-Fälle und das obligatorische `check:compliance-storage-purge`-Quellgate wurden aktualisiert. **Nachweis der vollständigen CI auf neuem Head noch ausstehend.**
 - Google Cloud dokumentiert `ifGenerationMatch` für bedingtes Löschen und die Storage-Metadaten `temporaryHold`, `eventBasedHold`, `retentionExpirationTime` und `retention.retainUntilTime`: https://docs.cloud.google.com/storage/docs/deleting-objects und https://docs.cloud.google.com/storage/docs/using-object-lock. Synthetische Testdaten ersetzen keinen echten Staging-SDK-Test.
 
+## 31.10.2026 — CI-Failure Root Cause und Regressionstest-Korrektur
+
+- Der automatische CI-Lauf [#41178564324](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178564324) am vorherigen Head `89de08ad404b88d661410fc68d0a4556bea0c85e` endete mit **FAIL** bei `check:retention-p0` / `scripts/test-verification-photo-cron-boundary.mjs`. Die genaue Fehlermeldung laut GitHub-Joblog: `Purge route must respect temporary object holds`. Ursache: ein statischer Test verlangte den älteren String `temporaryHold === true`, der durch die strengere Helper-Prüfung `isActiveOrMalformedHold(metadata.temporaryHold)` ersetzt wurde; die tatsächliche Sicherheitsbedingung wurde **verschärft**, nicht entfernt.
+- Der Test prüft jetzt die neue, fail-closed Semantik direkt, einschließlich der booleschen `false`-Ausnahme und der Firestore-`legalHold`-/`retentionHold`-Bedingungen. Eine zusätzliche Mutationsprüfung erkennt die Regression zurück zu `value === true`.
+- **Aktueller Head nach dieser Änderung benötigt einen neuen eigenständigen vollständigen PASS.** Die bis dahin vorhandenen erfolgreichen Checks des alten Heads dürfen weder die fehlgeschlagene CI überspielen noch als Nachweis des neuen Code-Standes gelten.
+- Dies ist ein **statischer Test-Contract-Fix**, kein realer Cloud-Test und keine Erlaubnis zur Löschung. In `main` und Produktion wurde nichts verändert.
+
 ## Evidenzstatus
 **Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
 
