@@ -506,6 +506,10 @@ export function createVerificationStoragePurgeRouter(deps: {
       return res.status(incomplete ? 503 : 200).json({
         ok: !incomplete, processed: result.scanned, purgedCount: result.purged,
         skippedCount: result.skipped, failedCount: result.failed,
+        // This response may have zero *new* failures while prior scan pages
+        // remain unclean. Keep the aggregate prior-page signal visible
+        // without disclosing identities, paths, or error payloads.
+        unresolvedEarlierPages: ownership.priorSweepFailures,
         hasMore: result.hasMore, pages: result.pages,
       });
     } catch {
