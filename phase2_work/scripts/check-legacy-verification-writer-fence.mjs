@@ -41,10 +41,10 @@ export function verifyLegacyVerificationWriterFence({ routes, server, rules, cor
     );
     if (!declaration.test(core)) throw Error('legacy_verification_core_' + name + '_not_inert');
   }
-  if (!/function\\s+retiredManualVerification\\(res:\\s*Response\\):\\s*void\\s*\\{\\s*res\\.status\\(410\\)\\.json\\(\\{[\\s\\S]*?code:\\s*['"]verification_retired['"]/.test(core)) {
+  if (!/function\s+retiredManualVerification\(res:\s*Response\):\s*void\s*\{\s*res\.status\(410\)\.json\(\{[\s\S]*?code:\s*['"]verification_retired['"]/.test(core)) {
     throw Error('legacy_verification_core_410_response_missing');
   }
-  if (/\\bgetAppBucket\\b|\\bverification_events\\b|\\bverification_requests\\b/.test(core)) {
+  if (/\bgetAppBucket\b|\bverification_events\b|\bverification_requests\b/.test(core)) {
     throw Error('legacy_verification_core_biometric_mutator_reintroduced');
   }
   // Firebase Storage Rules apply to clients, not service accounts or Admin SDK.
