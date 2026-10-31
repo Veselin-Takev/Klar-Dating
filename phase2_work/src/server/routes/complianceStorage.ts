@@ -203,19 +203,24 @@ function normalizeTimestamp(value: unknown): number | null {
  * This checks Firestore evidence consistency, not ongoing object absence in GCS.
  */
 export function hasVerifiedPhotoPurgeReceipt(
-  data: Record<string, unknown>, artifact: VerificationArtifactRecord,
+  data: Record<string, unknown>, artifact: VerificationArtifactRecord, observedAt = Date.now(),
 ): boolean {
   if (data.photoPurged !== true ||
       (artifact.status !== 'approved' && artifact.status !== 'rejected')) return false;
 
   const purgedAt = normalizeTimestamp(data.photoPurgedAt);
   const proof = data.photoPurgeProof;
-  if (purgedAt === null || !Number.isSafeInteger(purgedAt) || purgedAt < artifact.decidedAt ||
+  // A purported future deletion is not a completed erasure. Fail closed for
+  // invalid scanner clocks and forged or malformed completion timestamps.
+  if (!Number.isSafeInteger(observedAt) || observedAt <= 0 ||
+      purgedAt === null || !Number.isSafeInteger(purgedAt) ||
+      purgedAt < artifact.decidedAt || purgedAt > observedAt ||
       !proof || typeof proof !== 'object' || Array.isArray(proof)) return false;
 
   const receipt = proof as Record<string, unknown>;
   const verifiedAt = normalizeTimestamp(receipt.verifiedAt);
-  if (verifiedAt === null || !Number.isSafeInteger(verifiedAt) || verifiedAt < purgedAt ||
+  if (verifiedAt === null || !Number.isSafeInteger(verifiedAt) ||
+      verifiedAt < purgedAt || verifiedAt > observedAt ||
       (receipt.method !== 'delete_acknowledged' && receipt.method !== 'absence_reconciled')) return false;
 
   const expectedAuditDigest = generatePurgeAuditDigest(
@@ -315,7 +320,7 @@ export function createVerificationStoragePurgeRouter(deps: {
             // Do not falsely acknowledge historic or corrupt "already purged"
             // records. Report aggregate failure for manual privacy reconciliation,
             // without issuing another Storage DELETE.
-            if (data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact)) return [];
+            if (data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact, now)) return [];
             return [artifact];
           });
 
