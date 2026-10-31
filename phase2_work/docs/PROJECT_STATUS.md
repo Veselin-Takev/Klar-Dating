@@ -1,3 +1,11 @@
+## P0 #202 – widersprüchliche Lösch-/Auditmarker verweigern (31.10.2026)
+
+[Draft-PR #233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) wurde nach vollständigem [CI-PASS #41178811858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178811858) des geprüften Heads `1516fa21227f0fbec737777f1aed275b7930d894` gezielt weiter gehärtet. Die Retention-Entscheidungsschranke verweigert nun vorhandene, nicht explizit boolesch falsche `photoPurged`-Marker und nicht-null `photoPurgeProof`-Belege, wenn die Event-Daten eine weitere Löschung nahelegen. Negativtests prüfen widersprüchliche String-/Null-/Zahl-/Proof-Zustände. Details: [Retention-Integrations-Audit](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md).
+
+Für **diese jüngeren Commits ist ein neuer exakter CI-PASS noch nicht bestätigt**. Der Scanner-/Lease-/Cursor-/Intent-Mechanismus aus #203/#229 bleibt erhalten. Noch nicht freigegeben sind Original-Objektgeneration, Writer-Fencing, Legacy-Backfill, echte Hold-/404-/412- und Crash-Recovery-Staging-Tests sowie unabhängige DPO/Legal-/AppSec-/SRE-/Release-Owner-Unterschriften. Keine Merges oder Deployments. **Produktion: BLOCKED / NO-GO.**
+
+---
+
 ## P0 #202 — Storage-/Legal-Hold-Metadaten: fehlertolerant **verweigern** statt löschen (31.10.2026)
 
 Der vorherige Integrations-Head `3bd48be6e86af0c69802261feb95f7b3bf78e88a` hat die vollständige [Enterprise-CI #41177957634](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41177957634) bestanden. Anschließend wurde PR [#233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) zur Verhinderung stillschweigender Löschberechtigung bei **mehrdeutigen Hold-Werten** erweitert: fehlerhafte/unerwartete GCS-Hold-Typen, Retention-Objekt ohne gültige Retain-Until-Zeit sowie explizite nicht-boolesche Firestore-Legal-/Retention-Holds werden verweigert. Die negativen Vitest-Fälle und das obligatorische Quellgate sind angepasst. Die CI des **neuesten** Commitstands ist erst nach eigenständiger PASS-Bestätigung gültig.
