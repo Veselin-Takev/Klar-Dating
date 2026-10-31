@@ -267,6 +267,37 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it.each([
+    { label: 'approved versus rejected', status: 'approved', entscheidung: 'abgelehnt' },
+    { label: 'approved versus pending', status: 'pending', entscheidung: 'bestaetigt' },
+    { label: 'approved versus unknown', status: 'approved', entscheidung: 'invalid' },
+  ])('does not delete when two moderation fields disagree: $label', async ({ status, entscheidung }) => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({ status, entscheidung });
+      let deletes = 0;
+      let metadataReads = 0;
+      const api = await startApi(db, async () => { deletes++; }, async () => {
+        metadataReads++;
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({
+          status: 503,
+          data: { ok: false, processed: 1, failedCount: 1, purgedCount: 0 },
+        });
+        expect(deletes).toBe(0);
+        expect(metadataReads).toBe(0);
+        const saved = (await event.get()).data();
+        expect(saved?.photoPurged).toBe(false);
+        expect(saved?.photoPurgeIntent).toBeUndefined();
+        expect(saved?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('quarantines a legacy event without original upload-generation provenance', async () => {
     await withEvent(async ({ db, event }) => {
       await event.update({ photoUploadGeneration: null });
