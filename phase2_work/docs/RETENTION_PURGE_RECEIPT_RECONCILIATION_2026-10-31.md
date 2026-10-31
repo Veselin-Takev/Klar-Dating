@@ -22,6 +22,14 @@ Der Scanner **überspringt ohne Storage-Zugriff** einen bereits als erledigt mar
 
 Die bestehenden Upload-Provenienz-, Claim-/Lease-, Storage-Hold-, Status- und Generation-Schutzschranken bleiben unverändert.
 
+## 31.10.2026 — reale CI-Fehler und deterministische Emulator-Fixdaten
+
+Die Stack-Parent-CI [#41180298630](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41180298630) und die initiale CI dieses Receipt-PRs [#41180858996](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41180858996) endeten **beide mit FAILURE** in `Tests`: dieselben acht Firestore-Emulator-Fälle scheiterten, weil der ursprüngliche synthetische Fixture-Writer `verification_events` ohne `photoUploadGeneration` erstellte. Die Security-Gates, TypeScript und Functions-Build waren in beiden Runs PASS; Build und Browser-Acceptance wurden folgerichtig übersprungen.
+
+**Reparatur ohne gelockerte Sicherheitskontrolle:** `withEvent` schreibt für den **synthetisch vertrauenswürdigen** Upload jetzt `photoUploadGeneration:'773'` passend zum simulierten GCS-Objekt, so dass die vorhandenen konkurrierenden Lease-/404-/412-/Moderationsfälle wieder die nachfolgenden Sicherheitsschranken erreichen können. Zusätzlich testet dieser PR ausdrücklich den Gegenfall `photoUploadGeneration:null`: HTTP 503 mit aggregiertem Fehler, **kein** Storage-DELETE und **keine** Intent-/Audit-Freigabe. Die beiden Testdatenzweige sind strikt getrennt; echte Legacy-Ereignisse werden weder automatisch geheilt noch gelöscht.
+
+Für diese Folge-Commits ist ein neuer vollständiger exakter CI-PASS erforderlich; ein solcher wird hier noch nicht behauptet. **NO-GO** bleibt bestehen.
+
 ## Verifikation und Regressionen
 
 - `tests/complianceStoragePurge.spec.ts`: synthetischer gültiger `delete_acknowledged`- und `absence_reconciled`-Beleg, fehlende `photoPurgeProof`, falsche Originalgeneration, Intent-/Pfad-/UID-/Entscheidungs-Zuordnung, falsche Digests, ungültige/inkonsistente Zeitpunkte und falsche Methoden.
