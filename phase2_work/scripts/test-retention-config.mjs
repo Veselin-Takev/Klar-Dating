@@ -38,7 +38,10 @@ const cases = [
   ['move due-date selection to GCS upload metadata',
     { route: original.route.replace(".where('fotoLoeschenAb', '<=', new Date(now))", ".where('timeCreated', '<=', new Date(now))") }],
   ['remove generation-conditional GCS deletion',
-    { route: original.route.replace('ifGenerationMatch', 'dangerouslyIgnoreGeneration') }],
+    { route: original.route.replace(
+      'await file.delete({ ifGenerationMatch: generation });',
+      'await file.delete({ dangerouslyIgnoreGeneration: generation });',
+    ) }],
   ['allow pending review status into photo deletion',
     { engine: original.engine.replace("artifact.status !== 'approved' && artifact.status !== 'rejected'", "artifact.status === 'pending'") }],
   ['base retention expiry on an upload timestamp',
