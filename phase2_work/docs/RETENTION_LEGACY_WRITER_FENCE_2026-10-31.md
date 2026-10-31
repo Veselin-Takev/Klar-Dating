@@ -15,6 +15,12 @@ In der gestapelten Kandidatenbasis sind die `storage.rules` aus der strengeren C
 - `tests/legacyVerificationRetiredHttp.spec.ts` prüft das tatsächliche Express-`verificationRouter`-Verhalten über einen lokalen ephemeral Port: fünf ehemalige Endpunkte × fünf Methoden = **25 HTTP-410-Fälle**. Kein Firebase SDK, keine Kundenidentität, kein GCS-DELETE.
 - Das vorhandene CI-Pflichtskript `check:compliance-storage-purge` ruft jetzt zusätzlich den Source-Gate und die Mutationstests auf. Der Rest der Enterprise-Gates und der Retention-Scanner bleiben unverändert.
 
+## 31.10.2026 — CI-Regressionstest-Wiederherstellung
+
+Der erste [PR-#235-CI-Lauf #41183013253](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41183013253) endete mit **FAIL** in `Enterprise static gates`, nicht in der Produktionslogik. Der neue Source-Gate meldete bereits `Legacy verification writer/client boundary: PASS (source only)`; beim separaten Mutationstest `reactivate legacy manual upload handler` meldete Node `Missing expected exception`. Ursache: Das Test-Fixture hängte die **wörtlichen** Zeichen `\\n` vor `handleVerificationSubmit` an `server.ts` an. Dadurch stand unmittelbar vor dem Handler-Identifier ein `n` (Wortzeichen), und die `\\b`-Identifierprüfung konnte nicht treffen. Die Mutation wurde auf einen **tatsächlichen Zeilenumbruch** umgestellt.
+
+**Änderungsumfang:** ausschließlich die synthetische Testmutation. Kein Legacy-Endpunkt wurde aktiviert und keine Client-Storage-Regel oder Produktivfunktion aufgeweicht. Ein erneuter vollständiger PASS ist für den **exakten neuen HEAD-Commit** erforderlich; der ursprüngliche fehlgeschlagene CI-Lauf bleibt als negative Evidenz bestehen. Unabhängiges Review und reale Cloud-Freigabegates sind weiterhin offen.
+
 ## Release-/Security-Grenzen
 
 1. **Admin SDK umgeht Firebase Storage Rules.** Der neue Source-Gate belegt keine Absicherung von Cloud-IAM, produktiv konfigurierten Storage-Sperren, bereits ausgegebenen Service-Account-Rechten oder alten deployten Funktionsversionen. Ein aktiver privilegierter Writer könnte `verification/` weiterhin überschreiben, wenn keine separate Writer-Allowlist und generationgebundene Claim-/Fence-Transaktion greift.
