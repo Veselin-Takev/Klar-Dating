@@ -1,4 +1,4 @@
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { Transaction } from 'firebase-admin/firestore';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT (Ab 500 Nutzer)
