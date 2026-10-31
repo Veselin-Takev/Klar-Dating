@@ -50,6 +50,9 @@ jobs:
       - name: Release policy regression tests
         if: steps.scope.outputs.full == 'true'
         run: node --test scripts/release-ci-check.mjs
+      - name: Main Ruleset policy regression tests
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/test-main-ruleset.mjs
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.scope.outputs.full == 'true'
         with:

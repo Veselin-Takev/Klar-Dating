@@ -50,6 +50,11 @@ jobs:
         with:
           bun-version: '1.4.4'
 
+      - name: Verify live main Ruleset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-main-ruleset.mjs
+
       - name: Production release approval
         run: node scripts/check-production-release-approval.mjs
 
