@@ -58,8 +58,11 @@ test('signed decision-aware purge path remains registered and requires explicit 
   assert.match(route, /leaseId: null, leaseUntil: null/, 'Purge scan lease must be released');
   assert.match(route, /result\.failed > 0 \|\| result\.hasMore/, 'Unfinished work must not be acknowledged as GO');
   assert.match(route, /ifGenerationMatch/, 'Purge route must use Storage generation preconditions');
-  assert.match(route, /temporaryHold === true/, 'Purge route must respect temporary object holds');
-  assert.match(route, /eventBasedHold === true/, 'Purge route must respect event-based holds');
+  assert.match(route, /isActiveOrMalformedHold\\(metadata\\.temporaryHold\\)/, 'Purge route must reject active or malformed temporary object holds');
+  assert.match(route, /isActiveOrMalformedHold\\(metadata\\.eventBasedHold\\)/, 'Purge route must reject active or malformed event-based holds');
+  assert.match(route, /value !== undefined && value !== null && value !== false/, 'Missing/false holds may pass; malformed values must fail closed');
+  assert.match(route, /'legalHold' in data && data\\.legalHold !== false/, 'Explicit legal hold data must fail closed unless false');
+  assert.match(route, /'retentionHold' in data && data\\.retentionHold !== false/, 'Explicit retention hold data must fail closed unless false');
   assert.match(route, /res\.status\(incomplete \? 503 : 200\)/, 'Partial failures and unfinished pages must be retryable HTTP errors');
   assert.doesNotMatch(route, /res\.json\(\{ ok: true, \.\.\.summary \}\)/, 'Do not disclose per-user purge paths');
   assertExplicitFinalDecisionGuard(engine);
@@ -76,4 +79,20 @@ test('a pending-only moderation guard cannot pass the retention policy gate', ()
   assert.notEqual(reverted, engine, 'test mutation must replace the current final-decision guard');
   assert.throws(() => assertExplicitFinalDecisionGuard(reverted),
     /Retention must block EVERY state/);
+});
+
+test('boolean-only hold checks cannot silently replace malformed-hold guards', () => {
+  const route = read('src/server/routes/complianceStorage.ts');
+  const checks = [
+    /isActiveOrMalformedHold\\(metadata\\.temporaryHold\\)/,
+    /isActiveOrMalformedHold\\(metadata\\.eventBasedHold\\)/,
+    /value !== undefined && value !== null && value !== false/,
+  ];
+  for (const rule of checks) assert.match(route, rule);
+  const regressed = route.replace(
+    'return value !== undefined && value !== null && value !== false;',
+    'return value === true;',
+  );
+  assert.notEqual(regressed, route, 'test mutation must alter malformed-hold guard');
+  assert.doesNotMatch(regressed, checks[2], 'malformed hold values must not be accepted');
 });
