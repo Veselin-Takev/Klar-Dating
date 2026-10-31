@@ -23,13 +23,13 @@ const newlyProtected = [
 for (const file of newlyProtected) {
   test('fails closed when critical reviewer path is removed: ' + file, () => {
     const rule = '/' + file + ' @Veselin-Takev';
-    const mutated = source.split(/\\r?\\n/).filter(line => line !== rule).join('\\n');
+    const mutated = source.split(/\r?\n/).filter(line => line !== rule).join('\n');
     assert(checkCodeowners(mutated).some(err => err.includes(file)),
       'Mandatory literal ownership must not be replaced by generic path ownership');
   });
 }
 test('late catchall cannot override explicit purge and privacy ownership', () => {
-  const mutated = source + '\\n/phase2_work/ @Veselin-Takev\\n';
+  const mutated = source + '\n/phase2_work/ @Veselin-Takev\n';
   for (const file of newlyProtected.filter(p => p.startsWith('phase2_work/'))) {
     assert(checkCodeowners(mutated).some(err => err.includes(file)), file);
   }
