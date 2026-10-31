@@ -1,3 +1,13 @@
+## P0 verification-photo deletion: generation-safe source patch, review pending — 2026-10-31
+
+Draft [PR #231](https://github.com/Veselin-Takev/Klar-Dating/pull/231) now also includes the decision-aware API's conditional GCS delete with a generation-match precondition, Storage hold checks, pre-delete Firestore decision re-read, audit-transaction revalidation, and HTTP 503 on partial failure. Added unit negative tests and extended the mandatory compliance-storage gate. The previous exact commit `f2e527a387dbe04a2a3f4746f347f050dc2199ae` passed [CI #41175297962](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41175297962); **no success is asserted for subsequent commits**.
+
+The Firestore-to-Storage time-of-check/time-of-use window remains: without a coordinated lease and all decision writers honoring it, a decision may change between preflight and deletion. Missing objects are deliberately not marked purged on a simple 404; retries/reconciliation, actual SDK generation semantics, staging and live Scheduler inventories remain unverified. [P0 audit detail](LEGACY_PHOTO_RETENTION_LOCKDOWN_2026-10-31.md).
+
+**NO-GO; no merge, deployment, secret change or production Storage mutation.** Independent Security, DPO/Legal, SRE and Release Owner approvals required.
+
+---
+
 ## P0 Verification-photo retention: fail-closed source patch in Draft PR #231 — 2026-10-31
 
 - Draft PR [#231](https://github.com/Veselin-Takev/Klar-Dating/pull/231) isolates the legacy upload-age purge lockdown (#202). The scheduled legacy export remains present for controlled migration; its call to Storage age-based deletion is removed. The exported helper now **throws fail-closed** rather than allowing accidental direct invocation.
