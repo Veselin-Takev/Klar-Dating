@@ -188,6 +188,33 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('quarantines a legacy event without original upload-generation provenance', async () => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({ photoUploadGeneration: null });
+      let metadataReads = 0;
+      let deleteCalls = 0;
+      const api = await startApi(db, async () => { deleteCalls++; }, async () => {
+        metadataReads++;
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const response = await api.request();
+        expect(response).toMatchObject({
+          status: 503,
+          data: { ok: false, processed: 1, failedCount: 1, purgedCount: 0 },
+        });
+        expect(deleteCalls).toBe(0);
+        expect(metadataReads).toBe(1);
+        const stored = (await event.get()).data();
+        expect(stored?.photoPurged).toBe(false);
+        expect(stored?.photoPurgeIntent).toBeUndefined();
+        expect(stored?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('reports a generation conflict as 503 and safely retries without a false audit receipt', async () => {
     await withEvent(async ({ db, event, path }) => {
       let attempts = 0;
