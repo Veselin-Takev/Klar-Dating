@@ -20,8 +20,8 @@ const baseInput = () => ({
 const dependency = (): TenantAuthDependencies => ({
   verifyToken: async () => ({ uid, tenantId, roles: ['user'] }),
   loadTenantAndMembership: async () => ({
-    tenant: { status: 'active' },
-    membership: { status: 'active', roles: ['user'] },
+    tenant: { tenantId, status: 'active' },
+    membership: { tenantId, uid, status: 'active', roles: ['user'] },
   }),
 });
 const principal: TenantContext = { tenantId, uid, roles: ['user'], traceId };
@@ -48,7 +48,7 @@ describe('Tenant zero-trust identity and routing', () => {
     }
   });
   it('denies absent, malformed or failed Firebase verification before DB lookup', async () => {
-    const lookup = vi.fn(async () => ({ tenant: { status: 'active' }, membership: { status: 'active', roles: ['user'] } }));
+    const lookup = vi.fn(async () => ({ tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'active', roles: ['user'] } }));
     for (const authorization of [undefined, 'Basic abc', 'Bearer anything with spaces']) {
       await denied(authorizeTenant({ ...baseInput(), authorization }, { ...dependency(), loadTenantAndMembership: lookup }), 401);
     }
@@ -62,12 +62,20 @@ describe('Tenant zero-trust identity and routing', () => {
   });
   it('denies inactive/absent tenant, membership, DB failure or stale claimed roles', async () => {
     const cases = [
-      { tenant: null, membership: { status: 'active', roles: ['user'] } },
-      { tenant: { status: 'inactive' }, membership: { status: 'active', roles: ['user'] } },
-      { tenant: { status: 'active' }, membership: null },
-      { tenant: { status: 'active' }, membership: { status: 'suspended', roles: ['user'] } },
-      { tenant: { status: 'active' }, membership: { status: 'active', roles: ['finance'] } },
+      { tenant: null, membership: { tenantId, uid, status: 'active', roles: ['user'] } },
+      { tenant: { tenantId, status: 'inactive' }, membership: { tenantId, uid, status: 'active', roles: ['user'] } },
+      { tenant: { tenantId, status: 'active' }, membership: null },
+      { tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'suspended', roles: ['user'] } },
+      { tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'active', roles: ['finance'] } },
     ];
+    cases.push(
+      { tenant: { tenantId: 'tenant-two', status: 'active' },
+        membership: { tenantId, uid, status: 'active', roles: ['user'] } },
+      { tenant: { tenantId, status: 'active' },
+        membership: { tenantId: 'tenant-two', uid, status: 'active', roles: ['user'] } },
+      { tenant: { tenantId, status: 'active' },
+        membership: { tenantId, uid: 'user_2', status: 'active', roles: ['user'] } },
+    );
     for (const records of cases) {
       await denied(authorizeTenant(baseInput(), { ...dependency(), loadTenantAndMembership: async () => records }), 403);
     }
@@ -76,7 +84,7 @@ describe('Tenant zero-trust identity and routing', () => {
   it('grants only intersected JWT and authoritative membership roles', async () => {
     const ctx = await authorizeTenant(baseInput(), {
       verifyToken: async () => ({ uid, tenantId, roles: ['user', 'admin'] }),
-      loadTenantAndMembership: async () => ({ tenant: { status: 'active' }, membership: { status: 'active', roles: ['user'] } }),
+      loadTenantAndMembership: async () => ({ tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'active', roles: ['user'] } }),
     });
     expect(ctx.roles).toEqual(['user']);
   });
@@ -167,9 +175,13 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
     const path = 'tenants/tenant-one/users/user_1';
     documents.set(path, { tenantId: 'tenant-two' });
     await expect(repository.getOwnProfile()).rejects.toThrow('tenant_record_inconsistent');
-    documents.set(path, { tenantId: 'tenant-one', name: 'Self' });
-    await expect(repository.getOwnProfile()).resolves.toEqual({ tenantId, name: 'Self' });
-    expect(paths).toEqual([path, path]);
+    documents.set(path, { tenantId: 'tenant-one', uid: 'user_2', name: 'Other' });
+    await expect(repository.getOwnProfile()).rejects.toThrow('tenant_record_inconsistent');
+    documents.set(path, { tenantId: 'tenant-one', name: 'No owner' });
+    await expect(repository.getOwnProfile()).rejects.toThrow('tenant_record_inconsistent');
+    documents.set(path, { tenantId: 'tenant-one', uid, name: 'Self' });
+    await expect(repository.getOwnProfile()).resolves.toEqual({ tenantId, uid, name: 'Self' });
+    expect(paths).toEqual([path, path, path, path]);
     expect('getPayment' in repository).toBe(false);
     expect('getChat' in repository).toBe(false);
   });

@@ -1,3 +1,9 @@
+## P0 Multi-Tenant – Tenant/UID-Bindung für fehlerhaft migrierte Datensätze (31.10.2026)
+
+Nach [CI PASS #41228693178](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41228693178) wurde im Draft #253 die Tenant-/UID-Identitätsprüfung an der Server-Mitgliedschaft und dem eigenen Benutzerprofil ergänzt. Nicht nur der Firestore-Pfad, sondern auch Tenant- und Mitgliedschaftsmetadaten müssen exakt zu den verifizierten Claims passen; zusätzliche BOLA-/Migrations-Negativtests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) dokumentieren die neue Fail-Closed-Grenze. Noch keine Live-Datenmigration und keine produktive Firestore-Rules-Änderung; erneuter SHA-gebundener CI-PASS ausstehend. **NO-GO**.
+
+---
+
 ## P0 Multi-Tenant Feature-Flag Repository – direkte Tenant-Isolation (31.10.2026)
 
 [Draft PR #253](https://github.com/Veselin-Takev/Klar-Dating/pull/253) bestand [CI #41212151654](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41212151654) auf `f506f9909e4888a40324088af997ba22157b7a25`. Die anschließende Review fand einen direkten Rohdaten-Rückgabepfad in `getFeatureFlag()` vor der Tenant-Labelprüfung. Der Read-Adapter ist jetzt selbst fail-closed und gibt nur strikt Zod-validierte, minimierte Flag-Eigenschaften aus. Negative Cross-Tenant-/Schema-/Audit-Tests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) ergänzt. Der neue Head benötigt frische CI; `main` und produktive Daten unberührt. **Production NO-GO**.

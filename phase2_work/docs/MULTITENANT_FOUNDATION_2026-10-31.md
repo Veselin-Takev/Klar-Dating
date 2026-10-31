@@ -56,3 +56,12 @@ Nach dem vollständigen [Enterprise-CI-PASS #41212151654](https://github.com/Ves
 
 Die Negativtests verifizieren fremd markierte Dokumente **direkt am Repository**, verweigern fehlerhafte/inaktive Datensätze, prüfen minimierte Rückgaben ohne zusätzliche private Felder und kontrollieren den strukturierten Audit bei Ausnahmefehlern. Die vorherige erfolgreiche CI deckt **nicht** diesen neuen Commit ab; vollständige exakte CI und unabhängiger Review sind erneut Pflicht. Kein globales Live-Mounting oder Freigabe der Legacy-Migration. **BLOCKED / NO-GO**.
 
+
+## Identitätsbindung von Tenant-, Member- und Profil-Datensätzen (31.10.2026)
+
+Nach [vollständigem Enterprise-CI PASS #41228693178](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41228693178) für `c1e8b47ac7941dd262742b452e066104415844e8` wurde ein weiterer P0-Migrationsgrenzfall als Defense-in-Depth behandelt. Die bisherige Authentifizierung las `tenants/{claimTenant}` und `members/{claimUid}` an richtigen Pfaden, prüfte aber nur `status='active'` und eine Rollen-Schnittmenge. Fälschlich unter einen Pfad kopierte oder mit falschen Eigentümerfeldern versehene Datensätze könnten damit trotz korrekter Pfadadressierung akzeptiert werden.
+
+Jetzt verlangt die Middleware von der Tenant-Metadatenzeile `tenantId === verifiedClaim.tenantId` und vom Membership-Dokument **beide** Gleichheiten `tenantId === verifiedClaim.tenantId` und `uid === verifiedClaim.uid`. Profile müssen zusätzlich ihre `uid` genau an den aus dem ausgestellten Kontext gebundenen UID-Wert binden. Fehlende oder widersprüchliche Labels führen fail-closed zu 403 bzw. `tenant_record_inconsistent`. Testfälle für fremd zugeordnete Tenant-Metadaten, Mitgliedschafts-Tenant, Mitgliedschafts-UID und Profil-UID (einschließlich fehlendem UID-Feld) wurden ergänzt.
+
+**Migrationskonsequenz:** Ohne vollständiges, verifiziertes Tenant-/UID-Mapping sind diese Leseoperationen absichtlich nicht verfügbar. Keines der synthetischen Beispiele beweist die Richtigkeit von produktiven Altbeständen. Kein Cloud-Ruleset-, Daten- oder Deployment-Change. Die neue exakte CI und unabhängige Sicherheits-/Datenschutz-/SRE-Prüfungen sind Pflicht. **Production BLOCKED / NO-GO.**
+

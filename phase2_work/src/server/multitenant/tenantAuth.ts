@@ -29,8 +29,13 @@ const verifiedClaimSchema = z.object({
   tenantId: tenantIdSchema,
   roles: z.array(tenantRoleSchema).min(1).max(8),
 });
-const tenantDocumentSchema = z.object({ status: z.literal('active') });
+const tenantDocumentSchema = z.object({
+  tenantId: tenantIdSchema,
+  status: z.literal('active'),
+});
 const membershipSchema = z.object({
+  tenantId: tenantIdSchema,
+  uid: tenantContextSchema.shape.uid,
   status: z.literal('active'),
   roles: z.array(tenantRoleSchema).min(1).max(8),
 });
@@ -94,7 +99,14 @@ export async function authorizeTenant(input: TenantRouting, deps: TenantAuthDepe
   } catch {
     throw new TenantAccessDenied(403);
   }
-  if (tenant.status !== 'active' || membership.status !== 'active') throw new TenantAccessDenied(403);
+  // Defend against a copied or incorrectly migrated membership/tenant record,
+  // even when its Firestore document path is otherwise correctly scoped.
+  if (tenant.tenantId !== claims.tenantId ||
+      membership.tenantId !== claims.tenantId ||
+      membership.uid !== claims.uid ||
+      tenant.status !== 'active' || membership.status !== 'active') {
+    throw new TenantAccessDenied(403);
+  }
   // Neither a stale JWT nor an over-privileged membership record can grant a
   // role the other source lacks.
   const roles = claims.roles.filter(role => membership.roles.includes(role));

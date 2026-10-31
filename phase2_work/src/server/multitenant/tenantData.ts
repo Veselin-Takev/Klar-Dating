@@ -20,7 +20,10 @@ export function createTenantReadRepository(db: Firestore, context: TenantContext
       if (!doc.exists) return null;
       // A moved or mislabelled document must fail closed, even at the
       // correct hierarchical path. Legacy unlabelled records are denied.
-      const check = z.object({ tenantId: z.literal(identity.tenantId) }).safeParse(data);
+      const check = z.object({
+        tenantId: z.literal(identity.tenantId),
+        uid: z.literal(identity.uid),
+      }).safeParse(data);
       if (!check.success) throw new Error('tenant_record_inconsistent');
       return data;
     },
