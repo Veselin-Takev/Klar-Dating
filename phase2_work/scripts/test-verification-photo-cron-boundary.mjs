@@ -58,11 +58,11 @@ test('signed decision-aware purge path remains registered and requires explicit 
   assert.match(route, /leaseId: null, leaseUntil: null/, 'Purge scan lease must be released');
   assert.match(route, /result\.failed > 0 \|\| result\.hasMore/, 'Unfinished work must not be acknowledged as GO');
   assert.match(route, /ifGenerationMatch/, 'Purge route must use Storage generation preconditions');
-  assert.match(route, /isActiveOrMalformedHold\\(metadata\\.temporaryHold\\)/, 'Purge route must reject active or malformed temporary object holds');
-  assert.match(route, /isActiveOrMalformedHold\\(metadata\\.eventBasedHold\\)/, 'Purge route must reject active or malformed event-based holds');
+  assert.match(route, /isActiveOrMalformedHold\(metadata\.temporaryHold\)/, 'Purge route must reject active or malformed temporary object holds');
+  assert.match(route, /isActiveOrMalformedHold\(metadata\.eventBasedHold\)/, 'Purge route must reject active or malformed event-based holds');
   assert.match(route, /value !== undefined && value !== null && value !== false/, 'Missing/false holds may pass; malformed values must fail closed');
-  assert.match(route, /'legalHold' in data && data\\.legalHold !== false/, 'Explicit legal hold data must fail closed unless false');
-  assert.match(route, /'retentionHold' in data && data\\.retentionHold !== false/, 'Explicit retention hold data must fail closed unless false');
+  assert.match(route, /'legalHold' in data && data\.legalHold !== false/, 'Explicit legal hold data must fail closed unless false');
+  assert.match(route, /'retentionHold' in data && data\.retentionHold !== false/, 'Explicit retention hold data must fail closed unless false');
   assert.match(route, /res\.status\(incomplete \? 503 : 200\)/, 'Partial failures and unfinished pages must be retryable HTTP errors');
   assert.doesNotMatch(route, /res\.json\(\{ ok: true, \.\.\.summary \}\)/, 'Do not disclose per-user purge paths');
   assertExplicitFinalDecisionGuard(engine);
@@ -84,8 +84,8 @@ test('a pending-only moderation guard cannot pass the retention policy gate', ()
 test('boolean-only hold checks cannot silently replace malformed-hold guards', () => {
   const route = read('src/server/routes/complianceStorage.ts');
   const checks = [
-    /isActiveOrMalformedHold\\(metadata\\.temporaryHold\\)/,
-    /isActiveOrMalformedHold\\(metadata\\.eventBasedHold\\)/,
+    /isActiveOrMalformedHold\(metadata\.temporaryHold\)/,
+    /isActiveOrMalformedHold\(metadata\.eventBasedHold\)/,
     /value !== undefined && value !== null && value !== false/,
   ];
   for (const rule of checks) assert.match(route, rule);
