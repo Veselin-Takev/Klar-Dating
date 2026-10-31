@@ -125,6 +125,25 @@ function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactR
   };
 }
 
+/**
+ * An upload-generation token must be bound to the decision by the trusted
+ * upload pipeline, not inferred from the live object at purge time.
+ * Historical events without proof are quarantined for privacy review.
+ */
+export function requireVerifiedPhotoUploadGeneration(
+  data: Record<string, unknown> | undefined,
+  actualGeneration?: string | number,
+): string {
+  const generation = data?.photoUploadGeneration;
+  if (typeof generation !== 'string' || !/^[1-9][0-9]*$/.test(generation)) {
+    throw new Error('verification_photo_upload_generation_unproven');
+  }
+  if (actualGeneration !== undefined && generation !== String(actualGeneration)) {
+    throw new Error('verification_photo_upload_generation_changed');
+  }
+  return generation;
+}
+
 export function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
@@ -145,6 +164,9 @@ export function assertStillEligibleForPurge(
     || !isVerificationArtifactExpired(artifact.decidedAt, now)) {
     throw new Error('verification_photo_eligibility_changed');
   }
+  // Do not infer original identity from metadata of an object that may have
+  // been overwritten before this purge. Legacy evidence requires reconciliation.
+  requireVerifiedPhotoUploadGeneration(data);
 }
 
 export function complianceSignature(body: string, secret: string): string {
@@ -274,6 +296,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                   assertStillEligibleForPurge(record.data(), artifact, now);
                   const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                   if (!intent) throw new Error('verification_purge_reconciliation_requires_intent');
+                  requireVerifiedPhotoUploadGeneration(record.data(), intent.generation);
                   return intent;
                 });
                 proofs.set(artifact.challengeId, {
@@ -290,6 +313,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(record.data(), artifact, now);
+                requireVerifiedPhotoUploadGeneration(record.data(), generation);
                 const existing = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                 if (existing && existing.generation !== String(generation)) {
                   throw new Error('verification_purge_intent_generation_changed');
@@ -313,6 +337,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                   ]);
                   assertActivePurgeLease(lease.data(), leaseId);
                   assertStillEligibleForPurge(record.data(), artifact, Date.now());
+                  requireVerifiedPhotoUploadGeneration(record.data(), generation);
                   const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                   if (!intent || intent.generation !== String(generation)) {
                     throw new Error('verification_purge_predelete_intent_mismatch');
@@ -345,6 +370,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(current.data(), expected, Date.now());
+                requireVerifiedPhotoUploadGeneration(current.data(), proof.generation);
                 const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
                 if (!intent || intent.generation !== proof.generation) {
                   throw new Error('verification_photo_audit_intent_mismatch');
