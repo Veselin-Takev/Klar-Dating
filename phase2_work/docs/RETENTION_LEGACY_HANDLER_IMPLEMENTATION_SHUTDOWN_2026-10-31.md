@@ -22,6 +22,12 @@ Root Cause: Beide Testmutationen enthielten die **wörtlichen Zeichen** `\\n` st
 
 **Ein neuer CI-PASS auf dem exakten Folge-Commit ist erforderlich** und darf nicht vorweggenommen werden. Diese Tests betreffen ausschließlich Quelltext-/Mutationsevidenz, nicht eingesetzte GCS-/IAM-Konfigurationen oder bereits vorhandene Biometrieobjekte.
 
+## 31.10.2026 — zweiter CI-Lauf: TypeScript-Import bereinigt
+
+Der zweite [CI-Lauf #41184534062](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41184534062) zu HEAD `02fcc1a8170db4220f03efb20ac922de1be0de07` endete **FAILURE**, nachdem die **Enterprise-Static-Gates vollständig PASS** waren. Ein einzelner Typecheck-Fehler blieb: `src/server/klarCore.ts(1,15): TS6196: 'Firestore' is declared but never used.` Nach Entfernung der manuellen Verifizierungsentscheidungs-Transaktionen wurde der Typ nicht mehr verwendet. Der Import wurde auf `import type { Transaction }` reduziert. Dies betrifft keinen Laufzeitpfad oder neuen Sicherheitsentscheid.
+
+Functions-Build, Unit-/Emulator-Tests, Build und Browser-Acceptance waren in dem fehlgeschlagenen Run nicht ausgeführt. **Eine neue exakte CI-SHA ist vor einer technischen Freigabe vollständig zu verifizieren.** Keine Übertragung vorheriger PASS-Gates auf den Folge-Commit; unabhängige Security-/Datenschutz-/Operations-Freigaben bleiben aus.
+
 ## Evidenzgrenzen / Freigabesicherung
 
 - Der [vorherige #235 CI-PASS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41183124372) **gilt nur für den alten Commit**. Für den jetzt geänderten Feature-Branch ist die eigene vollständige CI einschließlich Typecheck, Unit-/Emulator-Tests, Build und Browser-Acceptance nachzuweisen; nicht ausgeführte Schritte bleiben offen.
