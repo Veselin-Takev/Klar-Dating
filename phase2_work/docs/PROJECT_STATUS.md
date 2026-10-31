@@ -1,3 +1,11 @@
+## P0 #202 — Retention-Scanner-Integration ohne Regressions-Merge (31.10.2026)
+
+Ausgehend von dem gestapelten Privacy-Fix PR #229 auf PR #203 ist ein **isolierter Integrationskandidat** erstellt. Die vorhandene wiederaufnehmbare `scanPurgePages`-Architektur mit Firestore-Lease, Checkpoint, generationgebundenem Intent und 404-/412-Recovery bleibt erhalten; selektiv wurden Storage-Retention-Sperren und die Prüfung von `legalHold/retentionHold` im Entscheidungsdatensatz hinzugefügt. Synthetische Negativtests und der bereits verpflichtende Source-Security-Gate wurden erweitert.
+
+**Keine Produktivbehauptung:** Die historischen Entscheidungsdatensätze belegen die ursprüngliche Upload-Generation nicht; Scanner-Leases sperren nicht automatisch konkurrierende Entscheidungsschreiber und GCS-Uploads. Exakte CI, Emulator, Staging und unabhängiges Security-/DPO-/SRE-Review sind nachzuweisen. Audit: [RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md). `main` und die produktiven Ressourcen bleiben unverändert. **Release: BLOCKED / NO-GO.**
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
