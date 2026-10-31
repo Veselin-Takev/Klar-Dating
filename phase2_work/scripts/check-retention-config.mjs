@@ -34,8 +34,11 @@ export function assertRetentionConfiguration({
   assert(archiveWorker.includes("collection('archived_messages')") &&
     archiveWorker.includes('...message.data()'),
     'Archival must preserve the original message expiry');
-  assert(kycWriter.includes("kyc_events/${event.event_id}") &&
-    kycWriter.includes('expiresAt: new Date(now + 30 * 86400_000)'),
+  assert(kycWriter.includes("kyc_events/${event.event_id}"), 'Didit deduplication event ID must be stable');
+  // Scope the expiry check to the exact event creation write. A separate
+  // reconciliation TTL must not mask a missing KYC event expiration.
+  assert.match(kycWriter,
+    /tx\.create\(eventRef, \{ sessionId: event\.session_id, uid: event\.vendor_data, applied: applicable,\s*receivedAt: new Date\(now\), expiresAt: new Date\(now \+ 30 \* 86400_000\) \}\);/,
     'Didit deduplication event writer must set a 30-day TTL');
 
   // Legacy entrypoint remains for controlled deployed-Scheduler migration but
@@ -64,8 +67,10 @@ export function assertRetentionConfiguration({
     'Photo deletion must select records by decision-based due date');
   assert.match(route, /scanPurgePages\(/,
     'Decision-based purge must use bounded, resumable scanner');
-  assert.match(route, /ifGenerationMatch/,
-    'Storage deletion must retain generation preconditions');
+  // Merely mentioning ifGenerationMatch in a type/comment is insufficient:
+  // require the actual Google Cloud Storage DELETE call to use the token.
+  assert.match(route, /await file\.delete\(\{ ifGenerationMatch: generation \}\);/,
+    'Actual GCS delete must retain a generation precondition');
   assert.match(engine, /artifact\.status !== 'approved' && artifact\.status !== 'rejected'/,
     'Every nonfinal moderation status must block photo deletion');
   assert.match(engine, /isVerificationArtifactExpired\(artifact\.decidedAt/,
