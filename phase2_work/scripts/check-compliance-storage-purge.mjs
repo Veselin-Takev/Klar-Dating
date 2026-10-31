@@ -55,4 +55,21 @@ for (const proof of [
     throw new Error('Compliance storage purge boundary failed: unverified completion receipt');
   }
 }
+// A bounded scanner can otherwise lose an earlier failure when a later
+// request reaches the end of the cursor range with zero *new* failures.
+// Persist the whole-sweep failure bit; never report a false HTTP 200.
+for (const proof of [
+  'const priorSweepFailures = state?.cycleHadFailures;',
+  "throw new Error('verification_purge_scan_failure_state_invalid');",
+  'let invocationHadFailures = false;',
+  'invocationHadFailures ||= invalid + pendingOrFailed > 0;',
+  'cycleHadFailures: cursor === null',
+  '(ownership.priorSweepFailures || invocationHadFailures)',
+  'result.failed > 0 || result.hasMore || ownership.priorSweepFailures',
+  'unresolvedEarlierPages: ownership.priorSweepFailures,',
+]) {
+  if (!route.includes(proof)) {
+    throw new Error('Compliance storage purge boundary failed: cross-invocation failure evidence lost');
+  }
+}
 console.log('Compliance storage purge boundary: PASS');
