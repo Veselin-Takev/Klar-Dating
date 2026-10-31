@@ -1,3 +1,11 @@
+## P0 #202 – Signed Photo-Purge-Scheduler prüft vollständigen API-Erfolgsbeleg (31.10.2026)
+
+Die Cloud-Funktion `purgeVerificationStorageCron` wertete bislang ausschließlich `response.ok` aus. Ein HTTP 200 mit ungültiger, unvollständiger oder widersprüchlicher Audit-Antwort konnte dadurch als erfolgreich quittiert werden. Im isolierten Branch `fix/202-scheduler-purge-response-contract-20261031` auf [PR #242](https://github.com/Veselin-Takev/Klar-Dating/pull/242) akzeptiert der neue Helper `functions/src/purgeCompletion.ts` deshalb nur einen **begrenzten (2 KiB) JSON-Response** mit `ok:true`, `failedCount:0`, `hasMore:false`, `unresolvedEarlierPages:false` und widerspruchsfreien sicheren Integer-Zählern. HTTP-Fehler, leere/HTML-/überlange Antworten und unechte Erfolgsmeldungen führen in den Scheduler-Fehler-/Retry-Pfad. Neue Positiv-/Negativtests und das verpflichtende `check:compliance-storage-purge`-Gate sind enthalten. [Technischer Audit](RETENTION_PURGE_SCHEDULER_RESPONSE_RECEIPT_2026-10-31.md).
+
+**Technische Freigabe erst nach neuer exakter vollständiger CI und unabhängigen Reviews.** Originalgenerationen, Cloud-Funktions-/IAM-/All-Writer-Inventur, geprüfte Staging-Löschungen und datenschutzrechtlich genehmigte historische Bereinigung fehlen. Kein Merge/Deploy, **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #202 — widersprüchliche Moderationsentscheidungen vor GCS-Löschung sperren (31.10.2026)
 
 Der signierte Retention-Scanner akzeptierte bisher bei doppelt ausgefüllten `verification_events.entscheidung` und `verification_events.status` bevorzugt `entscheidung` via `??`. So konnte ein finaler Status den gleichzeitig dokumentierten offenen oder gegenteiligen Status verdecken. Im isolierten Branch `fix/202-conflicting-moderation-status-fence-20261031` auf [Draft PR #241](https://github.com/Veselin-Takev/Klar-Dating/pull/241) wurde die einheitliche `reconciledVerificationDecision` eingeführt: nur ein konsistenter finaler Status erlaubt den GCS-Purge, die DELETE-Revalidierung und die Anerkennung historischer Purge-Receipts. Semantisch identische deutsche/englische Aliasse bleiben gültig; widersprüchliche Felder bleiben fail-closed. Negative Unit- und signierte Firestore-Emulator-Tests sowie das verpflichtende Compliance-Source-Gate sind ergänzt. [Vollständiger Auditbericht](RETENTION_CONFLICTING_DECISION_STATUS_FENCE_2026-10-31.md).
