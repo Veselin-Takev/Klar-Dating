@@ -29,7 +29,7 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
     assert.match(f.sha256, /^[0-9a-f]{64}$/);
     const raw = readFileSync(resolve(workdir, f.path));
     assert.equal(f.sha256, createHash('sha256').update(raw).digest('hex'));
-    if (f.path !== 'server.ts') assert.ok(f.hits.length > 0);
+    assert.ok(Array.isArray(f.hits), 'zero-hit source files must remain in inventory');
     for (const hit of f.hits) {
       assert.ok(Number.isSafeInteger(hit.line) && hit.line > 0);
       assert.equal(typeof hit.category, 'string');
