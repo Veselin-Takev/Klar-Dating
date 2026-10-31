@@ -48,3 +48,10 @@ Der erste Preflight in [Draft #255](https://github.com/Veselin-Takev/Klar-Dating
 
 **Zusätzlicher verbindlicher Gate:** unabhängige DPO-/Security-/SRE-Bestätigung der Keyring-Herkunft, Signer-Rollen, Key-Lifecycle/Revocation und eines unveränderlichen, vollständig mit den Original-Firestore-Datensätzen abgeglichenen Snapshot-Exports. Der selbst angegebene `sourceSha256` muss separat aus tatsächlichen Quellbytes authentisiert werden. Ohne Nachweis kein Executor, keine produktive Migration, kein GO.
 
+
+## Zwei-Personen-Kryptobeleg: Approver bindet die exakt geprüfte Inventardatei (31.10.2026)
+
+Die erfolgreich geprüfte [Parent-CI #41231738458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41231738458) auf [Draft #256](https://github.com/Veselin-Takev/Klar-Dating/pull/256) schließt **keine** Bindung zwischen den beiden getrennten Datei-Signaturen ein. Die nachfolgende Security-Prüfung fand diese Versionssubstitutionslücke: Ein Exporter kann ein neues Inventar signieren, während ein bereits signiertes Approver-Mapping bei unverändertem Snapshot, UID und Quellen-Hash formal gültig bleibt. Der isolierte V2-Fix signiert auf Approver-Seite daher zusätzlich `SHA256(exact_inventory_file_bytes)` als feste binäre 32-Byte-Komponente. Alte `mapping:v1`-Signaturen werden fail-closed abgelehnt, synthetische Replay-/Erasure-/Whitespace-Negativtests ergänzen die bestehenden Signaturprüfungen. [Details mit Protokollformat](DUAL_SIGNER_INVENTORY_BINDING_2026-10-31.md).
+
+**Migrationsgenehmigung weiterhin verboten:** Die vertrauenswürdige Schlüsselrollen-Zuweisung, Firestore-Originaldatenprovenienz und DPO-/Release-Abnahme sind nicht automatisiert bestätigt. Alle Erfolge bleiben `BLOCKED_MANUAL_APPROVAL_REQUIRED`. Keine Live-Mutation oder globale Aktivierung. **NO-GO.**
+

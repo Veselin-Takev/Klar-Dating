@@ -1,3 +1,9 @@
+## P0 #254 – Mapping-Signatur jetzt auf signierte Originalinventarbytes gebunden (31.10.2026)
+
+Nach vollständigem [CI-PASS #41231738458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41231738458) von #256 wurde im Dual-Ed25519-Protokoll eine Replay-/Inventarsubstitution erkannt: Die Approver-Signatur betraf bislang nur das Mapping, nicht die genaue Inventarversion. Ein gestapelter Draft versieht das Mapping-Protokoll mit der neuen Version `mapping:v2` und signiert zusätzlich den SHA256-Digest der **exakten** exportierten Inventarbytes. Tests verweigern Exporter-Only-Resigning, alte V1-Signaturen und nachträgliche Hold-Zustandsänderungen; selbst korrekt doppelt signierte Legal-Hold-Daten bleiben blockiert. [Technischer Review](DUAL_SIGNER_INVENTORY_BINDING_2026-10-31.md). Die Änderung ist keine echte Quellprovenienz-, DPO- oder produktive Migrationsfreigabe. Neuer exact-head CI-PASS ausstehend. **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #254 – Ed25519-Signaturen als Pflicht vor Tenant-Migrations-Dry-Run (31.10.2026)
 
 Nach erfolgreicher [CI #41230731605](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230731605) von [Draft #255](https://github.com/Veselin-Takev/Klar-Dating/pull/255) wurde die bisherige Schwachstelle selbstdeklarierter Mapping-/Inventar-Digests durch eine **separat gestapelte Ed25519-Prüfung** adressiert. Der neue Validator verlangt voneinander unabhängige Exporter-/Approver-Public-Keys, strikt gepinnten Trust-Anchor, exakt signierte Originaldatei-Bytes und Domain-Separation; die CLI bleibt ohne Firebase-Write und ohne Live-Modus. Erst nach Signaturprüfung darf die unveränderte Zod-Mapping-Reconciliation laufen. Tests und [Migrations-Audit](MULTITENANT_PROFILE_PREFLIGHT_2026-10-31.md) ergänzt. Eine kryptographisch valide Signatur ist **keine** DPO-/Owner-/Freigabeattestierung und ersetzt keine Originaldatenprovenienz. Neue CI und unabhängiger Review zwingend, **BLOCKED / NO-GO**.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { preflightLegacyProfileMapping, type TenantMigrationPreflightReport } from './tenantMigrationPreflight';
 
 export const INVENTORY_SIGNATURE_DOMAIN = 'klar:tenant-migration:inventory:v1\0';
-export const MAPPING_SIGNATURE_DOMAIN = 'klar:tenant-migration:mapping:v1\0';
+export const MAPPING_SIGNATURE_DOMAIN = 'klar:tenant-migration:mapping:v2\0';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 const base64urlSignature = z.string().regex(/^[A-Za-z0-9_-]{86}$/);
@@ -31,7 +31,8 @@ export interface SignedMigrationResult extends TenantMigrationPreflightReport {
 
 /**
  * Verifies two *separately trusted* Ed25519 signing roles against the exact
- * original bytes, not a lossy parsed/re-serialized representation.
+ * original bytes; the approver signature also commits to SHA256(inventory).
+ * This rejects exporter-only replacements even if mapping metadata matches.
  * Caller must pin the trust-anchor content digest out of band.
  * Signatures prove possession of keys, NOT real-world ownership or approval.
  */
@@ -72,8 +73,14 @@ export function preflightSignedLegacyProfileMapping(input: SignedMigrationInput)
   const inventoryPayload = Buffer.concat([
     Buffer.from(INVENTORY_SIGNATURE_DOMAIN, 'utf8'), inventory,
   ]);
+  // The approver must endorse this exact exporter-signed inventory, not
+  // merely a mapping with matching sourcePath/snapshot metadata. Without
+  // this digest, an exporter could re-sign a semantically changed inventory
+  // while replaying the approver's signature from a different version.
+  // V2: fixed-length 32-byte SHA-256 digest + original mapping bytes.
+  const inventoryDigest = createHash('sha256').update(inventory).digest();
   const mappingPayload = Buffer.concat([
-    Buffer.from(MAPPING_SIGNATURE_DOMAIN, 'utf8'), mapping,
+    Buffer.from(MAPPING_SIGNATURE_DOMAIN, 'utf8'), inventoryDigest, mapping,
   ]);
   if (!verify(null, inventoryPayload, exporter, inventorySignature) ||
       !verify(null, mappingPayload, approver, mappingSignature)) {
