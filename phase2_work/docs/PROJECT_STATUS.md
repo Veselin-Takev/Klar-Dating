@@ -1,3 +1,9 @@
+## P0 #254 – Offline-Preflight für Profile vor Tenant-Migration (31.10.2026)
+
+Ein unabhängiger, **ausschließlich read-only** Zod-Validator für Legacy-Profileinträge wurde als gestapelter Draft auf PR #253 implementiert. Er reconciliert explizite UID-/Tenant-Zuordnungen gegen einen identischen Export-Snapshot und SHA-256-Quellfingerprints, lehnt fehlende, widersprüchliche, doppelte oder auf Legal-Hold/Erasure stehende Datensätze fail-closed ab und erzeugt **nie** ein ausführbares Migrations-GO. Der CLI lässt nur `--dry-run` zu; der Bericht enthält ausschließlich Anzahlwerte und einen SHA-256-Abgleichdigest. Die Signaturen und tatsächliche Herkunft der Inventare sind **nicht** überprüft, daher ist jede Ausgabe verbindlich `BLOCKED_MANUAL_APPROVAL_REQUIRED`. Gesonderte Fachmodelle für Chat/KYC/Payment, signierte Originalexports, DPO-Mapping, starker Migrationsexecutor, Art.-17- und Emulator-Nachweise bleiben P0. [Prüfbericht](MULTITENANT_PROFILE_PREFLIGHT_2026-10-31.md). Keine Produktion, kein `main`-Merge, kein Deployment. **NO-GO.**
+
+---
+
 ## P0 Multi-Tenant – Tenant/UID-Bindung für fehlerhaft migrierte Datensätze (31.10.2026)
 
 Nach [CI PASS #41228693178](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41228693178) wurde im Draft #253 die Tenant-/UID-Identitätsprüfung an der Server-Mitgliedschaft und dem eigenen Benutzerprofil ergänzt. Nicht nur der Firestore-Pfad, sondern auch Tenant- und Mitgliedschaftsmetadaten müssen exakt zu den verifizierten Claims passen; zusätzliche BOLA-/Migrations-Negativtests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) dokumentieren die neue Fail-Closed-Grenze. Noch keine Live-Datenmigration und keine produktive Firestore-Rules-Änderung; erneuter SHA-gebundener CI-PASS ausstehend. **NO-GO**.
