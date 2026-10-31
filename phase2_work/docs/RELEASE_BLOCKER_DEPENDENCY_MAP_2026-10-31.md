@@ -24,3 +24,17 @@
 ## Nachführung
 
 Bei jeder relevanten Integration erst GitHub-PR/Issue-Zustand, geänderten Head-SHA, CI-/Checks- und Artefaktbelege erneut abrufen; diese Karte als historisch datierten Snapshot behandeln. Veröffentlichte Prüfergebnisse immer mit Testtyp, Host/Umgebung, UTC-Zeit, SHA und PASS/FAIL/BLOCKED dokumentieren. **Ungeprüft ≠ PASS.**
+
+
+## Nachtrag: GitHub Actions Workflow-Runs (31.10.2026)
+
+Die ergänzende Abfrage der **PR-getriggerten GitHub Actions Runs nach exaktem Commit-SHA** liefert folgende Workflow-Metadaten. Damit wird die obige vorsichtige Aussage über leere *Commit-Status*-Einträge nicht zu einem generellen Fehlen von CI-Nachweisen umgedeutet:
+
+| Draft PR | Exakter Head-SHA | Workflow | Run-ID | Beobachteter Zustand |
+|---|---|---|---|---|
+| [#243](https://github.com/Veselin-Takev/Klar-Dating/pull/243) | `82640fe87463e7332789b20443d31248b4a3226d` | Klar Enterprise CI | [41191871749](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41191871749) | completed / success |
+| [#247](https://github.com/Veselin-Takev/Klar-Dating/pull/247) | `92350b8a3b51881130915d72a096fcb493944a21` | Klar Enterprise CI | [41195934570](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41195934570) | completed / success |
+| [#248](https://github.com/Veselin-Takev/Klar-Dating/pull/248) | `a98fa67324825b1357b466a497cfaa10a941a410` | Klar Enterprise CI | [41204001572](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41204001572) | completed / success |
+| [#249](https://github.com/Veselin-Takev/Klar-Dating/pull/249) | `073581672d26fe69973f0127f96827ff0f2e7620` | Klar Enterprise CI | [41205603173](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41205603173) | in_progress bei Abfrage; Ergebnis offen |
+
+**Evidenzgrenze:** Nur Workflow-Metadaten wurden abgefragt; keine vollständige Job-/Gate-Matrix, signierte Logs, Runner-Attestierungen oder deployte Cloud-Konfiguration validiert. Der SHA von #249 bezieht sich auf den Stand *vor diesem Dokumentationsnachtrag*. Der Nachtrag erzeugt einen neuen Head-SHA und benötigt eine erneute vollständige CI-Prüfung. Keine PR ist allein durch `conclusion: success` zur Produktion freigegeben. Insbesondere #243/#247 bleiben gestapelte Teiländerungen mit ungeprüfter Integrationsbasis.
