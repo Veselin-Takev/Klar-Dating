@@ -1,3 +1,13 @@
+## P0 Verification-photo retention: fail-closed source patch in Draft PR #231 — 2026-10-31
+
+- Draft PR [#231](https://github.com/Veselin-Takev/Klar-Dating/pull/231) isolates the legacy upload-age purge lockdown (#202). The scheduled legacy export remains present for controlled migration; its call to Storage age-based deletion is removed. The exported helper now **throws fail-closed** rather than allowing accidental direct invocation.
+- The mandatory `check:retention-p0` chain includes a source regression guard; existing unit and conditional Storage Emulator tests were changed to reject legacy age-based deletion. `DATA_RETENTION.md` and the standalone retention config guard were synchronized to the decision-aware `purgeVerificationStorageCron` / API architecture.
+- Previous head `9c6ece1ee6f6173111bb20c2ccd40b5d22fb54be` passed [Enterprise CI 41174666145](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41174666145); **that result does not cover the later updates**. Independent reviews, current-head CI, staging and actual Scheduler inventory remain outstanding.
+- **Newly verified residual code risk:** the authoritative API's Storage deletion currently lacks a generation-match precondition and its Firestore completion transaction does not revalidate the complete decision/path snapshot. See [detailed P0 audit](LEGACY_PHOTO_RETENTION_LOCKDOWN_2026-10-31.md). Neither race condition is represented as fixed.
+- No merge, deployment or live Storage mutation. **Production BLOCKED / NO-GO** pending Security, Privacy/DPO, SRE and Release Owner approvals.
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
