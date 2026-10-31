@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { Request, Response, NextFunction } from 'express';
 import {
@@ -152,8 +152,12 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
       data: () => documents.get(path),
     }) };
   } } as unknown as Firestore;
-  const issuedPrincipal = await authorizeTenant(baseInput(), dependency());
-  const repository = createTenantReadRepository(db, issuedPrincipal);
+  let issuedPrincipal: TenantContext;
+  let repository: ReturnType<typeof createTenantReadRepository>;
+  beforeAll(async () => {
+    issuedPrincipal = await authorizeTenant(baseInput(), dependency());
+    repository = createTenantReadRepository(db, issuedPrincipal);
+  });
   it('rejects fabricated tenant contexts, even when their shape is valid', async () => {
     expect(() => createTenantReadRepository(db, principal)).toThrow('tenant_access_denied');
     await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', repository, { info: vi.fn() })).rejects.toThrow('tenant_access_denied');
