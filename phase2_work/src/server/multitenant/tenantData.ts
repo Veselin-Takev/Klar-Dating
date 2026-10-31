@@ -27,7 +27,16 @@ export function createTenantReadRepository(db: Firestore, context: TenantContext
     async getFeatureFlag(name: string): Promise<unknown> {
       const key = flagIdSchema.parse(name);
       const doc = await db.doc(prefix + 'featureFlags/' + key).get();
-      return doc.exists ? doc.data() : null;
+      if (!doc.exists) return null;
+      // No raw Firestore record may escape this repository, including to a
+      // caller that does not use the higher-level flag evaluation service.
+      const parsed = z.object({
+        tenantId: z.literal(identity.tenantId),
+        status: z.literal('active'),
+        enabled: z.boolean(),
+      }).safeParse(doc.data());
+      if (!parsed.success) throw new Error('tenant_record_inconsistent');
+      return parsed.data;
     },
   });
 }

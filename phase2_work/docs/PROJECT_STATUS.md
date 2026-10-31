@@ -1,3 +1,9 @@
+## P0 Multi-Tenant Feature-Flag Repository – direkte Tenant-Isolation (31.10.2026)
+
+[Draft PR #253](https://github.com/Veselin-Takev/Klar-Dating/pull/253) bestand [CI #41212151654](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41212151654) auf `f506f9909e4888a40324088af997ba22157b7a25`. Die anschließende Review fand einen direkten Rohdaten-Rückgabepfad in `getFeatureFlag()` vor der Tenant-Labelprüfung. Der Read-Adapter ist jetzt selbst fail-closed und gibt nur strikt Zod-validierte, minimierte Flag-Eigenschaften aus. Negative Cross-Tenant-/Schema-/Audit-Tests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) ergänzt. Der neue Head benötigt frische CI; `main` und produktive Daten unberührt. **Production NO-GO**.
+
+---
+
 ## Multi-Tenant – gefälschter Tenant-Kontext wird verweigert (31.10.2026)
 
 Der Tenant-Repository-Zugang und die Feature-Flag-Auswertung akzeptieren nun nur die nach verifizierten JWT-/Mitgliedschaftsprüfungen tatsächlich ausgegebenen, eingefrorenen `TenantContext`-Objekte. Ein privates `WeakSet` verhindert das Umgehen der Autorisierung durch bloße TypeScript-Typumwandlung. Negativtests ergänzt; [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). **NO-GO** bis zur vollständigen CI- und Legacy-Migration.

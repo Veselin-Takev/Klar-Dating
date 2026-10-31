@@ -182,16 +182,33 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
     paths.length = 0;
     const sink = { info: vi.fn() };
     const path = 'tenants/tenant-one/featureFlags/SAFE_CHAT';
-    documents.set(path, { tenantId: 'tenant-two', status: 'active', enabled: true });
-    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, sink, () => new Date('2026-10-31T12:00:00.000Z'))).resolves.toBe(false);
-    documents.set(path, { tenantId: 'tenant-one', status: 'active', enabled: true });
+    documents.set(path, { tenantId: 'tenant-two', status: 'active', enabled: true, privateData: 'MUST_NOT_ESCAPE' });
+    await expect(repository.getFeatureFlag('SAFE_CHAT')).rejects.toThrow('tenant_record_inconsistent');
+    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, sink, () => new Date('2026-10-31T12:00:00.000Z'))).rejects.toThrow('tenant_record_inconsistent');
+    documents.set(path, { tenantId: 'tenant-one', status: 'active', enabled: true, privateData: 'MUST_NOT_ESCAPE' });
+    await expect(repository.getFeatureFlag('SAFE_CHAT')).resolves.toEqual({
+      tenantId: 'tenant-one', status: 'active', enabled: true,
+    });
     await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, sink)).resolves.toBe(true);
-    expect(paths).toEqual([path, path]);
+    expect(paths).toEqual([path, path, path, path]);
     expect(sink.info).toHaveBeenCalledTimes(2);
     expect(sink.info.mock.calls[0]?.[0]).toEqual({
       tenant_id: tenantId, trace_id: traceId, timestamp: '2026-10-31T12:00:00.000Z',
       flag_name: 'SAFE_CHAT', enabled: false, outcome: 'denied',
     });
+  });
+  it('refuses malformed and inactive feature flag records at the repository boundary', async () => {
+    const path = 'tenants/tenant-one/featureFlags/SAFE_CHAT';
+    for (const invalid of [
+      { status: 'active', enabled: true },
+      { tenantId: 'tenant-one', status: 'inactive', enabled: true },
+      { tenantId: 'tenant-one', status: 'active', enabled: 'true' },
+    ]) {
+      documents.set(path, invalid);
+      await expect(repository.getFeatureFlag('SAFE_CHAT')).rejects.toThrow('tenant_record_inconsistent');
+    }
+    documents.delete(path);
+    await expect(repository.getFeatureFlag('SAFE_CHAT')).resolves.toBeNull();
   });
   it('logs denied decision on storage failure and refuses to proceed if audit logger fails', async () => {
     const broken = { getOwnProfile: repository.getOwnProfile, getFeatureFlag: async () => { throw Error('DB offline'); } };

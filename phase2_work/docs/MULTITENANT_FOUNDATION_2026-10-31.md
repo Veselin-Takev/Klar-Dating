@@ -49,3 +49,10 @@ Die zusätzliche Security-Selbstprüfung zeigte, dass der erste Typvalidator all
 
 Diese Härtung betrifft **nur die neue Tenant-Schicht**. Sie ist kein Schutz für Legacy-Firestore-Zugriffe, die den neuen Dienst umgehen. **Production NO-GO.**
 
+
+## P0-Datenadapter-Review – Tenant-Label und Feldprojektion (31.10.2026)
+
+Nach dem vollständigen [Enterprise-CI-PASS #41212151654](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41212151654) auf `f506f9909e4888a40324088af997ba22157b7a25` ergab die erneute Sicherheitsprüfung einen konkreten BOLA/Informationsabfluss-Befund: `getFeatureFlag()` konnte den **rohen** Firestore-Datensatz herausgeben, bevor `evaluateTenantFlag()` dessen `tenantId` validierte. Ein direkter Repository-Aufrufer wäre damit nicht durch die Serviceprüfung geschützt gewesen. Die Korrektur verlagert die Prüfung in den Adapter: Nur `tenantId === ausgestellter TenantContext`, `status='active'` und `enabled:boolean` werden akzeptiert. Zurückgegeben wird ausschließlich das Zod-projizierte Minimum dieser drei Eigenschaften. Ein fehlender Eintrag liefert `null`; ein vorhandener, fremd markierter oder ungültiger Datensatz löst `tenant_record_inconsistent` aus (fail-closed), und der höherliegende Service muss im `finally` seine strukturierte Denial-Auditmeldung schreiben.
+
+Die Negativtests verifizieren fremd markierte Dokumente **direkt am Repository**, verweigern fehlerhafte/inaktive Datensätze, prüfen minimierte Rückgaben ohne zusätzliche private Felder und kontrollieren den strukturierten Audit bei Ausnahmefehlern. Die vorherige erfolgreiche CI deckt **nicht** diesen neuen Commit ab; vollständige exakte CI und unabhängiger Review sind erneut Pflicht. Kein globales Live-Mounting oder Freigabe der Legacy-Migration. **BLOCKED / NO-GO**.
+
