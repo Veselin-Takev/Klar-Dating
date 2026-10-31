@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration } from '../src/server/routes/complianceStorage';
+import { createHash } from 'node:crypto';
+import { generatePurgeAuditDigest } from '../src/server/platform/storageRetentionEngine';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration, hasVerifiedPhotoPurgeReceipt } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -220,5 +222,74 @@ describe('retention lock and decision safety (#202 integration)', () => {
       delete: async options => { calls.push(options); },
     });
     expect(calls).toEqual([{ ifGenerationMatch: '90071992547409931' }]);
+  });
+});
+
+describe('verified generation-bound purge completion receipt (#202)', () => {
+  const uid = 'verified-receipt-user';
+  const path = 'verification/verified-receipt-user/original.jpg';
+  const challengeId = 'decision-receipt-1';
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  const decidedAt = now - 32 * 86_400_000;
+  const generation = '90071992547409931';
+  const artifact = {
+    uid, challengeId, status: 'approved' as const, decidedAt, storagePath: path,
+    photoPurged: true,
+  };
+  const makeReceipt = (method: 'delete_acknowledged' | 'absence_reconciled' = 'delete_acknowledged') => {
+    const auditDigest = generatePurgeAuditDigest(uid, challengeId, path, now);
+    const evidenceDigest = createHash('sha256')
+      .update([auditDigest, method, generation].join(':')).digest('hex');
+    return {
+      uid, storagePath: path, entscheidung: 'bestaetigt',
+      decidedAt: { toMillis: () => decidedAt },
+      photoPurged: true, photoPurgedAt: now,
+      photoUploadGeneration: generation,
+      photoPurgeIntent: { generation, storagePath: path, decidedAt, status: 'approved' },
+      auditDigest,
+      photoPurgeProof: {
+        generation, method, evidenceDigest, verifiedAt: { toMillis: () => now + 1_000 },
+      },
+    };
+  };
+
+  it.each(['delete_acknowledged', 'absence_reconciled'] as const)(
+    'accepts an internally consistent %s receipt without re-deleting', method => {
+      expect(hasVerifiedPhotoPurgeReceipt(makeReceipt(method), artifact)).toBe(true);
+    },
+  );
+
+  it('does not treat a bare legacy photoPurged:true as a verified deletion', () => {
+    expect(hasVerifiedPhotoPurgeReceipt({ photoPurged: true }, artifact)).toBe(false);
+  });
+
+  it('quarantines inconsistent original-generation and receipt proofs', () => {
+    const valid = makeReceipt();
+    const corrupt = [
+      { ...valid, photoUploadGeneration: undefined },
+      { ...valid, photoUploadGeneration: '90071992547409932' },
+      { ...valid, photoPurgeIntent: null },
+      { ...valid, photoPurgeIntent: { ...valid.photoPurgeIntent, generation: '90071992547409932' } },
+      { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, generation: '90071992547409932' } },
+      { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, evidenceDigest: '0'.repeat(64) } },
+      { ...valid, photoPurgeProof: null },
+      { ...valid, auditDigest: '0'.repeat(64) },
+      { ...valid, photoPurgedAt: now + 1 },
+      { ...valid, photoPurgedAt: 'invalid' },
+      { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, verifiedAt: undefined } },
+      { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, verifiedAt: { toMillis: () => now - 1 } } },
+      { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, method: 'unverified' } },
+    ];
+    for (const state of corrupt) {
+      expect(hasVerifiedPhotoPurgeReceipt(state, artifact)).toBe(false);
+    }
+  });
+
+  it('fails closed for an event associated with a different account, path or decision', () => {
+    const valid = makeReceipt();
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, uid: 'another-user' })).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, storagePath: 'verification/other/photo.jpg' })).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, decidedAt: decidedAt + 1 })).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, status: 'pending' })).toBe(false);
   });
 });
