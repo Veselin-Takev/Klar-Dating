@@ -1,3 +1,11 @@
+## P0 #202 — Zeitgrenze für Löschbelege (31.10.2026)
+
+Zusätzlicher isolierter Draft-Branch `fix/202-purge-receipt-clock-boundary-20261031` auf [PR #234](https://github.com/Veselin-Takev/Klar-Dating/pull/234): Der Scanner darf `photoPurged:true` nur als berechtigt abgeschlossenen Vorgang zählen, wenn der gespeicherte Löschzeitpunkt und die Verifizierung des Belegs **nicht später als die aktuelle Scan-Beobachtungszeit** liegen; außerdem sind sichere Millisekunden-Integer und die Reihenfolge `decidedAt <= photoPurgedAt <= verifiedAt` nötig. Der neue Check ist ausdrücklich in `check:compliance-storage-purge` eingebunden; Negativtests schließen auch kryptografisch **konsistent wirkende Zukunftsbelege** aus. Keine automatische erneute GCS-Löschung für fragliche Altabschlüsse. [Technischer Audit](RETENTION_PURGE_RECEIPT_TIME_BOUNDARY_2026-10-31.md).
+
+**Noch ausstehend:** vollständiger CI-PASS für den neuen exakten Commit, unabhängige AppSec-/DPO-/Legal-/SRE-/Release-Owner-Reviews, Attestierung von Uhrzeitsynchronisation, ursprünglichem Upload-Writer, Cloud-IAM- und Storage-Regeln, echter Altbestandsbereinigung und vollständigem Cloud-/Staging-Race-Test. Die erfolgreiche Eltern-CI [#41182209920](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41182209920) ist kein Beweis für diese neue Änderung. **BLOCKED / NO-GO**, kein Deploy oder Merge.
+
+---
+
 ## P0 #202 – überprüfbare Löschabschlussbelege / Legacy-Reconciliation (31.10.2026)
 
 Auf einem von [Draft #233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) **isoliert gestapelten** Branch `fix/202-audited-purge-receipts-20261031` wurde die nächste Fail-Closed-Schranke umgesetzt: `photoPurged:true` wird vom Entscheidungsscanner **nur noch bei in sich konsistentem, ursprünglicher Generation zugeordnetem** `photoPurgeIntent`-, `photoPurgeProof`- und `auditDigest`-Nachweis als abgeschlossen übersprungen. Ungültige/alte Belege zählen als aggregierte Fehler (503 statt scheinbarem HTTP 200), ohne automatisches Wiederlöschen. Gezielt synthetische positive/negative Tests, Pflichtgate und [Auditdokumentation](RETENTION_PURGE_RECEIPT_RECONCILIATION_2026-10-31.md) sind ergänzt.
