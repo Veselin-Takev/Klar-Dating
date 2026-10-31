@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -115,4 +115,67 @@ describe('decision-based verification object deletion safety', () => {
     })).rejects.toMatchObject({ code: 503 });
   });
 
+});
+
+describe('retention lock and decision safety (#202 integration)', () => {
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  const decidedAt = now - 31 * 86_400_000;
+  const artifact = {
+    uid: 'adult-test', challengeId: 'decision-1', status: 'approved' as const,
+    decidedAt, storagePath: 'verification/adult-test/photo.jpg',
+  };
+  const eligible = {
+    uid: artifact.uid, storagePath: artifact.storagePath,
+    entscheidung: 'bestaetigt', decidedAt: { toMillis: () => decidedAt },
+    fotoLoeschenAb: { toMillis: () => now - 1000 },
+    photoPurged: false,
+  };
+
+  it('allows an explicit final decision only if due and no Firestore hold', () => {
+    expect(() => assertStillEligibleForPurge(eligible, artifact, now)).not.toThrow();
+  });
+
+  it.each([
+    ['legal hold', { legalHold: true }],
+    ['retention hold', { retentionHold: true }],
+    ['already purged', { photoPurged: true }],
+    ['not yet due', { fotoLoeschenAb: { toMillis: () => now + 1000 } }],
+    ['pending moderation', { entscheidung: 'pending' }],
+    ['rejected moderation', { entscheidung: 'abgelehnt' }],
+    ['changed object path', { storagePath: 'verification/adult-test/new.jpg' }],
+    ['changed decision time', { decidedAt: { toMillis: () => decidedAt + 1 } }],
+  ])('rejects %s during every eligibility revalidation', (_case, mutation) => {
+    expect(() => assertStillEligibleForPurge({ ...eligible, ...mutation }, artifact, now))
+      .toThrow('verification_photo_eligibility_changed');
+  });
+
+  it.each([
+    ['temporary hold', { temporaryHold: true }],
+    ['event-based hold', { eventBasedHold: true }],
+    ['legacy retention lock', { retentionExpirationTime: '2999-01-01T00:00:00Z' }],
+    ['object-level retention lock', { retention: { retainUntilTime: '2999-01-01T00:00:00Z' } }],
+    ['malformed retention expiry', { retentionExpirationTime: 'not-a-date' }],
+    ['malformed object-level retention', { retention: { retainUntilTime: 'invalid' } }],
+  ])('does not delete Storage generation with %s', async (_case, mutation) => {
+    let deleteCalls = 0;
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '90071992547409931', ...mutation }],
+      delete: async () => { deleteCalls++; },
+    })).rejects.toThrow();
+    expect(deleteCalls).toBe(0);
+  });
+
+  it('retains generation preconditions after verifying a non-held object', async () => {
+    const calls: Array<{ ifGenerationMatch: string | number }> = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => [{
+        generation: '90071992547409931',
+        temporaryHold: false, eventBasedHold: false,
+        retentionExpirationTime: '2020-01-01T00:00:00Z',
+        retention: { retainUntilTime: '2020-01-01T00:00:00Z' },
+      }],
+      delete: async options => { calls.push(options); },
+    });
+    expect(calls).toEqual([{ ifGenerationMatch: '90071992547409931' }]);
+  });
 });
