@@ -51,3 +51,8 @@ PR #268 on previously validated SHA `80f716e9943b44890bb5832246f8d036c4bd656f` p
 ## 2026-11-01 — Source denominator retained (follow-up)
 
 Static matching originally omitted any source file without recognized signatures, hiding the review denominator and making newly abstracted SDK access wrappers invisible in the report. The inventory now emits **every scanned source file**, including zero-hit entries with a full-file SHA-256; `hits: []` means *not detected by these regexes*, **not** safe, unused or authorized. Reviewers must reconcile this complete scanned-file list with repository tree, nested packages, imports and route registration, then explicitly sign off the excluded directories and non-code infrastructure. The regression test accepts and validates zero-hit entries. Existing CI result #41251063730 relates to the earlier SHA `4d517c99...` and cannot validate these later commits; check the latest SHA and associated job steps before claiming PASS. No production change or cutover authorized.
+
+## 2026-11-01 — Critical module inventory regression
+
+An additional regression now demands that the source manifest include the root Express entrypoint, tenant-auth, tenant Admin SDK read adapter and biometric-retention module. It also checks deterministic path order, recognized hit categories, category membership and line-number bounds. This is a guard against *accidental exclusion* of known high-risk modules, not a review of access authorization. New commit `cd2373c3c30ced6b9f6ebeb06c59f8c6853e28e6` requires fresh CI evidence and independent code review. No test result for this commit is asserted here.
+
