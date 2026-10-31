@@ -135,7 +135,10 @@ export function assertStillEligibleForPurge(
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
     || normalizeTimestamp(data.decidedAt) !== artifact.decidedAt
-    || data.photoPurged === true
+    // A malformed completion flag or an orphaned audit proof is NOT permission
+    // to delete again. A prior proof with photoPurged:false requires reconciliation.
+    || ('photoPurged' in data && data.photoPurged !== false)
+    || ('photoPurgeProof' in data && data.photoPurgeProof != null)
     || ('legalHold' in data && data.legalHold !== false)
     || ('retentionHold' in data && data.retentionHold !== false)
     || due === null || due > now
