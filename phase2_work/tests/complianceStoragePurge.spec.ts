@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { generatePurgeAuditDigest } from '../src/server/platform/storageRetentionEngine';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration, hasVerifiedPhotoPurgeReceipt } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration, hasVerifiedPhotoPurgeReceipt, reconciledVerificationDecision } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -136,6 +136,37 @@ describe('retention lock and decision safety (#202 integration)', () => {
 
   it('allows an explicit final decision only if due and no Firestore hold', () => {
     expect(() => assertStillEligibleForPurge(eligible, artifact, now)).not.toThrow();
+  });
+
+  it.each([
+    [{ entscheidung: 'bestaetigt', status: 'approved' }, 'approved'],
+    [{ entscheidung: 'abgelehnt', status: 'rejected' }, 'rejected'],
+    [{ entscheidung: null, status: 'approved' }, 'approved'],
+    [{ entscheidung: 'bestaetigt' }, 'approved'],
+    [{ status: 'approved' }, 'approved'],
+    [{ entscheidung: 'bestaetigt', status: 'pending' }, 'pending'],
+    [{ entscheidung: 'bestaetigt', status: 'rejected' }, 'pending'],
+    [{ entscheidung: 'abgelehnt', status: 'approved' }, 'pending'],
+    [{ entscheidung: 'unknown', status: 'approved' }, 'pending'],
+    [{ entscheidung: 'bestaetigt', status: 'unknown' }, 'pending'],
+  ] as const)('reconciles dual-language moderation fields %o to %s', (data, expected) => {
+    expect(reconciledVerificationDecision(data)).toBe(expected);
+  });
+
+  it.each([
+    { entscheidung: 'bestaetigt', status: 'pending' },
+    { entscheidung: 'bestaetigt', status: 'rejected' },
+    { entscheidung: 'abgelehnt', status: 'approved' },
+    { entscheidung: 'unknown', status: 'approved' },
+  ])('quarantines conflicting decision/status instead of authorizing a DELETE: %o', data => {
+    expect(() => assertStillEligibleForPurge({ ...eligible, ...data }, artifact, now))
+      .toThrow('verification_photo_eligibility_changed');
+  });
+
+  it('accepts equivalent German/English final decisions without changing legacy contracts', () => {
+    expect(() => assertStillEligibleForPurge({
+      ...eligible, entscheidung: 'bestaetigt', status: 'approved',
+    }, artifact, now)).not.toThrow();
   });
 
   it('requires the original decision-bound generation, not a fresh metadata generation', () => {
@@ -296,6 +327,18 @@ describe('verified generation-bound purge completion receipt (#202)', () => {
     for (const clock of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, now + 1_000.5]) {
       expect(hasVerifiedPhotoPurgeReceipt(receipt, artifact, clock)).toBe(false);
     }
+  });
+
+  it('refuses a coherent generation-bound receipt when current moderation fields contradict', () => {
+    const receipt = makeReceipt();
+    for (const status of ['pending', 'rejected', 'unrecognized']) {
+      expect(hasVerifiedPhotoPurgeReceipt({
+        ...receipt, status,
+      }, artifact, now + 1_000)).toBe(false);
+    }
+    expect(hasVerifiedPhotoPurgeReceipt({
+      ...receipt, status: 'approved',
+    }, artifact, now + 1_000)).toBe(true);
   });
 
   it('does not treat a bare legacy photoPurged:true as a verified deletion', () => {
