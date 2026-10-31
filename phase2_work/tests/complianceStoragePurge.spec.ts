@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -128,11 +128,41 @@ describe('retention lock and decision safety (#202 integration)', () => {
     uid: artifact.uid, storagePath: artifact.storagePath,
     entscheidung: 'bestaetigt', decidedAt: { toMillis: () => decidedAt },
     fotoLoeschenAb: { toMillis: () => now - 1000 },
+    photoUploadGeneration: '90071992547409931',
     photoPurged: false,
   };
 
   it('allows an explicit final decision only if due and no Firestore hold', () => {
     expect(() => assertStillEligibleForPurge(eligible, artifact, now)).not.toThrow();
+  });
+
+  it('requires the original decision-bound generation, not a fresh metadata generation', () => {
+    expect(requireVerifiedPhotoUploadGeneration(eligible, '90071992547409931')).toBe('90071992547409931');
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, '90071992547409932'))
+      .toThrow('verification_photo_upload_generation_changed');
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, 90071992547409932))
+      .toThrow('verification_photo_upload_generation_changed');
+  });
+
+  it.each([
+    ['legacy missing original generation', { photoUploadGeneration: undefined }],
+    ['null generation', { photoUploadGeneration: null }],
+    ['numeric generation', { photoUploadGeneration: 12345 }],
+    ['unsafe numeric generation', { photoUploadGeneration: Number.MAX_SAFE_INTEGER + 1 }],
+    ['zero generation', { photoUploadGeneration: '0' }],
+    ['non-decimal generation', { photoUploadGeneration: 'abc' }],
+    ['negative generation', { photoUploadGeneration: '-1' }],
+    ['fractional generation', { photoUploadGeneration: '1.0' }],
+  ])('quarantines %s instead of deleting a possibly replaced object', (_label, mutation) => {
+    const data: Record<string, unknown> = { ...eligible, ...mutation };
+    expect(() => assertStillEligibleForPurge(data, artifact, now))
+      .toThrow('verification_photo_upload_generation_unproven');
+  });
+
+  it('does not authorize deletion for an original generation bound to another object', () => {
+    const currentMetadataGeneration = '90071992547409932';
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, currentMetadataGeneration))
+      .toThrow('verification_photo_upload_generation_changed');
   });
 
   it.each([
