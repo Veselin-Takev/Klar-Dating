@@ -274,14 +274,18 @@ export function createVerificationStoragePurgeRouter(deps: {
         const cursor = readPurgeCursor(state?.cursor ?? null);
         // Failed rows may be on earlier pages in a previous invocation. A
         // later clean page must not silently clear that incident as a 200.
-        const priorSweepFailures = state?.cycleHadFailures;
-        if (priorSweepFailures !== undefined && typeof priorSweepFailures !== 'boolean') {
+        const storedFailureState = state?.cycleHadFailures;
+        if (storedFailureState !== undefined && typeof storedFailureState !== 'boolean') {
           throw new Error('verification_purge_scan_failure_state_invalid');
         }
+        // Rolling out over a legacy checkpoint with a non-null cursor does
+        // not prove that the earlier pages were clean: default to unresolved.
+        const priorSweepFailures = storedFailureState === true
+          || (storedFailureState === undefined && cursor !== null);
         tx.set(checkpointRef, {
           leaseId, leaseUntil: new Date(now + LEASE_MS), lastStartedAt: new Date(now),
         }, { merge: true });
-        return { busy: false as const, cursor, priorSweepFailures: priorSweepFailures === true };
+        return { busy: false as const, cursor, priorSweepFailures };
       });
       if (ownership.busy) {
         return res.status(503).json({ code: 'verification_storage_purge_busy' });
