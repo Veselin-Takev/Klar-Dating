@@ -19,4 +19,19 @@ Previously `functions/src/deleteExpiredPhotos.ts` invoked `deleteExpiredPhotoPag
 - Deployment may update the legacy function in place only after formal sign-offs; its source-level disablement does not disable an already deployed old version.
 - Avoid reintroducing upload-age deletion through any direct call to `deleteExpiredPhotoPage`.
 
+
+
+## 2026-10-31 additional source-audit and fail-closed guard
+- Previous head `9c6ece1ee6f6173111bb20c2ccd40b5d22fb54be` passed [Klar Enterprise CI run 41174666145](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41174666145); **this pass is not evidence for the new changes below**.
+- The exported `functions/src/retention.ts::deleteExpiredPhotoPage` still contained the old upload-age deletion implementation, which could have been called directly even after the scheduler was changed. It now throws `legacy_photo_age_retention_disabled` unconditionally and never scans Storage. This is intentional fail-closed behavior, not success.
+- Updated `tests/photoRetention.spec.ts` and the real-Storage-emulator conditional test in `tests/storageRules.spec.ts` to require the legacy helper to fail and leave objects untouched. Expanded the mandatory source regression guard.
+- `scripts/check-retention-config.mjs` previously asserted that the **legacy scheduler** read `verification_events` directly, contradicting the actual decision-aware API design. The check now looks at `purgeVerificationStorageCron` and `complianceStorage.ts` for the authoritative path and guards the retired helper. This standalone script has **not** been added to CI as part of this PR; its separate TTL provision checks are tracked by #70.
+
+### Newly identified remaining P0 source risks (not remediated)
+- `src/server/routes/complianceStorage.ts` currently issues `bucket.file(path).delete({ ignoreNotFound: true })` without a Storage generation precondition or a preceding object hold check. Concurrent object replacement and hold/error/audit reconciliation still need explicit tests and a reviewed design.
+- The Firestore transaction that writes `photoPurged` checks the UID, but does not revalidate unchanged decision/state/path/generation against the earlier query snapshot. A concurrency design is needed before the authoritative path is considered verified.
+- An already deployed legacy scheduled worker is not disabled by a source-only patch. Perform read-only Cloud Scheduler and Firebase Functions inventory followed by controlled staging rollout and Security/DPO/SRE sign-off.
+
+**The new commits' CI, real emulator behavior and staging evidence are pending. Production remains NO-GO.**
+
 **Production: BLOCKED / NO-GO.** No merge, production deployment or retention data mutation authorized.
