@@ -22,3 +22,12 @@ test('independent decision-aware worker remains exported', () => {
   assert.match(index, /export\s*\{\s*purgeVerificationStorageCron\s*\}/);
   assert.match(authoritative, /purge-verification-storage/);
 });
+
+const ageHelper = load('../functions/src/retention.ts');
+
+test('exported legacy age-based helper fails closed instead of listing or deleting photos', () => {
+  assert.match(ageHelper, /export async function deleteExpiredPhotoPage/);
+  assert.match(ageHelper, /throw new Error\\('legacy_photo_age_retention_disabled'\\)/);
+  const helperBody = ageHelper.split('export async function deleteExpiredPhotoPage')[1]?.split('/** One bounded page per prefix')[0] ?? '';
+  assert.doesNotMatch(helperBody, /getFiles|\\.delete\\(|timeCreated|PHOTO_RETENTION_MS/);
+});
