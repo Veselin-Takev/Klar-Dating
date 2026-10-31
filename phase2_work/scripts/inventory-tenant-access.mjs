@@ -41,7 +41,8 @@ function walk(dir) {
         }
       }
     }
-    if (hits.length) rows.push({
+    // Preserve zero-hit files: otherwise new SDK wrappers may be silently omitted.
+    rows.push({
       path: relative(root, full).replaceAll('\\', '/'),
       sha256: createHash('sha256').update(data).digest('hex'),
       categories: [...categories].sort(),
@@ -79,7 +80,7 @@ try {
   process.stdout.write(JSON.stringify({
     schema_version: 1,
     scope: ['src', 'functions/src', 'server.ts'],
-    note: 'Static candidate inventory only: dynamic paths, imports, rules, hidden dependencies and data ownership require independent review.',
+    note: 'All scanned source files are listed, including zero-hit files. Textual detections do not establish access-control completeness.',
     files: rows,
   }, null, 2) + '\n');
 } catch (err) {
