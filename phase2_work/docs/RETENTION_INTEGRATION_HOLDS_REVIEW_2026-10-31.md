@@ -1,0 +1,27 @@
+# P0 #202 — konsolidierter Retention-Integrationskandidat: Hold-Guards
+**Stand:** 31.10.2026 · **Status:** DRAFT / BLOCKED / NO-GO
+
+## Herkunft und Invarianten
+Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt** von `fix/202-photo-retention-status-error-boundary-20261030` (PR [#229](https://github.com/Veselin-Takev/Klar-Dating/pull/229), auf [#203](https://github.com/Veselin-Takev/Klar-Dating/pull/203) gestapelt) erstellt. Der bestehende Scanner aus #203 wird **nicht ersetzt**: `scanPurgePages`, 25×4-Seitenbudget, Firestore-Lease/Checkpoint, generationgebundener `photoPurgeIntent`, 404-Reconciliation mit Absenzkontrolle, finale Firestore-Revalidierung und 503 bei unvollständiger Bearbeitung bleiben im Integrationskandidaten erhalten. Der in #229 fixierte explizite Final-Status-Check und die Redigierung von Providerfehlern bleiben erhalten.
+
+**Konkrete selektive Ergänzung aus Review von #231:**
+1. In `src/server/routes/complianceStorage.ts` prüft `inspectVerificationStorageGeneration` nun neben `temporaryHold` und `eventBasedHold` auch `retentionExpirationTime` und `retention.retainUntilTime`. Zukünftige oder unparsebare Zeitangaben verweigern die Löschung. Der vorhandene `ifGenerationMatch`-DELETE bleibt erhalten. Es gibt weiterhin **keine** Möglichkeit, einen Cloud-Storage-Hold zu umgehen oder zu entfernen.
+2. `assertStillEligibleForPurge` prüft zusätzlich `legalHold === true` und `retentionHold === true` im aktuellen `verification_events`-Datensatz. Diese Funktion wird in der Scanner-Implementierung vor Intent/DELETE sowie beim Auditschreiben erneut ausgeführt.
+3. `tests/complianceStoragePurge.spec.ts` ergänzt Positiv-/Negativtests: gesetzter Legal-/Retention-Hold, geänderter Entscheidungszeitpunkt, Status/UID/Pfad, künftiger Retention-Ablauf, fehlerhafte Metadata und dezimale GCS-Generation außerhalb der JS-safe-integer-Grenze.
+4. `scripts/check-compliance-storage-purge.mjs` erzwingt als Bestandteil der bestehenden Enterprise-Checkkette, dass die Source-Guardrails und der wiederaufnehmbare Scanner im Quellstand weiterhin vorhanden sind.
+
+## Evidenzstatus
+**Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
+
+- **Quellcode:** aktualisiert; Compiler- und Testsuite-Nachweis **erst nach erfolgreichem, exaktem CI-Lauf** möglich. Eine automatische GitHub-PR-CI kann nach Anlage des Draft-PR laufen; kein manueller Actions-Dispatch.
+- **Testtiefe:** die neuen Fälle sind synthetische Vitest-/Quellcode-Negativtests, **kein** GCS-Staging- oder live Storage-Hold-Test.
+- **Kompatibilität:** #231 darf **nicht** als Ganzes hineingemergt werden; dessen verkürzte `complianceStorage.ts` würde den langlebigen Scanner/Intent/Checkpoint ersetzen. Ein selektives Quellreview ist bereits durchgeführt, jedoch **noch kein unabhängiges Review**.
+
+## Noch offene P0-Freigabeblockaden
+- **Originale Generation fehlt:** Historischer manueller `verification_events`-Writer in `klarCore.ts` persistiert keine beim Upload gesicherte GCS-Generation. Ein erst unmittelbar vor Löschung ermitteltes und im Intent verzeichnetes Generation-Token belegt nicht die ursprüngliche Objektidentität. Keine automatische Backfill-/Altobjekt-Löschung ohne DPO-geprüften Migrationsplan.
+- **Cross-Service-Race:** Globaler Scanner-Lease schützt den Scanner-Cursor, sperrt aber weder sämtliche Firestore-Entscheidungs-Writer noch neue GCS-Uploads auf demselben Pfad. Fehlt eine koordinierte per-Candidate Claim-/Writer-Fencing-Strategie. Letzte Read-vor-Delete-Kontrolle ist eine Mitigation, keine atomare Garantie.
+- **Retention-Sonderfälle:** tatsächliches GCS-Retention-Lock-/Hold-Verhalten mit verwendetem SDK und Bucket in Staging verifizieren; 404/412, Crash nach DELETE vor Audit, Idempotenz und fehlende Generation separat prüfen.
+- **Produktionszustand:** deployed Cloud Functions/Scheduler, aktive TTL/Storage-Rules, IAM, Alert-Pager, echte Art.-17-/KYC-Regeln und alte Objekte noch **nicht** inventarisiert.
+- **Freigaben:** unabhängige Security, DPO/Legal, SRE und Release Owner-Signoffs, exakte CI-SHA, Rückfall-/Canary-Plan und unveränderliche Evidenz ausstehend.
+
+**Weder `main` noch eine produktive Cloud-Ressource wurde verändert.** Kein Merge, kein Deploy, keine Löschung, kein stillschweigendes GO.
