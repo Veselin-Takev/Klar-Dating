@@ -1,3 +1,11 @@
+## P0 #55 — native Firestore-Emulator-Konkurrenz für Partner-Claims (31.10.2026)
+
+Auf einem isolierten, auf [Draft PR #246](https://github.com/Veselin-Takev/Klar-Dating/pull/246) gestapelten Branch ergänzt `tests/partnerConversionFirestoreEmulator.spec.ts` einen **echten Firestore Admin SDK Emulator-Test** für parallele identische Event-Replays, parallele unterschiedliche Ereignisse derselben Käuferkennung und einen Einwilligungswiderruf vor einem Retry. Der neue `test:partner-conversion-emulator`-Befehl verwendet einen abgesicherten lokalen Demo-Projekt-/Port-Preflight, damit ein Emulator-Skip keinen falschen PASS erzeugt. `test:ci` führt die Tests bereits im aktiven Emulator-Kontext aus. [Auditbericht](PARTNER_CONVERSION_NATIVE_FIRESTORE_CONCURRENCY_2026-10-31.md).
+
+**Kein Production GO:** Quittierte Partner-Meldungen sind weiterhin nur `partner_assertion_only`; Käuferidentität, echte Zahlung, Buyer-Claim-Reconciliation, Refunds/Chargebacks, Verträge, Datenschutz und unabhängige Finance/AppSec/SRE-Reviews fehlen. Neuer Branch benötigt vollständige exakte CI und menschliche Prüfung. **BLOCKED / NO-GO**, keine Änderungen an `main` oder Produktion.
+
+---
+
 ## P0 #55 – echte HTTP-HMAC-/Replay-Tests für B2B-Partnerwebhook (31.10.2026)
 
 Der unabhängige Branch `test/55-partner-webhook-http-authentication-20261031` ergänzt einen **lokalen HTTP-Transport-Nachweis** über den existierenden Express-Webhook: erste valide signierte Meldung 201 `pending_verification`, identische Wiederholung 200 `already_recorded`, manipulierte Käuferkennung 409, falscher Slug 403, abgelaufene/zukünftige oder ungültige Signatur 401, Schlüsselrotation und zehn sequentielle Retries. Die Tests nutzen nur synthetische Daten und eine In-Memory-Firestore-Attrappe; der bestehende produktive Code und sein `partner_assertion_only`-Quarantänestatus bleiben unverändert. [Technischer Audit](PARTNER_WEBHOOK_HTTP_AUTHENTICITY_EVIDENCE_2026-10-31.md).
