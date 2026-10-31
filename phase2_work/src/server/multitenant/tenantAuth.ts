@@ -140,9 +140,10 @@ export function createTenantMiddleware(deps: TenantAuthDependencies, trustedBase
         headerTenant: req.headers['x-tenant-id'],
         hostname: req.hostname,
         trustedBaseDomain,
-        traceId: typeof req.headers['x-trace-id'] === 'string' &&
-          z.string().uuid().safeParse(req.headers['x-trace-id']).success
-          ? req.headers['x-trace-id'] : randomUUID(),
+        // Client-controlled X-Trace-ID is not an authoritative audit
+        // correlation ID, even when it is syntactically a valid UUID.
+        // Issue a fresh, unpredictable server-owned ID for every request.
+        traceId: randomUUID(),
       }, deps);
       res.locals.tenantContext = context;
       next();

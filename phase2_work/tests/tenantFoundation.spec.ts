@@ -88,6 +88,58 @@ describe('Tenant zero-trust identity and routing', () => {
     });
     expect(ctx.roles).toEqual(['user']);
   });
+  it('never trusts client X-Trace-ID as authoritative tenant audit correlation', async () => {
+    const attackerTraceId = '00000000-0000-4000-8000-000000000099';
+    const middleware = createTenantMiddleware(dependency(), 'klar.example');
+    const emitted = new Set<string>();
+    const supplied: unknown[] = [
+      attackerTraceId,
+      attackerTraceId,
+      'not-a-uuid',
+      [attackerTraceId, '00000000-0000-4000-8000-000000000088'],
+      undefined,
+    ];
+    for (const externalTraceId of supplied) {
+      const headers: Record<string, unknown> = {
+        authorization: 'Bearer abc.def.ghi',
+        'x-tenant-id': tenantId,
+      };
+      if (externalTraceId !== undefined) headers['x-trace-id'] = externalTraceId;
+      const req = { headers, hostname: 'tenant-one.klar.example' } as unknown as Request;
+      const next = vi.fn() as unknown as NextFunction;
+      const res = { locals: {}, status: vi.fn(), json: vi.fn() };
+      res.status.mockReturnValue(res);
+      await middleware(req, res as unknown as Response, next);
+      expect(next).toHaveBeenCalledOnce();
+      const context = (res.locals as { tenantContext?: TenantContext }).tenantContext;
+      if (!context) throw Error('missing_issued_context_in_test');
+      expect(context.traceId).toMatch(/^[a-f0-9-]{36}$/i);
+      expect(context.traceId).not.toBe(attackerTraceId);
+      expect(emitted.has(context.traceId)).toBe(false);
+      emitted.add(context.traceId);
+      expect(Object.isFrozen(context)).toBe(true);
+
+      const db = {
+        doc: (_path: string) => ({
+          get: async () => ({
+            exists: true,
+            data: () => ({ tenantId, status: 'active', enabled: true }),
+          }),
+        }),
+      } as unknown as Firestore;
+      const logger = { info: vi.fn() };
+      const repository = createTenantReadRepository(db, context);
+      await expect(evaluateTenantFlag(context, 'SAFE_CHAT', repository, logger))
+        .resolves.toBe(true);
+      expect(logger.info.mock.calls[0]?.[0]).toMatchObject({
+        tenant_id: tenantId,
+        trace_id: context.traceId,
+        outcome: 'allowed',
+      });
+      expect(logger.info.mock.calls[0]?.[0]).not.toHaveProperty('client_trace_id');
+    }
+    expect(emitted.size).toBe(supplied.length);
+  });
   it('middleware sets context only on success and responds with non-leaking error', async () => {
     const next = vi.fn() as unknown as NextFunction;
     const response = { locals: {}, status: vi.fn(), json: vi.fn() };

@@ -72,3 +72,8 @@ Auf dem erfolgreich geprüften [Parent #261, CI #41237617548](https://github.com
 
 Die spätere vollständige Profilanzeige erfordert einen eigenständigen, feldweise autorisierten API-Vertrag. Die neue Schicht ist nicht global in produktive Routen eingebunden. Neue exakte CI und unabhängige Freigaben erforderlich. **BLOCKED / NO-GO**.
 
+
+## Server-seitig ausgestellte Audit-Korrelation statt Client-`X-Trace-ID` (31.10.2026)
+
+Nach [vollständigem CI-PASS #41239739422](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41239739422) von PR #263 wurde die Provenienz von `tenantContext.traceId` auditiert. Die Middleware akzeptierte bisher clientgesetzte gültige UUIDs als offizielle Audit-Korrelation; Angreifer könnten somit identische IDs über Anfragen wiederverwenden und Log-Korrelation verfälschen. Der isolierte Folgebefund erzeugt jetzt für **jede** Middleware-Anfrage eine servereigene `randomUUID()`, unabhängig von gültigem, ungültigem, dupliziertem oder fehlendem `X-Trace-ID`. Ein neuer Integrationstest prüft eindeutige IDs, unveränderte Autorisierung und die korrekte strukturierte `trace_id` im Feature-Flag-Audit. [Audit und Limits](TENANT_SERVER_ISSUED_AUDIT_TRACE_2026-10-31.md). Die vollständige produktive Route-/Logger-Anbindung ist noch nicht nachgewiesen. Neue SHA-gebundene CI und unabhängige Fachprüfung erforderlich. **BLOCKED / NO-GO**.
+
