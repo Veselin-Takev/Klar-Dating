@@ -7,6 +7,13 @@ export const MAPPING_SIGNATURE_DOMAIN = 'klar:tenant-migration:mapping:v2\0';
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 const base64urlSignature = z.string().regex(/^[A-Za-z0-9_-]{86}$/);
+const pinnedSnapshotSchema = z.strictObject({
+  inventorySha256: sha256Schema,
+  mappingSha256: sha256Schema,
+  reconciliationSha256: sha256Schema,
+});
+export type PinnedSnapshot = z.infer<typeof pinnedSnapshotSchema>;
+
 const signatureSchema = z.strictObject({
   schemaVersion: z.literal(1),
   inventorySignature: base64urlSignature,
@@ -39,6 +46,8 @@ export interface SignedMigrationInput {
   signatureEnvelope: unknown;
   trustAnchorBytes: Uint8Array;
   expectedTrustAnchorSha256: string;
+  /** Must originate from independent trusted review, not signed input files. */
+  pinnedSnapshot: PinnedSnapshot;
 }
 export interface SignedMigrationResult extends TenantMigrationPreflightReport {
   readonly attestation: 'CRYPTOGRAPHIC_SIGNATURES_VERIFIED_NOT_APPROVAL';
@@ -60,6 +69,9 @@ export function preflightSignedLegacyProfileMapping(input: SignedMigrationInput)
   const actual = createHash('sha256').update(anchorsBuffer).digest();
   if (!timingSafeEqual(expected, actual)) throw new Error('migration_trust_anchor_not_pinned');
 
+  // Fail closed on missing/extra/untrusted pin fields; the caller supplies
+  // this control independently of exporter/approver-signed manifest files.
+  const pins = pinnedSnapshotSchema.parse(input.pinnedSnapshot);
   const anchors = anchorsSchema.parse(parseDeterministicJson(anchorsBuffer));
   const envelope = signatureSchema.parse(input.signatureEnvelope);
   const exporter = createPublicKey(anchors.exporterPublicKeyPem);
@@ -101,11 +113,24 @@ export function preflightSignedLegacyProfileMapping(input: SignedMigrationInput)
       !verify(null, mappingPayload, approver, mappingSignature)) {
     throw new Error('migration_signature_verification_failed');
   }
+  // Signatures alone allow replay of an old valid pair. Require three exact
+  // digests provisioned via a separate trusted review channel. The check
+  // binds approved original bytes and the separately reconciled outcome.
+  const inventoryActual = createHash('sha256').update(inventory).digest();
+  const mappingActual = createHash('sha256').update(mapping).digest();
+  if (!timingSafeEqual(inventoryActual, Buffer.from(pins.inventorySha256, 'hex')) ||
+      !timingSafeEqual(mappingActual, Buffer.from(pins.mappingSha256, 'hex'))) {
+    throw new Error('migration_snapshot_pin_mismatch');
+  }
   // Independently signed original bytes are verified before any parse or
   // mapping decision. A valid signature still does not authorize execution.
   const parsedInventory = parseDeterministicJson(inventory);
   const parsedMapping = parseDeterministicJson(mapping);
   const report = preflightLegacyProfileMapping(parsedInventory, parsedMapping);
+  if (!timingSafeEqual(
+    Buffer.from(report.reconciliationSha256, 'hex'),
+    Buffer.from(pins.reconciliationSha256, 'hex'),
+  )) throw new Error('migration_reconciliation_pin_mismatch');
   return Object.freeze({
     ...report,
     attestation: 'CRYPTOGRAPHIC_SIGNATURES_VERIFIED_NOT_APPROVAL' as const,
