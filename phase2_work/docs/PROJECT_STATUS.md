@@ -1,3 +1,11 @@
+## P0 #202 — Legacy-Writer- und Client-Storage-Fence als CI-Gate (31.10.2026)
+
+Zusätzlich zu den gestapelten, zuletzt erfolgreich durchlaufenen Retention-PRs [#233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) und [#234](https://github.com/Veselin-Takev/Klar-Dating/pull/234) wurde ein isolierter Audit-Fix für die Stilllegung des alten Gesten-/Fotoverifizierungswegs umgesetzt: Der kanonische `verificationRouter` liefert für sämtliche Legacy-Endpunkte HTTP 410; im gestapelten `storage.rules`-Stand sind sämtliche Firebase-Clientoperationen auf `verification/{uid}/{datei}` verweigert. Diese Quellgrenzen werden nun als Teil von `check:compliance-storage-purge` mit **acht Mutationstests** und zusätzlich **25 tatsächlichen lokalen Express-HTTP-Tests** erzwungen. Nachweisdetails: [RETENTION_LEGACY_WRITER_FENCE_2026-10-31.md](RETENTION_LEGACY_WRITER_FENCE_2026-10-31.md).
+
+**Nicht geklärt:** IAM/privilegierte Admin-SDK-Writer, ausgerollte Storage Rules und Cloud-Funktionen, historische Originalgenerationen, Altobjekt-Löschverfahren und Cross-Service-Fencing. CI des neuen Fixes ist erst nach exaktem HEAD-Nachweis bestanden. Keine Erlaubnis zum Mergen oder Deployen. Weiterhin **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #202 – überprüfbare Löschabschlussbelege / Legacy-Reconciliation (31.10.2026)
 
 Auf einem von [Draft #233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) **isoliert gestapelten** Branch `fix/202-audited-purge-receipts-20261031` wurde die nächste Fail-Closed-Schranke umgesetzt: `photoPurged:true` wird vom Entscheidungsscanner **nur noch bei in sich konsistentem, ursprünglicher Generation zugeordnetem** `photoPurgeIntent`-, `photoPurgeProof`- und `auditDigest`-Nachweis als abgeschlossen übersprungen. Ungültige/alte Belege zählen als aggregierte Fehler (503 statt scheinbarem HTTP 200), ohne automatisches Wiederlöschen. Gezielt synthetische positive/negative Tests, Pflichtgate und [Auditdokumentation](RETENTION_PURGE_RECEIPT_RECONCILIATION_2026-10-31.md) sind ergänzt.
