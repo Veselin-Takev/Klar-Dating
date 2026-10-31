@@ -31,3 +31,9 @@ Store evidence with `commit_sha`, `rules_sha`, `environment`, `test_command`, `e
 Green CI on #267 establishes **only** the code tested on that commit. It does **not** establish successful migration, complete Admin SDK coverage, real Storage isolation, production alert delivery or release-owner approval. P0 #254, P0 #202, governance #73 and release #8 remain unresolved.
 
 **BLOCKED / NO-GO. No merge, deploy, live migration or Rules/IAM changes authorized.**
+
+
+## Read-only source inventory utility (subsequent isolated draft commit)
+
+Run from `phase2_work`: `node scripts/inventory-tenant-access.mjs > tenant-access-candidates.json`. This scans `src/` and `functions/src/` with deterministic file ordering; it emits source-relative paths, source SHA-256, category and line numbers only, without snippets, cloud calls, customer IDs or credentials. Keep the resulting JSON in approved audit storage, **not** in a public commit if filenames themselves are sensitive. The tool is intentionally limited to static textual candidate matching; false positives and false negatives are expected (e.g. aliased imports, dynamic API access, generated code and non-source deployment configurations). A reviewer must independently enumerate Firebase rules, bucket policies, jobs, SDK wrappers, all repository roots, subcollections, UID links, mutations and deletion handlers. Running the utility has not been verified in this environment and does not discharge any acceptance criterion in #254.
+
