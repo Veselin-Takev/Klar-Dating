@@ -93,6 +93,11 @@ const ENTSCHEIDEN = {
   analytics_events: { art: 'geloescht', grund: 'Wird geloescht.' },
   public_profiles: { art: 'geloescht', grund: 'Wird geloescht.' },
   system: { art: 'bleibt', grund: 'Systemweite Konfiguration ohne Personenbezug.' },
+  // A tenant root is shared system metadata; never delete the complete tenant
+  // for one user's Art.17 request. Nested members/users/chats/payments/KYC
+  // remain P0 blockers until a tenant-aware deletion cascade exists.
+  tenants: { art: 'sonderfall', grund: 'Mandanten-Container ohne direktes Personenprofil; neue members/users/chats/KYC/payment-Unterkollektionen erfordern eigene UID-gebundene Art.-17-Cascade und Emulatorbelege vor produktiver Freigabe. Keine automatische globale Tenant-Loeschung.' },
+
   users: { art: 'geloescht', grund: 'Das Profil selbst.' },
   chats: { art: 'geloescht', grund: 'Ein Chat gehoert beiden; ein halber Chat nuetzt niemandem.' },
   messages: { art: 'geloescht', grund: 'Unterkollektion von chats.' },

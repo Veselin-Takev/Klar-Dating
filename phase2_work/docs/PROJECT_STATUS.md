@@ -1,3 +1,39 @@
+## P0 Multi-Tenant – Tenant/UID-Bindung für fehlerhaft migrierte Datensätze (31.10.2026)
+
+Nach [CI PASS #41228693178](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41228693178) wurde im Draft #253 die Tenant-/UID-Identitätsprüfung an der Server-Mitgliedschaft und dem eigenen Benutzerprofil ergänzt. Nicht nur der Firestore-Pfad, sondern auch Tenant- und Mitgliedschaftsmetadaten müssen exakt zu den verifizierten Claims passen; zusätzliche BOLA-/Migrations-Negativtests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) dokumentieren die neue Fail-Closed-Grenze. Noch keine Live-Datenmigration und keine produktive Firestore-Rules-Änderung; erneuter SHA-gebundener CI-PASS ausstehend. **NO-GO**.
+
+---
+
+## P0 Multi-Tenant Feature-Flag Repository – direkte Tenant-Isolation (31.10.2026)
+
+[Draft PR #253](https://github.com/Veselin-Takev/Klar-Dating/pull/253) bestand [CI #41212151654](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41212151654) auf `f506f9909e4888a40324088af997ba22157b7a25`. Die anschließende Review fand einen direkten Rohdaten-Rückgabepfad in `getFeatureFlag()` vor der Tenant-Labelprüfung. Der Read-Adapter ist jetzt selbst fail-closed und gibt nur strikt Zod-validierte, minimierte Flag-Eigenschaften aus. Negative Cross-Tenant-/Schema-/Audit-Tests und [Audit](MULTITENANT_FOUNDATION_2026-10-31.md) ergänzt. Der neue Head benötigt frische CI; `main` und produktive Daten unberührt. **Production NO-GO**.
+
+---
+
+## Multi-Tenant – gefälschter Tenant-Kontext wird verweigert (31.10.2026)
+
+Der Tenant-Repository-Zugang und die Feature-Flag-Auswertung akzeptieren nun nur die nach verifizierten JWT-/Mitgliedschaftsprüfungen tatsächlich ausgegebenen, eingefrorenen `TenantContext`-Objekte. Ein privates `WeakSet` verhindert das Umgehen der Autorisierung durch bloße TypeScript-Typumwandlung. Negativtests ergänzt; [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). **NO-GO** bis zur vollständigen CI- und Legacy-Migration.
+
+---
+
+## Multi-Tenant Strict-Typecheck Regression – 31.10.2026
+
+[Enterprise CI #41211727208](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211727208): statische Enterprise-Gates und **17/17** neue Tenant-Negativtests PASS. Der strenge Typecheck hat zwei reine Testtypfehler (TS6133/TS2352) erkannt; diese wurden auf dem isolierten PR-Branch korrigiert. Erneute vollständige exact-head CI Pflicht, weiterhin **BLOCKED / NO-GO**. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md).
+
+---
+
+## Multi-Tenant P0-Catalog Gate – 31.10.2026
+
+Der Enterprise-CI-Lauf [#41211522340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211522340) des ersten Multi-Tenant-Draft-Heads scheiterte korrekt am DSGVO-Katalog: `tenants` war neu und noch nicht klassifiziert. Die nachgeführte `sonderfall`-Entscheidung darf ausdrücklich **nicht** als Kontolösch-Cascade verstanden werden; einzelne Mandantenmitglieder und deren Unterkollektionen sind bis zur geprüften Art.-17-Migration P0-blockiert. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). Keine Global-Cutover, kein Production-GO.
+
+---
+
+## Multi-Tenant – Zero-Trust-Grundlage isoliert (31.10.2026)
+
+Nach bestätigter Architekturentscheidung ist eine separate, fail-closed Basisschicht vorbereitet: Firebase-Custom-Claim-Validierung mit aktuellem Server-Membership-Check, strikte Zod-Konfigurationskaskade, nur das eigene Profil lesende Tenant-Datenschicht und Pino-kompatibles, injiziertes Feature-Flag-Audit. Bestehende flache User-/Chat-/KYC-/Payment-Pfade und Rules wurden **nicht** migriert; daher ist eine produktive Mandantenisolation noch nicht vollständig belegt. [Audit und offene Gates](MULTITENANT_FOUNDATION_2026-10-31.md). Produktive Cutover, Pino-Lockfile-Integration, Datenmigration mit Eigentümerzuordnung und unabhängige Freigaben stehen aus. **BLOCKED / NO-GO**.
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
