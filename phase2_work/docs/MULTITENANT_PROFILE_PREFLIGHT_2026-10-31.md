@@ -25,3 +25,8 @@ Der CLI hat **keinen** Ausführungsmodus, importiert kein Firebase-Admin-SDK, ko
 - Pino-Dependency/Lockfile, vollständige Security-Scans und unabhängige Security-/DPO-/SRE-/Finance-/Release-Owner-Freigaben.
 
 **Kein produktives Re-Mapping, kein `default`-Fallback, kein Merge oder Deployment. Die offizielle Produktionsfreigabe bleibt BLOCKED / NO-GO.**
+
+## Exakter CI-Befund – Fixture-Typecheck korrigiert (31.10.2026)
+
+[Enterprise CI #41230227502](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230227502) auf Commit `92d26b0e06749c7c58f91694b276c4bc33743659` war **FAIL** bei `Typecheck`, nicht beim fachlichen Preflight: strenge TypeScript-Regeln `noUncheckedIndexedAccess` meldeten TS2345 und TS2532 auf direkten Test-Fixture-Zugriffen `records[0]` / `assignments[0]`. Der Testcode nutzt jetzt eine explizit geprüfte generische `first<T>`-Hilfsfunktion statt nicht nachgewiesener Arrayelemente. Es wurden weder Security-Schema noch Live-Pfade oder die Ablehnungsentscheidung verändert. Der vollständige CI-Lauf auf dem neuen Commit ist erneut Pflicht; **kein vorzeitiger PASS**.
+

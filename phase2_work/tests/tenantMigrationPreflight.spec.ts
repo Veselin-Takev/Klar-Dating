@@ -6,6 +6,11 @@ const SHA = 'a'.repeat(64);
 const OTHER_SHA = 'b'.repeat(64);
 const EVIDENCE = 'c'.repeat(64);
 const snapshotId = '00000000-0000-4000-8000-000000000001';
+function first<T>(items: readonly T[]): T {
+  const value = items.at(0);
+  if (value === undefined) throw new Error('invalid_test_fixture');
+  return value;
+}
 const good = () => ({
   inventory: {
     schemaVersion: 1, snapshotId,
@@ -44,40 +49,40 @@ describe('read-only legacy profile migration preflight', () => {
     const { inventory, mapping } = good();
     mapping.assignments.pop();
     expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_missing_mapping');
-    mapping.assignments.push({ ...mapping.assignments[0], tenantId: 'default' });
+    mapping.assignments.push({ ...first(mapping.assignments), tenantId: 'default' });
     expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_mapping_unverifiable');
   });
   it('rejects mismatched snapshots, source hashes, owner identities and record paths', () => {
     for (const variant of ['snapshot', 'hash', 'uid', 'path', 'unknown'] as const) {
       const { inventory, mapping } = good();
       if (variant === 'snapshot') mapping.snapshotId = '00000000-0000-4000-8000-000000000002';
-      if (variant === 'hash') mapping.assignments[0].sourceSha256 = OTHER_SHA;
-      if (variant === 'uid') mapping.assignments[0].ownerUid = 'user_2';
-      if (variant === 'path') mapping.assignments[0].sourcePath = 'chats/chat_1';
-      if (variant === 'unknown') mapping.assignments[0].sourcePath = 'users/user_3';
+      if (variant === 'hash') first(mapping.assignments).sourceSha256 = OTHER_SHA;
+      if (variant === 'uid') first(mapping.assignments).ownerUid = 'user_2';
+      if (variant === 'path') first(mapping.assignments).sourcePath = 'chats/chat_1';
+      if (variant === 'unknown') first(mapping.assignments).sourcePath = 'users/user_3';
       expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow();
     }
   });
   it('rejects duplicate inventory records and duplicate destination assignments', () => {
     const { inventory, mapping } = good();
-    inventory.records.push({ ...inventory.records[0] });
+    inventory.records.push({ ...first(inventory.records) });
     expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_inventory_unverifiable');
     const second = good();
-    second.mapping.assignments.push({ ...second.mapping.assignments[0] });
+    second.mapping.assignments.push({ ...second.first(mapping.assignments) });
     expect(() => preflightLegacyProfileMapping(second.inventory, second.mapping)).toThrow('migration_mapping_unverifiable');
   });
   it('rejects records subject to erasure or legal hold instead of migrating them', () => {
     for (const deletionState of ['pending_erasure', 'legal_hold'] as const) {
       const { inventory, mapping } = good();
-      inventory.records[0].deletionState = deletionState;
+      first(inventory.records).deletionState = deletionState;
       expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_inventory_unverifiable');
     }
   });
   it('rejects unknown schema keys, prototype keys, invalid digests and tenant IDs', () => {
     for (const mutate of [
       (v: ReturnType<typeof good>) => { Object.assign(v.mapping, { unexpected: true }); },
-      (v: ReturnType<typeof good>) => { v.mapping.assignments[0].tenantId = '../other'; },
-      (v: ReturnType<typeof good>) => { v.mapping.assignments[0].mappingEvidenceSha256 = 'not-a-digest'; },
+      (v: ReturnType<typeof good>) => { v.first(mapping.assignments).tenantId = '../other'; },
+      (v: ReturnType<typeof good>) => { v.first(mapping.assignments).mappingEvidenceSha256 = 'not-a-digest'; },
       (v: ReturnType<typeof good>) => { Object.defineProperty(v.inventory, '__proto__', { value: { isAdmin: true }, enumerable: true }); },
     ]) {
       const values = good(); mutate(values);
