@@ -99,7 +99,7 @@
     "check:legacy-translation-boundary": "node scripts/check-legacy-translation-boundary.mjs",
     "check:didit-kyc-integrity": "node scripts/check-didit-kyc-integrity.mjs",
     "check:didit-webhook-boundaries": "node scripts/check-didit-webhook-boundaries.mjs",
-    "check:kyc-reconciliation": "node scripts/check-kyc-reconciliation.mjs",
+    "check:kyc-reconciliation": "node scripts/check-kyc-reconciliation.mjs && node scripts/check-kyc-profile-refresh-boundary.mjs",
     "check:ai-prompt-security": "node scripts/check-ai-prompt-security.mjs",
     "check:rbac-claims-boundary": "node scripts/check-rbac-claims-boundary.mjs",
     "check:audit-log-immutability": "node scripts/check-audit-log-immutability.mjs",
