@@ -1,12 +1,20 @@
-import { closeSync, constants, fstatSync, openSync, readSync } from 'node:fs';
+import { closeSync, constants, fstatSync, openSync, readSync, realpathSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { preflightSignedLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationAttestation';
 
-// Read only regular files, without symlink traversal, under strict byte caps.
+// Read only regular files at canonical absolute paths under strict byte caps.
+// The final O_NOFOLLOW alone does NOT protect symlinked parent directories.
 function readBoundedFile(path: string, maxBytes: number): Buffer {
   if (!isAbsolute(path) || !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
       typeof constants.O_NOFOLLOW !== 'number') {
     throw new Error('migration_file_path_invalid');
+  }
+  // Reject pre-existing symlinked ancestors and lexical aliases: resolving
+  // the entire path must not change the caller's absolute byte-for-byte path.
+  // The final component is independently guarded by O_NOFOLLOW. This is a
+  // fail-closed preflight, NOT a race-free openat2/RESOLVE_NO_SYMLINKS proof.
+  if (realpathSync.native(path) !== path) {
+    throw new Error('migration_file_path_not_canonical');
   }
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
