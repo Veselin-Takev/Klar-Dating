@@ -1,3 +1,11 @@
+## P1 #206 – Bearer-Download-Token aus Client-Fetch-Diagnostik entfernen (31.10.2026)
+
+Ein unabhängiger Feature-Branch auf `main` (`fix/206-redact-client-fetch-diagnostics-20261031`) schließt einen konkret belegten Teilbefund aus [Privacy-Issue #206](https://github.com/Veselin-Takev/Klar-Dating/issues/206): `monitoredFetch` durfte bisher unbereinigte `?token=`-Links in Debug-/Fehlermeldungen und `fetchWithTimeout` im globalen Browser-Fehlerereignis veröffentlichen. Die Diagnostic-Ausgaben verwenden jetzt ausschließlich konstante, nicht-identifizierende Fehlerschlüssel und Dauerangaben; Originalantworten und Fehler bleiben für Fachaufrufer erhalten. Negativtests und `check:fetch-diagnostics-privacy` sind im verpflichtenden Enterprise-Gate integriert. [Technischer Bericht](PRIVACY_FETCH_DIAGNOSTICS_REDACTION_2026-10-31.md).
+
+**Kein Abschluss von Issue #206 und kein Production GO:** Alte Firebase-Bearer-Download-URLs bleiben ohne separate autorisierte Bildlesemigration, Revocation-/Rotation, echte Staging-Tests sowie DPO-/Security-/SRE-/Release-Owner-Abnahmen nicht zuverlässig widerrufbar. Exakter CI-PASS für diesen neuen Commit und unabhängiger Code-Review sind ebenfalls noch ausstehend. **BLOCKED / NO-GO**; keine Änderungen an `main`, produktiven Daten, Storage-Tokens oder Deployments.
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
