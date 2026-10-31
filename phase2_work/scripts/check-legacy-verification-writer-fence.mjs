@@ -9,7 +9,7 @@ const read = relative => readFileSync(resolve(root, relative), 'utf8');
 
 const retiredPaths = ['/verify', '/status', '/challenge', '/submit', '/decide'];
 
-export function verifyLegacyVerificationWriterFence({ routes, server, rules }) {
+export function verifyLegacyVerificationWriterFence({ routes, server, rules, core }) {
   // These are the only historical manual routes. They must remain non-mutating
   // and return HTTP 410 for every HTTP method, including POST and GET.
   const match = routes.match(/for\s*\(\s*const path of \[([^\]]+)\]\s*\)/);
@@ -29,6 +29,23 @@ export function verifyLegacyVerificationWriterFence({ routes, server, rules }) {
   }
   if (/\bhandleVerification(?:Submit|Decide|Challenge|Status)\b/.test(server)) {
     throw Error('legacy_verification_mutating_handler_reintroduced');
+  }
+  // Defense in depth: direct calls to old exported handler symbols must also
+  // return 410 without touching Firestore, GCS, or identity claims.
+  // A future import elsewhere must not silently resurrect manual biometrics.
+  if (typeof core !== 'string') throw Error('legacy_verification_core_missing');
+  for (const name of ['Status', 'Challenge', 'Submit', 'Decide']) {
+    const declaration = new RegExp(
+      'export\\s+async\\s+function\\s+handleVerification' + name +
+      '\\s*\\(_req:\\s*Request,\\s*res:\\s*Response\\)\\s*:\\s*Promise<void>\\s*\\{\\s*retiredManualVerification\\(res\\);\\s*\\}',
+    );
+    if (!declaration.test(core)) throw Error('legacy_verification_core_' + name + '_not_inert');
+  }
+  if (!/function\\s+retiredManualVerification\\(res:\\s*Response\\):\\s*void\\s*\\{\\s*res\\.status\\(410\\)\\.json\\(\\{[\\s\\S]*?code:\\s*['"]verification_retired['"]/.test(core)) {
+    throw Error('legacy_verification_core_410_response_missing');
+  }
+  if (/\\bgetAppBucket\\b|\\bverification_events\\b|\\bverification_requests\\b/.test(core)) {
+    throw Error('legacy_verification_core_biometric_mutator_reintroduced');
   }
   // Firebase Storage Rules apply to clients, not service accounts or Admin SDK.
   // Deny every client operation on old biometrics; check the exact rule block.
@@ -50,6 +67,7 @@ export function checkRepositoryLegacyVerificationWriterFence() {
     routes: read('src/server/verification-routes.ts'),
     server: read('server.ts'),
     rules: read('storage.rules'),
+    core: read('src/server/klarCore.ts'),
   });
 }
 
