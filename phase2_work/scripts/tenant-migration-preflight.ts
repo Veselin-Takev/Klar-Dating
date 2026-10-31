@@ -10,11 +10,14 @@ function readManifest(path: string): unknown {
 }
 function main(argv: readonly string[]): void {
   // No live mode exists. Require an explicit dry-run for every invocation.
-  if (argv.length !== 3 || argv[0] !== '--dry-run' ||
-      argv[1] === argv[2] || argv[1].startsWith('-') || argv[2].startsWith('-')) {
+  const [mode, inventoryPath, mappingPath] = argv;
+  if (argv.length !== 3 || mode !== '--dry-run' ||
+      typeof inventoryPath !== 'string' || typeof mappingPath !== 'string' ||
+      inventoryPath === mappingPath ||
+      inventoryPath.startsWith('-') || mappingPath.startsWith('-')) {
     throw new Error('dry_run_arguments_required');
   }
-  const result = preflightLegacyProfileMapping(readManifest(argv[1]), readManifest(argv[2]));
+  const result = preflightLegacyProfileMapping(readManifest(inventoryPath), readManifest(mappingPath));
   // Intentionally never print UID, source paths, raw records or attestations.
   process.stdout.write(JSON.stringify(result) + '\n');
 }
