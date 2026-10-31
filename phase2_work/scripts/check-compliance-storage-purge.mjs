@@ -24,4 +24,17 @@ for (const [label, re] of checks) {
   const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
 }
+// Never trust a generation first observed during deletion as original upload
+// evidence. The guard must run at initial eligibility, in Firestore DELETE
+// preflight, during 404 reconciliation, and in the final audit transaction.
+for (const proof of [
+  'requireVerifiedPhotoUploadGeneration(data);',
+  'requireVerifiedPhotoUploadGeneration(record.data(), generation);',
+  'requireVerifiedPhotoUploadGeneration(record.data(), intent.generation);',
+  'requireVerifiedPhotoUploadGeneration(current.data(), proof.generation);',
+]) {
+  if (!route.includes(proof)) {
+    throw new Error('Compliance storage purge boundary failed: original upload generation check missing');
+  }
+}
 console.log('Compliance storage purge boundary: PASS');
