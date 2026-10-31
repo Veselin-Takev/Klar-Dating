@@ -46,6 +46,20 @@ export const requiredOwnership = Object.freeze({
   'phase2_work/scripts/test-codeowners.mjs': [technicalOwner],
   'phase2_work/scripts/codeowners-review-policy.mjs': [technicalOwner],
   'phase2_work/scripts/check-codeowners-owner.mjs': [technicalOwner],
+  // Explicit retention, Didit KYC and bearer-URL implementation boundaries.
+  'phase2_work/src/server/routes/complianceStorage.ts': [technicalOwner],
+  'phase2_work/src/server/platform/storageRetentionEngine.ts': [technicalOwner],
+  'phase2_work/src/server/platform/verificationPurgeScan.ts': [technicalOwner],
+  'phase2_work/src/server/verification/diditKyc.ts': [technicalOwner],
+  'phase2_work/functions/src/purgeVerificationStorage.ts': [technicalOwner],
+  'phase2_work/functions/src/purgeCompletion.ts': [technicalOwner],
+  'phase2_work/functions/src/deleteExpiredPhotos.ts': [technicalOwner],
+  'phase2_work/functions/src/retention.ts': [technicalOwner],
+  'phase2_work/src/lib/klar.ts': [technicalOwner],
+  'phase2_work/src/lib/api.ts': [technicalOwner],
+  'phase2_work/scripts/check-compliance-storage-purge.mjs': [technicalOwner],
+  'phase2_work/scripts/check-retention-config.mjs': [technicalOwner],
+  'GO_LIVE_CHECKLIST.md': [technicalOwner],
 });
 
 export function checkCodeowners(source) {
