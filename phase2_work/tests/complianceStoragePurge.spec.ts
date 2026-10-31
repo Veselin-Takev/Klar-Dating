@@ -138,6 +138,10 @@ describe('retention lock and decision safety (#202 integration)', () => {
   it.each([
     ['legal hold', { legalHold: true }],
     ['retention hold', { retentionHold: true }],
+    ['string-valued legal hold', { legalHold: 'false' }],
+    ['null legal hold', { legalHold: null }],
+    ['numeric retention hold', { retentionHold: 0 }],
+    ['null retention hold', { retentionHold: null }],
     ['already purged', { photoPurged: true }],
     ['not yet due', { fotoLoeschenAb: { toMillis: () => now + 1000 } }],
     ['pending moderation', { entscheidung: 'pending' }],
@@ -156,10 +160,14 @@ describe('retention lock and decision safety (#202 integration)', () => {
     ['object-level retention lock', { retention: { retainUntilTime: '2999-01-01T00:00:00Z' } }],
     ['malformed retention expiry', { retentionExpirationTime: 'not-a-date' }],
     ['malformed object-level retention', { retention: { retainUntilTime: 'invalid' } }],
+    ['object retention without expiry', { retention: { mode: 'Locked' } }],
+    ['string-valued temporary hold', { temporaryHold: 'false' }],
+    ['numeric event hold', { eventBasedHold: 0 }],
+    ['blank retention timestamp', { retentionExpirationTime: '' }],
   ])('does not delete Storage generation with %s', async (_case, mutation) => {
     let deleteCalls = 0;
     await expect(deleteVerificationStorageFile({
-      getMetadata: async () => [{ generation: '90071992547409931', ...mutation }],
+      getMetadata: async () => [{ generation: '90071992547409931', ...mutation } as any],
       delete: async () => { deleteCalls++; },
     })).rejects.toThrow();
     expect(deleteCalls).toBe(0);
