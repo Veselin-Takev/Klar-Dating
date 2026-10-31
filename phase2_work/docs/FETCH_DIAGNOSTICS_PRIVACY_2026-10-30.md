@@ -11,9 +11,11 @@ In `src/lib/api.ts`, `monitoredFetch` previously interpolated `input.toString()`
 
 ## Verification and release limits
 - Source replacement was checked against the exact prior function body before committing, and the rewritten text was checked for the previously leaking URL interpolations.
-- **Not yet verified:** full TypeScript/build/test suite, runtime behavior, CI status, Sentry pipeline, broader log sinks, Firebase download-token revocation, staging negative tests and production access boundaries.
+- **CI confirmed for previous head SHA** `1a3f48b7f6eeafcce8037d8ab2664f91c11a8a2f`: Klar Enterprise CI run [41140457444](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41140457444) completed with `success`. This is **not** evidence for newer commits or independent review.
+- Added `scripts/test-fetch-diagnostics-privacy.mjs`: Node built-in static regression checks for disallowed URL interpolation, sanitized error forwarding and original-error propagation. Run with `node --test scripts/test-fetch-diagnostics-privacy.mjs` from `phase2_work`. **New test has not yet been executed or passed in CI at the new SHA.** Static checks do not replace runtime redaction tests.
+- **Not yet verified at new head SHA:** full TypeScript/build/test suite, runtime behavior, Sentry pipeline, broader log sinks, Firebase download-token revocation, staging negative tests and production access boundaries.
 - Review `melde` and `reportClientError` handling as part of CI/security review. The synthetic diagnostic error intentionally trades away raw exception detail to avoid leaking secrets.
-- A dedicated unit test should capture debug and error diagnostics with an input containing `?token=sentinel`, assert token absence and confirm caller receives the original rejection. Include `Request` inputs as well as URL/string inputs.
+- A further **runtime** unit test must capture debug and error diagnostics with an input containing `?token=sentinel`, assert token absence and confirm caller receives the original rejection. Include `Request` inputs as well as URL/string inputs; the new static guard does not yet cover this.
 
 ## Outstanding P0/P1 blockers
 - #202: Decision-aware biometric photo retention, Scheduler inventory and controlled migration.
