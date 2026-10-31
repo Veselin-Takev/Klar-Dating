@@ -1,3 +1,10 @@
+## P1 #73 – verbindlicher Live-Review-Schutz im Production-Release (31.10.2026)
+
+Die aktive [GitHub-Ruleset #25756841](https://github.com/Veselin-Takev/Klar-Dating/rules/25756841) verlangt derzeit auf main zwar PR und validate-CI, jedoch keine unabhängige Genehmigung. Ein isolierter Draft-Branch ergänzt einen strikt fail-closed Live-Ruleset-Release-Gate mit tokenfreiem Auditbeleg, offline negativen Regressionstests und Workflow-Source-Gate. Die Ruleset selbst bleibt **unverändert**. [Governance-Bericht](MAIN_RULESET_RELEASE_GUARD_2026-10-31.md).
+
+Die technische Änderung ist bis zu exact-head CI, unabhängiger Prüfung, tatsächlicher Ruleset-Härtung durch Berechtigte und erforderlichen P0-/DPO-/SRE-/Finance-Freigaben **BLOCKED / NO-GO**. Kein Merge, kein Deployment.
+
+---
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

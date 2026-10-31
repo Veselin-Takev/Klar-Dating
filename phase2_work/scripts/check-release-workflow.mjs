@@ -118,6 +118,14 @@ if (text.includes('bun install --lockfile-only') || !text.includes('git diff --e
 const ciText = fs.readFileSync(path.join(workflowDir, 'ci.yml'), 'utf8');
 if (!ciText.includes('run: node --test scripts/release-ci-check.mjs')) failures.push('CI must execute release-policy regression tests.');
 
+const liveRulesetGate = text.split('      - name: Verify live main Ruleset\n')[1]?.split('\n      - ')[0] ?? '';
+if (!liveRulesetGate.includes('run: node scripts/check-main-ruleset.mjs') ||
+    !liveRulesetGate.includes('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}') ||
+    /\n\s+if:/.test(liveRulesetGate) ||
+    text.indexOf('run: node scripts/check-main-ruleset.mjs') > text.indexOf('run: node scripts/check-production-release-approval.mjs') ||
+    !ciText.includes('run: node --test scripts/test-main-ruleset.mjs')) {
+  failures.push('Production release must verify live independent main Ruleset enforcement with CI regressions.');
+}
 if (failures.length) {
   console.error("Production release workflow check FAILED:");
   for (const failure of failures) console.error(`- ${failure}`);
