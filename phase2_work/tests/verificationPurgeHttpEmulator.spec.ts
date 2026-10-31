@@ -115,6 +115,9 @@ async function withEvent(
       decidedAt: Timestamp.fromMillis(Date.now() - 31 * 86_400_000),
       fotoLoeschenAb: new Date(Date.now() - 86_400_000),
       photoPurged: false,
+      // Emulator fixture represents a trusted, original upload bound at intake.
+      // Production legacy events without this proof MUST stay fail-closed.
+      photoUploadGeneration: '773',
     });
     await testBody({ db, event, path });
   } finally {
