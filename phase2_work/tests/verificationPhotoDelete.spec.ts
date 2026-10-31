@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
-import { deleteVerificationPhotoIfUnchanged } from '../src/server/platform/verificationPhotoDelete';
+import { deleteVerificationPhotoIfUnchanged, matchesActiveRetentionDecision, type VerificationPhotoMetadata } from '../src/server/platform/verificationPhotoDelete';
 
 describe('verification-photo Storage delete preconditions (#202)', () => {
   const path = 'verification/test-user/portrait.jpg';
@@ -8,7 +8,7 @@ describe('verification-photo Storage delete preconditions (#202)', () => {
     const deletion = vi.fn(deleteImpl ?? (async () => {}));
     const bucket = {
       file: vi.fn(() => ({
-        getMetadata: vi.fn(async () => [meta]),
+        getMetadata: vi.fn(async (): Promise<[VerificationPhotoMetadata]> => [meta as VerificationPhotoMetadata]),
         delete: deletion,
       })),
     };
@@ -60,4 +60,36 @@ describe('verification-photo Storage delete preconditions (#202)', () => {
       expect(deletion).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('verification-photo decision revalidation (#202)', () => {
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  const artifact = {
+    uid: 'test-user', challengeId: 'approved-challenge', status: 'approved' as const,
+    decidedAt: now - 31 * 86_400_000, storagePath: 'verification/test-user/p.jpg',
+  };
+  const record = {
+    uid: artifact.uid, storagePath: artifact.storagePath,
+    entscheidung: 'bestaetigt', decidedAt: new Date(artifact.decidedAt),
+    fotoLoeschenAb: new Date(now - 1),
+    photoPurged: false,
+  };
+
+  it('accepts an unchanged decided, due, non-held artifact', () => {
+    expect(matchesActiveRetentionDecision(record, artifact, now)).toBe(true);
+  });
+  it.each([
+    ['missing record', undefined],
+    ['pending decision', { ...record, entscheidung: 'pending' }],
+    ['different owner', { ...record, uid: 'other' }],
+    ['different path', { ...record, storagePath: 'verification/test-user/new.jpg' }],
+    ['new decision timestamp', { ...record, decidedAt: new Date(now - 1) }],
+    ['extended retention', { ...record, fotoLoeschenAb: new Date(now + 1) }],
+    ['missing deadline', { ...record, fotoLoeschenAb: null }],
+    ['marked already purged', { ...record, photoPurged: true }],
+    ['legal hold', { ...record, legalHold: true }],
+    ['retention hold', { ...record, retentionHold: true }],
+  ])('rejects changed/invalid state before and after deletion: %s', (_label, changed) => {
+    expect(matchesActiveRetentionDecision(changed, artifact, now)).toBe(false);
+  });
 });
