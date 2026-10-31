@@ -1,3 +1,11 @@
+## P0 #254 – Public-Firestore-Gate prüft nun beide Firebase-Regeldateien (31.10.2026)
+
+Die Quellprüfung identifizierte, dass sowohl `firebase.json` im Root als auch `phase2_work/firebase.json` jeweils auf ein eigenes `firestore.rules` verweisen. Der statische `check-public-firestore-rules`-Gate untersuchte öffentliche `allow`-Statements und das `public_profiles`-Alters-Gate zuvor nur in Phase2, obwohl Root ebenfalls ein Deployment-Einstieg ist. Der isolierte Feature-Branch prüft jetzt beide Regeldateien und verifiziert die Regeln-Pfade der beiden Firebase-Konfigurationen fail-closed. Acht vorbereitete Offline-Mutationstests decken u. a. einen unautorisierten öffentlichen Root-Zugriff und fehlende Erwachsenen-Gates ab. [Audit](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md).
+
+Die Quellprüf-Logik wurde an beiden echten Rules-Texten und adversarialen Mutationen geprüft, aber **keine** Node-Test-/Emulator-/vollständige GitHub-CI mit der geforderten Runtime ausgeführt. Die externe Budgetgrenze bleibt wirksam, kein PR/Actions-Neustart, kein Merge/Deploy; **Production NO-GO**.
+
+---
+
 ## P0 #254 – Firebase-Rules: echte CREATE-/LIST-Negativtests und Offline-Gate-Regression (31.10.2026)
 
 Die Vorbereitung im isolierten Feature-Branch wurde vertieft: Die Tenant-Regeltests decken jetzt zusätzlich echte **Neuanlagen** nicht existierender Tenant-Dokumente, LIST-Abfragen für normale und Admin-Claim-Clients sowie unauthentifizierte Leserversuche ab. Vier neue reine Node-Standardbibliotheks-Regressionstests für den statischen Rules-Gate simulieren fehlende Scope-Argumente und verbotene öffentliche Freigaben; sie werden künftig über `check:emulator-profile` im Enterprise-Gate eingebunden. [Prüfbericht](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md). Kein Test-PASS ohne Ausführung; der lokale Host hat nicht die verbindliche Node-Version. Kein Actions-Workflow/PR ausgelöst. Budget-HALT und Production **NO-GO** bleiben bestehen.
