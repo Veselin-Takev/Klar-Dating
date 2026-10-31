@@ -26,7 +26,8 @@ describe('profile identity refresh uses the authoritative Didit status contract'
     hooks.request.mockResolvedValue(response({ status: 'approved' }));
     const onSuccess = clickRefresh();
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
-    expect(hooks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+    expect(hooks.request).toHaveBeenCalledOnce();
+    expect(hooks.request).toHaveBeenCalledWith('/api/kyc/status');
   });
 
   it.each(['pending', 'review', 'not_started'])(
@@ -35,7 +36,8 @@ describe('profile identity refresh uses the authoritative Didit status contract'
       const onSuccess = clickRefresh();
       await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('kyc.photoPending'));
       expect(onSuccess).not.toHaveBeenCalled();
-      expect(hooks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+      expect(hooks.request).toHaveBeenCalledOnce();
+    expect(hooks.request).toHaveBeenCalledWith('/api/kyc/status');
     },
   );
 
