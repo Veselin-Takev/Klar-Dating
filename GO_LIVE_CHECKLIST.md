@@ -1,5 +1,9 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## P1 #73 – Release-Token / Ruleset-Bypass-Evidenz (31.10.2026)
+
+- [ ] [PR #251](https://github.com/Veselin-Takev/Klar-Dating/pull/251) hat [Enterprise-CI #41208342316](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41208342316) erfolgreich abgeschlossen, bleibt aber Draft. Noch fehlen Live-Ruleset-Härtung, unabhängige echte Reviews, Negativ-Mergeversuche und vollständige Produktionsnachweise.
+- [ ] **GitHub-API-Sichtbarkeit:** `GET /repos/{owner}/{repo}/rulesets/{ruleset_id}` liefert `bypass_actors` laut GitHub nur mit Ruleset-Schreibrechten. Der fail-closed Release-Gate prüft explizit `bypass_actors=[]`; der bisherige `GITHUB_TOKEN` besitzt keine belegten Ruleset-Schreibrechte. Vor GO sichere, separat abgenommene Bypass-Evidenz und einen getesteten least-privilege Zugriffspfad definieren. Keine automatische Eskalation des Release-Tokens. [Prüfbericht](phase2_work/docs/GITHUB_RULESET_BYPASS_VISIBILITY_2026-10-31.md).
 ## GitHub-Ruleset-Live-Nachtrag — 31.10.2026
 
 - [ ] [Aktive `main`-Ruleset #25756841](https://github.com/Veselin-Takev/Klar-Dating/rules/25756841) hat zwar `pull_request` und striktes Pflicht-`validate`, erfordert aber aktuell **0 genehmigende Reviews**; `require_code_owner_review=false`, `require_last_push_approval=false` und `required_review_thread_resolution=false`. Der zusätzliche Schalter `require_extra_approval_for_unattributed_changes=true` ist ohne Durchsetzungstest kein unabhängiger Security-/DPO-Abnahmenachweis.
