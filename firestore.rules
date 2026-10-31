@@ -39,7 +39,7 @@ service cloud.firestore {
         || hasRole('finance');
     }
 
-    function validUserMutableUpdate() {
+    function validUserMutableUpdate(userId) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'uid', 'name', 'bio', 'interests', 'goal', 'location', 'age', 'birthdate',
         'gender', 'photoURL', 'photoUrl', 'photos', 'language', 'preferredLanguage',
@@ -114,7 +114,7 @@ service cloud.firestore {
         && validMusicPreferences(request.resource.data);
       
       allow update: if isOwner(userId) && !istGast()
-        && validUserMutableUpdate()
+        && validUserMutableUpdate(userId)
         && (resource != null ? (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationProvider', 'identityVerificationStatus'])
           && (!('isVerified' in request.resource.data) || (resource.data != null && 'isVerified' in resource.data && request.resource.data.isVerified == resource.data.isVerified))

@@ -8,6 +8,22 @@ const repository = 'example/klar';
 const sha = 'a'.repeat(40);
 const run = () => ({ id: 12, run_attempt: 2, head_sha: sha, head_branch: 'main', event: 'push', path: '.github/workflows/ci.yml', repository: { full_name: repository }, head_repository: { full_name: repository }, status: 'completed', conclusion: 'success' });
 const job = () => ({ id: 44, name: 'validate', run_id: 12, run_attempt: 2, head_sha: sha, status: 'completed', conclusion: 'success', steps: REQUIRED_STEPS.map(name => ({ name, status: 'completed', conclusion: 'success' })) });
+test('enforces separate SHA-bound Firestore rules compiler/emulator gate before build', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const stepName = '- name: Firestore rules emulator';
+  assert.ok(REQUIRED_STEPS.includes('Firestore rules emulator'));
+  assert.equal(workflow.split(stepName).length, 2, 'Rules step must occur exactly once');
+  assert.ok(workflow.indexOf('java-version: \'21\'') < workflow.indexOf(stepName));
+  assert.ok(workflow.indexOf('- name: Tests') < workflow.indexOf(stepName));
+  assert.ok(workflow.indexOf(stepName) < workflow.indexOf('- name: Build'));
+  const chunk = workflow.slice(workflow.indexOf(stepName), workflow.indexOf('- name: Build'));
+  assert.match(chunk, /if: steps\.scope\.outputs\.full == 'true'/);
+  assert.match(chunk, /run: npm run test:rules/);
+  const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert.match(scripts['test:rules'], /firebase emulators:exec --project demo-klar/);
+  assert.match(scripts['test:rules'], /vitest run tests\/rules\.spec\.ts/);
+});
+
 test('accepts complete exact-commit main validation', () => {
   assert.doesNotThrow(() => validateRun(run(), repository, sha));
   assert.equal(validateJobs([job()], run()).id, 44);

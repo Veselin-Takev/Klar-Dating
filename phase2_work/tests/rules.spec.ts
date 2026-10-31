@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, addDoc } from 'firebase/firestore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Firestore-Regeln gegen den Emulator
@@ -131,6 +131,18 @@ describe('Profile', () => {
 
   it('eigenes Profil bearbeiten geht', async () => {
     await assertSucceeds(updateDoc(doc(als(ANNA), 'users/anna'), { name: 'Anna B.', updatedAt: '2026-08-09' }));
+  });
+
+  it('UID-Scope-Regression: self-update erlaubt, Eigentümerwechsel der UID verboten', async () => {
+    await assertSucceeds(updateDoc(doc(als(ANNA), 'users/anna'), {
+      name: 'Anna (authorisiert)', updatedAt: '2026-10-31',
+    }));
+    await assertFails(updateDoc(doc(als(ANNA), 'users/anna'), {
+      uid: BEA, updatedAt: '2026-10-31',
+    }));
+    await assertFails(updateDoc(doc(als(ANNA), 'users/bea'), {
+      uid: ANNA, updatedAt: '2026-10-31',
+    }));
   });
 
   it('fremdes Profil bearbeiten geht nicht', async () => {
@@ -771,5 +783,62 @@ describe('Klar & Partner server-only collections', () => {
     const target = doc(adminDb, collectionName, 'test-record');
     await assertFails(getDoc(target));
     await assertFails(setDoc(target, { clientControlled: true }));
+  });
+});
+
+describe('P0 #254: tenant namespace is default-denied until separately approved cutover rules', () => {
+  // Seed real documents with bypassed test-admin rules so negative reads
+  // cannot pass merely because a document does not exist.
+  const preCutoverPaths = [
+    'tenants/tenant-a',
+    'tenants/tenant-a/users/anna',
+    'tenants/tenant-a/members/anna',
+    'tenants/tenant-a/featureFlags/SAFE_CHAT',
+    'tenants/tenant-b/users/anna',
+  ] as const;
+
+  it.each(preCutoverPaths)('denies authenticated and admin client access to %s', async (path) => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), {
+        tenantId: path.includes('tenant-b') ? 'tenant-b' : 'tenant-a',
+        uid: ANNA, name: 'fixture', status: 'active', enabled: true,
+      });
+    });
+    const normal = doc(als(ANNA), path);
+    const claimedAdminDb = env.authenticatedContext(ANNA, {
+      role: 'admin', roles: ['admin'],
+    }).firestore();
+    const elevated = doc(claimedAdminDb, path);
+    await assertFails(getDoc(normal));
+    await assertFails(getDoc(elevated));
+    await assertFails(setDoc(normal, { tenantId: 'tenant-a', uid: ANNA }));
+    await assertFails(updateDoc(elevated, { name: 'unauthorized' }));
+    await assertFails(deleteDoc(normal));
+  });
+
+  it('denies actual creates, collection queries and unauthenticated tenant reads', async () => {
+    const normal = als(ANNA);
+    const admin = env.authenticatedContext(ANNA, {
+      role: 'admin', roles: ['admin'],
+    }).firestore();
+    const unauthenticated = anonym();
+    // No fixture exists at either target; this checks a true CREATE rather
+    // than a setDoc() that Firestore evaluates as an UPDATE.
+    await assertFails(setDoc(doc(normal, 'tenants/tenant-a/users/new-user'), {
+      tenantId: 'tenant-a', uid: 'new-user', name: 'unapproved',
+    }));
+    await assertFails(setDoc(doc(admin, 'tenants/tenant-b/members/new-user'), {
+      tenantId: 'tenant-b', uid: 'new-user', status: 'active',
+    }));
+    // Existing fixtures from the test's setup guarantee the collection is
+    // nonempty, so these assertions exercise LIST rather than missing data.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'tenants/tenant-a/users/anna'), {
+        tenantId: 'tenant-a', uid: ANNA,
+      });
+    });
+    await assertFails(getDocs(collection(normal, 'tenants/tenant-a/users')));
+    await assertFails(getDocs(collection(admin, 'tenants/tenant-a/users')));
+    await assertFails(getDoc(doc(unauthenticated, 'tenants/tenant-a/users/anna')));
   });
 });

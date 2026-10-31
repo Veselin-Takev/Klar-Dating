@@ -1,3 +1,31 @@
+## P0 #254 – Rules-Emulator als verpflichtendes SHA-gebundenes CI-/Release-Gate (31.10.2026)
+
+Die bisherige GitHub-Actions-100-Minuten-Grenze wurde vom Repository-Owner ausdrücklich **aufgehoben**. Der isolierte Rules-Fix-Branch ergänzt den fehlenden **eigenständigen** CI-Schritt `Firestore rules emulator` (`npm run test:rules`, `demo-klar`, Node 22.23.3, Java 21). Der Schritt ist zugleich in den `REQUIRED_STEPS` des Release-CI-Verifiers vorgeschrieben; der zusätzliche Regressionstest prüft seine Einbindung und Reihenfolge. [Audit und Risiken](FIRESTORE_EMULATOR_MANDATORY_CI_2026-10-31.md). Der weitere vollständige CI-PASS, echte Tenant-Isolation der späteren Live-Rules, Storage/Art17/BOLA/IDOR und unabhängige Fachfreigaben sind weiterhin ausstehend. Kein automatisches GO, kein Merge oder Deploy. **BLOCKED / NO-GO**.
+
+---
+
+## P0 #254 – Public-Firestore-Gate prüft nun beide Firebase-Regeldateien (31.10.2026)
+
+Die Quellprüfung identifizierte, dass sowohl `firebase.json` im Root als auch `phase2_work/firebase.json` jeweils auf ein eigenes `firestore.rules` verweisen. Der statische `check-public-firestore-rules`-Gate untersuchte öffentliche `allow`-Statements und das `public_profiles`-Alters-Gate zuvor nur in Phase2, obwohl Root ebenfalls ein Deployment-Einstieg ist. Der isolierte Feature-Branch prüft jetzt beide Regeldateien und verifiziert die Regeln-Pfade der beiden Firebase-Konfigurationen fail-closed. Acht vorbereitete Offline-Mutationstests decken u. a. einen unautorisierten öffentlichen Root-Zugriff und fehlende Erwachsenen-Gates ab. [Audit](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md).
+
+Die Quellprüf-Logik wurde an beiden echten Rules-Texten und adversarialen Mutationen geprüft, aber **keine** Node-Test-/Emulator-/vollständige GitHub-CI mit der geforderten Runtime ausgeführt. Die externe Budgetgrenze bleibt wirksam, kein PR/Actions-Neustart, kein Merge/Deploy; **Production NO-GO**.
+
+---
+
+## P0 #254 – Firebase-Rules: echte CREATE-/LIST-Negativtests und Offline-Gate-Regression (31.10.2026)
+
+Die Vorbereitung im isolierten Feature-Branch wurde vertieft: Die Tenant-Regeltests decken jetzt zusätzlich echte **Neuanlagen** nicht existierender Tenant-Dokumente, LIST-Abfragen für normale und Admin-Claim-Clients sowie unauthentifizierte Leserversuche ab. Vier neue reine Node-Standardbibliotheks-Regressionstests für den statischen Rules-Gate simulieren fehlende Scope-Argumente und verbotene öffentliche Freigaben; sie werden künftig über `check:emulator-profile` im Enterprise-Gate eingebunden. [Prüfbericht](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md). Kein Test-PASS ohne Ausführung; der lokale Host hat nicht die verbindliche Node-Version. Kein Actions-Workflow/PR ausgelöst. Budget-HALT und Production **NO-GO** bleiben bestehen.
+
+---
+
+## P0 #254 – Firebase-Rules-Definitions-Scope korrigiert; Emulator-CI budgetbedingt ausgesetzt (31.10.2026)
+
+Die Parent-Enterprise-CI [#41242366372](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41242366372) auf [Draft #266](https://github.com/Veselin-Takev/Klar-Dating/pull/266) ist vollständig PASS. Die Prüfung der tatsächlich konfigurierten Firebase-Regeln identifizierte anschließend einen nicht gebundenen `userId`-Verweis in der im äußeren Match-Scope definierten Funktion `validUserMutableUpdate()`. Der dedizierte Feature-Branch übergibt `userId` sowohl in `firestore.rules` als auch in `phase2_work/firestore.rules` ausdrücklich als Funktionsparameter, ergänzt eine statische Doppeldatei-Prüfung sowie echte Firestore-Emulator-Negativtests einschließlich bereits existierender Tenant-Dokumente. [Technischer Audit](FIRESTORE_RULES_SCOPE_AND_TENANT_DENY_2026-10-31.md).
+
+**Nicht als PASS bewerten:** Der Emulator-/Rules-Compiler wurde für diesen neuen Commit nicht ausgeführt. Die 13 bisherigen GitHub-Workflow-Laufzeiten summieren sich auf ca. 100,2 Minuten (nicht offizielle Abrechnungszahl), womit die vorgegebene 100-Minuten-Grenze vorsorglich erreicht ist. Bis zur ausdrücklichen Freigabe weiterer 200 Minuten erfolgt **kein neuer CI-triggernder PR**. Auch das Fehlen expliziter `/tenants/...`-Client-Rules sowie die zu weite Storage-Profile-Read-Policy bleiben separate Go-Live-Blocker. Keine produktiven Daten-/Rules-Änderungen, kein Merge/Deploy. **BLOCKED / NO-GO.**
+
+---
+
 ## P0 #254 – Strikte Tenant-Ingress-Domain-Bindung (31.10.2026)
 
 Ein nachfolgender Security-Review von `subdomainHint()` fand eine Host-Routing-Policy-Lücke: Ist `trustedBaseDomain` gesetzt, wurde ein fremder Host nicht abgewiesen, sondern als „kein Hinweis“ bewertet. Der isolierte Folge-Draft verlangt jetzt den korrekten Apex oder eine eindeutig zugeordnete einzelne Tenant-Subdomain und verweigert fremde Hosts vor jeder Tenant-/Membership-Datenbankabfrage. Neue Autorisierungs- und Express-Middleware-Negativtests prüfen 403, keinen Kontext und keinen DB-Zugriff. [Security-Audit](TENANT_INGRESS_HOST_BOUNDARY_2026-10-31.md). Die echte Produktiv-Ingress-Allowlist, Proxy-Trust-Policy und Integration aller Legacy-Routen bleiben offen; SHA-gebundener CI-PASS und unabhängige Fachfreigaben sind zwingend. **Production NO-GO.**

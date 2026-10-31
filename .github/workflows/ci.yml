@@ -109,6 +109,12 @@ jobs:
       - name: Tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:ci
+      # Dedicated demo-klar Firestore Rules compile and authorization tests.
+      # Explicit exit code avoids a green combined test runner masking a
+      # skipped/interrupted Rules suite. Java 21 and Node 22 are pinned above.
+      - name: Firestore rules emulator
+        if: steps.scope.outputs.full == 'true'
+        run: npm run test:rules
       - name: Build
         if: steps.scope.outputs.full == 'true'
         run: bun run build
