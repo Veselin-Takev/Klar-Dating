@@ -1,5 +1,9 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## Retention-Stack-Ancestry-Pflichtabgleich (31.10.2026)
+
+- [ ] [P0 #202 – SHA-/Inhaltsaudit](phase2_work/docs/RETENTION_STACK_ANCESTRY_RECONCILIATION_2026-10-31.md) ergibt: PR #250 enthält Commit-Historien von #231/#233/#235/#236 nicht; diese abweichenden Sicherheits-PRs nicht ohne Code-/Test-/Blob-Gleichwertigkeitsprüfung und unabhängige Fachreviews schließen. Gegenüber `main` bleiben alte Mutator-Exporte in #250 bestehen.
+- [ ] [Draft #252](https://github.com/Veselin-Takev/Klar-Dating/pull/252) integriert die Legacy-Handler-Stilllegung aus #236 als exakten identischen Blob sowie Regressionen aus #235/#236, aber **nicht** die gesamte divergende Commit-Historie. Exakte CI #41210125788, unabhängige AppSec/DPO/SRE-Abnahme, Integrationsbasis und echte Staging-/Cloud-Nachweise sind Pflicht.
 ## P1 #73 – Release-Token / Ruleset-Bypass-Evidenz (31.10.2026)
 
 - [ ] [PR #251](https://github.com/Veselin-Takev/Klar-Dating/pull/251) hat [Enterprise-CI #41208342316](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41208342316) erfolgreich abgeschlossen, bleibt aber Draft. Noch fehlen Live-Ruleset-Härtung, unabhängige echte Reviews, Negativ-Mergeversuche und vollständige Produktionsnachweise.
