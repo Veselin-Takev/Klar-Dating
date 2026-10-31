@@ -16,6 +16,23 @@
 
 **Konfliktregel:** Bei mehreren PRs, die dieselben Dateien verändern, zuerst readonly `git diff`/Tree-Vergleich und Codeowner-Review, dann einen konsolidierten Integration-Branch mit *neuem* vollem CI/Emulator/DAST-Nachweis erstellen. Ein CI-PASS eines früheren isolierten Branches darf nicht auf den kombinierten Commit übertragen werden. Keine direkten Commits auf `main`.
 
+## 1a. Exakter Quellvergleich: #203 vs. #229 vs. #231 (keine Mergefreigabe)
+
+Die folgenden Dateien wurden zusätzlich über die unveränderten GitHub-PR-Head-Refs `refs/pull/203/head`, `refs/pull/229/head` und den Feature-Branch von #231 gelesen. Dies ist eine statische Quellprüfung, keine Ausführung.
+
+| Datei / Verhalten | PR #203 | PR #229 | PR #231 | Integrationsentscheidung |
+|---|---|---|---|---|
+| `functions/src/deleteExpiredPhotos.ts` | Legacy-Upload-Alter-Delete entfernt, Export für kontrollierte Migration bewahrt | **identischer Datei-Blob** wie #203 (`2f4b9096dcbdefe09ff80787d1529560d57c5793`) | Ebenfalls deaktiviert, aber abweichender Blob | **Einmalig** den gleichwertigen fail-closed Worker übernehmen und den tatsächlichen Deploy-State read-only prüfen |
+| `src/server/routes/complianceStorage.ts` | **383-Zeilen** Resumable Scanner mit `MAX_BATCH=25`, `MAX_PAGES=4`, `LEASE_MS=5min`, globalem Firestore-Lease, Cursor und Checkpoint, generationgebundenem Persisted Intent, 404-Absence-Reconciliation und HTTP 503 bei Restfehlern | **identischer Datei-Blob** wie #203 (`a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`) | **99-Zeilen** einfacher Batch ohne diesen persistenten Scanner und dessen nachweisbare Recovery-Schritte | **Nicht** die #231-Datei blind über #203/#229 kopieren. Die resumierbare Scanner-/Intent-/Lease-Architektur aus #203 **als Integrationsbasis prüfen**; Zusatz-Hold-Prüfung, Fail-Closed-Revalidation und Tests aus #231 nur gezielt aufnehmen |
+| `src/server/platform/storageRetentionEngine.ts` | Entscheidungsgate mit Status-Union | #229 verschärft zu explizit `approved/rejected`-Only (auch gegen ungültige Runtime-Werte) und redigiert Provider-Fehler; Blob `a8caca02ec58db3bfcbe09991afe78e27e2dd516` | Fehlerredaktion vorhanden, aber Risiko eines erneuten Verlusts der #229-State-Guard, falls ältere Logik übernommen wird | #229 explizite Statusprüfung unverändert erhalten, separate Negativtests für unbekannte/modifizierte Zustände |
+| `functions/src/retention.ts` | Entfernt den alten altersbasierten Helfer vollständig und belässt `deleteAccountPhotos` | identisch zur #203-Variante | Behält alten API-Namen als **fail-closed throw** für Rückwärtskompatibilität/Tests | Prüfen, ob produktive/Tests-Imports existieren; nur eine Strategie übernehmen und via TypeScript/Import-Scan absichern |
+| Storage-Metadaten | `inspectVerificationStorageGeneration` prüft Generation, Temp-/Event-Holds, nicht erkennbar alle Retention-Lock-Metadaten | wie #203 | Prüft zusätzlich `retentionExpirationTime` und `retention.retainUntilTime` | Gegen reale SDK-Metadaten und Hold-Vertragsfelder validieren; fehlende Felder nicht als gültiges Delete-Recht interpretieren |
+| Konkurrenz-/Recovery-Grenze | Globales Scanner-Lease und Objekt-Intent sind vorhanden, aber **kein nachgewiesenes vollständiges Writer-Fencing** aller Firestore-Entscheidungs-/Storage-Upload-Pfade | wie #203 | Re-Read vor Delete und Audit-Revalidation, aber **kein** per-Candidate-Lease/Checkpoint | Ein gemeinsames Claim-/Writer-Fencing- und historische Generation-Provenienz-Konzept mit Staging-Recovery-Tests ist weiter P0 |
+
+**Empfohlene Reihenfolge:** (1) #203 und #229 als gemeinsam kompatible Kandidatenquelle bewerten (identische Scanner-/Legacy-Worker-Blobs), (2) #231 nur als Review-/Test-Patchset zur selektiven Übernahme verwenden, (3) alle zusammengeführten Resultate im dedizierten Integrationsbranch mit TypeScript, Functions Build, echten Emulator-Tests, Race-/Crash-Tests und unabhängigen Security/DPO/SRE-Reviews nachweisen, (4) erst danach einen kontrollierten freigegebenen Merge erwägen. **Kein Merge wurde durchgeführt.**
+
+**Befund zur Datenmigration:** Die in `klarCore.ts` historisch geschriebenen `verification_events` haben keinen ursprünglichen Upload-`generation`-Beleg; ein bei der **Löschvorbereitung** gespeicherter Intent (#203) beweist nicht automatisch, dass ein zwischen Upload und Löschvorbereitung bereits ersetztes Foto zum alten KYC-Event gehört. Lösung benötigt autorisierte Generation-Provenienz/Legacy-Reconciliation und Writer-Fencing, nicht bloß zusätzliche 412-Behandlung.
+
 ## 2. Explizite Cross-Service-Sicherheitsinvarianten für #202
 
 Zu behandelnde Trust Boundaries: moderationsberechtigter Server-Writer → `users/`, `verification_requests/`, `verification_events/` → Lösch-Scheduler/API → GCS `verification/{uid}/{file}` → Audit.
