@@ -4,7 +4,9 @@ import { z } from 'zod';
 // Profile-only, read-only preflight. No Firebase Admin or storage write API is
 // imported: missing owner provenance blocks all future migration stages.
 const uidSchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/);
-const tenantIdSchema = z.string().regex(/^[a-z][a-z0-9-]{2,62}$/);
+// A reserved catch-all tenant must never be an implicit legacy fallback.
+const tenantIdSchema = z.string().regex(/^[a-z][a-z0-9-]{2,62}$/)
+  .refine(value => value !== 'default', 'migration_default_tenant_forbidden');
 const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const profilePathSchema = z.string().min(7).max(134).regex(/^users\/[A-Za-z0-9_-]{1,128}$/);
 const inventoryRecordSchema = z.strictObject({
@@ -78,10 +80,12 @@ export function preflightLegacyProfileMapping(
   }
   if (assignments.size !== records.size) throw new Error('migration_missing_mapping');
 
-  // Sort by source path; no UID, path, evidence or raw profile data is returned
-  // or logged. This fingerprint allows human reviewers to compare snapshots.
+  // All accepted source paths are ASCII. Compare their UTF-16 code units
+  // rather than using localeCompare/ICU, whose collations may change across
+  // hosts and break externally pinned SHA-256 reconciliation fingerprints.
+  // Never return UID, source paths, evidence or raw profile data.
   const canonical = [...assignments.values()]
-    .sort((a, b) => a.sourcePath.localeCompare(b.sourcePath, 'en'))
+    .sort((a, b) => a.sourcePath < b.sourcePath ? -1 : a.sourcePath > b.sourcePath ? 1 : 0)
     .map(a => [
       a.sourcePath, a.sourceSha256, a.ownerUid, a.tenantId, a.mappingEvidenceSha256,
     ]);

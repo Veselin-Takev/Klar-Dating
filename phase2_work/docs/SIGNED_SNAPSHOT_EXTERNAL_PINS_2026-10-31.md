@@ -34,3 +34,10 @@ Kein Live-Executor, kein Admin-SDK-Schreibzugriff, keine produktiven Änderungen
 
 Die bisherige Bibliotheksprüfung deckt die aufrufende Dateiöffnung nicht vollständig ab: Ein ausschließlich finales `O_NOFOLLOW` verweigert keinen Symlink im übergeordneten Verzeichnis. Eine gestapelte, isolierte Korrektur verlangt deshalb kanonische absolute Dateien (Auflösung mittels `realpathSync.native`, anschließend finale `O_NOFOLLOW`-Öffnung) und prüft den tatsächlichen Node/tsx-Dry-Run mit lokal generierten Ed25519-Dateien im Pflicht-Gate. Die Grenzen von TOCTOU und fehlender originaler Firestore-Provenienz sind separat dokumentiert. [Sicherheitsbericht](TENANT_MIGRATION_CLI_PATH_ATTESTATION_2026-10-31.md). **Production NO-GO.**
 
+
+## Determinismus-Audit: ICU-LocaleCompare durch ASCII-Quellpfadordnung ersetzt (31.10.2026)
+
+Nach exaktem [Enterprise-CI-PASS #41238605066](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41238605066) auf [Draft #262](https://github.com/Veselin-Takev/Klar-Dating/pull/262) wurde der Reconciliation-Fingerprint geprüft. Die Sortierung verwendete `localeCompare('en')`, was für den kryptografisch gepinnten Abgleich einen unnötigen ICU-/Host-Einfluss erzeugt. Der isolierte Korrektur-Branch setzt ausschließlich für ASCII-validierte Quellpfade eine feste Code-Unit-Ordnung ein und verweigert im Legacy-Mapping explizit den reservierten Auffangtenant `default`. Ein neuer unabhängiger Digest-Test nutzt bewusst `users/A`, `users/_` und `users/a`; der Default-Test akzeptiert keine falsche Ableitung aus doppelten Quellrecords. [Detailbericht](DETERMINISTIC_TENANT_MAPPING_FINGERPRINT_2026-10-31.md).
+
+Eventuell anders berechnete ältere Fingerprints dürfen **nicht** automatisch gepinnt oder als freigegeben angesehen werden. Die Freigabe des erwarteten Hashwerts bleibt eine separate und kontrollierte Entscheidung. **Production BLOCKED / NO-GO.**
+

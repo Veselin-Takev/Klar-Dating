@@ -1,3 +1,9 @@
+## P0 #254 – Deterministischer SHA256-Abgleich ohne Locale-/Default-Tenant-Fallback (31.10.2026)
+
+[PR #262](https://github.com/Veselin-Takev/Klar-Dating/pull/262) bestand seine [Enterprise-CI #41238605066](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41238605066) auf `a961f493f25efd6be568d9ec456799e685487423`. Der nächste Preflight-Audit identifizierte zwei präzise Korrekturen: Der extern gepinnte Reconciliation-Fingerprint darf nicht von `localeCompare('en')`/ICU abhängen; und der bisherige „kein Default-Tenant“-Test prüfte nur ein doppeltes Mapping, obwohl `default` vom Regex zugelassen wurde. Der isolierte Folge-Draft verwendet für ASCII-Quellpfade feste Code-Unit-Sortierung und lehnt `default` im migrationsspezifischen Tenant-Schema direkt ab. Hinzugefügt wurden ein unabhängig berechneter SHA256-Regressionstest für `A`, `_`, `a` sowie ein eindeutiger Default-Ablehnungstest. [Audit](DETERMINISTIC_TENANT_MAPPING_FINGERPRINT_2026-10-31.md). Alte Pins dürfen nicht ungeprüft weitergelten. Neuen exact-head CI-PASS und unabhängige Freigaben abwarten. **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #254 – Keine rohen Firestore-User-Profile über Tenant-Adapter (31.10.2026)
 
 Nach [Enterprise-CI-PASS #41237617548](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41237617548) von #261 wurde `getOwnProfile()` als potentiell zu breiter Datenrückgabe-Pfad identifiziert: Die Funktion gab nach UID-/Tenant-Labelprüfung das ganze Firestore-Dokument zurück. Der isolierte Folge-Draft begrenzt diese Ausgabe auf `tenantId`, `uid` und optional `name`, verwirft zusätzliche interne Felder und verweigert fehlerhafte öffentliche Werte. Zusätzliche Data-Minimization- und Negativtests dokumentiert in [TENANT_PROFILE_MINIMUM_PROJECTION_2026-10-31.md](TENANT_PROFILE_MINIMUM_PROJECTION_2026-10-31.md). Kein Global-Routing, keine produktive Daten-/Rules-/IAM-Änderung. Neue vollständige CI und unabhängiger Review Pflicht; **NO-GO**.

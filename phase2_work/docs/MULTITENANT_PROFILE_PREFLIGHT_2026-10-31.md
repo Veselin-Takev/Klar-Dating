@@ -69,3 +69,8 @@ Die [exakte CI von Draft #258](https://github.com/Veselin-Takev/Klar-Dating/acti
 
 **Wichtig:** Diese Bindung ist keine beweisbare Snapshot-Aktualität, solange Herkunft, Rotation und High-Water-Mark der erwarteten Pins nicht unabhängig attestiert sind. Der tatsächliche Produktions-Cutover bleibt zusätzlich von der Firestore-Quellprovenienz, DSGVO Art. 17, BOLA/IDOR und Security/DPO/SRE/Release-Freigaben abhängig. Neuer SHA-gebundener CI-PASS ausstehend. **BLOCKED / NO-GO**.
 
+
+## Migration: deterministische Sortierung und kein reservierter Default-Fallback (31.10.2026)
+
+Für die externe SHA-256-Reconciliation ist die ICU-/LocaleCompare-Sortierung ungeeignet. Der Preflight verwendet daher für die ausschließlich zulässigen ASCII-Quellpfade eine feste Code-Unit-Ordnung. Außerdem wird der reservierte Tenant `default` im Legacy-Mapping auch bei einer **ansonsten eindeutigen** Zuordnung verweigert; ein bisheriger Test bewies nur einen separaten Duplikatfehler. Die neue Regression berechnet den Hash unabhängig aus `users/A`, `users/_`, `users/a`. Bestehende alte externe Pins brauchen bei abweichendem Ergebnis eine erneute autorisierte Prüfung; kein automatischer Cutover. [Nachweis](DETERMINISTIC_TENANT_MAPPING_FINGERPRINT_2026-10-31.md). **NO-GO.**
+
