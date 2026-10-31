@@ -3,7 +3,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto
 import { getStorage } from 'firebase-admin/storage';
 import { FieldPath, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { readPurgeCursor, scanPurgePages } from '../platform/verificationPurgeScan';
-import { executeVerificationRetentionBatch, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
+import { executeVerificationRetentionBatch, generatePurgeAuditDigest, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 
 const MAX_BATCH = 25;
 const MAX_PAGES = 4;
@@ -196,6 +196,47 @@ function normalizeTimestamp(value: unknown): number | null {
   return null;
 }
 
+/**
+ * A persisted "photoPurged:true" flag is not itself a verified erasure receipt.
+ * Old records without original-generation evidence or proof integrity must be
+ * quarantined as failed, never re-deleted or counted as successful/skipped.
+ * This checks Firestore evidence consistency, not ongoing object absence in GCS.
+ */
+export function hasVerifiedPhotoPurgeReceipt(
+  data: Record<string, unknown>, artifact: VerificationArtifactRecord,
+): boolean {
+  if (data.photoPurged !== true ||
+      (artifact.status !== 'approved' && artifact.status !== 'rejected')) return false;
+
+  const purgedAt = normalizeTimestamp(data.photoPurgedAt);
+  const proof = data.photoPurgeProof;
+  if (purgedAt === null || !Number.isSafeInteger(purgedAt) || purgedAt < artifact.decidedAt ||
+      !proof || typeof proof !== 'object' || Array.isArray(proof)) return false;
+
+  const receipt = proof as Record<string, unknown>;
+  const verifiedAt = normalizeTimestamp(receipt.verifiedAt);
+  if (verifiedAt === null || !Number.isSafeInteger(verifiedAt) || verifiedAt < purgedAt ||
+      (receipt.method !== 'delete_acknowledged' && receipt.method !== 'absence_reconciled')) return false;
+
+  const expectedAuditDigest = generatePurgeAuditDigest(
+    artifact.uid, artifact.challengeId, artifact.storagePath, purgedAt,
+  );
+  if (data.auditDigest !== expectedAuditDigest) return false;
+
+  try {
+    const intent = readMatchingPurgeIntent(data.photoPurgeIntent, artifact);
+    if (!intent) return false;
+    const generation = requireVerifiedPhotoUploadGeneration(data, intent.generation);
+    if (receipt.generation !== generation) return false;
+    const expectedEvidenceDigest = createHash('sha256')
+      .update([expectedAuditDigest, receipt.method, generation].join(':'))
+      .digest('hex');
+    return receipt.evidenceDigest === expectedEvidenceDigest;
+  } catch {
+    return false;
+  }
+}
+
 function assertActivePurgeLease(state: Record<string, unknown> | undefined, leaseId: string): void {
   const expiresAt = normalizeTimestamp(state?.leaseUntil);
   if (state?.leaseId !== leaseId || expiresAt === null || expiresAt <= Date.now()) {
@@ -266,7 +307,16 @@ export function createVerificationStoragePurgeRouter(deps: {
             const statusRaw = data.entscheidung ?? data.status;
             const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
             if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
-            return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
+            const artifact: VerificationArtifactRecord = {
+              uid, challengeId: doc.id, status, decidedAt, storagePath,
+              photoPurged: data.photoPurged === true,
+              photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined,
+            };
+            // Do not falsely acknowledge historic or corrupt "already purged"
+            // records. Report aggregate failure for manual privacy reconciliation,
+            // without issuing another Storage DELETE.
+            if (data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact)) return [];
+            return [artifact];
           });
 
             // Invalid due records and pending decisions must not be silently
