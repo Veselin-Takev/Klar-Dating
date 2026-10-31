@@ -53,9 +53,12 @@ function walk(dir) {
 try {
   const sourceDir = join(root, 'src');
   const functionsDir = join(root, 'functions', 'src');
-  if (!statSync(sourceDir).isDirectory() || !statSync(functionsDir).isDirectory()) fail('required source roots absent');
+  const scriptsDir = join(root, 'scripts');
+  if (![sourceDir, functionsDir, scriptsDir].every(dir => statSync(dir).isDirectory())) fail('required source roots absent');
   walk(sourceDir);
   walk(functionsDir);
+  // Maintenance, retention, and migration scripts may bypass request-level guards.
+  walk(scriptsDir);
   // The app's root Express entrypoint contains live routes and must not be omitted.
   const entrypoint = join(root, 'server.ts');
   if (!statSync(entrypoint).isFile()) fail('server.ts entrypoint absent');
@@ -79,7 +82,7 @@ try {
   rows.sort((a, b) => a.path.localeCompare(b.path, 'en'));
   process.stdout.write(JSON.stringify({
     schema_version: 1,
-    scope: ['src', 'functions/src', 'server.ts'],
+    scope: ['src', 'functions/src', 'scripts', 'server.ts'],
     note: 'All scanned source files are listed, including zero-hit files. Textual detections do not establish access-control completeness.',
     files: rows,
   }, null, 2) + '\n');
