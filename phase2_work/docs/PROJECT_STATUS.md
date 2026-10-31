@@ -1,3 +1,11 @@
+## P1 #73 — Kritische Didit-/Retention-/Privacy-Dateien explizit in CODEOWNERS (31.10.2026)
+
+Auf einem eigenständigen Draft-Branch `fix/73-codeowners-sensitive-retention-kyc-paths-20261031` ab unverändertem `main` werden **13 weitere** KYC-/Biometrie-Retention-/Foto-Download-/Freigabepfade in `CODEOWNERS` und das obligatorische `check:codeowners`-Gate aufgenommen. Damit sind **34** konkrete kritische Dateien geschützt; neue Mutations-Tests prüfen Entfernen und spätere generische Overrides. [Auditbericht](CODEOWNERS_RETENTION_KYC_PROTECTION_2026-10-31.md), [Issue #73](https://github.com/Veselin-Takev/Klar-Dating/issues/73).
+
+**Keine eigenständige Production GO-Freigabe:** Der technisch eingetragene Repository-Owner ist nicht zugleich ein unabhängig verifizierter AppSec-/Security-/DPO-/SRE-/Finance-Reviewer. Branch Protection, Spezialkonten und exakte menschliche Abnahmen sind nicht bestätigt. Vollständiger neuer CI-PASS, Cloud- und Datenschutznachweise bleiben erforderlich. **BLOCKED / NO-GO; kein Merge oder Deployment.**
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

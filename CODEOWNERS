@@ -36,3 +36,20 @@
 /phase2_work/scripts/test-codeowners.mjs @Veselin-Takev
 /phase2_work/scripts/codeowners-review-policy.mjs @Veselin-Takev
 /phase2_work/scripts/check-codeowners-owner.mjs @Veselin-Takev
+
+# Current and planned KYC, biometric erasure, and bearer-token paths.
+# Technical ownership only: independent AppSec/DPO/SRE/Finance approval
+# requires separately proven reviewers and repository branch protection.
+/phase2_work/src/server/routes/complianceStorage.ts @Veselin-Takev
+/phase2_work/src/server/platform/storageRetentionEngine.ts @Veselin-Takev
+/phase2_work/src/server/platform/verificationPurgeScan.ts @Veselin-Takev
+/phase2_work/src/server/verification/diditKyc.ts @Veselin-Takev
+/phase2_work/functions/src/purgeVerificationStorage.ts @Veselin-Takev
+/phase2_work/functions/src/purgeCompletion.ts @Veselin-Takev
+/phase2_work/functions/src/deleteExpiredPhotos.ts @Veselin-Takev
+/phase2_work/functions/src/retention.ts @Veselin-Takev
+/phase2_work/src/lib/klar.ts @Veselin-Takev
+/phase2_work/src/lib/api.ts @Veselin-Takev
+/phase2_work/scripts/check-compliance-storage-purge.mjs @Veselin-Takev
+/phase2_work/scripts/check-retention-config.mjs @Veselin-Takev
+/GO_LIVE_CHECKLIST.md @Veselin-Takev

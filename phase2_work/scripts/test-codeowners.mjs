@@ -5,10 +5,36 @@ import { checkCodeowners, ownersForPath, requiredOwnership } from './check-codeo
 
 const source = readFileSync(new URL('../../CODEOWNERS', import.meta.url), 'utf8');
 
-test('all 21 protected files have explicit technical routing, independent of specialist release approvals', () => {
+test('all 34 protected files have explicit technical routing, independent of specialist release approvals', () => {
   assert.deepEqual(checkCodeowners(source), []);
-  assert.equal(Object.keys(requiredOwnership).length, 21);
+  assert.equal(Object.keys(requiredOwnership).length, 34);
 });
+const newlyProtected = [
+  'phase2_work/src/server/routes/complianceStorage.ts',
+  'phase2_work/src/server/platform/storageRetentionEngine.ts',
+  'phase2_work/src/server/verification/diditKyc.ts',
+  'phase2_work/functions/src/purgeVerificationStorage.ts',
+  'phase2_work/functions/src/purgeCompletion.ts',
+  'phase2_work/src/lib/api.ts',
+  'phase2_work/src/lib/klar.ts',
+  'GO_LIVE_CHECKLIST.md',
+];
+
+for (const file of newlyProtected) {
+  test('fails closed when critical reviewer path is removed: ' + file, () => {
+    const rule = '/' + file + ' @Veselin-Takev';
+    const mutated = source.split(/\r?\n/).filter(line => line !== rule).join('\n');
+    assert(checkCodeowners(mutated).some(err => err.includes(file)),
+      'Mandatory literal ownership must not be replaced by generic path ownership');
+  });
+}
+test('late catchall cannot override explicit purge and privacy ownership', () => {
+  const mutated = source + '\n/phase2_work/ @Veselin-Takev\n';
+  for (const file of newlyProtected.filter(p => p.startsWith('phase2_work/'))) {
+    assert(checkCodeowners(mutated).some(err => err.includes(file)), file);
+  }
+});
+
 test('last matching CODEOWNERS entry wins, including harmful later generic overrides', () => {
   const modified = source + '\n/phase2_work/ @Veselin-Takev\n';
   assert(checkCodeowners(modified).some(s => s.includes('authorization.ts')));
