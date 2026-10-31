@@ -255,12 +255,51 @@ describe('verified generation-bound purge completion receipt (#202)', () => {
 
   it.each(['delete_acknowledged', 'absence_reconciled'] as const)(
     'accepts an internally consistent %s receipt without re-deleting', method => {
-      expect(hasVerifiedPhotoPurgeReceipt(makeReceipt(method), artifact)).toBe(true);
+      expect(hasVerifiedPhotoPurgeReceipt(makeReceipt(method), artifact, now + 1_000)).toBe(true);
     },
   );
 
+  it('refuses a fully self-consistent receipt claiming a deletion later than the observing clock', () => {
+    const futureAt = now + 60_000;
+    const auditDigest = generatePurgeAuditDigest(uid, challengeId, path, futureAt);
+    const receipt = makeReceipt();
+    const forged = {
+      ...receipt,
+      photoPurgedAt: futureAt,
+      auditDigest,
+      photoPurgeProof: {
+        ...receipt.photoPurgeProof,
+        verifiedAt: { toMillis: () => futureAt + 1 },
+        evidenceDigest: createHash('sha256')
+          .update([auditDigest, receipt.photoPurgeProof.method, generation].join(':'))
+          .digest('hex'),
+      },
+    };
+    expect(hasVerifiedPhotoPurgeReceipt(forged, artifact, now)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(forged, artifact, futureAt)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(forged, artifact, futureAt + 1)).toBe(true);
+  });
+
+  it('refuses future-dated verification even when deletion timestamp and digests are valid', () => {
+    expect(hasVerifiedPhotoPurgeReceipt(makeReceipt(), artifact, now)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(makeReceipt(), artifact, now + 1_000)).toBe(true);
+  });
+
+  it('refuses fractional proof timestamps or invalid observation clocks', () => {
+    const receipt = makeReceipt();
+    const fractional = {
+      ...receipt, photoPurgeProof: {
+        ...receipt.photoPurgeProof, verifiedAt: { toMillis: () => now + 500.5 },
+      },
+    };
+    expect(hasVerifiedPhotoPurgeReceipt(fractional, artifact, now + 1_000)).toBe(false);
+    for (const clock of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, now + 1_000.5]) {
+      expect(hasVerifiedPhotoPurgeReceipt(receipt, artifact, clock)).toBe(false);
+    }
+  });
+
   it('does not treat a bare legacy photoPurged:true as a verified deletion', () => {
-    expect(hasVerifiedPhotoPurgeReceipt({ photoPurged: true }, artifact)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt({ photoPurged: true }, artifact, now + 1_000)).toBe(false);
   });
 
   it('quarantines inconsistent original-generation and receipt proofs', () => {
@@ -281,15 +320,15 @@ describe('verified generation-bound purge completion receipt (#202)', () => {
       { ...valid, photoPurgeProof: { ...valid.photoPurgeProof, method: 'unverified' } },
     ];
     for (const state of corrupt) {
-      expect(hasVerifiedPhotoPurgeReceipt(state, artifact)).toBe(false);
+      expect(hasVerifiedPhotoPurgeReceipt(state, artifact, now + 1_000)).toBe(false);
     }
   });
 
   it('fails closed for an event associated with a different account, path or decision', () => {
     const valid = makeReceipt();
-    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, uid: 'another-user' })).toBe(false);
-    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, storagePath: 'verification/other/photo.jpg' })).toBe(false);
-    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, decidedAt: decidedAt + 1 })).toBe(false);
-    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, status: 'pending' })).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, uid: 'another-user' }, now + 1_000)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, storagePath: 'verification/other/photo.jpg' }, now + 1_000)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, decidedAt: decidedAt + 1 }, now + 1_000)).toBe(false);
+    expect(hasVerifiedPhotoPurgeReceipt(valid, { ...artifact, status: 'pending' }, now + 1_000)).toBe(false);
   });
 });
