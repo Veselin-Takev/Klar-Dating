@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { preflightLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationPreflight';
 import {
   INVENTORY_SIGNATURE_DOMAIN, MAPPING_SIGNATURE_DOMAIN,
   preflightSignedLegacyProfileMapping,
@@ -43,13 +44,26 @@ function createFixture() {
       mappingBytes,
     ]), approver.privateKey).toString('base64url'),
   };
+  const pinnedSnapshot = {
+    inventorySha256: createHash('sha256').update(inventoryBytes).digest('hex'),
+    mappingSha256: createHash('sha256').update(mappingBytes).digest('hex'),
+    reconciliationSha256: preflightLegacyProfileMapping(
+      JSON.parse(inventoryBytes.toString('utf8')) as unknown,
+      JSON.parse(mappingBytes.toString('utf8')) as unknown,
+    ).reconciliationSha256,
+  };
   return { inventoryBytes, mappingBytes, trustAnchorBytes, expectedTrustAnchorSha256,
-    signatureEnvelope, exporter, approver };
+    signatureEnvelope, exporter, approver, pinnedSnapshot };
 }
 function reSignFixtureWithBytes(f: ReturnType<typeof createFixture>,
   inventoryBytes: Buffer, mappingBytes: Buffer) {
   return {
     ...f, inventoryBytes, mappingBytes,
+    pinnedSnapshot: {
+      ...f.pinnedSnapshot,
+      inventorySha256: createHash('sha256').update(inventoryBytes).digest('hex'),
+      mappingSha256: createHash('sha256').update(mappingBytes).digest('hex'),
+    },
     signatureEnvelope: {
       ...f.signatureEnvelope,
       inventorySignature: sign(null, Buffer.concat([
@@ -137,6 +151,42 @@ describe('separated Ed25519 tenant migration attestation (never GO)', () => {
       ...f, trustAnchorBytes: badAnchor,
       expectedTrustAnchorSha256: createHash('sha256').update(badAnchor).digest('hex'),
     })).toThrow();
+  });
+  it('requires independently pinned expected source and outcome hashes, even with valid signatures', () => {
+    const f = createFixture();
+    for (const field of ['inventorySha256', 'mappingSha256', 'reconciliationSha256'] as const) {
+      const changed = {
+        ...f, pinnedSnapshot: { ...f.pinnedSnapshot, [field]: '0'.repeat(64) },
+      };
+      const expectedError = field === 'reconciliationSha256'
+        ? 'migration_reconciliation_pin_mismatch' : 'migration_snapshot_pin_mismatch';
+      expect(() => preflightSignedLegacyProfileMapping(changed)).toThrow(expectedError);
+    }
+  });
+  it('refuses missing, malformed, or unapproved control-plane snapshot pins', () => {
+    const f = createFixture();
+    expect(() => preflightSignedLegacyProfileMapping({
+      ...f, pinnedSnapshot: null as unknown as typeof f.pinnedSnapshot,
+    })).toThrow();
+    expect(() => preflightSignedLegacyProfileMapping({
+      ...f, pinnedSnapshot: { ...f.pinnedSnapshot, mappingSha256: 'not a sha' },
+    })).toThrow();
+    const unapproved = { ...f.pinnedSnapshot, approved: true };
+    expect(() => preflightSignedLegacyProfileMapping({
+      ...f, pinnedSnapshot: unapproved,
+    })).toThrow();
+  });
+  it('rejects replay of a different fully signed mapping when the reviewed pins are unchanged', () => {
+    const f = createFixture();
+    const alternate = Buffer.from(f.mappingBytes.toString('utf8').replace(
+      '"tenantId":"tenant-one"', '"tenantId":"tenant-two"',
+    ));
+    expect(alternate.equals(f.mappingBytes)).toBe(false);
+    const resigned = reSignFixtureWithBytes(f, f.inventoryBytes, alternate);
+    // Model adversarial signer keys while holding reviewer pins unchanged.
+    expect(() => preflightSignedLegacyProfileMapping({
+      ...resigned, pinnedSnapshot: f.pinnedSnapshot,
+    })).toThrow('migration_snapshot_pin_mismatch');
   });
   it('rejects a fully signed mapping with duplicate tenantId despite the last parsed value being valid', () => {
     const f = createFixture();
@@ -247,6 +297,10 @@ describe('separated Ed25519 tenant migration attestation (never GO)', () => {
     }));
     const changed = {
       ...f, inventoryBytes: held,
+      pinnedSnapshot: {
+        ...f.pinnedSnapshot,
+        inventorySha256: createHash('sha256').update(held).digest('hex'),
+      },
       signatureEnvelope: {
         ...f.signatureEnvelope,
         inventorySignature: sign(null, Buffer.concat([

@@ -32,10 +32,15 @@ function main(argv: readonly string[]): void {
   const [mode, inventoryPath, mappingPath, signaturesPath] = argv;
   const anchorPath = process.env.KLAR_MIGRATION_TRUST_ANCHOR_PATH;
   const expectedTrustAnchorSha256 = process.env.KLAR_MIGRATION_TRUST_ANCHOR_SHA256;
+  const inventorySha256 = process.env.KLAR_MIGRATION_EXPECTED_INVENTORY_SHA256;
+  const mappingSha256 = process.env.KLAR_MIGRATION_EXPECTED_MAPPING_SHA256;
+  const reconciliationSha256 = process.env.KLAR_MIGRATION_EXPECTED_RECONCILIATION_SHA256;
   if (argv.length !== 4 || mode !== '--dry-run' ||
       typeof inventoryPath !== 'string' || typeof mappingPath !== 'string' ||
       typeof signaturesPath !== 'string' || typeof anchorPath !== 'string' ||
       typeof expectedTrustAnchorSha256 !== 'string' ||
+      typeof inventorySha256 !== 'string' || typeof mappingSha256 !== 'string' ||
+      typeof reconciliationSha256 !== 'string' ||
       new Set([inventoryPath, mappingPath, signaturesPath, anchorPath]).size !== 4) {
     throw new Error('migration_signed_dry_run_required');
   }
@@ -46,6 +51,7 @@ function main(argv: readonly string[]): void {
   const report = preflightSignedLegacyProfileMapping({
     inventoryBytes, mappingBytes, signatureEnvelope: envelope,
     trustAnchorBytes, expectedTrustAnchorSha256,
+    pinnedSnapshot: { inventorySha256, mappingSha256, reconciliationSha256 },
   });
   // This output can NEVER authorize a migration. No raw UIDs or keys printed.
   process.stdout.write(JSON.stringify(report) + '\n');

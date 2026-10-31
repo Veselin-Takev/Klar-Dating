@@ -1,3 +1,9 @@
+## P0 #254 – Unabhängige SHA256-Pins für signierte Profil-Migrations-Snapshots (31.10.2026)
+
+Nach [Enterprise-CI-PASS #41234355771](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41234355771) auf #258 wurde ein weiteres Snapshot-Replay-Risiko dokumentiert. Die schreibfreie Migrationsprüfung verlangt im neuen isolierten Draft nun **zusätzlich** drei extern verwaltete SHA-256-Pins: exakt signierte Inventarbytes, exakt signierte Mappingbytes und Reconciliation-Ergebnis. Fehlende oder abweichende Kontrollwerte stoppen die Auswertung. [Audit](SIGNED_SNAPSHOT_EXTERNAL_PINS_2026-10-31.md). Keine Behauptung einer vollständigen Anti-Replay-Garantie: Die Aktualität und der Revocation-/High-Water-Mark-Prozess des Kontrollkanals bleiben extern zu verifizieren. Neue CI sowie DPO/AppSec/SRE/Release-Abnahmen offen. Kein Merge, keine Migration, **Production NO-GO**.
+
+---
+
 ## P0 #254 – Doppelte Tenant-/Löschstatus-Schlüssel in signierten JSON-Dateien abgelehnt (31.10.2026)
 
 Die V2-Signaturkette aus #257 hat [vollständige Enterprise-CI #41232693749](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41232693749) bestanden. Ein nachgelagerter P0-Review fand dennoch, dass `JSON.parse` doppelte Keys still auf den letzten Wert reduziert: Ein korrekt signiertes Inventar könnte so unterschiedliche `tenantId`- oder Löschstatus-Deutungen zwischen Review-Werkzeugen zulassen. Ein isolierter Folge-Draft erzwingt nun nach Signaturprüfung und vor jeder Fachentscheidung **fatal UTF-8** und ein exaktes `JSON.stringify(JSON.parse(bytes))`-Serialisierungsprofil – einschließlich des SHA-gepinnten Trust-Keyrings. Korrekt doppelt signierte Mehrdeutigkeiten werden negativ getestet. [Sicherheitsaudit](SIGNED_MANIFEST_JSON_AMBIGUITY_2026-10-31.md). Die neue exakte CI und unabhängige AppSec/DPO/SRE-Abnahmen stehen aus. Kein Merge/Deployment und **NO-GO**.

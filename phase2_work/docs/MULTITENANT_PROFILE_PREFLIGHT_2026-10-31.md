@@ -9,7 +9,7 @@
 Der CLI-Aufruf ist **nur schreibfrei** zulässig:
 
 ```bash
-KLAR_MIGRATION_TRUST_ANCHOR_PATH=/sicher/freigegebener-keyring.json KLAR_MIGRATION_TRUST_ANCHOR_SHA256=<SHA256_DES_FREIGEGEBENEN_KEYRINGS> node --import=tsx scripts/tenant-migration-preflight.ts --dry-run /sicher/inventory.json /sicher/mapping.json /sicher/signaturen.json
+KLAR_MIGRATION_TRUST_ANCHOR_PATH=/sicher/freigegebener-keyring.json KLAR_MIGRATION_TRUST_ANCHOR_SHA256=<SHA256_DES_FREIGEGEBENEN_KEYRINGS> KLAR_MIGRATION_EXPECTED_INVENTORY_SHA256=<VERTRAUENSWUERDIGER_INVENTAR_SHA256> KLAR_MIGRATION_EXPECTED_MAPPING_SHA256=<VERTRAUENSWUERDIGER_MAPPING_SHA256> KLAR_MIGRATION_EXPECTED_RECONCILIATION_SHA256=<VERTRAUENSWUERDIGER_ABGLEICH_SHA256> node --import=tsx scripts/tenant-migration-preflight.ts --dry-run /sicher/inventory.json /sicher/mapping.json /sicher/signaturen.json
 ```
 
 Der CLI hat **keinen** Ausführungsmodus, importiert kein Firebase-Admin-SDK, kopiert keine Datensätze und verändert niemals Firestore-/Storage-Daten. Er lehnt symbolische Links, ungültige Dateien und Manifeste über 2 MiB ab; Fehlermeldungen geben keine UID, Pfade oder Inhalte aus. Der Bericht enthält nur Profil- und Tenant-Anzahlen, einen sortierungsstabilen SHA-256-Fingerprint des Abgleichs und den festen Status `BLOCKED_MANUAL_APPROVAL_REQUIRED`.
@@ -61,4 +61,11 @@ Die erfolgreich geprüfte [Parent-CI #41231738458](https://github.com/Veselin-Ta
 Nach [vollständigem CI-PASS #41232693749](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41232693749) des V2-Protokolls in [Draft #257](https://github.com/Veselin-Takev/Klar-Dating/pull/257) wurde die anschließende Parse-Grenze unabhängig geprüft. Der native JSON-Parser behält bei doppelten Keys den letzten Wert, obwohl die **signierten Originalbytes** mehrere unterschiedliche `tenantId`- oder `deletionState`-Werte enthalten können. Die neue isolierte Korrektur verlangt nach erfolgreicher Ed25519-Prüfung und vor der Zod-Reconciliation strikte UTF-8-Dekodierung und exakte Byte-Übereinstimmung mit `JSON.stringify(JSON.parse(original))`. Dasselbe deterministische Profil gilt für den SHA-gepinnten Keyring. Es ist **kein RFC-8785/JCS-Profil**; neu serialisierte Originaldateien brauchen beide gültigen Signaturen. [Bedrohungsmodell und Tests](SIGNED_MANIFEST_JSON_AMBIGUITY_2026-10-31.md).
 
 Vollständig alte, dennoch gültig doppelt signierte Manifeste bleiben ohne separat geprüfte Snapshot-Freshness und fachliche Eigentumsfreigabe weiterhin ein Replay-Risiko. Kein Live-Cutover, kein Executor und kein Freigabestatus. Neuer exact-head-CI-PASS und unabhängige Prüfung erforderlich. **BLOCKED / NO-GO**.
+
+
+## Separat gepinnter Migrations-Snapshot (31.10.2026)
+
+Die [exakte CI von Draft #258](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41234355771) hat die statischen, Typecheck- und vollständigen Workflow-Gates bestanden. Nachfolgend verbleibt ein Replay-Risiko: Selbst ein gültig doppelt signiertes und deterministisch serialisiertes Inventar kann alt sein. Deshalb verlangt die nächste isolierte Schicht zusätzlich drei vom **vertrauenswürdigen Kontrollkanal unabhängig** bereitgestellte SHA-256-Pins: Inventarbytes, Mappingbytes und fachlichen Reconciliation-Digest. Die CLI besitzt weiterhin **keinen** Live-Modus und benötigt die Variablen `KLAR_MIGRATION_EXPECTED_INVENTORY_SHA256`, `KLAR_MIGRATION_EXPECTED_MAPPING_SHA256` und `KLAR_MIGRATION_EXPECTED_RECONCILIATION_SHA256`; fehlende/mismatched Pins stoppen die Prüfung. [Vollständiger Sicherheitsbericht](SIGNED_SNAPSHOT_EXTERNAL_PINS_2026-10-31.md).
+
+**Wichtig:** Diese Bindung ist keine beweisbare Snapshot-Aktualität, solange Herkunft, Rotation und High-Water-Mark der erwarteten Pins nicht unabhängig attestiert sind. Der tatsächliche Produktions-Cutover bleibt zusätzlich von der Firestore-Quellprovenienz, DSGVO Art. 17, BOLA/IDOR und Security/DPO/SRE/Release-Freigaben abhängig. Neuer SHA-gebundener CI-PASS ausstehend. **BLOCKED / NO-GO**.
 
