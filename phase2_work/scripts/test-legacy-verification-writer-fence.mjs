@@ -23,7 +23,7 @@ for (const [caseName, mutation] of [
   ['only reject POST but not all HTTP methods', { routes: baseline.routes.replace('verificationRouter.all(path', 'verificationRouter.post(path') }],
   ['return HTTP 200 from retired endpoints', { routes: baseline.routes.replace('res.status(410)', 'res.status(200)') }],
   ['remove router mount', { server: baseline.server.replace('app.use("/api/verification", verificationRouter)', 'app.use("/api/verification", Router())') }],
-  ['reactivate legacy manual upload handler', { server: baseline.server + '\\nhandleVerificationSubmit(req, res);' }],
+  ['reactivate legacy manual upload handler', { server: baseline.server + '\nhandleVerificationSubmit(req, res);' }],
   ['allow client verification uploads', { rules: baseline.rules.replace('allow create, update: if false;', 'allow create, update: if request.auth != null;') }],
   ['allow client biometric reads', { rules: baseline.rules.replace('allow read: if false;', 'allow read: if request.auth != null;') }],
   ['allow client biometric deletes', { rules: baseline.rules.replace('allow delete: if false;', 'allow delete: if request.auth != null;') }],
