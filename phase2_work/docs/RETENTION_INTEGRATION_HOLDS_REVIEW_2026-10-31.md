@@ -60,6 +60,14 @@ Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt**
 
 **Keine Kundendaten / Cloud-Löschung verändert, kein Merge, kein Deploy, keine Produktionsfreigabe.**
 
+## 31.10.2026 — verpflichtende Emulator-Regression: neue Provenienzschranke vs. synthetische Altdaten
+
+Die CI am Head `e0d289984b1602371a3e1574922e26d9a16c6837` ist **fehlgeschlagen**, Run [#41180298630](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41180298630). Die Joblogs zeigen **8 fehlgeschlagene Tests** in `tests/verificationPurgeHttpEmulator.spec.ts` (übrige: 1447 PASS); Enterprise-Static, TypeScript und Functions-Build waren PASS. Build/Browser wurden übersprungen. Ursache: `withEvent` erzeugte synthetische, als frisch autorisiert betrachtete `verification_events` ohne die neu zwingend erforderliche `photoUploadGeneration`. Der Löschpfad verweigerte dadurch sicherheitskonform jeden GCS-DELETE; die alten Test-Assertions erwarteten noch den früheren Ablauf. **Keine Sicherheitsprüfung abgeschwächt.**
+
+**Korrektur:** Der isolierte Emulator-Fixture-Writer in `tests/verificationPurgeHttpEmulator.spec.ts` setzt nun `photoUploadGeneration: '773'` gemeinsam mit dem verifizierten, gemockten Storage-Objekt `generation:'773'`; sämtliche Lease-/404-/412-/Crash-/Moderationstests führen weiterhin echte Firestore-Emulator-Schreibvorgänge aus, aber keine realen GCS-Aufrufe. Ein echtes historisches Event ohne diesen ursprünglichen Beleg bleibt weiterhin fail-closed und muss separat datenschutzrechtlich bereinigt werden. Diese Testdatenänderung **simuliert** den vertrauenswürdigen Upload-Writer und beweist dessen produktive Implementierung **nicht**.
+
+Die **neue exakte HEAD-CI** ist gesondert zu prüfen; ein älterer PASS gilt nicht für die Änderung. P0 und Produktionsstatus bleiben **BLOCKED / NO-GO**.
+
 ## Evidenzstatus
 **Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
 
