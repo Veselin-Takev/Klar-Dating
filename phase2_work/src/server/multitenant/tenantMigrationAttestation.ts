@@ -40,6 +40,21 @@ function parseDeterministicJson(bytes: Uint8Array): unknown {
   return value;
 }
 
+/**
+ * Decode the untrusted detached-signature file with the same strict,
+ * deterministic JSON profile as inventory, mapping, and the pinned keyring.
+ * The envelope itself is not signed: only the detached signatures are
+ * cryptographically authoritative. This rule prevents parser disagreement
+ * between independent audit tools (duplicate keys, BOM, etc.).
+ */
+export function parseMigrationSignatureEnvelopeBytes(bytes: Uint8Array):
+  z.infer<typeof signatureSchema> {
+  if (bytes.byteLength === 0 || bytes.byteLength > 16384) {
+    throw new Error('migration_signature_envelope_size_invalid');
+  }
+  return signatureSchema.parse(parseDeterministicJson(bytes));
+}
+
 export interface SignedMigrationInput {
   inventoryBytes: Uint8Array;
   mappingBytes: Uint8Array;

@@ -117,6 +117,50 @@ describe('real signed migration dry-run CLI, without remote Firestore access', (
       expect(readFileSync(f.inventoryPath)).toEqual(before);
     });
   });
+  it('rejects duplicate valid/invalid detached signature fields (parser disagreement)', () => {
+    withFixture(f => {
+      const original = readFileSync(f.signaturePath, 'utf8');
+      const ambiguous = original.replace(
+        '"mappingSignature":', '"mappingSignature":"' + 'A'.repeat(86) +
+          '","mappingSignature":',
+      );
+      expect(ambiguous).not.toBe(original);
+      writeFileSync(f.signaturePath, ambiguous);
+      expectDenied(invoke(f));
+    });
+    withFixture(f => {
+      const original = readFileSync(f.signaturePath, 'utf8');
+      const ambiguous = original.replace(
+        '"schemaVersion":1,', '"schemaVersion":99,"schemaVersion":1,',
+      );
+      expect(ambiguous).not.toBe(original);
+      writeFileSync(f.signaturePath, ambiguous);
+      expectDenied(invoke(f));
+    });
+  });
+  it('rejects noncanonical or invalid UTF-8 detached signature files', () => {
+    const mutations = [
+      (original: Buffer) => Buffer.concat([original, Buffer.from('\n')]),
+      (original: Buffer) => Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), original]),
+      (original: Buffer) => Buffer.concat([original, Buffer.from([0xc3, 0x28])]),
+    ];
+    for (const mutate of mutations) {
+      withFixture(f => {
+        writeFileSync(f.signaturePath, mutate(readFileSync(f.signaturePath)));
+        expectDenied(invoke(f));
+      });
+    }
+  });
+  it('rejects canonical signature envelopes with extra unapproved approval fields', () => {
+    withFixture(f => {
+      const payload: unknown = JSON.parse(readFileSync(f.signaturePath, 'utf8'));
+      if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new Error('invalid_test_signature_fixture');
+      }
+      writeFileSync(f.signaturePath, JSON.stringify({ ...payload, migrationApproved: true }));
+      expectDenied(invoke(f));
+    });
+  });
   it('fails closed when an independent expected snapshot pin is missing or mismatched', () => {
     withFixture(f => {
       const omitted = { ...f.env };
