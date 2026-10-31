@@ -23,6 +23,13 @@ Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt**
 - **Aktueller Head nach dieser Änderung benötigt einen neuen eigenständigen vollständigen PASS.** Die bis dahin vorhandenen erfolgreichen Checks des alten Heads dürfen weder die fehlgeschlagene CI überspielen noch als Nachweis des neuen Code-Standes gelten.
 - Dies ist ein **statischer Test-Contract-Fix**, kein realer Cloud-Test und keine Erlaubnis zur Löschung. In `main` und Produktion wurde nichts verändert.
 
+## 31.10.2026 — zweiter CI-Regressionstestfehler, exakt diagnostiziert
+
+- [CI #41178668396](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178668396) am Head `4464fb5ce8de25a4c615bc23035c797164f35631` **FAIL** im Pflichtgate `check:retention-p0`. GitHub-Joblog: `Purge route must reject active or malformed temporary object holds`. Die TypeScript-/Build-/Emulator-Schritte wurden dadurch **übersprungen**, nicht bestanden.
+- Ursache war **doppelte Backslash-Escapierung in den neuen JavaScript-RegExp-Literalen** von `scripts/test-verification-photo-cron-boundary.mjs`, nicht ein fehlender Codepfad. Der korrigierte Test nutzt reguläre `\\(`, `\\.`, `\\)`-Regex-Escapes im Quelltext. Vor dem Commit wurden **sechs** relevante Regex-Ausdrücke programmatisch direkt gegen den über GitHub gelesenen Route-Quellstand validiert; alle trafen zu. Dies ist eine lokale Quelltext-Vorprüfung, **kein** ausgeführter Node-/CI-Test.
+- Aktualisiert in Commit `19307901220c63bada9b2d7bd24868ffefc323c7`. **Ein vollständiger neuer exakter CI-PASS nach der Dokumentationsänderung steht aus.** Frühere CI-Läufe `41177957634` PASS und `41178564324` FAIL sowie `41178668396` FAIL sind getrennt zu behandeln.
+- Kein Code-Rollback der strengeren Hold-Prüfung, kein produktiver Scheduler-Eingriff. **NO-GO**.
+
 ## Evidenzstatus
 **Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
 
