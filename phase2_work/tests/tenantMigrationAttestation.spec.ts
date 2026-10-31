@@ -38,7 +38,9 @@ function createFixture() {
       Buffer.from(INVENTORY_SIGNATURE_DOMAIN), inventoryBytes,
     ]), exporter.privateKey).toString('base64url'),
     mappingSignature: sign(null, Buffer.concat([
-      Buffer.from(MAPPING_SIGNATURE_DOMAIN), mappingBytes,
+      Buffer.from(MAPPING_SIGNATURE_DOMAIN),
+      createHash('sha256').update(inventoryBytes).digest(),
+      mappingBytes,
     ]), approver.privateKey).toString('base64url'),
   };
   return { inventoryBytes, mappingBytes, trustAnchorBytes, expectedTrustAnchorSha256,
@@ -118,6 +120,57 @@ describe('separated Ed25519 tenant migration attestation (never GO)', () => {
       expectedTrustAnchorSha256: createHash('sha256').update(badAnchor).digest('hex'),
     })).toThrow();
   });
+  it('rejects exporter-only re-signing of an otherwise equivalent inventory', () => {
+    const f = createFixture();
+    // An attacker controlling only the exporter key may produce a fresh
+    // inventory with identical records and snapshot but changed original
+    // bytes. Approver consent for the original bytes must not be reusable.
+    const reformatted = Buffer.concat([f.inventoryBytes, Buffer.from('\n')]);
+    const attackerSigned = {
+      ...f,
+      inventoryBytes: reformatted,
+      signatureEnvelope: {
+        ...f.signatureEnvelope,
+        inventorySignature: sign(null, Buffer.concat([
+          Buffer.from(INVENTORY_SIGNATURE_DOMAIN), reformatted,
+        ]), f.exporter.privateKey).toString('base64url'),
+      },
+    };
+    expect(() => preflightSignedLegacyProfileMapping(attackerSigned))
+      .toThrow('migration_signature_verification_failed');
+  });
+  it('rejects exporter-only changes to hold state with replayed approver signature', () => {
+    const f = createFixture();
+    const noHold = Buffer.from(JSON.stringify({
+      schemaVersion: 1, snapshotId: snap,
+      records: [{ ...record, deletionState: 'pending_erasure' }],
+    }));
+    const attackerSigned = {
+      ...f, inventoryBytes: noHold,
+      signatureEnvelope: {
+        ...f.signatureEnvelope,
+        inventorySignature: sign(null, Buffer.concat([
+          Buffer.from(INVENTORY_SIGNATURE_DOMAIN), noHold,
+        ]), f.exporter.privateKey).toString('base64url'),
+      },
+    };
+    expect(() => preflightSignedLegacyProfileMapping(attackerSigned))
+      .toThrow('migration_signature_verification_failed');
+  });
+  it('rejects V1 mapping signatures without binding to the original inventory hash', () => {
+    const f = createFixture();
+    const oldProtocol = {
+      ...f,
+      signatureEnvelope: {
+        ...f.signatureEnvelope,
+        mappingSignature: sign(null, Buffer.concat([
+          Buffer.from('klar:tenant-migration:mapping:v1\0'), f.mappingBytes,
+        ]), f.approver.privateKey).toString('base64url'),
+      },
+    };
+    expect(() => preflightSignedLegacyProfileMapping(oldProtocol))
+      .toThrow('migration_signature_verification_failed');
+  });
   it('rejects signed records held for erasure/retention rather than treating signatures as migration approval', () => {
     const f = createFixture();
     const held = Buffer.from(JSON.stringify({
@@ -131,6 +184,13 @@ describe('separated Ed25519 tenant migration attestation (never GO)', () => {
         inventorySignature: sign(null, Buffer.concat([
           Buffer.from(INVENTORY_SIGNATURE_DOMAIN), held,
         ]), f.exporter.privateKey).toString('base64url'),
+        // Even a newly approved/signature-bound legal-hold snapshot must
+        // be refused by the independent Art.17/preflight rule.
+        mappingSignature: sign(null, Buffer.concat([
+          Buffer.from(MAPPING_SIGNATURE_DOMAIN),
+          createHash('sha256').update(held).digest(),
+          f.mappingBytes,
+        ]), f.approver.privateKey).toString('base64url'),
       },
     };
     expect(() => preflightSignedLegacyProfileMapping(changed)).toThrow('migration_inventory_unverifiable');
