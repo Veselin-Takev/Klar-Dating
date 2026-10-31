@@ -14,7 +14,13 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null }, ...unknown[]]>;
+  getMetadata: () => Promise<[{
+    generation?: string | number;
+    temporaryHold?: boolean | null;
+    eventBasedHold?: boolean | null;
+    retentionExpirationTime?: string | null;
+    retention?: { retainUntilTime?: string | null } | null;
+  }, ...unknown[]]>;
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
@@ -22,6 +28,16 @@ export async function inspectVerificationStorageGeneration(file: VerificationSto
   const [metadata] = await file.getMetadata();
   if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
+  }
+  // GCS retention (including object-level retention) must never be bypassed
+  // by the scheduler. Malformed or future retention timestamps fail closed.
+  for (const value of [metadata.retentionExpirationTime, metadata.retention?.retainUntilTime]) {
+    if (value != null) {
+      const until = Date.parse(value);
+      if (!Number.isFinite(until) || until > Date.now()) {
+        throw new Error('verification_photo_retention_locked');
+      }
+    }
   }
   const generation = metadata.generation;
   if ((typeof generation !== 'string' && typeof generation !== 'number')
@@ -94,7 +110,7 @@ function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactR
   };
 }
 
-function assertStillEligibleForPurge(
+export function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
   const state = data?.entscheidung ?? data?.status;
@@ -104,7 +120,8 @@ function assertStillEligibleForPurge(
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
     || normalizeTimestamp(data.decidedAt) !== artifact.decidedAt
-    || data.photoPurged === true || due === null || due > now
+    || data.photoPurged === true || data.legalHold === true || data.retentionHold === true
+    || due === null || due > now
     || !isVerificationArtifactExpired(artifact.decidedAt, now)) {
     throw new Error('verification_photo_eligibility_changed');
   }
