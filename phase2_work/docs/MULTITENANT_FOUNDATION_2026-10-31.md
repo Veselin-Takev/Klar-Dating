@@ -65,3 +65,10 @@ Jetzt verlangt die Middleware von der Tenant-Metadatenzeile `tenantId === verifi
 
 **Migrationskonsequenz:** Ohne vollständiges, verifiziertes Tenant-/UID-Mapping sind diese Leseoperationen absichtlich nicht verfügbar. Keines der synthetischen Beispiele beweist die Richtigkeit von produktiven Altbeständen. Kein Cloud-Ruleset-, Daten- oder Deployment-Change. Die neue exakte CI und unabhängige Sicherheits-/Datenschutz-/SRE-Prüfungen sind Pflicht. **Production BLOCKED / NO-GO.**
 
+
+## P0 #254 – Least-Privilege-Projektion für eigenen Tenant-Profilleser (31.10.2026)
+
+Auf dem erfolgreich geprüften [Parent #261, CI #41237617548](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41237617548) wurde in `getOwnProfile()` eine Datenfreigabegrenze gefunden: Nach Prüfung von Tenant-ID und UID wurde bisher das **rohe** Firestore-Dokument zurückgegeben. Der isolierte Nachfolge-Fix projiziert nur `tenantId`, `uid` und einen optionalen validierten öffentlichen `name`, ohne versteckte KYC-/Payment-/Admin-/Moderationsfelder an spätere Aufrufer auszugeben. Negativtests prüfen Datenminimierung, Schemafehler, eingefrorene Rückgabe und unveränderte Quellobjekte. [Audit](TENANT_PROFILE_MINIMUM_PROJECTION_2026-10-31.md).
+
+Die spätere vollständige Profilanzeige erfordert einen eigenständigen, feldweise autorisierten API-Vertrag. Die neue Schicht ist nicht global in produktive Routen eingebunden. Neue exakte CI und unabhängige Freigaben erforderlich. **BLOCKED / NO-GO**.
+

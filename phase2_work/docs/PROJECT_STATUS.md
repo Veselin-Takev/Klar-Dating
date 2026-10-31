@@ -1,3 +1,9 @@
+## P0 #254 – Keine rohen Firestore-User-Profile über Tenant-Adapter (31.10.2026)
+
+Nach [Enterprise-CI-PASS #41237617548](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41237617548) von #261 wurde `getOwnProfile()` als potentiell zu breiter Datenrückgabe-Pfad identifiziert: Die Funktion gab nach UID-/Tenant-Labelprüfung das ganze Firestore-Dokument zurück. Der isolierte Folge-Draft begrenzt diese Ausgabe auf `tenantId`, `uid` und optional `name`, verwirft zusätzliche interne Felder und verweigert fehlerhafte öffentliche Werte. Zusätzliche Data-Minimization- und Negativtests dokumentiert in [TENANT_PROFILE_MINIMUM_PROJECTION_2026-10-31.md](TENANT_PROFILE_MINIMUM_PROJECTION_2026-10-31.md). Kein Global-Routing, keine produktive Daten-/Rules-/IAM-Änderung. Neue vollständige CI und unabhängiger Review Pflicht; **NO-GO**.
+
+---
+
 ## P0 #254 – Eindeutige Signaturdatei (31.10.2026)
 
 Nach erfolgreich abgeschlossenem [Enterprise-CI #41236327628](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41236327628) auf PR #260 wurde die abweichende Parser-Grenze für die **Detached-Signatur-Hülle** identifiziert: Die Originalbytes von `signatures.json` wurden bisher nur mit `JSON.parse` eingelesen, während Inventar/Mapping/Keyring bereits ein deterministisches JSON-Profil erzwingen. Der neue isolierte Draft nutzt denselben fatal-UTF-8-/Bytevergleichsvalidator und strikte Zod-Prüfung auch für die Signatur-Hülle; echte CLI-Negativtests decken doppelte Signatur-/Version-Felder, BOM, Whitespace, kaputtes UTF-8 und unerlaubte `migrationApproved`-Felder ab. [Audit](SIGNED_SIGNATURE_ENVELOPE_CANONICALIZATION_2026-10-31.md).

@@ -185,6 +185,39 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
     expect('getPayment' in repository).toBe(false);
     expect('getChat' in repository).toBe(false);
   });
+  it('projects only the public own-profile contract, never raw Admin SDK fields', async () => {
+    const path = 'tenants/tenant-one/users/user_1';
+    const stored = {
+      tenantId, uid, name: '  Public Name  ',
+      email: 'internal@example.invalid',
+      internalRole: 'root_admin',
+      kyc: { verificationPhotos: ['PRIVATE'] },
+      paymentCustomerId: 'PRIVATE_PAYMENT_REFERENCE',
+      moderation: { privateNote: 'PRIVATE' },
+      otherTenantReference: { tenantId: 'tenant-two', uid: 'user_2' },
+    };
+    documents.set(path, stored);
+    const actual = await repository.getOwnProfile();
+    expect(actual).toEqual({ tenantId, uid, name: 'Public Name' });
+    expect(Object.isFrozen(actual)).toBe(true);
+    expect(JSON.stringify(actual)).not.toContain('PRIVATE');
+    // Projections must not delete or mutate the source Firestore object.
+    expect(stored.name).toBe('  Public Name  ');
+    expect(stored.kyc.verificationPhotos).toEqual(['PRIVATE']);
+  });
+  it('rejects invalid own-profile public fields and never exposes malformed raw data', async () => {
+    const path = 'tenants/tenant-one/users/user_1';
+    for (const invalid of [
+      { tenantId, uid, name: { first: 'nested-not-reviewed' }, admin: true },
+      { tenantId, uid, name: '' },
+      { tenantId, uid, name: 'a'.repeat(101) },
+    ]) {
+      documents.set(path, invalid);
+      await expect(repository.getOwnProfile()).rejects.toThrow('tenant_record_inconsistent');
+    }
+    documents.set(path, { tenantId, uid, internalRole: 'ADMIN_ONLY' });
+    await expect(repository.getOwnProfile()).resolves.toEqual({ tenantId, uid });
+  });
   it('rejects malicious flag ID before any Firestore access', async () => {
     paths.length = 0;
     await expect(repository.getFeatureFlag('../other')).rejects.toThrow();
