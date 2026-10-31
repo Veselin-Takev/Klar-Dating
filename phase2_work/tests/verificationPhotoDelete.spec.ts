@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { deleteVerificationPhotoIfUnchanged, matchesActiveRetentionDecision, type VerificationPhotoMetadata } from '../src/server/platform/verificationPhotoDelete';
+import { purgeSingleVerificationArtifact } from '../src/server/platform/storageRetentionEngine';
 
 describe('verification-photo Storage delete preconditions (#202)', () => {
   const path = 'verification/test-user/portrait.jpg';
@@ -91,5 +92,35 @@ describe('verification-photo decision revalidation (#202)', () => {
     ['retention hold', { ...record, retentionHold: true }],
   ])('rejects changed/invalid state before and after deletion: %s', (_label, changed) => {
     expect(matchesActiveRetentionDecision(changed, artifact, now)).toBe(false);
+  });
+});
+
+describe('retention batch does not acknowledge a failed deletion or audit', () => {
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  const artifact = {
+    uid: 'test-user', challengeId: 'ch-42', status: 'approved' as const,
+    decidedAt: now - 31 * 86_400_000, storagePath: 'verification/test-user/p.jpg',
+  };
+
+  it('does not mark the photo purged when GCS returns 412', async () => {
+    const update = vi.fn();
+    const result = await purgeSingleVerificationArtifact(
+      artifact, async () => { throw Object.assign(new Error('GCS raw path'), { code: 412 }); },
+      update, now,
+    );
+    expect(result.purged).toBe(false);
+    expect(result.reason).toBe('error');
+    expect(result.error).toBe('verification_photo_purge_failed');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('does not claim success when the post-delete audit transaction detects change', async () => {
+    const deletion = vi.fn(async () => {});
+    const result = await purgeSingleVerificationArtifact(
+      artifact, deletion, async () => { throw new Error('verification_photo_audit_conflict'); }, now,
+    );
+    expect(deletion).toHaveBeenCalledOnce();
+    expect(result.purged).toBe(false);
+    expect(result.reason).toBe('error');
   });
 });
