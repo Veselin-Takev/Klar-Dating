@@ -1,3 +1,11 @@
+## P0 #202 — Storage-/Legal-Hold-Metadaten: fehlertolerant **verweigern** statt löschen (31.10.2026)
+
+Der vorherige Integrations-Head `3bd48be6e86af0c69802261feb95f7b3bf78e88a` hat die vollständige [Enterprise-CI #41177957634](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41177957634) bestanden. Anschließend wurde PR [#233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) zur Verhinderung stillschweigender Löschberechtigung bei **mehrdeutigen Hold-Werten** erweitert: fehlerhafte/unerwartete GCS-Hold-Typen, Retention-Objekt ohne gültige Retain-Until-Zeit sowie explizite nicht-boolesche Firestore-Legal-/Retention-Holds werden verweigert. Die negativen Vitest-Fälle und das obligatorische Quellgate sind angepasst. Die CI des **neuesten** Commitstands ist erst nach eigenständiger PASS-Bestätigung gültig.
+
+**Unverändert offen:** ursprüngliche Upload-Generation, wirksame Writer-Fencing-Protokolle über Firestore und GCS, echte Staging-404/412/Hold- und Crash-Recovery-Tests, tatsächliche Cloud-Scheduler-/IAM-/TTL-Inventuren und unabhängige Security/DPO/SRE-/Release-Owner-Abnahmen. [Technischer Bericht](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md). Kein Merge/Deployment. **BLOCKED / NO-GO.**
+
+---
+
 ## P0 #202 — Retention-Scanner-Integration ohne Regressions-Merge (31.10.2026)
 
 Ausgehend von dem gestapelten Privacy-Fix PR #229 auf PR #203 ist ein **isolierter Integrationskandidat** erstellt. Die vorhandene wiederaufnehmbare `scanPurgePages`-Architektur mit Firestore-Lease, Checkpoint, generationgebundenem Intent und 404-/412-Recovery bleibt erhalten; selektiv wurden Storage-Retention-Sperren und die Prüfung von `legalHold/retentionHold` im Entscheidungsdatensatz hinzugefügt. Synthetische Negativtests und der bereits verpflichtende Source-Security-Gate wurden erweitert.
