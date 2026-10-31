@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { preflightLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationPreflight';
 
@@ -45,12 +46,44 @@ describe('read-only legacy profile migration preflight', () => {
     mapping.assignments.reverse();
     expect(preflightLegacyProfileMapping(inventory, mapping)).toEqual(expected);
   });
-  it('rejects absent or ambiguous mappings, including default-tenant guessing', () => {
-    const { inventory, mapping } = good();
-    mapping.assignments.pop();
-    expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_missing_mapping');
-    mapping.assignments.push({ ...first(mapping.assignments), tenantId: 'default' });
-    expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_mapping_unverifiable');
+  it('rejects missing mappings and forbidden implicit default-tenant migration', () => {
+    const missing = good();
+    missing.mapping.assignments.pop();
+    expect(() => preflightLegacyProfileMapping(missing.inventory, missing.mapping))
+      .toThrow('migration_missing_mapping');
+    const defaultMapping = good();
+    first(defaultMapping.mapping.assignments).tenantId = 'default';
+    // All source entries are uniquely and explicitly mapped: rejecting this
+    // reserved tenant must not depend on a duplicate/unknown-record error.
+    expect(() => preflightLegacyProfileMapping(defaultMapping.inventory, defaultMapping.mapping))
+      .toThrow('migration_default_tenant_forbidden');
+  });
+  it('uses stable ASCII code-unit order for pinned digests, independent of ICU collation', () => {
+    const data = good();
+    data.inventory.records = [
+      { sourcePath: 'users/a', ownerUid: 'a', sourceSha256: SHA, deletionState: 'none' },
+      { sourcePath: 'users/_', ownerUid: '_', sourceSha256: SHA, deletionState: 'none' },
+      { sourcePath: 'users/A', ownerUid: 'A', sourceSha256: OTHER_SHA, deletionState: 'none' },
+    ];
+    data.mapping.assignments = [
+      { sourcePath: 'users/a', ownerUid: 'a', sourceSha256: SHA, tenantId: 'tenant-one', mappingEvidenceSha256: EVIDENCE },
+      { sourcePath: 'users/_', ownerUid: '_', sourceSha256: SHA, tenantId: 'tenant-two', mappingEvidenceSha256: EVIDENCE },
+      { sourcePath: 'users/A', ownerUid: 'A', sourceSha256: OTHER_SHA, tenantId: 'tenant-one', mappingEvidenceSha256: EVIDENCE },
+    ];
+    const expected = createHash('sha256').update(JSON.stringify([
+      snapshotId,
+      [
+        ['users/A', OTHER_SHA, 'A', 'tenant-one', EVIDENCE],
+        ['users/_', SHA, '_', 'tenant-two', EVIDENCE],
+        ['users/a', SHA, 'a', 'tenant-one', EVIDENCE],
+      ],
+    ]), 'utf8').digest('hex');
+    const firstReport = preflightLegacyProfileMapping(data.inventory, data.mapping);
+    expect(firstReport.reconciliationSha256).toBe(expected);
+    data.inventory.records.reverse();
+    data.mapping.assignments.reverse();
+    expect(preflightLegacyProfileMapping(data.inventory, data.mapping).reconciliationSha256)
+      .toBe(expected);
   });
   it('rejects mismatched snapshots, source hashes, owner identities and record paths', () => {
     for (const variant of ['snapshot', 'hash', 'uid', 'path', 'unknown'] as const) {
