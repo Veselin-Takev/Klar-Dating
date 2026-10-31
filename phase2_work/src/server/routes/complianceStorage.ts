@@ -144,12 +144,32 @@ export function requireVerifiedPhotoUploadGeneration(
   return generation;
 }
 
+/**
+ * Historical verification events may hold German moderation decisions and
+ * English status aliases simultaneously. If both fields exist, neither is
+ * allowed to override a contradictory or nonfinal state from the other.
+ * Inconsistent evidence is quarantined for manual DPO/Legal reconciliation.
+ */
+export function reconciledVerificationDecision(
+  data: Record<string, unknown> | undefined,
+): 'approved' | 'rejected' | 'pending' {
+  const read = (value: unknown): 'approved' | 'rejected' | 'pending' => {
+    if (value === 'bestaetigt' || value === 'approved') return 'approved';
+    if (value === 'abgelehnt' || value === 'rejected') return 'rejected';
+    return 'pending';
+  };
+  const decision = data?.entscheidung;
+  const status = data?.status;
+  if (decision != null && status != null && read(decision) !== read(status)) {
+    return 'pending';
+  }
+  return read(decision ?? status);
+}
+
 export function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
-  const state = data?.entscheidung ?? data?.status;
-  const status = state === 'bestaetigt' || state === 'approved' ? 'approved'
-    : state === 'abgelehnt' || state === 'rejected' ? 'rejected' : 'pending';
+  const status = reconciledVerificationDecision(data);
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
@@ -206,7 +226,8 @@ export function hasVerifiedPhotoPurgeReceipt(
   data: Record<string, unknown>, artifact: VerificationArtifactRecord, observedAt = Date.now(),
 ): boolean {
   if (data.photoPurged !== true ||
-      (artifact.status !== 'approved' && artifact.status !== 'rejected')) return false;
+      (artifact.status !== 'approved' && artifact.status !== 'rejected') ||
+      reconciledVerificationDecision(data) !== artifact.status) return false;
 
   const purgedAt = normalizeTimestamp(data.photoPurgedAt);
   const proof = data.photoPurgeProof;
@@ -320,8 +341,7 @@ export function createVerificationStoragePurgeRouter(deps: {
             const uid = typeof data.uid === 'string' ? data.uid : '';
             const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
             const decidedAt = normalizeTimestamp(data.decidedAt);
-            const statusRaw = data.entscheidung ?? data.status;
-            const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
+            const status = reconciledVerificationDecision(data);
             if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
             const artifact: VerificationArtifactRecord = {
               uid, challengeId: doc.id, status, decidedAt, storagePath,
