@@ -14,13 +14,18 @@ export function verifyStorageAgeGate(rules, engine) {
   assert.deepEqual(readRules,
     ['false', 'istVolljaehrig() && volljaehrigesProfil(uid)'],
     'Exactly two read rules: verification denied and profiles adult+adult');
-  assert.match(rules,
-    /match \/verification\/\{uid\}\/\{datei\}[\s\S]*?allow create, update: if istVolljaehrig\(\) && request\.auth\.uid == uid/,
+  const verificationStart = rules.indexOf('match /verification/{uid}/{datei}');
+  const profileStart = rules.indexOf('match /profiles/{uid}/{datei}');
+  assert(verificationStart > 0 && profileStart > verificationStart,
+    'Both Storage rule scopes must exist in their expected order');
+  const verification = rules.slice(verificationStart, profileStart);
+  const profile = rules.slice(profileStart);
+  const adultOwnWrite = 'allow create, update: if istVolljaehrig() && request.auth.uid == uid';
+  assert(verification.includes(adultOwnWrite),
     'Verification uploads need adult and own-path gate');
-  assert.match(rules,
-    /match \/profiles\/\{uid\}\/\{datei\}[\s\S]*?allow create, update: if istVolljaehrig\(\) && request\.auth\.uid == uid/,
+  assert(profile.includes(adultOwnWrite),
     'Profile uploads need adult and own-path gate');
-  assert.match(rules, /allow delete: if istVolljaehrig\(\) && request\.auth\.uid == uid;/,
+  assert(profile.includes('allow delete: if istVolljaehrig() && request.auth.uid == uid;'),
     'Profile deletes require adult owner');
   assert(!rules.includes('request.auth.token.isAdult'),
     'Unverified or stale JWT age claim must not bypass Firestore');
