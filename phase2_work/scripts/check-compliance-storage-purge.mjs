@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 const route = fs.readFileSync('src/server/routes/complianceStorage.ts', 'utf8');
 const fn = fs.readFileSync('functions/src/purgeVerificationStorage.ts', 'utf8');
+const completion = fs.readFileSync('functions/src/purgeCompletion.ts', 'utf8');
 const server = fs.readFileSync('server.ts', 'utf8');
 const checks = [
   ['protected purge endpoint', /purge-verification-storage/],
@@ -84,6 +85,26 @@ for (const proof of [
 ]) {
   if (!route.includes(proof)) {
     throw new Error('Compliance storage purge boundary failed: conflicting decision authority');
+  }
+}
+// A successful network status is not the same as a completed purge. The
+// scheduler MUST require the bounded and coherent HTTP response contract.
+if (!fn.includes('await assertPurgeSchedulerResponse(response);')) {
+  throw new Error('Compliance storage purge boundary failed: HTTP-only success in scheduler');
+}
+for (const token of [
+  'const MAX_PURGE_RESPONSE_BYTES = 2048;',
+  'response.status !== 200',
+  'response.body.getReader()',
+  'value.byteLength > MAX_PURGE_RESPONSE_BYTES - used',
+  'receipt.ok !== true',
+  'receipt.hasMore !== false',
+  'receipt.unresolvedEarlierPages !== false',
+  'receipt.failedCount !== 0',
+  'receipt.purgedCount + receipt.skippedCount !== receipt.processed',
+]) {
+  if (!completion.includes(token)) {
+    throw new Error('Compliance storage purge boundary failed: unverified scheduler response contract');
   }
 }
 console.log('Compliance storage purge boundary: PASS');
