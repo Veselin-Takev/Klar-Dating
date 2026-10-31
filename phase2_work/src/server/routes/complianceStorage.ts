@@ -14,14 +14,45 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null }, ...unknown[]]>;
+  getMetadata: () => Promise<[{
+    generation?: string | number;
+    temporaryHold?: boolean | null;
+    eventBasedHold?: boolean | null;
+    retentionExpirationTime?: string | null;
+    retention?: { retainUntilTime?: string | null } | null;
+  }, ...unknown[]]>;
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
+// Runtime metadata may be malformed despite SDK typings: only explicit false
+// or absent hold flags are safe. Strings such as "false" must never grant DELETE.
+function isActiveOrMalformedHold(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== false;
+}
+
 export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
-  if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
+  if (!metadata || isActiveOrMalformedHold(metadata.temporaryHold)
+      || isActiveOrMalformedHold(metadata.eventBasedHold)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
+  }
+  // An object-level retention object without a valid retain-until timestamp is
+  // ambiguous. Deny rather than pretending the retention lock expired.
+  if (metadata.retention != null &&
+      (typeof metadata.retention !== 'object' || Array.isArray(metadata.retention) ||
+       typeof metadata.retention.retainUntilTime !== 'string')) {
+    throw new Error('verification_photo_retention_locked');
+  }
+  // GCS retention (including object-level retention) must never be bypassed
+  // by the scheduler. Malformed or future retention timestamps fail closed.
+  for (const value of [metadata.retentionExpirationTime, metadata.retention?.retainUntilTime]) {
+    if (value != null) {
+      if (typeof value !== 'string' || !value.trim()) throw new Error('verification_photo_retention_locked');
+      const until = Date.parse(value);
+      if (!Number.isFinite(until) || until > Date.now()) {
+        throw new Error('verification_photo_retention_locked');
+      }
+    }
   }
   const generation = metadata.generation;
   if ((typeof generation !== 'string' && typeof generation !== 'number')
@@ -94,7 +125,26 @@ function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactR
   };
 }
 
-function assertStillEligibleForPurge(
+/**
+ * An upload-generation token must be bound to the decision by the trusted
+ * upload pipeline, not inferred from the live object at purge time.
+ * Historical events without proof are quarantined for privacy review.
+ */
+export function requireVerifiedPhotoUploadGeneration(
+  data: Record<string, unknown> | undefined,
+  actualGeneration?: string | number,
+): string {
+  const generation = data?.photoUploadGeneration;
+  if (typeof generation !== 'string' || !/^[1-9][0-9]*$/.test(generation)) {
+    throw new Error('verification_photo_upload_generation_unproven');
+  }
+  if (actualGeneration !== undefined && generation !== String(actualGeneration)) {
+    throw new Error('verification_photo_upload_generation_changed');
+  }
+  return generation;
+}
+
+export function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
   const state = data?.entscheidung ?? data?.status;
@@ -104,10 +154,19 @@ function assertStillEligibleForPurge(
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
     || normalizeTimestamp(data.decidedAt) !== artifact.decidedAt
-    || data.photoPurged === true || due === null || due > now
+    // A malformed completion flag or an orphaned audit proof is NOT permission
+    // to delete again. A prior proof with photoPurged:false requires reconciliation.
+    || ('photoPurged' in data && data.photoPurged !== false)
+    || ('photoPurgeProof' in data && data.photoPurgeProof != null)
+    || ('legalHold' in data && data.legalHold !== false)
+    || ('retentionHold' in data && data.retentionHold !== false)
+    || due === null || due > now
     || !isVerificationArtifactExpired(artifact.decidedAt, now)) {
     throw new Error('verification_photo_eligibility_changed');
   }
+  // Do not infer original identity from metadata of an object that may have
+  // been overwritten before this purge. Legacy evidence requires reconciliation.
+  requireVerifiedPhotoUploadGeneration(data);
 }
 
 export function complianceSignature(body: string, secret: string): string {
@@ -237,6 +296,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                   assertStillEligibleForPurge(record.data(), artifact, now);
                   const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                   if (!intent) throw new Error('verification_purge_reconciliation_requires_intent');
+                  requireVerifiedPhotoUploadGeneration(record.data(), intent.generation);
                   return intent;
                 });
                 proofs.set(artifact.challengeId, {
@@ -253,6 +313,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(record.data(), artifact, now);
+                requireVerifiedPhotoUploadGeneration(record.data(), generation);
                 const existing = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                 if (existing && existing.generation !== String(generation)) {
                   throw new Error('verification_purge_intent_generation_changed');
@@ -276,6 +337,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                   ]);
                   assertActivePurgeLease(lease.data(), leaseId);
                   assertStillEligibleForPurge(record.data(), artifact, Date.now());
+                  requireVerifiedPhotoUploadGeneration(record.data(), generation);
                   const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
                   if (!intent || intent.generation !== String(generation)) {
                     throw new Error('verification_purge_predelete_intent_mismatch');
@@ -308,6 +370,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(current.data(), expected, Date.now());
+                requireVerifiedPhotoUploadGeneration(current.data(), proof.generation);
                 const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
                 if (!intent || intent.generation !== proof.generation) {
                   throw new Error('verification_photo_audit_intent_mismatch');

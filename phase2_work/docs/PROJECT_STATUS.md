@@ -1,3 +1,35 @@
+## P0 #202 – ursprüngliche Upload-Generation als Pflichtnachweis für automatische Biometrie-Löschung (31.10.2026)
+
+Der vorherige Integrationsstand `bdbf9972732cf29dc51be9b38453706c9d16be35` hat den Enterprise-CI-Job von [Run #41179581699](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41179581699) vollständig erfolgreich beendet (Run-Zusammenfassung bei letzter Abfrage noch `in_progress`). In [Draft PR #233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) wurde danach eine zusätzliche kritische **Objekt-Provenienz-Schranke** implementiert: Der entscheidungsbasierte Scanner fordert jetzt `verification_events.photoUploadGeneration` als exakt dezimalen, aus dem ursprünglichen autorisierten Upload stammenden String und prüft die Übereinstimmung mit GCS-Generation bei Intent, finaler Delete-Freigabe, 404-Reconciliation und Audit-Commit. Ungebundene Legacy-Events lösen keine automatische Foto-Löschung aus. Negativtests und verbindliche statische Prüfungen wurden ergänzt. [Technischer Nachweis und Remediation-Grenzen](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md).
+
+**P0 nicht abgeschlossen:** Es fehlt weiterhin der tatsächlich aktive, gegen Überschreiben abgesicherte Upload-/Decision-Writer, der diesen Herkunftsnachweis authoritativ erzeugt, sowie eine datenschutzrechtlich freigegebene **Altbestandsbereinigung**, damit der strengere Fail-Closed-Pfad nicht die definierte 30-Tage-Löschfrist verletzt. Keine Ersetzung fehlender Beweise durch aktuelle Storage-Metadaten. Firestore/GCS-Writer-Fencing, Emulator-/Staging-E2E, Live-Scheduler-/IAM-/TTL-Audits, unabhängige Reviews und formale Release-Signoffs stehen aus. Für die neuen Änderungen ist ein **separater exakter CI-PASS** erforderlich. Kein Merge, kein Deployment, **NO-GO**.
+
+---
+
+## P0 #202 – widersprüchliche Lösch-/Auditmarker verweigern (31.10.2026)
+
+[Draft-PR #233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) wurde nach vollständigem [CI-PASS #41178811858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178811858) des geprüften Heads `1516fa21227f0fbec737777f1aed275b7930d894` gezielt weiter gehärtet. Die Retention-Entscheidungsschranke verweigert nun vorhandene, nicht explizit boolesch falsche `photoPurged`-Marker und nicht-null `photoPurgeProof`-Belege, wenn die Event-Daten eine weitere Löschung nahelegen. Negativtests prüfen widersprüchliche String-/Null-/Zahl-/Proof-Zustände. Details: [Retention-Integrations-Audit](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md).
+
+Für **diese jüngeren Commits ist ein neuer exakter CI-PASS noch nicht bestätigt**. Der Scanner-/Lease-/Cursor-/Intent-Mechanismus aus #203/#229 bleibt erhalten. Noch nicht freigegeben sind Original-Objektgeneration, Writer-Fencing, Legacy-Backfill, echte Hold-/404-/412- und Crash-Recovery-Staging-Tests sowie unabhängige DPO/Legal-/AppSec-/SRE-/Release-Owner-Unterschriften. Keine Merges oder Deployments. **Produktion: BLOCKED / NO-GO.**
+
+---
+
+## P0 #202 — Storage-/Legal-Hold-Metadaten: fehlertolerant **verweigern** statt löschen (31.10.2026)
+
+Der vorherige Integrations-Head `3bd48be6e86af0c69802261feb95f7b3bf78e88a` hat die vollständige [Enterprise-CI #41177957634](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41177957634) bestanden. Anschließend wurde PR [#233](https://github.com/Veselin-Takev/Klar-Dating/pull/233) zur Verhinderung stillschweigender Löschberechtigung bei **mehrdeutigen Hold-Werten** erweitert: fehlerhafte/unerwartete GCS-Hold-Typen, Retention-Objekt ohne gültige Retain-Until-Zeit sowie explizite nicht-boolesche Firestore-Legal-/Retention-Holds werden verweigert. Die negativen Vitest-Fälle und das obligatorische Quellgate sind angepasst. Die CI des **neuesten** Commitstands ist erst nach eigenständiger PASS-Bestätigung gültig.
+
+**Unverändert offen:** ursprüngliche Upload-Generation, wirksame Writer-Fencing-Protokolle über Firestore und GCS, echte Staging-404/412/Hold- und Crash-Recovery-Tests, tatsächliche Cloud-Scheduler-/IAM-/TTL-Inventuren und unabhängige Security/DPO/SRE-/Release-Owner-Abnahmen. [Technischer Bericht](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md). Kein Merge/Deployment. **BLOCKED / NO-GO.**
+
+---
+
+## P0 #202 — Retention-Scanner-Integration ohne Regressions-Merge (31.10.2026)
+
+Ausgehend von dem gestapelten Privacy-Fix PR #229 auf PR #203 ist ein **isolierter Integrationskandidat** erstellt. Die vorhandene wiederaufnehmbare `scanPurgePages`-Architektur mit Firestore-Lease, Checkpoint, generationgebundenem Intent und 404-/412-Recovery bleibt erhalten; selektiv wurden Storage-Retention-Sperren und die Prüfung von `legalHold/retentionHold` im Entscheidungsdatensatz hinzugefügt. Synthetische Negativtests und der bereits verpflichtende Source-Security-Gate wurden erweitert.
+
+**Keine Produktivbehauptung:** Die historischen Entscheidungsdatensätze belegen die ursprüngliche Upload-Generation nicht; Scanner-Leases sperren nicht automatisch konkurrierende Entscheidungsschreiber und GCS-Uploads. Exakte CI, Emulator, Staging und unabhängiges Security-/DPO-/SRE-Review sind nachzuweisen. Audit: [RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md](RETENTION_INTEGRATION_HOLDS_REVIEW_2026-10-31.md). `main` und die produktiven Ressourcen bleiben unverändert. **Release: BLOCKED / NO-GO.**
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

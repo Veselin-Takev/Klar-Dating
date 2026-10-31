@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, assertStillEligibleForPurge, requireVerifiedPhotoUploadGeneration } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -115,4 +115,110 @@ describe('decision-based verification object deletion safety', () => {
     })).rejects.toMatchObject({ code: 503 });
   });
 
+});
+
+describe('retention lock and decision safety (#202 integration)', () => {
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  const decidedAt = now - 31 * 86_400_000;
+  const artifact = {
+    uid: 'adult-test', challengeId: 'decision-1', status: 'approved' as const,
+    decidedAt, storagePath: 'verification/adult-test/photo.jpg',
+  };
+  const eligible = {
+    uid: artifact.uid, storagePath: artifact.storagePath,
+    entscheidung: 'bestaetigt', decidedAt: { toMillis: () => decidedAt },
+    fotoLoeschenAb: { toMillis: () => now - 1000 },
+    photoUploadGeneration: '90071992547409931',
+    photoPurged: false,
+  };
+
+  it('allows an explicit final decision only if due and no Firestore hold', () => {
+    expect(() => assertStillEligibleForPurge(eligible, artifact, now)).not.toThrow();
+  });
+
+  it('requires the original decision-bound generation, not a fresh metadata generation', () => {
+    expect(requireVerifiedPhotoUploadGeneration(eligible, '90071992547409931')).toBe('90071992547409931');
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, '90071992547409932'))
+      .toThrow('verification_photo_upload_generation_changed');
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, 90071992547409932))
+      .toThrow('verification_photo_upload_generation_changed');
+  });
+
+  it.each([
+    ['legacy missing original generation', { photoUploadGeneration: undefined }],
+    ['null generation', { photoUploadGeneration: null }],
+    ['numeric generation', { photoUploadGeneration: 12345 }],
+    ['unsafe numeric generation', { photoUploadGeneration: Number.MAX_SAFE_INTEGER + 1 }],
+    ['zero generation', { photoUploadGeneration: '0' }],
+    ['non-decimal generation', { photoUploadGeneration: 'abc' }],
+    ['negative generation', { photoUploadGeneration: '-1' }],
+    ['fractional generation', { photoUploadGeneration: '1.0' }],
+  ])('quarantines %s instead of deleting a possibly replaced object', (_label, mutation) => {
+    const data: Record<string, unknown> = { ...eligible, ...mutation };
+    expect(() => assertStillEligibleForPurge(data, artifact, now))
+      .toThrow('verification_photo_upload_generation_unproven');
+  });
+
+  it('does not authorize deletion for an original generation bound to another object', () => {
+    const currentMetadataGeneration = '90071992547409932';
+    expect(() => requireVerifiedPhotoUploadGeneration(eligible, currentMetadataGeneration))
+      .toThrow('verification_photo_upload_generation_changed');
+  });
+
+  it.each([
+    ['legal hold', { legalHold: true }],
+    ['retention hold', { retentionHold: true }],
+    ['string-valued legal hold', { legalHold: 'false' }],
+    ['null legal hold', { legalHold: null }],
+    ['numeric retention hold', { retentionHold: 0 }],
+    ['null retention hold', { retentionHold: null }],
+    ['already purged', { photoPurged: true }],
+    ['malformed completion marker', { photoPurged: 'false' }],
+    ['null completion marker', { photoPurged: null }],
+    ['numeric completion marker', { photoPurged: 0 }],
+    ['orphaned audit proof', { photoPurgeProof: { generation: '11', method: 'delete_acknowledged' } }],
+    ['malformed audit proof', { photoPurgeProof: 'purged' }],
+    ['not yet due', { fotoLoeschenAb: { toMillis: () => now + 1000 } }],
+    ['pending moderation', { entscheidung: 'pending' }],
+    ['rejected moderation', { entscheidung: 'abgelehnt' }],
+    ['changed object path', { storagePath: 'verification/adult-test/new.jpg' }],
+    ['changed decision time', { decidedAt: { toMillis: () => decidedAt + 1 } }],
+  ])('rejects %s during every eligibility revalidation', (_case, mutation) => {
+    expect(() => assertStillEligibleForPurge({ ...eligible, ...mutation }, artifact, now))
+      .toThrow('verification_photo_eligibility_changed');
+  });
+
+  it.each([
+    ['temporary hold', { temporaryHold: true }],
+    ['event-based hold', { eventBasedHold: true }],
+    ['legacy retention lock', { retentionExpirationTime: '2999-01-01T00:00:00Z' }],
+    ['object-level retention lock', { retention: { retainUntilTime: '2999-01-01T00:00:00Z' } }],
+    ['malformed retention expiry', { retentionExpirationTime: 'not-a-date' }],
+    ['malformed object-level retention', { retention: { retainUntilTime: 'invalid' } }],
+    ['object retention without expiry', { retention: { mode: 'Locked' } }],
+    ['string-valued temporary hold', { temporaryHold: 'false' }],
+    ['numeric event hold', { eventBasedHold: 0 }],
+    ['blank retention timestamp', { retentionExpirationTime: '' }],
+  ])('does not delete Storage generation with %s', async (_case, mutation) => {
+    let deleteCalls = 0;
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '90071992547409931', ...mutation } as any],
+      delete: async () => { deleteCalls++; },
+    })).rejects.toThrow();
+    expect(deleteCalls).toBe(0);
+  });
+
+  it('retains generation preconditions after verifying a non-held object', async () => {
+    const calls: Array<{ ifGenerationMatch: string | number }> = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => [{
+        generation: '90071992547409931',
+        temporaryHold: false, eventBasedHold: false,
+        retentionExpirationTime: '2020-01-01T00:00:00Z',
+        retention: { retainUntilTime: '2020-01-01T00:00:00Z' },
+      }],
+      delete: async options => { calls.push(options); },
+    });
+    expect(calls).toEqual([{ ifGenerationMatch: '90071992547409931' }]);
+  });
 });
