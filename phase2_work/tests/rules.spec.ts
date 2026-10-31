@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, addDoc } from 'firebase/firestore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Firestore-Regeln gegen den Emulator
@@ -814,5 +814,31 @@ describe('P0 #254: tenant namespace is default-denied until separately approved 
     await assertFails(setDoc(normal, { tenantId: 'tenant-a', uid: ANNA }));
     await assertFails(updateDoc(elevated, { name: 'unauthorized' }));
     await assertFails(deleteDoc(normal));
+  });
+
+  it('denies actual creates, collection queries and unauthenticated tenant reads', async () => {
+    const normal = als(ANNA);
+    const admin = env.authenticatedContext(ANNA, {
+      role: 'admin', roles: ['admin'],
+    }).firestore();
+    const unauthenticated = anonym();
+    // No fixture exists at either target; this checks a true CREATE rather
+    // than a setDoc() that Firestore evaluates as an UPDATE.
+    await assertFails(setDoc(doc(normal, 'tenants/tenant-a/users/new-user'), {
+      tenantId: 'tenant-a', uid: 'new-user', name: 'unapproved',
+    }));
+    await assertFails(setDoc(doc(admin, 'tenants/tenant-b/members/new-user'), {
+      tenantId: 'tenant-b', uid: 'new-user', status: 'active',
+    }));
+    // Existing fixtures from the test's setup guarantee the collection is
+    // nonempty, so these assertions exercise LIST rather than missing data.
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'tenants/tenant-a/users/anna'), {
+        tenantId: 'tenant-a', uid: ANNA,
+      });
+    });
+    await assertFails(getDocs(collection(normal, 'tenants/tenant-a/users')));
+    await assertFails(getDocs(collection(admin, 'tenants/tenant-a/users')));
+    await assertFails(getDoc(doc(unauthenticated, 'tenants/tenant-a/users/anna')));
   });
 });
