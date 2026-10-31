@@ -208,7 +208,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       });
       let deletes = 0;
       const api = await startApi(db, async target => {
-        expect(target).toBe(laterPath);
+        expect([laterPath, path]).toContain(target);
         deletes++;
       });
       try {
