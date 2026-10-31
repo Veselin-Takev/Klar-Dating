@@ -1,3 +1,9 @@
+## P0 #254 – Ungültige Tenant-Feature-Flags sind künftig auditierbar (31.10.2026)
+
+Der vollständige [Enterprise-CI-Lauf #41240658380](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41240658380) von PR #264 ist PASS. Der nachfolgende Review der Flag-Auswertung zeigte: `flagIdSchema.parse` lief vor dem `try/finally` und protokollierte ungültige Flag-IDs nicht, obwohl andere Denials bereits sicherheitsrelevant auditiert werden. Ein isolierter Folge-Draft verschiebt die Validierung in den auditierten Block, ersetzt sämtliche ungültigen Rohwerte durch `[invalid_flag_id]` und stellt sicher, dass vor der Zurückweisung kein Firestore-Zugriff erfolgt. Zusätzliche echte Service-Negativtests prüfen Audit-Vollständigkeit, PII-Leak-Vermeidung und Fail-Closed bei Logger-Ausfall. [Details](TENANT_INVALID_FLAG_AUDIT_2026-10-31.md). Neue exact-head CI und unabhängige Security-/Datenschutz-/SRE-Freigaben fehlen noch. **NO-GO.**
+
+---
+
 ## P0 #254 – Servereigene Trace-ID als Auditgrenze (31.10.2026)
 
 Nach [CI-PASS #41239739422](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41239739422) auf [Draft #263](https://github.com/Veselin-Takev/Klar-Dating/pull/263) wurde eine Audit-Vertrauensgrenze gefunden: Die Express-Tenant-Middleware übernahm einen clientgesetzten `X-Trace-ID`-UUID als `trace_id` für strukturierte Sicherheitslogs. Ein isolierter Folge-Draft ersetzt das durch eine neue servergenerierte `randomUUID()` je Anfrage und prüft über echte Middleware- und Feature-Flag-Aufrufe das Nichtvertrauen gültiger/ungültiger/mehrfacher Client-Header und die Audit-ID-Übereinstimmung. [Detaillierter Sicherheitsbericht](TENANT_SERVER_ISSUED_AUDIT_TRACE_2026-10-31.md). Keine Legacy-Routenmigration oder vollständige Audit-Storage-Attestierung; exact-head CI und unabhängige AppSec/DPO/SRE/Release-Freigaben ausstehend. Kein Merge/Deploy, **Production NO-GO**.

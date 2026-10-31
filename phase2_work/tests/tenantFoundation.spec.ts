@@ -275,6 +275,38 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
     await expect(repository.getFeatureFlag('../other')).rejects.toThrow();
     expect(paths).toEqual([]);
   });
+  it('audits invalid feature-flag names as denied without any Firestore access or input leak', async () => {
+    paths.length = 0;
+    const sink = { info: vi.fn() };
+    const badNames = ['../other', 'safe_chat', 'A'.repeat(65), 'PRIVATE_EMAIL@invalid.example'];
+    for (const untrusted of badNames) {
+      await expect(evaluateTenantFlag(
+        issuedPrincipal, untrusted, repository, sink,
+        () => new Date('2026-10-31T12:00:00.000Z'),
+      )).rejects.toThrow();
+    }
+    expect(paths).toEqual([]);
+    expect(sink.info).toHaveBeenCalledTimes(badNames.length);
+    for (const call of sink.info.mock.calls) {
+      expect(call[0]).toEqual({
+        tenant_id: tenantId,
+        trace_id: traceId,
+        timestamp: '2026-10-31T12:00:00.000Z',
+        flag_name: '[invalid_flag_id]',
+        enabled: false,
+        outcome: 'denied',
+      });
+      expect(call[1]).toBe('tenant_feature_flag_evaluated');
+      for (const secret of badNames) expect(JSON.stringify(call)).not.toContain(secret);
+    }
+  });
+  it('fails closed when an invalid flag cannot be written to the audit sink', async () => {
+    paths.length = 0;
+    const brokenLogger = { info: () => { throw Error('audit unavailable'); } };
+    await expect(evaluateTenantFlag(issuedPrincipal, '../other', repository, brokenLogger))
+      .rejects.toThrow('audit unavailable');
+    expect(paths).toEqual([]);
+  });
   it('logs tenant_id, trace_id and timestamp for every decision and rejects cross-tenant flag', async () => {
     paths.length = 0;
     const sink = { info: vi.fn() };

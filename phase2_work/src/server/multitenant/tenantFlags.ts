@@ -25,9 +25,13 @@ export async function evaluateTenantFlag(
   now: () => Date = () => new Date(),
 ): Promise<boolean> {
   const identity = assertIssuedTenantContext(context);
-  const flag = flagIdSchema.parse(flagName);
+  // Invalid caller input must also emit a denied audit event. Never write
+  // unvalidated flag IDs (which may contain PII/control characters) to logs.
+  let auditedFlag = '[invalid_flag_id]';
   let enabled = false;
   try {
+    const flag = flagIdSchema.parse(flagName);
+    auditedFlag = flag;
     const parsed = flagSchema.safeParse(await repo.getFeatureFlag(flag));
     if (parsed.success && parsed.data.tenantId === identity.tenantId) {
       enabled = parsed.data.enabled;
@@ -39,7 +43,7 @@ export async function evaluateTenantFlag(
       tenant_id: identity.tenantId,
       trace_id: identity.traceId,
       timestamp: now().toISOString(),
-      flag_name: flag, enabled,
+      flag_name: auditedFlag, enabled,
       outcome: enabled ? 'allowed' : 'denied',
     }, 'tenant_feature_flag_evaluated');
   }
