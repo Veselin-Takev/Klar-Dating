@@ -45,7 +45,9 @@ for (const proof of [
   'requireVerifiedPhotoUploadGeneration(data, intent.generation)',
   'data.auditDigest !== expectedAuditDigest',
   'receipt.evidenceDigest === expectedEvidenceDigest',
-  'data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact)',
+  'data.photoPurged === true && !hasVerifiedPhotoPurgeReceipt(data, artifact, now)',
+  'purgedAt < artifact.decidedAt || purgedAt > observedAt',
+  'verifiedAt < purgedAt || verifiedAt > observedAt',
   'const invalid = docs.length - artifacts.length;',
   'failed: invalid + pendingOrFailed',
 ]) {
