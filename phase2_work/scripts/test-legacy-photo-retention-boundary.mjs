@@ -27,7 +27,7 @@ const ageHelper = load('../functions/src/retention.ts');
 
 test('exported legacy age-based helper fails closed instead of listing or deleting photos', () => {
   assert.match(ageHelper, /export async function deleteExpiredPhotoPage/);
-  assert.match(ageHelper, /throw new Error\\('legacy_photo_age_retention_disabled'\\)/);
+  assert.ok(ageHelper.includes("throw new Error('legacy_photo_age_retention_disabled')"));
   const helperBody = ageHelper.split('export async function deleteExpiredPhotoPage')[1]?.split('/** One bounded page per prefix')[0] ?? '';
-  assert.doesNotMatch(helperBody, /getFiles|\\.delete\\(|timeCreated|PHOTO_RETENTION_MS/);
+  assert.ok(!['getFiles', '.delete(', 'timeCreated', 'PHOTO_RETENTION_MS'].some(fragment => helperBody.includes(fragment)));
 });
