@@ -24,15 +24,30 @@ export type VerificationStorageFile = {
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
+// Runtime metadata may be malformed despite SDK typings: only explicit false
+// or absent hold flags are safe. Strings such as "false" must never grant DELETE.
+function isActiveOrMalformedHold(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== false;
+}
+
 export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
-  if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
+  if (!metadata || isActiveOrMalformedHold(metadata.temporaryHold)
+      || isActiveOrMalformedHold(metadata.eventBasedHold)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
+  }
+  // An object-level retention object without a valid retain-until timestamp is
+  // ambiguous. Deny rather than pretending the retention lock expired.
+  if (metadata.retention != null &&
+      (typeof metadata.retention !== 'object' || Array.isArray(metadata.retention) ||
+       typeof metadata.retention.retainUntilTime !== 'string')) {
+    throw new Error('verification_photo_retention_locked');
   }
   // GCS retention (including object-level retention) must never be bypassed
   // by the scheduler. Malformed or future retention timestamps fail closed.
   for (const value of [metadata.retentionExpirationTime, metadata.retention?.retainUntilTime]) {
     if (value != null) {
+      if (typeof value !== 'string' || !value.trim()) throw new Error('verification_photo_retention_locked');
       const until = Date.parse(value);
       if (!Number.isFinite(until) || until > Date.now()) {
         throw new Error('verification_photo_retention_locked');
@@ -120,7 +135,9 @@ export function assertStillEligibleForPurge(
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
     || normalizeTimestamp(data.decidedAt) !== artifact.decidedAt
-    || data.photoPurged === true || data.legalHold === true || data.retentionHold === true
+    || data.photoPurged === true
+    || ('legalHold' in data && data.legalHold !== false)
+    || ('retentionHold' in data && data.retentionHold !== false)
     || due === null || due > now
     || !isVerificationArtifactExpired(artifact.decidedAt, now)) {
     throw new Error('verification_photo_eligibility_changed');
