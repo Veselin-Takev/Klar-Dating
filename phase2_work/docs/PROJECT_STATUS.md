@@ -1,3 +1,11 @@
+## P0 #202 – Retention-Konfigurationsgate modernisiert (31.10.2026)
+
+Die bisher nicht in `check:retention-p0` eingebundene Prüfung `scripts/check-retention-config.mjs` war veraltet: Sie erwartete eine alte TTL-Shell-Schleife und den entscheidungsgebundenen biometrischen Löschpfad noch im inzwischen bewusst auf `funnel_events` begrenzten `deleteExpiredPhotosCron`. Im isolierten Branch `fix/202-retention-config-source-gate-20261031` auf [Draft #240](https://github.com/Veselin-Takev/Klar-Dating/pull/240) prüft sie jetzt stattdessen das tatsächlich freigegebene 20-Gruppen-TTL-Modell, die getrennten Legacy-/signierten Foto-Löschworker, HMAC, decision-based `fotoLoeschenAb`, finalen Moderationsstatus und Generation-Preconditions. Zwölf lokale Mutationstests und das neue Pflichtgate sind in `check:retention-p0` integriert. [Auditbericht](RETENTION_CONFIG_SOURCE_GATE_ALIGNMENT_2026-10-31.md).
+
+**Technischer Status nur nach eigenem vollständigen CI-PASS bestätigbar.** Keine produktiven Cloud-TTL-/Scheduler-/IAM-Nachweise oder DSGVO-/SRE-/AppSec-Freigaben damit verbunden. Die zugrundeliegenden P0-Befunde um historische Originalgenerationen, All-Writer-Fencing und genehmigte Altbestandsbereinigung bleiben **BLOCKED / NO-GO**. Keine `main`-Änderung, kein Merge oder Deployment.
+
+---
+
 ## P0 #202 — Aufrufübergreifende Fehlerspur des Retention-Scanners (31.10.2026)
 
 Der signierte, checkpointbasierte Verification-Photo-Purge-Scanner konnte trotz fehlgeschlagener **früherer** Seiten nach einer erfolgreichen letzten Scan-Seite fälschlich HTTP 200/`ok:true` melden, weil `failedCount` nur den aktuellen HTTP-Aufruf abbildete. Ein isolierter neuer Branch `fix/202-retention-scan-cross-run-fail-closed-20261031` auf [PR #239](https://github.com/Veselin-Takev/Klar-Dating/pull/239) führt ein **persistiertes `cycleHadFailures`-Flag** im geleasten Firestore-Checkpoint ein. Bestehende Checkpoints mit nicht-null Cursor ohne Fehlerflag werden vorsorglich als unbekannt/nicht sauber behandelt. Ein finaler fehlerfreier Seitenaufruf nach vorherigen Fehlern meldet **503 statt 200**; das rein aggregierte `unresolvedEarlierPages` verhindert Fehlinterpretationen bei aktuellem `failedCount:0`. Ein echter neuer vollständiger sauberer Zyklus kann wieder 200 liefern.
