@@ -1,3 +1,9 @@
+## 31.10.2026 — Spezifische technische CODEOWNERS für die aktiven KYC-/Retention-/Privacy-Grenzen (P1 #73)
+
+Draft-Branch `fix/73-codeowners-sensitive-retention-kyc-paths-20261031` ergänzt 13 konkrete CODEOWNERS-Dateiregeln und verpflichtende Negativtests; damit sind 34 sicherheits-/geschäftskritische Pfade explizit überwacht. Diese Verbesserung ist eine **technische Reviewer-Zuordnung**, keine unabhängige AppSec-/DPO-/Finance-/SRE-Abnahme. Live GitHub-Branch-Protection (`require_code_owner_reviews`), Berechtigungen und individuelle unabhängige Review-Evidenz sind **noch nicht bestätigt**. Siehe `phase2_work/docs/CODEOWNERS_RETENTION_KYC_PROTECTION_2026-10-31.md`. Keine unten stehende Freigabe-Checkbox wird ohne echte Nachweise abgehakt. **BLOCKED / NO-GO**.
+
+---
+
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
 ## Aktueller Release-Status (10.10.2026) – NO-GO
