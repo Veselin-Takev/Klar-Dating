@@ -1,3 +1,9 @@
+## Multi-Tenant P0-Catalog Gate – 31.10.2026
+
+Der Enterprise-CI-Lauf [#41211522340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211522340) des ersten Multi-Tenant-Draft-Heads scheiterte korrekt am DSGVO-Katalog: `tenants` war neu und noch nicht klassifiziert. Die nachgeführte `sonderfall`-Entscheidung darf ausdrücklich **nicht** als Kontolösch-Cascade verstanden werden; einzelne Mandantenmitglieder und deren Unterkollektionen sind bis zur geprüften Art.-17-Migration P0-blockiert. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). Keine Global-Cutover, kein Production-GO.
+
+---
+
 ## Multi-Tenant – Zero-Trust-Grundlage isoliert (31.10.2026)
 
 Nach bestätigter Architekturentscheidung ist eine separate, fail-closed Basisschicht vorbereitet: Firebase-Custom-Claim-Validierung mit aktuellem Server-Membership-Check, strikte Zod-Konfigurationskaskade, nur das eigene Profil lesende Tenant-Datenschicht und Pino-kompatibles, injiziertes Feature-Flag-Audit. Bestehende flache User-/Chat-/KYC-/Payment-Pfade und Rules wurden **nicht** migriert; daher ist eine produktive Mandantenisolation noch nicht vollständig belegt. [Audit und offene Gates](MULTITENANT_FOUNDATION_2026-10-31.md). Produktive Cutover, Pino-Lockfile-Integration, Datenmigration mit Eigentümerzuordnung und unabhängige Freigaben stehen aus. **BLOCKED / NO-GO**.

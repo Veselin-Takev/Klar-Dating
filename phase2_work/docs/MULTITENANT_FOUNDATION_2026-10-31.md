@@ -31,3 +31,9 @@ Die bestätigte Mandantenautorität ist das serverseitig mit Firebase Admin SDK 
 - **Live-Gates:** Node.js 22.23.3, Semgrep, Gitleaks, npm audit, ESLint, Typecheck, Emulator-Storage/Rules, Full E2E, Cloud IAM, unabhängige Security/DPO/SRE/Finance-Freigaben und Production-Readiness müssen am Zielsystem nachgewiesen werden. Der verschriebene `thinking_effort`-Befehl ist ungültig und kein Gate.
 
 **Freigabe:** Implementationsstufe auf dediziertem Branch, **keine** Änderung an `main`, keine Deployments, keine Live-Daten, keine Tenantmigration, **Production NO-GO**.
+
+## CI-Failure #41211522340 – Art.-17-Katalog korrekt nachgeführt (31.10.2026)
+
+Der erste exakte Feature-Head `019f5722c5529e31f8ad592a54402fd397ec0037` schlug in `Enterprise static gates` fehl: `scripts/loeschkaskade.mjs` fand erstmals den Parent-Collection-Namen `tenants` ohne dokumentierte Entscheidung. Die Ursache ist nicht ein vermeintlich bestehender Purge: Der neue Code führt lediglich lesende Tenant-Lookups aus, aber eine **aktive** Art.-17-Cascade in `tenants/{tenant}/members/users/chats/...` ist noch nicht implementiert. Im Katalog wird daher `tenants` als `sonderfall` erfasst: root metadata werden nicht für das Löschen eines einzelnen Mitglieds global entfernt; **Member- und personenbezogene Unterkollektionen bleiben P0-Freigabeblocker**. Der statische Katalog-PASS allein bestätigt ausdrücklich keine vollständige Löschung. Kein Absenken des CI-Fehlerlimits und keine irreführende Markierung als `geloescht`.
+
+Weitere notwendige Gates: autoritative Zuordnung, tenantbewusste UID-Cascade, Emulator-/Rules-Negativtests und unabhängige DPO-/Legal-Abnahme. **NO-GO**.
