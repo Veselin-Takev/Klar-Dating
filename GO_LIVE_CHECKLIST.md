@@ -1,5 +1,24 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## Freigabe-Nachtrag vom 31.10.2026 — BLOCKED / NO-GO
+
+Dieser Abschnitt ergänzt den historischen Status vom 10.10.2026. **Die frühere RC-/Branch-Angabe bleibt Historie**, keine Behauptung über den aktuellen Freigabe-Branch. Aktueller überprüfter PR-Basestand: `main` SHA `2808dc1cbb485f70b403681c108cea5a3361d950`; danach erfolgte hier keine unabhängige Produktionsevidenzprüfung. Verbindliche Issue-/PR-Abhängigkeiten: [Release-Blocker-Karte](phase2_work/docs/RELEASE_BLOCKER_DEPENDENCY_MAP_2026-10-31.md) in [Draft #249](https://github.com/Veselin-Takev/Klar-Dating/pull/249), **noch nicht in `main` integriert**.
+
+**P0-/P1-Release-Blocker (keine Freigabe):**
+- [ ] [#202](https://github.com/Veselin-Takev/Klar-Dating/issues/202) biometrische Entscheidungs-Retention, vollständiger Admin-/Scheduler-/All-Writer-Audit, Storage Holds, Reconciliation und echtes Staging; P0-Änderungen u. a. in [gestapeltem Draft #243](https://github.com/Veselin-Takev/Klar-Dating/pull/243).
+- [ ] [#55](https://github.com/Veselin-Takev/Klar-Dating/issues/55) B2B-Webhooks: authentische Käufer-/Bestellzuordnung und Fraud/Refund statt bloßer HMAC-Behauptung; Drafts [#246](https://github.com/Veselin-Takev/Klar-Dating/pull/246) → [#247](https://github.com/Veselin-Takev/Klar-Dating/pull/247).
+- [ ] [#56](https://github.com/Veselin-Takev/Klar-Dating/issues/56) B2B-Tracking/Datenschutz: Consent, DPA/Vertragsgrundlage, Datenverzeichnis, TTL, Art. 17 und Freigabe durch Datenschutz/Legal.
+- [ ] [#48](https://github.com/Veselin-Takev/Klar-Dating/issues/48) Member Referral: Anti-Abuse, DIDIT-KYC/UID-Bindung, zulässige Klar+-Zeiträume und idempotente/rückabwickelbare Rewards, getrennt vom B2B-Flow.
+- [ ] [#70](https://github.com/Veselin-Takev/Klar-Dating/issues/70) echte Firestore-TTL-ACTIVE-Provisionierungsbelege je Umgebung, genehmigte Legal-Hold-Retention-Matrix und Art.-17-Verhalten. Das aktuelle `phase2_work/scripts/configure-retention.sh` plant **20** Collection-Groups und beschränkt Mutationen auf bestätigtes Staging; der ursprünglich gemeldete Vier-Gruppen-Codebefund ist in dieser `main`-Quelle bereits überholt, die **Produktionsbelege fehlen weiterhin**.
+- [ ] [#204](https://github.com/Veselin-Takev/Klar-Dating/issues/204)/[#206](https://github.com/Veselin-Takev/Klar-Dating/issues/206) profilbildbezogene Zugriffe: Storage-Alters-Gate, Block-/Erasure-Policy und **Widerruf alter Bearer-Downloadlinks**; CI allein beweist keinen Cloud-Regel- oder Token-Rollout.
+- [ ] [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) formale Produktionskontrollen: Cloud Run/Secret Manager/IAM, Alarmzustellung/On-Call, OTLP/P95, Backup/Restore, Canary/Rollback, unveränderliche Herkunfts-/Log-Evidenz, unabhängige AppSec/DPO/SRE/Finance-/Release-Owner-Zustimmung.
+
+**Beobachtete GitHub-Workflow-Metadaten** (nur PR-Head, kein integrativer Production-GO-Nachweis): Enterprise CI [#243](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41191871749), [#247](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41195934570) und [#248](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41204001572) waren `completed/success`; [#249](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41205869303) wurde bei Abfrage noch als `in_progress` ausgewiesen. Artefakte/Job-Logs, Staging und externes Approval wurden nicht vollständig geprüft; dieser Dokumentationsnachtrag verändert den Head-SHA und benötigt eigene erneute CI-Prüfung.
+
+**Freigabeentscheidung:** `BLOCKED / NO-GO`. Kein direktes `main`-Update, kein Merge/Deployment, keine Cloud-/Datenmutation; Referenzen zu gestapelten Drafts sind **keine** Integrationsfreigabe.
+
+---
+
 ## Aktueller Release-Status (10.10.2026) – NO-GO
 
 **Entwicklungsbranch:** `ci/optimize-llm-evaluation-frozen-install-2026-10-10`. Der eingefrorene Release-Kandidat `release/candidate-preflight-2026-10-10-r2` darf nicht verändert, automatisch veröffentlicht oder ohne ausdrückliche technische und operative Freigabe gemergt werden. Die historische Statusbeschreibung vom 08.09.2026 weiter unten ersetzt **keinen** aktuellen Go-Live-Nachweis.
