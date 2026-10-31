@@ -55,10 +55,30 @@ try {
   if (!statSync(sourceDir).isDirectory() || !statSync(functionsDir).isDirectory()) fail('required source roots absent');
   walk(sourceDir);
   walk(functionsDir);
+  // The app's root Express entrypoint contains live routes and must not be omitted.
+  const entrypoint = join(root, 'server.ts');
+  if (!statSync(entrypoint).isFile()) fail('server.ts entrypoint absent');
+  const entryData = readFileSync(entrypoint, 'utf8');
+  const entryHits = [];
+  const entryCategories = new Set();
+  entryData.split(/\r?\n/).forEach((line, i) => {
+    for (const [category, pattern] of checks) {
+      if (pattern.test(line)) {
+        entryCategories.add(category);
+        entryHits.push({ line: i + 1, category });
+      }
+    }
+  });
+  rows.push({
+    path: 'server.ts',
+    sha256: createHash('sha256').update(entryData).digest('hex'),
+    categories: [...entryCategories].sort(),
+    hits: entryHits,
+  });
   rows.sort((a, b) => a.path.localeCompare(b.path, 'en'));
   process.stdout.write(JSON.stringify({
     schema_version: 1,
-    scope: ['src', 'functions/src'],
+    scope: ['src', 'functions/src', 'server.ts'],
     note: 'Static candidate inventory only: dynamic paths, imports, rules, hidden dependencies and data ownership require independent review.',
     files: rows,
   }, null, 2) + '\n');
