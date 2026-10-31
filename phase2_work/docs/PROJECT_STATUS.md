@@ -1,3 +1,13 @@
+## P0 #202 — Aufrufübergreifende Fehlerspur des Retention-Scanners (31.10.2026)
+
+Der signierte, checkpointbasierte Verification-Photo-Purge-Scanner konnte trotz fehlgeschlagener **früherer** Seiten nach einer erfolgreichen letzten Scan-Seite fälschlich HTTP 200/`ok:true` melden, weil `failedCount` nur den aktuellen HTTP-Aufruf abbildete. Ein isolierter neuer Branch `fix/202-retention-scan-cross-run-fail-closed-20261031` auf [PR #239](https://github.com/Veselin-Takev/Klar-Dating/pull/239) führt ein **persistiertes `cycleHadFailures`-Flag** im geleasten Firestore-Checkpoint ein. Bestehende Checkpoints mit nicht-null Cursor ohne Fehlerflag werden vorsorglich als unbekannt/nicht sauber behandelt. Ein finaler fehlerfreier Seitenaufruf nach vorherigen Fehlern meldet **503 statt 200**; das rein aggregierte `unresolvedEarlierPages` verhindert Fehlinterpretationen bei aktuellem `failedCount:0`. Ein echter neuer vollständiger sauberer Zyklus kann wieder 200 liefern.
+
+Firestore-Emulator-Negativtests prüfen erneute Aufnahme, Alt-Checkpoint, unbehandelte Fehler und synthetische Behebung. Das bestehende Enterprise-Pflichtgate prüft die neue Invariante. [Ausführlicher Audit-Bericht](RETENTION_PURGE_CROSS_INVOCATION_FAILURE_LEDGER_2026-10-31.md).
+
+**Weiterhin BLOCKED / NO-GO:** exakte neue CI und unabhängige Reviews fehlen; damit allein ist kein unveränderliches Snapshot des gesamten Bestands oder Cloud-IAM-/Admin-SDK-/GCS-Fencing nachgewiesen. Historische Löschfälle benötigen gesonderte DPO-/Legal-/SRE-genehmigte Reconciliation, echtes Staging und Release-Owner-Abnahme. Keine Main-/Produktionsänderung, kein Merge/Deployment.
+
+---
+
 ## P0 #202 — Zeitgrenze für Löschbelege (31.10.2026)
 
 Zusätzlicher isolierter Draft-Branch `fix/202-purge-receipt-clock-boundary-20261031` auf [PR #234](https://github.com/Veselin-Takev/Klar-Dating/pull/234): Der Scanner darf `photoPurged:true` nur als berechtigt abgeschlossenen Vorgang zählen, wenn der gespeicherte Löschzeitpunkt und die Verifizierung des Belegs **nicht später als die aktuelle Scan-Beobachtungszeit** liegen; außerdem sind sichere Millisekunden-Integer und die Reihenfolge `decidedAt <= photoPurgedAt <= verifiedAt` nötig. Der neue Check ist ausdrücklich in `check:compliance-storage-purge` eingebunden; Negativtests schließen auch kryptografisch **konsistent wirkende Zukunftsbelege** aus. Keine automatische erneute GCS-Löschung für fragliche Altabschlüsse. [Technischer Audit](RETENTION_PURGE_RECEIPT_TIME_BOUNDARY_2026-10-31.md).
