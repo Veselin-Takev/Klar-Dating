@@ -34,4 +34,23 @@ Previously `functions/src/deleteExpiredPhotos.ts` invoked `deleteExpiredPhotoPag
 
 **The new commits' CI, real emulator behavior and staging evidence are pending. Production remains NO-GO.**
 
+## 2026-10-31 — decision-aware API guard and generation-conditional storage deletion
+
+- Exact previous head `f2e527a387dbe04a2a3f4746f347f050dc2199ae` passed [Enterprise CI 41175297962](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41175297962). **This is not a PASS for the subsequent changes in this section.**
+- Added `src/server/platform/verificationPhotoDelete.ts`: require a bounded `verification/{uid}/{filename}` path, valid decimal GCS generation, no temporary/event-based hold and no unexpired retention metadata; issue **only** a generation-conditional delete with `ifGenerationMatch`. Metadata lookup 404 and GCS 412 propagate as failures rather than acknowledging an unverified deletion.
+- The authoritative API in `src/server/routes/complianceStorage.ts` now re-reads the decision before storage deletion and checks UID, path, status, decidedAt, due `fotoLoeschenAb`, prior purge flag and hold markers; it revalidates those fields in its audit transaction, which throws on disagreement rather than silently claiming success. `storageRetentionEngine.ts` passes the exact candidate to both callbacks. Only aggregate counts (no UID/storage paths) are returned in the API response.
+- Changed the endpoint to report **HTTP 503** when any per-object purge returns an error, so scheduled retry/reconciliation is not silently suppressed. Error strings in the engine are constant rather than raw provider errors.
+- Added `tests/verificationPhotoDelete.spec.ts` for generation precision, holds, invalid/absent metadata, 404, 412, path boundaries and mutable decisions. Extended the mandatory `check:compliance-storage-purge` script to detect missing safeguards.
+
+### Still required before approval
+1. Validate actual Node Cloud Storage SDK behavior for string generation preconditions on a staging object; capture negative object-replacement and hold tests. Google Cloud documents the need for generation-match preconditions, including HTTP 412 on conflict.
+2. **Cross-service transaction race remains:** a decision may change between the last Firestore read and GCS deletion, because Firestore and Cloud Storage are not a single transaction. Introduce and validate a coordinated retention claim/lease and verify that *all* decision writers honor it before treating this as a complete invariant. The second audit transaction detects changed records, but cannot resurrect an already deleted object.
+3. Missing objects now yield 503/manual reconciliation rather than an unverified success; define controlled 404 idempotency with exact generation provenance and auditable missing-object evidence. Test retries and operator notification; verify alerts are delivered.
+4. Staging tests with real Firebase Emulator plus Cloud Storage API; live-read-only inventories of Scheduler/IAM/bucket/holds and decision states. Obtain DPO/Legal/Security/SRE/Release Owner approvals and staged rollback evidence. Do not assume any source change is deployed.
+5. Current exact-head CI and independent reviews are **pending**. No secret rotation, scheduler disablement, merge or deployment authorized.
+
+**Production BLOCKED / NO-GO.**
+
+---
+
 **Production: BLOCKED / NO-GO.** No merge, production deployment or retention data mutation authorized.
