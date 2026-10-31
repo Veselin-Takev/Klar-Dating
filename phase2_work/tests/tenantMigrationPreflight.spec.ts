@@ -68,7 +68,7 @@ describe('read-only legacy profile migration preflight', () => {
     inventory.records.push({ ...first(inventory.records) });
     expect(() => preflightLegacyProfileMapping(inventory, mapping)).toThrow('migration_inventory_unverifiable');
     const second = good();
-    second.mapping.assignments.push({ ...second.first(mapping.assignments) });
+    second.mapping.assignments.push({ ...first(second.mapping.assignments) });
     expect(() => preflightLegacyProfileMapping(second.inventory, second.mapping)).toThrow('migration_mapping_unverifiable');
   });
   it('rejects records subject to erasure or legal hold instead of migrating them', () => {
