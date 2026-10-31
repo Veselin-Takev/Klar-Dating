@@ -1,5 +1,10 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## GitHub-Ruleset-Live-Nachtrag — 31.10.2026
+
+- [ ] [Aktive `main`-Ruleset #25756841](https://github.com/Veselin-Takev/Klar-Dating/rules/25756841) hat zwar `pull_request` und striktes Pflicht-`validate`, erfordert aber aktuell **0 genehmigende Reviews**; `require_code_owner_review=false`, `require_last_push_approval=false` und `required_review_thread_resolution=false`. Der zusätzliche Schalter `require_extra_approval_for_unattributed_changes=true` ist ohne Durchsetzungstest kein unabhängiger Security-/DPO-Abnahmenachweis.
+- [ ] [Issue #73](https://github.com/Veselin-Takev/Klar-Dating/issues/73) erst nach tatsächlicher Governance-Konfiguration (unabhängige berechtigte Reviewer, mindestens eine zwingende Genehmigung, Code-Owner-/sensitive Pfade, Stale-/Thread-Review-Schutz), negativen Merge-Gates und Freigabe durch Release Owner abschließen. **Keine GitHub-Admin- oder Ruleset-Änderung im Zuge dieser Dokumentationsprüfung.**
+
 ## Freigabe-Nachtrag vom 31.10.2026 — BLOCKED / NO-GO
 
 Dieser Abschnitt ergänzt den historischen Status vom 10.10.2026. **Die frühere RC-/Branch-Angabe bleibt Historie**, keine Behauptung über den aktuellen Freigabe-Branch. Aktueller überprüfter PR-Basestand: `main` SHA `2808dc1cbb485f70b403681c108cea5a3361d950`; danach erfolgte hier keine unabhängige Produktionsevidenzprüfung. Verbindliche Issue-/PR-Abhängigkeiten: [Release-Blocker-Karte](phase2_work/docs/RELEASE_BLOCKER_DEPENDENCY_MAP_2026-10-31.md) in [Draft #249](https://github.com/Veselin-Takev/Klar-Dating/pull/249), **noch nicht in `main` integriert**.
