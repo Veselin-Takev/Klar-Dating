@@ -1,3 +1,9 @@
+## P0 #254 – Ed25519-Signaturen als Pflicht vor Tenant-Migrations-Dry-Run (31.10.2026)
+
+Nach erfolgreicher [CI #41230731605](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230731605) von [Draft #255](https://github.com/Veselin-Takev/Klar-Dating/pull/255) wurde die bisherige Schwachstelle selbstdeklarierter Mapping-/Inventar-Digests durch eine **separat gestapelte Ed25519-Prüfung** adressiert. Der neue Validator verlangt voneinander unabhängige Exporter-/Approver-Public-Keys, strikt gepinnten Trust-Anchor, exakt signierte Originaldatei-Bytes und Domain-Separation; die CLI bleibt ohne Firebase-Write und ohne Live-Modus. Erst nach Signaturprüfung darf die unveränderte Zod-Mapping-Reconciliation laufen. Tests und [Migrations-Audit](MULTITENANT_PROFILE_PREFLIGHT_2026-10-31.md) ergänzt. Eine kryptographisch valide Signatur ist **keine** DPO-/Owner-/Freigabeattestierung und ersetzt keine Originaldatenprovenienz. Neue CI und unabhängiger Review zwingend, **BLOCKED / NO-GO**.
+
+---
+
 ## P0 #254 – Strict-Typecheck-Regression im Offline-Mapping-Test (31.10.2026)
 
 [CI #41230227502](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230227502) des ersten schreibfreien Mapping-Preflights schlug mit TypeScript-TS2345/TS2532 durch ungesicherte Test-Fixture-Arrayindizes fehl. Die Testdatei prüft die Existenz von Fixture-Einträgen jetzt explizit über `first<T>`; die eigentliche Validierungslogik blieb unverändert. [Audit](MULTITENANT_PROFILE_PREFLIGHT_2026-10-31.md). Neuer SHA benötigt vollständige CI; `main` unverändert, **NO-GO**.

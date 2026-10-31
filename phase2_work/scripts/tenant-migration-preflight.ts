@@ -1,30 +1,59 @@
-import { lstatSync, readFileSync } from 'node:fs';
-import { preflightLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationPreflight';
+import { closeSync, constants, fstatSync, openSync, readSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
+import { preflightSignedLegacyProfileMapping } from '../src/server/multitenant/tenantMigrationAttestation';
 
-const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
-function readManifest(path: string): unknown {
-  const stat = lstatSync(path);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_MANIFEST_BYTES ||
-      stat.size === 0) throw new Error('invalid_manifest_file');
-  return JSON.parse(readFileSync(path, 'utf8')) as unknown;
-}
-function main(argv: readonly string[]): void {
-  // No live mode exists. Require an explicit dry-run for every invocation.
-  const [mode, inventoryPath, mappingPath] = argv;
-  if (argv.length !== 3 || mode !== '--dry-run' ||
-      typeof inventoryPath !== 'string' || typeof mappingPath !== 'string' ||
-      inventoryPath === mappingPath ||
-      inventoryPath.startsWith('-') || mappingPath.startsWith('-')) {
-    throw new Error('dry_run_arguments_required');
+// Read only regular files, without symlink traversal, under strict byte caps.
+function readBoundedFile(path: string, maxBytes: number): Buffer {
+  if (!isAbsolute(path) || !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
+      typeof constants.O_NOFOLLOW !== 'number') {
+    throw new Error('migration_file_path_invalid');
   }
-  const result = preflightLegacyProfileMapping(readManifest(inventoryPath), readManifest(mappingPath));
-  // Intentionally never print UID, source paths, raw records or attestations.
-  process.stdout.write(JSON.stringify(result) + '\n');
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size < 1 || stat.size > maxBytes) {
+      throw new Error('migration_file_size_invalid');
+    }
+    const bytes = Buffer.alloc(stat.size + 1);
+    let used = 0;
+    while (used < bytes.length) {
+      const read = readSync(fd, bytes, used, bytes.length - used, null);
+      if (read === 0) break;
+      used += read;
+    }
+    if (used !== stat.size) throw new Error('migration_file_changed_during_read');
+    return bytes.subarray(0, used);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function main(argv: readonly string[]): void {
+  const [mode, inventoryPath, mappingPath, signaturesPath] = argv;
+  const anchorPath = process.env.KLAR_MIGRATION_TRUST_ANCHOR_PATH;
+  const expectedTrustAnchorSha256 = process.env.KLAR_MIGRATION_TRUST_ANCHOR_SHA256;
+  if (argv.length !== 4 || mode !== '--dry-run' ||
+      typeof inventoryPath !== 'string' || typeof mappingPath !== 'string' ||
+      typeof signaturesPath !== 'string' || typeof anchorPath !== 'string' ||
+      typeof expectedTrustAnchorSha256 !== 'string' ||
+      new Set([inventoryPath, mappingPath, signaturesPath, anchorPath]).size !== 4) {
+    throw new Error('migration_signed_dry_run_required');
+  }
+  const inventoryBytes = readBoundedFile(inventoryPath, 2 * 1024 * 1024);
+  const mappingBytes = readBoundedFile(mappingPath, 2 * 1024 * 1024);
+  const envelope = JSON.parse(readBoundedFile(signaturesPath, 16384).toString('utf8')) as unknown;
+  const trustAnchorBytes = readBoundedFile(anchorPath, 16384);
+  const report = preflightSignedLegacyProfileMapping({
+    inventoryBytes, mappingBytes, signatureEnvelope: envelope,
+    trustAnchorBytes, expectedTrustAnchorSha256,
+  });
+  // This output can NEVER authorize a migration. No raw UIDs or keys printed.
+  process.stdout.write(JSON.stringify(report) + '\n');
 }
 try {
   main(process.argv.slice(2));
 } catch {
-  // Do not disclose sensitive source paths or records via CI exception traces.
-  process.stderr.write('TENANT MIGRATION PREFLIGHT BLOCKED: invalid or unverifiable evidence.\n');
+  // Error messages are intentionally sanitized to prevent PII/key/path leaks.
+  process.stderr.write('TENANT MIGRATION PREFLIGHT BLOCKED: signed provenance unverifiable.\n');
   process.exitCode = 1;
 }

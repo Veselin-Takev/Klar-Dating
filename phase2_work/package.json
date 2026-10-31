@@ -135,7 +135,7 @@
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
     "check:codeowners": "node scripts/check-codeowners.mjs && node --test scripts/test-codeowners.mjs",
     "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs",
-    "check:multitenant-foundation": "vitest run tests/tenantFoundation.spec.ts tests/tenantMigrationPreflight.spec.ts"
+    "check:multitenant-foundation": "vitest run tests/tenantFoundation.spec.ts tests/tenantMigrationPreflight.spec.ts tests/tenantMigrationAttestation.spec.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
