@@ -272,10 +272,20 @@ export function createVerificationStoragePurgeRouter(deps: {
         if (state?.leaseId && leaseUntil === null) throw new Error('verification_purge_lease_invalid');
         if (leaseUntil !== null && leaseUntil > now) return { busy: true as const, cursor: null };
         const cursor = readPurgeCursor(state?.cursor ?? null);
+        // Failed rows may be on earlier pages in a previous invocation. A
+        // later clean page must not silently clear that incident as a 200.
+        const storedFailureState = state?.cycleHadFailures;
+        if (storedFailureState !== undefined && typeof storedFailureState !== 'boolean') {
+          throw new Error('verification_purge_scan_failure_state_invalid');
+        }
+        // Rolling out over a legacy checkpoint with a non-null cursor does
+        // not prove that the earlier pages were clean: default to unresolved.
+        const priorSweepFailures = storedFailureState === true
+          || (storedFailureState === undefined && cursor !== null);
         tx.set(checkpointRef, {
           leaseId, leaseUntil: new Date(now + LEASE_MS), lastStartedAt: new Date(now),
         }, { merge: true });
-        return { busy: false as const, cursor };
+        return { busy: false as const, cursor, priorSweepFailures };
       });
       if (ownership.busy) {
         return res.status(503).json({ code: 'verification_storage_purge_busy' });
@@ -283,6 +293,7 @@ export function createVerificationStoragePurgeRouter(deps: {
 
       let result: Awaited<ReturnType<typeof scanPurgePages>> | null = null;
       let scanFailed = false;
+      let invocationHadFailures = false;
       try {
         result = await scanPurgePages({
           initial: ownership.cursor, pageSize: MAX_BATCH, maxPages: MAX_PAGES,
@@ -327,7 +338,10 @@ export function createVerificationStoragePurgeRouter(deps: {
             // Invalid due records and pending decisions must not be silently
             // declared purged; record aggregate failure and revisit on wrap.
             const invalid = docs.length - artifacts.length;
-            if (!artifacts.length) return { purged: 0, skipped: 0, failed: docs.length };
+            if (!artifacts.length) {
+              invocationHadFailures = true;
+              return { purged: 0, skipped: 0, failed: docs.length };
+            }
           const bucket = deps.getBucket?.() ?? getStorage().bucket();
           const proofs = new Map<string, PurgeProof>();
           const summary = await executeVerificationRetentionBatch(
@@ -450,6 +464,7 @@ export function createVerificationStoragePurgeRouter(deps: {
 
             const pendingOrFailed = summary.results.filter(item =>
               item.reason === 'error' || item.reason === 'pending_decision').length;
+            invocationHadFailures ||= invalid + pendingOrFailed > 0;
             return {
               purged: summary.purgedCount,
               skipped: summary.results.filter(item =>
@@ -463,6 +478,11 @@ export function createVerificationStoragePurgeRouter(deps: {
               assertActivePurgeLease(snapshot.data(), leaseId);
               tx.update(checkpointRef, {
                 cursor, lastCheckpointAt: new Date(),
+                // Preserve failures across bounded invocations until the
+                // scan reaches its end. A successful *new full sweep* can
+                // subsequently clear an earlier failed cycle.
+                cycleHadFailures: cursor === null
+                  ? false : (ownership.priorSweepFailures || invocationHadFailures),
                 leaseUntil: new Date(Date.now() + LEASE_MS),
               });
             });
@@ -486,10 +506,14 @@ export function createVerificationStoragePurgeRouter(deps: {
       // A bounded backlog and retryable errors must not report a full PASS.
       // The scheduled caller will retry; the durable cursor prevents
       // repeatedly processing the first due rows.
-      const incomplete = result.failed > 0 || result.hasMore;
+      const incomplete = result.failed > 0 || result.hasMore || ownership.priorSweepFailures;
       return res.status(incomplete ? 503 : 200).json({
         ok: !incomplete, processed: result.scanned, purgedCount: result.purged,
         skippedCount: result.skipped, failedCount: result.failed,
+        // This response may have zero *new* failures while prior scan pages
+        // remain unclean. Keep the aggregate prior-page signal visible
+        // without disclosing identities, paths, or error payloads.
+        unresolvedEarlierPages: ownership.priorSweepFailures,
         hasMore: result.hasMore, pages: result.pages,
       });
     } catch {
