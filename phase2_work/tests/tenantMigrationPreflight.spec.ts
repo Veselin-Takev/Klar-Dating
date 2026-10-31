@@ -81,8 +81,8 @@ describe('read-only legacy profile migration preflight', () => {
   it('rejects unknown schema keys, prototype keys, invalid digests and tenant IDs', () => {
     for (const mutate of [
       (v: ReturnType<typeof good>) => { Object.assign(v.mapping, { unexpected: true }); },
-      (v: ReturnType<typeof good>) => { v.first(mapping.assignments).tenantId = '../other'; },
-      (v: ReturnType<typeof good>) => { v.first(mapping.assignments).mappingEvidenceSha256 = 'not-a-digest'; },
+      (v: ReturnType<typeof good>) => { first(v.mapping.assignments).tenantId = '../other'; },
+      (v: ReturnType<typeof good>) => { first(v.mapping.assignments).mappingEvidenceSha256 = 'not-a-digest'; },
       (v: ReturnType<typeof good>) => { Object.defineProperty(v.inventory, '__proto__', { value: { isAdmin: true }, enumerable: true }); },
     ]) {
       const values = good(); mutate(values);

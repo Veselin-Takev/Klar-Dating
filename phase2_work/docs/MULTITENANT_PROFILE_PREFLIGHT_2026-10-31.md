@@ -30,3 +30,8 @@ Der CLI hat **keinen** Ausführungsmodus, importiert kein Firebase-Admin-SDK, ko
 
 [Enterprise CI #41230227502](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230227502) auf Commit `92d26b0e06749c7c58f91694b276c4bc33743659` war **FAIL** bei `Typecheck`, nicht beim fachlichen Preflight: strenge TypeScript-Regeln `noUncheckedIndexedAccess` meldeten TS2345 und TS2532 auf direkten Test-Fixture-Zugriffen `records[0]` / `assignments[0]`. Der Testcode nutzt jetzt eine explizit geprüfte generische `first<T>`-Hilfsfunktion statt nicht nachgewiesener Arrayelemente. Es wurden weder Security-Schema noch Live-Pfade oder die Ablehnungsentscheidung verändert. Der vollständige CI-Lauf auf dem neuen Commit ist erneut Pflicht; **kein vorzeitiger PASS**.
 
+
+## CI-Regressionskorrektur (31.10.2026)
+
+[Run #41230581261](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41230581261) für `7dd2b10716ab94c6047c5ee08aba7ef093d93848`: strenger Typecheck PASS, neuer Testumfang **25/26 PASS**, ein negativer Test durch `ReferenceError: mapping is not defined` abgebrochen. Zwei synthetische Fixture-Mutatoren wurden vollständig geprüft und von `v.first(mapping.assignments)` auf `first(v.mapping.assignments)` korrigiert. Kein geänderter Produktions-/Preflight-Kern. Ein neuer SHA-gebundener Gesamt-CI-PASS ist für jede spätere Integration notwendig; **NO-GO**.
+
