@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { tenantIdSchema, tenantContextSchema, type TenantContext } from './tenantAuth';
+import { tenantIdSchema, assertIssuedTenantContext, type TenantContext } from './tenantAuth';
 import type { TenantReadRepository } from './tenantData';
 
 const flagSchema = z.object({
@@ -24,7 +24,7 @@ export async function evaluateTenantFlag(
   logger: PinoTenantAuditSink,
   now: () => Date = () => new Date(),
 ): Promise<boolean> {
-  const identity = tenantContextSchema.parse(context);
+  const identity = assertIssuedTenantContext(context);
   const flag = flagIdSchema.parse(flagName);
   let enabled = false;
   try {

@@ -1,3 +1,9 @@
+## Multi-Tenant – gefälschter Tenant-Kontext wird verweigert (31.10.2026)
+
+Der Tenant-Repository-Zugang und die Feature-Flag-Auswertung akzeptieren nun nur die nach verifizierten JWT-/Mitgliedschaftsprüfungen tatsächlich ausgegebenen, eingefrorenen `TenantContext`-Objekte. Ein privates `WeakSet` verhindert das Umgehen der Autorisierung durch bloße TypeScript-Typumwandlung. Negativtests ergänzt; [Audit](MULTITENANT_FOUNDATION_2026-10-31.md). **NO-GO** bis zur vollständigen CI- und Legacy-Migration.
+
+---
+
 ## Multi-Tenant Strict-Typecheck Regression – 31.10.2026
 
 [Enterprise CI #41211727208](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211727208): statische Enterprise-Gates und **17/17** neue Tenant-Negativtests PASS. Der strenge Typecheck hat zwei reine Testtypfehler (TS6133/TS2352) erkannt; diese wurden auf dem isolierten PR-Branch korrigiert. Erneute vollständige exact-head CI Pflicht, weiterhin **BLOCKED / NO-GO**. [Audit](MULTITENANT_FOUNDATION_2026-10-31.md).

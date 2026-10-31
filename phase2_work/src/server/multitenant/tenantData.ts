@@ -1,6 +1,6 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { tenantContextSchema, type TenantContext } from './tenantAuth';
+import { assertIssuedTenantContext, type TenantContext } from './tenantAuth';
 
 // The public API intentionally does NOT expose arbitrary collection/doc IDs.
 // Cross-tenant isolation alone cannot prevent within-tenant BOLA on chats,
@@ -11,7 +11,7 @@ export interface TenantReadRepository {
   getFeatureFlag(name: string): Promise<unknown>;
 }
 export function createTenantReadRepository(db: Firestore, context: TenantContext): TenantReadRepository {
-  const identity = tenantContextSchema.parse(context);
+  const identity = assertIssuedTenantContext(context);
   const prefix = 'tenants/' + identity.tenantId + '/';
   return Object.freeze({
     async getOwnProfile(): Promise<unknown> {

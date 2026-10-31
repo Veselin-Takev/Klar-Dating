@@ -42,3 +42,10 @@ Weitere notwendige Gates: autoritative Zuordnung, tenantbewusste UID-Cascade, Em
 
 [Run #41211727208](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41211727208) auf `33776d61ef76225fbb3b2d633a8040ddccecaf5c`: Die verpflichtenden Enterprise Static Gates inklusive `scripts/loeschkaskade.mjs` **PASS**; die neue `tests/tenantFoundation.spec.ts`-Suite **17/17 PASS**. Der nachfolgende vollständige Typecheck **FAIL** mit genau zwei Testdatei-Befunden: TS6133 (unbenutzter `TenantAccessDenied`-Import, Zeile 6) und TS2352 (Request-Stub muss über `unknown` statt direkt zu `Request` casten, Zeile 93). Beide rein testtypischen Stellen wurden ohne Verhaltensänderung korrigiert. Neuer Head benötigt erneut komplettes CI; vorher kein PASS und kein Production-GO.
 
+
+## Tenant-Kontext als nicht fälschbares Laufzeit-Capability (31.10.2026)
+
+Die zusätzliche Security-Selbstprüfung zeigte, dass der erste Typvalidator allein die Authentifizierung nicht beweisen kann: Beliebiger Code könnte ein syntaktisch gültiges `TenantContext`-Objekt erfinden und einen Admin-SDK-Repository-Aufruf auslösen. Der Kontext wird jetzt ausschließlich nach erfolgreicher Firebase-Token-/Membership-Prüfung als eingefrorenes Objekt ausgestellt und in einem privaten `WeakSet` registriert. Repository-Leser und Feature-Flag-Auswertung verlangen diese Laufzeit-Capability; rekonstruierte, gefälschte oder serialisierte Kontexte werden mit 403 verweigert. Ein neuer Negativtest prüft sowohl den Datendienst als auch die Feature-Flag-Grenze.
+
+Diese Härtung betrifft **nur die neue Tenant-Schicht**. Sie ist kein Schutz für Legacy-Firestore-Zugriffe, die den neuen Dienst umgehen. **Production NO-GO.**
+

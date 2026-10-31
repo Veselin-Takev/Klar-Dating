@@ -152,7 +152,12 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
       data: () => documents.get(path),
     }) };
   } } as unknown as Firestore;
-  const repository = createTenantReadRepository(db, principal);
+  const issuedPrincipal = await authorizeTenant(baseInput(), dependency());
+  const repository = createTenantReadRepository(db, issuedPrincipal);
+  it('rejects fabricated tenant contexts, even when their shape is valid', async () => {
+    expect(() => createTenantReadRepository(db, principal)).toThrow('tenant_access_denied');
+    await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', repository, { info: vi.fn() })).rejects.toThrow('tenant_access_denied');
+  });
   it('only reads own profile under leaf tenant; mismatched tenant label fails closed', async () => {
     paths.length = 0;
     const path = 'tenants/tenant-one/users/user_1';
@@ -174,9 +179,9 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
     const sink = { info: vi.fn() };
     const path = 'tenants/tenant-one/featureFlags/SAFE_CHAT';
     documents.set(path, { tenantId: 'tenant-two', status: 'active', enabled: true });
-    await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', repository, sink, () => new Date('2026-10-31T12:00:00.000Z'))).resolves.toBe(false);
+    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, sink, () => new Date('2026-10-31T12:00:00.000Z'))).resolves.toBe(false);
     documents.set(path, { tenantId: 'tenant-one', status: 'active', enabled: true });
-    await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', repository, sink)).resolves.toBe(true);
+    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, sink)).resolves.toBe(true);
     expect(paths).toEqual([path, path]);
     expect(sink.info).toHaveBeenCalledTimes(2);
     expect(sink.info.mock.calls[0]?.[0]).toEqual({
@@ -187,9 +192,9 @@ describe('Tenant-scoped data layer and structured feature flag audit', () => {
   it('logs denied decision on storage failure and refuses to proceed if audit logger fails', async () => {
     const broken = { getOwnProfile: repository.getOwnProfile, getFeatureFlag: async () => { throw Error('DB offline'); } };
     const sink = { info: vi.fn() };
-    await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', broken, sink)).rejects.toThrow('DB offline');
+    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', broken, sink)).rejects.toThrow('DB offline');
     expect(sink.info.mock.calls[0]?.[0]).toMatchObject({ enabled: false, outcome: 'denied' });
     const brokenLogger = { info: () => { throw Error('log sink offline'); } };
-    await expect(evaluateTenantFlag(principal, 'SAFE_CHAT', repository, brokenLogger)).rejects.toThrow('log sink offline');
+    await expect(evaluateTenantFlag(issuedPrincipal, 'SAFE_CHAT', repository, brokenLogger)).rejects.toThrow('log sink offline');
   });
 });

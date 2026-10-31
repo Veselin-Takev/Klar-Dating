@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { getAuth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -13,6 +14,15 @@ export const tenantContextSchema = z.object({
   traceId: z.string().uuid(),
 });
 export type TenantContext = z.infer<typeof tenantContextSchema>;
+
+// Runtime capability: callers may not invent a tenant context by casting a
+// plain object. Only successful verify+membership issuance populates this set.
+const issuedContexts = new WeakSet<object>();
+export function assertIssuedTenantContext(value: unknown): TenantContext {
+  if (value === null || typeof value !== 'object' || !issuedContexts.has(value) ||
+      !tenantContextSchema.safeParse(value).success) throw new TenantAccessDenied(403);
+  return value as TenantContext;
+}
 
 const verifiedClaimSchema = z.object({
   uid: tenantContextSchema.shape.uid,
@@ -93,6 +103,9 @@ export async function authorizeTenant(input: TenantRouting, deps: TenantAuthDepe
     tenantId: claims.tenantId, uid: claims.uid, roles, traceId: input.traceId,
   });
   if (!result.success) throw new TenantAccessDenied(403);
+  Object.freeze(result.data.roles);
+  Object.freeze(result.data);
+  issuedContexts.add(result.data);
   return result.data;
 }
 export function firebaseTenantDependencies(db: Firestore = getDb()): TenantAuthDependencies {
@@ -117,7 +130,7 @@ export function createTenantMiddleware(deps: TenantAuthDependencies, trustedBase
         trustedBaseDomain,
         traceId: typeof req.headers['x-trace-id'] === 'string' &&
           z.string().uuid().safeParse(req.headers['x-trace-id']).success
-          ? req.headers['x-trace-id'] : crypto.randomUUID(),
+          ? req.headers['x-trace-id'] : randomUUID(),
       }, deps);
       res.locals.tenantContext = context;
       next();
@@ -128,7 +141,5 @@ export function createTenantMiddleware(deps: TenantAuthDependencies, trustedBase
   };
 }
 export function requireTenantContext(res: Response): TenantContext {
-  const parsed = tenantContextSchema.safeParse(res.locals.tenantContext);
-  if (!parsed.success) throw new TenantAccessDenied(403);
-  return parsed.data;
+  return assertIssuedTenantContext(res.locals.tenantContext);
 }
