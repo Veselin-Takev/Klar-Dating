@@ -40,6 +40,26 @@ Dieser Branch `integration/202-retention-holds-review-20261031` wurde **direkt**
 
 **Nachweisstand:** Der vorherige Commit `1516fa21227f0fbec737777f1aed275b7930d894` hat [Enterprise CI #41178811858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41178811858) erfolgreich abgeschlossen; **für die neue Schranke steht ein separater exakter CI-PASS noch aus**. Ohne Real-GCS-Tests, Original-Generation-Provenienz, all-writer fencing und DPO/SRE/Security-Freigaben bleibt **BLOCKED / NO-GO**.
 
+## 31.10.2026 — P0: verpflichtende Upload-Generation-Provenienz (fail-closed)
+
+**Ausgangsbefund:** Die bisherige Löschroute hat `generation` beim *ersten Read vor der Löschung* gelesen, einen `photoPurgeIntent` gebildet und bedingt per `ifGenerationMatch` gelöscht. Diese GCS-Generation ist ein korrekter Schutz gegen spätere Objekt-Ersetzungen, aber **kein** Beweis, dass das Objekt seit dem ursprünglichen Identitäts-Upload nicht bereits vorher ersetzt worden war. Historische `verification_events` aus dem nicht mehr aktiv gemounteten manuellen Handler `klarCore.ts` enthalten `decidedAt`, `storagePath` und `fotoLoeschenAb`, jedoch **keine** vertrauenswürdig beim Upload persistierte Objektgeneration.
+
+**Umsetzung in diesem ausschließlich isolierten Integrations-Branch:**
+- Neue `requireVerifiedPhotoUploadGeneration(data, actualGeneration?)` verlangt den **aus einem vertrauenswürdigen Upload-Workflow stammenden** exakten dezimalen String `verification_events.photoUploadGeneration`. Keine stillschweigende Ermittlung aus `file.getMetadata()`, keine verlustbehaftete JS-Number-Umwandlung und keine implizite Zuordnung allein per `storagePath`.
+- `assertStillEligibleForPurge` blockiert ein Event, wenn die ursprüngliche Generation fehlt, unlesbar oder nicht ausdrücklich gebunden ist; bei vorliegendem Storage-Objekt muss sie exakt mit der aktuellen Generation übereinstimmen.
+- Der Scanner vergleicht die gebundene Generation **vor dem Schreiben eines neuen `photoPurgeIntent`**, unmittelbar vor GCS DELETE, bei einer 404-Abwesenheitsreconciliation (nur für vorher vorhandenen gebundenen Intent) und bei der finalen Audit-Transaktion. Bei einem Konflikt bleibt das Objekt unangetastet beziehungsweise wird eine bereits erfolgte Löschung nicht fälschlich bestätigt.
+- Die bestehenden Storage-Hold-/Legal-Hold-Prüfungen, per-scan Lease, Cursor/Checkpoint, Status-Whitelisting, Generation-Precondition und redigierten Fehler bleiben erhalten. `check:compliance-storage-purge` fordert die Provenienzprüfungen an allen vier Schnittstellen; zusätzliche Vitest-Negativtests decken alte Events ohne Originalgeneration, numerische, fehlformatierte sowie ersetzte Generationen ab.
+
+**Explizite Betriebsfolge / Konflikt zur Datenschutz-Frist:** Historische Records ohne `photoUploadGeneration` werden **nicht** automatisch gelöscht und gehen bei fälliger Bereinigung in den Fehler-/Reconciliation-Pfad (HTTP 503 für unvollständigen Durchlauf). Das verhindert unbewiesene Löschungen, erfüllt aber **allein nicht** die rechtlich/fachlich definierte 30-Tage-Löschfrist. **P0 bleibt offen, und ein DPO-genehmigter, datensparsamer Legacy-Erasure-/Reconciliation-Prozess ist unmittelbar erforderlich.** Keine Scheinerzeugung einer `photoUploadGeneration` durch Auslesen des derzeitigen GCS-Objekts; das wäre zirkulärer Nachweis. Wenn Originalbelege fehlen, ausschließlich separater freigegebener manueller/administrativer Bereinigungsweg mit Rechtsgrundlage, Account-/Hold-Abgleich, Identitätsprüfung, Audit und Rollback-/Beschwerde-Prozess.
+
+**Weitere noch fehlende Nachweise:**
+1. Bei **jedem** tatsächlich aktiven Upload-Writer die GCS-Generation direkt nach einem erfolgreich bedingt angelegten, unveränderlichen Objekt erfassen, mit `uid`/`verification_requests`/`verification_events` beweissicher und serverautoritativ verknüpfen und vor beliebiger Reaktivierung des Legacy-Flows prüfen. Die neue Feldprüfung **beweist die Echtheit des Schreibers nicht**; die persistente Provenienz/Immutability und Autorisierung aller Writers müssen getrennt implementiert werden.
+2. Ein für alle Firestore-Status- und Admin-SDK-/GCS-Schreibpfade geltendes Fencing-Protokoll fehlt. Das Cross-Service-TOCTOU-Risiko ist trotz jetziger Mitigation nicht vollständig beseitigt.
+3. Echte Firestore-Emulator-/GCS-Staging-Race-, 404-/412-, Hold-/Retention-/Crash-Tests und Produktiv-Cloud-Inventur sind weiterhin offen. Neue CI-Ergebnisse nur für den **exakten** Head anerkennen; grüne ältere Läufe sind kein Release-Nachweis.
+4. Unabhängige Security, DPO/Legal, SRE und Release Owner-Reviews sowie kontrollierte Staging-Migration und Alert-Zustellung fehlen.
+
+**Keine Kundendaten / Cloud-Löschung verändert, kein Merge, kein Deploy, keine Produktionsfreigabe.**
+
 ## Evidenzstatus
 **Quelle:** GitHub-Blob-Vergleich von PR #203/#229/#231 und isolierter Feature-Branch; keine Live- oder Kundendaten. Vor Änderungen hatte die #229-Route den Blob `a25c8c5bd6aa4cd8eb7bbb36a3f508ce0fb5ea68`. Die Änderung ist auf diese eng begrenzte API-/Test-/Gate-Ergänzung beschränkt.
 
