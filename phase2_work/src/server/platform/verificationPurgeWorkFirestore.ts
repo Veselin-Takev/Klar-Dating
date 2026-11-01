@@ -34,7 +34,7 @@ export async function transitionPurgeWorkInTransaction(
     const next = transform(current);
     if (!next || next.schemaVersion !== 1 || next.key !== current.key ||
         next.revision !== current.revision + 1 ||
-        !['ready', 'leased', 'receipt_pending', 'complete', 'quarantined'].includes(next.status)) {
+        !['ready', 'leased', 'delete_intent', 'receipt_pending', 'complete', 'quarantined'].includes(next.status)) {
       throw new Error('purge_work_transition_invariant');
     }
     tx.update(ref, next);
