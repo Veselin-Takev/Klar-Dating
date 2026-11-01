@@ -197,3 +197,13 @@ No production activation or GO. Keep `productionApproved=false`.
 - [ ] Full multi-tenant source integration, durable retention producer/consumer >300, trusted clock, GCS 404/412/hold/receipt staged recovery, external AppSec/DPO/Legal/SRE/Release Owner approvals.
 
 **Do not release; `productionApproved=false`; P0 #202 OPEN, NO-GO.**
+
+
+### 2026-11-01 — Mandatory coexistence of tenant and retention enterprise CI gates
+
+- [x] Independent unmerged exact-head CIs: #280 `4f53bcfef9d31ddbd9672465b2362ee1f7d726ac` [#41336278230](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41336278230) SUCCESS with **6 executed** native Firestore Emulator cases, and #268 `71c0d31c6e8ad3e8c681f793dd3daba285d50c7c` [#41282765859](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41282765859) SUCCESS.
+- [x] Isolated stacked [Draft #281](https://github.com/Veselin-Takev/Klar-Dating/pull/281) incorporates source-pinned read-only tenant scanner/tests into retention branch; enterprise CI invokes both Tenant + Retention checks, with a new negative gate against dropping either.
+- [ ] Obtain **new combined exact-head full CI #41338044005** on SHA `26e9ed2a15bf8e5af468fc35b3e0fb45ddd92f5d`; verify Tenant scanner and all Retention gates actually ran, plus 6 native Emulator tests. Separate green PRs do **not** satisfy this item.
+- [ ] Finish authoritative tenant isolation and approved migration, actual durable photo retention worker/receipts and >300 due handling, staging GCS 404/412/holds and independent signed DPO/AppSec/Legal/SRE/Release Owner GO on the final merged/deployed SHA.
+
+Still `productionApproved=false`; both P0 #202 and #254 **OPEN**, production **NO-GO**.
