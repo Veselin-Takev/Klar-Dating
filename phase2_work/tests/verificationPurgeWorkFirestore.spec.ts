@@ -41,6 +41,7 @@ function memoryDb(initial?: PurgeWorkState, retryCount = 1) {
           writes.push(result);
         }
       }
+      if (!final) throw new Error('no_committed_command');
       return final;
     },
   } as unknown as Pick<Firestore, 'runTransaction'>;
