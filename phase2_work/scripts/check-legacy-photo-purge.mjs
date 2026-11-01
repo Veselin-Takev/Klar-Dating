@@ -32,12 +32,8 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   if (!indexSource.includes("export { deleteExpiredPhotosCron } from './deleteExpiredPhotos';")) {
     problems.push('legacy function name was unexpectedly removed; deployed Scheduler migration unreviewed');
   }
-  if (!indexSource.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage';") ||
-      !modernCron.includes("'/api/admin/purge-verification-storage'") && !modernCron.includes('`/api/admin/purge-verification-storage`')) {
-    // The actual signed HTTP path is checked separately below.
-    if (!indexSource.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage';")) {
-      problems.push('decision-aware scheduled entrypoint not exported');
-    }
+  if (!indexSource.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage';")) {
+    problems.push('decision-aware scheduled entrypoint not exported');
   }
   if (!modernCron.includes('/api/admin/purge-verification-storage') || !modernCron.includes('COMPLIANCE_JOB_SECRET')) {
     problems.push('decision-aware signed purge integration missing');
