@@ -300,3 +300,8 @@ All P0 #202/#254 live proofs and SRE/Product 30-day P95 monitoring evidence rema
 New stacked [Draft #299](https://github.com/Veselin-Takev/Klar-Dating/pull/299), head `277d9e4150a01799f49358e9193c291199f02638`, prevents synthetically corrupted persisted GCS intent/observation strings from progressing in the **inert** receipt state machine and Firestore CAS. Pure negative receipt tests and source/mutation guards require canonical matching generations. New [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) was **IN PROGRESS** at evidence capture, no new-SHA success asserted. No active GCS deletion, scheduler/IAM or user records touched.
 
 Real P0 #202/#254, authentic live data/IAM/Art17/GCS generation/404/412/hold/receipt/>300 queue and signed Product/DPO/Legal/SRE/Security/ReleaseOwner GO remain **BLOCKED**, `productionApproved=false`, NO-GO.
+
+
+### 2026-11-01 — P0 receipt-integrity #299 CI failure remediated, new exact-head CI pending
+
+Initial #299 SHA `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) **FAILED** because the new mutation check removed one of two `hasCanonicalGcsReceiptEvidence` guards without the static gate noticing. No security test was bypassed: the negative mutation test correctly failed CI. Source gate now requires **both** occurrences, exact new #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52`; [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) **IN PROGRESS**, not PASS. All P0 live/GCS/Art17/tenant/independent signoffs remain missing. `productionApproved=false`; BLOCKED/NO-GO.
