@@ -57,8 +57,9 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 ## 10. Verifizierungsfotos (Storage)
 - **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
 - **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** `functions/src/deleteExpiredPhotos.ts` verarbeitet fällige `verification_events` und löscht mit Generation-Precondition. Offene Prüfungen ohne Entscheidung werden nicht vom Retention-Worker gelöscht.
-- **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
+- **Entscheidungsbasierter Pfad (Quellcode):** `functions/src/purgeVerificationStorage.ts` ruft signiert `/api/admin/purge-verification-storage` auf. `src/server/routes/complianceStorage.ts` wählt `verification_events.fotoLoeschenAb` aus und `storageRetentionEngine.ts` berücksichtigt den serverseitigen Entscheidungsstatus sowie `decidedAt`. Unentschiedene Fotos dürfen nicht allein wegen ihres Upload-Alters gelöscht werden.
+- **P0 #202 – Legacy-Pfad deaktiviert:** `functions/src/deleteExpiredPhotos.ts` behält seinen exportierten Scheduler-Namen für eine kontrollierte Migration, führt **keinen Foto-Scan und keine Foto-Löschung** mehr aus. Die eigenständige Bereinigung von `funnel_events` bleibt aktiv. `deleteExpiredPhotoPage` in `functions/src/retention.ts` bricht ausdrücklich ohne Storage-Zugriff ab. Es ist keine bestätigte Aussage über bereits ausgerollte Cloud Functions oder Scheduler.
+- **Audit und offene Freigabeblocker:** Der entscheidungsbasierte Service aktualisiert `photoPurged`, `photoPurgedAt` und einen SHA-256-Digest. Generation-Preconditions, Entscheidungskonsistenz beim tatsächlichen Löschzeitpunkt, Wiederholbarkeit und Hold-Fälle sind getrennt gegen reale GCS-Semantik zu belegen; dieser Code-Fix bestätigt sie **nicht**. Vor Live-Aktivierung müssen SRE und DPO/Legal den Istzustand von Scheduler, Functions, IAM, GCS und den kontrollierten Rollback unabhängig prüfen. **Production NO-GO**.
 
 ## Security Rules Architektur (Least Privilege)
 Die `firestore.rules` (siehe Datei) sind nach dem Prinzip "Default Deny" aufgebaut.
