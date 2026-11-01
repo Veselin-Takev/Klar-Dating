@@ -401,3 +401,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Governance audit previous exact SHA `e213a660689b7586b6ced9fa53e326d134674963` [CI #41353218455](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41353218455) SUCCESS; subsequent audit SHA requires separate CI.
 
 **P0 #202/#254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
+
+
+### 2026-11-01 — P0 required evidence validation completed; P1 Didit refresh isolated
+
+- [x] [Draft #294](https://github.com/Veselin-Takev/Klar-Dating/pull/294), exact SHA `85c092b708497b5954aaf5cbfe8a901a401e3549`, completed [CI #41354106319](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41354106319) SUCCESS, including **all 24 specific P0 negative GO-gate tests**, actual 5 native Storage + 6 Tenant Firestore + 6 Retention Firestore, real absent-emulator CI negative, 1,473 Vitest, smoke and 26 Browser. Earlier in-progress entry superseded for this commit only.
+- [x] Prior [Governance CI #41354223698](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41354223698) exact `413097b0da5d328139e03dafd43c63815e086769` completed SUCCESS; new documentation head requires fresh verification.
+- [x] [P1 #237](https://github.com/Veselin-Takev/Klar-Dating/issues/237) source bug addressed in new isolated main-based [Draft #295](https://github.com/Veselin-Takev/Klar-Dating/pull/295): use authenticated provider `GET /api/kyc/status` rather than retired HTTP 410 route, strict server `approved` only, fail closed on malformed/pending/unavailable/old flags and status errors. Component test/mandatory route source guard added.
+- [ ] Verify [#295 CI #41355375724](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41355375724) on exact SHA `57cc4519e46f3287905a5b0d90463a7194ce6e53` fully PASS, including new component cases, source gate, Typecheck, Builds, smoke and browser; **IN PROGRESS** at observation.
+- [ ] Provide all **six actual externally reviewed P0 evidence receipts**, not merely checked-in field names: signed Product/DPO/Legal media policy, deployed Admin SDK/Rules/IAM Tenant BOLA and Art17 migration, authorized GCS 404/412/legal holds/crash receipts, durable >300 queue and Scheduler/IAM, independent Security/DPO/Legal/SRE/ReleaseOwner signatures on final release SHA. Deduplicated final CI required.
+
+`productionApproved=false`; P0 #202/#254 OPEN; **Production BLOCKED/NO-GO**.
