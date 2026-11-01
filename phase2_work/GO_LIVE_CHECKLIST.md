@@ -125,3 +125,14 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 - [ ] Approved real staging/production read-only inventory and independent SRE/AppSec/DPO/Legal/Release Owner signoffs; final combined exact-main security gates
 
 **Unmerged prototype is inert, cannot process live photos, and cannot justify GO. Maintain `productionApproved=false`.**
+
+
+### 2026-11-01 — P0 #202 write-ahead crash-fencing remains unapproved
+
+- [x] Pure state-only design of `delete_intent`, intended generation/lease epoch and no-auto-delete recovery policy added in [unmerged Draft #275](https://github.com/Veselin-Takev/Klar-Dating/pull/275), current source SHA `7b30adf79e8020101b081ec80e5f4edb0e7d0460`. The code is **not** connected to Cloud Scheduler, GCS or active purge endpoint.
+- [ ] **Exact-head CI #41290477469** must be fully successful; no previous PR's green CI is a substitute.
+- [ ] Independently enforce durable Firestore intent write-before-GCS external effect, with real crash injection, valid leases, generation bounds and authenticated 404/412 reconciliation receipts.
+- [ ] Final durable queue for >300 events, authoritative tenant/UID/object ownership + consent/retention holds, native Firestore Emulator concurrency and approved staging GCS behavior.
+- [ ] Deployed Scheduler/IAM/TTL inventory and AppSec/DPO/Legal/SRE/Release Owner signed authorizations on final merged and deployed artifact SHA.
+
+No release claim. Remain `NO-GO` and `productionApproved=false`.
