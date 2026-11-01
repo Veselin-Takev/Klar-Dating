@@ -104,7 +104,11 @@ async function invokePurge(options: {
         body,
       });
       const text = await response.text();
-      return { status: response.status, body: JSON.parse(text), rawBody: text, deletions, receipts, dbReads, metadataReads };
+      // Express sendStatus(401) returns plain text, not JSON. Do not let the
+      // test parser hide the actual expected rejection or storage side effects.
+      const bodyValue = response.headers.get('content-type')?.includes('application/json')
+        ? JSON.parse(text) : null;
+      return { status: response.status, body: bodyValue, rawBody: text, deletions, receipts, dbReads, metadataReads };
     } finally {
       if (previous === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
       else process.env.COMPLIANCE_JOB_SECRET = previous;
