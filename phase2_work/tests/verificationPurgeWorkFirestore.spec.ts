@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { transitionPurgeWorkInTransaction } from '../src/server/platform/verificationPurgeWorkFirestore';
-import { createPurgeWork, claimPurgeWork, markDeletionIntent, markDeletionObserved, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
+import { createPurgeWork, claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt, markDeletionIntent, markDeletionObserved, quarantinePurgeWork, releaseUndeletedWork, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
 
 const key = 'a'.repeat(64);
 const token = 'worker-opaque-token-0000001';
@@ -121,6 +121,80 @@ describe('P0 #202 Firestore transaction adapter is opt-in, bounded and retry-saf
     expect(observed).toMatchObject({ status: 'receipt_pending', revision: 3,
       intent: { generation: '123', leaseEpoch: 1 }, observed: { generation: '123' } });
     expect(m.writes).toHaveLength(1);
+  });
+
+  it('rejects forged lease token/attempt/epoch that still obeys a status allowlist', async () => {
+    const m = memoryDb();
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'leased', revision: current.revision + 1,
+        lease: { token, epoch: 1, expiresAt: now + 5_000 } })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    const legitimate = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const locked = memoryDb(legitimate);
+    await expect(transitionPurgeWorkInTransaction(locked.db, ref,
+      current => ({ ...current, revision: current.revision + 1, status: 'delete_intent',
+        lease: { ...current.lease!, token: 'forged-worker-token-000001' },
+        intent: { generation: '987', leaseEpoch: 1, preparedAt: now + 100 } })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    expect(m.writes).toHaveLength(0);
+    expect(locked.writes).toHaveLength(0);
+  });
+
+  it('rejects forged observation time, changed leased worker, and fabricated early receipt', async () => {
+    const claimed = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const prepared = markDeletionIntent(claimed, token, 1, now + 500, '123');
+    const m = memoryDb(prepared);
+    for (const override of [
+      { observedAt: now + 200, lease: prepared.lease },
+      { observedAt: now + 1_000, lease: { ...prepared.lease!, token: 'forged-worker-token-000001' } },
+      { observedAt: now + 8_000, lease: prepared.lease },
+    ]) {
+      await expect(transitionPurgeWorkInTransaction(m.db, ref,
+        current => ({ ...current, status: 'receipt_pending', revision: current.revision + 1,
+          lease: override.lease, observed: { generation: '123', observedAt: override.observedAt } })))
+        .rejects.toThrow('purge_work_transition_invariant');
+    }
+    expect(m.writes).toHaveLength(0);
+  });
+
+  it('cannot forge another worker or a future completion time after observed deletion', async () => {
+    const base = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const intent = markDeletionIntent(base, token, 1, now + 500, '456');
+    const observed = markDeletionObserved(intent, token, 1, now + 1_000, '456');
+    const m = memoryDb(observed);
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'complete', revision: current.revision + 1,
+        lease: { ...current.lease!, token: 'forged-worker-token-000001' },
+        completedAt: now + 2_000, receiptDigest: 'a'.repeat(64) })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'complete', revision: current.revision + 1,
+        completedAt: now + 10_000, receiptDigest: 'a'.repeat(64) })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    expect(m.writes).toHaveLength(0);
+  });
+
+  it('still allows canonical lease release, quarantine, receipt-only reclaim and completion', async () => {
+    const claimed = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const releaseDb = memoryDb(claimed);
+    const released = await transitionPurgeWorkInTransaction(releaseDb.db, ref,
+      current => releaseUndeletedWork(current, token, 1, now + 500, now + 9_000));
+    expect(released).toMatchObject({ status: 'ready', availableAt: now + 9_000 });
+    const quarantineDb = memoryDb(claimed);
+    const quarantined = await transitionPurgeWorkInTransaction(quarantineDb.db, ref,
+      current => quarantinePurgeWork(current, 'legal_hold', now + 500, token, 1));
+    expect(quarantined).toMatchObject({ status: 'quarantined', quarantineReason: 'legal_hold' });
+
+    const prepared = markDeletionIntent(claimed, token, 1, now + 500, '123');
+    const observed = markDeletionObserved(prepared, token, 1, now + 1_000, '123');
+    const reconcileDb = memoryDb(observed);
+    const reclaimed = await transitionPurgeWorkInTransaction(reconcileDb.db, ref,
+      current => claimReceiptReconciliation(current, 'receipt-only-worker-0000001', now + 5_000, 5_000));
+    expect(reclaimed).toMatchObject({ status: 'receipt_pending', lease: { epoch: 2 } });
+    const receiptDb = memoryDb(reclaimed);
+    const completed = await transitionPurgeWorkInTransaction(receiptDb.db, ref,
+      current => completePurgeReceipt(current, 'receipt-only-worker-0000001', 2, now + 5_500, 'a'.repeat(64)));
+    expect(completed).toMatchObject({ status: 'complete', receiptDigest: 'a'.repeat(64) });
   });
 
   it('rejects forged document references and changed immutable identity', async () => {
