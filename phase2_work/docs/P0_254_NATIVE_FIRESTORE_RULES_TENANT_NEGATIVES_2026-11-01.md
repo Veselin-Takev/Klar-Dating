@@ -30,3 +30,8 @@ The new `check:tenant-native-rules` command and Node mutation suite are mandator
 - **CI governance:** This branch is a stacked *Draft*; require exact SHA enterprise checks, the new six native Rules tests and six existing native retention tests, app build/smoke/browser and combined evidence, then independent approvals and final merged SHA validation.
 
 **Conclusion: P0 #254 and #202 OPEN, `productionApproved=false`, Production BLOCKED / NO-GO.**
+
+
+## 2026-11-01 — exact-head CI triage
+
+Initial SHA `29716be04eb50833248c2693455a952c9f098ddb` [CI #41341495412](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41341495412) FAILED at Typecheck after Enterprise Static Gates passed, because `tests/tenantRulesBoundary.emulator.spec.ts` imported the unused symbol `expect` under strict TypeScript TS6133. **No new native tenant Rules test ran in that failed CI.** Removed only the unused import at SHA `850ff21a1d775262663ca0c6a55268c31e516be8`; fresh [CI #41341745237](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41341745237) was in progress at this entry. Neither parent #282's green CI nor the failed initial #283 CI is valid success evidence for the latest head. P0 #254 remains OPEN, release NO-GO.
