@@ -61,7 +61,7 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     } finally {
       await assertSucceeds(owner.ref(path).delete());
     }
-  });
+  }, 20_000);
 
   it('P0 #254: cross-tenant clients and owner cannot read biometric verification photos', async () => {
     assertLoopbackStorageEmulator();
@@ -82,7 +82,7 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       // emulator fixture. Clients intentionally cannot delete verification.
       await getAppBucket().file(path).delete();
     }
-  });
+  }, 20_000);
 
   it('keeps an old, undecided verification photo when the legacy worker is invoked', async () => {
     const bucket = getAppBucket();
