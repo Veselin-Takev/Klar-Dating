@@ -33,13 +33,13 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
       (current.status !== 'leased' ||
        !next.lease || next.intent?.leaseEpoch !== next.lease.epoch ||
        !/^[1-9][0-9]*$/.test(next.intent?.generation ?? '') ||
-       !Number.isSafeInteger(next.intent?.preparedAt))) return false;
+       typeof next.intent?.preparedAt !== 'number' || !Number.isSafeInteger(next.intent.preparedAt))) return false;
   if (next.status === 'receipt_pending' &&
       (!next.intent || !next.observed || next.intent.generation !== next.observed.generation)) return false;
   if (next.status === 'complete' &&
       (current.status !== 'receipt_pending' || !current.observed || !current.intent ||
        !/^[a-f0-9]{64}$/.test(next.receiptDigest ?? '') ||
-       !Number.isSafeInteger(next.completedAt))) return false;
+       typeof next.completedAt !== 'number' || !Number.isSafeInteger(next.completedAt))) return false;
   if (next.status === 'ready' && next.intent) return false;
   return true;
 }
