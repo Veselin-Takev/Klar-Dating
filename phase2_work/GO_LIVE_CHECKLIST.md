@@ -207,3 +207,14 @@ No production activation or GO. Keep `productionApproved=false`.
 - [ ] Finish authoritative tenant isolation and approved migration, actual durable photo retention worker/receipts and >300 due handling, staging GCS 404/412/holds and independent signed DPO/AppSec/Legal/SRE/Release Owner GO on the final merged/deployed SHA.
 
 Still `productionApproved=false`; both P0 #202 and #254 **OPEN**, production **NO-GO**.
+
+
+### 2026-11-01 — Tenant Firebase Rules source and config evidence (unmerged #282)
+
+- [x] Source gate convergence [Draft #281](https://github.com/Veselin-Takev/Klar-Dating/pull/281) SHA `26e9ed2a15bf8e5af468fc35b3e0fb45ddd92f5d` passed full [CI #41338044005](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41338044005): tenant inventory and retention safety checks in one chain; 6 native Firestore Emulator cases actually executed and PASS.
+- [x] New unmerged [Draft #282](https://github.com/Veselin-Takev/Klar-Dating/pull/282) checks **local Firestore + Storage Rules source SHA** and configured Firebase/emulator Rules paths; rejects missing, redirected or malformed inputs; test/mutation gate added to `check:enterprise`, without deploying or changing Rules.
+- [ ] Verify new #282 exact-head `5c82c3c2f7847a63eef09a863e194106cfba96d9` [CI #41339344795](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41339344795) full PASS, including 6 real native Firestore Emulator tests and combined Tenant/Retention checks.
+- [ ] Obtain signed evidence of **actual deployed** Rules, Firebase project identity and least-privilege IAM; cross-tenant/same-tenant BOLA/IDOR negatives in Auth/Firestore/Storage Emulators and Admin SDK.
+- [ ] Independently approve lawful tenant data mapping/migration and Art.-17 cascade, deployed Retention reconciliation with GCS 404/412, safe >300 queue, staging and independent AppSec/DPO/Legal/SRE/Release Owner GO.
+
+**P0 #202/#254 OPEN; no production approval, `productionApproved=false`.**
