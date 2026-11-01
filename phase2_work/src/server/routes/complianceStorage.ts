@@ -97,13 +97,17 @@ export function createVerificationStoragePurgeRouter(deps: {
       let invalidStateCount = 0;
       let duplicatePathCount = 0;
       if (malformedCount === 0) {
-        for (let i = 0; i < artifacts.length; i++) {
-          const artifact = artifacts[i];
+        for (const [index, artifact] of artifacts.entries()) {
+          const sourceDocument = dueDocs[index];
+          if (!sourceDocument) {
+            invalidStateCount++;
+            continue;
+          }
           if (usedPaths.has(artifact.storagePath)) duplicatePathCount++;
           usedPaths.add(artifact.storagePath);
           if (!artifact.photoPurged) {
             try {
-              assertCurrentVerificationPurgeCandidate(dueDocs[i].data(), artifact, now);
+              assertCurrentVerificationPurgeCandidate(sourceDocument.data(), artifact, now);
             } catch {
               invalidStateCount++;
             }
