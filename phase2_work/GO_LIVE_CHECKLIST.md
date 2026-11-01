@@ -435,3 +435,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] P0 #202 lawful decision-/hold-dependent GCS receipts 404/412/crash with durable >300 queue and Scheduler/IAM, P0 #254 real Tenant/Admin SDK/IAM/Rules/Art17 migration and signed guest-media ADR, all independent reviewers and ReleaseOwner GO remain blocked.
 
 **`productionApproved=false`, Production BLOCKED / NO-GO.**
+
+
+### 2026-11-01 — SLO P95 source reference verified; P0 GCS generation command boundary
+
+- [x] [Draft #297](https://github.com/Veselin-Takev/Klar-Dating/pull/297) immutable SHA `7b059d0b28b38ca0e0d12bfc93d070ae63bb07f7` completed [CI #41357839577](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41357839577) SUCCESS. API P95 SLI now names actual Prometheus `klar_http_request_duration_ms{quantile="0.95"}`; target 300ms unchanged, not a certified 30-day operational SLO.
+- [x] Previous Governance SHA `e089cc6a208a4d8da1c4eb7b0467982cded67efe` completed [CI #41357982476](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41357982476) SUCCESS; each later governance commit needs its own run.
+- [x] [Draft #298](https://github.com/Veselin-Takev/Klar-Dating/pull/298), SHA `a426ca2174ee071ce591342555b3ffb8ec682c74`, source-only P0 #202: canonical uint64 generation string guard across inerte queue state, snapshots/CAS and recovery; pure malformed/overflow tests, 4 native Firestore-emulator negative cases, mandatory source/mutation CI gates; 7 code/test/doc paths, no deletion authorization.
+- [ ] Verify #298 exact-head [CI #41359081792](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41359081792) full PASS including newly 10 native retention Firestore tests, 5 Storage, 6 Tenant Firestore, missing-Emulator negative, P0/ReleaseOwner, 18 Didit, SLO target tests, 1,491+ Vitest, builds/smoke/26 Browser. IN PROGRESS when captured.
+- [ ] Actual signed and proven legal-hold/decision GCS generation/404/412/crash audit receipts with >300 durable due-job queue and IAM/Scheduler, Tenant Admin SDK/Storage/Firestore Art.17 migration/BOLA, Product/DPO/Legal media ADR, verified SRE 30-day SLI and independent named release approvals remain **OPEN**.
+
+`productionApproved=false` — **Production BLOCKED / NO-GO**.
