@@ -1,0 +1,31 @@
+# P0 #202 — Legacy upload-age photo purge disabled (source-only remediation)
+
+**Date:** 2026-11-01  
+**Branch:** `fix/p0-202-disable-legacy-photo-purge-20261101` (based on `main`)  
+**Release status:** **BLOCKED / PRODUCTION NO-GO**. This change is **not deployed** and is not proof of current Cloud Scheduler state.
+
+## Verified source finding
+
+In the original `functions/src/deleteExpiredPhotos.ts`, the scheduled `deleteExpiredPhotosCron` invokes `deleteExpiredPhotoPage(getMaintenanceBucket(), now, pageToken)`, which scans every object under `verification/` and decides to delete based on its GCS `timeCreated` plus 30 days, irrespective of `verification_events.status` and the authoritative moderation decision timestamp. The independent signed `purgeVerificationStorageCron` already exists but does not make that legacy deletion safe. [P0 #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202).
+
+## Implemented fail-closed remediation (unmerged)
+
+1. Preserve `deleteExpiredPhotosCron` export and schedule for **deployment compatibility**. Its callback no longer lists, reads or deletes GCS photo objects; it emits `legacy_verification_photo_purge_disabled`. Bounded `funnel_events` cleanup is retained, with its own metric.
+2. Leave `deleteAccountPhotos` (Art.-17 subject erasure) separate. Replace the obsolete `deleteExpiredPhotoPage` helper with an unconditional `legacy_age_only_photo_purge_disabled` error **before any Storage access**; even an overlooked old caller fails closed.
+3. `photoRetention.spec.ts`: assert old/undecided verification photos cannot be scanned or deleted, even when the caller supplies a date beyond 30 days or an old page cursor. `storageRules.spec.ts`: the real isolated Storage emulator case now verifies a photo survives the deprecated age-only worker invocation, and explicitly removes its test fixture afterward.
+4. `scripts/check-legacy-photo-purge.mjs` plus **mutation regression tests** verify disabled worker, no age-only calls, no object reads, retention helper tripwire, still-deployed function export, continued `funnel_events` cleanup, and an independent signed decision-aware scheduler. Mandatory `check:legacy-photo-purge` is inserted into `check:enterprise`. The historical `check-retention-config.mjs` is aligned with the maintained retention policy gates.
+5. `docs/DATA_RETENTION.md` now correctly identifies `purgeVerificationStorageCron` + the API route/retention engine as the intended decision-aware path, rather than incorrectly attributing it to `deleteExpiredPhotosCron`.
+
+## Not fixed or approved by this patch
+
+- **Live deployment:** An already deployed `deleteExpiredPhotosCron` continues executing its **previous deployed code** until the approved fix is actually deployed or a Cloud Scheduler job is separately disabled. This branch performs neither action; SRE must inventory deployed function revisions, scheduler/job execution, service account permissions, retry configuration, backlog and safe rollback.
+- **Modern purge races:** The source of `src/server/routes/complianceStorage.ts` currently invokes GCS `.delete({ignoreNotFound:true})` without a visible `ifGenerationMatch`, and checks Firestore decision history separately from the physical delete. Separate generation fencing, changed-decision/hold, 404/412 and reconciliation fixes remain P0 work under #202 before enabling live purging.
+- **Privacy/legal:** Independent DPO/Legal signoff for Art. 5(1)(e), Art. 9, Art. 17; evidence retention, legal holds and actual storage provenance remain absent.
+- **Release:** Real CI on this branch's exact SHA, Storage Emulator tests, deployed IAM/Cloud Scheduler evidence, 14 mandatory gates where applicable, and independent Security/SRE/DPO/Release Owner signoffs are not automatically conferred by source changes. `main` remains unchanged; no GO.
+- **Integration sequencing:** Draft PR #268 also edits the long `check:enterprise` command in `package.json` on a separate main-based branch. Before any approved sequential merge, reconcile and retest both mandatory gates; do not silently lose either security check.
+
+## Staging-only proof required before deployment
+
+Confirm an authorized staging snapshot of Cloud Functions and Scheduler, with SHA/revision provenance. In a non-production Firebase emulator/storage test, supply a 31-day-old *pending* photo and show zero object deletion; supply approved/rejected photos with decisions older than 30 days and show correct deletion and immutable evidence; simulate a replaced generation and a hold; inject failed network/storage/audit writes and verify retries/receipts do not falsely claim completion. Separately prove `funnel_events` TTL cleanup still runs. Attach logs with exit code, run ID, exact source/rules SHA, job identities and reviewer approvals. Only then may the release owner consider a controlled deployment plan.
+
+**No production mutation or claimed official release approval. P0 #202 remains OPEN / NO-GO.**
