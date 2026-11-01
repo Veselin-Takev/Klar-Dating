@@ -370,3 +370,13 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Independently authenticate named human Release Owner and each reviewer via protected-environment controls and signed SHA-linked evidence. No structural validator alone suffices; P0 #202/#254 and all live controls remain unverified.
 
 **Release remains `productionApproved=false`; BLOCKED / NO-GO.**
+
+
+### 2026-11-01 — Exact-head release owner attestation CI verified (#292)
+
+- [x] [Main-based Draft #292](https://github.com/Veselin-Takev/Klar-Dating/pull/292), immutable SHA `c7e83d309fb64fff132b0e513db682c6acf21f1e`, completed full [CI #41352169125](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41352169125) SUCCESS. Mandatory `node --test scripts/test-release-go-evidence.mjs` ran 64 Node subtests including missing/stale/evidence-missing ReleaseOwner and self-signoff against Security/DPO/Legal/SRE; 192 Vitest files / 1,372 tests, Production Smoke and 26 Browser tests PASS. The previous pending entry above is superseded for this **exact** commit only.
+- [ ] Actually authenticate/authorize the named Release Owner and all reviewers and verify their independent exact release SHA and signed controlled evidence; synthetic fixture and raw URL format alone **cannot** satisfy this.
+- [ ] Review and re-run final CI on a dedicated approved **integration SHA** including stacked P0 #291 and separate #292, with all source/mutation and native Emulator checks; no standalone branch CI may be carried across code integration.
+- [ ] P0 #202 lawful GCS 404/412/holds/crash/receipt reconciliation and durable >300 queue; P0 #254 tenant authorization/Admin SDK/Art.17, actual deployed Rules/IAM and signed guest/adult/media visibility decision remain BLOCKED.
+
+`productionApproved=false` — **Production NO-GO**.
