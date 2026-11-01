@@ -390,3 +390,14 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Sign Product/DPO/Legal guest/adult/cross-tenant profile media policy, verify deployed Rules/IAM/Admin SDK BOLA/Art17 migration and GCS generation/404/412/hold/crash receipts/durable >300 workload, plus real independent Security/DPO/Legal/SRE/ReleaseOwner authorizations.
 
 Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41352274801) was CANCELLED, **not PASS**. `productionApproved=false`; **Production NO-GO**.
+
+
+### 2026-11-01 — Joint exact-head PASS #293 and new mandatory P0 proof records #294
+
+- [x] [Draft #293](https://github.com/Veselin-Takev/Klar-Dating/pull/293) SHA `e372270fa5bc43663355c8f2d8191f125c5d55b4` completed full [CI #41353102974](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41353102974) SUCCESS: ReleaseOwner negative Node suite (64), real no-Emulator regression, 5 actual Storage + 6 Tenant Firestore + 6 Retention Firestore tests, 1,473 Vitest and 26 Browser tests PASS. Previous pending audit entry superseded only for this SHA.
+- [x] [Draft #294](https://github.com/Veselin-Takev/Klar-Dating/pull/294) head `85c092b708497b5954aaf5cbfe8a901a401e3549` adds **six mandatory P0 integration receipt field names**, structural commit-bound PASS/URL gates, 24 extra negative checks and a current-manifest NO-GO test; only three changes (validator, test, technical document), no deployed Rules/IAM/GCS/data edits.
+- [ ] Verify new exact-head [CI #41354106319](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41354106319) complete SUCCESS including six explicit P0 omissions, 5+6+6 actual native Emulator suites, negative no-Emulator CI, typecheck, build, smoke and 26 browser; **IN PROGRESS**, not PASS at this snapshot.
+- [ ] Independently procure and verify **real** Admin SDK/tenant BOLA proof, approved legacy/Art.17 migration, Product/DPO/Legal media ADR, generation-fenced GCS deletion with 404/412/hold/crash receipts, resumable >300 due-work and Scheduler/IAM, actual signed Security/DPO/Legal/SRE/ReleaseOwner GO for the final release digest.
+- [ ] Governance audit previous exact SHA `e213a660689b7586b6ced9fa53e326d134674963` [CI #41353218455](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41353218455) SUCCESS; subsequent audit SHA requires separate CI.
+
+**P0 #202/#254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
