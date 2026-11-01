@@ -188,3 +188,12 @@ No production activation or GO. Keep `productionApproved=false`.
 - [ ] Trusted command producer/consumer, tenant/UID/GCS/legal-hold checks, operation receipts and 404/412 crash reconciliation, >300 durable backlog, real deployed Scheduler/IAM/TTL audit and independent DPO/AppSec/Legal/SRE/Release Owner GO.
 
 **P0 #202 OPEN. `productionApproved=false`. Production BLOCKED / NO-GO.**
+
+
+### 2026-11-01 — PR #280 exact-head red CI and corrected assertion
+
+- [x] Latest #280 source correction on SHA `4f53bcfef9d31ddbd9672465b2362ee1f7d726ac`: test now asserts that invalid GCS generation `0` is refused **before another Firestore transaction**, with error `purge_work_unsupported_command`.
+- [ ] Confirm [CI #41336278230](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41336278230) full SUCCESS on that exact SHA including all **six** native Firestore Emulator tests; previous [#41335672265](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41335672265) FAILED one stale test expectation after static/type/build PASS, and must not be counted as GO.
+- [ ] Full multi-tenant source integration, durable retention producer/consumer >300, trusted clock, GCS 404/412/hold/receipt staged recovery, external AppSec/DPO/Legal/SRE/Release Owner approvals.
+
+**Do not release; `productionApproved=false`; P0 #202 OPEN, NO-GO.**
