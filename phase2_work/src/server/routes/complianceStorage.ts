@@ -1,11 +1,14 @@
 import express, { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { Firestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { executeVerificationRetentionBatch, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 import { assertCurrentVerificationPurgeCandidate, verifiedDeletionGeneration } from '../platform/verificationPurgeBoundary';
 
 const MAX_BATCH = 100;
+// Bounded read-only preflight. If the entire due set cannot be enumerated,
+// refuse a misleading success; durable continuation remains a release blocker.
+const MAX_SCAN_PAGES = 3;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 
 export function complianceSignature(body: string, secret: string): string {
@@ -50,11 +53,32 @@ export function createVerificationStoragePurgeRouter(deps: {
     const db = deps.getDb();
     const now = Date.now();
     try {
-      const snapshot = await db.collection('verification_events')
+      const dueQuery = db.collection('verification_events')
         .where('fotoLoeschenAb', '<=', new Date(now))
-        .limit(MAX_BATCH)
-        .get();
-      const artifacts: VerificationArtifactRecord[] = snapshot.docs.flatMap(doc => {
+        .orderBy('fotoLoeschenAb');
+      const dueDocs: QueryDocumentSnapshot[] = [];
+      let cursor: QueryDocumentSnapshot | undefined;
+      let complete = false;
+      // All-or-nothing preflight: avoid a perpetually repeated first page and
+      // never report 200 when due records beyond the scanned bound may exist.
+      for (let page = 0; page < MAX_SCAN_PAGES; page++) {
+        const query = cursor ? dueQuery.startAfter(cursor).limit(MAX_BATCH) : dueQuery.limit(MAX_BATCH);
+        const snapshot = await query.get();
+        dueDocs.push(...snapshot.docs);
+        if (snapshot.docs.length < MAX_BATCH) { complete = true; break; }
+        cursor = snapshot.docs[snapshot.docs.length - 1];
+      }
+      if (!complete && cursor) {
+        const next = await dueQuery.startAfter(cursor).limit(1).get();
+        complete = next.empty || next.docs.length === 0;
+      }
+      if (!complete) {
+        return res.status(503).json({
+          ok: false, code: 'verification_storage_purge_scan_incomplete',
+          scannedCount: dueDocs.length,
+        });
+      }
+      const artifacts: VerificationArtifactRecord[] = dueDocs.flatMap(doc => {
         const data = doc.data();
         const uid = typeof data.uid === 'string' ? data.uid : '';
         const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
@@ -93,7 +117,7 @@ export function createVerificationStoragePurgeRouter(deps: {
       // A scheduled caller checks only HTTP status. Never acknowledge a partial
       // failure as success or echo GCS errors, user IDs or photo paths.
       const failedCount = summary.results.filter(result => result.reason === 'error').length;
-      const malformedCount = snapshot.docs.length - artifacts.length;
+      const malformedCount = dueDocs.length - artifacts.length;
       const safeSummary = {
         processed: summary.processed,
         purgedCount: summary.purgedCount,
