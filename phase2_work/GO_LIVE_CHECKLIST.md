@@ -146,3 +146,14 @@ No release claim. Remain `NO-GO` and `productionApproved=false`.
 - [ ] Scalable >300 due queue/producer, real tenant mapping/UID/decision, missing-expiry/hold backfill, production scheduler/TTL/IAM evidence and signed independent AppSec/DPO/Legal/SRE/Release Owner approvals.
 
 **Production still BLOCKED/NO-GO. Do not set `productionApproved=true`.**
+
+
+### 2026-11-01 — P0 #202 field-level CAS security regression (Draft #277)
+
+- [x] Parent #276 exact SHA `a8c2830ae325ddf49d07e22508f235898df70204`: [CI #41291380045](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41291380045) SUCCESS; log proves all 3 native Firestore Emulator tests were executed, not skipped. Source-only/unmerged validation.
+- [x] New isolated [Draft #277](https://github.com/Veselin-Takev/Klar-Dating/pull/277) source adds field-level lease token/epoch/attempt, generation-observation and receipt integrity checks, offline forgery regressions, a 4th real Emulator case, and mandatory mutation security gates.
+- [ ] Confirm **new exact-head SHA `4c1e04eef8935753b990a50ef4ca99432414c334`** full CI [#41316005858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41316005858) succeeds and 4 native emulator tests actually run.
+- [ ] Replace arbitrary callback API with reviewed, least-privilege typed actions plus authoritative tenant/UID/hold checks and independent audit receipt authentication.
+- [ ] Complete durable >300-workload producer/consumer and crash/replay/404/412/hold staging tests, Scheduler deployment review and independent Security/DPO/Legal/SRE/Release Owner approvals.
+
+These changes do not authorize any customer-photo operation or production GO. `productionApproved=false`, **BLOCKED / NO-GO**.
