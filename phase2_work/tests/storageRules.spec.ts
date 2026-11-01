@@ -22,7 +22,7 @@ const tenantUser = (uid: string, tenantId: string) =>
 
 const assertLoopbackStorageEmulator = () => {
   const host = process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '';
-  if (!/^(?:127\\.0\\.0\\.1|localhost|\\[::1\\]):\\d{2,5}$/.test(host) ||
+  if (!/^(?:127\.0\.0\.1|localhost|\[::1\]):\d{2,5}$/.test(host) ||
       (process.env.GCLOUD_PROJECT && process.env.GCLOUD_PROJECT !== 'demo-klar') ||
       (process.env.GOOGLE_CLOUD_PROJECT && process.env.GOOGLE_CLOUD_PROJECT !== 'demo-klar')) {
     throw new Error('storage_tenant_test_requires_loopback_demo_emulator');
