@@ -218,3 +218,14 @@ Still `productionApproved=false`; both P0 #202 and #254 **OPEN**, production **N
 - [ ] Independently approve lawful tenant data mapping/migration and Art.-17 cascade, deployed Retention reconciliation with GCS 404/412, safe >300 queue, staging and independent AppSec/DPO/Legal/SRE/Release Owner GO.
 
 **P0 #202/#254 OPEN; no production approval, `productionApproved=false`.**
+
+
+### 2026-11-01 — Native Tenant Claims Firestore Rules proof (Draft #283)
+
+- [x] Parent #282 local Firebase Rules source/config proof SHA `5c82c3c2f7847a63eef09a863e194106cfba96d9` passed [CI #41339344795](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41339344795), **not** a deployed-Rules or tenant authorization approval.
+- [x] New unmerged [Draft #283](https://github.com/Veselin-Takev/Klar-Dating/pull/283) defines **6 native Firestore Rules Emulator tests** for current global UID path behavior and default-denied tenant paths. One intentionally confirms global legacy UID read persists across tenantId claim changes, a **release-blocking gap**.
+- [ ] Require full latest-head SHA `29716be04eb50833248c2693455a952c9f098ddb` [CI #41341495412](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41341495412) SUCCESS and logs proving **6 new tenant tests + 6 existing native retention tests** ran (not silently skipped).
+- [ ] Independently design/approve signed tenant membership, globally authoritative UID/tenant mapping, tenant Firestore Rules/Storage Rules and Admin SDK server guards; complete cross-tenant BOLA/IDOR tests, legacy data/Art.-17 migration and staged deployment/rollback.
+- [ ] Complete P0 #202 active retention worker with legal holds, >300 queue, GCS 404/412/durable receipts; obtain final AppSec/DPO/Legal/SRE/Release Owner signatures.
+
+Both P0s OPEN, `productionApproved=false`, **NO-GO**.
