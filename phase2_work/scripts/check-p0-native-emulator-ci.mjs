@@ -48,7 +48,8 @@ export function nativeP0CIFailures({ suites, vitest, manifest }) {
   const command = manifest?.scripts?.['check:p0-native-emulator-ci'];
   if (typeof command !== 'string' ||
       !command.includes('check-p0-native-emulator-ci.mjs') ||
-      !command.includes('check-p0-native-emulator-ci.test.mjs')) {
+      !command.includes('check-p0-native-emulator-ci.test.mjs') ||
+      !command.includes('check-p0-native-emulator-runtime.test.mjs')) {
     failures.push('mandatory_source_and_negative_tests_missing');
   }
   return failures;
