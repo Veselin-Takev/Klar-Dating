@@ -90,7 +90,23 @@ export function createVerificationStoragePurgeRouter(deps: {
         },
         now,
       );
-      return res.json({ ok: true, ...summary });
+      // A scheduled caller checks only HTTP status. Never acknowledge a partial
+      // failure as success or echo GCS errors, user IDs or photo paths.
+      const failedCount = summary.results.filter(result => result.reason === 'error').length;
+      const malformedCount = snapshot.docs.length - artifacts.length;
+      const safeSummary = {
+        processed: summary.processed,
+        purgedCount: summary.purgedCount,
+        skippedCount: summary.skippedCount,
+        failedCount,
+        malformedCount,
+      };
+      if (failedCount > 0 || malformedCount > 0 ||
+          summary.results.length !== summary.processed ||
+          summary.purgedCount + summary.skippedCount !== summary.processed) {
+        return res.status(503).json({ ok: false, code: 'verification_storage_purge_incomplete', ...safeSummary });
+      }
+      return res.json({ ok: true, ...safeSummary });
     } catch {
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
     }
