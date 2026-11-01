@@ -18,7 +18,7 @@ for(const [label,mutate] of [
   ['biometric photo restriction not tested',x=>{x.testSource=x.testSource.replace('biometric verification image cannot be read','not tested');}],
   ['tenant namespace default-deny test removed',x=>{x.testSource=x.testSource.replace('new tenant-prefixed profile object is inaccessible','not tested');}],
   ['loopback emulator omitted',x=>{x.testSource=x.testSource.replaceAll('FIREBASE_STORAGE_EMULATOR_HOST','PRODUCTION_STORAGE_ENDPOINT');}],
-  ['rules evaluator missing',x=>{x.testSource=x.testSource.replace('initializeTestEnvironment','mockRulesEvaluator');}],
+  ['rules evaluator missing',x=>{x.testSource=x.testSource.replaceAll('initializeTestEnvironment','mockRulesEvaluator');}],
   ['native test excluded from Vitest',x=>{x.vitest+="\n'**/tenantStorageBoundary.emulator.spec.ts'";}],
   ['Storage emulator removed from CI',x=>{x.packageJson.scripts['test:ci']=x.packageJson.scripts['test:ci'].replace('--only auth,firestore,storage','--only auth,firestore');}],
   ['new source check omitted from enterprise',x=>{x.packageJson.scripts['check:enterprise']=x.packageJson.scripts['check:enterprise'].replace('npm run check:tenant-native-storage && ','');}],
