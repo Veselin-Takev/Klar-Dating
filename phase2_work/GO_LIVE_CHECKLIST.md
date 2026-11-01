@@ -331,3 +331,13 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Close P0 #202 using lawful decision/hold/worker authorization; verify real GCS generation-fenced 404/412/timeout/crash receipts and **>300 durable due-item backlog**, release-candidate exact-SHA CI, staging IAM/Scheduler and independent AppSec/DPO/Legal/SRE/Release Owner GO.
 
 **P0 #202/#254 still OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
+
+
+### 2026-11-01 — Native guest-authenticated media evidence (#291)
+
+- [x] Source review: current legacy Storage `signedIn()` profile read permits authenticated anonymous guests, unlike Firestore `public_profiles` guest/adult/block gating. This is source behavior **not** live deployment proof or an approved disclosure policy.
+- [x] [Stacked Draft #291](https://github.com/Veselin-Takev/Klar-Dating/pull/291) initial SHA `b3aa77c199fc8f94a28490b13ba91e87aaadf07a`: add synthetic guest getDownloadURL/getMetadata permission assertions, deny guest upload/delete, source/mutation CI protection. No Rules/production changes.
+- [ ] Verify [CI #41350043310](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41350043310) at exact #291 head **fully PASS** with 5 actual Storage, 6 Tenant Firestore and 6 Retention Firestore Emulator tests, static/type/build/smoke/browser. Current evidence **QUEUED**, no inherited #290 PASS.
+- [ ] Product/DPO/Legal signed guest/age/block/tenant visibility ADR, live Rules/IAM/SDK protections and token-revocation; P0 #202 hold-aware GCS receipt/404/412/worker crash/replay >300, independent release signoffs all missing.
+
+**P0 #202/#254 OPEN; `productionApproved=false`; BLOCKED/NO-GO.**
