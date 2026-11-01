@@ -7,17 +7,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, relative, extname, join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { categoriesForLine } from './tenant-access-patterns.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.firebase', 'test-results', 'playwright-report']);
 const sourceTypes = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
-const checks = [
-  ['admin_firestore', /\b(?:getFirestore|getDb|admin\.firestore|firebase-admin\/firestore)\b/],
-  ['firestore_client', /\b(?:collection|collectionGroup|doc|getDoc|getDocs|onSnapshot|query|runTransaction|writeBatch)\s*\(/],
-  ['storage_access', /\b(?:getStorage|ref|getDownloadURL|uploadBytes|deleteObject|bucket)\s*\(/],
-  ['user_sensitive_path', /(?:users|chats|messages|subscriptions|verification_events|referrals|payments|tenants)\s*\//],
-  ['database_mutation', /\b(?:setDoc|addDoc|updateDoc|deleteDoc|create|update|delete)\s*\(/],
-];
 const rows = [];
 const fail = message => { throw new Error('inventory_failed: ' + message); };
 function walk(dir) {
@@ -34,11 +28,9 @@ function walk(dir) {
     const categories = new Set();
     const hits = [];
     for (let i = 0; i < lines.length; i++) {
-      for (const [category, pattern] of checks) {
-        if (pattern.test(lines[i])) {
-          categories.add(category);
-          hits.push({ line: i + 1, category });
-        }
+      for (const category of categoriesForLine(lines[i])) {
+        categories.add(category);
+        hits.push({ line: i + 1, category });
       }
     }
     // Preserve zero-hit files: otherwise new SDK wrappers may be silently omitted.
@@ -66,11 +58,9 @@ try {
   const entryHits = [];
   const entryCategories = new Set();
   entryData.split(/\r?\n/).forEach((line, i) => {
-    for (const [category, pattern] of checks) {
-      if (pattern.test(line)) {
-        entryCategories.add(category);
-        entryHits.push({ line: i + 1, category });
-      }
+    for (const category of categoriesForLine(line)) {
+      entryCategories.add(category);
+      entryHits.push({ line: i + 1, category });
     }
   });
   rows.push({
