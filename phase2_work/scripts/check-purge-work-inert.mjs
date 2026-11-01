@@ -14,7 +14,7 @@ export function purgeWorkIsolationViolations(source) {
       !adapter.includes('tx.get(ref)') || !adapter.includes('tx.update(ref, next)')) {
     failures.push('transactional compare-and-swap adapter removed');
   }
-  if (/\b(?:getStorage|getBucket|getMaintenanceBucket|deleteExpiredPhotoPage|\.delete\s*\()/.test(states + adapter)) {
+  if (/\b(?:getStorage|getBucket|getMaintenanceBucket|deleteExpiredPhotoPage)\b|\.delete\s*\(/.test(states + adapter)) {
     failures.push('state-only modules must not access GCS or legacy purge');
   }
   if (route.includes('verificationPurgeWorkState') || route.includes('verificationPurgeWorkFirestore') ||
