@@ -341,3 +341,14 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Product/DPO/Legal signed guest/age/block/tenant visibility ADR, live Rules/IAM/SDK protections and token-revocation; P0 #202 hold-aware GCS receipt/404/412/worker crash/replay >300, independent release signoffs all missing.
 
 **P0 #202/#254 OPEN; `productionApproved=false`; BLOCKED/NO-GO.**
+
+
+### 2026-11-01 — Exact-head PASS for guest-authenticated Storage evidence #291
+
+- [x] [Draft #291](https://github.com/Veselin-Takev/Klar-Dating/pull/291), immutable SHA `b3aa77c199fc8f94a28490b13ba91e87aaadf07a`, has **completed full [CI #41350043310](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41350043310) SUCCESS**; logs prove **5 native Storage, 6 Tenant Firestore, 6 Retention Firestore** emulator cases actually executed; 1,473 Vitest tests in 200 files, Production Smoke and 26 Browser Acceptance tests PASS; real missing-Emulator child negative test PASS. Historic *queued* note is superseded for the same SHA.
+- [x] Previous Governance Draft #270 head `0f6c11d41bebfd6f16fe26540803178ee2697ec2` [CI #41350146993](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41350146993) PASS; later governance documentation commits need their own CI.
+- [ ] Obtain signed Product/DPO/Legal decision: may Firebase-anonymous guests, unverified/minor/deleted accounts or cross-tenant viewers read otherwise discoverable profile media, metadata and long-lived URLs? Neither source/emulator behavior nor previous marketing intent substitutes for a legal/product decision.
+- [ ] Verify actual deployed Firestore/Storage Rules hashes, IAM/Admin SDK tenant BOLA and UID/membership/revocation behavior, download-token revocation, tenant mapping/Art.-17 erasure and rollback.
+- [ ] Resolve P0 #202: independently authorize generation-fenced GCS deletion/404/412/crash/holds with durable receipts; demonstrate scheduler/IAM and **>300** due items processed safely; signed AppSec/DPO/Legal/SRE/Release Owner GO after exact integrated release SHA.
+
+**P0 #202 and #254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
