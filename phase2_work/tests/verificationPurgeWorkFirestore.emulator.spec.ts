@@ -91,6 +91,24 @@ describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command 
     } finally { await ref.delete(); }
   }, 20_000);
 
+  it('native Firestore rejects accessor-based command spoofing without running getters', async () => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set(createPurgeWork(id, t0));
+    let getterCalls = 0;
+    try {
+      const attack: Record<string, unknown> = { kind: 'claim', leaseMs: 5_000 };
+      Object.defineProperty(attack, 'token', { enumerable: true, get() {
+        getterCalls++;
+        return workerA;
+      } });
+      await expect(executePurgeWorkCommand(db, ref, attack as unknown as PurgeWorkCommand))
+        .rejects.toThrow('purge_work_unsupported_command');
+      expect(getterCalls).toBe(0);
+      expect((await ref.get()).data()).toMatchObject({ status: 'ready', revision: 0, attempt: 0 });
+    } finally { await ref.delete(); }
+  }, 20_000);
+
   it('forged attempt/lease keys are denied before a Firestore write', async () => {
     const id = randomUUID().replaceAll('-', '');
     const ref = db.collection('verification_purge_jobs').doc(id);
