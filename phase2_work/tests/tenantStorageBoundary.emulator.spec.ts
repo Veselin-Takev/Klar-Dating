@@ -64,6 +64,29 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #254 native Storage Ru
     }
   }, 20_000);
 
+  it('anonymous signed-in guest can read legacy profile media despite the adult-gated Firestore discovery policy', async () => {
+    const path = `profiles/${owner}/guest-visibility.jpg`;
+    const guest = env.authenticatedContext(
+      'guest-' + randomUUID().replaceAll('-', ''), {
+        tenantId: 'tenant-beta', firebase: { sign_in_provider: 'anonymous' },
+      },
+    ).storage('gs://demo-klar.appspot.com');
+    await assertSucceeds(Promise.resolve(storage(owner, 'tenant-alpha').ref(path)
+      .put(image, { contentType: 'image/jpeg' })));
+    try {
+      // Current legacy signedIn() Storage read allows guest media access, even
+      // though guest uploads are denied and Firestore public_profiles is adult-gated.
+      // This is a SOURCE RULES observation, NOT an authorization decision or live exploit.
+      await assertSucceeds(guest.ref(path).getDownloadURL());
+      await assertSucceeds(guest.ref(path).getMetadata());
+      await assertFails(Promise.resolve(guest.ref(path)
+        .put(image, { contentType: 'image/jpeg' })));
+      await assertFails(guest.ref(path).delete());
+    } finally {
+      await assertSucceeds(storage(owner, 'tenant-alpha').ref(path).delete());
+    }
+  }, 20_000);
+
   it('biometric verification image cannot be read by its owner or other tenant', async () => {
     const path = `verification/${owner}/tenant-verification.jpg`;
     const file = getAppBucket().file(path);
