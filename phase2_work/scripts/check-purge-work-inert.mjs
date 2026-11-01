@@ -16,6 +16,13 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('purge_work_stale_or_expired_lease')) {
     failures.push('lease or receipt fencing state transitions removed');
   }
+  if (!adapter.includes('Object.getOwnPropertyDescriptors(command)') ||
+      !adapter.includes('Reflect.ownKeys(command)') ||
+      !adapter.includes("!('value' in descriptor)") ||
+      !adapter.includes('!descriptor.enumerable') ||
+      !adapter.includes('purge_work_unsupported_command')) {
+    failures.push('plain data descriptor and hidden command property rejection removed');
+  }
   if (!adapter.includes('const now = Date.now()') ||
       !adapter.includes('const preparedCommand = snapshotCommand(command)') ||
       !adapter.includes('executePureCommand(current, preparedCommand, now)') ||
