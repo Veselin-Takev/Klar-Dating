@@ -16,7 +16,7 @@ test('two real tenant-claim Storage permission scenarios remain wired into CI',(
 for(const [name,change] of [
  ['cross tenant readable evidence removed',x=>{x.suite=x.suite.replace('assertSucceeds(otherTenant.ref(path).getMetadata())','void otherTenant.ref(path).getMetadata()');}],
  ['biometrics denial removed',x=>{x.suite=x.suite.replace('assertFails(otherTenant.ref(path).getMetadata())','void otherTenant.ref(path).getMetadata()');}],
- ['tenant B authentication removed',x=>{x.suite=x.suite.replace("tenantUser(otherUid, 'tenant-B')","tenantUser(otherUid, 'tenant-A')");}],
+ ['tenant B authentication removed',x=>{x.suite=x.suite.replaceAll("tenantUser(otherUid, 'tenant-B')","tenantUser(otherUid, 'tenant-A')");}],
  ['local Storage safety removed',x=>{x.suite=x.suite.replaceAll('assertLoopbackStorageEmulator()','void 0');}],
  ['storage emulator excluded from CI',x=>{x.manifest.scripts['test:ci']=x.manifest.scripts['test:ci'].replace('--only auth,firestore,storage','--only auth,firestore');}],
  ['rules suite explicitly omitted',x=>{x.config=x.config.replace("'**/storageRules.spec.ts'", "'**/unusedStorageRules.spec.ts'");}],
