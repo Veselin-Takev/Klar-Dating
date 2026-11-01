@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { transitionPurgeWorkInTransaction } from '../src/server/platform/verificationPurgeWorkFirestore';
-import { createPurgeWork, claimPurgeWork, markDeletionIntent, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
+import { createPurgeWork, claimPurgeWork, markDeletionIntent, markDeletionObserved, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
 
 const key = 'a'.repeat(64);
 const token = 'worker-opaque-token-0000001';
@@ -75,6 +75,51 @@ describe('P0 #202 Firestore transaction adapter is opt-in, bounded and retry-saf
     await expect(transitionPurgeWorkInTransaction(m.db, ref,
       state => claimPurgeWork(state, 'another-token-00000000000', now + 8_000, 5_000)))
       .rejects.toThrow('purge_work_not_claimable');
+    expect(m.writes).toHaveLength(1);
+  });
+
+  it('denies a forged complete receipt directly from ready without any delete intent', async () => {
+    const m = memoryDb();
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'complete', revision: 1, receiptDigest: 'a'.repeat(64), completedAt: now + 1 })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    expect(m.writes).toHaveLength(0);
+    expect(m.getStored().status).toBe('ready');
+  });
+
+  it('denies a fabricated receipt_pending transition without a committed intent', async () => {
+    const claimed = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const m = memoryDb(claimed);
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'receipt_pending', revision: current.revision + 1,
+        observed: { generation: '123', observedAt: now + 100 } })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    expect(m.writes).toHaveLength(0);
+  });
+
+  it('denies mutating the write-ahead generation or falling back to ready', async () => {
+    const claimed = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const prepared = markDeletionIntent(claimed, token, 1, now + 100, '123');
+    const m = memoryDb(prepared);
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'receipt_pending', revision: current.revision + 1,
+        intent: { ...prepared.intent!, generation: '124' },
+        observed: { generation: '124', observedAt: now + 200 } })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      current => ({ ...current, status: 'ready', revision: current.revision + 1, intent: undefined })))
+      .rejects.toThrow('purge_work_transition_invariant');
+    expect(m.writes).toHaveLength(0);
+  });
+
+  it('accepts genuine intent-to-observation transition without changing immutable generation', async () => {
+    const claimed = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const prepared = markDeletionIntent(claimed, token, 1, now + 100, '123');
+    const m = memoryDb(prepared);
+    const observed = await transitionPurgeWorkInTransaction(m.db, ref,
+      current => markDeletionObserved(current, token, 1, now + 200, '123'));
+    expect(observed).toMatchObject({ status: 'receipt_pending', revision: 3,
+      intent: { generation: '123', leaseEpoch: 1 }, observed: { generation: '123' } });
     expect(m.writes).toHaveLength(1);
   });
 
