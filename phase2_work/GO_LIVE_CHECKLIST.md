@@ -157,3 +157,13 @@ No release claim. Remain `NO-GO` and `productionApproved=false`.
 - [ ] Complete durable >300-workload producer/consumer and crash/replay/404/412/hold staging tests, Scheduler deployment review and independent Security/DPO/Legal/SRE/Release Owner approvals.
 
 These changes do not authorize any customer-photo operation or production GO. `productionApproved=false`, **BLOCKED / NO-GO**.
+
+
+### 2026-11-01 — Typed, non-finalizing purge commands (Draft #278)
+
+- [x] Parent #277 exact commit `4c1e04eef8935753b990a50ef4ca99432414c334`, [CI #41316005858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41316005858) SUCCESS, including **4 executed native Firestore Emulator tests**.
+- [x] In unmerged [Draft #278](https://github.com/Veselin-Takev/Klar-Dating/pull/278), the unused Firestore CAS adapter now exports only a typed four-operation **pre-delete** API, rejects arbitrary callbacks, unknown commands and hidden fields, and withholds unverified GCS/audit completion operations. Tests and static mutation gate updated.
+- [ ] Verify latest #278 source SHA `bcaede0ea892f6a7ce5b42371bdad9f2d9ae0774` exact-head full [CI #41332732631](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41332732631), including execution of **4 native Emulator tests** (not skipped).
+- [ ] Validate tenant/UID/legal holds, GCS generations/404/412 and authenticated append-only receipt in approved staging; native >300 backlog worker, actual deployed Scheduler/IAM/TTL inventory and independent signed AppSec/DPO/Legal/SRE/Release Owner approvals.
+
+No current production change, no GO. `productionApproved=false`.
