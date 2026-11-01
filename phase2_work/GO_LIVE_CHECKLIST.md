@@ -229,3 +229,13 @@ Still `productionApproved=false`; both P0 #202 and #254 **OPEN**, production **N
 - [ ] Complete P0 #202 active retention worker with legal holds, >300 queue, GCS 404/412/durable receipts; obtain final AppSec/DPO/Legal/SRE/Release Owner signatures.
 
 Both P0s OPEN, `productionApproved=false`, **NO-GO**.
+
+
+### 2026-11-01 — P0 #254 native Storage Rules tenant boundary evidence (Draft #284)
+
+- [x] [Draft #283](https://github.com/Veselin-Takev/Klar-Dating/pull/283), SHA `d2d77d700bcdf8cfd54b943a244f6faafb7590b8`: [CI #41341786655](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41341786655) full SUCCESS, 6 actual Tenant Firestore + 6 Retention Firestore Emulator cases, 1,468 Vitest tests.
+- [x] [Draft #284](https://github.com/Veselin-Takev/Klar-Dating/pull/284) source-only 4-case Storage Rules Emulator evidence added (cross-tenant signed-in legacy profile-image read succeeds; cross-owner write/delete fails; verification image reads fail; tenant-prefixed Storage object still deny-by-default). Mandatory enterprise/dual-P0 mutation gate added. No Rules changes.
+- [ ] Verify exact-head SHA `4ee71941061b0c9234033aa2ee81c40f8949f3c0` [CI #41342604486](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41342604486) SUCCESS **and** logs proving 4 native Storage + 6 Tenant Firestore + 6 Retention Firestore tests actually executed.
+- [ ] Obtain Product/DPO-approved media-visibility policy; signed tenant identity and membership, tenant-aware Storage/Firestore Rules, Admin SDK tenant/BOLA checks, deployed source provenance, migration/Art.17/rollback and IAM/Scheduler/GCS verified receipts, plus all independent release signoffs.
+
+**P0 #254 and #202 OPEN; `productionApproved=false`; BLOCKED/NO-GO.**
