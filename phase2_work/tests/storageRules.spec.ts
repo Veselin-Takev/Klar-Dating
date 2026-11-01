@@ -27,6 +27,55 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
     await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
   });
+  it('documents actual emulator policy: a different tenant-claim user can read another account profile image', async () => {
+    // Deliberately a characterization test, NOT a security approval.
+    // A user-visible profile image may intentionally be public to all signed-in users.
+    // The present Storage Rules have no tenantId check on profile reads.
+    const ownerUid = `${prefix}-tenant-a`;
+    const path = `profiles/${ownerUid}/tenant-cross-read.jpg`;
+    const bucket = getAppBucket();
+    const profile = bucket.file(path);
+    const owner = env.authenticatedContext(ownerUid, {
+      tenantId: 'tenant-a', firebase: { sign_in_provider: 'password' },
+    }).storage('gs://demo-klar.appspot.com');
+    const otherTenant = env.authenticatedContext(`${prefix}-tenant-b`, {
+      tenantId: 'tenant-b', firebase: { sign_in_provider: 'password' },
+    }).storage('gs://demo-klar.appspot.com');
+    try {
+      await assertSucceeds(Promise.resolve(owner.ref(path).put(image, { contentType: 'image/jpeg' })));
+      // This is the expected CURRENT policy: signed-in cross-tenant reads are allowed.
+      // Do not replace with assertFails until the product/DPO profile visibility policy
+      // and an authorized tenant-aware Storage Rules migration are approved.
+      await assertSucceeds(otherTenant.ref(path).getMetadata());
+      await assertFails(Promise.resolve(otherTenant.ref(path).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getMetadata());
+    } finally {
+      if ((await profile.exists())[0]) await profile.delete();
+    }
+  });
+
+  it('denies client reads of another tenant-claim verification photo even though profile reads are allowed', async () => {
+    const ownerUid = `${prefix}-biometric-owner`;
+    const path = `verification/${ownerUid}/tenant-isolation.jpg`;
+    const bucket = getAppBucket();
+    const verification = bucket.file(path);
+    const owner = env.authenticatedContext(ownerUid, {
+      tenantId: 'tenant-a', firebase: { sign_in_provider: 'password' },
+    }).storage('gs://demo-klar.appspot.com');
+    const otherTenant = env.authenticatedContext(`${prefix}-tenant-b`, {
+      tenantId: 'tenant-b', firebase: { sign_in_provider: 'password' },
+    }).storage('gs://demo-klar.appspot.com');
+    try {
+      await assertSucceeds(Promise.resolve(owner.ref(path).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(owner.ref(path).getMetadata());
+      await assertFails(otherTenant.ref(path).getMetadata());
+      await assertFails(Promise.resolve(otherTenant.ref(path).put(image, { contentType: 'image/jpeg' })));
+      await assertFails(owner.ref(path).delete());
+    } finally {
+      if ((await verification.exists())[0]) await verification.delete();
+    }
+  });
+
   it('keeps an old, undecided verification photo when the legacy worker is invoked', async () => {
     const bucket = getAppBucket();
     const photo = bucket.file(`verification/${prefix}/photo.jpg`);
