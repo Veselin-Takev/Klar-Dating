@@ -27,3 +27,7 @@ In addition, command properties were read by the retriable Firestore transaction
 5. **No external approvers:** Native Firestore Emulator source tests and exact-head CI do not replace independent AppSec/DPO/Legal/SRE/Release Owner acceptance, genuine staging GCS preconditions, final merged-SHA checks or signed production approval.
 
 No direct main commit, merge, deployment, production Firestore/GCS query or mutation was performed. **Keep `RELEASE_MANIFEST.json` `productionApproved=false` and the release decision NO-GO.**
+
+## 2026-11-01 — CI traceability follow-up
+
+Initial head `41bebee582f21082661622337299088a26a75d07` [CI #41333883487](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41333883487) **FAILED** in `Enterprise static gates`, because the mandatory source guard still expected the old `executePureCommand(current, command)` form. The new dispatcher correctly uses `executePureCommand(current, preparedCommand, now)`; the source guard was corrected (not bypassed) in SHA `e3358e064c611836276645f297400436df74f846`. Its fresh [CI #41334015267](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41334015267) was not complete at this entry. Do not count the failed earlier SHA or inherited green parent CI as evidence for this new head. Production NO-GO.
