@@ -109,6 +109,55 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     expect(m.getCalls()).toBe(0);
   });
 
+  it('rejects accessor properties WITHOUT invoking their getters or Firestore', async () => {
+    let reads = 0;
+    const malicious: Record<string, unknown> = { kind: 'claim', leaseMs: 5_000 };
+    Object.defineProperty(malicious, 'token', {
+      enumerable: true,
+      get() { reads++; throw new Error('getter executed'); },
+    });
+    const m = memoryDb();
+    await expect(executePurgeWorkCommand(m.db, ref, malicious as unknown as PurgeWorkCommand))
+      .rejects.toThrow('purge_work_unsupported_command');
+    expect(reads).toBe(0);
+    expect(m.getCalls()).toBe(0);
+  });
+
+  it('rejects hidden, symbol and non-plain payload properties before any transaction', async () => {
+    const cases: unknown[] = [];
+    const withHidden = { ...claim };
+    Object.defineProperty(withHidden, 'now', { value: now + 123_000, enumerable: false });
+    cases.push(withHidden);
+    const withSymbol = { ...claim };
+    Object.defineProperty(withSymbol, Symbol('secret'), { value: 'shadow', enumerable: true });
+    cases.push(withSymbol);
+    cases.push(Object.assign(Object.create({ inherited: true }) as object, claim));
+    cases.push({ ...claim, leaseMs: '5000' });
+    cases.push({ ...claim, leaseMs: 100 });
+    cases.push({ kind: 'prepare_delete_intent', token: tokenA, epoch: 1, generation: 123 });
+    cases.push({ kind: 'quarantine', reason: 'legal_hold', token: tokenA });
+    cases.push({ kind: 'claim', leaseMs: 5_000 });
+    const m = memoryDb();
+    for (const invalid of cases) {
+      await expect(executePurgeWorkCommand(m.db, ref, invalid as PurgeWorkCommand))
+        .rejects.toThrow('purge_work_unsupported_command');
+    }
+    expect(m.getCalls()).toBe(0);
+    expect(m.writes).toHaveLength(0);
+  });
+
+  it('accepts a frozen plain command and null-prototype data without altering the caller object', async () => {
+    const m = memoryDb();
+    const frozen = Object.freeze({ ...claim });
+    const result = await executePurgeWorkCommand(m.db, ref, frozen);
+    expect(result).toMatchObject({ status: 'leased', attempt: 1 });
+    expect(frozen).toEqual(claim);
+    const m2 = memoryDb();
+    const nullPrototype = Object.assign(Object.create(null) as object, claim);
+    const second = await executePurgeWorkCommand(m2.db, ref, nullPrototype as PurgeWorkCommand);
+    expect(second.status).toBe('leased');
+  });
+
   it('rejects stale worker token and mismatched generation', async () => {
     const prepared = claimPurgeWork(createPurgeWork(key, now), tokenA, now, 5_000);
     const m = memoryDb(prepared);
@@ -117,7 +166,9 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     })).rejects.toThrow('purge_work_stale_or_expired_lease');
     await expect(executePurgeWorkCommand(m.db, ref, {
       kind: 'prepare_delete_intent', token: tokenA, epoch: 1, generation: '0',
-    })).rejects.toThrow('purge_work_invalid_generation');
+    })).rejects.toThrow('purge_work_unsupported_command');
+    // Invalid generation must be refused before even entering a Firestore transaction.
+    expect(m.getCalls()).toBe(1);
     expect(m.writes).toHaveLength(0);
   });
 
