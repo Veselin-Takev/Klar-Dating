@@ -13,6 +13,7 @@ const required = Object.freeze({
   'check:tenant-rules-surfaces': ['check-tenant-rules-surfaces.mjs', 'check-tenant-rules-surfaces.test.mjs'],
   'check:tenant-native-rules': ['check-tenant-native-rules-suite.mjs', 'check-tenant-native-rules-suite.test.mjs'],
   'check:tenant-native-storage': ['check-tenant-native-storage.mjs', 'check-tenant-native-storage.test.mjs'],
+  'check:storage-tenant-risk': ['check-storage-tenant-risk-markers.mjs', 'check-storage-tenant-risk-markers.test.mjs'],
   'check:legacy-photo-purge': ['check-legacy-photo-purge.mjs'],
   'check:compliance-storage-purge': ['check-compliance-storage-purge.mjs'],
   'check:retention-census-safety': ['audit-verification-retention-backlog.test.mjs'],
