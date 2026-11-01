@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { authFetch } from '../lib/authFetch';
+import { KYC_STATUS_ENDPOINT, classifyKycRefreshStatus } from '../lib/kycStatusRefresh';
 import { useModalAccessibility } from '../lib/useModalAccessibility';
 import { useTranslation } from 'react-i18next';
 
@@ -15,11 +16,11 @@ export function BiometricsVerificationModal({ isOpen, onSuccess, onCancel }: Pro
   const check = async () => {
     setBusy(true); setMessage('');
     try {
-      const response = await authFetch('/api/verification/status');
+      const response = await authFetch(KYC_STATUS_ENDPOINT, { method: 'GET', cache: 'no-store' });
       if (!response.ok) throw new Error('status unavailable');
-      const result = await response.json();
-      if (result.isVerified === true) onSuccess();
-      else setMessage(t('kyc.photoPending'));
+      const result = classifyKycRefreshStatus((await response.json()) as unknown);
+      if (result === 'approved') onSuccess();
+      else setMessage(t(result === 'pending' ? 'kyc.photoPending' : 'kyc.statusUnavailable'));
     } catch { setMessage(t('kyc.statusUnavailable')); }
     finally { setBusy(false); }
   };
