@@ -446,3 +446,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Actual signed and proven legal-hold/decision GCS generation/404/412/crash audit receipts with >300 durable due-job queue and IAM/Scheduler, Tenant Admin SDK/Storage/Firestore Art.17 migration/BOLA, Product/DPO/Legal media ADR, verified SRE 30-day SLI and independent named release approvals remain **OPEN**.
 
 `productionApproved=false` — **Production BLOCKED / NO-GO**.
+
+
+### 2026-11-01 — Canonical GCS generation CI PASS and persisted receipt defense
+
+- [x] [Draft #298](https://github.com/Veselin-Takev/Klar-Dating/pull/298) exact head `a426ca2174ee071ce591342555b3ffb8ec682c74` [CI #41359081792](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41359081792) SUCCESS: 1,497 Vitest tests/201 files, 20 pure retention state tests, 10 native Retention Firestore cases, missing-Emulator real negative, smoke and 26 browsers PASS. Historical in-progress note superseded on this SHA.
+- [x] Governance previous SHA `c1a42ce83d80b82d2edd09fa436be184741f0aba` [CI #41359214269](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41359214269) SUCCESS.
+- [x] [Draft #299](https://github.com/Veselin-Takev/Klar-Dating/pull/299) head `277d9e4150a01799f49358e9193c291199f02638` adds canonical matching persisted intent/observation validation to pure receipt and Firestore CAS transitions, plus corruption tests and source/mutation gates. Six isolated files; no physical GCS deletion enabled.
+- [ ] Verify [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) full SUCCESS on #299 exact SHA: pure receipts, static/mutation gates, 5 Storage + 6 Tenant Firestore + 10 Retention Firestore native cases, missing Emulator negative, ReleaseOwner/six P0 proof records, Didit, P95, type/build/smoke and 26 browser. **IN PROGRESS** at capture.
+- [ ] Sign and independently verify actual lawful decision-/hold-aware GCS generation/404/412/crash receipts, durable >300 queue/Scheduler/IAM, Admin SDK tenant/Art17 migration and signed guest media ADR; authentic SRE/Product 30-day P95 and independent Security/DPO/Legal/SRE/ReleaseOwner release SHA GO.
+
+**P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.**
