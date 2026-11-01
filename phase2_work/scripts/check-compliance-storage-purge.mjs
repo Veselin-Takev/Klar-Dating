@@ -19,6 +19,13 @@ const checks = [
   ['partial failure returns retryable status', /res\.status\(503\)\.json\(\{ ok: false, code: 'verification_storage_purge_incomplete'/],
   ['malformed due records block success', /malformedCount > 0/],
   ['HTTP summary counts avoid per-user data', /const safeSummary = \{/],
+  ['bounded due scan', /const MAX_SCAN_PAGES = 3/],
+  ['ordered due query', /\.orderBy\('fotoLoeschenAb'\)/],
+  ['page cursor before physical delete', /dueQuery\.startAfter\(cursor\)\.limit\(MAX_BATCH\)/],
+  ['reject unscanned due records', /verification_storage_purge_scan_incomplete/],
+  ['fail closed preflight before GCS use', /verification_storage_purge_preflight_failed/],
+  ['duplicate object path rejection', /usedPaths\.has\(artifact\.storagePath\)/],
+  ['preflight verifies each snapshot', /assertCurrentVerificationPurgeCandidate\(sourceDocument\.data\(\), artifact, now\)/],
 ];
 for (const [label, re] of checks) {
   if (label === 'reject old unversioned delete') {

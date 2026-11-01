@@ -37,15 +37,23 @@ async function invokePurge(options: {
   const receipts: unknown[] = [];
   let dbReads = 0;
   let metadataReads = 0;
+  // Deterministic Firestore-style document cursor; the due dates are equal
+  // and document ID provides a stable tie-breaker across scan pages.
+  const queryFrom = (lastIndex: number): any => ({
+    orderBy: () => queryFrom(lastIndex),
+    startAfter: (cursor: { id: string }) => queryFrom(Number(cursor.id.split('-')[1])),
+    limit: (count: number) => ({
+      get: async () => {
+        const docs = rows.slice(lastIndex + 1, lastIndex + 1 + count).map((row, offset) => ({
+          id: `challenge-${lastIndex + 1 + offset}`, data: () => row,
+        }));
+        return { docs, empty: docs.length === 0 };
+      },
+    }),
+  });
   const db = {
     collection: (_name: string) => ({
-      where: () => ({
-        limit: () => ({
-          get: async () => ({
-            docs: rows.map((row, i) => ({ id: `challenge-${i}`, data: () => row })),
-          }),
-        }),
-      }),
+      where: () => queryFrom(-1),
       doc: (id: string) => ({
         id,
         get: async () => {
@@ -152,9 +160,81 @@ describe('P0 #202 signed photo purge HTTP acknowledgement', () => {
   it('fails closed if a due Firestore row is malformed instead of silently dropping it', async () => {
     const result = await invokePurge({ rows: [{ ...candidate(), uid: undefined }] });
     expect(result.status).toBe(503);
-    expect(result.body).toMatchObject({ ok: false, processed: 0, malformedCount: 1, failedCount: 0 });
+    expect(result.body).toMatchObject({ ok: false, code: 'verification_storage_purge_preflight_failed', scannedCount: 1, malformedCount: 1 });
     expect(result.deletions).toHaveLength(0);
     expect(result.receipts).toHaveLength(0);
+  });
+
+  it('does not delete valid earlier photos when a later due record is malformed', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), uid: undefined }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', scannedCount: 2, malformedCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+    expect(result.metadataReads).toBe(0);
+  });
+
+  it('does not delete a shared object when two due records claim the same path', async () => {
+    const result = await invokePurge({ rows: [candidate(), candidate()] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', duplicatePathCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('rejects an unexpected due pending decision before any GCS mutation', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), storagePath: `verification/${uid}/pending.jpg`, status: 'pending', entscheidung: 'pending' }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('rejects contradictory due decision fields before any GCS mutation', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), storagePath: `verification/${uid}/conflict.jpg`, entscheidung: 'abgelehnt' }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('crosses the initial 100-row boundary and reaches a later due photo', async () => {
+    const rows = Array.from({ length: 100 }, (_, i) => ({
+      ...candidate(), storagePath: `verification/${uid}/already-${i}.jpg`, photoPurged: true,
+    }));
+    rows.push({ ...candidate(), storagePath: `verification/${uid}/beyond-100.jpg` });
+    const result = await invokePurge({ rows });
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ ok: true, processed: 101, purgedCount: 1, skippedCount: 100 });
+    expect(result.deletions).toEqual([{
+      path: `verification/${uid}/beyond-100.jpg`, options: { ifGenerationMatch: '2938' },
+    }]);
+    expect(result.receipts).toHaveLength(1);
+  });
+
+  it('does not delete a single object if the bounded due scan cannot prove completeness', async () => {
+    const rows = Array.from({ length: 301 }, (_, i) => ({
+      ...candidate(), storagePath: `verification/${uid}/photo-${i}.jpg`,
+    }));
+    const result = await invokePurge({ rows });
+    expect(result.status).toBe(503);
+    expect(result.body).toEqual({
+      ok: false, code: 'verification_storage_purge_scan_incomplete', scannedCount: 300,
+    });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+    expect(result.metadataReads).toBe(0);
+    expect(result.rawBody).not.toContain(uid);
+  });
+
+  it('accepts the exact bounded page limit only after probing for a next page', async () => {
+    const rows = Array.from({ length: 300 }, (_, i) => ({
+      ...candidate(), storagePath: `verification/${uid}/purged-${i}.jpg`, photoPurged: true,
+    }));
+    const result = await invokePurge({ rows });
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ ok: true, processed: 300, purgedCount: 0, skippedCount: 300 });
+    expect(result.deletions).toHaveLength(0);
   });
 
   it('rejects unsigned scheduler calls before accessing Firestore or Storage', async () => {
