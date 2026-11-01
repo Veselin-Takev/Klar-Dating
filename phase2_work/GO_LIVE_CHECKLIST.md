@@ -293,3 +293,12 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] QA/SRE/Release Owner provide *final integrated and approved SHA*, clean supply-chain and release gates, monitoring/rollback and independent signed AppSec/DPO/Legal/SRE/Release Owner GO.
 
 **Both P0 #202 and #254 stay OPEN. Unmerged draft results cannot release `main`; `productionApproved=false`; BLOCKED / NO-GO.**
+
+
+### 2026-11-01 — New P0 CI emulator fail-closed regression (Draft #289)
+
+- [x] Isolated [Draft #289](https://github.com/Veselin-Takev/Klar-Dating/pull/289) based on #288 adds mandatory CI execution for three native Storage/Tenant/Retention Firestore Emulator suites; if the authorized loopback `demo-klar` Emulator is absent/misconfigured, CI fails instead of silently skipping. Source/mutation and dual-P0 gates were added. No production Rules, IAM, Scheduler, retention workers or data changes.
+- [ ] Verify **exact PR #289 head SHA `fd62b44c0c763ca58ae358fd10c92138b1aff3b3`** complete [CI #41347553626](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41347553626) SUCCESS with **4 real Storage, 6 Tenant Firestore and 6 Retention Firestore** tests executed, plus all static/type/build/smoke/browser gates; pending at this entry. Prior #288 PASS cannot substitute for #289.
+- [ ] Preserve Product/DPO/Legal profile-media decision, Admin SDK BOLA/IDOR, live Firebase Rules/IAM, Tenant/Art.17 migration, P0 #202 generation/404/412/GCS/legal-hold receipts, durable >300 queue and independent AppSec/DPO/Legal/SRE/Release Owner GO as release blockers.
+
+**P0 #202/#254 OPEN. `productionApproved=false`, release BLOCKED/NO-GO.**
