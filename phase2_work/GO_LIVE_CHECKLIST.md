@@ -178,3 +178,13 @@ No current production change, no GO. `productionApproved=false`.
 - [ ] Require independent AppSec/DPO/Legal/SRE/Release Owner signed approval on the final combined deployed SHA.
 
 No production activation or GO. Keep `productionApproved=false`.
+
+
+### 2026-11-01 — P0 #202 runtime CAS data descriptor gate (Draft #280)
+
+- [x] Parent #279 SHA `2dc5716610740d6196efbbee07b23d7f2a7ed0b3` [CI #41334295241](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41334295241) fully SUCCESS, including **5 actually executed native Firestore Emulator tests**.
+- [x] Unmerged [Draft #280](https://github.com/Veselin-Takev/Klar-Dating/pull/280) adds data-descriptor-only runtime input validation, forbids getters, non-enumerable and symbol fields, and adds unit/native/mutation regression tests without touching production purge.
+- [ ] New SHA `edf3281a9a9e82c8fdc9e7dc74809547ea3a714d` must finish full [CI #41335454638](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41335454638), with **6** native Emulator tests actually executed and PASS.
+- [ ] Trusted command producer/consumer, tenant/UID/GCS/legal-hold checks, operation receipts and 404/412 crash reconciliation, >300 durable backlog, real deployed Scheduler/IAM/TTL audit and independent DPO/AppSec/Legal/SRE/Release Owner GO.
+
+**P0 #202 OPEN. `productionApproved=false`. Production BLOCKED / NO-GO.**
