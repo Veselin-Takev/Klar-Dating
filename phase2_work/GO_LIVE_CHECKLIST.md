@@ -136,3 +136,13 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 - [ ] Deployed Scheduler/IAM/TTL inventory and AppSec/DPO/Legal/SRE/Release Owner signed authorizations on final merged and deployed artifact SHA.
 
 No release claim. Remain `NO-GO` and `productionApproved=false`.
+
+
+### 2026-11-01 — Native Firestore Emulator gate / delete-intent invariants (Draft #276)
+
+- [x] Source-only native Firestore Emulator contention tests and second-line transactional state-transition checks added in unmerged [Draft #276](https://github.com/Veselin-Takev/Klar-Dating/pull/276), initial head SHA `a8c2830ae325ddf49d07e22508f235898df70204`. This records source implementation **only**, not a passed test.
+- [ ] Check exact SHA #276 full CI to verify the native emulator tests actually **executed**, not silently skipped, and all security gates PASS; no historical prior CI transfer.
+- [ ] Staging GCS generation/404/412/hold tests, actual durable delete-intent ordering and independently authenticated final receipt; cross-service crash/operator recovery.
+- [ ] Scalable >300 due queue/producer, real tenant mapping/UID/decision, missing-expiry/hold backfill, production scheduler/TTL/IAM evidence and signed independent AppSec/DPO/Legal/SRE/Release Owner approvals.
+
+**Production still BLOCKED/NO-GO. Do not set `productionApproved=true`.**
