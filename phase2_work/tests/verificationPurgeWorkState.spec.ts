@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt,
   createPurgeWork, markDeletionObserved, quarantinePurgeWork,
-  releaseUndeletedWork, type PurgeWorkState,
+  releaseUndeletedWork,
 } from '../src/server/platform/verificationPurgeWorkState';
 
 const key = 'a'.repeat(64);
