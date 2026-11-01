@@ -16,6 +16,11 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('purge_work_stale_or_expired_lease')) {
     failures.push('lease or receipt fencing state transitions removed');
   }
+  if (!adapter.includes('sameLease(current.lease, next.lease)') ||
+      !adapter.includes('sameObserved(current.observed, next.observed)') ||
+      !adapter.includes('next.attempt !== current.attempt + 1')) {
+    failures.push('CAS lease identity, observation and attempt fencing removed');
+  }
   if (!adapter.includes('allowedTransitions') ||
       !adapter.includes('validFencedTransition(current, next)') ||
       !adapter.includes('purge_work_transition_invariant')) {
