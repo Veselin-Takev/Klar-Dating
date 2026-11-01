@@ -39,6 +39,8 @@ describe.skipIf(!emulatorOnly)('P0 #254 native Storage Rules tenant claims: lega
       .put(image, { contentType: 'image/jpeg' })));
     try {
       await assertSucceeds(storage(other, 'tenant-beta').ref(path).getDownloadURL());
+      // A separate metadata operation is also allowed cross-tenant under current legacy Rules.
+      await assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata());
       await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com')
         .ref(path).getDownloadURL());
     } finally {
@@ -67,7 +69,9 @@ describe.skipIf(!emulatorOnly)('P0 #254 native Storage Rules tenant claims: lega
     await file.save(image, { metadata: { contentType: 'image/jpeg' } });
     try {
       await assertFails(storage(owner, 'tenant-alpha').ref(path).getDownloadURL());
+      await assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata());
       await assertFails(storage(other, 'tenant-beta').ref(path).getDownloadURL());
+      await assertFails(storage(other, 'tenant-beta').ref(path).getMetadata());
       await assertFails(storage(owner, 'tenant-alpha').ref(path).delete());
     } finally {
       await file.delete();
@@ -81,6 +85,7 @@ describe.skipIf(!emulatorOnly)('P0 #254 native Storage Rules tenant claims: lega
     try {
       await assertFails(storage(owner, 'tenant-alpha').ref(path).getDownloadURL());
       await assertFails(storage(other, 'tenant-beta').ref(path).getDownloadURL());
+      await assertFails(storage(other, 'tenant-beta').ref(path).getMetadata());
       await assertFails(Promise.resolve(storage(owner, 'tenant-alpha').ref(path)
         .put(image, { contentType: 'image/jpeg' })));
     } finally {
