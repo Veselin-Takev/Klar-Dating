@@ -360,3 +360,13 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Do not switch `productionApproved=false` or deploy until exact approved release artifact and all mandatory human evidence verified.
 
 **Production NO-GO.**
+
+
+### 2026-11-01 — Release Owner separation-of-duties safety gate
+
+- [x] Source-level omission verified: `collectReleaseApprovalFailures` formerly did not require a distinct `ReleaseOwner` record in the synthetic GO structure (Security/DPO/Legal/SRE only). **Not** a claim that production was approved or compromised.
+- [x] [Main-based Draft #292](https://github.com/Veselin-Takev/Klar-Dating/pull/292) SHA `c7e83d309fb64fff132b0e513db682c6acf21f1e` adds mandatory ReleaseOwner exact-SHA and evidence signoff, denies same string identity as any of the four other approvers, adds absence/stale/evidence/non-independent synthetic mutation tests.
+- [ ] Verify exact-head [CI #41352169125](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41352169125) complete PASS, including mandatory `check:release-go-evidence`, typecheck, emulator, build, smoke and browser. **IN PROGRESS** at recording.
+- [ ] Independently authenticate named human Release Owner and each reviewer via protected-environment controls and signed SHA-linked evidence. No structural validator alone suffices; P0 #202/#254 and all live controls remain unverified.
+
+**Release remains `productionApproved=false`; BLOCKED / NO-GO.**
