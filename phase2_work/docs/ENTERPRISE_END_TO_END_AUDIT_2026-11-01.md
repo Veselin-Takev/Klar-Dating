@@ -127,3 +127,10 @@ Hold the evidence under a restricted audit vault, not in public Git, when it con
 - Keep the pre-existing **Klar Release Governance Watch** active for periodic read-only evidence checks and safe documented follow-ups; monitor exact SHAs and stop when the independently confirmed official GO exists.
 
 **Final decision: BLOCKED / PRODUCTION NO-GO, as of 2026-11-01.**
+
+## 2026-11-01 — Follow-up #202: GCS generation and decision recheck in stacked Draft #271
+
+Following the initial audit, [stacked Draft PR #271](https://github.com/Veselin-Takev/Klar-Dating/pull/271) was created on top of the **unmerged**, exact CI-passed #269 commit `54ef22b87d40c90711e575d7e133b9311417f2f1`. Its initial head `504fd783f576d6289e9c56bbf786eeba239338f8` implements a new pure decision/hold and GCS-generation boundary, rechecks `verification_events` before physical deletion, calls `bucket.file(path).delete({ ifGenerationMatch: generation })`, and validates current authoritative state before updating the audit receipt. Synthetic Vitest negative cases and an extended static compliance-purge guard accompany the change. New CI [#41285159760](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41285159760) had **not completed** when this follow-up was recorded, so no exact-head PASS is claimed.
+
+**Risk not yet closed:** Cross-service Firestore→GCS decision changes are not transactionally fenced; independent staging generation/404/412/retention-hold, receipt reconciliation, duplicate path, deployment/Scheduler state and DPO/SRE/AppSec signoffs remain essential. The fix is source-only, stacked and **not deployed**. Keep #202 OPEN, Release NO-GO. The #271 branch must also be reconciled against prior stacked #231/#233/#242/#250/#252 work before an approved cutover.
+
