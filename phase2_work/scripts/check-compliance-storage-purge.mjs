@@ -23,6 +23,9 @@ const checks = [
   ['ordered due query', /\.orderBy\('fotoLoeschenAb'\)/],
   ['page cursor before physical delete', /dueQuery\.startAfter\(cursor\)\.limit\(MAX_BATCH\)/],
   ['reject unscanned due records', /verification_storage_purge_scan_incomplete/],
+  ['fail closed preflight before GCS use', /verification_storage_purge_preflight_failed/],
+  ['duplicate object path rejection', /usedPaths\.has\(artifact\.storagePath\)/],
+  ['preflight verifies each snapshot', /assertCurrentVerificationPurgeCandidate\(dueDocs\[i\]\.data\(\), artifact, now\)/],
 ];
 for (const [label, re] of checks) {
   if (label === 'reject old unversioned delete') {
