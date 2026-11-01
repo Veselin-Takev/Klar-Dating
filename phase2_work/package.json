@@ -135,7 +135,7 @@
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
     "check:codeowners": "node scripts/check-codeowners.mjs && node --test scripts/test-codeowners.mjs",
     "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs",
-    "check:tenant-inventory": "node --test scripts/inventory-tenant-access.test.mjs"
+    "check:tenant-inventory": "node --test scripts/inventory-tenant-access.test.mjs scripts/tenant-access-patterns.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
