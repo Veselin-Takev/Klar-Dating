@@ -16,6 +16,12 @@ test('native Tenant Storage Rules negatives are mandatory alongside Firestore Ru
 for(const [label,mutate] of [
   ['metadata cross-tenant read omitted',x=>{x.testSource=x.testSource.replace("assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata())","void storage(other, 'tenant-beta').ref(path).getMetadata()");}],
   ['biometric owner metadata denial omitted',x=>{x.testSource=x.testSource.replace("assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata())","void storage(owner, 'tenant-alpha').ref(path).getMetadata()");}],
+  ['guest read test omitted',x=>{x.testSource=x.testSource.replace('anonymous signed-in guest can read legacy profile media','guest scenario no longer checked');}],
+  ['guest anonymous claim omitted',x=>{x.testSource=x.testSource.replace("sign_in_provider: 'anonymous'", "sign_in_provider: 'password'");}],
+  ['guest download evidence omitted',x=>{x.testSource=x.testSource.replace('assertSucceeds(guest.ref(path).getDownloadURL())', 'void guest.ref(path).getDownloadURL()');}],
+  ['guest metadata evidence omitted',x=>{x.testSource=x.testSource.replace('assertSucceeds(guest.ref(path).getMetadata())', 'void guest.ref(path).getMetadata()');}],
+  ['guest write denial omitted',x=>{x.testSource=x.testSource.replace('assertFails(Promise.resolve(guest.ref(path)', 'assertSucceeds(Promise.resolve(guest.ref(path)');}],
+  ['guest delete denial omitted',x=>{x.testSource=x.testSource.replace('assertFails(guest.ref(path).delete())', 'assertSucceeds(guest.ref(path).delete())');}],
   ['legacy cross-tenant media exposure hidden',x=>{x.testSource=x.testSource.replace('legacy public profile photo remains readable across different tenant claims','hidden source gap');}],
   ['biometric photo restriction not tested',x=>{x.testSource=x.testSource.replace('biometric verification image cannot be read','not tested');}],
   ['tenant namespace default-deny test removed',x=>{x.testSource=x.testSource.replace('new tenant-prefixed profile object is inaccessible','not tested');}],
