@@ -1,5 +1,8 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
-import type { PurgeWorkState } from './verificationPurgeWorkState';
+import {
+  claimPurgeWork, markDeletionIntent, quarantinePurgeWork, releaseUndeletedWork,
+  type PurgeQuarantineReason, type PurgeWorkState,
+} from './verificationPurgeWorkState';
 
 /**
  * P0 #202 — Opt-in repository adapter; NOT connected to any live job.
@@ -118,18 +121,68 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
   return false;
 }
 
-export async function transitionPurgeWorkInTransaction(
+/**
+ * Only pre-deletion commands are deliberately exposed. These commands DO NOT
+ * authorize a GCS delete. Receipt observation/completion is withheld until an
+ * independently reviewed, authenticated GCS provenance and audit protocol exists.
+ *
+ * This opt-in prototype is not wired into any live route or Scheduler.
+ */
+export type PurgeWorkCommand =
+  | { kind: 'claim'; token: string; now: number; leaseMs: number }
+  | { kind: 'release_undeleted'; token: string; epoch: number; now: number; retryAfter: number }
+  | { kind: 'prepare_delete_intent'; token: string; epoch: number; now: number; generation: string }
+  | { kind: 'quarantine'; reason: PurgeQuarantineReason; now: number; token?: string; epoch?: number };
+
+const allowedCommandFields: Record<PurgeWorkCommand['kind'], ReadonlySet<string>> = {
+  claim: new Set(['kind','token','now','leaseMs']),
+  release_undeleted: new Set(['kind','token','epoch','now','retryAfter']),
+  prepare_delete_intent: new Set(['kind','token','epoch','now','generation']),
+  quarantine: new Set(['kind','reason','now','token','epoch']),
+};
+
+function assertSupportedCommand(command: PurgeWorkCommand): void {
+  if (command === null || typeof command !== 'object' || Array.isArray(command)) {
+    throw new Error('purge_work_unsupported_command');
+  }
+  const fields = Object.prototype.hasOwnProperty.call(allowedCommandFields, command.kind)
+    ? allowedCommandFields[command.kind] : undefined;
+  if (!fields || Object.keys(command).some(key => !fields.has(key))) {
+    throw new Error('purge_work_unsupported_command');
+  }
+}
+
+function executePureCommand(state: PurgeWorkState, command: PurgeWorkCommand): PurgeWorkState {
+  switch (command.kind) {
+    case 'claim':
+      return claimPurgeWork(state, command.token, command.now, command.leaseMs);
+    case 'release_undeleted':
+      return releaseUndeletedWork(state, command.token, command.epoch, command.now, command.retryAfter);
+    case 'prepare_delete_intent':
+      return markDeletionIntent(state, command.token, command.epoch, command.now, command.generation);
+    case 'quarantine':
+      return quarantinePurgeWork(state, command.reason, command.now, command.token, command.epoch);
+    default:
+      throw new Error('purge_work_unsupported_command');
+  }
+}
+
+/**
+ * Transactional command dispatcher. No arbitrary callback is accepted at the
+ * public adapter boundary; the transaction callback is created internally and
+ * has no external side effects. Cloud writes MUST be reviewed separately.
+ */
+export async function executePurgeWorkCommand(
   db: Pick<Firestore, 'runTransaction'>,
   ref: DocumentReference,
-  transform: (current: PurgeWorkState) => PurgeWorkState,
+  command: PurgeWorkCommand,
 ): Promise<PurgeWorkState> {
   if (!ref || ref.parent.path !== 'verification_purge_jobs' ||
       !/^[a-zA-Z0-9_-]{16,128}$/.test(ref.id)) {
     throw new Error('purge_work_invalid_document_reference');
   }
-  if (typeof transform !== 'function') throw new Error('purge_work_missing_transition');
+  assertSupportedCommand(command);
   return db.runTransaction(async tx => {
-    // Reads before writes. SDK can retry on conflicting concurrent updates.
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error('purge_work_missing_document');
     const data = snap.data();
@@ -137,10 +190,8 @@ export async function transitionPurgeWorkInTransaction(
         !Number.isSafeInteger(data.revision) || data.revision < 0) {
       throw new Error('purge_work_invalid_stored_state');
     }
-    // The only permitted writes come from a pure transition. A secure producer
-    // and generation-fenced consumer must be reviewed and deployed separately.
     const current = data as PurgeWorkState;
-    const next = transform(current);
+    const next = executePureCommand(current, command);
     if (!next || next.schemaVersion !== 1 || next.key !== current.key ||
         next.revision !== current.revision + 1 ||
         !validFencedTransition(current, next)) {
