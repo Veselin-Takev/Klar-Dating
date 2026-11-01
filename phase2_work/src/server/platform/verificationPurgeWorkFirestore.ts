@@ -94,6 +94,8 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
       next.lease!.epoch === current.lease!.epoch + 1 &&
       next.lease!.expiresAt > current.lease!.expiresAt &&
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      !!current.observed && !!next.observed &&
+      current.intent?.generation === next.observed.generation &&
       sameObserved(current.observed, next.observed) && !!next.intent;
   }
   if (next.status === 'complete' && current.status === 'receipt_pending') {
