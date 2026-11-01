@@ -16,10 +16,17 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('purge_work_stale_or_expired_lease')) {
     failures.push('lease or receipt fencing state transitions removed');
   }
+  if (!adapter.includes('const now = Date.now()') ||
+      !adapter.includes('const preparedCommand = snapshotCommand(command)') ||
+      !adapter.includes('executePureCommand(current, preparedCommand, now)') ||
+      !adapter.includes('purge_work_invalid_server_clock') ||
+      /kind: 'claim'; token: string; now: number/.test(adapter)) {
+    failures.push('server-controlled immutable command clock fencing removed');
+  }
   if (!adapter.includes('export async function executePurgeWorkCommand') ||
-      !adapter.includes('assertSupportedCommand(command)') ||
+      !adapter.includes('snapshotCommand(command)') ||
       !adapter.includes('allowedCommandFields') ||
-      !adapter.includes('executePureCommand(current, command)') ||
+      !adapter.includes('executePureCommand(current, preparedCommand, now)') ||
       adapter.includes('export async function transitionPurgeWorkInTransaction')) {
     failures.push('freeform Firestore state mutation API or typed command restrictions regressed');
   }

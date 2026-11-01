@@ -129,48 +129,73 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
  * This opt-in prototype is not wired into any live route or Scheduler.
  */
 export type PurgeWorkCommand =
-  | { kind: 'claim'; token: string; now: number; leaseMs: number }
-  | { kind: 'release_undeleted'; token: string; epoch: number; now: number; retryAfter: number }
-  | { kind: 'prepare_delete_intent'; token: string; epoch: number; now: number; generation: string }
-  | { kind: 'quarantine'; reason: PurgeQuarantineReason; now: number; token?: string; epoch?: number };
+  | { kind: 'claim'; token: string; leaseMs: number }
+  | { kind: 'release_undeleted'; token: string; epoch: number; retryAfter: number }
+  | { kind: 'prepare_delete_intent'; token: string; epoch: number; generation: string }
+  | { kind: 'quarantine'; reason: PurgeQuarantineReason; token?: string; epoch?: number };
 
 const allowedCommandFields: Record<PurgeWorkCommand['kind'], ReadonlySet<string>> = {
-  claim: new Set(['kind','token','now','leaseMs']),
-  release_undeleted: new Set(['kind','token','epoch','now','retryAfter']),
-  prepare_delete_intent: new Set(['kind','token','epoch','now','generation']),
-  quarantine: new Set(['kind','reason','now','token','epoch']),
+  claim: new Set(['kind','token','leaseMs']),
+  release_undeleted: new Set(['kind','token','epoch','retryAfter']),
+  prepare_delete_intent: new Set(['kind','token','epoch','generation']),
+  quarantine: new Set(['kind','reason','token','epoch']),
 };
 
-function assertSupportedCommand(command: PurgeWorkCommand): void {
-  if (command === null || typeof command !== 'object' || Array.isArray(command)) {
+/** Rejects inherited/prototype-rich objects, unknown fields and caller timestamps.
+ * Snapshot the permitted primitive fields BEFORE the first await so mutations
+ * during a Firestore transaction retry cannot alter what was authorized.
+ */
+function snapshotCommand(command: PurgeWorkCommand): PurgeWorkCommand {
+  if (command === null || typeof command !== 'object' || Array.isArray(command) ||
+      (Object.getPrototypeOf(command) !== Object.prototype && Object.getPrototypeOf(command) !== null)) {
     throw new Error('purge_work_unsupported_command');
   }
   const fields = Object.prototype.hasOwnProperty.call(allowedCommandFields, command.kind)
     ? allowedCommandFields[command.kind] : undefined;
-  if (!fields || Object.keys(command).some(key => !fields.has(key))) {
+  if (!fields || Object.keys(command).some(key => !fields.has(key)) ||
+      !Object.prototype.hasOwnProperty.call(command, 'kind')) {
     throw new Error('purge_work_unsupported_command');
+  }
+  switch (command.kind) {
+    case 'claim':
+      return { kind: command.kind, token: command.token, leaseMs: command.leaseMs };
+    case 'release_undeleted':
+      return { kind: command.kind, token: command.token,
+        epoch: command.epoch, retryAfter: command.retryAfter };
+    case 'prepare_delete_intent':
+      return { kind: command.kind, token: command.token,
+        epoch: command.epoch, generation: command.generation };
+    case 'quarantine':
+      return { kind: command.kind, reason: command.reason,
+        ...(command.token === undefined ? {} : { token: command.token }),
+        ...(command.epoch === undefined ? {} : { epoch: command.epoch }) };
+    default:
+      throw new Error('purge_work_unsupported_command');
   }
 }
 
-function executePureCommand(state: PurgeWorkState, command: PurgeWorkCommand): PurgeWorkState {
+function executePureCommand(state: PurgeWorkState, command: PurgeWorkCommand, now: number): PurgeWorkState {
   switch (command.kind) {
     case 'claim':
-      return claimPurgeWork(state, command.token, command.now, command.leaseMs);
+      return claimPurgeWork(state, command.token, now, command.leaseMs);
     case 'release_undeleted':
-      return releaseUndeletedWork(state, command.token, command.epoch, command.now, command.retryAfter);
+      return releaseUndeletedWork(state, command.token, command.epoch, now, command.retryAfter);
     case 'prepare_delete_intent':
-      return markDeletionIntent(state, command.token, command.epoch, command.now, command.generation);
+      return markDeletionIntent(state, command.token, command.epoch, now, command.generation);
     case 'quarantine':
-      return quarantinePurgeWork(state, command.reason, command.now, command.token, command.epoch);
+      return quarantinePurgeWork(state, command.reason, now, command.token, command.epoch);
     default:
       throw new Error('purge_work_unsupported_command');
   }
 }
 
 /**
- * Transactional command dispatcher. No arbitrary callback is accepted at the
- * public adapter boundary; the transaction callback is created internally and
- * has no external side effects. Cloud writes MUST be reviewed separately.
+ * Opt-in (NOT DEPLOYED) server-controlled command dispatcher.
+ *
+ * Time is derived once from this server process, never from command input.
+ * This stops user-supplied timestamp spoofing but does NOT establish a
+ * synchronized distributed clock. Production requires bounded clock skew /
+ * trusted time evidence before any actual GCS delete workflow is authorized.
  */
 export async function executePurgeWorkCommand(
   db: Pick<Firestore, 'runTransaction'>,
@@ -181,7 +206,9 @@ export async function executePurgeWorkCommand(
       !/^[a-zA-Z0-9_-]{16,128}$/.test(ref.id)) {
     throw new Error('purge_work_invalid_document_reference');
   }
-  assertSupportedCommand(command);
+  const preparedCommand = snapshotCommand(command);
+  const now = Date.now();
+  if (!Number.isSafeInteger(now) || now <= 0) throw new Error('purge_work_invalid_server_clock');
   return db.runTransaction(async tx => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error('purge_work_missing_document');
@@ -191,7 +218,7 @@ export async function executePurgeWorkCommand(
       throw new Error('purge_work_invalid_stored_state');
     }
     const current = data as PurgeWorkState;
-    const next = executePureCommand(current, command);
+    const next = executePureCommand(current, preparedCommand, now);
     if (!next || next.schemaVersion !== 1 || next.key !== current.key ||
         next.revision !== current.revision + 1 ||
         !validFencedTransition(current, next)) {

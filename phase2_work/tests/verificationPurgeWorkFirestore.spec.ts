@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import {
   executePurgeWorkCommand, type PurgeWorkCommand,
@@ -13,9 +13,9 @@ const tokenA = 'worker-opaque-token-0000001';
 const tokenB = 'worker-opaque-token-0000002';
 const now = 1_798_000_000_000;
 const ref = { id: key, parent: { path: 'verification_purge_jobs' } } as DocumentReference;
-const claim: PurgeWorkCommand = { kind: 'claim', token: tokenA, now, leaseMs: 5_000 };
+const claim: PurgeWorkCommand = { kind: 'claim', token: tokenA, leaseMs: 5_000 };
 const intent: PurgeWorkCommand = {
-  kind: 'prepare_delete_intent', token: tokenA, epoch: 1, now: now + 100, generation: '18446744073709551615',
+  kind: 'prepare_delete_intent', token: tokenA, epoch: 1, generation: '18446744073709551615',
 };
 
 function memoryDb(initial?: PurgeWorkState, retryCount = 1) {
@@ -49,6 +49,8 @@ function memoryDb(initial?: PurgeWorkState, retryCount = 1) {
 }
 
 describe('P0 #202 typed Firestore CAS command boundary (unused in production)', () => {
+  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(now); });
+  afterEach(() => { vi.restoreAllMocks(); });
   it('claims exclusively through a typed, replay-safe command', async () => {
     const m = memoryDb(undefined, 2);
     const result = await executePurgeWorkCommand(m.db, ref, claim);
@@ -65,10 +67,10 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     const m = memoryDb(claimPurgeWork(createPurgeWork(key, now), tokenA, now, 5_000), 2);
     const persisted = await executePurgeWorkCommand(m.db, ref, intent);
     expect(persisted).toMatchObject({ status: 'delete_intent', revision: 2,
-      intent: { generation: '18446744073709551615', leaseEpoch: 1, preparedAt: now + 100 } });
+      intent: { generation: '18446744073709551615', leaseEpoch: 1, preparedAt: now } });
     expect(m.writes).toHaveLength(1);
     await expect(executePurgeWorkCommand(m.db, ref, {
-      kind: 'claim', token: tokenB, now: now + 9_000, leaseMs: 5_000,
+      kind: 'claim', token: tokenB, leaseMs: 5_000,
     })).rejects.toThrow('purge_work_not_claimable');
   });
 
@@ -76,12 +78,12 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     const initial = claimPurgeWork(createPurgeWork(key, now), tokenA, now, 5_000);
     const m = memoryDb(initial);
     const ready = await executePurgeWorkCommand(m.db, ref, {
-      kind: 'release_undeleted', token: tokenA, epoch: 1, now: now + 500, retryAfter: now + 9_000,
+      kind: 'release_undeleted', token: tokenA, epoch: 1, retryAfter: now + 9_000,
     });
     expect(ready).toMatchObject({ status: 'ready', revision: 2, attempt: 1, availableAt: now + 9_000 });
     const held = memoryDb(initial);
     expect(await executePurgeWorkCommand(held.db, ref, {
-      kind: 'quarantine', reason: 'legal_hold', token: tokenA, epoch: 1, now: now + 500,
+      kind: 'quarantine', reason: 'legal_hold', token: tokenA, epoch: 1,
     })).toMatchObject({ status: 'quarantined', quarantineReason: 'legal_hold' });
   });
 
@@ -89,7 +91,7 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     'rejects unsupported or forged command %s before any Firestore transaction', async kind => {
       const m = memoryDb();
       await expect(executePurgeWorkCommand(m.db, ref, {
-        kind, token: tokenA, now, generation: '123', receiptDigest: 'b'.repeat(64),
+        kind, token: tokenA, generation: '123', receiptDigest: 'b'.repeat(64),
       } as unknown as PurgeWorkCommand)).rejects.toThrow('purge_work_unsupported_command');
       expect(m.getCalls()).toBe(0);
       expect(m.writes).toHaveLength(0);
@@ -111,10 +113,10 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     const prepared = claimPurgeWork(createPurgeWork(key, now), tokenA, now, 5_000);
     const m = memoryDb(prepared);
     await expect(executePurgeWorkCommand(m.db, ref, {
-      kind: 'prepare_delete_intent', token: tokenB, epoch: 1, now: now + 100, generation: '99',
+      kind: 'prepare_delete_intent', token: tokenB, epoch: 1, generation: '99',
     })).rejects.toThrow('purge_work_stale_or_expired_lease');
     await expect(executePurgeWorkCommand(m.db, ref, {
-      kind: 'prepare_delete_intent', token: tokenA, epoch: 1, now: now + 100, generation: '0',
+      kind: 'prepare_delete_intent', token: tokenA, epoch: 1, generation: '0',
     })).rejects.toThrow('purge_work_invalid_generation');
     expect(m.writes).toHaveLength(0);
   });
@@ -124,12 +126,56 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
       claimPurgeWork(createPurgeWork(key, now), tokenA, now, 5_000), tokenA, 1, now + 100, '123');
     const m = memoryDb(prepared);
     await expect(executePurgeWorkCommand(m.db, ref, {
-      kind: 'claim', token: tokenB, now: now + 30_000, leaseMs: 5_000,
+      kind: 'claim', token: tokenB, leaseMs: 5_000,
     })).rejects.toThrow('purge_work_not_claimable');
     await expect(executePurgeWorkCommand(m.db, ref, {
-      kind: 'release_undeleted', token: tokenA, epoch: 1, now: now + 200, retryAfter: now + 500,
+      kind: 'release_undeleted', token: tokenA, epoch: 1, retryAfter: now + 500,
     })).rejects.toThrow('purge_work_not_undeleted');
     expect(m.writes).toHaveLength(0);
+  });
+
+  it('rejects caller-supplied clock override before any Firestore operation', async () => {
+    const m = memoryDb();
+    await expect(executePurgeWorkCommand(m.db, ref, {
+      ...claim, now: now + 100_000,
+    } as unknown as PurgeWorkCommand)).rejects.toThrow('purge_work_unsupported_command');
+    expect(m.getCalls()).toBe(0);
+  });
+
+  it('keeps both clock and copied command immutable across a real callback replay', async () => {
+    const mutable = { ...claim };
+    const attempts: PurgeWorkState[] = [];
+    const db = {
+      runTransaction: async (callback: (tx: unknown) => Promise<PurgeWorkState>) => {
+        for (let i = 0; i < 2; i++) {
+          const result = await callback({
+            get: async () => ({ exists: true, data: () => createPurgeWork(key, now) }),
+            update: (_ref: unknown, value: PurgeWorkState) => { attempts.push(value); },
+          });
+          if (i === 0) {
+            mutable.token = tokenB;
+            mutable.leaseMs = 10_000;
+            vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
+          } else {
+            return result;
+          }
+        }
+        throw new Error('unexpected_no_transaction_result');
+      },
+    } as unknown as Pick<Firestore, 'runTransaction'>;
+    const result = await executePurgeWorkCommand(db, ref, mutable);
+    expect(attempts).toHaveLength(2);
+    expect(attempts[0]).toEqual(attempts[1]);
+    expect(result.lease).toMatchObject({ token: tokenA, expiresAt: now + 5_000 });
+    expect(result.attempt).toBe(1);
+  });
+
+  it('fails closed when the server clock is unsafe, before entering a transaction', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Number.NaN);
+    const m = memoryDb();
+    await expect(executePurgeWorkCommand(m.db, ref, claim))
+      .rejects.toThrow('purge_work_invalid_server_clock');
+    expect(m.getCalls()).toBe(0);
   });
 
   it('rejects forged reference, absent record, schema errors without writes', async () => {

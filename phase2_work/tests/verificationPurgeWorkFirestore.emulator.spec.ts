@@ -16,7 +16,7 @@ const emulatorOnly = /^(?:127\.0\.0\.1|localhost|\[::1\]):\d{2,5}$/.test(host) &
 const t0 = Date.parse('2026-11-01T00:00:00Z');
 const workerA = 'emulator-worker-a-00000001';
 const workerB = 'emulator-worker-b-00000001';
-const claim = (token: string, now = t0): PurgeWorkCommand => ({ kind: 'claim', token, now, leaseMs: 5_000 });
+const claim = (token: string): PurgeWorkCommand => ({ kind: 'claim', token, leaseMs: 5_000 });
 
 describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command boundaries', () => {
   let app: App;
@@ -53,7 +53,7 @@ describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command 
     try {
       await executePurgeWorkCommand(db, ref, claim(workerA));
       const intent = await executePurgeWorkCommand(db, ref, {
-        kind: 'prepare_delete_intent', token: workerA, epoch: 1, now: t0 + 100,
+        kind: 'prepare_delete_intent', token: workerA, epoch: 1,
         generation: '18446744073709551615',
       });
       expect(intent).toMatchObject({
@@ -61,7 +61,7 @@ describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command 
         intent: { generation: '18446744073709551615', leaseEpoch: 1 },
       });
       expect((await ref.get()).data()?.status).toBe('delete_intent');
-      await expect(executePurgeWorkCommand(db, ref, claim(workerB, t0 + 100_000)))
+      await expect(executePurgeWorkCommand(db, ref, claim(workerB)))
         .rejects.toThrow('purge_work_not_claimable');
       expect((await ref.get()).data()).toMatchObject({ status: 'delete_intent', revision: 2, attempt: 1 });
     } finally { await ref.delete(); }
@@ -76,6 +76,18 @@ describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command 
         kind: 'complete', receiptDigest: 'a'.repeat(64), completedAt: t0 + 1,
       } as unknown as PurgeWorkCommand)).rejects.toThrow('purge_work_unsupported_command');
       expect((await ref.get()).data()).toMatchObject({ status: 'ready', revision: 0 });
+    } finally { await ref.delete(); }
+  }, 20_000);
+
+  it('native Firestore rejects caller-clock overrides before writing a lease', async () => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set(createPurgeWork(id, t0));
+    try {
+      await expect(executePurgeWorkCommand(db, ref, {
+        ...claim(workerB), now: t0 + 10 * 365 * 24 * 60 * 60 * 1000,
+      } as unknown as PurgeWorkCommand)).rejects.toThrow('purge_work_unsupported_command');
+      expect((await ref.get()).data()).toMatchObject({ status: 'ready', revision: 0, attempt: 0 });
     } finally { await ref.delete(); }
   }, 20_000);
 
