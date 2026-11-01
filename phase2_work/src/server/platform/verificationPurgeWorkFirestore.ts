@@ -141,37 +141,75 @@ const allowedCommandFields: Record<PurgeWorkCommand['kind'], ReadonlySet<string>
   quarantine: new Set(['kind','reason','token','epoch']),
 };
 
-/** Rejects inherited/prototype-rich objects, unknown fields and caller timestamps.
- * Snapshot the permitted primitive fields BEFORE the first await so mutations
- * during a Firestore transaction retry cannot alter what was authorized.
+/**
+ * Treat the caller input as untrusted runtime data, despite its TypeScript type.
+ * Never READ caller properties: getters may execute code or change the payload.
+ * Only own, enumerable, primitive DATA descriptors with an exact field set
+ * are accepted. Copy into a new plain object before any async work.
  */
 function snapshotCommand(command: PurgeWorkCommand): PurgeWorkCommand {
   if (command === null || typeof command !== 'object' || Array.isArray(command) ||
-      (Object.getPrototypeOf(command) !== Object.prototype && Object.getPrototypeOf(command) !== null)) {
+      (Object.getPrototypeOf(command) !== Object.prototype &&
+       Object.getPrototypeOf(command) !== null)) {
     throw new Error('purge_work_unsupported_command');
   }
-  const fields = Object.prototype.hasOwnProperty.call(allowedCommandFields, command.kind)
-    ? allowedCommandFields[command.kind] : undefined;
-  if (!fields || Object.keys(command).some(key => !fields.has(key)) ||
-      !Object.prototype.hasOwnProperty.call(command, 'kind')) {
+  const descriptors = Object.getOwnPropertyDescriptors(command);
+  const kind = descriptors.kind;
+  if (!kind || !('value' in kind) || !kind.enumerable ||
+      typeof kind.value !== 'string' ||
+      !Object.prototype.hasOwnProperty.call(allowedCommandFields, kind.value)) {
     throw new Error('purge_work_unsupported_command');
   }
-  switch (command.kind) {
-    case 'claim':
-      return { kind: command.kind, token: command.token, leaseMs: command.leaseMs };
-    case 'release_undeleted':
-      return { kind: command.kind, token: command.token,
-        epoch: command.epoch, retryAfter: command.retryAfter };
-    case 'prepare_delete_intent':
-      return { kind: command.kind, token: command.token,
-        epoch: command.epoch, generation: command.generation };
-    case 'quarantine':
-      return { kind: command.kind, reason: command.reason,
-        ...(command.token === undefined ? {} : { token: command.token }),
-        ...(command.epoch === undefined ? {} : { epoch: command.epoch }) };
-    default:
+  const fields = allowedCommandFields[kind.value as PurgeWorkCommand['kind']];
+  if (!fields) throw new Error('purge_work_unsupported_command');
+  for (const property of Reflect.ownKeys(command)) {
+    if (typeof property !== 'string' || !fields.has(property)) {
       throw new Error('purge_work_unsupported_command');
+    }
+    const descriptor = descriptors[property];
+    if (!descriptor || !descriptor.enumerable || !('value' in descriptor) ||
+        !['string', 'number'].includes(typeof descriptor.value)) {
+      throw new Error('purge_work_unsupported_command');
+    }
   }
+  const data = (key: string): unknown => descriptors[key]?.value;
+  const tokenOk = (value: unknown): value is string =>
+    typeof value === 'string' && opaqueToken(value);
+  const integerOk = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+  const epoch = data('epoch');
+  switch (kind.value) {
+    case 'claim': {
+      const token = data('token'), leaseMs = data('leaseMs');
+      if (Reflect.ownKeys(command).length !== 3 || !tokenOk(token) ||
+          !integerOk(leaseMs) || leaseMs < 1000 || leaseMs > 600_000) break;
+      return { kind: 'claim', token, leaseMs };
+    }
+    case 'release_undeleted': {
+      const token = data('token'), retryAfter = data('retryAfter');
+      if (Reflect.ownKeys(command).length !== 4 || !tokenOk(token) ||
+          !integerOk(epoch) || !integerOk(retryAfter)) break;
+      return { kind: 'release_undeleted', token, epoch, retryAfter };
+    }
+    case 'prepare_delete_intent': {
+      const token = data('token'), generation = data('generation');
+      if (Reflect.ownKeys(command).length !== 4 || !tokenOk(token) ||
+          !integerOk(epoch) || typeof generation !== 'string' ||
+          !/^[1-9][0-9]*$/.test(generation)) break;
+      return { kind: 'prepare_delete_intent', token, epoch, generation };
+    }
+    case 'quarantine': {
+      const reason = data('reason'), token = data('token');
+      if (typeof reason !== 'string' || !quarantineReasons.has(reason) ||
+          (token === undefined) !== (epoch === undefined) ||
+          (token !== undefined && !tokenOk(token)) ||
+          (epoch !== undefined && !integerOk(epoch)) ||
+          Reflect.ownKeys(command).length !== (token === undefined ? 2 : 4)) break;
+      return { kind: 'quarantine', reason: reason as PurgeQuarantineReason,
+        ...(token === undefined ? {} : { token: token as string, epoch: epoch as number }) };
+    }
+  }
+  throw new Error('purge_work_unsupported_command');
 }
 
 function executePureCommand(state: PurgeWorkState, command: PurgeWorkCommand, now: number): PurgeWorkState {
