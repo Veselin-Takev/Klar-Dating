@@ -352,3 +352,11 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Resolve P0 #202: independently authorize generation-fenced GCS deletion/404/412/crash/holds with durable receipts; demonstrate scheduler/IAM and **>300** due items processed safely; signed AppSec/DPO/Legal/SRE/Release Owner GO after exact integrated release SHA.
 
 **P0 #202 and #254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
+
+### 2026-11-01 — Stack dependency and independent approval tracking
+
+- [x] [P0 stacked PR dependency matrix](docs/P0_STACK_INTEGRATION_GATES_2026-11-01.md) records exact observed SHA ancestry from #269 to #291, and alternative #285/#286/#287 and separate #253/#268 without presuming a merger.
+- [ ] Independent reconciliation of overlapping changes; no blind squash/cherry-pick/merge. Require new integrated-source SHA, full CI, staging/Cloud IAM/Rules/GCS evidence, approved Tenant/media-visibility policy, Art.-17 and P0 #202 durable >300 work-flow receipts, then named role signoffs.
+- [ ] Do not switch `productionApproved=false` or deploy until exact approved release artifact and all mandatory human evidence verified.
+
+**Production NO-GO.**
