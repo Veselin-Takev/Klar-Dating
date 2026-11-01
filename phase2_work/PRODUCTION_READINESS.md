@@ -70,3 +70,14 @@ Static security/privacy/feature boundaries remain PASS. Full dynamic production 
 - Remaining blocker: the first IPv6 regression detector produced false positives because its source-expression matcher was too broad.
 - Remediation: the gate was tightened to validate the actual keyGenerator expression and require explicit ipKeyGenerator(req.ip ...) normalization whenever req.ip is used.
 - Production status: **NO-GO** until a subsequent CI run proves the corrected gate, followed by typecheck, tests, build, production smoke, browser acceptance, and release provenance evidence.
+
+
+## Enterprise End-to-End Audit decision — 2026-11-01 (current main)
+
+Authoritative current-source snapshot: `2808dc1cbb485f70b403681c108cea5a3361d950`. Refer to [comprehensive evidence and gap report](docs/ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md) and the updated [GO_LIVE_CHECKLIST](GO_LIVE_CHECKLIST.md). This report supersedes any implication in older sections that an isolated successful test run certifies the current main/deployed environment.
+
+**BLOCKED / NO-GO:** P0 #254 tenant migration / Admin SDK / Art.-17, P0 #202 legacy and decision-aware photo-retention races, P0 #55/#48 buyer attribution, P0 #56 partner privacy, P0 #70 live TTL/holds, P1 #204/#206 media authorization and tokens, P1 #73 live required independent reviews, and #8 production observability/restore/canary evidence. Main `RELEASE_MANIFEST.json` still says `productionApproved=false`.
+
+Verified branch CI: PR #267 run #41246347258 and PR #268 run #41282765859 completed successfully on their own SHAs; draft PR #269 run #41283792515 had not completed at the time of this audit. **None** of these runs verifies a merged main with all security gates or a live deployment. Draft #268 and #269 edit the same `check:enterprise` script: reconcile **both** `check:tenant-inventory` and `check:legacy-photo-purge` before any authorized integration.
+
+Before a release-owner decision: obtain exact-main full-scoped tests and SCA/SAST/Emulator, independent AppSec/DPO/Legal/Finance/SRE reviews, live Cloud Scheduler and GCS generation evidence, TTL ACTIVE snapshots, enforced branch protection, protected artifact provenance, measured on-call alert, staging restore/canary rollback and legal approval of the retention/partner matrix. Source audit alone is **not** a complete E2E or independent privacy certification.
