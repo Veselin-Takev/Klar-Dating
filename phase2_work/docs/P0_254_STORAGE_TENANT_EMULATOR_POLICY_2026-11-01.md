@@ -30,3 +30,8 @@ New `check:storage-tenant-emulator-coverage` asserts the two native tests and th
 - Signed AppSec/DPO/Legal/SRE/Release Owner reviews on a final merged artifact SHA. No deployment/merge, real data query, Storage/Firestore production mutation, IAM or Scheduler modification authorized.
 
 **P0 #254 and #202 remain OPEN. Release manifest stays `productionApproved=false`; Production NO-GO.**
+
+
+## CI triage: original mutation fixture and corrected commit
+
+Original SHA `5f9c94b12b26d3ca9b62f4cfb82cd2f660b10a47` failed [CI #41343976817](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41343976817) in `check:storage-tenant-emulator-coverage` **before** Typecheck/Emulator tests: the negative fixture replaced just the first `tenantUser(otherUid, 'tenant-B')` but the second test still contained the required tenant-B marker. A partially changed test suite correctly retained some coverage; therefore expecting the static gate to fail was not valid. The fixture now uses `replaceAll` to simulate removing the tenant-B claim from **both** native scenarios. Corrected code SHA `f36453c917f522cd6f034388645577e60de0ba03` is under fresh [CI #41344120822](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41344120822). Do not claim full PASS until this exact-head run completes and both native Storage tests are visible in logs.
