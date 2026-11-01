@@ -16,7 +16,7 @@
     {
       "name": "api-latency-p95-ms",
       "target": 300,
-      "indicator": "p95(klar_http_latency_ms)"
+      "indicator": "klar_http_request_duration_ms{quantile=\"0.95\"}"
     },
     {
       "name": "message-send-p95-ms",
