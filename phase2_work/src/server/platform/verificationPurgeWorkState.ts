@@ -183,7 +183,12 @@ export function assessDeletionIntentRecovery(
  * alone is NOT evidence when both values were stored in a malformed row.
  * Never authorizes a physical GCS delete or trusts a receipt signature.
  */
-export function hasCanonicalGcsReceiptEvidence(state: PurgeWorkState): boolean {
+export function hasCanonicalGcsReceiptEvidence(
+  state: PurgeWorkState,
+): state is PurgeWorkState & {
+  intent: NonNullable<PurgeWorkState['intent']>;
+  observed: NonNullable<PurgeWorkState['observed']>;
+} {
   return !!state.intent && !!state.observed &&
     isCanonicalGcsGeneration(state.intent.generation) &&
     isCanonicalGcsGeneration(state.observed.generation) &&
