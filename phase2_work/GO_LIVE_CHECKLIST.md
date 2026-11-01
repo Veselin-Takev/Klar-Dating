@@ -245,3 +245,14 @@ Both P0s OPEN, `productionApproved=false`, **NO-GO**.
 Parent [Draft #282](https://github.com/Veselin-Takev/Klar-Dating/pull/282) SHA `5c82c3c2f7847a63eef09a863e194106cfba96d9` completed [CI #41339344795](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41339344795) SUCCESS, validating checked-in Firebase Rules source evidence only. Current `storage.rules` contains flat `profiles/{uid}/{datei}` and `allow read: if signedIn();`, allowing signed-in-user reads at the client Rules layer without a tenant test in that expression; biometric verification photos remain client read-denied in source. This may be deliberate public-profile functionality and is **not evidence of current deployed Rules, a demonstrated exploit, or legal noncompliance**.
 
 New unmerged [Draft #285](https://github.com/Veselin-Takev/Klar-Dating/pull/285), initial SHA `170a0586b22aed47a37c8d82e6cf6843896c6c32`, adds a read-only Storage source marker review with SHA/line metadata, explicit `reviewRequired`, `tenantIsolationCertified=false`, `livePermissionVerified=false`, negative tests and mandatory dual-P0 gate preservation. No Security Rules were changed. [CI #41342756886](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41342756886) pending exact-head validation. Independent product/privacy determination for profile visibility and real Auth/Storage cross-tenant BOLA tests, deployed Rules proof, tenant migration, #202 durable GCS/receipt controls and human AppSec/DPO/SRE/Release Owner approvals remain outstanding. **P0 #254/#202 OPEN; Production NO-GO.**
+
+
+### 2026-11-01 — Native Storage Emulator policy characterization (Draft #286)
+
+- [x] Parent #285 exact SHA `170a0586b22aed47a37c8d82e6cf6843896c6c32` [CI #41342756886](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41342756886) full SUCCESS; this was only a source-risk marker.
+- [x] New unmerged [Draft #286](https://github.com/Veselin-Takev/Klar-Dating/pull/286) adds two native Storage Emulator tenant-claim test scenarios (cross-tenant profile-read characterized as current allowed, biometric client read denied), with synthetic emulator-only objects and no Rules changes.
+- [ ] Confirm exact SHA `1090aae0747c0b4163d46cbb234b0e7fff9f80da` [CI #41343839097](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41343839097) full PASS, especially that **five** Storage Rules Emulator tests and six Firestore CAS Emulator tests actually executed.
+- [ ] DPO/Product/Legal authorize intended visibility of signed-in profile images *across tenants*; run cross-/same-tenant Auth/Firestore/Storage/Admin-SDK BOLA negatives and verify production Rules/IAM deploy hash.
+- [ ] Still block real GCS photo deletion until independent Art.-17/hold/generation 404/412 receipts, >300 queue, Scheduler review, and AppSec/DPO/SRE/Release Owner signatures.
+
+`productionApproved=false`; both P0 #202/#254 remain OPEN.
