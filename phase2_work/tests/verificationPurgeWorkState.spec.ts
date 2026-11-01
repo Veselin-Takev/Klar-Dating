@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assessDeletionIntentRecovery, claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt,
-  createPurgeWork, markDeletionIntent, markDeletionObserved, quarantinePurgeWork,
+  createPurgeWork, isCanonicalGcsGeneration, markDeletionIntent, markDeletionObserved, quarantinePurgeWork,
   releaseUndeletedWork,
 } from '../src/server/platform/verificationPurgeWorkState';
 
@@ -183,4 +183,33 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
     expect(after.status).toBe('receipt_pending');
     expect(after.observed).toEqual({ generation: '17', observedAt: now + 1_000 });
   });
+
+  it('accepts only canonical positive unsigned 64-bit GCS generation strings without numeric coercion', () => {
+    expect(isCanonicalGcsGeneration('1')).toBe(true);
+    expect(isCanonicalGcsGeneration('18446744073709551615')).toBe(true);
+    for (const value of [
+      '0', '00', '0001', '18446744073709551616', '99999999999999999999',
+      '1'.repeat(21), '9'.repeat(4096), '1e3', '1.0', ' 1', '+1', '-1', '', null, 1, 123n,
+    ]) {
+      expect(isCanonicalGcsGeneration(value)).toBe(false);
+      expect(() => markDeletionIntent(lease(), tokenA, 1, now + 100, value as string))
+        .toThrow('purge_work_invalid_generation');
+    }
+    expect(markDeletionIntent(lease(), tokenA, 1, now + 100, '18446744073709551615')
+      .intent?.generation).toBe('18446744073709551615');
+  });
+
+  it('refuses malformed persisted intent generation and never authorizes an ambiguous delete', () => {
+    const invalid = {
+      ...intent('123'),
+      intent: { generation: '18446744073709551616', preparedAt: now + 500, leaseEpoch: 1 },
+    };
+    expect(() => assessDeletionIntentRecovery(invalid, { kind: 'present', generation: '123' }))
+      .toThrow('purge_work_no_persisted_delete_intent');
+    for (const value of ['18446744073709551616', '9'.repeat(50), '000123', '0']) {
+      expect(assessDeletionIntentRecovery(intent('123'), { kind: 'present', generation: value }))
+        .toEqual({ action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'unverifiable' });
+    }
+  });
+
 });
