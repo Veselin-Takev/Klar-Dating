@@ -89,6 +89,34 @@ export function createVerificationStoragePurgeRouter(deps: {
         return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
       });
 
+      // Entire due-page must be internally consistent *before* any GCS delete.
+      // Otherwise an invalid later row could be discovered only after earlier
+      // photos were irreversibly deleted, leaving a partial batch and no receipt.
+      const malformedCount = dueDocs.length - artifacts.length;
+      const usedPaths = new Set<string>();
+      let invalidStateCount = 0;
+      let duplicatePathCount = 0;
+      if (malformedCount === 0) {
+        for (let i = 0; i < artifacts.length; i++) {
+          const artifact = artifacts[i];
+          if (usedPaths.has(artifact.storagePath)) duplicatePathCount++;
+          usedPaths.add(artifact.storagePath);
+          if (!artifact.photoPurged) {
+            try {
+              assertCurrentVerificationPurgeCandidate(dueDocs[i].data(), artifact, now);
+            } catch {
+              invalidStateCount++;
+            }
+          }
+        }
+      }
+      if (malformedCount > 0 || invalidStateCount > 0 || duplicatePathCount > 0) {
+        return res.status(503).json({
+          ok: false, code: 'verification_storage_purge_preflight_failed',
+          scannedCount: dueDocs.length,
+          malformedCount, invalidStateCount, duplicatePathCount,
+        });
+      }
       const bucket = deps.getBucket?.() ?? getStorage().bucket();
       const summary = await executeVerificationRetentionBatch(
         artifacts,
@@ -117,7 +145,6 @@ export function createVerificationStoragePurgeRouter(deps: {
       // A scheduled caller checks only HTTP status. Never acknowledge a partial
       // failure as success or echo GCS errors, user IDs or photo paths.
       const failedCount = summary.results.filter(result => result.reason === 'error').length;
-      const malformedCount = dueDocs.length - artifacts.length;
       const safeSummary = {
         processed: summary.processed,
         purgedCount: summary.purgedCount,
