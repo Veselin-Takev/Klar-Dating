@@ -26,7 +26,7 @@ export function purgeWorkIsolationViolations(source) {
   if (!adapter.includes('export async function executePurgeWorkCommand') ||
       !adapter.includes('snapshotCommand(command)') ||
       !adapter.includes('allowedCommandFields') ||
-      !adapter.includes('executePureCommand(current, command)') ||
+      !adapter.includes('executePureCommand(current, preparedCommand, now)') ||
       adapter.includes('export async function transitionPurgeWorkInTransaction')) {
     failures.push('freeform Firestore state mutation API or typed command restrictions regressed');
   }
