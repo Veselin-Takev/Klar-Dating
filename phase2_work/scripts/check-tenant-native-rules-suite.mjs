@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 export function nativeTenantGateFailures({ tests, vitest, packageJson }) {
   const fail=[];
   const checks=[
-    ['native_rules_test_missing', /describe\.skipIf\(!emulatorOnly\)/.test(tests)],
+    ['native_rules_test_missing', tests.includes('describe.skipIf(!emulatorOnly && !ciRequiresEmulator)')],
     ['missing_legacy_uid_tenant_claim_proof', tests.includes('legacy root access remains UID-only')],
     ['missing_tenant_namespace_default_deny', tests.includes('current tenant-namespaced data is deny-by-default')],
     ['missing_cross_user_idor_denial', tests.includes('another UID cannot read, overwrite')],
