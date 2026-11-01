@@ -160,7 +160,40 @@ describe('P0 #202 signed photo purge HTTP acknowledgement', () => {
   it('fails closed if a due Firestore row is malformed instead of silently dropping it', async () => {
     const result = await invokePurge({ rows: [{ ...candidate(), uid: undefined }] });
     expect(result.status).toBe(503);
-    expect(result.body).toMatchObject({ ok: false, processed: 0, malformedCount: 1, failedCount: 0 });
+    expect(result.body).toMatchObject({ ok: false, code: 'verification_storage_purge_preflight_failed', scannedCount: 1, malformedCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('does not delete valid earlier photos when a later due record is malformed', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), uid: undefined }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', scannedCount: 2, malformedCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+    expect(result.metadataReads).toBe(0);
+  });
+
+  it('does not delete a shared object when two due records claim the same path', async () => {
+    const result = await invokePurge({ rows: [candidate(), candidate()] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', duplicatePathCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('rejects an unexpected due pending decision before any GCS mutation', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), storagePath: `verification/${uid}/pending.jpg`, status: 'pending', entscheidung: 'pending' }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+  });
+
+  it('rejects contradictory due decision fields before any GCS mutation', async () => {
+    const result = await invokePurge({ rows: [candidate(), { ...candidate(), storagePath: `verification/${uid}/conflict.jpg`, entscheidung: 'abgelehnt' }] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
     expect(result.deletions).toHaveLength(0);
     expect(result.receipts).toHaveLength(0);
   });
