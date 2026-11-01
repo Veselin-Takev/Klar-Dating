@@ -28,3 +28,11 @@
 - No real Cloud deployment, Scheduler/IAM change, customer photo deletion, or release approval was performed. The latest exact SHA must pass CI before claiming source validation. DPO/Legal/SRE/AppSec/Release Owner signoff is missing.
 
 **P0 #202 OPEN. Production NO-GO.**
+
+## 2026-11-01 — Scheduled-job acknowledgement and privacy follow-up
+
+A second source-backed P0 failure mode was identified: `storageRetentionEngine.ts` catches per-photo GCS/transaction failures and returns `reason: 'error'` for affected items, while `complianceStorage.ts` had returned HTTP `200 { ok: true, ...summary }` regardless. The signed `purgeVerificationStorageCron` checks only `response.ok`, so partial failure could be silently acknowledged and never retried by the scheduler. The route response also exposed raw `uid`, `challengeId`, `storagePath`, digest and provider `error` through the `results` array.
+
+The source-only follow-up changes the HTTP contract: any failed per-photo action, malformed due Firestore record or internally inconsistent summary yields **HTTP 503** and code `verification_storage_purge_incomplete`, forcing the scheduler to treat it as failed. Both complete and failed responses use aggregate-only counts, never per-object/user strings or provider errors. `tests/verificationPurgeHttp.spec.ts` exercises real signed HTTP requests to an isolated Express instance backed by synthetic in-memory Firestore/GCS doubles: a GCS-412-like exception, mixed success/failure, complete success, malformed due record and an invalid HMAC. The mandatory `check:compliance-storage-purge` source gate now rejects regression to HTTP-200-on-partial-failure.
+
+**Evidence boundary:** A 503 creates a retry signal but does not prove retries occurred, that the daily scheduler catches every due page, or that a successful GCS delete followed by a failed Firestore receipt is reconciled. A strict resumable receipt/lease protocol, precondition-aware negative staging GCS tests, bounded paging, privacy-reviewed response metrics and SRE/DPO/AppSec signoff are still necessary. This latest commit requires exact-head CI; earlier PASS #41285159760 validates only the predecessor SHA. No deployment or production data changes. **NO-GO.**
