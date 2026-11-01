@@ -5,6 +5,12 @@ import { fileURLToPath } from 'node:url';
 export function purgeWorkIsolationViolations(source) {
   const failures = [];
   const { states, adapter, route, scheduler, legacyScheduler } = source;
+  if (!states.includes('markDeletionIntent') ||
+      !states.includes('purge_work_missing_delete_intent') ||
+      !states.includes('assessDeletionIntentRecovery') ||
+      !states.includes("physicalDeleteAuthorized: false")) {
+    failures.push('write-ahead intent or no-auto-retry recovery gate removed');
+  }
   if (!states.includes('claimReceiptReconciliation') ||
       !states.includes('markDeletionObserved') ||
       !states.includes('purge_work_stale_or_expired_lease')) {

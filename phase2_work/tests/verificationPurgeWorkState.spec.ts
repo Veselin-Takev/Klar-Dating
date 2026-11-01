@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt,
-  createPurgeWork, markDeletionObserved, quarantinePurgeWork,
+  assessDeletionIntentRecovery, claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt,
+  createPurgeWork, markDeletionIntent, markDeletionObserved, quarantinePurgeWork,
   releaseUndeletedWork,
 } from '../src/server/platform/verificationPurgeWorkState';
 
@@ -13,6 +13,8 @@ const digest = 'b'.repeat(64);
 const now = 1_798_000_000_000;
 const start = () => createPurgeWork(key, now);
 const lease = () => claimPurgeWork(start(), tokenA, now, 5_000);
+const intent = (generation = '123', preparedAt = now + 500) =>
+  markDeletionIntent(lease(), tokenA, 1, preparedAt, generation);
 
 describe('P0 #202 retention lease and audit state machine (no IO)', () => {
   it('creates an opaque ready item and valid exclusive lease', () => {
@@ -42,7 +44,7 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
       status: 'leased', revision: 2, attempt: 2,
       lease: { token: tokenB, epoch: 2, expiresAt: now + 11_000 },
     });
-    expect(() => markDeletionObserved(reclaimed, tokenA, 1, now + 5_001, '12'))
+    expect(() => markDeletionIntent(reclaimed, tokenA, 1, now + 5_001, '12'))
       .toThrow('purge_work_stale_or_expired_lease');
     expect(() => releaseUndeletedWork(reclaimed, tokenA, 1, now + 5_001, now + 8_000))
       .toThrow('purge_work_stale_or_expired_lease');
@@ -59,9 +61,9 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
   });
 
   it('never redoes physical deletion after successful generation-observed marker', () => {
-    const observed = markDeletionObserved(lease(), tokenA, 1, now + 1_000, '18446744073709551615');
+    const observed = markDeletionObserved(intent('18446744073709551615', now + 500), tokenA, 1, now + 1_000, '18446744073709551615');
     expect(observed).toMatchObject({
-      status: 'receipt_pending', revision: 2,
+      status: 'receipt_pending', revision: 3,
       observed: { generation: '18446744073709551615', observedAt: now + 1_000 },
     });
     expect(() => claimPurgeWork(observed, tokenB, now + 7_000, 5_000))
@@ -69,11 +71,56 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
     expect(() => releaseUndeletedWork(observed, tokenA, 1, now + 2_000, now + 8_000))
       .toThrow('purge_work_not_undeleted');
     expect(() => markDeletionObserved(observed, tokenA, 1, now + 2_000, '123'))
-      .toThrow('purge_work_not_leased');
+      .toThrow('purge_work_missing_delete_intent');
+  });
+
+
+  it('persists write-ahead intent before any observed delete, with exact generation and lease epoch', () => {
+    const prepared = intent('567');
+    expect(prepared).toMatchObject({
+      status: 'delete_intent', revision: 2,
+      intent: { generation: '567', leaseEpoch: 1, preparedAt: now + 500 },
+    });
+    expect(() => markDeletionObserved(lease(), tokenA, 1, now + 1_000, '567'))
+      .toThrow('purge_work_missing_delete_intent');
+    expect(() => markDeletionObserved(prepared, tokenA, 1, now + 1_000, '568'))
+      .toThrow('purge_work_intent_mismatch');
+    expect(() => markDeletionObserved(prepared, tokenB, 1, now + 1_000, '567'))
+      .toThrow('purge_work_stale_or_expired_lease');
+    expect(markDeletionObserved(prepared, tokenA, 1, now + 1_000, '567').status).toBe('receipt_pending');
+  });
+
+  it('never reclaims or re-deletes an expired ambiguous intent, even across worker crashes', () => {
+    const prepared = intent('18446744073709551615');
+    expect(() => claimPurgeWork(prepared, tokenB, now + 50_000, 5_000))
+      .toThrow('purge_work_not_claimable');
+    expect(() => releaseUndeletedWork(prepared, tokenA, 1, now + 600, now + 6_000))
+      .toThrow('purge_work_not_undeleted');
+    expect(() => quarantinePurgeWork(prepared, 'manual_review', now + 600, tokenA, 1))
+      .toThrow('purge_work_cannot_quarantine');
+    expect(() => markDeletionObserved(prepared, tokenA, 1, now + 5_000, '18446744073709551615'))
+      .toThrow('purge_work_stale_or_expired_lease');
+  });
+
+  it.each([
+    [{ kind: 'not_found' } as const, 'absence_ambiguous'],
+    [{ kind: 'present', generation: '777' } as const, 'replacement_detected'],
+    [{ kind: 'present', generation: '123' } as const, 'same_generation_present'],
+    [{ kind: 'present', generation: '0' } as const, 'unverifiable'],
+    [{ kind: 'unknown' } as const, 'unverifiable'],
+  ])('requires human/independent reconciliation, NEVER GCS delete: %j', (observation, reason) => {
+    expect(assessDeletionIntentRecovery(intent('123'), observation)).toEqual({
+      action: 'manual_reconcile', physicalDeleteAuthorized: false, reason,
+    });
+  });
+
+  it('cannot reconcile without a durably persisted matching write-ahead intent', () => {
+    expect(() => assessDeletionIntentRecovery(lease(), { kind: 'not_found' }))
+      .toThrow('purge_work_no_persisted_delete_intent');
   });
 
   it('only reclaims the audit receipt after its lease expires, fences stale workers', () => {
-    const observed = markDeletionObserved(lease(), tokenA, 1, now + 1_000, '123');
+    const observed = markDeletionObserved(intent('123', now + 500), tokenA, 1, now + 1_000, '123');
     expect(() => claimReceiptReconciliation(observed, tokenB, now + 4_999, 5_000))
       .toThrow('purge_work_receipt_not_claimable');
     const reclaimed = claimReceiptReconciliation(observed, tokenB, now + 5_000, 5_000);
@@ -84,7 +131,7 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
       .toThrow('purge_work_stale_or_expired_lease');
     const done = completePurgeReceipt(reclaimed, tokenB, 2, now + 5_001, digest);
     expect(done).toMatchObject({
-      status: 'complete', completedAt: now + 5_001, receiptDigest: digest, revision: 4,
+      status: 'complete', completedAt: now + 5_001, receiptDigest: digest, revision: 5,
     });
     expect(() => claimPurgeWork(done, tokenA, now + 40_000, 5_000))
       .toThrow('purge_work_not_claimable');
@@ -95,7 +142,7 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
   it('rejects missing, forged or expired receipt evidence', () => {
     expect(() => completePurgeReceipt(lease(), tokenA, 1, now + 1_000, digest))
       .toThrow('purge_work_no_receipt_evidence');
-    const observed = markDeletionObserved(lease(), tokenA, 1, now + 1_000, '100');
+    const observed = markDeletionObserved(intent('100', now + 500), tokenA, 1, now + 1_000, '100');
     expect(() => completePurgeReceipt(observed, tokenA, 1, now + 1_500, 'not-a-sha256'))
       .toThrow('purge_work_invalid_receipt');
     expect(() => completePurgeReceipt(observed, tokenA, 1, now + 5_000, digest))
@@ -112,7 +159,7 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
     expect(fromLease.status).toBe('quarantined');
     expect(() => quarantinePurgeWork(lease(), 'invalid_source', now + 100, tokenB, 1))
       .toThrow('purge_work_stale_or_expired_lease');
-    expect(() => quarantinePurgeWork(markDeletionObserved(lease(), tokenA, 1, now + 100, '16'),
+    expect(() => quarantinePurgeWork(markDeletionObserved(intent('16', now + 50), tokenA, 1, now + 100, '16'),
       'legal_hold', now + 200, tokenA, 1)).toThrow('purge_work_cannot_quarantine');
   });
 
@@ -121,16 +168,16 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
     expect(() => claimPurgeWork(start(), 'weak', now, 5_000)).toThrow('purge_work_invalid_lease');
     expect(() => claimPurgeWork(start(), tokenA, now, 10 * 60_000 + 1)).toThrow('purge_work_invalid_lease');
     expect(() => claimPurgeWork(start(), tokenA, now, 999)).toThrow('purge_work_invalid_lease');
-    expect(() => markDeletionObserved(lease(), tokenA, 1, now + 1_000, '0'))
+    expect(() => markDeletionIntent(lease(), tokenA, 1, now + 1_000, '0'))
       .toThrow('purge_work_invalid_generation');
-    expect(() => markDeletionObserved(lease(), tokenA, 1, now + 1_000, '12e3'))
+    expect(() => markDeletionIntent(lease(), tokenA, 1, now + 1_000, '12e3'))
       .toThrow('purge_work_invalid_generation');
   });
 
   it('does not mutate the original record in any state transition', () => {
     const before = Object.freeze(start());
     const current = claimPurgeWork(before, tokenA, now, 5_000);
-    const after = markDeletionObserved(current, tokenA, 1, now + 1_000, '17');
+    const after = markDeletionObserved(markDeletionIntent(current, tokenA, 1, now + 500, '17'), tokenA, 1, now + 1_000, '17');
     expect(before.status).toBe('ready');
     expect(current.status).toBe('leased');
     expect(after.status).toBe('receipt_pending');

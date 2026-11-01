@@ -26,6 +26,9 @@ const mutations = [
   ['adapter imports storage', x => ({ ...x, adapter: x.adapter + '\ngetStorage()' })],
   ['transaction CAS removed', x => ({ ...x, adapter: x.adapter.replace('db.runTransaction', 'unsafeTransaction') })],
   ['stale worker guard removed', x => ({ ...x, states: x.states.replaceAll('purge_work_stale_or_expired_lease', 'lease_check_disabled') })],
+  ['write-ahead intent removed', x => ({ ...x, states: x.states.replaceAll('markDeletionIntent', 'unsafeDeleteDirectly') })],
+  ['intent reconciliation removed', x => ({ ...x, states: x.states.replaceAll('assessDeletionIntentRecovery', 'skipIndependentReconciliation') })],
+  ['implicit automatic physical delete enabled', x => ({ ...x, states: x.states.replaceAll('physicalDeleteAuthorized: false', 'physicalDeleteAuthorized: true') })],
 ];
 for (const [label, mutate] of mutations) {
   test('regression: reject ' + label, () => {

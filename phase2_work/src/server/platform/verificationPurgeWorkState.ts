@@ -7,7 +7,7 @@
  *
  * No physical delete, external IO, or source identifiers occur in this module.
  */
-export type PurgeWorkStatus = 'ready' | 'leased' | 'receipt_pending' | 'complete' | 'quarantined';
+export type PurgeWorkStatus = 'ready' | 'leased' | 'delete_intent' | 'receipt_pending' | 'complete' | 'quarantined';
 export type PurgeQuarantineReason =
   | 'invalid_source' | 'ambiguous_ownership' | 'legal_hold'
   | 'conflicting_decision' | 'unverifiable_generation' | 'manual_review';
@@ -22,6 +22,8 @@ export interface PurgeWorkState {
   availableAt: number;
   /** Fencing token is generated outside a retried transaction. */
   lease?: { token: string; epoch: number; expiresAt: number };
+  /** MUST be persisted in a transaction before any physical GCS request. */
+  intent?: { generation: string; preparedAt: number; leaseEpoch: number };
   /** This is not proof of deletion without independent receipt reconciliation. */
   observed?: { generation: string; observedAt: number };
   completedAt?: number;
@@ -102,11 +104,11 @@ export function releaseUndeletedWork(
 }
 
 /**
- * Must be called ONLY after generation-fenced GCS success and before the final
- * receipt transition. Crash before this persisted marker remains unresolved;
- * no exactly-once cross-service guarantees are claimed.
+ * Write-ahead intent MUST commit atomically before invoking a generation-fenced
+ * GCS delete. After an intent, expiry NEVER re-enables physical deletion:
+ * an HTTP timeout/crash cannot distinguish success from non-delivery.
  */
-export function markDeletionObserved(
+export function markDeletionIntent(
   state: PurgeWorkState, token: string, epoch: number, now: number, generation: string,
 ): PurgeWorkState {
   assertValidState(state);
@@ -114,6 +116,65 @@ export function markDeletionObserved(
   assertCurrentLease(state, token, epoch, now);
   if (!/^[1-9][0-9]*$/.test(generation) || state.revision >= Number.MAX_SAFE_INTEGER) {
     throw new Error('purge_work_invalid_generation');
+  }
+  return {
+    ...state, status: 'delete_intent', revision: state.revision + 1,
+    intent: { generation, preparedAt: now, leaseEpoch: epoch },
+  };
+}
+
+/** 
+ * Pure, read-only recovery policy. None of the outcomes authorizes another
+ * physical delete. A not-found object is AMBIGUOUS without independently
+ * authenticated, generation-bound GCS operation and audit evidence.
+ */
+export type GcsIntentObservation =
+  | { kind: 'present'; generation: string }
+  | { kind: 'not_found' }
+  | { kind: 'unknown' };
+export type IntentRecoveryAssessment = {
+  action: 'manual_reconcile';
+  physicalDeleteAuthorized: false;
+  reason: 'same_generation_present' | 'replacement_detected' | 'absence_ambiguous' | 'unverifiable';
+};
+export function assessDeletionIntentRecovery(
+  state: PurgeWorkState, observation: GcsIntentObservation,
+): IntentRecoveryAssessment {
+  assertValidState(state);
+  if (state.status !== 'delete_intent' || !state.intent ||
+      !/^[1-9][0-9]*$/.test(state.intent.generation)) {
+    throw new Error('purge_work_no_persisted_delete_intent');
+  }
+  if (observation?.kind === 'not_found') {
+    return { action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'absence_ambiguous' };
+  }
+  if (observation?.kind === 'present') {
+    if (!/^[1-9][0-9]*$/.test(observation.generation)) {
+      return { action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'unverifiable' };
+    }
+    return {
+      action: 'manual_reconcile', physicalDeleteAuthorized: false,
+      reason: observation.generation === state.intent.generation
+        ? 'same_generation_present' : 'replacement_detected',
+    };
+  }
+  return { action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'unverifiable' };
+}
+
+/**
+ * Only a worker that has verifiably received generation-fenced GCS success can
+ * record an observation. A crash before this marker keeps delete_intent.
+ * This pure transition cannot itself verify external GCS success.
+ */
+export function markDeletionObserved(
+  state: PurgeWorkState, token: string, epoch: number, now: number, generation: string,
+): PurgeWorkState {
+  assertValidState(state);
+  if (state.status !== 'delete_intent' || !state.intent) throw new Error('purge_work_missing_delete_intent');
+  assertCurrentLease(state, token, epoch, now);
+  if (state.intent.leaseEpoch !== epoch || state.intent.generation !== generation ||
+      now < state.intent.preparedAt || state.revision >= Number.MAX_SAFE_INTEGER) {
+    throw new Error('purge_work_intent_mismatch');
   }
   return {
     ...state, status: 'receipt_pending', revision: state.revision + 1,
