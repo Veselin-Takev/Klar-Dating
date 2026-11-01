@@ -464,3 +464,10 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [x] Failure diagnosed: #299 initial `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) **FAILED** on a missing single-check mutation detection; no suppression or rollback of the security negative case.
 - [x] Gate strengthened to require both mandatory receipt guards on new #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52`.
 - [ ] Verify fresh [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) complete exact SHA SUCCESS (mutation, pure tests, 5/6/10 native Emulator, release gates, type/build/smoke/26 browser); previously **IN PROGRESS**. P0 #202/#254 real Cloud/Legal evidence and independent role signoffs missing; NO-GO.
+
+
+### 2026-11-01 — Strict typed GCS receipt evidence on #299
+
+- [x] Second initial #299 run [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) FAILED Typecheck on six `TS18048` optional fields after source/mutation gate passed; **no** weakened tests or CI exceptions.
+- [x] New #299 SHA `453e40cf0037e9bd0a5484fa56e24d98a47918ce` makes canonical receipt validation a TypeScript type predicate and enforces additional CAS current-intent generation identity.
+- [ ] [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) must PASS completely for this exact SHA; **PENDING** when recorded. P0 real GCS delete/holds/404/412/crash/>300 queue, Tenant/Art17/Admin SDK/IAM, signed media ADR, SRE and real role signatures remain BLOCKED; Production NO-GO.
