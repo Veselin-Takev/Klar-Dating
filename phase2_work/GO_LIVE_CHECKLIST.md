@@ -380,3 +380,13 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] P0 #202 lawful GCS 404/412/holds/crash/receipt reconciliation and durable >300 queue; P0 #254 tenant authorization/Admin SDK/Art.17, actual deployed Rules/IAM and signed guest/adult/media visibility decision remain BLOCKED.
 
 `productionApproved=false` — **Production NO-GO**.
+
+
+### 2026-11-01 — Joint release ownership and P0 security verification #293
+
+- [x] Confirmed the P0 #291 branch has no changes from `main` in the two release approval files; exact #292 versions added on new isolated [Draft #293](https://github.com/Veselin-Takev/Klar-Dating/pull/293), SHA `e372270fa5bc43663355c8f2d8191f125c5d55b4`; three changed files total (including technical evidence doc).
+- [ ] [Combined CI #41353102974](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41353102974) must **complete SUCCESS** on this exact SHA: new ReleaseOwner source/negative tests, 5 native Storage/6 native Tenant Firestore/6 native Retention Firestore cases, missing-Emulator regression, full Typecheck/Build/Smoke/Browser. **IN PROGRESS** when logged, not PASS.
+- [ ] Reconcile any subsequent #253 Tenant Foundation, alternative #285–#287 or other independent security branches through reviewed non-duplicative integration and new SHA-bound CI; do not presume the current source integration is approved.
+- [ ] Sign Product/DPO/Legal guest/adult/cross-tenant profile media policy, verify deployed Rules/IAM/Admin SDK BOLA/Art17 migration and GCS generation/404/412/hold/crash receipts/durable >300 workload, plus real independent Security/DPO/Legal/SRE/ReleaseOwner authorizations.
+
+Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41352274801) was CANCELLED, **not PASS**. `productionApproved=false`; **Production NO-GO**.
