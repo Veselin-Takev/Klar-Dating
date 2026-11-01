@@ -31,6 +31,17 @@ export interface PurgeWorkState {
   quarantineReason?: PurgeQuarantineReason;
 }
 
+/**
+ * GCS generation is a canonical unsigned 64-bit decimal string. Never convert
+ * it to a JS number: precision is lost above Number.MAX_SAFE_INTEGER.
+ * Restrict size before parsing/comparison so malformed input cannot expand
+ * a write-ahead intent or trigger expensive validation.
+ */
+export function isCanonicalGcsGeneration(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^[1-9][0-9]{0,19}$/.test(value)) return false;
+  return value.length < 20 || value <= '18446744073709551615';
+}
+
 function validTime(n: number): boolean {
   return Number.isSafeInteger(n) && n >= 0;
 }
@@ -114,7 +125,7 @@ export function markDeletionIntent(
   assertValidState(state);
   if (state.status !== 'leased') throw new Error('purge_work_not_leased');
   assertCurrentLease(state, token, epoch, now);
-  if (!/^[1-9][0-9]*$/.test(generation) || state.revision >= Number.MAX_SAFE_INTEGER) {
+  if (!isCanonicalGcsGeneration(generation) || state.revision >= Number.MAX_SAFE_INTEGER) {
     throw new Error('purge_work_invalid_generation');
   }
   return {
@@ -142,14 +153,14 @@ export function assessDeletionIntentRecovery(
 ): IntentRecoveryAssessment {
   assertValidState(state);
   if (state.status !== 'delete_intent' || !state.intent ||
-      !/^[1-9][0-9]*$/.test(state.intent.generation)) {
+      !isCanonicalGcsGeneration(state.intent.generation)) {
     throw new Error('purge_work_no_persisted_delete_intent');
   }
   if (observation?.kind === 'not_found') {
     return { action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'absence_ambiguous' };
   }
   if (observation?.kind === 'present') {
-    if (!/^[1-9][0-9]*$/.test(observation.generation)) {
+    if (!isCanonicalGcsGeneration(observation.generation)) {
       return { action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'unverifiable' };
     }
     return {
