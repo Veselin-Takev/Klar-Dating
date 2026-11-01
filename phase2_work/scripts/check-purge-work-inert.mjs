@@ -16,6 +16,11 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('purge_work_stale_or_expired_lease')) {
     failures.push('lease or receipt fencing state transitions removed');
   }
+  if (!adapter.includes('allowedTransitions') ||
+      !adapter.includes('validFencedTransition(current, next)') ||
+      !adapter.includes('purge_work_transition_invariant')) {
+    failures.push('Firestore CAS transition and write-ahead intent invariants removed');
+  }
   if (!adapter.includes('db.runTransaction') ||
       !adapter.includes('tx.get(ref)') || !adapter.includes('tx.update(ref, next)')) {
     failures.push('transactional compare-and-swap adapter removed');
