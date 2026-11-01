@@ -22,26 +22,100 @@ const allowedTransitions: Record<PurgeWorkState['status'], ReadonlySet<PurgeWork
   complete: new Set(),
   quarantined: new Set(),
 };
+const opaqueToken = (value: unknown): boolean =>
+  typeof value === 'string' && /^[a-zA-Z0-9_-]{16,128}$/.test(value);
+const safeTime = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+function sameLease(a: PurgeWorkState['lease'], b: PurgeWorkState['lease']): boolean {
+  return a === undefined ? b === undefined
+    : b !== undefined && a.token === b.token &&
+      a.epoch === b.epoch && a.expiresAt === b.expiresAt;
+}
+function sameObserved(a: PurgeWorkState['observed'], b: PurgeWorkState['observed']): boolean {
+  return a === undefined ? b === undefined
+    : b !== undefined && a.generation === b.generation &&
+      a.observedAt === b.observedAt;
+}
+function validLease(lease: PurgeWorkState['lease']): boolean {
+  return !!lease && opaqueToken(lease.token) &&
+    Number.isSafeInteger(lease.epoch) && lease.epoch > 0 && safeTime(lease.expiresAt);
+}
+const quarantineReasons = new Set([
+  'invalid_source', 'ambiguous_ownership', 'legal_hold',
+  'conflicting_decision', 'unverifiable_generation', 'manual_review',
+]);
 function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): boolean {
   if (!allowedTransitions[current.status]?.has(next.status)) return false;
-  // Once an object-specific GCS generation is fenced, no adapter callback may
-  // drop or change its immutable intent, including after a worker crash.
+  if (!Number.isSafeInteger(current.attempt) || current.attempt < 0 ||
+      !Number.isSafeInteger(next.attempt) || next.attempt < 0 ||
+      !safeTime(current.availableAt) || !safeTime(next.availableAt)) return false;
+  // The generation identity cannot be rewritten by a caller-supplied transform.
   if (current.intent && (next.intent?.generation !== current.intent.generation ||
       next.intent.preparedAt !== current.intent.preparedAt ||
       next.intent.leaseEpoch !== current.intent.leaseEpoch)) return false;
-  if (next.status === 'delete_intent' &&
-      (current.status !== 'leased' ||
-       !next.lease || next.intent?.leaseEpoch !== next.lease.epoch ||
-       !/^[1-9][0-9]*$/.test(next.intent?.generation ?? '') ||
-       typeof next.intent?.preparedAt !== 'number' || !Number.isSafeInteger(next.intent.preparedAt))) return false;
-  if (next.status === 'receipt_pending' &&
-      (!next.intent || !next.observed || next.intent.generation !== next.observed.generation)) return false;
-  if (next.status === 'complete' &&
-      (current.status !== 'receipt_pending' || !current.observed || !current.intent ||
-       !/^[a-f0-9]{64}$/.test(next.receiptDigest ?? '') ||
-       typeof next.completedAt !== 'number' || !Number.isSafeInteger(next.completedAt))) return false;
-  if (next.status === 'ready' && next.intent) return false;
-  return true;
+  if (current.observed && !sameObserved(current.observed, next.observed)) return false;
+  if (next.status !== 'complete' && (next.completedAt !== undefined ||
+      next.receiptDigest !== undefined)) return false;
+  if (next.status !== 'quarantined' && next.quarantineReason !== undefined) return false;
+
+  if (next.status === 'leased' && (current.status === 'ready' || current.status === 'leased')) {
+    if (!validLease(next.lease) || !next.lease ||
+        next.attempt !== current.attempt + 1 ||
+        next.availableAt !== current.availableAt ||
+        next.lease.epoch !== (current.lease?.epoch ?? 0) + 1 ||
+        next.lease.expiresAt <= current.availableAt ||
+        next.intent !== undefined || next.observed !== undefined) return false;
+    return true;
+  }
+  if (next.status === 'ready' && current.status === 'leased') {
+    return sameLease(current.lease, next.lease) &&
+      next.attempt === current.attempt && next.availableAt > current.availableAt &&
+      next.intent === undefined && next.observed === undefined;
+  }
+  if (next.status === 'delete_intent' && current.status === 'leased') {
+    return sameLease(current.lease, next.lease) && validLease(next.lease) &&
+      next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      next.observed === undefined && next.intent !== undefined &&
+      next.intent.leaseEpoch === next.lease?.epoch &&
+      /^[1-9][0-9]*$/.test(next.intent.generation) &&
+      safeTime(next.intent.preparedAt) && next.intent.preparedAt < (next.lease?.expiresAt ?? 0);
+  }
+  if (next.status === 'receipt_pending' && current.status === 'delete_intent') {
+    return sameLease(current.lease, next.lease) && validLease(next.lease) &&
+      next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      !!current.intent && !!next.observed &&
+      current.intent.generation === next.observed.generation &&
+      safeTime(next.observed.observedAt) &&
+      next.observed.observedAt >= current.intent.preparedAt &&
+      next.observed.observedAt < (next.lease?.expiresAt ?? 0);
+  }
+  if (next.status === 'receipt_pending' && current.status === 'receipt_pending') {
+    return validLease(current.lease) && validLease(next.lease) &&
+      next.lease!.epoch === current.lease!.epoch + 1 &&
+      next.lease!.expiresAt > current.lease!.expiresAt &&
+      next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      !!current.observed && !!next.observed &&
+      current.intent?.generation === next.observed.generation &&
+      sameObserved(current.observed, next.observed) && !!next.intent;
+  }
+  if (next.status === 'complete' && current.status === 'receipt_pending') {
+    return sameLease(current.lease, next.lease) && validLease(next.lease) &&
+      next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      !!current.intent && !!current.observed &&
+      sameObserved(current.observed, next.observed) &&
+      /^[a-f0-9]{64}$/.test(next.receiptDigest ?? '') &&
+      safeTime(next.completedAt) &&
+      next.completedAt >= current.observed.observedAt &&
+      next.completedAt < (next.lease?.expiresAt ?? 0);
+  }
+  if (next.status === 'quarantined' &&
+      (current.status === 'ready' || current.status === 'leased')) {
+    return sameLease(current.lease, next.lease) &&
+      next.attempt === current.attempt && next.availableAt === current.availableAt &&
+      next.intent === undefined && next.observed === undefined &&
+      quarantineReasons.has(next.quarantineReason ?? '');
+  }
+  return false;
 }
 
 export async function transitionPurgeWorkInTransaction(
