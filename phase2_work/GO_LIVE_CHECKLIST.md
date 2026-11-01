@@ -114,3 +114,14 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 - [ ] New **read-only** local-Emulator backlog census in [Draft #273](https://github.com/Veselin-Takev/Klar-Dating/pull/273), SHA `5223b4c796c46c126a1f7ebfc5bebf931ffa991a`, must pass its own exact-head CI. Census counts **do not** close the durable worker requirement and have not been collected from customer data.
 
 **Current release decision:** BLOCKED / NO-GO. `productionApproved=false`.
+
+
+### 2026-11-01 — P0 #202 durable-work prototype is NOT a release gate PASS
+
+- [x] Pure lease/receipt state model and unused Firestore transaction adapter implemented in unmerged [Draft #274](https://github.com/Veselin-Takev/Klar-Dating/pull/274); mandatory no-live-binding/mutation source gates and synthetic regression tests committed. **Exact-head CI #41289417424 must still pass.**
+- [ ] Authoritative tenant/UID/challenge+GCS generation queue producer and globally unique ownership, approved legal hold policy
+- [ ] Correct, horizontally scalable (>300) queue consumer; transaction leases, expiring/stale worker contention with native Firestore Emulator proof
+- [ ] Durable GCS→Firestore receipt/outbox reconciliation proving crash recovery, object replacement, 404/412 preconditions and audit integrity
+- [ ] Approved real staging/production read-only inventory and independent SRE/AppSec/DPO/Legal/Release Owner signoffs; final combined exact-main security gates
+
+**Unmerged prototype is inert, cannot process live photos, and cannot justify GO. Maintain `productionApproved=false`.**
