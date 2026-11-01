@@ -267,3 +267,8 @@ New unmerged [Draft #285](https://github.com/Veselin-Takev/Klar-Dating/pull/285)
 - [ ] Finish P0 #202 authorized, generation-fenced GCS receipts and >300 durable queue, lawful tenant migration, real stage/IAM/Scheduler evidence and signed AppSec/DPO/SRE/Release Owner GO.
 
 **P0 #202/#254 OPEN. `productionApproved=false`, Production BLOCKED/NO-GO.**
+
+
+## 2026-11-01 — Storage tenant test mutation CI correction, Draft #287
+
+First SHA `5f9c94b12b26d3ca9b62f4cfb82cd2f660b10a47` of [Draft #287](https://github.com/Veselin-Takev/Klar-Dating/pull/287) failed [CI #41343976817](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41343976817) in the new **static coverage mutation test**. The fixture modified only one tenant-B claim while another native test still retained tenant-B, so the combined source guard correctly remained satisfied. The mutation was changed from `replace` to `replaceAll`, simulating **complete removal** of the tenant-B claim coverage. The corresponding source test fix is SHA `f36453c917f522cd6f034388645577e60de0ba03`. A technical-document follow-up makes the current PR head `ac6142bdfb74015ef282ac427f0866b85f0b2a42`, [CI #41344157885](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41344157885) **queued** when recorded. The previous code-only CI was canceled by the follow-up commit; no full PASS is claimed for either pending head. **Confirm two native Storage scenarios actually executed, plus six Firestore Emulator cases.** No main merge, deployed Rules or real customer photo action. P0 #254/#202 OPEN; Production NO-GO.
