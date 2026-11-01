@@ -20,6 +20,10 @@ test('new lease state machine is completely unbound from live photo deletion', (
 });
 
 const mutations = [
+  ['canonical receipt generation evidence removed', x => ({ ...x, states: x.states.replace('export function hasCanonicalGcsReceiptEvidence', 'function hasCanonicalGcsReceiptEvidence') })],
+  ['receipt claim accepts corrupted stored observations', x => ({ ...x, states: x.states.replace("!hasCanonicalGcsReceiptEvidence(state)", '!state.observed') })],
+  ['adapter allows unverified receipt evidence', x => ({ ...x, adapter: x.adapter.replace('hasCanonicalGcsReceiptEvidence(next)', '!!next.observed') })],
+  ['observed GCS generation canonical guard omitted', x => ({ ...x, states: x.states.replace('!isCanonicalGcsGeneration(generation) ||\n      state.intent.leaseEpoch', 'state.intent.leaseEpoch') })],
   ['canonical generation helper removed', x => ({ ...x, states: x.states.replace('export function isCanonicalGcsGeneration', 'function isCanonicalGcsGeneration') })],
   ['pure intent generation guard bypassed', x => ({ ...x, states: x.states.replace('!isCanonicalGcsGeneration(generation)', "!/^[1-9][0-9]*$/.test(generation)") })],
   ['adapter command generation guard bypassed', x => ({ ...x, adapter: x.adapter.replace('!isCanonicalGcsGeneration(generation)', "!/^[1-9][0-9]*$/.test(generation)") })],

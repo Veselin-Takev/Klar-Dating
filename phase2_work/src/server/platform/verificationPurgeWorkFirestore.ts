@@ -1,6 +1,7 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import {
-  claimPurgeWork, isCanonicalGcsGeneration, markDeletionIntent, quarantinePurgeWork, releaseUndeletedWork,
+  claimPurgeWork, hasCanonicalGcsReceiptEvidence, isCanonicalGcsGeneration,
+  markDeletionIntent, quarantinePurgeWork, releaseUndeletedWork,
   type PurgeQuarantineReason, type PurgeWorkState,
 } from './verificationPurgeWorkState';
 
@@ -86,8 +87,9 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
   if (next.status === 'receipt_pending' && current.status === 'delete_intent') {
     return sameLease(current.lease, next.lease) && validLease(next.lease) &&
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
-      !!current.intent && !!next.observed &&
-      current.intent.generation === next.observed.generation &&
+      hasCanonicalGcsReceiptEvidence(next) &&
+      !!current.intent && isCanonicalGcsGeneration(current.intent.generation) &&
+      current.intent.generation === next.intent.generation &&
       safeTime(next.observed.observedAt) &&
       next.observed.observedAt >= current.intent.preparedAt &&
       next.observed.observedAt < (next.lease?.expiresAt ?? 0);
@@ -97,14 +99,13 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
       next.lease!.epoch === current.lease!.epoch + 1 &&
       next.lease!.expiresAt > current.lease!.expiresAt &&
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
-      !!current.observed && !!next.observed &&
-      current.intent?.generation === next.observed.generation &&
+      hasCanonicalGcsReceiptEvidence(current) && hasCanonicalGcsReceiptEvidence(next) &&
       sameObserved(current.observed, next.observed) && !!next.intent;
   }
   if (next.status === 'complete' && current.status === 'receipt_pending') {
     return sameLease(current.lease, next.lease) && validLease(next.lease) &&
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
-      !!current.intent && !!current.observed &&
+      hasCanonicalGcsReceiptEvidence(current) && hasCanonicalGcsReceiptEvidence(next) &&
       sameObserved(current.observed, next.observed) &&
       /^[a-f0-9]{64}$/.test(next.receiptDigest ?? '') &&
       safeTime(next.completedAt) &&

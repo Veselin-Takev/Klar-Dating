@@ -177,13 +177,33 @@ export function assessDeletionIntentRecovery(
  * record an observation. A crash before this marker keeps delete_intent.
  * This pure transition cannot itself verify external GCS success.
  */
+/**
+ * A persisted write-ahead intent and a later GCS observation must agree on
+ * a canonical uint64 generation before receipt-only progression. Equality
+ * alone is NOT evidence when both values were stored in a malformed row.
+ * Never authorizes a physical GCS delete or trusts a receipt signature.
+ */
+export function hasCanonicalGcsReceiptEvidence(
+  state: PurgeWorkState,
+): state is PurgeWorkState & {
+  intent: NonNullable<PurgeWorkState['intent']>;
+  observed: NonNullable<PurgeWorkState['observed']>;
+} {
+  return !!state.intent && !!state.observed &&
+    isCanonicalGcsGeneration(state.intent.generation) &&
+    isCanonicalGcsGeneration(state.observed.generation) &&
+    state.intent.generation === state.observed.generation;
+}
+
 export function markDeletionObserved(
   state: PurgeWorkState, token: string, epoch: number, now: number, generation: string,
 ): PurgeWorkState {
   assertValidState(state);
   if (state.status !== 'delete_intent' || !state.intent) throw new Error('purge_work_missing_delete_intent');
   assertCurrentLease(state, token, epoch, now);
-  if (state.intent.leaseEpoch !== epoch || state.intent.generation !== generation ||
+  if (!isCanonicalGcsGeneration(state.intent.generation) ||
+      !isCanonicalGcsGeneration(generation) ||
+      state.intent.leaseEpoch !== epoch || state.intent.generation !== generation ||
       now < state.intent.preparedAt || state.revision >= Number.MAX_SAFE_INTEGER) {
     throw new Error('purge_work_intent_mismatch');
   }
@@ -199,7 +219,7 @@ export function claimReceiptReconciliation(
 ): PurgeWorkState {
   assertValidState(state);
   assertValidLeaseInput(token, now, leaseMs);
-  if (state.status !== 'receipt_pending' || !state.observed ||
+  if (state.status !== 'receipt_pending' || !hasCanonicalGcsReceiptEvidence(state) ||
       !state.lease || state.lease.expiresAt > now ||
       state.revision >= Number.MAX_SAFE_INTEGER || state.lease.epoch >= Number.MAX_SAFE_INTEGER) {
     throw new Error('purge_work_receipt_not_claimable');
@@ -218,7 +238,9 @@ export function completePurgeReceipt(
   state: PurgeWorkState, token: string, epoch: number, now: number, receiptDigest: string,
 ): PurgeWorkState {
   assertValidState(state);
-  if (state.status !== 'receipt_pending' || !state.observed) throw new Error('purge_work_no_receipt_evidence');
+  if (state.status !== 'receipt_pending' || !hasCanonicalGcsReceiptEvidence(state)) {
+    throw new Error('purge_work_no_receipt_evidence');
+  }
   assertCurrentLease(state, token, epoch, now);
   if (!/^[a-f0-9]{64}$/.test(receiptDigest) || now < state.observed.observedAt ||
       state.revision >= Number.MAX_SAFE_INTEGER) {

@@ -17,8 +17,11 @@ export function purgeWorkIsolationViolations(source) {
   if (!states.includes('export function isCanonicalGcsGeneration') ||
       !states.includes('/^[1-9][0-9]{0,19}$/') ||
       !states.includes("'18446744073709551615'") ||
-      (states.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 4 ||
-      (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 2) {
+      (states.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 8 ||
+      (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 3 ||
+      !states.includes('export function hasCanonicalGcsReceiptEvidence') ||
+      (states.match(/!hasCanonicalGcsReceiptEvidence\(state\)/g) ?? []).length !== 2 ||
+      (adapter.match(/\bhasCanonicalGcsReceiptEvidence\(/g) ?? []).length !== 5) {
     failures.push('canonical uint64 GCS generation validation removed or bypassed');
   }
   if (!states.includes('claimReceiptReconciliation') ||
