@@ -12,7 +12,7 @@ export function nativeStorageTenantGateFailures({testSource,vitest,packageJson})
     ['source_file',testSource.includes('initializeTestEnvironment')],
     ['storage_rule_file',testSource.includes("readFileSync('storage.rules'")],
     ['loopback_emulator',testSource.includes('FIREBASE_STORAGE_EMULATOR_HOST') &&
-      testSource.includes('describe.skipIf(!emulatorOnly)')],
+      testSource.includes('describe.skipIf(!emulatorOnly && !ciRequiresEmulator)')],
     ['legacy_media_cross_tenant_evidence',testSource.includes('legacy public profile photo remains readable across different tenant claims')],
     ['cross_tenant_profile_metadata',testSource.includes("assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata())")],
     ['biometric_owner_metadata_denial',testSource.includes("assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata())")],

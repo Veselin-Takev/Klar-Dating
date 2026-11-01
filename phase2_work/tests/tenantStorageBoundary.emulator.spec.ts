@@ -23,9 +23,11 @@ const storage = (uid: string, tenantId: string) =>
   env.authenticatedContext(uid, { tenantId, firebase: { sign_in_provider: 'password' } })
     .storage('gs://demo-klar.appspot.com');
 
-describe.skipIf(!emulatorOnly)('P0 #254 native Storage Rules tenant claims: legacy media / tenant cutover blocked', () => {
+const ciRequiresEmulator = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #254 native Storage Rules tenant claims: legacy media / tenant cutover blocked', () => {
   beforeAll(async () => {
-    if (!match) throw new Error('tenant_storage_loopback_required');
+    if (!emulatorOnly || !match) throw new Error('tenant_storage_loopback_required');
     env = await initializeTestEnvironment({
       projectId: 'demo-klar',
       storage: { rules: readFileSync('storage.rules', 'utf8'), host: match[1], port: Number(match[2]) },
