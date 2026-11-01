@@ -20,12 +20,25 @@ export const mandatoryGateNames = Object.freeze([
   'npm run build',
 ]);
 
+// Explicit P0 #202/#254 live-provenance requirements. These records must be
+// independently reviewed in the protected release workflow: a URL/PASS value
+// is only a structural input, not trusted Cloud evidence or authorization.
+export const mandatoryP0IntegrationNames = Object.freeze([
+  'tenantAdminSdkBola',
+  'tenantMigrationArt17',
+  'profileMediaVisibilityPolicy',
+  'biometricGcsGenerationReceipts',
+  'biometricRetentionDurableQueue',
+  'biometricRetentionSchedulerIam',
+]);
+
 export const mandatoryIntegrationNames = Object.freeze([
   'firestoreRules', 'art17CascadeTransactions', 'ttlActiveStaging',
   'retentionLegalHolds', 'webhookSignatureReplay', 'cspDeployedHeaders',
   'euAiActArticle5', 'euAiActArticle50', 'gdprArticle9Pii',
   'serverIdempotency', 'sastAndSecrets', 'supplyChainAndProvenance',
   'githubRunnerAndCi',
+  ...mandatoryP0IntegrationNames,
 ]);
 
 export const mandatorySignoffRoles = Object.freeze(['Security', 'DPO', 'Legal', 'SRE', 'ReleaseOwner']);
