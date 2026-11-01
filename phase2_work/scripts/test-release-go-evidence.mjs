@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { collectReleaseApprovalFailures, mandatoryGateNames, mandatoryIntegrationNames } from './release-go-evidence.mjs';
+import { collectReleaseApprovalFailures, mandatoryGateNames, mandatoryIntegrationNames, mandatorySignoffRoles } from './release-go-evidence.mjs';
 
 const SHA = 'a'.repeat(40);
 const link = 'https://github.com/Veselin-Takev/Klar-Dating/actions/runs/123456789';
@@ -20,7 +20,7 @@ const validFixture = () => ({
         mandatoryGates: Object.fromEntries(mandatoryGateNames.map(name => [name, receipt()])),
         integrations: Object.fromEntries(mandatoryIntegrationNames.map(name => [name, receipt()])),
         vulnerabilities: { critical: 0, high: 0, commit: SHA, evidenceUrl: link },
-        signoffs: Object.fromEntries(['Security', 'DPO', 'Legal', 'SRE']
+        signoffs: Object.fromEntries(mandatorySignoffRoles
           .map(role => [role, { approved: true, commit: SHA, approver: 'synthetic-'+role, evidenceUrl: link }])),
       },
     },
@@ -93,7 +93,7 @@ for (const name of mandatoryIntegrationNames) {
     assert(collectReleaseApprovalFailures(f).some(x => x.includes('Integration ' + name)));
   });
 }
-for (const role of ['Security', 'DPO', 'Legal', 'SRE']) {
+for (const role of mandatorySignoffRoles) {
   test('denies missing independent ' + role + ' approval', () => {
     const f = validFixture(); f.manifest.releaseGovernance.goLiveAttestation.signoffs[role].approved = false;
     assert(collectReleaseApprovalFailures(f).some(x => x.includes(role)));
@@ -110,4 +110,36 @@ test('production release entrypoint is wired to fail-closed evidence module', ()
   const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
   assert.match(scripts['check:enterprise'], /npm run check:release-go-evidence/);
   assert.match(scripts['check:release-go-evidence'], /test-release-go-evidence\.mjs/);
+});
+
+// Separate independent release ownership is not implied by any CI or operator signoff.
+test('release owner is mandatory even with all other independent signatures', () => {
+  const f = validFixture();
+  delete f.manifest.releaseGovernance.goLiveAttestation.signoffs.ReleaseOwner;
+  assert(collectReleaseApprovalFailures(f).some(x => x.includes('ReleaseOwner signoff')));
+});
+
+test('rejects an unrelated or stale ReleaseOwner commit attestation', () => {
+  const f = validFixture();
+  f.manifest.releaseGovernance.goLiveAttestation.signoffs.ReleaseOwner.commit = 'b'.repeat(40);
+  assert(collectReleaseApprovalFailures(f).some(x => x.includes('ReleaseOwner signoff')));
+});
+
+test('rejects missing ReleaseOwner receipt evidence link', () => {
+  const f = validFixture();
+  delete f.manifest.releaseGovernance.goLiveAttestation.signoffs.ReleaseOwner.evidenceUrl;
+  assert(collectReleaseApprovalFailures(f).some(x => x.includes('ReleaseOwner signoff')));
+});
+
+for (const role of ['Security', 'DPO', 'Legal', 'SRE']) {
+  test('rejects ReleaseOwner self-signoff also used for ' + role, () => {
+    const f = validFixture();
+    f.manifest.releaseGovernance.goLiveAttestation.signoffs.ReleaseOwner.approver =
+      ' SYNTHETIC-' + role.toUpperCase() + ' ';
+    assert(collectReleaseApprovalFailures(f).some(x => x.includes('ReleaseOwner approver must differ')));
+  });
+}
+
+test('release owner remains distinct under clean synthetic release fixture', () => {
+  assert.deepEqual(collectReleaseApprovalFailures(validFixture()), []);
 });

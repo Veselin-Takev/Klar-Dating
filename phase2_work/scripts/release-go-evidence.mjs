@@ -28,6 +28,8 @@ export const mandatoryIntegrationNames = Object.freeze([
   'githubRunnerAndCi',
 ]);
 
+export const mandatorySignoffRoles = Object.freeze(['Security', 'DPO', 'Legal', 'SRE', 'ReleaseOwner']);
+
 const shaPattern = /^[a-f0-9]{40}$/;
 const evidencePattern = /^https:\/\/[^\s/?#]+\/\S{7,}$/;
 
@@ -77,13 +79,24 @@ export function collectReleaseApprovalFailures({ manifest, checklist, env = {} }
     vulnerabilities?.commit !== commit || !evidencePattern.test(vulnerabilities?.evidenceUrl ?? '')) {
     failures.push('High/Critical dependency security evidence not clean for this commit');
   }
-  for (const role of ['Security', 'DPO', 'Legal', 'SRE']) {
+  for (const role of mandatorySignoffRoles) {
     const approval = attest?.signoffs?.[role];
     if (approval?.approved !== true || approval.commit !== commit ||
       typeof approval.approver !== 'string' || !approval.approver.trim() ||
       !evidencePattern.test(approval.evidenceUrl ?? '')) {
       failures.push('Independent ' + role + ' signoff not recorded for exact commit');
     }
+  }
+  // Release ownership must not be self-certified by one of the independent
+  // Security, Privacy/Legal or Operations approvers. This is a structural
+  // separation-of-duties check, not authentication of the linked signatures.
+  const signoffs = attest?.signoffs;
+  const releaseOwner = typeof signoffs?.ReleaseOwner?.approver === 'string'
+    ? signoffs.ReleaseOwner.approver.trim().toLowerCase() : '';
+  if (releaseOwner && mandatorySignoffRoles.filter(role => role !== 'ReleaseOwner').some(role =>
+    typeof signoffs?.[role]?.approver === 'string' &&
+    signoffs[role].approver.trim().toLowerCase() === releaseOwner)) {
+    failures.push('ReleaseOwner approver must differ from all independent Security, DPO, Legal and SRE approvers');
   }
   return failures;
 }
