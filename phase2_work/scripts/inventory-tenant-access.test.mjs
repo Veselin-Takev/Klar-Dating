@@ -57,7 +57,7 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
     assert.equal(f.sha256, createHash('sha256').update(raw).digest('hex'));
     assert.ok(Array.isArray(f.hits), 'zero-hit source files must remain in inventory');
     const lines = raw.toString('utf8').split(/\r?\n/);
-    const allowed = new Set(['admin_firestore', 'firestore_client', 'storage_access', 'user_sensitive_path', 'database_mutation']);
+    const allowed = new Set(['admin_firestore', 'firestore_client', 'firestore_collection_literal', 'storage_access', 'user_sensitive_path', 'database_mutation']);
     assert.deepEqual(f.categories, [...f.categories].sort());
     for (const hit of f.hits) {
       assert.ok(Number.isSafeInteger(hit.line) && hit.line > 0);
