@@ -123,4 +123,26 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
       expect((await ref.get()).data()).toMatchObject({ status: 'ready', revision: 0, attempt: 0 });
     } finally { await ref.delete(); }
   }, 20_000);
+
+  it.each([
+    '18446744073709551616',
+    '99999999999999999999',
+    '000123',
+    '9'.repeat(4096),
+  ])('rejects noncanonical or oversized generation before any Firestore write: %s', async (generation) => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set(createPurgeWork(id, t0));
+    try {
+      // A stale/forged command must be denied before database IO, not only
+      // after a lease is acquired or any write-ahead intent is persisted.
+      await expect(executePurgeWorkCommand(db, ref, {
+        kind: 'prepare_delete_intent', token: workerA, epoch: 1, generation,
+      })).rejects.toThrow('purge_work_unsupported_command');
+      expect((await ref.get()).data()).toMatchObject({
+        status: 'ready', revision: 0, attempt: 0,
+      });
+    } finally { await ref.delete(); }
+  }, 20_000);
+
 });
