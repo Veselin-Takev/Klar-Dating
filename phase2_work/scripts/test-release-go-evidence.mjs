@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { collectReleaseApprovalFailures, mandatoryGateNames, mandatoryIntegrationNames, mandatorySignoffRoles } from './release-go-evidence.mjs';
+import { collectReleaseApprovalFailures, mandatoryGateNames, mandatoryIntegrationNames, mandatoryP0IntegrationNames, mandatorySignoffRoles } from './release-go-evidence.mjs';
 
 const SHA = 'a'.repeat(40);
 const link = 'https://github.com/Veselin-Takev/Klar-Dating/actions/runs/123456789';
@@ -142,4 +142,48 @@ for (const role of ['Security', 'DPO', 'Legal', 'SRE']) {
 
 test('release owner remains distinct under clean synthetic release fixture', () => {
   assert.deepEqual(collectReleaseApprovalFailures(validFixture()), []);
+});
+
+
+test('P0 #202/#254 explicit live integration proof names are all required', () => {
+  assert.deepEqual(mandatoryP0IntegrationNames, [
+    'tenantAdminSdkBola',
+    'tenantMigrationArt17',
+    'profileMediaVisibilityPolicy',
+    'biometricGcsGenerationReceipts',
+    'biometricRetentionDurableQueue',
+    'biometricRetentionSchedulerIam',
+  ]);
+  assert.equal(new Set(mandatoryIntegrationNames).size, mandatoryIntegrationNames.length);
+  for (const name of mandatoryP0IntegrationNames) {
+    assert(mandatoryIntegrationNames.includes(name));
+  }
+});
+
+for (const name of mandatoryP0IntegrationNames) {
+  for (const [condition, mutate] of [
+    ['not present', f => { delete f.manifest.releaseGovernance.goLiveAttestation.integrations[name]; }],
+    ['skipped', f => { f.manifest.releaseGovernance.goLiveAttestation.integrations[name].status = 'SKIPPED'; }],
+    ['bound to previous commit', f => { f.manifest.releaseGovernance.goLiveAttestation.integrations[name].commit = 'b'.repeat(40); }],
+    ['no evidence link', f => { delete f.manifest.releaseGovernance.goLiveAttestation.integrations[name].evidenceUrl; }],
+  ]) {
+    test('blocks production GO if P0 integration ' + name + ' is ' + condition, () => {
+      const f = validFixture();
+      mutate(f);
+      assert(collectReleaseApprovalFailures(f).some(x => x.includes('Integration ' + name)));
+    });
+  }
+}
+
+test('real repository still denies GO with every P0 evidence absent', () => {
+  const manifest = JSON.parse(readFileSync('RELEASE_MANIFEST.json', 'utf8'));
+  const checklist = readFileSync('GO_LIVE_CHECKLIST.md', 'utf8');
+  const failures = collectReleaseApprovalFailures({
+    manifest,
+    checklist,
+    env: { GITHUB_SHA: SHA, KLAR_PRODUCTION_RELEASE_APPROVED: 'true' },
+  });
+  for (const name of mandatoryP0IntegrationNames) {
+    assert(failures.some(x => x.includes('Integration ' + name)));
+  }
 });
