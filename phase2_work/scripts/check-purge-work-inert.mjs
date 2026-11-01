@@ -16,6 +16,17 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('purge_work_stale_or_expired_lease')) {
     failures.push('lease or receipt fencing state transitions removed');
   }
+  if (!adapter.includes('export async function executePurgeWorkCommand') ||
+      !adapter.includes('assertSupportedCommand(command)') ||
+      !adapter.includes('allowedCommandFields') ||
+      !adapter.includes('executePureCommand(current, command)') ||
+      adapter.includes('export async function transitionPurgeWorkInTransaction')) {
+    failures.push('freeform Firestore state mutation API or typed command restrictions regressed');
+  }
+  if (adapter.includes("case 'complete':") || adapter.includes("case 'record_delete_observed':") ||
+      adapter.includes("case 'receipt_pending':")) {
+    failures.push('receipt/deletion confirmation must remain unavailable without provenance verification');
+  }
   if (!adapter.includes('sameLease(current.lease, next.lease)') ||
       !adapter.includes('sameObserved(current.observed, next.observed)') ||
       !adapter.includes('next.attempt !== current.attempt + 1')) {
