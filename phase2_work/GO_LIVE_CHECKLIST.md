@@ -312,3 +312,12 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] Product/DPO/Legal media visibility policy, same-/cross-Tenant and privileged Admin SDK BOLA/IDOR, real deployed Rules/IAM, tenant Art.-17 migration, P0 #202 GCS generation/404/412/hold/worker-crash receipts, durable >300 queue and independent human release signoffs.
 
 **P0 #202 and #254 OPEN. `productionApproved=false`; Production BLOCKED / NO-GO.**
+
+
+### 2026-11-01 — True emulator-absence fail-closed test added (#290)
+
+- [x] [Draft #290](https://github.com/Veselin-Takev/Klar-Dating/pull/290) adds **real** CI-mode child Vitest execution of the three native P0 suite files *without Emulator hosts*; success requires the child to fail with three precise loopback diagnostics and three failed files, never green/skipped. A new mandatory source mutation prevents removing this runtime check. No Rules, GCS, IAM, Scheduler or customer-data changes.
+- [ ] Verify exact `a93fdc993beb294b684404a26be30a67d23f27b3` [CI #41348580636](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41348580636) **full PASS**, including this true negative-regression evidence, actual **4 native Storage, 6 Tenant Firestore and 6 Retention Firestore** cases under valid Emulator configuration, Typecheck, full tests, Build, Smoke and Browser. **PENDING** when recorded, do not inherit #289 PASS.
+- [ ] P0 #254 live Tenant Rules/IAM/Admin SDK and legal policy; P0 #202 lawful GCS receipts/404/412/holds and durable >300 queue, plus final integrated SHA, staging control plane and independent human release signoffs remain **BLOCKED**.
+
+`productionApproved=false`; Production **NO-GO**.
