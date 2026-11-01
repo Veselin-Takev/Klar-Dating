@@ -14,6 +14,8 @@ test('native Tenant Storage Rules negatives are mandatory alongside Firestore Ru
   assert.deepEqual(nativeStorageTenantGateFailures(inputs),[]);
 });
 for(const [label,mutate] of [
+  ['metadata cross-tenant read omitted',x=>{x.testSource=x.testSource.replace("assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata())","void storage(other, 'tenant-beta').ref(path).getMetadata()");}],
+  ['biometric owner metadata denial omitted',x=>{x.testSource=x.testSource.replace("assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata())","void storage(owner, 'tenant-alpha').ref(path).getMetadata()");}],
   ['legacy cross-tenant media exposure hidden',x=>{x.testSource=x.testSource.replace('legacy public profile photo remains readable across different tenant claims','hidden source gap');}],
   ['biometric photo restriction not tested',x=>{x.testSource=x.testSource.replace('biometric verification image cannot be read','not tested');}],
   ['tenant namespace default-deny test removed',x=>{x.testSource=x.testSource.replace('new tenant-prefixed profile object is inaccessible','not tested');}],
