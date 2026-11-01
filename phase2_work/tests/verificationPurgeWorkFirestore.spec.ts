@@ -142,15 +142,32 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     expect(m.getCalls()).toBe(0);
   });
 
-  it('uses one captured server time across a transaction replay and ignores later argument mutation', async () => {
+  it('keeps both clock and copied command immutable across a real callback replay', async () => {
     const mutable = { ...claim };
-    const m = memoryDb(undefined, 2);
-    const result = await executePurgeWorkCommand(m.db, ref, mutable);
-    expect(result.lease?.expiresAt).toBe(now + 5_000);
-    expect(m.getReads()).toBe(2);
-    expect(m.writes).toHaveLength(1);
-    mutable.leaseMs = 100_000;
-    expect(result.lease?.expiresAt).toBe(now + 5_000);
+    const attempts: PurgeWorkState[] = [];
+    const db = {
+      runTransaction: async (callback: (tx: unknown) => Promise<PurgeWorkState>) => {
+        for (let i = 0; i < 2; i++) {
+          const result = await callback({
+            get: async () => ({ exists: true, data: () => createPurgeWork(key, now) }),
+            update: (_ref: unknown, value: PurgeWorkState) => { attempts.push(value); },
+          });
+          if (i === 0) {
+            mutable.token = tokenB;
+            mutable.leaseMs = 10_000;
+            vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
+          } else {
+            return result;
+          }
+        }
+        throw new Error('unexpected_no_transaction_result');
+      },
+    } as unknown as Pick<Firestore, 'runTransaction'>;
+    const result = await executePurgeWorkCommand(db, ref, mutable);
+    expect(attempts).toHaveLength(2);
+    expect(attempts[0]).toEqual(attempts[1]);
+    expect(result.lease).toMatchObject({ token: tokenA, expiresAt: now + 5_000 });
+    expect(result.attempt).toBe(1);
   });
 
   it('fails closed when the server clock is unsafe, before entering a transaction', async () => {
