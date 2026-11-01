@@ -92,7 +92,7 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 
 **Audit baseline:** `main` `2808dc1cbb485f70b403681c108cea5a3361d950`. See [ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md](docs/ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md) for evidence grades, source-backed risk register, 10-track negative E2E acceptance matrix and release prerequisites.
 
-**GitHub CI evidence only:** Draft #267 SHA `32598e8` run [41246347258](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41246347258) SUCCESS; Draft #268 SHA `71c0d31` run [41282765859](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41282765859) SUCCESS. Draft #269 SHA `54ef22b` [run 41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) remained **in progress** at audit; no final PASS asserted. These isolated PR test results are **not** proof that patches are merged to main, deployed, or fully integrated together.
+**GitHub CI evidence only:** Draft #267 SHA `32598e8` run [41246347258](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41246347258) SUCCESS; Draft #268 SHA `71c0d31` run [41282765859](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41282765859) SUCCESS. Draft #269 SHA `54ef22b` [run 41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) has since completed **SUCCESS** (validated exact-head job gates); the fix remains unmerged and undeployed.. These isolated PR test results are **not** proof that patches are merged to main, deployed, or fully integrated together.
 
 **Unresolved mandatory approvals** (all unchecked until immutable signed evidence is attached):
 
