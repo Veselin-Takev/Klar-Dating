@@ -21,7 +21,7 @@ export function purgeWorkIsolationViolations(source) {
       (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 2 ||
       !states.includes('export function hasCanonicalGcsReceiptEvidence') ||
       !states.includes("!hasCanonicalGcsReceiptEvidence(state)") ||
-      (adapter.match(/\bhasCanonicalGcsReceiptEvidence\(/g) ?? []).length !== 5 {
+      (adapter.match(/\bhasCanonicalGcsReceiptEvidence\(/g) ?? []).length !== 5) {
     failures.push('canonical uint64 GCS generation validation removed or bypassed');
   }
   if (!states.includes('claimReceiptReconciliation') ||
