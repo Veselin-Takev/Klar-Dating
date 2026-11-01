@@ -77,6 +77,21 @@ describe.skipIf(!emulatorOnly)('P0 #202: native Firestore Emulator lease concurr
     }
   }, 20_000);
 
+  it('native Firestore rejects a forged lease with no attempt increment', async () => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set(createPurgeWork(id, t0));
+    try {
+      await expect(transitionPurgeWorkInTransaction(db, ref, current => ({
+        ...current, status: 'leased', revision: current.revision + 1,
+        lease: { token: workerB, epoch: 1, expiresAt: t0 + 5_000 },
+      }))).rejects.toThrow('purge_work_transition_invariant');
+      expect((await ref.get()).data()).toMatchObject({ status: 'ready', revision: 0, attempt: 0 });
+    } finally {
+      await ref.delete();
+    }
+  }, 20_000);
+
   it('transactional adapter blocks a forged ready-to-complete jump', async () => {
     const id = randomUUID().replaceAll('-', '');
     const ref = db.collection('verification_purge_jobs').doc(id);
