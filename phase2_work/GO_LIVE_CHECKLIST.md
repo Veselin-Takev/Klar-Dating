@@ -167,3 +167,14 @@ These changes do not authorize any customer-photo operation or production GO. `p
 - [ ] Validate tenant/UID/legal holds, GCS generations/404/412 and authenticated append-only receipt in approved staging; native >300 backlog worker, actual deployed Scheduler/IAM/TTL inventory and independent signed AppSec/DPO/Legal/SRE/Release Owner approvals.
 
 No current production change, no GO. `productionApproved=false`.
+
+
+### 2026-11-01 — P0 #202 caller-time spoof prevention (unmerged Draft #279)
+
+- [x] Parent [Draft #278](https://github.com/Veselin-Takev/Klar-Dating/pull/278) SHA `bcaede0ea892f6a7ce5b42371bdad9f2d9ae0774`: [full CI #41332732631](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41332732631) SUCCESS; 4 native Firestore Emulator tests actually executed.
+- [x] Source-only [Draft #279](https://github.com/Veselin-Takev/Klar-Dating/pull/279) adds server process timestamp ownership, rejects caller `now` field and snapshots immutable-by-copy command fields before retried transaction; Unit/Emulator/mutation tests updated.
+- [ ] Verify exact-head #279 SHA `41bebee582f21082661622337299088a26a75d07` full CI, including **five actually executed native Firestore Emulator tests**. Do not reuse #278 PASS.
+- [ ] Measure and enforce distributed clock skew/time source, trusted producer/consumer authorization, tenant/UID/image ownership and legal holds, GCS generation/404/412/receipt staging crash recovery, >300 backlog and real live Scheduler/IAM/TTL/rollback.
+- [ ] Require independent AppSec/DPO/Legal/SRE/Release Owner signed approval on the final combined deployed SHA.
+
+No production activation or GO. Keep `productionApproved=false`.
