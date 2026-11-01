@@ -20,7 +20,7 @@ export function purgeWorkIsolationViolations(source) {
       (states.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 8 ||
       (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 2 ||
       !states.includes('export function hasCanonicalGcsReceiptEvidence') ||
-      !states.includes("!hasCanonicalGcsReceiptEvidence(state)") ||
+      (states.match(/!hasCanonicalGcsReceiptEvidence\(state\)/g) ?? []).length !== 2 ||
       (adapter.match(/\bhasCanonicalGcsReceiptEvidence\(/g) ?? []).length !== 5) {
     failures.push('canonical uint64 GCS generation validation removed or bypassed');
   }
