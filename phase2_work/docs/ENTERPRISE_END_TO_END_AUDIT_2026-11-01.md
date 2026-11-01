@@ -1,5 +1,5 @@
 # Klar — Enterprise End-to-End Audit & Production Readiness Gap Report
-**Snapshot:** 2026-11-01 · **Decision:** **BLOCKED / PRODUCTION NO-GO**  
+**Snapshot and evidence refresh:** 2026-11-01 · **Decision:** **BLOCKED / PRODUCTION NO-GO**  
 **Baseline:** [`main` `2808dc1cbb485f70b403681c108cea5a3361d950`](https://github.com/Veselin-Takev/Klar-Dating/commit/2808dc1cbb485f70b403681c108cea5a3361d950) (queried via GitHub compare `main...main`).  
 **Scope:** repository source, current open Issues/PRs, source-linked CI/operational governance and external normative controls. This is a **comprehensive evidence and gap review**, **NOT a claim that a production/staging E2E run was executed**.
 
@@ -21,11 +21,13 @@ Reference benchmarks: [OWASP ASVS v5.0.0](https://asvs.owasp.org/) for auth/acce
 
 ## 3. Verified CI and branch evidence
 
+**Evidence refresh:** GitHub API later confirmed run [41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) completed **success** with all seven named validation gates for PR #269 SHA `54ef22b87d40c90711e575d7e133b9311417f2f1`. This is an unmerged branch, not production or a combined PR #268+#269 integration.
+
 | ID | Exact candidate / link | Result (checked 2026-11-01) | Meaning / limitation |
 |---|---|---|---|
 | CI-01 | [Draft #267](https://github.com/Veselin-Takev/Klar-Dating/pull/267), `32598e807ea8323496e5bc2ec8f5e1f36666d229`; [run 41246347258](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41246347258) | `completed/success`; emulator step previously verified | Stacked tenant **pre-cutover denial** tests, not production tenant migration |
 | CI-02 | [Draft #268](https://github.com/Veselin-Takev/Klar-Dating/pull/268), `71c0d31c6e8ad3e8c681f793dd3daba285d50c7c`; [run 41282765859](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41282765859) | `completed/success` | Source inventory, classifier and synthetic tests; not end-to-end runtime authorization |
-| CI-03 | [Draft #269](https://github.com/Veselin-Takev/Klar-Dating/pull/269), `54ef22b87d40c90711e575d7e133b9311417f2f1`; [run 41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) | `in_progress` at review; Static Gates, Typecheck and Functions Build SUCCESS, Tests still running | **Full CI NOT PASS** at review; source change not deployed |
+| CI-03 | [Draft #269](https://github.com/Veselin-Takev/Klar-Dating/pull/269), `54ef22b87d40c90711e575d7e133b9311417f2f1`; [run 41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) | **`completed/success`** confirmed subsequently: Static Gates, Typecheck, Functions Build, Tests, Build, Production Smoke and Browser Acceptance SUCCESS | Full branch validation PASS on this SHA; **source change not merged or deployed** |
 | CI-04 | `main` `2808dc1cbb485f70b403681c108cea5a3361d950` | Current SHA confirmed | No independent current-main full mandatory-release pack, production deployment provenance, or protected-release approvals established in this review |
 | CI-05 | [CI workflow](https://github.com/Veselin-Takev/Klar-Dating/blob/2808dc1cbb485f70b403681c108cea5a3361d950/.github/workflows/ci.yml) | Node `22.23.3`, Bun `1.4.4`, Functions npm lock, static gates, Typecheck, Functions Build, Tests, Build, Smoke and Browser Acceptance defined | `Determine validation scope` can skip full steps for narrow changes. Check actual step conclusions, not only workflow green. Main workflow does not itself demonstrate complete SCA/SAST/live governance |
 | CI-06 | [Release manifest](https://github.com/Veselin-Takev/Klar-Dating/blob/2808dc1cbb485f70b403681c108cea5a3361d950/phase2_work/RELEASE_MANIFEST.json) | `NO-GO`, `productionApproved: false` | Contains historical 2026-10 findings and former check status; do not treat that as a contemporary main SHA assessment |
