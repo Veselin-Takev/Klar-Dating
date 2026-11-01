@@ -18,11 +18,14 @@ const workerA = 'emulator-worker-a-00000001';
 const workerB = 'emulator-worker-b-00000001';
 const claim = (token: string): PurgeWorkCommand => ({ kind: 'claim', token, leaseMs: 5_000 });
 
-describe.skipIf(!emulatorOnly)('P0 #202 native Firestore Emulator typed command boundaries', () => {
+const ciRequiresEmulator = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore Emulator typed command boundaries', () => {
   let app: App;
   let db: Firestore;
 
   beforeAll(() => {
+    if (!emulatorOnly) throw new Error('retention_firestore_emulator_loopback_required');
     app = initializeApp({ projectId: 'demo-klar' }, `p0-typed-commands-${randomUUID()}`);
     db = getFirestore(app);
   });
