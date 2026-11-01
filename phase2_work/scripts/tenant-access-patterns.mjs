@@ -8,7 +8,8 @@ export const detectionRules = Object.freeze([
   ['firestore_client', /\b(?:collection|collectionGroup|doc|getDoc|getDocs|onSnapshot|query|runTransaction|writeBatch)\s*\(|\.(?:collection|collectionGroup|doc|where|orderBy|limit|listDocuments|listCollections|runTransaction)\s*\(/],
   ['storage_access', /\b(?:getStorage|getDownloadURL|getBlob|getBytes|uploadBytes|uploadBytesResumable|deleteObject|getSignedUrl)\s*\(|\.(?:bucket|file|download|getSignedUrl)\s*\(/],
   ['user_sensitive_path', /\b(?:users|chats|messages|subscriptions|verification_events|referrals|payments|tenants|verification|profiles|consent_ledger)\s*\/|['"`]\s*(?:users|chats|messages|subscriptions|verification_events|referrals|payments|tenants|verification|profiles|consent_ledger)\s*['"`]/],
-  ['database_mutation', /\b(?:setDoc|addDoc|updateDoc|deleteDoc|create|update|delete)\s*\(/],
+  ['firestore_collection_literal', /(?:\.(?:collection|collectionGroup)\s*\(\s*|\b(?:collection|collectionGroup)\s*\(\s*[^,]+,\s*)['"`][A-Za-z][A-Za-z0-9_-]*['"`]/],
+  ['database_mutation', /\b(?:setDoc|addDoc|updateDoc|deleteDoc|create|update|delete|set|add|commit)\s*\(/],
 ]);
 
 export function categoriesForLine(line) {
