@@ -17,6 +17,8 @@ for (const [label, mutate] of [
   ['tenant Firestore/Storage rules evidence missing', p => { delete p.scripts['check:tenant-rules-surfaces']; }],
   ['native tenant Rules negative evidence removed', p => { delete p.scripts['check:tenant-native-rules']; }],
   ['native tenant Storage evidence removed', p => { delete p.scripts['check:tenant-native-storage']; }],
+  ['Storage risk markers removed', p => { delete p.scripts['check:storage-tenant-risk']; }],
+  ['Storage risk review omitted from enterprise', p => { p.scripts['check:enterprise']=p.scripts['check:enterprise'].replace('npm run check:storage-tenant-risk && ', ''); }],
   ['tenant Storage invocation skipped', p => { p.scripts['check:enterprise'] = p.scripts['check:enterprise'].replace('npm run check:tenant-native-storage && ', ''); }],
   ['native tenant Rules invocation skipped', p => { p.scripts['check:enterprise'] = p.scripts['check:enterprise'].replace('npm run check:tenant-native-rules && ', ''); }],
   ['tenant rules evidence skipped by enterprise', p => { p.scripts['check:enterprise'] = p.scripts['check:enterprise'].replace('npm run check:tenant-rules-surfaces && ', ''); }],
