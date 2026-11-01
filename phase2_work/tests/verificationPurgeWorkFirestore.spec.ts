@@ -166,7 +166,9 @@ describe('P0 #202 typed Firestore CAS command boundary (unused in production)', 
     })).rejects.toThrow('purge_work_stale_or_expired_lease');
     await expect(executePurgeWorkCommand(m.db, ref, {
       kind: 'prepare_delete_intent', token: tokenA, epoch: 1, generation: '0',
-    })).rejects.toThrow('purge_work_invalid_generation');
+    })).rejects.toThrow('purge_work_unsupported_command');
+    // Invalid generation must be refused before even entering a Firestore transaction.
+    expect(m.getCalls()).toBe(1);
     expect(m.writes).toHaveLength(0);
   });
 
