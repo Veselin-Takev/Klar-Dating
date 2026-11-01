@@ -88,6 +88,8 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
     return sameLease(current.lease, next.lease) && validLease(next.lease) &&
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
       hasCanonicalGcsReceiptEvidence(next) &&
+      !!current.intent && isCanonicalGcsGeneration(current.intent.generation) &&
+      current.intent.generation === next.intent.generation &&
       safeTime(next.observed.observedAt) &&
       next.observed.observedAt >= current.intent.preparedAt &&
       next.observed.observedAt < (next.lease?.expiresAt ?? 0);
