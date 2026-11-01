@@ -321,3 +321,13 @@ New exact-head [CI #41345204334](https://github.com/Veselin-Takev/Klar-Dating/ac
 - [ ] P0 #254 live Tenant Rules/IAM/Admin SDK and legal policy; P0 #202 lawful GCS receipts/404/412/holds and durable >300 queue, plus final integrated SHA, staging control plane and independent human release signoffs remain **BLOCKED**.
 
 `productionApproved=false`; Production **NO-GO**.
+
+
+### 2026-11-01 — Exact-SHA CI verification of real missing-emulator negative test (#290)
+
+- [x] New unmerged [Draft PR #290](https://github.com/Veselin-Takev/Klar-Dating/pull/290), exact SHA `a93fdc993beb294b684404a26be30a67d23f27b3` completed full [CI #41348580636](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41348580636) **SUCCESS**. Original job log shows `ok 1 - P0 native Firebase safety suites actually FAIL without emulators in GitHub CI`: real deliberate no-emulator child subprocess failed as required, with surrounding negative assertion PASS. All mandatory source/mutation, static, typecheck, Functions Build, Vitest, build, production-smoke and browser steps passed.
+- [x] Exactly **4 native Tenant Storage**, **6 Tenant Firestore** and **6 Retention Firestore** tests actually executed on configured `demo-klar` emulators. Total **200 Vitest files, 1,472 tests**, plus **26 Playwright acceptance** tests passed. Historic *pending* entry above is superseded for this same SHA only.
+- [ ] Product/DPO/Legal sign tenant profile-visibility ADR; verify deployed Rules/IAM/Firestore/Storage, privileged Admin SDK same-/cross-tenant BOLA/IDOR negatives, old URL-token revocation and legal Art.17 tenant migration/rollback.
+- [ ] Close P0 #202 using lawful decision/hold/worker authorization; verify real GCS generation-fenced 404/412/timeout/crash receipts and **>300 durable due-item backlog**, release-candidate exact-SHA CI, staging IAM/Scheduler and independent AppSec/DPO/Legal/SRE/Release Owner GO.
+
+**P0 #202/#254 still OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
