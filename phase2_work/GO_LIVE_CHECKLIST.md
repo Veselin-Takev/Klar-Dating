@@ -423,3 +423,15 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Complete real cloud/IAM/Admin SDK tenant BOLA and Art17 migration, signed Product/DPO/Legal guest-media decision, authorized biometric GCS 404/412/hold/crash receipts, durable >300 due-work and Scheduler/IAM, actual independent security/privacy/operations/ReleaseOwner release SHA approvals.
 
 **P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.**
+
+
+### 2026-11-01 — Joint P0/Didit integration CI verified; P1 P95 indicator alias corrected
+
+- [x] [Draft #296](https://github.com/Veselin-Takev/Klar-Dating/pull/296) exact SHA `4e8a8481a0c4b9a369b72d7bd2739e8a28cb5c96` full [CI #41356725824](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41356725824) SUCCESS: **201 Vitest files / 1,491 tests**, 18 Didit status UI cases, 5+6+6 real Storage/Tenant Firestore/Retention Firestore tests, real no-emulator negative, P0 evidence ReleaseOwner tests, smoke and 26 browsers PASS. Historic pending observation superseded for this SHA only.
+- [x] Previous Governance #270 head `5af9028c8e08cd6b0a61c16e2050e469c66f1317` full [CI #41356862508](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41356862508) SUCCESS; later documentation commits need their own CI.
+- [x] Source-level P1 #71 obsolete SLO indicator `p95(klar_http_latency_ms)` identified versus actually exported gauge `klar_http_request_duration_ms{quantile="0.95"}`. [Stacked Draft #297](https://github.com/Veselin-Takev/Klar-Dating/pull/297) SHA `7b059d0b28b38ca0e0d12bfc93d070ae63bb07f7` adjusts the indicator only, not the 300ms goal, and extends existing 299/300/301 test with explicit source/metric/label/type parity guard.
+- [ ] Verify new exact-head [CI #41357839577](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41357839577) full SUCCESS (new SLO check, P0 evidence gates, 5+6+6 native Emulator, 18 Didit, static/type/functions/tests/build/smoke/26 browser). **IN PROGRESS** at capture.
+- [ ] SRE/Product approve genuine 30-day multi-instance/per-route P95 SLI, staging actual Prometheus series, recording/pager/burn-rate alerts and exclusions; no production SLO certified by a local gauge test.
+- [ ] P0 #202 lawful decision-/hold-dependent GCS receipts 404/412/crash with durable >300 queue and Scheduler/IAM, P0 #254 real Tenant/Admin SDK/IAM/Rules/Art17 migration and signed guest-media ADR, all independent reviewers and ReleaseOwner GO remain blocked.
+
+**`productionApproved=false`, Production BLOCKED / NO-GO.**
