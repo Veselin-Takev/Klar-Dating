@@ -256,3 +256,14 @@ New unmerged [Draft #285](https://github.com/Veselin-Takev/Klar-Dating/pull/285)
 - [ ] Still block real GCS photo deletion until independent Art.-17/hold/generation 404/412 receipts, >300 queue, Scheduler review, and AppSec/DPO/SRE/Release Owner signatures.
 
 `productionApproved=false`; both P0 #202/#254 remain OPEN.
+
+
+### 2026-11-01 — P0 #254 native Storage Emulator cross-tenant tests (unmerged #287)
+
+- [x] Parent [Draft #285](https://github.com/Veselin-Takev/Klar-Dating/pull/285) SHA `170a0586b22aed47a37c8d82e6cf6843896c6c32` full [CI #41342756886](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41342756886) SUCCESS, source review only.
+- [x] New isolated [Draft #287](https://github.com/Veselin-Takev/Klar-Dating/pull/287) introduces **two** real Storage Emulator tenant-A/B tests for current profile metadata visibility, anonymous/foreign writes denial, and verification photo read prohibition, plus mandatory CI coverage/mutation checks; no Security Rules modification.
+- [ ] Verify exact SHA `5f9c94b12b26d3ca9b62f4cfb82cd2f660b10a47` full [CI #41343976817](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41343976817), including explicit job log confirming **both new native Storage cases actually executed**, six prior Firestore Emulator cases and combined Tenant/Retention gates.
+- [ ] Product/DPO/Legal signoff on cross-tenant profile discoverability; verify deployed rule hash, project/bucket, Admin SDK authorization and same/cross-tenant BOLA/IDOR/deleted-user negative tests.
+- [ ] Finish P0 #202 authorized, generation-fenced GCS receipts and >300 durable queue, lawful tenant migration, real stage/IAM/Scheduler evidence and signed AppSec/DPO/SRE/Release Owner GO.
+
+**P0 #202/#254 OPEN. `productionApproved=false`, Production BLOCKED/NO-GO.**
