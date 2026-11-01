@@ -11,6 +11,16 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes("physicalDeleteAuthorized: false")) {
     failures.push('write-ahead intent or no-auto-retry recovery gate removed');
   }
+  // Guard the canonical GCS uint64 fence in both the pure transitions and
+  // the command snapshot / Firestore CAS adapter. Long numeric strings must
+  // never reach durable intent state or later be interpreted as generations.
+  if (!states.includes('export function isCanonicalGcsGeneration') ||
+      !states.includes('/^[1-9][0-9]{0,19}$/') ||
+      !states.includes("'18446744073709551615'") ||
+      (states.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 4 ||
+      (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 2) {
+    failures.push('canonical uint64 GCS generation validation removed or bypassed');
+  }
   if (!states.includes('claimReceiptReconciliation') ||
       !states.includes('markDeletionObserved') ||
       !states.includes('purge_work_stale_or_expired_lease')) {
