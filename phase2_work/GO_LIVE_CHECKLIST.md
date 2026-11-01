@@ -457,3 +457,10 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Sign and independently verify actual lawful decision-/hold-aware GCS generation/404/412/crash receipts, durable >300 queue/Scheduler/IAM, Admin SDK tenant/Art17 migration and signed guest media ADR; authentic SRE/Product 30-day P95 and independent Security/DPO/Legal/SRE/ReleaseOwner release SHA GO.
 
 **P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.**
+
+
+### 2026-11-01 — Corrected #299 source mutation gate still requires full new CI
+
+- [x] Failure diagnosed: #299 initial `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) **FAILED** on a missing single-check mutation detection; no suppression or rollback of the security negative case.
+- [x] Gate strengthened to require both mandatory receipt guards on new #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52`.
+- [ ] Verify fresh [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) complete exact SHA SUCCESS (mutation, pure tests, 5/6/10 native Emulator, release gates, type/build/smoke/26 browser); previously **IN PROGRESS**. P0 #202/#254 real Cloud/Legal evidence and independent role signoffs missing; NO-GO.
