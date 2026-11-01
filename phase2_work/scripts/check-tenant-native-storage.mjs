@@ -16,6 +16,12 @@ export function nativeStorageTenantGateFailures({testSource,vitest,packageJson})
     ['legacy_media_cross_tenant_evidence',testSource.includes('legacy public profile photo remains readable across different tenant claims')],
     ['cross_tenant_profile_metadata',testSource.includes("assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata())")],
     ['biometric_owner_metadata_denial',testSource.includes("assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata())")],
+    ['guest_profile_media_visibility', testSource.includes('anonymous signed-in guest can read legacy profile media') &&
+      testSource.includes("sign_in_provider: 'anonymous'") &&
+      testSource.includes('assertSucceeds(guest.ref(path).getDownloadURL())') &&
+      testSource.includes('assertSucceeds(guest.ref(path).getMetadata())')],
+    ['guest_cannot_upload_profile', testSource.includes('assertFails(Promise.resolve(guest.ref(path)') &&
+      testSource.includes('assertFails(guest.ref(path).delete())')],
     ['write_owner_fence',testSource.includes('cross-tenant outsider cannot overwrite or delete')],
     ['biometric_denial',testSource.includes('biometric verification image cannot be read')],
     ['future_tenant_default_deny',testSource.includes('new tenant-prefixed profile object is inaccessible')],
