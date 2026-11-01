@@ -14,6 +14,8 @@ export function nativeStorageTenantGateFailures({testSource,vitest,packageJson})
     ['loopback_emulator',testSource.includes('FIREBASE_STORAGE_EMULATOR_HOST') &&
       testSource.includes('describe.skipIf(!emulatorOnly)')],
     ['legacy_media_cross_tenant_evidence',testSource.includes('legacy public profile photo remains readable across different tenant claims')],
+    ['cross_tenant_profile_metadata',testSource.includes("assertSucceeds(storage(other, 'tenant-beta').ref(path).getMetadata())")],
+    ['biometric_owner_metadata_denial',testSource.includes("assertFails(storage(owner, 'tenant-alpha').ref(path).getMetadata())")],
     ['write_owner_fence',testSource.includes('cross-tenant outsider cannot overwrite or delete')],
     ['biometric_denial',testSource.includes('biometric verification image cannot be read')],
     ['future_tenant_default_deny',testSource.includes('new tenant-prefixed profile object is inaccessible')],
