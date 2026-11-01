@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   assessDeletionIntentRecovery, claimPurgeWork, claimReceiptReconciliation, completePurgeReceipt,
-  createPurgeWork, isCanonicalGcsGeneration, markDeletionIntent, markDeletionObserved, quarantinePurgeWork,
+  createPurgeWork, hasCanonicalGcsReceiptEvidence, isCanonicalGcsGeneration,
+  markDeletionIntent, markDeletionObserved, quarantinePurgeWork,
   releaseUndeletedWork,
 } from '../src/server/platform/verificationPurgeWorkState';
 
@@ -210,6 +211,45 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
       expect(assessDeletionIntentRecovery(intent('123'), { kind: 'present', generation: value }))
         .toEqual({ action: 'manual_reconcile', physicalDeleteAuthorized: false, reason: 'unverifiable' });
     }
+  });
+
+
+  it('rejects a forged or corrupted generation when receipt observation matches invalid intent text', () => {
+    const good = intent('123');
+    const invalidValues = ['18446744073709551616', '000123', '9'.repeat(128), '0'];
+    for (const generation of invalidValues) {
+      const forged = { ...good, intent: { ...good.intent!, generation } };
+      expect(() => markDeletionObserved(forged, tokenA, 1, now + 1_000, generation))
+        .toThrow('purge_work_intent_mismatch');
+      expect(() => markDeletionObserved(good, tokenA, 1, now + 1_000, generation))
+        .toThrow('purge_work_intent_mismatch');
+    }
+    const observed = markDeletionObserved(good, tokenA, 1, now + 1_000, '123');
+    expect(hasCanonicalGcsReceiptEvidence(observed)).toBe(true);
+  });
+
+  it('cannot reclaim or complete a receipt whose stored GCS generation evidence was corrupted', () => {
+    const observed = markDeletionObserved(intent('123'), tokenA, 1, now + 1_000, '123');
+    for (const generation of ['18446744073709551616', '000123', '9'.repeat(200)]) {
+      const forgedIntent = { ...observed, intent: { ...observed.intent!, generation } };
+      const forgedObserved = { ...observed, observed: { ...observed.observed!, generation } };
+      const forgedBoth = {
+        ...observed, intent: { ...observed.intent!, generation },
+        observed: { ...observed.observed!, generation },
+      };
+      for (const corrupt of [forgedIntent, forgedObserved, forgedBoth]) {
+        expect(hasCanonicalGcsReceiptEvidence(corrupt)).toBe(false);
+        expect(() => claimReceiptReconciliation(corrupt, tokenB, now + 5_000, 5_000))
+          .toThrow('purge_work_receipt_not_claimable');
+        expect(() => completePurgeReceipt(corrupt, tokenA, 1, now + 2_000, digest))
+          .toThrow('purge_work_no_receipt_evidence');
+      }
+    }
+    expect(hasCanonicalGcsReceiptEvidence(observed)).toBe(true);
+    expect(claimReceiptReconciliation(observed, tokenB, now + 5_000, 5_000).status)
+      .toBe('receipt_pending');
+    expect(completePurgeReceipt(observed, tokenA, 1, now + 2_000, digest).status)
+      .toBe('complete');
   });
 
 });
