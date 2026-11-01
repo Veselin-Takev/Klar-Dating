@@ -11,9 +11,23 @@ const objective = policy.objectives.filter(item => item.name === 'api-latency-p9
 assert.equal(objective.length, 1, 'Exactly one canonical API P95 SLO is required');
 const target = objective[0].target;
 assert.ok(Number.isFinite(target) && target > 0, 'API P95 target must be positive and finite');
+
+// P1 #71: the configured indicator must match the exact Prometheus time
+// series actually emitted by observabilityPrometheus(), not a phantom metric.
+const indicator = objective[0].indicator;
+assert.equal(indicator, 'klar_http_request_duration_ms{quantile="0.95"}',
+  'The API P95 SLO must reference the published quantile gauge');
+
 const source = readFileSync(path.join(projectRoot, 'src/server/observability.ts'), 'utf8');
 assert.match(source, /import sloPolicy from ['"]\.\.\/\.\.\/ops\/slo\.json['"]/);
 assert.match(source, /p95 > API_P95_SLO_MS \? 1 : 0/);
+assert.ok(source.includes('`' + indicator + ' ${p95}`'),
+  'The SLO gauge and the configured indicator disagree');
+assert.ok(source.includes('# TYPE klar_http_request_duration_ms gauge'),
+  'The P95 Prometheus metric type does not match its policy');
+assert.doesNotMatch(source, /klar_http_latency_ms/,
+  'Obsolete latency metric must not be used in the emitter');
+
 assert.doesNotMatch(source, /p95 > 1500/);
 // Exercise configuration validation without bootstrapping the tracing SDK.
 const initialization = source.match(/const API_P95_SLO_MS = ([\s\S]*?);\r?\nconst MAX_SPANS/);
@@ -42,5 +56,5 @@ assert.match(gate, /p95 > API_P95_SLO_MS/);
 assert.doesNotMatch(gate, /1500ms SLO|p95 > 1500/);
 
 
-console.log('PASS: canonical API P95 threshold, 299/300/301 ms boundary and no legacy 1500ms hardcode');
+console.log('PASS: canonical emitted API P95 gauge and 299/300/301 ms threshold agree with ops/slo.json');
 
