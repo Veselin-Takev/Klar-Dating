@@ -86,3 +86,21 @@ Das §312k-Audit-Widget zeigt nur begrenzte Marker-Zählwerte statt falscher 100
 #### Finale Validierungsrunde — 2026-10-19
 
 Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wurde mit SHA-256-verifiziertem Node 22.23.3 geprüft: **Enterprise-Dashboard 10/10 PASS**, CODEOWNERS 24/24 PASS, Release-GO-Review 55/55 PASS. Weitere statische/Offline-Tests für 20 TTL-Retention-Gruppen, Art.17 (18 Preflight-Fälle), Lockfiles und Release-Workflow PASS. Auf demselben Code: **5/14 Pflichtgates PASS** (Secrets, Auth-Boundary, Public Firestore Rules, AI PII Sanitizer, Art.17 Boundary), **9/14 FAIL oder nicht ausführbar** (Enterprise/TypeScript-Modul fehlt; Root-npm-audit ENOLOCK im Bun-only-Root; Gitleaks und Semgrep nicht vorhanden; tsc, Vitest, Firebase CLI, Playwright und Vite fehlen). Zusätzliches `npx --no-install eslint . --max-warnings=0`: **FAIL/nicht ausführbar**. Deshalb **AI-Code-Review gesamt NICHT PASS** und **Production NO-GO**. Echtzeit-Dashboard-SLO-, Art.17-/TTL-, KI-Budget- und Security-Gates bleiben ohne geeignete autorisierte Live-Messquelle ausdrücklich unbekannt; rechtliche Abnahmen und echte E2E-Tests fehlen.
+
+
+### 2026-11-01 — Enterprise End-to-End Audit: exact-main NO-GO
+
+**Audit baseline:** `main` `2808dc1cbb485f70b403681c108cea5a3361d950`. See [ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md](docs/ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md) for evidence grades, source-backed risk register, 10-track negative E2E acceptance matrix and release prerequisites.
+
+**GitHub CI evidence only:** Draft #267 SHA `32598e8` run [41246347258](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41246347258) SUCCESS; Draft #268 SHA `71c0d31` run [41282765859](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41282765859) SUCCESS. Draft #269 SHA `54ef22b` [run 41283792515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41283792515) remained **in progress** at audit; no final PASS asserted. These isolated PR test results are **not** proof that patches are merged to main, deployed, or fully integrated together.
+
+**Unresolved mandatory approvals** (all unchecked until immutable signed evidence is attached):
+
+- [ ] P0 #254: tenant-specific Admin SDK, Firestore and Storage authorization, signed legacy mapping, staged migration, Art.-17 isolation, rollback and cross-tenant negative tests
+- [ ] P0 #202: deployed Cloud Scheduler status, fail-closed legacy purge, decision-aware GCS generation/hold/race/404/412 tests and signed DPO/SRE approval
+- [ ] P0 #55/#48/#56 and #70: buyer/event authenticity, consent/withdrawal, erasure/retention, 20 TTL policies' live ACTIVE state and lawful holds
+- [ ] P1 #204/#206/#237: adult-gated media, revocable download tokens, authoritative Didit verification refresh and native E2E tests
+- [ ] Full final-main and candidate-image SHA-bound CI, SCA/OSV high+critical review, SAST, Gitleaks, SBOM, exact deployed image digest, genuine approved staging/provider evidence
+- [ ] Main protection/independent CODEOWNERS approvals, delivered alerts/on-call, backup restoration, canary/rollback and AppSec/DPO/Legal/Finance/SRE/Release Owner signoffs
+
+**Decision:** BLOCKED / Production NO-GO. `RELEASE_MANIFEST.json` remains unmodified with `productionApproved=false`. No production deployment or datastore mutation is authorized by this audit.
