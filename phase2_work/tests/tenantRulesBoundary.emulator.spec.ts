@@ -19,9 +19,11 @@ const profile = (uid: string) => ({ uid, name: uid, createdAt: '2026-11-01', upd
 const asUser = (uid: string, tenantId: string, roles: string[] = []) =>
   env.authenticatedContext(uid, { tenantId, roles, role: roles[0] ?? 'member' }).firestore();
 
-describe.skipIf(!emulatorOnly)('P0 #254 native rules — legacy UID vs tenant-boundary evidence, NOT migration approval', () => {
+const ciRequiresEmulator = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #254 native rules — legacy UID vs tenant-boundary evidence, NOT migration approval', () => {
   beforeAll(async () => {
-    if (!match) throw new Error('firebase_rules_loopback_emulator_required');
+    if (!emulatorOnly || !match) throw new Error('firebase_rules_loopback_emulator_required');
     env = await initializeTestEnvironment({
       projectId: 'demo-klar',
       firestore: {
