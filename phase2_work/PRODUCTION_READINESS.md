@@ -305,3 +305,8 @@ Real P0 #202/#254, authentic live data/IAM/Art17/GCS generation/404/412/hold/rec
 ### 2026-11-01 — P0 receipt-integrity #299 CI failure remediated, new exact-head CI pending
 
 Initial #299 SHA `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360321213) **FAILED** because the new mutation check removed one of two `hasCanonicalGcsReceiptEvidence` guards without the static gate noticing. No security test was bypassed: the negative mutation test correctly failed CI. Source gate now requires **both** occurrences, exact new #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52`; [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) **IN PROGRESS**, not PASS. All P0 live/GCS/Art17/tenant/independent signoffs remain missing. `productionApproved=false`; BLOCKED/NO-GO.
+
+
+### 2026-11-01 — #299 exact-head Typecheck correction, new CI required
+
+[CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) for #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52` **FAILED Typecheck** (six TS18048 optional receipt fields) after previously failing source mutations were fixed. #299 now uses a runtime-checking **TypeScript type predicate** and a stronger persisted-intent CAS fence, new SHA `453e40cf0037e9bd0a5484fa56e24d98a47918ce`; [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) **PENDING**. Neither failed run is Production GO evidence. The GCS queue remains inert; P0 #202/#254, real legal and Cloud receipts, multi-tenant isolation, and independent release signatures BLOCKED; `productionApproved=false`.
