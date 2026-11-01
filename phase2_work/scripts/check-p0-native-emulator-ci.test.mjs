@@ -64,6 +64,8 @@ for (const [name, change] of [
     m.scripts['check:enterprise'].replace('npm run check:p0-native-emulator-ci && ', ''); }],
   ['negative tests removed from source command', m => { m.scripts['check:p0-native-emulator-ci'] =
     m.scripts['check:p0-native-emulator-ci'].replace(' && node --test scripts/check-p0-native-emulator-ci.test.mjs', ''); }],
+  ['real missing-emulator regression removed', m => { m.scripts['check:p0-native-emulator-ci'] =
+    m.scripts['check:p0-native-emulator-ci'].replace(' && node --test scripts/check-p0-native-emulator-runtime.test.mjs', ''); }],
 ]) test('reject CI regression: ' + name, () => {
   const changed = clone();
   change(changed.manifest);

@@ -143,7 +143,7 @@
     "check:tenant-rules-surfaces": "node scripts/check-tenant-rules-surfaces.mjs && node --test scripts/check-tenant-rules-surfaces.test.mjs",
     "check:tenant-native-rules": "node scripts/check-tenant-native-rules-suite.mjs && node --test scripts/check-tenant-native-rules-suite.test.mjs",
     "check:tenant-native-storage": "node scripts/check-tenant-native-storage.mjs && node --test scripts/check-tenant-native-storage.test.mjs",
-    "check:p0-native-emulator-ci": "node scripts/check-p0-native-emulator-ci.mjs && node --test scripts/check-p0-native-emulator-ci.test.mjs",
+    "check:p0-native-emulator-ci": "node scripts/check-p0-native-emulator-ci.mjs && node --test scripts/check-p0-native-emulator-ci.test.mjs && node --test scripts/check-p0-native-emulator-runtime.test.mjs",
     "check:storage-tenant-risk": "node scripts/check-storage-tenant-risk-markers.mjs && node --test scripts/check-storage-tenant-risk-markers.test.mjs"
   },
   "dependencies": {
