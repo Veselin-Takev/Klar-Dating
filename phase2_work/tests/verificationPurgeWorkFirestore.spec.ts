@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { transitionPurgeWorkInTransaction } from '../src/server/platform/verificationPurgeWorkFirestore';
-import { createPurgeWork, claimPurgeWork, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
+import { createPurgeWork, claimPurgeWork, markDeletionIntent, type PurgeWorkState } from '../src/server/platform/verificationPurgeWorkState';
 
 const key = 'a'.repeat(64);
 const token = 'worker-opaque-token-0000001';
@@ -59,6 +59,23 @@ describe('P0 #202 Firestore transaction adapter is opt-in, bounded and retry-saf
     expect(m.getReads()).toBe(2);
     expect(m.writes).toHaveLength(1);
     expect(externalEffect).not.toHaveBeenCalled();
+  });
+
+  it('persists write-ahead delete intent via a replay-safe, read-before-write transaction', async () => {
+    const initial = claimPurgeWork(createPurgeWork(key, now), token, now, 5_000);
+    const m = memoryDb(initial, 2);
+    const intent = await transitionPurgeWorkInTransaction(m.db, ref,
+      state => markDeletionIntent(state, token, 1, now + 500, '18446744073709551615'));
+    expect(intent).toMatchObject({
+      status: 'delete_intent', revision: 2,
+      intent: { generation: '18446744073709551615', leaseEpoch: 1, preparedAt: now + 500 },
+    });
+    expect(m.writes).toHaveLength(1);
+    expect(m.getReads()).toBe(2);
+    await expect(transitionPurgeWorkInTransaction(m.db, ref,
+      state => claimPurgeWork(state, 'another-token-00000000000', now + 8_000, 5_000)))
+      .rejects.toThrow('purge_work_not_claimable');
+    expect(m.writes).toHaveLength(1);
   });
 
   it('rejects forged document references and changed immutable identity', async () => {
