@@ -18,7 +18,7 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes('/^[1-9][0-9]{0,19}$/') ||
       !states.includes("'18446744073709551615'") ||
       (states.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 8 ||
-      (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 2 ||
+      (adapter.match(/\bisCanonicalGcsGeneration\(/g) ?? []).length !== 3 ||
       !states.includes('export function hasCanonicalGcsReceiptEvidence') ||
       (states.match(/!hasCanonicalGcsReceiptEvidence\(state\)/g) ?? []).length !== 2 ||
       (adapter.match(/\bhasCanonicalGcsReceiptEvidence\(/g) ?? []).length !== 5) {
