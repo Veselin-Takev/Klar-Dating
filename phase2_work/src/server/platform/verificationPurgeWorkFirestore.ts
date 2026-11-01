@@ -1,6 +1,6 @@
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import {
-  claimPurgeWork, markDeletionIntent, quarantinePurgeWork, releaseUndeletedWork,
+  claimPurgeWork, isCanonicalGcsGeneration, markDeletionIntent, quarantinePurgeWork, releaseUndeletedWork,
   type PurgeQuarantineReason, type PurgeWorkState,
 } from './verificationPurgeWorkState';
 
@@ -80,7 +80,7 @@ function validFencedTransition(current: PurgeWorkState, next: PurgeWorkState): b
       next.attempt === current.attempt && next.availableAt === current.availableAt &&
       next.observed === undefined && next.intent !== undefined &&
       next.intent.leaseEpoch === next.lease?.epoch &&
-      /^[1-9][0-9]*$/.test(next.intent.generation) &&
+      isCanonicalGcsGeneration(next.intent.generation) &&
       safeTime(next.intent.preparedAt) && next.intent.preparedAt < (next.lease?.expiresAt ?? 0);
   }
   if (next.status === 'receipt_pending' && current.status === 'delete_intent') {
@@ -195,7 +195,7 @@ function snapshotCommand(command: PurgeWorkCommand): PurgeWorkCommand {
       const token = data('token'), generation = data('generation');
       if (Reflect.ownKeys(command).length !== 4 || !tokenOk(token) ||
           !integerOk(epoch) || typeof generation !== 'string' ||
-          !/^[1-9][0-9]*$/.test(generation)) break;
+          !isCanonicalGcsGeneration(generation)) break;
       return { kind: 'prepare_delete_intent', token, epoch, generation };
     }
     case 'quarantine': {
