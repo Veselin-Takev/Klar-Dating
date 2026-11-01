@@ -20,6 +20,10 @@ test('new lease state machine is completely unbound from live photo deletion', (
 });
 
 const mutations = [
+  ['canonical generation helper removed', x => ({ ...x, states: x.states.replace('export function isCanonicalGcsGeneration', 'function isCanonicalGcsGeneration') })],
+  ['pure intent generation guard bypassed', x => ({ ...x, states: x.states.replace('!isCanonicalGcsGeneration(generation)', "!/^[1-9][0-9]*$/.test(generation)") })],
+  ['adapter command generation guard bypassed', x => ({ ...x, adapter: x.adapter.replace('!isCanonicalGcsGeneration(generation)', "!/^[1-9][0-9]*$/.test(generation)") })],
+  ['adapter CAS generation guard bypassed', x => ({ ...x, adapter: x.adapter.replace('isCanonicalGcsGeneration(next.intent.generation)', "/^[1-9][0-9]*$/.test(next.intent.generation)") })],
   ['live route starts calling adapter', x => ({ ...x, route: x.route + '\nverificationPurgeWorkFirestore' })],
   ['scheduled worker calls state machine', x => ({ ...x, scheduler: x.scheduler + '\nverificationPurgeWorkState' })],
   ['state machine starts deleting objects', x => ({ ...x, states: x.states + '\nbucket.file(path).delete()' })],
