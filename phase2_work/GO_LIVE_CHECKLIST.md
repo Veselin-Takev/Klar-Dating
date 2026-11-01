@@ -104,3 +104,13 @@ Der exakt archivierte Draft-Commit `51864c8a8ef29c696a1b7e420a19eeb7cc903a47` wu
 - [ ] Main protection/independent CODEOWNERS approvals, delivered alerts/on-call, backup restoration, canary/rollback and AppSec/DPO/Legal/Finance/SRE/Release Owner signoffs
 
 **Decision:** BLOCKED / Production NO-GO. `RELEASE_MANIFEST.json` remains unmodified with `productionApproved=false`. No production deployment or datastore mutation is authorized by this audit.
+
+
+### 2026-11-01 — P0 #202 scalable retention evidence still OPEN
+
+- [x] Source-only bounded purge preflight and negative tests on **unmerged** Draft [#272](https://github.com/Veselin-Takev/Klar-Dating/pull/272), exact SHA `61c78d3311dfdba2dec7910f11505d32e2f34479`; [CI #41287450907](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41287450907) SUCCESS. This is **not** live deployment evidence.
+- [ ] Scalable durable work queue/lease and replay-safe receipts for >300 due events; old missing-expiry data mapping, global object ownership/duplicate checks, legal holds and Firestore→GCS race reconciliation approved by DPO/AppSec/SRE
+- [ ] Real staging Storage 404/412/retention-hold tests, deployed Cloud Scheduler inventory, independent production authorization
+- [ ] New **read-only** local-Emulator backlog census in [Draft #273](https://github.com/Veselin-Takev/Klar-Dating/pull/273), SHA `5223b4c796c46c126a1f7ebfc5bebf931ffa991a`, must pass its own exact-head CI. Census counts **do not** close the durable worker requirement and have not been collected from customer data.
+
+**Current release decision:** BLOCKED / NO-GO. `productionApproved=false`.
