@@ -412,3 +412,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Provide all **six actual externally reviewed P0 evidence receipts**, not merely checked-in field names: signed Product/DPO/Legal media policy, deployed Admin SDK/Rules/IAM Tenant BOLA and Art17 migration, authorized GCS 404/412/legal holds/crash receipts, durable >300 queue and Scheduler/IAM, independent Security/DPO/Legal/SRE/ReleaseOwner signatures on final release SHA. Deduplicated final CI required.
 
 `productionApproved=false`; P0 #202/#254 OPEN; **Production BLOCKED/NO-GO**.
+
+
+### 2026-11-01 — Didit exact-head CI verified and P0 safety integration awaiting new CI
+
+- [x] [Draft #295](https://github.com/Veselin-Takev/Klar-Dating/pull/295) immutable SHA `57cc4519e46f3287905a5b0d90463a7194ce6e53` full [CI #41355375724](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41355375724) SUCCESS: real **18 Didit status component tests**, 1,390 Vitest/193 files, Production Smoke and 26 Browser PASS; earlier pending observation for this SHA superseded.
+- [x] Prior Governance head `01b3f7692d479578439fe9ac2f6bfbf4f5fe30c5` full [CI #41355541319](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41355541319) SUCCESS.
+- [x] [Draft #296](https://github.com/Veselin-Takev/Klar-Dating/pull/296) exact `4e8a8481a0c4b9a369b72d7bd2739e8a28cb5c96` stacked on P0 #294; GitHub reports 7 changed paths. All existing P0 gates preserved during manual package.json reconciliation, exact tested KYC source files transferred unchanged and independent provenance documented.
+- [ ] Confirm [#296 full CI #41356725824](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41356725824) SUCCESS **for that exact SHA**: new KYC 18 component cases and mandatory source-contract check plus P0 six-evidence and ReleaseOwner tests, 5 native Storage/6 Tenant Firestore/6 Retention Firestore, real missing-Emulator CI negative, Typecheck, Builds, Smoke, Browser; IN PROGRESS at evidence capture.
+- [ ] Complete real cloud/IAM/Admin SDK tenant BOLA and Art17 migration, signed Product/DPO/Legal guest-media decision, authorized biometric GCS 404/412/hold/crash receipts, durable >300 due-work and Scheduler/IAM, actual independent security/privacy/operations/ReleaseOwner release SHA approvals.
+
+**P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.**
