@@ -14,6 +14,8 @@ test('combined source-only tenant and retention enterprise gates pass', () => {
 });
 for (const [label, mutate] of [
   ['tenant inventory command missing', p => { delete p.scripts['check:tenant-inventory']; }],
+  ['storage review marker check missing', p => { delete p.scripts['check:storage-tenant-risk']; }],
+  ['storage marker review omitted from enterprise', p => { p.scripts['check:enterprise']=p.scripts['check:enterprise'].replace('npm run check:storage-tenant-risk && ', ''); }],
   ['tenant Firestore/Storage rules evidence missing', p => { delete p.scripts['check:tenant-rules-surfaces']; }],
   ['tenant rules evidence skipped by enterprise', p => { p.scripts['check:enterprise'] = p.scripts['check:enterprise'].replace('npm run check:tenant-rules-surfaces && ', ''); }],
   ['retention generation/decision gate missing', p => { delete p.scripts['check:compliance-storage-purge']; }],

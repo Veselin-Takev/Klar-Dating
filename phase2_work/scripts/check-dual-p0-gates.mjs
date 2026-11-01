@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const required = Object.freeze({
   'check:tenant-inventory': ['inventory-tenant-access.test.mjs', 'tenant-access-patterns.test.mjs'],
   'check:tenant-rules-surfaces': ['check-tenant-rules-surfaces.mjs', 'check-tenant-rules-surfaces.test.mjs'],
+  'check:storage-tenant-risk': ['check-storage-tenant-risk-markers.mjs', 'check-storage-tenant-risk-markers.test.mjs'],
   'check:legacy-photo-purge': ['check-legacy-photo-purge.mjs'],
   'check:compliance-storage-purge': ['check-compliance-storage-purge.mjs'],
   'check:retention-census-safety': ['audit-verification-retention-backlog.test.mjs'],
