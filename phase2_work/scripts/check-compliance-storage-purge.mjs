@@ -16,6 +16,9 @@ const checks = [
   ['GCS conditional object delete', /\.delete\(\{ ifGenerationMatch: generation \}\)/],
   ['reject old unversioned delete', /NEVER_REMOVE_MATCH_THIS_PATTERN/],
   ['hold and expiry enforcement', /metadata\?\.temporaryHold === true/],
+  ['partial failure returns retryable status', /res\.status\(503\)\.json\(\{ ok: false, code: 'verification_storage_purge_incomplete'/],
+  ['malformed due records block success', /malformedCount > 0/],
+  ['HTTP summary counts avoid per-user data', /const safeSummary = \{/],
 ];
 for (const [label, re] of checks) {
   if (label === 'reject old unversioned delete') {
