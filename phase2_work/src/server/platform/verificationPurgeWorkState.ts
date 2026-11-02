@@ -61,6 +61,15 @@ function assertValidState(state: PurgeWorkState): void {
       !validTime(state.availableAt)) {
     throw new Error('purge_work_invalid_state');
   }
+  // A ready/leased row may carry a retained lease for epoch fencing, but it
+  // must NEVER carry a prior delete intent, observation or terminal receipt.
+  // Corrupt records are quarantined operationally, not silently re-claimed.
+  if ((state.status === 'ready' || state.status === 'leased') &&
+      (state.intent !== undefined || state.observed !== undefined ||
+       state.completedAt !== undefined || state.receiptDigest !== undefined ||
+       state.quarantineReason !== undefined)) {
+    throw new Error('purge_work_invalid_state');
+  }
 }
 function assertCurrentLease(state: PurgeWorkState, token: string, epoch: number, now: number): void {
   if (!validTime(now) || !state.lease || state.lease.token !== token ||
