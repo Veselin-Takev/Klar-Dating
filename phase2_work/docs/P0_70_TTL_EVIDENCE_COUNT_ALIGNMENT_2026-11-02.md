@@ -30,4 +30,14 @@ Eine **neue vollständige exact-HEAD-CI** ist für diesen Branch erforderlich. A
 
 P0 #70 sowie #202 (GCS-Löschquittungen) und #254 (Tenant-Isolation) bleiben offen. Es fehlen DPO/Legal/Security/SRE/ReleaseOwner-Freigaben. Kein Merge auf `main`, kein Deploy und keine Produktionsdatenänderung.
 
+## Fortgesetzte Prüfung am 02.11.2026 – Runbook-Abnahme und CI
+
+Der korrigierte exakte Parent-Stand `166bd46f23d329a5ada61bc7a0b17535b795c257` hat [Enterprise-CI #41471440604](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41471440604) **SUCCESS** erreicht (vor dieser neuen Änderung).
+
+Eine anschließende Source-Prüfung ergab zwei weitere operative, veraltete Aussagen in `docs/PRODUCTION_RUNBOOK.md`: Der separate read-only `gcloud`-LIVE-Nachweis und `scripts/verify-retention-staging-live.sh` waren dort noch auf **13 ACTIVE TTL-Gruppen** beschrieben, obwohl das unveränderte tatsächliche Tool und der Source-Matrix-Validator **20** verlangen. Die beiden aktuellen Runbook-Aussagen wurden auf 20 korrigiert; die ausdrückliche unabhängige Genehmigung der erweiterten Matrix bleibt Voraussetzung.
+
+Der verbindliche Matrix-Gate prüft jetzt sowohl `docs/DATA_RETENTION.md` als auch die beiden operativen Runbook-Aussagen und den Hinweis, dass eine technische Prüfung kein DPO-/Legal-GO ist. Die Offline-Mutationstests kopieren die Runbook-Datei in den Test-Sandbox-Ordner und prüfen drei zusätzliche Negativfälle: 13er-LIVE-Zählung, 13er-Exporter-Zählung und fehlender Rechtsfreigabevorbehalt.
+
+**Neue Source-/Test-/Dokumentations-Commits nach Parent-CI:** CI #41471440604 beweist ausschließlich den früheren Stand, nicht diese Erweiterung. Erforderlich ist erneut ein vollständiger exact-head PASS. Keine aktiven TTL Policies, IAM-Konfiguration oder produktiven Daten wurden verändert. **P0 #70 weiterhin offen; NO-GO.**
+
 **Freigabeentscheidung: BLOCKED / NO-GO.**
