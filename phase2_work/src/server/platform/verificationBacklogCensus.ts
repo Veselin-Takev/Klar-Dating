@@ -28,6 +28,7 @@ export interface CensusCounts {
   futureByMarker: number;
   pendingOrUnknownDecision: number;
   knownLegalHolds: number;
+  invalidHoldIndicators: number;
   invalidOwnerOrPath: number;
   duplicatedObjectPaths: number;
 }
@@ -89,7 +90,8 @@ export async function censusVerificationRetentionBacklog<Cursor>(
     consistency: 'non_atomic_paginated_read', readOnly: true,
     alreadyPurged: 0, missingOrInvalidExpiry: 0,
     dueByMarker: 0, futureByMarker: 0, pendingOrUnknownDecision: 0,
-    knownLegalHolds: 0, invalidOwnerOrPath: 0, duplicatedObjectPaths: 0,
+    knownLegalHolds: 0, invalidHoldIndicators: 0,
+    invalidOwnerOrPath: 0, duplicatedObjectPaths: 0,
   };
   const seenIds = new Set<string>();
   const seenPaths = new Set<string>();
@@ -125,8 +127,16 @@ export async function censusVerificationRetentionBacklog<Cursor>(
           (primary ?? secondary) === 'pending') {
         output.pendingOrUnknownDecision++;
       }
+      // Only strict booleans can be evaluated as confirmed hold flags.
+      // Strings ("false"), nulls, numbers or objects are ambiguous evidence:
+      // count them separately rather than silently describing the census as
+      // clean. Absence of a flag is still NOT proof that a legal hold is absent.
       if (record.legalHold === true || record.retentionHold === true || record.hold === true) {
         output.knownLegalHolds++;
+      }
+      if (['legalHold', 'retentionHold', 'hold'].some(flag =>
+        record[flag] !== undefined && typeof record[flag] !== 'boolean')) {
+        output.invalidHoldIndicators++;
       }
       const uid = record.uid, path = record.storagePath;
       if (!isCanonicalVerificationOwnerPath(uid, path)) {
