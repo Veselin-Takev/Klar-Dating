@@ -5,24 +5,24 @@
  * No cloud API calls, secrets, file content or document data are emitted.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { resolve, relative, extname, join } from 'node:path';
+import { resolve, relative, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { categoriesForLine } from './tenant-access-patterns.mjs';
+import { assertTenantInventoryEntry, isTenantInventorySourceFile } from './tenant-inventory-source-policy.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.firebase', 'test-results', 'playwright-report']);
-const sourceTypes = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const rows = [];
 const fail = message => { throw new Error('inventory_failed: ' + message); };
 function walk(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
-    if (entry.isSymbolicLink()) continue;
+    assertTenantInventoryEntry(entry);
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       if (!skip.has(entry.name)) walk(full);
       continue;
     }
-    if (!entry.isFile() || !sourceTypes.has(extname(entry.name))) continue;
+    if (!entry.isFile() || !isTenantInventorySourceFile(entry.name)) continue;
     const data = readFileSync(full, 'utf8');
     const lines = data.split(/\r?\n/);
     const categories = new Set();

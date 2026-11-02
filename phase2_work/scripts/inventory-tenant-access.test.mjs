@@ -5,14 +5,15 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, resolve, join, extname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertTenantInventoryEntry, isTenantInventorySourceFile } from './tenant-inventory-source-policy.mjs';
 
 const workdir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const omitted = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.firebase', 'test-results', 'playwright-report']);
-const sourceTypes = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+const sourceTypes = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']);
 function expectedFiles(dir) {
   const files = [];
   for (const item of readdirSync(dir, { withFileTypes: true })) {
-    if (item.isSymbolicLink()) continue;
+    if (item.isSymbolicLink()) throw new Error('unreviewed source symlink in inventory test fixture');
     const full = join(dir, item.name);
     if (item.isDirectory() && !omitted.has(item.name)) files.push(...expectedFiles(full));
     else if (item.isFile() && sourceTypes.has(extname(item.name))) files.push(relative(workdir, full).replaceAll('\\\\', '/'));
@@ -68,4 +69,22 @@ test('tenant candidate inventory is reproducible, bounded and does not expose so
     }
     assert.deepEqual(Object.keys(f).sort(), ['categories', 'hits', 'path', 'sha256']);
   }
+});
+
+test('P0 #254: source file policy includes all known TS/JS module dialects and denies link omission', () => {
+  for (const ext of ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']) {
+    assert.equal(isTenantInventorySourceFile('src/tenant-boundary' + ext), true, 'omitted extension ' + ext);
+  }
+  for (const file of ['README.md', 'artifact.json', 'node_modules', 'secret.env']) {
+    assert.equal(isTenantInventorySourceFile(file), false, 'unreviewed file included: ' + file);
+  }
+  assert.throws(
+    () => assertTenantInventoryEntry({ isSymbolicLink: () => true }),
+    /inventory_failed: unreviewed_source_symlink/,
+  );
+  assert.throws(
+    () => assertTenantInventoryEntry({}),
+    /inventory_failed: invalid_directory_entry/,
+  );
+  assert.doesNotThrow(() => assertTenantInventoryEntry({ isSymbolicLink: () => false }));
 });
