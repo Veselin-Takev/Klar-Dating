@@ -65,3 +65,14 @@ Jetzt verlangt die Middleware von der Tenant-Metadatenzeile `tenantId === verifi
 
 **Migrationskonsequenz:** Ohne vollständiges, verifiziertes Tenant-/UID-Mapping sind diese Leseoperationen absichtlich nicht verfügbar. Keines der synthetischen Beispiele beweist die Richtigkeit von produktiven Altbeständen. Kein Cloud-Ruleset-, Daten- oder Deployment-Change. Die neue exakte CI und unabhängige Sicherheits-/Datenschutz-/SRE-Prüfungen sind Pflicht. **Production BLOCKED / NO-GO.**
 
+
+
+## Nachtrag 02.11.2026 – DNS-FQDN-Tenant-Hint und Main-Synchronisation
+
+**Sicherheitsprüfung des authentisierten Routing-Hinweises:** Ein Hostname wie `tenant-two.klar.example.` ist die gültige Fully Qualified Domain Name (FQDN)-Schreibweise mit abschließendem DNS-Root-Punkt. Der bisherige `subdomainHint`-Vergleich mit `.klar.example` erkannte diesen Suffix nicht und ignorierte deshalb den **vorhandenen abweichenden Tenant-Hint**. Dadurch konnte ein gültiger JWT für `tenant-one` den *Routing-Hint-Mismatch-Guard* bei dieser Host-Schreibweise umgehen. **Keine Datenfreigabe quer zu Tenants ist dadurch nachgewiesen**: signierte JWT-Claim und DB-Mitgliedschaft blieben weiter die maßgebliche Datenautorität.
+
+**Änderung nur im Draft:** `tenantAuth.ts` normalisiert **genau einen** optionalen DNS-Root-Punkt sowohl für `hostname` als auch für die vertrauenswürdige `baseDomain`. Mehrere abschließende Punkte schlagen mit generischem 403 fail-closed fehl. Die bestehende signierte-Claim-Bindung, revocation-geprüfte JWT-Verifikation, aktive Tenant-/Membership-Checks und Rollen-Schnittmenge bleiben unverändert. `tests/tenantFoundation.spec.ts` prüft jetzt gültige FQDN-/Base-Domain-Formen sowie mismatched FQDN, verschachtelte fremde Subdomains und doppelten Root-Punkt mit erwarteter 403-Ablehnung.
+
+**Feature-Branch-Main-Abgleich:** Vor der Korrektur wurde `main=96c3857c53f5ced31fe1394895185f42c75bc716` mit dem Review-Head `80f1b45f31944222e6c92c5d9e25881d55e700dd` verglichen. Drei Main-Commits änderten nur vier CODEOWNERS-/Prüfdateien, **keine** der neun #253-Dateien. Der doppelt geparentete, konfliktfreie Merge-Commit `df7af111fe51ff04eaab9a6f8ea95996f0417886` synchronisierte ausschließlich `feature/multitenant-zero-trust-foundation-20261031`; GitHub-Compare zeigte danach `ahead=8`, `behind=0`, weiter neun PR-Dateien.
+
+**Evidenzgrenze:** Der neue Feature-Branch-Head hat durch die anschließenden Code-/Test-/Dokumentationsänderungen erneut eine eigene SHA und benötigt **exakte aktuelle CI**; ein erfolgreicher Test der alten SHA wäre nicht ausreichend. **Noch keine** globale Tenant-Middleware-Einbindung in `server.ts`, keine Legacy-Migration, keine verbindliche Firestore-/Storage-Rules-Isolation, keine E3/E4 Tenant-Daten-Cutover-Evidenz und keine unabhängigen DPO-/Security-/SRE-Reviews. Der neue Test bewahrt nur eine weitere Routing-Invariante, er beweist keine End-to-End-BOLA-Freiheit. `productionApproved=false`, **BLOCKED / NO-GO**.
