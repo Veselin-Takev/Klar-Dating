@@ -536,3 +536,13 @@ P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.
 - [ ] Do not infer legal hold clearance from absent flags. Obtain independently signed DPO/Legal authoritativeness and migration plan; real GCS decision/hold freshness and 404/412/crash receipts, durable >300 authorized deletion jobs with Scheduler/IAM staging, #254 tenant/AdminSDK/Art17/Rules/Media ADR and Security/DPO/Legal/SRE/ReleaseOwner signoffs.
 
 `productionApproved=false` — **Production BLOCKED/NO-GO**. No merge, deploy or customer data actions.
+
+
+### 2026-11-02 — Active GCS generation upper bound must be independently CI-verified
+
+- [x] [Draft #305](https://github.com/Veselin-Takev/Klar-Dating/pull/305) exact `eb40e5eaebaeb02e4a5c42f175d8f8c46fe71666` full [CI #41422714192](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41422714192) **SUCCESS** (authoritative malformed Hold denial); prior Governance `e5376b19309342e955859654f7159945456184bb` full [CI #41422941337](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41422941337) SUCCESS.
+- [x] [New stacked Draft #306](https://github.com/Veselin-Takev/Klar-Dating/pull/306) initial head `3dc3c5ab8243ada7bd9e32bfb58e032118d99d9d` limits active pre-delete GCS generation metadata to canonical positive unsigned 64-bit decimal strings. Vitest validates 1, uint64 MAX, >2^53 precision and rejects MAX+1, padding and 4096-digit values. Required compliance static gate strengthened, four files scoped.
+- [ ] Confirm full **exact-head** [CI #41424416076](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41424416076) SUCCESS (mandatory compliance/negative source, Typecheck, full native P0 Firebase suite, actual no-Emulator negative, all Vitest, builds, Production Smoke and 26 browser acceptance). **IN PROGRESS** at record, parent #305 PASS cannot transfer.
+- [ ] Independently authorize and verify Legal-Hold/decision provenance and generation-conditional GCS delete/404/412/timeout/crash receipts, durable >300 deletion jobs, Cloud IAM/Scheduler and DPO/AppSec/SRE plus P0 #254 Tenant/Art17/AdminSDK/BOLA and signed Product/DPO/Legal guest-media policy; actual Release Owner GO still absent.
+
+`productionApproved=false`, **Production BLOCKED/NO-GO**. No main merge, deploy or customer Cloud/data operations.
