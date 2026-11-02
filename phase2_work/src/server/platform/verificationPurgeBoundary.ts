@@ -39,7 +39,7 @@ export function hasUnambiguousVerificationHoldFlags(
   record: Record<string, unknown> | undefined,
 ): boolean {
   return !!record && (['legalHold', 'retentionHold', 'hold'] as const)
-    .every(flag => record[flag] === undefined || typeof record[flag] === 'boolean');
+    .every(flag => !Object.hasOwn(record, flag) || typeof record[flag] === 'boolean');
 }
 
 export function assertCurrentVerificationPurgeCandidate(
@@ -48,6 +48,8 @@ export function assertCurrentVerificationPurgeCandidate(
   now: number,
 ): void {
   if (!current || !hasUnambiguousVerificationHoldFlags(current) ||
+      // An explicitly malformed purge marker must never be treated as false.
+      (Object.hasOwn(current, 'photoPurged') && typeof current.photoPurged !== 'boolean') ||
       !Number.isFinite(now) || now <= 0 ||
       !artifact.uid || !artifact.challengeId || !artifact.storagePath.startsWith(`verification/${artifact.uid}/`)) {
     throw new Error('verification_purge_candidate_unavailable');
