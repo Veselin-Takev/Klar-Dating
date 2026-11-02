@@ -471,3 +471,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [x] Second initial #299 run [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) FAILED Typecheck on six `TS18048` optional fields after source/mutation gate passed; **no** weakened tests or CI exceptions.
 - [x] New #299 SHA `453e40cf0037e9bd0a5484fa56e24d98a47918ce` makes canonical receipt validation a TypeScript type predicate and enforces additional CAS current-intent generation identity.
 - [ ] [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) must PASS completely for this exact SHA; **PENDING** when recorded. P0 real GCS delete/holds/404/412/crash/>300 queue, Tenant/Art17/Admin SDK/IAM, signed media ADR, SRE and real role signatures remain BLOCKED; Production NO-GO.
+
+
+### 2026-11-02 — Verified receipt-only #299 and new pre-delete stale-marker safeguard #300
+
+- [x] [PR #299](https://github.com/Veselin-Takev/Klar-Dating/pull/299) SHA `453e40cf0037e9bd0a5484fa56e24d98a47918ce` full [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) SUCCESS: 1,499 Vitest, 22 pure state, 10 native Retention Firestore, real CI no-Emulator negative, smoke and 26 browsers. Historical two failed #299 runs remain FAILED.
+- [x] Prior Governance exact SHA `67497670a9fae73adb2440c329ecf5ece26a3353` [CI #41360973285](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360973285) SUCCESS.
+- [x] [Draft #300](https://github.com/Veselin-Takev/Klar-Dating/pull/300) initial `8037801d8abd51ed6bcc152ad230106f8cefba73` rejects inconsistent ready/leased rows with old delete/receipt/quarantine markers; six native Firestore negative cases and pure and source/mutation tests added; unchanged legitimate release/reclaim path.
+- [ ] Confirm **fresh complete exact-head CI** for #300: source/mutations, Typecheck, native 5 Storage + 6 Tenant Firestore + **16 Retention Firestore** tests, real no-Emulator negative, six P0 live-proof structural fields and ReleaseOwner, Didit, P95, Typecheck/Build/Smoke/26 Browser. No new-HEAD PASS yet claimed.
+- [ ] Independently certify P0 #202 actual decision-based GCS generation/404/412/holds/crash receipts, durable >300 queue and IAM/Scheduler; P0 #254 true Tenant Admin SDK/Rules/Art17 and Product/DPO/Legal signed media ADR; SRE 30-day P95 and real Security/DPO/Legal/SRE/ReleaseOwner signoffs on final release SHA.
+
+`productionApproved=false` — **Production BLOCKED / NO-GO**.
