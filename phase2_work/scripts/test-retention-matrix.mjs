@@ -13,6 +13,11 @@ const source = readFileSync(join(root, 'scripts/configure-retention.sh'), 'utf8'
 const docs = readFileSync(join(root, 'docs/DATA_RETENTION.md'), 'utf8');
 const guard = readFileSync(join(root, 'scripts/check-retention-matrix.mjs'), 'utf8');
 const cases = [
+  ['stale 13-group activation claim', s => s, d => d.replace('für alle 20 im Quellcode geplanten Collection Groups', 'für alle 13 dokumentierten Collection Groups')],
+  ['stale 13-group staging ACTIVE claim', s => s, d => d.replace('Status `ACTIVE` aller 20 Gruppen', 'Status `ACTIVE` aller 13 Gruppen')],
+  ['stale 13-group saved-evidence count', s => s, d => d.replace('Der Prüfer verlangt 20 distinct', 'Der Prüfer verlangt 13 distinct')],
+  ['stale 13-group live-verification claim', s => s, d => d.replace('validates all 20 ACTIVE TTL fields', 'validates all 13 ACTIVE TTL fields')],
+  ['missing explicit new-matrix legal approval caveat', s => s, d => d.replace('**keine** DPO-/Legal-Freigabe der erweiterten Matrix', 'DPO-/Legal-Freigabe der erweiterten Matrix')],
   ['removed collection group', s => s.replace('archived_messages ', ''), d => d],
   ['duplicate collection group', s => s.replace('messages archived_messages', 'messages messages archived_messages'), d => d],
   ['missing legal approval condition', s => s.replace('[[ "${KLAR_RETENTION_LEGAL_APPROVED:-}" == true ]]', '[[ true == true ]]'), d => d],
