@@ -127,3 +127,9 @@ Review-submission verification previously returned zero reviews for #313/#269/#2
 The exact prior audit branch HEAD `f61c0cd9415120d3bb0015bfe32df3f393f75ed3` passed [GitHub Actions run 41545265920](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41545265920) (`completed/success`). Read-only recheck confirms Draft #269 run 41527555204, Draft #203 run 41536146230, Draft #251 run 41533779126, and Draft #253 run 41539994863 completed successfully on their previously recorded exact SHAs. PR #315 run 41531498018 remains `completed/failure`.
 
 **Release controls unchanged:** no independent approvals demonstrated, no real staging/production retention, scheduler, tenant-isolation, restore or alert evidence supplied. A passing CI does not permit merging a Draft or production deployment. Keep `productionApproved=false`, **BLOCKED / NO-GO**. This new docs commit will require its own CI; do not extrapolate the preceding run.
+
+## Exact-commit CI confirmation — 2026-11-03 (run 41546180071)
+
+Read-only GitHub Actions verification: audit PR #313 head `8b72def855e75928663d1eef3832aa840e94eab1` [run 41546180071](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41546180071) is `completed/success`. Unchanged exact-head results: #269 run 41527555204 PASS, #203 run 41536146230 PASS, #251 run 41533779126 PASS, #253 run 41539994863 PASS; #315 run 41531498018 FAIL. These are GitHub Actions outcomes, not independent production validation.
+
+Do not merge drafts or deploy: reviewer signoffs and enforceable code-owner protections, photo-retention and race safety in staging, tenant migration/BOLA/Art17 evidence, supply-chain pin correction, and live operational controls remain outstanding. New documentation HEAD needs fresh CI. `productionApproved=false`; **BLOCKED / NO-GO**.
