@@ -137,6 +137,8 @@ describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
       { generation: '42', retention: null },
       { generation: '42', retention: { retainUntilTime: 'invalid' } },
       { generation: '42', retention: { retainUntilTime: null } },
+      { generation: '42', retentionExpirationTime: null },
+      { generation: '42', retentionExpirationTime: undefined },
       { generation: '42', temporaryHold: 'false' },
       { generation: '42', eventBasedHold: null },
       { generation: '42', hold: 0 },
