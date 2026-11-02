@@ -64,3 +64,20 @@ Der Projektverantwortliche hat ausdrücklich erklärt: **`login-page-prototype` 
 5. Abschlussbelege mit Datum, Vercel-Projekt-ID und Gültigkeitsgrenze ergänzen, Audit-PR und Release-Risiko-Register aktualisieren. Das übergreifende Klar-Produktions-GO bleibt bis zur unabhängigen Freigabe gesperrt.
 
 **Kein Produktions-GO:** `productionApproved=false`, **BLOCKED / NO-GO**; GitHub `main` und das Klar-Vercel-Projekt wurden durch diese Stilllegungsfreigabe nicht geändert.
+
+## Abschlussnachweis – Demo tatsächlich gelöscht (02.11.2026)
+
+**Eigentümerbestätigung:** Der Nutzer hat die endgültige Vercel-Demo-Löschung bestätigt. Anschließend wurde diese Aussage read-only in der **korrekten Vercel-Team-ID** `team_EiPWvm6QxGGw5oOV39HiSjaw` technisch gegen die alte Projekt-ID geprüft:
+
+| Quelle/Operation | Rückgabe | Beweiskraft |
+|---|---|---|
+| Vercel `GET /v9/projects/prj_kfJ06pJHn3neZAkrtasYKezxuprF` | **HTTP 404, `not_found`, `Project not found`** | Frühere Demo-Projekt-ID existiert nicht mehr |
+| Vercel `GET /v7/deployments` gefiltert auf dieselbe Demo-ID | **HTTP 404, `not_found`, `Project not found`** | Keine über diese Projekt-ID zugänglichen Deployments |
+| Vercel `list_projects`, Team `ves3` | **1 Projekt**, ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`, Name `klar-dating`; **kein** `login-page-prototype` | Zweiter, unabhängiger API-Nachweis der Entfernung |
+| Vercel `get_project` für `klar-dating` | **200**, Name/ID erhalten, letztes Preview `READY` | Eigenständiges Klar-Projekt nicht gelöscht |
+
+**Abschlussentscheidung:** `deletionAuthorized=true`; `deletionConfirmed=true`; `oldVercelProjectPresent=false` auf Basis authentisierter Vercel-API-Abfragen. Die Löschung selbst wurde nach Nutzerbestätigung in der Vercel-Oberfläche vorgenommen, **nicht** durch den ChatGPT-Connector. Die frühere Dopplung der Vercel-Git-Projektzuordnung ist für das gelöschte Projekt damit beendet. Die ursprüngliche 19-Variablen-Projektkonfiguration ist nicht mehr über die gelöschte Projekt-ID erreichbar. Keine Secret-Werte entschlüsselt oder publiziert.
+
+**Wichtig:** Der erfolgreiche Projekt-Delete beweist **keine** Revocation/Rotation von Neon-/PostgreSQL-/Better-Auth-Provider-Credentials, keine Unversehrtheit historischer Logs und keine Abwesenheit von Datenkopien außerhalb des Vercel-Projekts. Der verantwortliche Provider-Owner prüft separat, ob alte Zugangsdaten aktiv und exklusiv der Demo zugeordnet waren, und widerruft sie kontrolliert, falls noch gültig; gemeinsam genutzte Credentials nur nach Impact-Analyse. Keine automatische Datenbanklöschung oder -rotation.
+
+**Vercel-Demo-Gate:** Projektstilllegung **abgeschlossen und API-verifiziert**. **Klar-Release-Gate:** weiterhin `productionApproved=false`, **BLOCKED / NO-GO** wegen offener Security-Reviews, P0 #202/#254, TTL-/Cloud-/DPO-/SRE-Nachweisen. Die vorherigen Abschnitte dokumentieren den *historischen Zustand vor dem Delete* und dürfen nicht als aktueller Projektstatus gelesen werden.

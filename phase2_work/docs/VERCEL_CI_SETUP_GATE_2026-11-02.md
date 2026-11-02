@@ -50,3 +50,7 @@ Vercel `login-page-prototype` verarbeitet ebenfalls Klar-Git-Commits und hält 1
 6. E2 CI, E3 Emulator/Staging, E4 Cloud-Laufzeit und E5 unabhängige Security-/DPO-/Legal-/SRE-/Release-Owner-Freigaben getrennt belegen.
 
 **Schreib-/Änderungsgrenze:** Dieses Dokument wird nur im bestehenden Audit-Draft-PR #313 erstellt. Keine Änderungen an Vercel CI Settings, anderen Vercel-Projekten, GitHub-Actions-Workflows, Tokens, produktiven Ressourcen oder `main`.
+
+## Nachtrag: verifizierte Stilllegung der früheren Demo-Anbindung (02.11.2026)
+
+Das in diesem Dokument historisch als `login-page-prototype` genannte zweite Vercel-Projekt wurde nach Eigentümerbestätigung **gelöscht und API-seitig als nicht mehr vorhanden verifiziert** (Projekt-ID: `prj_kfJ06pJHn3neZAkrtasYKezxuprF`; `get_project` und gefilterte Deployments jeweils 404; Team-List enthält nur `klar-dating`). Siehe [verifizierter Stilllegungsnachweis](VERCEL_LEGACY_PROTOTYPE_RISK_2026-11-02.md). Die oben beschriebenen Fehl-CI-Läufe und 19 Env-Variablen sind **historische Befunde**, nicht der aktuelle Bestand. Die noch offene technische Wahl über Turborepo/Vercel CI für Klar ist davon getrennt und begründet kein Release-GO.
