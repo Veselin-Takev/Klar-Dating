@@ -30,6 +30,10 @@ Eine bestehende Vercel-CI-Invocation wurde read-only geprüft: `invo1_fEf0cFNh5T
 - Das zugeordnete Vercel-Deployment `dpl_5yVGzekc81prVa3QJXxw3ZiPiFfu` für `login-page-prototype` meldet separat **`readyState=ERROR`, `errorCode=ENOENT`, `Command "bun run build" exited with 1`**. Ohne Build-Log-Detail keine sichere Ursachenbehauptung über diesen Fehler.
 - GitHub `validate` auf aktuellen PR-Commits und solche Vercel-native Checks sind **unterschiedliche** Prüfpfade. Grünes GitHub `validate` kompensiert weder diesen Vercel-CI-Fehler noch fehlende E3/E4/E5-Freigaben.
 
+## Nachtrag: zusätzlicher Demo-Projekt-Sicherheitsbefund
+
+Vercel `login-page-prototype` verarbeitet ebenfalls Klar-Git-Commits und hält 19 verschlüsselte, auch für Preview konfigurierte Auth-/Datenbankvariablen. Die zusätzliche Verknüpfung ist sicherheitsrelevant und **nicht** als nachgewiesene Offenlegung von Klar-Daten zu klassifizieren. Als reversible Sofortmaßnahme wurde `previewDeploymentsDisabled=true` und `gitForkProtection=true` für **nur dieses Demo-Projekt** gesetzt (Vercel-Update erfolgreich; Fork-Schutz read-after-write bestätigt). Siehe [detaillierte Risiko-/Bereinigungsanalyse](VERCEL_LEGACY_PROTOTYPE_RISK_2026-11-02.md). Keine Secrets gelesen oder rotiert, kein Demo-Projekt gelöscht, keine Produktionsfreigabe.
+
 ## Optionen und Sicherheitsentscheidung
 
 **Bevorzugt:** Für den aktuellen öffentlichen Vite/Express-/Firebase-Stack die bestehende GitHub Actions Enterprise-CI als autoritatives Gate beibehalten. Vercel nur für isolierte und geschützte Previews verwenden. Die bereits beobachteten `login-page-prototype`-Build-/CI-Fehlversuche getrennt durch den Vercel-Projektverantwortlichen untersuchen; dessen Root-Directory/Build- und CI-Job-Kommandos gegen die tatsächliche App-Struktur prüfen. Keine stillschweigende Änderung fremder Projektkonfiguration.
