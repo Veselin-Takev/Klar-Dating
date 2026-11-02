@@ -43,3 +43,24 @@ Draft [#269](https://github.com/Veselin-Takev/Klar-Dating/pull/269), Head `d6c1c
 ## Read-after-write-Verhalten nach Dokumentationscommit
 
 Ein nach der Schutzmaßnahme gepushter GitHub-Dokumentationscommit `7c70412af5aac14acd7555b3952fe70b44706311` erzeugte im regulären `klar-dating`-Projekt bereits ein Preview `dpl_2guciHa39icuRKdBjqnMbv3PPHFb` mit Status `READY`, `target=null`. Die unmittelbar folgende Vercel-List-Abfrage des Demo-Projekts zeigte **kein** Deployment für diese SHA; neuester Demo-Eintrag blieb `dpl_Dxseq9wb5unRB7ztystThT9iPB49`, SHA `4d9c8dfeb96a1674d667d64523cf91f67fa468a9`, `ERROR`. Das ist ein positives **punktuelles** Verhaltensindiz für wirksame Preview-Sperre nach `previewDeploymentsDisabled=true`, jedoch kein vollständiger Langzeit- oder Produktionsbranch-Test. Die Git-Verknüpfung und 19 vorhandenen Projekt-Env-Variablen bleiben ein offenes Bereinigungsthema.
+
+## Stilllegungsfreigabe durch den Eigentümer (02.11.2026, 23:06 MEZ)
+
+Der Projektverantwortliche hat ausdrücklich erklärt: **`login-page-prototype` wird nicht mehr benötigt und darf gelöscht werden** (Vercel-Ansicht `https://vercel.com/ves3/login-page-prototype/deployments`). Dieses Einverständnis gilt **nur für das Demo-Projekt**, nicht für `klar-dating`, die GitHub-Quelle, unabhängige Datenbank-/Neon-Accounts oder die produktiven Klar-Ressourcen.
+
+**Vor der finalen Löschung live über Vercel geprüft:**
+- Demo: Team `ves3`, ID `prj_kfJ06pJHn3neZAkrtasYKezxuprF`, `name=login-page-prototype`, `live=false`, neuestes erfasstes Deployment `ERROR`; 19 weiterhin konfigurierte, **nicht entschlüsselte** Environment-Variablen; Projekt-Domains `login-page-prototype-ves3.vercel.app` plus Git-Preview-Alias.
+- Klar: **getrennte** Projekt-ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`, Name `klar-dating`, unverändert, neuestes Deployment `READY`. **Nicht löschen oder unlinken**.
+- Der verbundene Vercel-Connector bietet **keine direkte Delete-Projekt-Aktion**: `get_project_deletion_link` bestätigte genau Demo-ID, Ownership und `status=requires_user_action`, `mutationExecuted=false`. Der Nutzer muss im Vercel-Dashboard den endgültigen **Delete Project**-Dialog bestätigen: [Vercel – Demo löschen](https://vercel.com/d?to=%2Fves3%2Flogin-page-prototype%2Fsettings%2Fgeneral%23delete-project&title=Review+in+Vercel).
+- Ein zusätzlicher, nicht destruktiver Versuch, die Demo bis zur Bestätigung zu pausieren, scheiterte mit HTTP `400 invalid_deployment` und **`Active production deployment does not exist`**. **Keine Pause bestätigt.** Die früher aktivierte Preview-Sperre und Fork-Protection werden dadurch nicht aufgehoben; eine erneute Aktivierung wurde nicht vorgenommen.
+
+**Ist-Status:** `deletionAuthorized=true`, **`deletionExecuted=false`**, `deletionConfirmed=false`. Keine falsche Behauptung der Entfernung. Die 19 Variablen bleiben bis zur tatsächlichen Löschung konfiguriert. Löschen des Vercel-Projekts führt **nicht automatisch** zur Rotation oder zum Widerruf existierender Datenbank- und Auth-Credentials beim externen Provider.
+
+**Nachweisbar abzuschließende Stilllegung:**
+1. Eigentümer bestätigt in Vercel **Delete Project** ausschließlich für `login-page-prototype`. Die Löschung entfernt Projekt, Deployments, Projektvariablen und die Projekt-Git-Verknüpfung; die externen Datenbank-/Auth-Anbieter sind separat zu betrachten.
+2. Danach read-only `get_project` und `list_projects` abfragen: Demo-ID muss nachweislich nicht mehr existieren; Klar-Projekt muss weiter bestehen. Erwartete 404/Not-found nicht mit technischen Netzwerkfehlern verwechseln.
+3. Bei den externen Neon-/Postgres-/Better-Auth-Zugängen Eigentümer, tatsächliche Nutzung und Abhängigkeit prüfen. Nicht mehr verwendete Credentials vom verantwortlichen Owner separat widerrufen; gemeinsam genutzte oder sensible Credentials nur nach Impact-Analyse kontrolliert rotieren. Nie Werte exportieren oder in Tickets schreiben.
+4. Entfernte Demo-Verknüpfung anhand eines späteren Klar-Branch-Commits kontrollieren, ohne **extra nur zu Testzwecken** neue Deployments oder Secrets zu erzeugen.
+5. Abschlussbelege mit Datum, Vercel-Projekt-ID und Gültigkeitsgrenze ergänzen, Audit-PR und Release-Risiko-Register aktualisieren. Das übergreifende Klar-Produktions-GO bleibt bis zur unabhängigen Freigabe gesperrt.
+
+**Kein Produktions-GO:** `productionApproved=false`, **BLOCKED / NO-GO**; GitHub `main` und das Klar-Vercel-Projekt wurden durch diese Stilllegungsfreigabe nicht geändert.
