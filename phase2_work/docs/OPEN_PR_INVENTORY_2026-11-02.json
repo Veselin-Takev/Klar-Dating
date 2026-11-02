@@ -1,25 +1,27 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-02",
-  "source": "GitHub REST API, GET /pulls?state=open&per_page=100&page=1,2",
+  "source": "GitHub REST API, GET /pulls?state=open&per_page=100&page=1,2; refreshed 2026-11-02",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
   "limitations": [
     "Metadata and branch dependencies only; changesets, tests and reviews not assessed individually",
     "Title-based area labels are heuristic, not a severity classification",
-    "No merge authorization; the draft state and exact-head review/test requirements remain controlling"
+    "A non-Draft PR is NOT reviewed or authorized for merge, and a failed check remains blocking",
+    "No merge authorization; the exact-head review/test requirements remain controlling"
   ],
   "counts": {
-    "open": 152,
+    "open": 153,
     "draft": 152,
-    "targetsMain": 41,
+    "nonDraft": 1,
+    "targetsMain": 42,
     "targetsOtherBranches": 111,
     "baseMatchesOpenPrHead": 108,
     "baseNotAmongOpenPrHeads": 3,
     "unresolvedLineageCount": 16,
     "maxOpenPrChainDepth": 35,
     "titleAreas": {
-      "other": 26,
+      "other": 27,
       "retention-202": 53,
       "governance-audit": 6,
       "partner-referral-56-48": 21,
@@ -1386,13 +1388,13 @@
       "draft": true,
       "base": "main",
       "head": "security/73-live-ruleset-release-gate-20261031",
-      "headSha": "254190921059b31086ae555973184fcb6a17b784",
+      "headSha": "89f0e744fa31d4f6dfb487acce8a9f4c2e4f8d8e",
       "mergeSha": null,
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "governance-audit",
       "createdAt": "2026-10-31T14:03:16Z",
-      "updatedAt": "2026-11-02T18:22:02Z"
+      "updatedAt": "2026-11-02T22:02:49Z"
     },
     {
       "number": 252,
@@ -1641,13 +1643,13 @@
       "draft": true,
       "base": "main",
       "head": "fix/p0-202-disable-legacy-photo-purge-20261101",
-      "headSha": "54ef22b87d40c90711e575d7e133b9311417f2f1",
+      "headSha": "895aaa3da2056d7799f887596b89c09207699925",
       "mergeSha": null,
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-01T07:11:32Z",
-      "updatedAt": "2026-11-02T18:22:35Z"
+      "updatedAt": "2026-11-02T21:22:21Z"
     },
     {
       "number": 270,
@@ -2301,13 +2303,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "a27e30ef83389bdeb2f2be6c2eeeee1f1ad1ca23",
+      "headSha": "bbfbc3052dfb6323a3b3ea78eb257acae8e8c6ff",
       "mergeSha": null,
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-02T18:24:13Z"
+      "updatedAt": "2026-11-02T21:52:21Z"
     },
     {
       "number": 314,
@@ -2322,7 +2324,22 @@
       "depthFromMain": 0,
       "titleArea": "governance-audit",
       "createdAt": "2026-11-02T19:58:46Z",
-      "updatedAt": "2026-11-02T20:19:03Z"
+      "updatedAt": "2026-11-02T20:21:26Z"
+    },
+    {
+      "number": 315,
+      "title": "build(deps): bump actions/attest from b60c2628ab941b449db82e38ba8d500980ce8a54 to 4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f in the github-actions group",
+      "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/315",
+      "draft": false,
+      "base": "main",
+      "head": "dependabot/github_actions/github-actions-51d4804faf",
+      "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
+      "mergeSha": null,
+      "dependencyPr": null,
+      "depthFromMain": 0,
+      "titleArea": "other",
+      "createdAt": "2026-11-02T21:47:02Z",
+      "updatedAt": "2026-11-02T21:47:16Z"
     }
   ]
 }
