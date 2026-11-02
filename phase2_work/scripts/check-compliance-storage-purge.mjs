@@ -20,6 +20,7 @@ const checks = [
   ['reject old unversioned delete', /NEVER_REMOVE_MATCH_THIS_PATTERN/],
   ['hold and expiry enforcement', /metadata\?\.temporaryHold === true/],
   ['GCS per-object retention gate', /Object\.hasOwn\(metadata, 'retention'\)/],
+  ['GCS explicit expiration metadata validation', /Object\.hasOwn\(metadata, 'retentionExpirationTime'\)/],
   ['GCS per-object retention deadline', /\.retainUntilTime/],
   ['GCS ambiguous hold metadata gate', /Object\.hasOwn\(metadata, flag\)/],
   ['authoritative malformed hold flags fail-closed', /!hasUnambiguousVerificationHoldFlags\(current\)/],
@@ -39,7 +40,7 @@ for (const [label, re] of checks) {
     if (/\.delete\(\{ ignoreNotFound:\s*true \}\)/.test(route)) throw new Error('Compliance storage purge boundary failed: unversioned GCS deletion');
     continue;
   }
-  const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : label === 'hold and expiry enforcement' || label.startsWith('GCS per-object retention') || label === 'GCS ambiguous hold metadata gate' ||
+  const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : label === 'hold and expiry enforcement' || label.startsWith('GCS per-object retention') || label === 'GCS explicit expiration metadata validation' || label === 'GCS ambiguous hold metadata gate' ||
     label === 'authoritative malformed hold flags fail-closed' ||
     label.startsWith('GCS canonical') ||
     label === 'GCS uint64 upper boundary' ? boundary : route;

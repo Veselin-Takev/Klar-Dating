@@ -101,7 +101,7 @@ export function verifiedDeletionGeneration(metadata: Record<string, unknown> | u
       metadata?.hold === true) {
     throw new Error('verification_photo_generation_or_hold_invalid');
   }
-  if (metadata?.retentionExpirationTime != null) {
+  if (metadata && Object.hasOwn(metadata, 'retentionExpirationTime')) {
     const end = epochMillis(metadata.retentionExpirationTime);
     if (end === null || end > now) throw new Error('verification_photo_retention_hold_active');
   }
