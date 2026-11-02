@@ -16,7 +16,7 @@ type Fixture = {
   fotoLoeschenAb: Date;
   status: string;
   entscheidung: string;
-  photoPurged?: unknown;
+  photoPurged: boolean;
   legalHold?: unknown;
 };
 
@@ -183,7 +183,7 @@ describe('P0 #202 signed photo purge HTTP acknowledgement', () => {
   ])('rejects malformed photoPurged %s across the entire due batch', async (label, marker) => {
     const result = await invokePurge({ rows: [
       candidate(),
-      { ...candidate(), storagePath: `verification/${uid}/bad-${label}.jpg`, photoPurged: marker },
+      { ...candidate(), storagePath: `verification/${uid}/bad-${label}.jpg`, photoPurged: marker } as unknown as Fixture,
     ] });
     expect(result.status).toBe(503);
     expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
