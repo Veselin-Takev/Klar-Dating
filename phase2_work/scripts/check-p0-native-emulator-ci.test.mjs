@@ -74,6 +74,15 @@ test('fails closed if the native 350-record audit omits noncanonical owner/path 
   assert.ok(nativeP0CIFailures(changed).includes('retention_native_census_over300_missing'));
 });
 
+test('rejects removal of native hold-type ambiguity count from 350-record census', () => {
+  const changed = clone();
+  const path = 'tests/verificationPurgeWorkFirestore.emulator.spec.ts';
+  const expected = 'invalidHoldIndicators: 4';
+  assert.ok(changed.suites[path].includes(expected));
+  changed.suites[path] = changed.suites[path].replace(expected, 'invalidHoldIndicators: 0');
+  assert.ok(nativeP0CIFailures(changed).includes('retention_native_census_over300_missing'));
+});
+
 test('fails closed if real census does not verify complete 350-record inventory', () => {
   const changed = clone();
   const path = 'tests/verificationPurgeWorkFirestore.emulator.spec.ts';

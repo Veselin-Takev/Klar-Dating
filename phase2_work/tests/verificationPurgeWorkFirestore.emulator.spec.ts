@@ -206,6 +206,10 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
         entscheidung: pending ? 'ausstehend' : 'bestaetigt',
         photoPurged: false,
         legalHold: i % 35 === 0,
+        ...(i === 11 ? { hold: 'false' }
+          : i === 21 ? { hold: 1 }
+          : i === 31 ? { hold: null }
+          : i === 41 ? { retentionHold: { source: 'unknown' } } : {}),
       });
     }
     await setup.commit();
@@ -231,7 +235,8 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
       expect(full).toMatchObject({
         scanned: 350, pagesScanned: 4, complete: true, truncated: false,
         dueByMarker: 310, futureByMarker: 40, pendingOrUnknownDecision: 40,
-        knownLegalHolds: 10, duplicatedObjectPaths: 1, invalidOwnerOrPath: 4,
+        knownLegalHolds: 10, invalidHoldIndicators: 4,
+        duplicatedObjectPaths: 1, invalidOwnerOrPath: 4,
         readOnly: true, consistency: 'non_atomic_paginated_read',
       });
       expect(JSON.stringify(full)).not.toContain('synthetic-emulator-owner');
