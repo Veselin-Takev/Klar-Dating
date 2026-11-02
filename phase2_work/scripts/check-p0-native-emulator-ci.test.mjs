@@ -55,6 +55,25 @@ for (const path of paths) {
     assert.ok(nativeP0CIFailures(changed).some(x => x.endsWith('_vitest_excluded')));
   });
 }
+test('fails closed if real >300-record native retention census is removed', () => {
+  const changed = clone();
+  const path = 'tests/verificationPurgeWorkFirestore.emulator.spec.ts';
+  const source = changed.suites[path];
+  const marker = 'read-only census handles 350 real emulator records';
+  assert.ok(source.includes(marker), 'required live-emulator test title must be present');
+  changed.suites[path] = source.replace(marker, 'removed native census test');
+  assert.ok(nativeP0CIFailures(changed).includes('retention_native_census_over300_missing'));
+});
+
+test('fails closed if real census does not verify complete 350-record inventory', () => {
+  const changed = clone();
+  const path = 'tests/verificationPurgeWorkFirestore.emulator.spec.ts';
+  const original = 'scanned: 350';
+  assert.ok(changed.suites[path].includes(original));
+  changed.suites[path] = changed.suites[path].replace(original, 'scanned: 0');
+  assert.ok(nativeP0CIFailures(changed).includes('retention_native_census_over300_missing'));
+});
+
 for (const [name, change] of [
   ['Firebase Storage emulator omitted', m => { m.scripts['test:ci'] =
     m.scripts['test:ci'].replace('--only auth,firestore,storage', '--only auth,firestore'); }],
