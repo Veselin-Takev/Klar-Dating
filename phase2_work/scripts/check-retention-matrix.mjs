@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const script = readFileSync(resolve(project, 'scripts/configure-retention.sh'), 'utf8');
 const docs = readFileSync(resolve(project, 'docs/DATA_RETENTION.md'), 'utf8');
+const runbook = readFileSync(resolve(project, 'docs/PRODUCTION_RUNBOOK.md'), 'utf8');
 const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
 const groups = match[1].trim().split(/\s+/);
@@ -40,6 +41,15 @@ const evidenceClaims = [
 for (const [description, pattern] of evidenceClaims) {
   assert(pattern.test(docs), 'TTL documentation evidence count or approval drift: ' + description);
 }
+const activeRunbookClaims = [
+  ['live acceptance 20-group count', /verify all 20 planned `expiresAt` TTL collection-group policies ACTIVE after independent approval/],
+  ['read-only verifier 20-group count', /validates that all \*\*20\*\* planned `expiresAt` TTL policies are ACTIVE before exporting any file/],
+  ['runbook explicit no legal-go claim', /this technical validation is not a DPO\/Legal approval or Production GO/],
+];
+for (const [description, pattern] of activeRunbookClaims) {
+  assert(pattern.test(runbook), 'TTL runbook evidence-count or approval drift: ' + description);
+}
+
 for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_STAGING_PROJECT_ID',
   'KLAR_PRODUCTION_PROJECT_ID', 'KLAR_CONFIRM_RETENTION', 'KLAR_DATABASE_ID',
   'KLAR_RETENTION_LEGAL_APPROVED', 'KLAR_RETENTION_INVENTORY_APPROVED', 'KLAR_RETENTION_MATRIX_REVISION_APPROVED',
