@@ -482,3 +482,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Independently certify P0 #202 actual decision-based GCS generation/404/412/holds/crash receipts, durable >300 queue and IAM/Scheduler; P0 #254 true Tenant Admin SDK/Rules/Art17 and Product/DPO/Legal signed media ADR; SRE 30-day P95 and real Security/DPO/Legal/SRE/ReleaseOwner signoffs on final release SHA.
 
 `productionApproved=false` — **Production BLOCKED / NO-GO**.
+
+
+### 2026-11-02 — #300 exact-head CI verified; #301 dual-project census guard pending
+
+- [x] [Draft #300](https://github.com/Veselin-Takev/Klar-Dating/pull/300) immutable SHA `8037801d8abd51ed6bcc152ad230106f8cefba73` full [CI #41413739405](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41413739405) SUCCESS, 1,507 Vitest/201 files, 24 pure state, **16 native retention Firestore** tests including six stale-marker negatives, real missing-Emulator negative, Smoke, 26 browsers PASS. Previously pending observation superseded for this SHA.
+- [x] Prior Governance #270 head `4c13d62593f17188a4271af975cab424039c1e2d` full [CI #41413945305](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41413945305) SUCCESS; later governance SHA requires independent run.
+- [x] [Draft #301](https://github.com/Veselin-Takev/Klar-Dating/pull/301) exact `4df133e2c0cf03e01dd2d726979adeee8f4615ed` adds fail-closed dual-project demo-klar verification to local read-only Retention census and four new negative cases, without changing storage/Firestore write privileges or Cloud.
+- [ ] Require full [CI #41415425785](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415425785) exact-head SUCCESS including `check:retention-census-safety` and 4 new negative cases, 5 native Storage + 6 Tenant Firestore + 16 Retention Firestore, real no-Emulator negative, ReleaseOwner/six P0 GO receipts, Didit, P95, Typecheck, Builds, Smoke and 26 browsers. **IN PROGRESS** at capture.
+- [ ] Independently prove P0 #202 live GCS legal hold/decision/404/412/crash receipts and durable >300 authorized queue, Scheduler/IAM, P0 #254 real tenant/Art17/Admin SDK and Product/DPO/Legal guest-media ADR, SRE 30-day P95 and real Security/DPO/Legal/SRE/ReleaseOwner signoffs.
+
+**P0 #202/#254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
