@@ -68,6 +68,25 @@ describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
       .toThrow('verification_purge_candidate_unavailable');
   });
 
+  it('rejects present undefined hold flags and malformed photoPurged markers before deletion', () => {
+    for (const field of ['legalHold', 'retentionHold', 'hold'] as const) {
+      const malformed = { ...current, [field]: undefined };
+      expect(hasUnambiguousVerificationHoldFlags(malformed)).toBe(false);
+      expect(() => assertCurrentVerificationPurgeCandidate(malformed, artifact, now))
+        .toThrow('verification_purge_candidate_unavailable');
+    }
+    for (const value of [undefined, null, 'false', 0, {}, []] as const) {
+      expect(() => assertCurrentVerificationPurgeCandidate({
+        ...current, photoPurged: value,
+      }, artifact, now)).toThrow('verification_purge_candidate_unavailable');
+    }
+    expect(() => assertCurrentVerificationPurgeCandidate({
+      ...current, photoPurged: false, legalHold: false, retentionHold: false, hold: false,
+    }, artifact, now)).not.toThrow();
+    const { photoPurged: _omitted, ...legacyWithoutPurgeFlag } = current;
+    expect(() => assertCurrentVerificationPurgeCandidate(legacyWithoutPurgeFlag, artifact, now)).not.toThrow();
+  });
+
   it('preserves explicitly false hold flags and separately blocks confirmed true holds', () => {
     const unheld = { ...current, legalHold: false, retentionHold: false, hold: false };
     expect(hasUnambiguousVerificationHoldFlags(unheld)).toBe(true);
