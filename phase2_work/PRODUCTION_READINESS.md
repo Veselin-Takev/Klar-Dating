@@ -310,3 +310,12 @@ Initial #299 SHA `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](ht
 ### 2026-11-01 — #299 exact-head Typecheck correction, new CI required
 
 [CI #41360551340](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360551340) for #299 SHA `8f845a91c30255996444293bd4a754dfca6c8d52` **FAILED Typecheck** (six TS18048 optional receipt fields) after previously failing source mutations were fixed. #299 now uses a runtime-checking **TypeScript type predicate** and a stronger persisted-intent CAS fence, new SHA `453e40cf0037e9bd0a5484fa56e24d98a47918ce`; [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) **PENDING**. Neither failed run is Production GO evidence. The GCS queue remains inert; P0 #202/#254, real legal and Cloud receipts, multi-tenant isolation, and independent release signatures BLOCKED; `productionApproved=false`.
+
+
+### 2026-11-02 — Verified #299 receipt CI; #300 stale terminal markers under review
+
+[PR #299](https://github.com/Veselin-Takev/Klar-Dating/pull/299) exact head `453e40cf0037e9bd0a5484fa56e24d98a47918ce` full [CI #41360832251](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360832251) **SUCCESS**: 1,499 Vitest, 22 pure state, 10 native Retention Firestore, production smoke and 26 browser tests. Earlier two failed SHA-specific attempts remain failures. Audit PR #270 former SHA `67497670a9fae73adb2440c329ecf5ece26a3353` full [CI #41360973285](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41360973285) SUCCESS.
+
+New stacked [Draft #300](https://github.com/Veselin-Takev/Klar-Dating/pull/300) SHA `8037801d8abd51ed6bcc152ad230106f8cefba73` blocks new pre-delete claims/intent when an otherwise `ready`/`leased` row has persisted stale intent/observation, completion digest/time or quarantine marker. Valid retry after `release_undeleted` with retained lease epoch is unchanged. New pure and six native Firestore tests plus required mutation guard; CI on **this exact head remains unverified** at record time. This is an inert source guard, not a deployed retention service.
+
+P0 #202 and P0 #254 Cloud/Legal/Art17/Media/GCS durable >300 and independent signoffs remain **BLOCKED**; `productionApproved=false`, **Production NO-GO**, no production changes.
