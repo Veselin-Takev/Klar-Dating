@@ -10,7 +10,9 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   if (!legacyCron.includes("legacy_verification_photo_purge_disabled")) {
     problems.push('legacy scheduled worker does not declare disabled photo purge');
   }
-  if (/deleteExpiredPhotoPage|getMaintenanceBucket|\.getFiles\s*\(|collection\s*\(\s*['"`]verification_events['"`]\s*\)/.test(legacyCron)) {
+  // Guard against direct Storage SDK access as well as the retired wrapper.
+  // This is a repository source regression check, not a proof of live cloud state.
+  if (/\b(?:deleteExpiredPhotoPage|getMaintenanceBucket|getStorage)\b|\.getFiles\s*\(|\.getMetadata\s*\(|\.file\s*\(|\bfrom\s*['"`][^'"`]*(?:storage|retention)[^'"`]*['"`]|collection\s*\(\s*['"`]verification_events['"`]\s*\)/.test(legacyCron)) {
     problems.push('legacy scheduled worker can reach photo-list or photo-purge logic');
   }
   if (!legacyCron.includes("collection('funnel_events')")) {
