@@ -3,8 +3,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { deleteApp, initializeApp, type App } from 'firebase-admin/app';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { FieldPath, getFirestore, type Firestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { createPurgeWork } from '../src/server/platform/verificationPurgeWorkState';
+import { censusVerificationRetentionBacklog } from '../src/server/platform/verificationBacklogCensus';
 import {
   executePurgeWorkCommand, type PurgeWorkCommand,
 } from '../src/server/platform/verificationPurgeWorkFirestore';
@@ -182,5 +183,65 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
       expect((await ref.get()).data()).not.toHaveProperty('intent');
     } finally { await ref.delete(); }
   }, 20_000);
+
+
+  it('read-only census handles 350 real emulator records with complete versus truncated pagination', async () => {
+    // Synthetic, isolated emulator data only. The production purge worker is
+    // intentionally inert; this proves inventory pagination, NOT 350 deletes.
+    const collection = db.collection('verification_census_probe_' + randomUUID().replaceAll('-', ''));
+    const documents = Array.from({ length: 350 }, (_, i) =>
+      collection.doc('event-' + String(i).padStart(3, '0')));
+    const setup = db.batch();
+    for (const [i, doc] of documents.entries()) {
+      const pending = i >= 310;
+      setup.set(doc, {
+        uid: 'synthetic-emulator-owner',
+        storagePath: 'verification/synthetic-emulator-owner/photo-' + (i === 301 ? 0 : i) + '.jpg',
+        fotoLoeschenAb: new Date(t0 + (pending ? 86_400_000 : -86_400_000)),
+        status: pending ? 'pending' : 'approved',
+        entscheidung: pending ? 'ausstehend' : 'bestaetigt',
+        photoPurged: false,
+        legalHold: i % 35 === 0,
+      });
+    }
+    await setup.commit();
+    try {
+      const source = collection.orderBy(FieldPath.documentId());
+      const readPage = async (cursor: QueryDocumentSnapshot | undefined, limit: number) => {
+        const page = await (cursor ? source.startAfter(cursor) : source).limit(limit).get();
+        return {
+          rows: page.docs.map(doc => ({ id: doc.id, data: doc.data() })),
+          lastCursor: page.docs.at(-1),
+        };
+      };
+      const partial = await censusVerificationRetentionBacklog(readPage, {
+        now: t0, pageSize: 100, maxPages: 3,
+      });
+      expect(partial).toMatchObject({
+        scanned: 300, pagesScanned: 3, complete: false, truncated: true,
+        consistency: 'non_atomic_paginated_read', readOnly: true,
+      });
+      const full = await censusVerificationRetentionBacklog(readPage, {
+        now: t0, pageSize: 100, maxPages: 4,
+      });
+      expect(full).toMatchObject({
+        scanned: 350, pagesScanned: 4, complete: true, truncated: false,
+        dueByMarker: 310, futureByMarker: 40, pendingOrUnknownDecision: 40,
+        knownLegalHolds: 10, duplicatedObjectPaths: 1, invalidOwnerOrPath: 0,
+        readOnly: true, consistency: 'non_atomic_paginated_read',
+      });
+      expect(JSON.stringify(full)).not.toContain('synthetic-emulator-owner');
+      expect(JSON.stringify(full)).not.toContain('verification/');
+      expect(full).not.toHaveProperty('rows');
+      expect(full).not.toHaveProperty('lastCursor');
+      // The census itself cannot mutate Firestore. All 350 fixture documents
+      // must still exist before cleanup, including held and pending records.
+      expect((await collection.get()).size).toBe(350);
+    } finally {
+      const cleanup = db.batch();
+      for (const doc of documents) cleanup.delete(doc);
+      await cleanup.commit();
+    }
+  }, 90_000);
 
 });
