@@ -11,6 +11,14 @@ export function purgeWorkIsolationViolations(source) {
       !states.includes("physicalDeleteAuthorized: false")) {
     failures.push('write-ahead intent or no-auto-retry recovery gate removed');
   }
+  // Never resurrect a corrupted ready/leased row containing earlier GCS
+  // deletion, receipt, or legal-hold evidence as a fresh purge attempt.
+  if (!states.includes("state.status === 'ready' || state.status === 'leased'") ||
+      !states.includes('state.intent !== undefined || state.observed !== undefined') ||
+      !states.includes('state.completedAt !== undefined || state.receiptDigest !== undefined') ||
+      !states.includes('state.quarantineReason !== undefined')) {
+    failures.push('corrupt ready/leased state must not be reclaimed with stale delete or receipt markers');
+  }
   // Guard the canonical GCS uint64 fence in both the pure transitions and
   // the command snapshot / Firestore CAS adapter. Long numeric strings must
   // never reach durable intent state or later be interpreted as generations.
