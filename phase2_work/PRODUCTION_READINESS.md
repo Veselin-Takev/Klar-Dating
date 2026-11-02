@@ -341,8 +341,17 @@ P0 #202 real generation-fenced GCS legal-hold/decision/404/412/receipt/operation
 
 ### 2026-11-02 — #302 350-row native census CI SUCCESS; #303 canonical owner-path audit pending
 
-[Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302), exact `0bc8a2d2184a8191e0469b2702569e9cb4735435c0d`, full [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) **SUCCESS**: actual 350 synthetic Firestore Emulator records, 300 truncated/350 complete read-only census, 1,508 Vitest in 201 files, real missing-Emulator negative, Smoke, 26 Browser. Prior Governance SHA `31333edf56e0ffcd1ff7d53835f4d00884535c15` full [CI #41417809448](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417809448) SUCCESS.
+[Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302), exact `0bc8a2d2184a8191e0469b462efaa2ed0cdf2179`, full [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) **SUCCESS**: actual 350 synthetic Firestore Emulator records, 300 truncated/350 complete read-only census, 1,508 Vitest in 201 files, real missing-Emulator negative, Smoke, 26 Browser. Prior Governance SHA `31333edf56e0ffcd1ff7d53835f4d00884535c15` full [CI #41417809448](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417809448) SUCCESS.
 
 New stacked [Draft #303](https://github.com/Veselin-Takev/Klar-Dating/pull/303) initial `0f751cdce8cf481a69b2702569e9cb4735435c0d` is **read-only owner/path inventory integrity**, rejecting dot/empty/backslash/control suffixes and ambiguous owners instead of accepting any matching prefix. Pure negative/positive tests and four invalid examples in the native 350-case fixture are now mandatory, with mutation guard; six changed paths. New [CI #41419406501](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419406501) **IN PROGRESS**, not yet PASS. Active complianceStorage route not modified; pending independent review.
 
 P0 #202 real GCS lawful deletion/holds/404/412/crash/>300 queue and IAM/Scheduler, P0 #254 Tenant/Art17/Admin SDK/Rules and signed Media ADR, operational SLO, independent human GO remain BLOCKED; `productionApproved=false`; NO-GO.
+
+
+### 2026-11-02 — #303 owner-path anomaly CI SUCCESS; #304 malformed Legal-Hold indicators under test
+
+[Draft #303](https://github.com/Veselin-Takev/Klar-Dating/pull/303), exact `0f751cdce8cf481a69b2702569e9cb4735435c0d`, full [CI #41419406501](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419406501) **SUCCESS**. Previous Governance head `b17df1fdeaf08004a6439a5bb63fd026689837d7` [CI #41419685277](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419685277) **SUCCESS**; any newer doc commit requires its own CI.
+
+New [Draft #304](https://github.com/Veselin-Takev/Klar-Dating/pull/304) exact initial SHA `cb32f49d9c4ffb66af7559ac7b78cfc2b70524cf` adds read-only `invalidHoldIndicators` to surface malformed present Legal-Hold flags (string/number/null/Map). Native 350-record Emulator census must report 10 known holds **and** 4 malformed indicators, without changing due/pending/owner path counts or any document. A mandatory source gate and mutation test now protect this detection. Six scoped files, no GCS/IAM/Rules/production changes; [CI #41421019259](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41421019259) **IN PROGRESS**. Absent hold metadata is not legal clearance.
+
+P0 #202 still lacks actual lawful decision/hold checks at GCS delete time, generation-fenced 404/412/crash receipts, durable >300 work and Cloud Scheduler/IAM review; #254 needs live tenant/Art17/Admin SDK BOLA/Rules, legal media decision, and independent release signoffs. `productionApproved=false`, **Production BLOCKED/NO-GO**.
