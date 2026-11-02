@@ -337,3 +337,12 @@ Real biometric GCS 404/412/legal hold/decision/crash receipts, durable >300 queu
 New [Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302) exact `0bc8a2d2184a8191e0469b462efaa2ed0cdf2179` integrates a **real 350-document Firestore Emulator** read-only census into the mandatory P0 native suite: three 100-row pages must report truncated 300, four pages must fully count 350, including pending, legal holds and duplicate paths, with no identifiers leaked and all 350 rows still present. Two negative mutation tests ensure the native proof remains mandatory. Four-file change; [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) QUEUED at snapshot. **Not** durable 350-job deletion throughput or approved physical GCS purge.
 
 P0 #202 real generation-fenced GCS legal-hold/decision/404/412/receipt/operational queue and Scheduler/IAM and P0 #254 Tenant/Admin SDK/Art17/Rules/Media policy and all human GO remain **BLOCKED**; `productionApproved=false` and no merge/deployment.
+
+
+### 2026-11-02 — #302 350-row native census CI SUCCESS; #303 canonical owner-path audit pending
+
+[Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302), exact `0bc8a2d2184a8191e0469b2702569e9cb4735435c0d`, full [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) **SUCCESS**: actual 350 synthetic Firestore Emulator records, 300 truncated/350 complete read-only census, 1,508 Vitest in 201 files, real missing-Emulator negative, Smoke, 26 Browser. Prior Governance SHA `31333edf56e0ffcd1ff7d53835f4d00884535c15` full [CI #41417809448](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417809448) SUCCESS.
+
+New stacked [Draft #303](https://github.com/Veselin-Takev/Klar-Dating/pull/303) initial `0f751cdce8cf481a69b2702569e9cb4735435c0d` is **read-only owner/path inventory integrity**, rejecting dot/empty/backslash/control suffixes and ambiguous owners instead of accepting any matching prefix. Pure negative/positive tests and four invalid examples in the native 350-case fixture are now mandatory, with mutation guard; six changed paths. New [CI #41419406501](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419406501) **IN PROGRESS**, not yet PASS. Active complianceStorage route not modified; pending independent review.
+
+P0 #202 real GCS lawful deletion/holds/404/412/crash/>300 queue and IAM/Scheduler, P0 #254 Tenant/Art17/Admin SDK/Rules and signed Media ADR, operational SLO, independent human GO remain BLOCKED; `productionApproved=false`; NO-GO.
