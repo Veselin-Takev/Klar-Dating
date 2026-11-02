@@ -47,6 +47,15 @@ describe('Tenant zero-trust identity and routing', () => {
       await denied(authorizeTenant({ ...baseInput(), hostname }, dependency()), 403);
     }
   });
+  it('normalizes a single DNS root dot without losing the signed tenant routing check', async () => {
+    await expect(authorizeTenant({ ...baseInput(), hostname: 'tenant-one.klar.example.' }, dependency()))
+      .resolves.toMatchObject({ tenantId });
+    await expect(authorizeTenant({ ...baseInput(), hostname: 'tenant-one.klar.example.', trustedBaseDomain: 'klar.example.' }, dependency()))
+      .resolves.toMatchObject({ tenantId });
+    for (const hostname of ['tenant-two.klar.example.', 'tenant-one.evil.klar.example.', 'tenant-one.klar.example..']) {
+      await denied(authorizeTenant({ ...baseInput(), hostname }, dependency()), 403);
+    }
+  });
   it('denies absent, malformed or failed Firebase verification before DB lookup', async () => {
     const lookup = vi.fn(async () => ({ tenant: { tenantId, status: 'active' }, membership: { tenantId, uid, status: 'active', roles: ['user'] } }));
     for (const authorization of [undefined, 'Basic abc', 'Bearer anything with spaces']) {
