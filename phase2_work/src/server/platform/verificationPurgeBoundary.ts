@@ -74,12 +74,22 @@ export function assertCurrentVerificationPurgeCandidate(
   }
 }
 
+/**
+ * Production GCS generation precondition must be a canonical positive uint64
+ * decimal value, never an unbounded number or an imprecise JS conversion.
+ * This is an independent live-path fence: the inert queue is not imported.
+ */
+export function isCanonicalDeletionGeneration(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^[1-9][0-9]{0,19}$/.test(value)) return false;
+  return value.length < 20 || value <= '18446744073709551615';
+}
+
 /** GCS object-version fence: never delete a different generation or held object. */
 export function verifiedDeletionGeneration(metadata: Record<string, unknown> | undefined, now: number): string {
   const generation = metadata?.generation;
   const value = typeof generation === 'string' ? generation :
     typeof generation === 'number' && Number.isSafeInteger(generation) ? String(generation) : '';
-  if (!/^[1-9][0-9]*$/.test(value) ||
+  if (!isCanonicalDeletionGeneration(value) ||
       metadata?.temporaryHold === true || metadata?.eventBasedHold === true ||
       metadata?.hold === true) {
     throw new Error('verification_photo_generation_or_hold_invalid');
