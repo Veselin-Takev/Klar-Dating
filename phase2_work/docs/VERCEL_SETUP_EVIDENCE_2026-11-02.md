@@ -32,4 +32,8 @@ Das Deployment meldet `iad1`. Vor Einsatz echter personenbezogener Daten sind Ve
 4. **QA/SRE:** Geschützten Preview-Build, API-/Auth-/Webhook-Negativtests, Browser-Smoke, Observability und Rollback-Übung auf exakter SHA belegen. `READY` allein genügt nicht.
 5. **Release Owner + unabhängige Security/DPO/Legal/SRE:** Formale Freigabe auf dem integrierten Release-SHA mit nachgewiesenen P0/P1-Exit-Kriterien. Bis dahin `productionApproved=false`, **NO-GO**.
 
-**Änderungsgrenze dieser Dokumentation:** Keine neue Vercel-Deployment-Erstellung, keine Promotion, keine Domain-, IAM-, Cloud-Run-, Firebase- oder Secret-Mutation. Der bereits existierende Vercel-Production-Build wurde nur ausgelesen. Einzig die projektseitige Git-Fork-Schutz-Einstellung wurde im Rahmen der Einrichtung auf `true` gesetzt. Diese Dokumentation wird als Draft-PR zur unabhängigen Prüfung vorgeschlagen; sie ersetzt nicht das laufende Audit-/Evidenzregister.
+**Änderungsgrenze dieser Dokumentation:** Keine manuelle Vercel-Deployment-Erstellung oder Promotion, keine Domain-, IAM-, Cloud-Run-, Firebase- oder Secret-Mutation. Der bereits existierende Vercel-Production-Build wurde nur ausgelesen. Einzig die projektseitige Git-Fork-Schutz-Einstellung wurde im Rahmen der Einrichtung auf `true` gesetzt. Diese Dokumentation wird als Draft-PR zur unabhängigen Prüfung vorgeschlagen; sie ersetzt nicht das laufende Audit-/Evidenzregister.
+
+## Nachtrag: automatisch erzeugtes Preview
+
+Der Dokumentationscommit `acb78f9fc07cbfe0ed0af4eaaa4d869589ffc972` hat über die bestehende Git-Integration automatisch ein Preview erzeugt: Deployment `dpl_97f6hvGoBRjRUr1iN8ThF95gKD3W`, `READY`, `target=null`, URL `https://klar-dating-mjpw66w8w-ves3.vercel.app`. Es wurde keine manuelle Deployment-Aktion oder Promotion ausgeführt. Weitere Änderungen an diesem Branch können zusätzliche Preview-Builds auslösen; ein erfolgreicher Build ist kein End-to-End-Test und keine Produktionsfreigabe.
