@@ -65,9 +65,14 @@ function routingHint(value: unknown): string | null {
 }
 function subdomainHint(hostname: string, baseDomain: string | undefined): string | null {
   if (baseDomain === undefined) return null;
-  if (!/^[a-z0-9.-]+$/.test(baseDomain) || baseDomain.includes('..')) throw new TenantAccessDenied(403);
-  const host = hostname.toLowerCase();
-  const suffix = '.' + baseDomain.toLowerCase();
+  // A DNS FQDN may end in one root dot. Normalize this before comparing the
+  // routing hint so a mismatched tenant cannot bypass the check with a dot.
+  // Multiple trailing dots are not a valid root-dot form and fail closed.
+  if (hostname.endsWith('..') || baseDomain.endsWith('..')) throw new TenantAccessDenied(403);
+  const normalizedBase = baseDomain.toLowerCase().replace(/\.$/, '');
+  if (!/^[a-z0-9.-]+$/.test(normalizedBase) || normalizedBase.includes('..')) throw new TenantAccessDenied(403);
+  const host = hostname.toLowerCase().replace(/\.$/, '');
+  const suffix = '.' + normalizedBase;
   if (!host.endsWith(suffix)) return null;
   const prefix = host.slice(0, -suffix.length);
   return routingHint(prefix);
