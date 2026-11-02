@@ -319,3 +319,12 @@ Initial #299 SHA `277d9e4150a01799f49358e9193c291199f02638` [CI #41360321213](ht
 New stacked [Draft #300](https://github.com/Veselin-Takev/Klar-Dating/pull/300) SHA `8037801d8abd51ed6bcc152ad230106f8cefba73` blocks new pre-delete claims/intent when an otherwise `ready`/`leased` row has persisted stale intent/observation, completion digest/time or quarantine marker. Valid retry after `release_undeleted` with retained lease epoch is unchanged. New pure and six native Firestore tests plus required mutation guard; CI on **this exact head remains unverified** at record time. This is an inert source guard, not a deployed retention service.
 
 P0 #202 and P0 #254 Cloud/Legal/Art17/Media/GCS durable >300 and independent signoffs remain **BLOCKED**; `productionApproved=false`, **Production NO-GO**, no production changes.
+
+
+### 2026-11-02 — Full CI PASS on #300; fail-closed local inventory project hints in #301
+
+[Draft #300](https://github.com/Veselin-Takev/Klar-Dating/pull/300), exact SHA `8037801d8abd51ed6bcc152ad230106f8cefba73`, full [CI #41413739405](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41413739405) **SUCCESS**: 201 Vitest files/1,507 tests, 24 pure Retention state, 16 native Retention Firestore emulator cases, missing-Emulator CI negative, Production Smoke and 26 browser PASS. Prior Governance head `4c13d62593f17188a4271af975cab424039c1e2d` [CI #41413945305](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41413945305) **SUCCESS**. Both PASS reports are SHA-specific.
+
+New isolated stacked [Draft #301](https://github.com/Veselin-Takev/Klar-Dating/pull/301), head `4df133e2c0cf03e01dd2d726979adeee8f4615ed`, hardens the **read-only demo-klar Firestore Emulator retention census** against contradictory `GCLOUD_PROJECT`/`GOOGLE_CLOUD_PROJECT` values previously masked by `||`; both now must be exact `demo-klar` before SDK load, with four mandatory Node negative tests. Loopback-only and no-writes remain. [CI #41415425785](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415425785) **IN PROGRESS** at capture, no new-head PASS. No real Cloud or customer-data claims.
+
+Real biometric GCS 404/412/legal hold/decision/crash receipts, durable >300 queue, Scheduler/IAM and P0 #254 Tenant/Admin SDK/Rules/Art17/Media ADR and independent signed GO still **BLOCKED**. `productionApproved=false`, Production NO-GO; no merges or deployment.
