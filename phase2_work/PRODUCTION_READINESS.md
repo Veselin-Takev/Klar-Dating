@@ -328,3 +328,12 @@ P0 #202 and P0 #254 Cloud/Legal/Art17/Media/GCS durable >300 and independent sig
 New isolated stacked [Draft #301](https://github.com/Veselin-Takev/Klar-Dating/pull/301), head `4df133e2c0cf03e01dd2d726979adeee8f4615ed`, hardens the **read-only demo-klar Firestore Emulator retention census** against contradictory `GCLOUD_PROJECT`/`GOOGLE_CLOUD_PROJECT` values previously masked by `||`; both now must be exact `demo-klar` before SDK load, with four mandatory Node negative tests. Loopback-only and no-writes remain. [CI #41415425785](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415425785) **IN PROGRESS** at capture, no new-head PASS. No real Cloud or customer-data claims.
 
 Real biometric GCS 404/412/legal hold/decision/crash receipts, durable >300 queue, Scheduler/IAM and P0 #254 Tenant/Admin SDK/Rules/Art17/Media ADR and independent signed GO still **BLOCKED**. `productionApproved=false`, Production NO-GO; no merges or deployment.
+
+
+### 2026-11-02 — #301 exact CI PASS; #302 350-record native Firestore read-only census pending
+
+[Draft #301](https://github.com/Veselin-Takev/Klar-Dating/pull/301) SHA `4df133e2c0cf03e01dd2d726979adeee8f4615ed` finished [CI #41415425785](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415425785) SUCCESS, including all four new project-identity negatives, 1,507 Vitest, native security Emulator tests and 26 browser PASS. Previous Governance SHA `00b782cd67c7df7c63ea09087bf954a322914e95` independently [CI #41415629886](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415629886) SUCCESS; outcomes are strictly per SHA.
+
+New [Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302) exact `0bc8a2d2184a8191e0469b462efaa2ed0cdf2179` integrates a **real 350-document Firestore Emulator** read-only census into the mandatory P0 native suite: three 100-row pages must report truncated 300, four pages must fully count 350, including pending, legal holds and duplicate paths, with no identifiers leaked and all 350 rows still present. Two negative mutation tests ensure the native proof remains mandatory. Four-file change; [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) QUEUED at snapshot. **Not** durable 350-job deletion throughput or approved physical GCS purge.
+
+P0 #202 real generation-fenced GCS legal-hold/decision/404/412/receipt/operational queue and Scheduler/IAM and P0 #254 Tenant/Admin SDK/Art17/Rules/Media policy and all human GO remain **BLOCKED**; `productionApproved=false` and no merge/deployment.
