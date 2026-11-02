@@ -10,7 +10,10 @@ export function validateMainRuleset(v) {
       !Array.isArray(v.conditions?.ref_name?.include) ||
       !v.conditions.ref_name.include.includes('refs/heads/main') ||
       !Array.isArray(v.conditions.ref_name.exclude) ||
-      v.conditions.ref_name.exclude.includes('refs/heads/main')) throw Error('ruleset_identity_invalid');
+      // An exclusion such as refs/heads/* may also exempt main. For a
+      // main-only release gate, reject ALL exclusions instead of attempting
+      // incomplete fnmatch emulation of GitHub ruleset patterns.
+      v.conditions.ref_name.exclude.length!==0) throw Error('ruleset_identity_invalid');
   const p=v.rules.find(r=>r.type==='pull_request')?.parameters;
   const c=v.rules.find(r=>r.type==='required_status_checks')?.parameters;
   if(!v.rules.some(r=>r.type==='deletion') || !v.rules.some(r=>r.type==='non_fast_forward') ||
