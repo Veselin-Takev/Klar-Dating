@@ -508,10 +508,21 @@ P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.
 
 ### 2026-11-02 — P0 read-only path anomaly classification evidence
 
-- [x] [Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302) immutable `0bc8a2d2184a8191e0469b2702569e9cb4735435c0d` full [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) SUCCESS: 1,508 Vitest, 350 native Firestore read-only records, 300 incomplete vs. 350 complete, no record mutation, missing-emulator fail-closed, 26 Browser. This is **NOT** >300 real deletion throughput.
+- [x] [Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302) immutable `0bc8a2d2184a8191e0469b462efaa2ed0cdf2179` full [CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) SUCCESS: 1,508 Vitest, 350 native Firestore read-only records, 300 incomplete vs. 350 complete, no record mutation, missing-emulator fail-closed, 26 Browser. This is **NOT** >300 real deletion throughput.
 - [x] Previous Governance SHA `31333edf56e0ffcd1ff7d53835f4d00884535c15` full [CI #41417809448](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417809448) SUCCESS.
 - [x] [Draft #303](https://github.com/Veselin-Takev/Klar-Dating/pull/303) initial head `0f751cdce8cf481a69b2702569e9cb4735435c0d` adds pure conservative canonical owner/path classifier and 10 malformed cases, 4 invalid native Firestore paths in 350-row inventory with mutation coverage, no GCS/production code change.
 - [ ] Verify new full exact-head [CI #41419406501](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419406501) PASS: mandatory source/mutation, 350-row native 4 anomaly count, real 5 Storage + 6 Tenant Firestore + 17 Retention Firestore, no-emulator CI negative, Typecheck, Vitest, Build, Smoke and 26 Browser. **IN PROGRESS** at capture.
 - [ ] Separately review actual active `src/server/routes/complianceStorage.ts` prefix check and production dataset path conventions with DPO/AppSec. P0 #202 actual signed decision/holds/GCS generation/404/412/crash receipts, durable >300 deletion queue and Scheduler/IAM, P0 #254 live Tenant/AdminSDK/Art17/Rules and Product/DPO/Legal guest-media ADR, independent final ReleaseOwner GO remain BLOCKED.
 
 `productionApproved=false`, Production BLOCKED/NO-GO; no direct main merge/deploy/customer data action.
+
+
+### 2026-11-02 — Legal-Hold metadata quality is not deletion authorization
+
+- [x] [Draft #303](https://github.com/Veselin-Takev/Klar-Dating/pull/303) immutable SHA `0f751cdce8cf481a69b2702569e9cb4735435c0d` full [CI #41419406501](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419406501) **SUCCESS**: canonical owner/path classification in pure and real native 350-record Firestore census, mandatory P0 and Browser gates.
+- [x] Prior Governance SHA `b17df1fdeaf08004a6439a5bb63fd026689837d7` full [CI #41419685277](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41419685277) **SUCCESS**.
+- [x] Isolated [Draft #304](https://github.com/Veselin-Takev/Klar-Dating/pull/304) initial `cb32f49d9c4ffb66af7559ac7b78cfc2b70524cf` adds 4 native malformed-hold indicator fixtures, pure invalid-type tests and fail-closed mandatory mutation gate; only read-only aggregate reporting changed.
+- [ ] Require new exact-head full [CI #41421019259](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41421019259) SUCCESS on #304 (read-only 350 native Firestore, 10 true holds + 4 invalid hold types, source/mutation/Typecheck/5 Storage/6 Tenant Firestore/17 Retention Firestore/no-emulator negative/Build/Smoke/26 Browser). **IN PROGRESS** at capture.
+- [ ] Never treat missing/invalid hold metadata as signed clearance. Independently prove authorized GCS decision/holds and 404/412/crash receipts, real durable >300 deletion queue/Scheduler/IAM, P0 #254 true Tenant/Admin SDK/Art17/Rules/Media ADR and independent Security/DPO/Legal/SRE/ReleaseOwner release SHA signoffs.
+
+`productionApproved=false` — **Production BLOCKED / NO-GO**.
