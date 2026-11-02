@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { assertCurrentVerificationPurgeCandidate, verifiedDeletionGeneration } from '../src/server/platform/verificationPurgeBoundary';
+import { assertCurrentVerificationPurgeCandidate, hasUnambiguousVerificationHoldFlags, verifiedDeletionGeneration } from '../src/server/platform/verificationPurgeBoundary';
 import { MS_PER_DAY, type VerificationArtifactRecord } from '../src/server/platform/storageRetentionEngine';
 
 describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
@@ -45,6 +45,41 @@ describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
     ['record hold', { ...current, hold: true }],
   ] as const)('blocks %s before physical deletion', (_, record) => {
     expect(() => assertCurrentVerificationPurgeCandidate(record, artifact, now)).toThrow();
+  });
+
+  it('fails closed before GCS deletion when an authoritative hold field is present with an ambiguous type', () => {
+    for (const [field, value] of [
+      ['legalHold', 'false'],
+      ['retentionHold', 'true'],
+      ['hold', null],
+      ['hold', 0],
+      ['legalHold', { active: false }],
+      ['retentionHold', []],
+    ] as const) {
+      const malformed = { ...current, [field]: value };
+      expect(hasUnambiguousVerificationHoldFlags(malformed)).toBe(false);
+      expect(() => assertCurrentVerificationPurgeCandidate(malformed, artifact, now))
+        .toThrow('verification_purge_candidate_unavailable');
+    }
+    // Contradictory flags are never overriden by another clean false/true flag.
+    const mixed = { ...current, legalHold: false, retentionHold: 'false', hold: true };
+    expect(hasUnambiguousVerificationHoldFlags(mixed)).toBe(false);
+    expect(() => assertCurrentVerificationPurgeCandidate(mixed, artifact, now))
+      .toThrow('verification_purge_candidate_unavailable');
+  });
+
+  it('preserves explicitly false hold flags and separately blocks confirmed true holds', () => {
+    const unheld = { ...current, legalHold: false, retentionHold: false, hold: false };
+    expect(hasUnambiguousVerificationHoldFlags(unheld)).toBe(true);
+    expect(() => assertCurrentVerificationPurgeCandidate(unheld, artifact, now)).not.toThrow();
+    for (const field of ['legalHold', 'retentionHold', 'hold'] as const) {
+      const held = { ...unheld, [field]: true };
+      expect(hasUnambiguousVerificationHoldFlags(held)).toBe(true);
+      expect(() => assertCurrentVerificationPurgeCandidate(held, artifact, now))
+        .toThrow('verification_purge_candidate_changed');
+    }
+    // This function deliberately does not certify absent hold data as legal clearance.
+    expect(hasUnambiguousVerificationHoldFlags(current)).toBe(true);
   });
 
   it('rejects a stale or foreign candidate even when the Firestore row is unchanged', () => {

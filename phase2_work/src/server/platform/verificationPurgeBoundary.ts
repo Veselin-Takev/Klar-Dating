@@ -27,12 +27,28 @@ function decision(value: unknown): VerificationArtifactRecord['status'] | null {
   return null;
 }
 
+/**
+ * Only explicitly present, strictly boolean hold flags can be interpreted.
+ * Nonboolean legacy/malformed flags (e.g. "false", null, 0, objects) must
+ * prevent destructive operations; do not coerce truthy/falsy values.
+ *
+ * A missing flag is NOT a positive legal-clearance attestation: a full
+ * decision/hold-authority contract remains a separate P0 release blocker.
+ */
+export function hasUnambiguousVerificationHoldFlags(
+  record: Record<string, unknown> | undefined,
+): boolean {
+  return !!record && (['legalHold', 'retentionHold', 'hold'] as const)
+    .every(flag => record[flag] === undefined || typeof record[flag] === 'boolean');
+}
+
 export function assertCurrentVerificationPurgeCandidate(
   current: Record<string, unknown> | undefined,
   artifact: VerificationArtifactRecord,
   now: number,
 ): void {
-  if (!current || !Number.isFinite(now) || now <= 0 ||
+  if (!current || !hasUnambiguousVerificationHoldFlags(current) ||
+      !Number.isFinite(now) || now <= 0 ||
       !artifact.uid || !artifact.challengeId || !artifact.storagePath.startsWith(`verification/${artifact.uid}/`)) {
     throw new Error('verification_purge_candidate_unavailable');
   }
