@@ -1,4 +1,33 @@
 # Klar — Enterprise End-to-End Audit & Production Readiness Gap Report
+
+## Current verified audit snapshot — 2026-11-02
+
+**Decision: PRODUCTION NO-GO / MANUAL ACTION REQUIRED.** This dated snapshot supersedes older counts and pending/unknown statements below only where it supplies newer evidence. Historical sections are preserved. Detailed unresolved security findings remain in the owner's confidential report outside this public repository.
+
+- **Baseline:** `main` `2808dc1cbb485f70b403681c108cea5a3361d950`, tree `45d0b247dbd41ef66d37474ac1220b13450051bc`, rechecked through Git and GitHub. This is not a claim about a deployed revision.
+- **Exact-main CI now verified:** [40576838984](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40576838984), push run from 27 October, completed SUCCESS on that exact SHA. Install, static gates, typecheck, Functions, tests, build, production smoke and browser acceptance all executed successfully. Original logs record 192 Vitest files and 26 Chromium browser cases. The run was inspected again today, not rerun today; it does not prove live cloud staging or production approval.
+- **Today's offline verification:** 20 selected source/regression commands passed under Node 24.22.1 on runtime/script files identical to the baseline. They cover auth, public Rules, PII, deletion, retention, webhook boundaries, CSP, observability/SLO and release/CODEOWNERS evidence guards. This is a limited offline suite, not all mandatory CI, all routes, a certification or a live E2E test. CI remains Node 22.23.3 / Bun 1.4.4.
+- **Fresh full dependency inventory:** both Bun locks plus Functions npm lock, 1,439 unique package versions; OSV returned **23 affected versions / 30 unique advisories**, exit 1, checked 02 November at 16:06 UTC. Both Bun hashes `1239151f9afee623cae406510ffb716c85759693f97a41603bd852f1db89c9b7`; Functions lock `e14340c72a565280d130f4f92cb736bafb2659b8c6122eec5f0a27faf3197292`. A changed advisory feed is not a code-remediation effect. No clean supply-chain verdict or blanket waiver.
+- **Authenticated GitHub inventory:** 151 open PRs, all Draft; 40 base `main`, 111 base other branches; none older than 30 days at capture. This is discovery, not a claim that all 151 received complete code review. Existing #232/#249/#270 and dependency chains are reused. No merge or branch deletion in this audit.
+- **GitHub control plane:** repository, Ruleset, Actions permissions and Environments were actually queried. Independent review and protected production-release requirements remain unfulfilled; a workflow's environment name alone is not operational approval evidence. No settings or rights changed. Configuration details are retained privately.
+- **PR #159:** the preserved original web commit was extended by `dbb74d36ca99b32e2d29b3b0e014e1b938b2c61e`, correcting target and source-commit verification with 15 regressions. Full [CI 41477705385](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41477705385) is SUCCESS. The separate [generator 41477885170](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41477885170) was rejected at the fixed target-version gate; artifact publication was skipped. No candidate locks adopted. Local combined regression run was 61/62 due to Windows EPERM creating an existing symlink fixture; no test was weakened. Draft/blocked remains appropriate.
+
+### Cross-lifecycle closure conditions
+
+| Area | Current conclusion / next evidence |
+|---|---|
+| Auth, consent, media and tenant boundaries | Individual source/test controls exist; complete ingress/negative authorization and revocation evidence still required |
+| TTL, deletion, retention holds and object identity | Existing remediation chains and real staging/operational evidence remain necessary; not closed by static checks |
+| Token/log privacy and webhook handling | End-to-end sink/retention and provider/replay/key-rotation coverage remain open |
+| CSP and browser/user journeys | Source policy and Chromium checks exist; deployed headers, full journey/provider/device coverage remain unproven |
+| Supply chain / CI | Current scan is failing; version-specific remediation, image/OS/SAST and release artifact evidence remain open |
+| Performance / cost | Health/ready load defaults and application budget checks do not prove critical-path capacity or provider-wide cost limits |
+| Structure / integration | Monorepo consolidation is proposed; stacked PRs require dependency-aware review and preserved gates |
+| Operations / privacy / release | Isolated staging, real restore/rollback, monitoring and independent professional approvals remain absent/unverified |
+
+No production data, cloud resources, deployment, protection-rule changes or independent signoffs were created by this audit. Pay-per-Date remains Discovery. The complete available-source/evidence review is documented; a complete live E2E acceptance cannot be claimed without the missing environment and qualified approvals. Standards remain review benchmarks, not a compliance certification.
+
+---
 **Snapshot and evidence refresh:** 2026-11-01 · **Decision:** **BLOCKED / PRODUCTION NO-GO**  
 **Baseline:** [`main` `2808dc1cbb485f70b403681c108cea5a3361d950`](https://github.com/Veselin-Takev/Klar-Dating/commit/2808dc1cbb485f70b403681c108cea5a3361d950) (queried via GitHub compare `main...main`).  
 **Scope:** repository source, current open Issues/PRs, source-linked CI/operational governance and external normative controls. This is a **comprehensive evidence and gap review**, **NOT a claim that a production/staging E2E run was executed**.

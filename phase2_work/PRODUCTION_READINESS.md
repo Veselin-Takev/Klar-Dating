@@ -1,5 +1,7 @@
 # Production Readiness
 
+> **Audit refresh 2026-11-02: PRODUCTION NO-GO.** Exact-main CI 40576838984 was verified successful; today's full OSV inventory reports 23 affected versions / 30 advisories. 20 selected offline checks passed. These results do not complete live staging/rollback or independent production approvals. No checklist item is checked by this update. [Current evidence](docs/ENTERPRISE_END_TO_END_AUDIT_2026-11-01.md#current-verified-audit-snapshot--2026-11-02).
+
 ## Completed in this package
 
 - Server Firestore access migrated to Firebase Admin/ADC; no hard-coded server password.
