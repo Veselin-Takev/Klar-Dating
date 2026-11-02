@@ -145,4 +145,42 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
     } finally { await ref.delete(); }
   }, 20_000);
 
+
+  it.each([
+    { marker: { receiptDigest: 'a'.repeat(64) }, label: 'receipt digest' },
+    { marker: { completedAt: t0 + 1 }, label: 'completion timestamp' },
+    { marker: { intent: { generation: '123', preparedAt: t0, leaseEpoch: 1 } }, label: 'write-ahead delete intent' },
+    { marker: { observed: { generation: '123', observedAt: t0 } }, label: 'delete observation' },
+    { marker: { quarantineReason: 'legal_hold' }, label: 'legal-hold quarantine' },
+  ])('fails closed on corrupt ready state with prior $label without any Firestore update', async ({ marker }) => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set({ ...createPurgeWork(id, t0), ...marker });
+    try {
+      await expect(executePurgeWorkCommand(db, ref, claim(workerA)))
+        .rejects.toThrow('purge_work_invalid_state');
+      expect((await ref.get()).data()).toMatchObject({
+        ...marker, status: 'ready', revision: 0, attempt: 0,
+      });
+    } finally { await ref.delete(); }
+  }, 20_000);
+
+  it('refuses to prepare a fresh delete intent on a leased row with an old receipt marker', async () => {
+    const id = randomUUID().replaceAll('-', '');
+    const ref = db.collection('verification_purge_jobs').doc(id);
+    await ref.set(createPurgeWork(id, t0));
+    try {
+      const leased = await executePurgeWorkCommand(db, ref, claim(workerA));
+      expect(leased).toMatchObject({ status: 'leased', revision: 1 });
+      await ref.update({ receiptDigest: 'b'.repeat(64) });
+      await expect(executePurgeWorkCommand(db, ref, {
+        kind: 'prepare_delete_intent', token: workerA, epoch: 1, generation: '123',
+      })).rejects.toThrow('purge_work_invalid_state');
+      expect((await ref.get()).data()).toMatchObject({
+        status: 'leased', revision: 1, attempt: 1, receiptDigest: 'b'.repeat(64),
+      });
+      expect((await ref.get()).data()).not.toHaveProperty('intent');
+    } finally { await ref.delete(); }
+  }, 20_000);
+
 });
