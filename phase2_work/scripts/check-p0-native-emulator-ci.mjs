@@ -35,6 +35,16 @@ export function nativeP0CIFailures({ suites, vitest, manifest }) {
       failures.push(name + '_vitest_excluded');
     }
   }
+  // Real >300-row Firestore inventory must run in the existing CI-mandatory,
+  // fail-closed native suite; a pure mocked reader is not sufficient evidence.
+  const retentionSuite = suites?.['tests/verificationPurgeWorkFirestore.emulator.spec.ts'];
+  if (typeof retentionSuite !== 'string' ||
+      !retentionSuite.includes('read-only census handles 350 real emulator records') ||
+      !retentionSuite.includes('scanned: 350') ||
+      !retentionSuite.includes('scanned: 300') ||
+      !retentionSuite.includes('expect((await collection.get()).size).toBe(350)')) {
+    failures.push('retention_native_census_over300_missing');
+  }
   const ci = manifest?.scripts?.['test:ci'];
   if (typeof ci !== 'string' || !ci.includes('emulators:exec --project demo-klar') ||
       !ci.includes('--only auth,firestore,storage') || !ci.includes('npm test')) {
