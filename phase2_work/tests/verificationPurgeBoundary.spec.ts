@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { assertCurrentVerificationPurgeCandidate, hasUnambiguousVerificationHoldFlags, verifiedDeletionGeneration } from '../src/server/platform/verificationPurgeBoundary';
+import { assertCurrentVerificationPurgeCandidate, hasUnambiguousVerificationHoldFlags, isCanonicalDeletionGeneration, verifiedDeletionGeneration } from '../src/server/platform/verificationPurgeBoundary';
 import { MS_PER_DAY, type VerificationArtifactRecord } from '../src/server/platform/storageRetentionEngine';
 
 describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
@@ -90,6 +90,26 @@ describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
   it('accepts only a precise numeric GCS object generation without active holds', () => {
     expect(verifiedDeletionGeneration({ generation: '18446744073709551615' }, now)).toBe('18446744073709551615');
     expect(verifiedDeletionGeneration({ generation: 22, retentionExpirationTime: new Date(now - 1).toISOString() }, now)).toBe('22');
+  });
+
+  it('preserves full canonical GCS uint64 metadata generations without converting to imprecise Number', () => {
+    for (const generation of ['1', '9007199254740993', '18446744073709551614', '18446744073709551615']) {
+      expect(isCanonicalDeletionGeneration(generation)).toBe(true);
+      expect(verifiedDeletionGeneration({ generation }, now)).toBe(generation);
+    }
+  });
+
+  it('refuses overlong or out-of-range GCS object generations before a conditional delete', () => {
+    for (const generation of [
+      '18446744073709551616', '99999999999999999999', '1'.repeat(21), '7'.repeat(4096),
+      '00', '01', ' 1', '+1', '1e2', '-2', '', 1n, 9007199254740992,
+    ]) {
+      expect(isCanonicalDeletionGeneration(generation)).toBe(false);
+      expect(() => verifiedDeletionGeneration({ generation }, now))
+        .toThrow('verification_photo_generation_or_hold_invalid');
+    }
+    expect(isCanonicalDeletionGeneration(1)).toBe(false); // metadata number is normalized separately
+    expect(verifiedDeletionGeneration({ generation: 1 }, now)).toBe('1');
   });
 
   it.each([
