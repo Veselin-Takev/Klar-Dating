@@ -130,4 +130,23 @@ describe('P0 #202: decision-aware GCS verification purge preconditions', () => {
   ])('rejects missing/invalid generations or hold states (%j)', metadata => {
     expect(() => verifiedDeletionGeneration(metadata, now)).toThrow();
   });
+  it('denies active, ambiguous or malformed GCS per-object retention and hold metadata', () => {
+    for (const metadata of [
+      { generation: '42', retention: { retainUntilTime: new Date(now + 1000).toISOString() } },
+      { generation: '42', retention: {} },
+      { generation: '42', retention: null },
+      { generation: '42', retention: { retainUntilTime: 'invalid' } },
+      { generation: '42', retention: { retainUntilTime: null } },
+      { generation: '42', temporaryHold: 'false' },
+      { generation: '42', eventBasedHold: null },
+      { generation: '42', hold: 0 },
+    ]) {
+      expect(() => verifiedDeletionGeneration(metadata, now)).toThrow();
+    }
+    expect(verifiedDeletionGeneration({
+      generation: '42', retention: { retainUntilTime: new Date(now - 1000).toISOString() },
+      temporaryHold: false, eventBasedHold: false, hold: false,
+    }, now)).toBe('42');
+  });
+
 });

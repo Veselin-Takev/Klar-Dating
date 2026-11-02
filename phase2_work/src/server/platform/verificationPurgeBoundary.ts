@@ -89,6 +89,13 @@ export function verifiedDeletionGeneration(metadata: Record<string, unknown> | u
   const generation = metadata?.generation;
   const value = typeof generation === 'string' ? generation :
     typeof generation === 'number' && Number.isSafeInteger(generation) ? String(generation) : '';
+  // GCS Object Retention is independent of legacy retentionExpirationTime.
+  // Refuse ambiguous present hold metadata rather than coercing its value.
+  for (const flag of ['temporaryHold', 'eventBasedHold', 'hold'] as const) {
+    if (metadata && Object.hasOwn(metadata, flag) && typeof metadata[flag] !== 'boolean') {
+      throw new Error('verification_photo_generation_or_hold_invalid');
+    }
+  }
   if (!isCanonicalDeletionGeneration(value) ||
       metadata?.temporaryHold === true || metadata?.eventBasedHold === true ||
       metadata?.hold === true) {
@@ -96,6 +103,17 @@ export function verifiedDeletionGeneration(metadata: Record<string, unknown> | u
   }
   if (metadata?.retentionExpirationTime != null) {
     const end = epochMillis(metadata.retentionExpirationTime);
+    if (end === null || end > now) throw new Error('verification_photo_retention_hold_active');
+  }
+  // GCS per-object retention (retention.retainUntilTime) is distinct
+  // from retentionExpirationTime; malformed or active retention denies purge.
+  if (metadata && Object.hasOwn(metadata, 'retention')) {
+    const retention = metadata.retention;
+    if (retention === null || typeof retention !== 'object' || Array.isArray(retention)) {
+      throw new Error('verification_photo_retention_hold_active');
+    }
+    const until = (retention as Record<string, unknown>).retainUntilTime;
+    const end = epochMillis(until);
     if (end === null || end > now) throw new Error('verification_photo_retention_hold_active');
   }
   return value;
