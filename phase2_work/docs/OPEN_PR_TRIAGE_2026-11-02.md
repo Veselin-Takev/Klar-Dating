@@ -42,3 +42,14 @@
 ## Offene Evidenz
 
 Alle 152 Diffs, Mergeability-Zustände und PR-Reviewverläufe sind **nicht** individuell geprüft. Vor einem ersten Merge: aktuelle E2-Logs/Review-Evidenz und E3-Emulator-/E4-Staging- oder Live-Befunde für den konkret betroffenen Integrationsschritt nachreichen. Keines der 152 Drafts erhielt mit diesem Bericht eine Merge-Freigabe.
+
+## Belegte Dateikollisionen: P0 #202 (Read-only-Patch-Review)
+
+Es wurden für [#160](https://github.com/Veselin-Takev/Klar-Dating/pull/160), [#203](https://github.com/Veselin-Takev/Klar-Dating/pull/203), [#231](https://github.com/Veselin-Takev/Klar-Dating/pull/231) und [#269](https://github.com/Veselin-Takev/Klar-Dating/pull/269) die vollständigen geänderten **Dateinamen** und die GitHub-File-Patches von `phase2_work/functions/src/deleteExpiredPhotos.ts` sowie `phase2_work/functions/src/retention.ts` überprüft (nicht der gesamte PR-Diff).
+
+- **Alle vier PRs ändern beide aktiven Legacy-Dateien.** Gemeinsame geänderte Dateien je PR-Paar: #160/#203 **7**, #160/#231 **8**, #160/#269 **6**, #203/#231 **8**, #203/#269 **6**, #231/#269 **7**. Eine parallele oder blinde Merge-Welle ist dadurch ungeeignet.
+- Die geprüften `retention.ts`-Patches von #160, #231 und #269 ersetzen `deleteExpiredPhotoPage` durch einen fail-closed Fehler; die Fehlermeldungen und begleitenden Tests unterscheiden sich. #203 verändert stattdessen auch den autoritativen Löschpfad und die Metadatenverarbeitung.
+- Alle vier Patches zu `deleteExpiredPhotos.ts` entfernen oder unterbinden die altersbasierte Verifikationsfoto-Löschung und erhalten eine begrenzte `funnel_events`-Bereinigung. **Diese Code-Absicht ist kein Beleg für ein sicheres, aktives Cloud-Scheduler-Deployment oder funktionierende generation-gebundene Löschbelege.**
+- **Merge-Entscheidung offen:** Testmatrix/Diff-Vergleich der vier Kandidaten, ein autoritatives Integrationsziel, ergänzende statt duplizierte Negativtests, gesondertes SRE-Deployment-/Rollback-Gate, unabhängige Reviews. Andere PRs nur nach dokumentiertem Supersession-Nachweis schließen.
+
+**CI-Stand bei Dokumentationsupdate:** Neue exact-head Checks `validate` für #313 SHA `d10bc64235826dca90e215edbdd75d5fdad2c4e0` und #314 SHA `abb76a29e44bba51d79ecb592275db6c3b7a1d8c` waren zuletzt **in progress**; weder PASS noch NO-GO-Aufhebung behaupten. Nach diesem Dokumentationscommit gilt dessen neue SHA und CI muss erneut separat geprüft werden.
