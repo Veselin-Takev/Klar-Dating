@@ -29,3 +29,9 @@ In the original `functions/src/deleteExpiredPhotos.ts`, the scheduled `deleteExp
 Confirm an authorized staging snapshot of Cloud Functions and Scheduler, with SHA/revision provenance. In a non-production Firebase emulator/storage test, supply a 31-day-old *pending* photo and show zero object deletion; supply approved/rejected photos with decisions older than 30 days and show correct deletion and immutable evidence; simulate a replaced generation and a hold; inject failed network/storage/audit writes and verify retries/receipts do not falsely claim completion. Separately prove `funnel_events` TTL cleanup still runs. Attach logs with exit code, run ID, exact source/rules SHA, job identities and reviewer approvals. Only then may the release owner consider a controlled deployment plan.
 
 **No production mutation or claimed official release approval. P0 #202 remains OPEN / NO-GO.**
+
+## Regression-Gate-Erweiterung (2026-11-02, weiterhin Draft)
+
+Der quelltextbasierte Fail-closed-Guard in `scripts/check-legacy-photo-purge.mjs` wurde auf zusätzliche direkte Storage-SDK-/Bucket-/Metadaten-Zugriffsmuster sowie ein Alias-Import des alten Retention-Helpers erweitert. Vier neue Mutationsprüfungen in `scripts/check-legacy-photo-purge.test.mjs` verhindern Regressionen, die den bisherigen Pattern-Guard umgehen konnten. **Das bleibt ein Source-Regression-Gate (E1/E2), keine AST-basierte Vollständigkeitsgarantie und kein Beleg über aktiven Cloud-Scheduler-/Firestore-/GCS-Laufzeitstatus (E4).**
+
+Der PR-Head hat sich nach der Änderung geändert; die zuvor erfolgreiche GitHub-CI für SHA `54ef22b87d40c90711e575d7e133b9311417f2f1` gilt **nicht** als Testnachweis für diesen neuen SHA. Vor Merge aktuelle Checks, unabhängige Reviews und einen gegen den aktuellen `main` integrierten Teststand nachweisen. Es gab keine Cloud-, `main`- oder produktive Datenänderung. `productionApproved=false`, **NO-GO**.
