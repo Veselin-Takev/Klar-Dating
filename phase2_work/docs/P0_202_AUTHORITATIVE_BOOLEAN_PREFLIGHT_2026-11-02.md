@@ -17,4 +17,10 @@ Im produktiven Quellpfad `src/server/platform/verificationPurgeBoundary.ts` wurd
 ## Evidence, Release und Restrisiken
 Eine neue vollständige **exakte-HEAD-CI** mit Typecheck, Security, Compliance, Vitest, nativen Firebase-Emulatoren, Build, Smoke und Browser muss für diesen neuen Commit abgeschlossen sein; Ergebnisse eines Stacked-Parent dürfen nicht geerbt werden. Produktionsfreigabe weiterhin blockiert durch P0 #202: unterschriebenes autoritatives Decision-/Legal-Hold-Schema, echte generation-bound GCS-404/412-/Timeout-/Crash-Quittungen, dauerhafte >300-Job-Abarbeitung und IAM/Scheduler-Nachweis; P0 #254: Tenant-/Art.-17-/BOLA-/Storage-Isolation sowie signierte Medienpolicy. Security, DPO, Legal, SRE und ReleaseOwner müssen unabhängig den **exakten** Release-Commit freigeben.
 
+## Erste exakte CI – Root Cause und Korrektur
+
+- Der erste neue Commit `226572efd51790166c3e8d5bf8d531564e87a53e` scheiterte in [GitHub Actions #41464422492](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41464422492) beim **Typecheck**: `tests/verificationPurgeHttp.spec.ts:235 TS2345`. Der Test-Fixture-Typ `photoPurged?: unknown` war für eine bestehende `Array.push`-Inferenz von gültigen booleschen Fixtures zu weit gefasst.
+- Fehler unmittelbar im selben Draft-Branch behoben: Typ des regulären Fixtures bleibt `photoPurged: boolean`, während nur eigens konstruierte, absichtlich ungültige Regressionseingaben durch `as unknown as Fixture` markiert werden. Korrektur-Commit `98379638a1c359ec8d04c8e07c63f7de14dbff00`.
+- Weder der fehlgeschlagene Lauf noch Parent-PR-PASS sind Nachweise eines korrigierten Builds. **Neuer full exact-head CI-PASS erforderlich.** Kein Merge/Deployment.
+
 **NO-GO.** Kein Merge, kein Deployment, keine Produktionseingriffe.
