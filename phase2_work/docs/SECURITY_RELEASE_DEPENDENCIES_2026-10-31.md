@@ -1,4 +1,18 @@
 # Security-Release-Abhängigkeitsmatrix und Freigabesperren
+
+## Nachweis- und Remediation-Abgleich — 02.11.2026
+
+Main unverändert `2808dc1cbb485f70b403681c108cea5a3361d950`; **NO-GO**. Die priorisierte Reihenfolge unten ist keine Bestätigung, dass offene PR-Ketten bereits integriert sind.
+
+1. Neue vertrauliche Handler-/Fehlerpfadbefunde mit tatsächlich ausgeführten HTTP-Negativ- und Positivtests schließen; reine Quellmarker reichen nicht. Backend-Fixtures dürfen nicht als echte Cloud-Persistenz bezeichnet werden.
+2. Bestehende P0-Retention-/Art17-/Medien-/Tenant-Ketten zusammenführen, ohne konkurrierende Änderungen oder Gates zu verlieren. Alle betrieblichen und unabhängigen Abnahmen bleiben erforderlich.
+3. Dependency-Bestand heute 23 betroffene Versionen / 30 Advisories; auch Functions ist nicht befundfrei. Bestehende #140/#159/#166/#167 prüfen und wiederverwenden. Keine pauschale Ignoreliste, keine übernommene ungeprüfte Generatorauflösung.
+4. Gitleaks-History und Main-Dateibaum wurden jetzt tatsächlich geprüft; Treffer-Triage und redigierte Nachweise liegen privat. API-Restriktionen/Rotation/Senken sind dadurch nicht freigegeben. SAST, Container-/OS-/Live-Staging- und Rollback-Nachweise bleiben offen.
+5. Der Security-Audit #232 selbst benötigt nach seinem bestehenden Guard unabhängigen Security-Review. CI-Grün, technische Eigentümerschaft und dieses Audit ersetzen die offizielle Produktionsfreigabe nicht.
+
+[Aktuelle Evidenz und Methodenbegrenzung](ENTERPRISE_SECURITY_AUDIT_2026-10-31.md#verifizierte-security-aktualisierung--02112026).
+
+---
 **Stand:** 31.10.2026 · **Entscheidung:** NO-GO  
 **Basis:** `main` bei `2808dc1cbb485f70b403681c108cea5a3361d950`. Die PR-Nummern sind **Kandidaten**, keine akzeptierten Änderungen. Alle Links führen zu GitHub; CI-Erfolge sind nur für den jeweils exakt geprüften Head gültig.
 

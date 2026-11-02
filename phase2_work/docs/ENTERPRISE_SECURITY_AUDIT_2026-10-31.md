@@ -1,4 +1,27 @@
 # Klar — Enterprise Security & Privacy Audit
+
+## Verifizierte Security-Aktualisierung — 02.11.2026
+
+**BLOCKED / PRODUCTION NO-GO.** Der Main-Vergleichsstand bleibt `2808dc1cbb485f70b403681c108cea5a3361d950`. Dieser Abschnitt aktualisiert ältere Angaben zu Scan-/Testumfang; historische Abschnitte bleiben erhalten. Unbehandelte technische Detailbefunde und reproduzierende Testinputs werden vertraulich außerhalb dieses öffentlichen Repositories aufbewahrt.
+
+| Tatsächlich geprüfter Bereich | Ergebnis und Grenze |
+|---|---|
+| Vertiefte Auth-/Consent-/Webhook-/Privacy-Quellprüfung | Kontrollflüsse und Testgrenzen geprüft; drei gezielte HTTP-Prüffälle zeigen offene Sicherheits-/Zuverlässigkeitseigenschaften. Tatsächliche Baseline-Handler, localhost-HTTP, kontrollierte Backend-Fixtures; keine echte Firebase-/Provider-Persistenz oder Live-Staging-Ausführung |
+| Lokale Reproduktion | Express 5.2.1 und ausgewählte Abhängigkeiten fest gepinnt; Node 24.22.1. Isolierte npm-Fixture, nicht der vollständige ursprüngliche Bun-/Node-22-Graph. Erwartete Sicherheitseigenschaften FAIL; keine Schwelle abgeschwächt |
+| Secret-History | Gitleaks 8.30.1 meldet 1.662 geprüfte Patch-Commits des Main-Verlaufs; nicht sämtliche Branches oder alle 1.783 erreichbaren Merge-/Leer-/Patch-Commits als einzeln geprüft behauptet |
+| Secret-Dateibaum | Zusätzlich exakter Main-Git-Archiv-Snapshot geprüft. Beide Gitleaks-Läufe Exit 1 / sechs Treffer; drei synthetische Tests, ein Dokumentationssatz und zwei Kopien bekannter Firebase-Webkonfiguration. Kein neu bestätigtes privates Live-Credential; tatsächliche API-Restriktionen ungeprüft. Keine Baseline/Ignoreliste zur Grünfärbung |
+| Dependency-Triage | Aktueller vollständiger OSV-Inventarscan: 1.439 Versionen / 23 betroffene / 30 Advisories. Zugehörige veröffentlichte Kategorien: 12 HIGH / 15 MODERATE / 3 LOW; keine daraus abgeleitete App-Ausnutzbarkeit oder eigenen CVSS-Scores |
+| Functions-Scope | Zwei betroffene Versionen erscheinen auch im Functions-Lock. Ältere Functions-Nullmeldungen sind historische Momentaufnahmen, keine aktuelle Entwarnung |
+| Main-CI | [40576838984](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/40576838984) auf exakt dem Main-Commit tatsächlich SUCCESS, inklusive aller Pflichtschritte; heute erneut gelesen, nicht heute erneut ausgeführt. Dies ersetzt die neuen negativen Sicherheitsnachweise nicht |
+| Weitere Lücken | Vollständiges SAST, Container-/OS-Scans, DAST, Live-Staging, reale IAM/TTL/Scheduler/Provider-/Rollback-Nachweise und unabhängige Fachabnahmen weiterhin nicht vollständig belegt |
+
+Die offizielle Gitleaks-ZIP wurde vor Ausführung gegen GitHub-Asset-Digest und veröffentlichte SHA256-Prüfsumme verifiziert. Die Secret-Felder der Gitleaks-Ausgabe und -Reports sind redigiert. Ein Firebase-Webschlüssel ist keine Autorisierungsgrenze; die [Anbieteranforderungen an API-Beschränkungen, Rules und App Check](https://firebase.google.com/docs/projects/api-keys) bleiben gesondert zu verifizieren. Im Rahmen dieser Prüfung wurden keine Schlüssel zusätzlich veröffentlicht, gegen Provider getestet oder rotiert.
+
+**Nächste Schritte:** vertrauliche Laufzeitbefunde mit echten positiven/negativen Regressionen beheben, bestehende Retention-/Lösch-/Medien-/Tenant-Ketten prüfen, Lieferkettenbefunde versionsgenau beseitigen und die unabhängigen Betriebs-/Datenschutz-/Security-Gates schließen. Der vorhandene PR #159 hat inzwischen korrekte Quell-/Zielverifikation und grüne normale CI; sein separater Generator hat eine ungeprüfte neuere Auflösung abgewiesen und keine Locks veröffentlicht. PR #140 bleibt wegen Befunden offen.
+
+**Merge-/Freigabegrenze:** Dieser Security-Audit-PR bleibt gemäß bestehendem Review-Guard Draft bis zum unabhängigen Security-Review und den erforderlichen exakten Checks. Kein GO, Deployment, Cloud-/Datenzugriff oder Schutzregeländerung. Der vertrauliche vollständige Detailbericht und das Hash-Evidenzregister liegen beim Repository-Eigentümer. Referenzrahmen ergänzend: [OWASP WSTG 4.2](https://owasp.org/www-project-web-security-testing-guide/) und [Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html); keine Zertifizierung oder Live-Pentest-Behauptung.
+
+---
 **Stand:** 31. Oktober 2026 · **Befund-/Freigabestatus:** **BLOCKED / NO-GO**  
 **Repository:** [Veselin-Takev/Klar-Dating](https://github.com/Veselin-Takev/Klar-Dating) · **produktionsnaher Vergleichsstand:** `main` @ [`2808dc1cbb485f70b403681c108cea5a3361d950`](https://github.com/Veselin-Takev/Klar-Dating/commit/2808dc1cbb485f70b403681c108cea5a3361d950)  
 **Audittyp:** quellenbasierte Sicherheits- und Governance-Prüfung mit GitHub-API-Evidenz, Prüfketten-/Issue-/PR-Sichtung und externem Standardabgleich. **Kein Penetrationstest und keine unabhängige externe Zertifizierung.**
