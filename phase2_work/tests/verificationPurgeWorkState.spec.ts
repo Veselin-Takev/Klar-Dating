@@ -252,4 +252,47 @@ describe('P0 #202 retention lease and audit state machine (no IO)', () => {
       .toBe('complete');
   });
 
+
+  it('never reclaims a ready record containing stale irreversible delete or receipt markers', () => {
+    const ready = start();
+    const markers = [
+      { intent: { generation: '123', preparedAt: now, leaseEpoch: 1 } },
+      { observed: { generation: '123', observedAt: now } },
+      { completedAt: now },
+      { receiptDigest: digest },
+      { quarantineReason: 'legal_hold' as const },
+    ];
+    for (const marker of markers) {
+      const corrupt = { ...ready, ...marker };
+      expect(() => claimPurgeWork(corrupt, tokenA, now, 5_000))
+        .toThrow('purge_work_invalid_state');
+      expect(() => quarantinePurgeWork(corrupt, 'manual_review', now))
+        .toThrow('purge_work_invalid_state');
+      expect(ready).toEqual(start());
+    }
+  });
+
+  it('never writes a new delete intent from a leased record containing a prior receipt or observation', () => {
+    const leased = lease();
+    for (const marker of [
+      { receiptDigest: digest },
+      { completedAt: now },
+      { observed: { generation: '123', observedAt: now } },
+      { intent: { generation: '123', preparedAt: now, leaseEpoch: 1 } },
+      { quarantineReason: 'legal_hold' as const },
+    ]) {
+      const corrupt = { ...leased, ...marker };
+      expect(() => markDeletionIntent(corrupt, tokenA, 1, now + 100, '123'))
+        .toThrow('purge_work_invalid_state');
+      expect(() => releaseUndeletedWork(corrupt, tokenA, 1, now + 100, now + 9_000))
+        .toThrow('purge_work_invalid_state');
+    }
+    // A normal undeleted release intentionally retains its lease epoch:
+    // this is NOT a terminal marker and remains safely reclaimable.
+    const released = releaseUndeletedWork(leased, tokenA, 1, now + 100, now + 9_000);
+    expect(claimPurgeWork(released, tokenB, now + 9_000, 5_000)).toMatchObject({
+      status: 'leased', attempt: 2, lease: { epoch: 2 },
+    });
+  });
+
 });
