@@ -17,6 +17,7 @@ type Fixture = {
   status: string;
   entscheidung: string;
   photoPurged: boolean;
+  legalHold?: unknown;
 };
 
 function candidate(): Fixture {
@@ -172,6 +173,35 @@ describe('P0 #202 signed photo purge HTTP acknowledgement', () => {
     expect(result.deletions).toHaveLength(0);
     expect(result.receipts).toHaveLength(0);
     expect(result.metadataReads).toBe(0);
+  });
+
+  it.each([
+    ['string false', 'false'],
+    ['number zero', 0],
+    ['null', null],
+    ['present undefined', undefined],
+  ])('rejects malformed photoPurged %s across the entire due batch', async (label, marker) => {
+    const result = await invokePurge({ rows: [
+      candidate(),
+      { ...candidate(), storagePath: `verification/${uid}/bad-${label}.jpg`, photoPurged: marker } as unknown as Fixture,
+    ] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
+    expect(result.metadataReads).toBe(0);
+    expect(result.rawBody).not.toContain(uid);
+  });
+
+  it('rejects explicitly present undefined legal-hold metadata before any batch delete', async () => {
+    const result = await invokePurge({ rows: [
+      candidate(),
+      { ...candidate(), storagePath: `verification/${uid}/unclear-hold.jpg`, legalHold: undefined },
+    ] });
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ code: 'verification_storage_purge_preflight_failed', invalidStateCount: 1 });
+    expect(result.deletions).toHaveLength(0);
+    expect(result.receipts).toHaveLength(0);
   });
 
   it('does not delete a shared object when two due records claim the same path', async () => {
