@@ -43,6 +43,7 @@ export function nativeP0CIFailures({ suites, vitest, manifest }) {
       !retentionSuite.includes('scanned: 350') ||
       !retentionSuite.includes('scanned: 300') ||
       !retentionSuite.includes('invalidOwnerOrPath: 4') ||
+      !retentionSuite.includes('invalidHoldIndicators: 4') ||
       !retentionSuite.includes('expect((await collection.get()).size).toBe(350)')) {
     failures.push('retention_native_census_over300_missing');
   }
