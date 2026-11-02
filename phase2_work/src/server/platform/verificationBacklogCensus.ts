@@ -56,6 +56,24 @@ function knownDecision(value: unknown): 'approved' | 'rejected' | 'pending' | nu
   return null;
 }
 
+/**
+ * Conservative owner/path inventory classification only: NEVER authorizes
+ * reads, deletion or Storage download access. Prefix matching alone accepts
+ * ambiguous object names such as verification/uid/../another-object.
+ * Keep legitimate nested GCS names, but reject noncanonical path segments.
+ */
+export function isCanonicalVerificationOwnerPath(uid: unknown, path: unknown): boolean {
+  if (typeof uid !== 'string' || uid.length > 128 || !uid ||
+      uid !== uid.trim() || uid === '.' || uid === '..' ||
+      /[/\\\u0000-\u001f\u007f]/.test(uid)) return false;
+  if (typeof path !== 'string') return false;
+  const prefix = `verification/${uid}/`;
+  if (!path.startsWith(prefix)) return false;
+  const name = path.slice(prefix.length);
+  return !!name && !/[\\\u0000-\u001f\u007f]/.test(name) &&
+    name.split('/').every(segment => !!segment && segment !== '.' && segment !== '..');
+}
+
 export async function censusVerificationRetentionBacklog<Cursor>(
   readPage: PageReader<Cursor>,
   options: { now: number; pageSize?: number; maxPages?: number },
@@ -111,8 +129,7 @@ export async function censusVerificationRetentionBacklog<Cursor>(
         output.knownLegalHolds++;
       }
       const uid = record.uid, path = record.storagePath;
-      if (typeof uid !== 'string' || !uid ||
-          typeof path !== 'string' || !path.startsWith(`verification/${uid}/`)) {
+      if (!isCanonicalVerificationOwnerPath(uid, path)) {
         output.invalidOwnerOrPath++;
       }
       if (typeof path === 'string' && path) {

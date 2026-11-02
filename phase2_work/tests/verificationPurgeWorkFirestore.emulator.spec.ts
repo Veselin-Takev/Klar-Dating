@@ -196,7 +196,11 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
       const pending = i >= 310;
       setup.set(doc, {
         uid: 'synthetic-emulator-owner',
-        storagePath: 'verification/synthetic-emulator-owner/photo-' + (i === 301 ? 0 : i) + '.jpg',
+        storagePath: i === 10 ? 'verification/synthetic-emulator-owner/../other.jpg'
+          : i === 20 ? 'verification/synthetic-emulator-owner//photo.jpg'
+          : i === 30 ? 'verification/synthetic-emulator-owner/./photo.jpg'
+          : i === 40 ? 'verification/synthetic-emulator-owner/name\\part.jpg'
+          : 'verification/synthetic-emulator-owner/photo-' + (i === 301 ? 0 : i) + '.jpg',
         fotoLoeschenAb: new Date(t0 + (pending ? 86_400_000 : -86_400_000)),
         status: pending ? 'pending' : 'approved',
         entscheidung: pending ? 'ausstehend' : 'bestaetigt',
@@ -227,7 +231,7 @@ describe.skipIf(!emulatorOnly && !ciRequiresEmulator)('P0 #202 native Firestore 
       expect(full).toMatchObject({
         scanned: 350, pagesScanned: 4, complete: true, truncated: false,
         dueByMarker: 310, futureByMarker: 40, pendingOrUnknownDecision: 40,
-        knownLegalHolds: 10, duplicatedObjectPaths: 1, invalidOwnerOrPath: 0,
+        knownLegalHolds: 10, duplicatedObjectPaths: 1, invalidOwnerOrPath: 4,
         readOnly: true, consistency: 'non_atomic_paginated_read',
       });
       expect(JSON.stringify(full)).not.toContain('synthetic-emulator-owner');

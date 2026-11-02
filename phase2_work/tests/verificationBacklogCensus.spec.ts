@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  censusVerificationRetentionBacklog, type CensusRow,
+  censusVerificationRetentionBacklog, isCanonicalVerificationOwnerPath, type CensusRow,
 } from '../src/server/platform/verificationBacklogCensus';
 
 const now = Date.parse('2026-11-01T00:00:00Z');
@@ -114,4 +114,33 @@ describe('P0 #202 read-only verification retention backlog census', () => {
       now, pageSize: 2,
     })).rejects.toThrow('verification_census_invalid_read_page');
   });
+
+  it('flags lexical path traversal, empty segments and ambiguous owners as invalid without exposing paths', async () => {
+    const malicious = [
+      { uid: 'private-owner', storagePath: 'verification/private-owner/../foreign.jpg' },
+      { uid: 'private-owner', storagePath: 'verification/private-owner/./photo.jpg' },
+      { uid: 'private-owner', storagePath: 'verification/private-owner//photo.jpg' },
+      { uid: 'private-owner', storagePath: 'verification/private-owner/filename\\part.jpg' },
+      { uid: 'private-owner', storagePath: 'verification/private-owner/' },
+      { uid: 'private-owner', storagePath: 'verification/private-owner/photo.jpg\u0000' },
+      { uid: 'private-owner/other', storagePath: 'verification/private-owner/other/photo.jpg' },
+      { uid: '..', storagePath: 'verification/../photo.jpg' },
+      { uid: 'private-owner ', storagePath: 'verification/private-owner /photo.jpg' },
+      { uid: 'private-owner', storagePath: 'verification/other-owner/photo.jpg' },
+    ];
+    for (const malformed of malicious) {
+      expect(isCanonicalVerificationOwnerPath(malformed.uid, malformed.storagePath)).toBe(false);
+    }
+    expect(isCanonicalVerificationOwnerPath('private-owner', 'verification/private-owner/folder/photo.jpg')).toBe(true);
+    expect(isCanonicalVerificationOwnerPath('provider:user', 'verification/provider:user/photo.jpg')).toBe(true);
+    const { read } = reader([
+      ...malicious.map((record, i) => row(i, record)),
+      row(99, { storagePath: 'verification/private-owner/nested/photo.jpg' }),
+    ]);
+    const result = await censusVerificationRetentionBacklog(read, { now, pageSize: 5, maxPages: 4 });
+    expect(result).toMatchObject({ scanned: 11, invalidOwnerOrPath: 10, complete: true });
+    expect(JSON.stringify(result)).not.toContain('private-owner');
+    expect(JSON.stringify(result)).not.toContain('foreign.jpg');
+  });
+
 });
