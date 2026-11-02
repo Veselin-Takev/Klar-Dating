@@ -37,3 +37,13 @@ Dateikollisionen zwischen #160/#203/#231/#269: 6 bis 8 gemeinsame Dateien je Paa
 ## Entscheidung
 
 `#269 = erster enger Review-Kandidat` ist eine **Triage-/Empfehlungsentscheidung** ohne Merge-Berechtigung. Bis zur Integration und operativen Verifikation bleibt **P0 #202 offen**. Eigentümer für unabhängige Security-/DPO-/SRE-Prüfung, Freigabe und produktiven Nachweis sind organisatorisch festzulegen; hier wurde kein Reviewer ernannt.
+
+## Synchronisationsnachweis: #269 gegen aktuellen `main` (2026-11-02)
+
+**Geprüfter Ausgangspunkt:** alter PR-Head `d6c1c99978a0f6e402068d57d1da0ce75795d55f` versus `main` `96c3857c53f5ced31fe1394895185f42c75bc716`; gemeinsamer Ursprung `2808dc1cbb485f70b403681c108cea5a3361d950`. Ein GitHub-Compare bestätigte **3 zusätzliche Main-Commits mit genau vier geänderten Dateien**: `CODEOWNERS`, `phase2_work/docs/CODEOWNERS_ACTIVE_RETENTION_BOUNDARIES_2026-10-28.md`, `phase2_work/scripts/check-codeowners.mjs` und `phase2_work/scripts/test-codeowners.mjs`. Keine dieser Dateien wird von PR #269 geändert. Es gab daher keine Dateikollision; die vier Blob-SHAs der aktuellen `main`-Dateien wurden in den Feature-Branch-Tree übernommen.
+
+**Ausgeführte, zweifach geparentete Branch-Integration:** Merge-Commit `895aaa3da2056d7799f887596b89c09207699925`, Eltern `d6c1c99978a0f6e402068d57d1da0ce75795d55f` und `96c3857c53f5ced31fe1394895185f42c75bc716`, ausschließlich auf `fix/p0-202-disable-legacy-photo-purge-20261101`. Die GitHub-Branch-Ref wurde mit Exact-SHA-Lease fortgeschrieben; kein Force-Push, keine Änderung an `main`.
+
+**Read-after-write:** GitHub-Compare `main...895aaa3` meldet `ahead=16`, `behind=0`; weiterhin **genau 10** fachlich geänderte PR-Dateien. PR #269 ist weiterhin Draft, Merge-Status `blocked`, 0 Reviews. `Klar Enterprise CI` [Run 41527555204](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41527555204) war bei letzter Abfrage für diese neue SHA **in progress**; keine grüne neue Integration behaupten. Der frühere Erfolg [CI 41523279539](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41523279539) gilt nur für den Vorgänger-Head `d6c1c999...`.
+
+**Noch ausstehend:** unabhängige Security-Reviews, formal erzwungener CODEOWNERS-/Review-Schutz (Ruleset #25756841 zuletzt 0 Pflichtapprovals), finale CI, Emulator-/Staging-/SRE-Nachweise, funktionsfähiger generation-bound Purge und vollständiger Release-Entscheid. **Production weiterhin NO-GO.**
