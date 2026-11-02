@@ -18,6 +18,12 @@ Ein Reviewer konnte deshalb unzutreffend annehmen, die Read-only-Evidenzprüfung
 - `scripts/test-retention-matrix.mjs` ergänzt fünf Negativmutationen: vier Rückfälle auf 13 und Wegfall des Freigabevorbehalts.
 - Keine Änderung am gcloud-Provisionierungsskript, den eigentlichen Firestore TTL Policies, Firestore/Storage Rules, Kundendaten oder IAM; **keine Cloud-Zugriffe oder Produktivmutation**.
 
+## Erster exact-head-CI-Lauf und reproduzierter Regressionstest-Fehler
+
+Die initiale HEAD-SHA `8d1c31331436c7ec7799919f8ffc997783337f08` erreichte im [Enterprise-CI #41471134436](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41471134436) das Retention-Gate. Der 20er-Quellmatrix-Check bestand, aber der neu hinzugefügte Negativfall `missing explicit new-matrix legal approval caveat` scheiterte: Der Guard `/keine.*DPO-\/Legal-Freigabe der erweiterten Matrix/` matchte trotz Entfernung des entscheidenden `**keine**` noch ein anderes `keine` auf derselben Zeile. Deshalb wurde die Mutation irrtümlich akzeptiert und die CI korrekt mit Fehler abgebrochen.
+
+**Korrektur:** Die Assertion verlangt nun exakt den unmittelbar vor `DPO-/Legal-Freigabe` stehenden Ausdruck `**keine**` (`d1eb4299d0f138865b748283a618dc7abf2932e3`). Der Negativfall muss damit scheitern, ohne die tatsächlich fehlende Fachfreigabe sprachlich zu verwischen. Eine **erneute vollständige CI für den finalen Branch-HEAD** ist erforderlich. Der alte fehlerhafte CI-Lauf ist ausdrücklich kein PASS.
+
 ## Verifikation, Grenzen und Governance
 
 Eine **neue vollständige exact-HEAD-CI** ist für diesen Branch erforderlich. Auch nach CI-PASS gilt: Der Offline-Validator prüft nur Quell-/Dokumentationskonsistenz und gespeicherte Evidenz, keine reale TTL-Konfiguration. Ein `ACTIVE`-Nachweis benötigt einen autorisierten und zeitgebundenen read-only Cloud-Abruf für exakt das genehmigte Projekt und die Datenbank. Die Matrix selbst benötigt unabhängige Bestands-/Legal-Hold- und Datenschutz-/Rechtsfreigabe. TTL ist asynchron und ersetzt weder sofortige DSGVO-Art.-17-Löschungen noch Audit-/Vertrags-Aufbewahrung.
