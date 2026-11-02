@@ -5,12 +5,19 @@
  * output. Production SRE inventory requires a separate reviewed read-only tool.
  */
 const args = new Set(process.argv.slice(2));
-const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || '';
+const gcloudProject = process.env.GCLOUD_PROJECT || '';
+const googleProject = process.env.GOOGLE_CLOUD_PROJECT || '';
+// Check both project hints before Firebase SDK import: a demo first value
+// must never mask a production second value through || fallback.
+const projectId = gcloudProject || googleProject;
+const projectIdentitySafe = projectId === 'demo-klar' &&
+  (!gcloudProject || gcloudProject === 'demo-klar') &&
+  (!googleProject || googleProject === 'demo-klar');
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || '';
 
-if (!args.has('--emulator-only') || !/^demo-[a-z0-9-]+$/.test(projectId) ||
+if (!args.has('--emulator-only') || !projectIdentitySafe ||
     !/^(?:localhost|127\.0\.0\.1|\[::1\]):\d{2,5}$/.test(emulatorHost)) {
-  process.stderr.write('Refused: --emulator-only, demo-* project and loopback FIRESTORE_EMULATOR_HOST required.\n');
+  process.stderr.write('Refused: --emulator-only, matching demo-klar project variables and loopback FIRESTORE_EMULATOR_HOST required.\n');
   process.exit(2);
 }
 if ([...args].some(arg => arg !== '--emulator-only')) {
