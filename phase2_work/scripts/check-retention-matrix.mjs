@@ -35,7 +35,7 @@ const evidenceClaims = [
   ['staging ACTIVE count', /Status `ACTIVE` aller 20 Gruppen/],
   ['saved evidence count', /Der Prüfer verlangt 20 distinct `expiresAt`-Felder/],
   ['read-only live verification count', /validates all 20 ACTIVE TTL fields/],
-  ['legal approval is still outstanding', /keine.*DPO-\/Legal-Freigabe der erweiterten Matrix/],
+  ['legal approval is still outstanding', /\*\*keine\*\* DPO-\/Legal-Freigabe der erweiterten Matrix/],
 ];
 for (const [description, pattern] of evidenceClaims) {
   assert(pattern.test(docs), 'TTL documentation evidence count or approval drift: ' + description);
