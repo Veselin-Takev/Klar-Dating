@@ -9,6 +9,8 @@
 - 108 von 111 Nicht-main-Basen entsprechen dem Head eines anderen offenen PR; 3 Basen haben **keinen** Head in der offenen PR-Liste (dies belegt nicht, dass der Branch fehlt). **16 PRs** sind dadurch ohne belegte durchgängige offene-PR-Kette zu main. Längste beobachtete Kette: Tiefe 35 (main-basierter PR = Tiefe 0).
 - Die Zuordnung per `titleArea` ist eine **heuristische Titelkategorie**, keine individuelle P0/P1-Triage. Die SHA-Bindung ist im [maschinenlesbaren Inventar](./OPEN_PR_INVENTORY_2026-11-02.json) enthalten.
 
+- **P0 #202:** [Review- und CI-Entscheidungsmatrix zu den konkurrierenden Root-PRs](./P0_202_MERGE_READINESS_2026-11-02.md): #269 als enger erster Review-Kandidat, aber weder Merge-GO noch Cloud-Abnahme.
+
 ## Priorisierte, reviewpflichtige Integrationswellen
 
 | Welle | Gegenstand und Beispiel-PRs | Voraussetzung vor Merge |
