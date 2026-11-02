@@ -115,6 +115,27 @@ describe('P0 #202 read-only verification retention backlog census', () => {
     })).rejects.toThrow('verification_census_invalid_read_page');
   });
 
+  it('reports ambiguous legal-hold field types separately without treating them as confirmed holds', async () => {
+    const candidates = [
+      row(0, { legalHold: true }),
+      row(1, { legalHold: false }),
+      row(2, { legalHold: 'false' }),
+      row(3, { retentionHold: 'true' }),
+      row(4, { hold: null }),
+      row(5, { hold: 1 }),
+      row(6, { legalHold: true, hold: 'false' }),
+      row(7, { retentionHold: undefined }),
+    ];
+    const { read } = reader(candidates);
+    const counts = await censusVerificationRetentionBacklog(read, { now, pageSize: 3, maxPages: 5 });
+    expect(counts).toMatchObject({
+      scanned: 8, complete: true, knownLegalHolds: 2,
+      invalidHoldIndicators: 5,
+    });
+    expect(JSON.stringify(counts)).not.toContain('private-owner');
+    expect(counts).not.toHaveProperty('rows');
+  });
+
   it('flags lexical path traversal, empty segments and ambiguous owners as invalid without exposing paths', async () => {
     const malicious = [
       { uid: 'private-owner', storagePath: 'verification/private-owner/../foreign.jpg' },
