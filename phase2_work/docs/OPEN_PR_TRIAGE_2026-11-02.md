@@ -83,3 +83,19 @@ Das überflüssige Vercel-Projekt `login-page-prototype` (`prj_kfJ06pJHn3neZAkrt
 **Exakter PR-Head nach Tests/Dokumentation:** `036ee313747a7beb2ab926e721e3bef958304447`, [CI 41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863) zuletzt **pending**. Kein claim eines Test-PASS für diese SHA. [Vollständige Quell-/Grenzen-Dokumentation](https://github.com/Veselin-Takev/Klar-Dating/blob/feature/multitenant-zero-trust-foundation-20261031/phase2_work/docs/MULTITENANT_FOUNDATION_2026-10-31.md). Noch **kein** aktivierter Tenant-Middleware-Cutover, keine Legacy→Tenant-Datenmapping-Evidenz, keine Art.-17/BOLA-/Firestore-/Storage-Rules-Migration und keine unabhängige Security-/DPO-/SRE-Abnahme. Die FQDN-Korrektur ist keine Produktionsfreigabe; `productionApproved=false`, **NO-GO**.
 
 **Andere exakte CI:** #203 `ee79035116fe9880517086f488b03abf7ec19e97` [41536146230](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41536146230) inzwischen `completed/success`; #313 auf früherer SHA `76c6b71f74ccfe718936c4ba94f8fe12e8b2e038` [41536232759](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41536232759) ebenfalls `completed/success`. Neue Dokumentationscommits auf #313 brauchen eigene exakte CI. Alle bleiben Drafts ohne menschliche Reviews; GitHub Ruleset #25756841 erzwingt weiterhin 0 Approvals.
+
+## Live-CI-Checkpoint — 2026-11-02, 22:49 UTC (Read-only-Abfrage)
+
+GitHub-Connector-Readback der exakten PR-Head-SHAs; diese Momentaufnahme ist keine unabhängige Security-Abnahme und kein Nachweis eines aktuellen Cloud-Produktionszustands:
+
+| PR | Exakter Head | PR-Zustand | GitHub Actions (PR-Commit) | Ergebnis |
+| --- | --- | --- | --- | --- |
+| [#269](https://github.com/Veselin-Takev/Klar-Dating/pull/269) | `895aaa3da2056d7799f887596b89c09207699925` | Draft | [41527555204](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41527555204) | completed/success |
+| [#251](https://github.com/Veselin-Takev/Klar-Dating/pull/251) | `89f0e744fa31d4f6dfb487acce8a9f4c2e4f8d8e` | Draft | [41533779126](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41533779126) | completed/success |
+| [#253](https://github.com/Veselin-Takev/Klar-Dating/pull/253) | `036ee313747a7beb2ab926e721e3bef958304447` | Draft | [41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863) | in_progress; nicht PASS |
+| [#313](https://github.com/Veselin-Takev/Klar-Dating/pull/313) | `80207d4e1075039dd171ba9c5a13f704f5308f99` | Draft | [41540168620](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41540168620) | in_progress; nicht PASS |
+| [#315](https://github.com/Veselin-Takev/Klar-Dating/pull/315) | `71743b14c66d9c5f2fdca2ed73a0fda3c137d48d` | Nicht-Draft | [41531498018](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41531498018) | completed/failure; kein Merge |
+
+Die separaten Commit-Status-Contexts melden für diese SHAs teils `Vercel: success`; sie belegen **nicht**, dass der GitHub-Enterprise-Workflow oder die Produktions-Gates bestanden wurden. Für den **vorliegenden Dokumentations-Commit** muss der neue exakte Head erneut geprüft werden, bevor irgendein CI-PASS für ihn behauptet werden darf.
+
+**Weiteres Vorgehen:** CI #253 und #313 bis zum Terminalzustand verifizieren; für #315 Pin-/Validator-Konsistenz nur nach unabhängiger Supply-Chain-Prüfung und freigegebener Integration von #251 erneut bewerten. Zuerst das unabhängige Reviewer-/Ruleset-Gate schließen, danach #269 und #203 sequenziell unter getrennter Privacy-/Race-Abnahme; #254 und reale #8-Betriebsevidenz bleiben eigenständige P0-Gates. Keine Freigabe durch Zeitablauf, CI-Status oder Dokumentation allein. `productionApproved=false`; **BLOCKED / NO-GO**.
