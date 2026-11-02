@@ -20,6 +20,10 @@ test('new lease state machine is completely unbound from live photo deletion', (
 });
 
 const mutations = [
+  ['corrupt ready or leased state can be claimed again', x => ({ ...x, states: x.states.replace("state.status === 'ready' || state.status === 'leased'", "state.status === 'unreachable'") })],
+  ['old delete intent marker is ignored during claim', x => ({ ...x, states: x.states.replace('state.intent !== undefined || state.observed !== undefined', 'false || false') })],
+  ['prior completion and receipt digest are ignored', x => ({ ...x, states: x.states.replace('state.completedAt !== undefined || state.receiptDigest !== undefined', 'false || false') })],
+  ['prior legal hold marker is ignored', x => ({ ...x, states: x.states.replace('state.quarantineReason !== undefined', 'false') })],
   ['canonical receipt generation evidence removed', x => ({ ...x, states: x.states.replace('export function hasCanonicalGcsReceiptEvidence', 'function hasCanonicalGcsReceiptEvidence') })],
   ['receipt claim accepts corrupted stored observations', x => ({ ...x, states: x.states.replace("!hasCanonicalGcsReceiptEvidence(state)", '!state.observed') })],
   ['adapter allows unverified receipt evidence', x => ({ ...x, adapter: x.adapter.replace('hasCanonicalGcsReceiptEvidence(next)', '!!next.observed') })],
