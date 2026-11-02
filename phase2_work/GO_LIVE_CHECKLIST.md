@@ -526,3 +526,13 @@ P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.
 - [ ] Never treat missing/invalid hold metadata as signed clearance. Independently prove authorized GCS decision/holds and 404/412/crash receipts, real durable >300 deletion queue/Scheduler/IAM, P0 #254 true Tenant/Admin SDK/Art17/Rules/Media ADR and independent Security/DPO/Legal/SRE/ReleaseOwner release SHA signoffs.
 
 `productionApproved=false` — **Production BLOCKED / NO-GO**.
+
+
+### 2026-11-02 — Authoritative P0 #202 malformed hold flag exclusion
+
+- [x] [Draft #304](https://github.com/Veselin-Takev/Klar-Dating/pull/304) SHA `cb32f49d9c4ffb66af7559ac7b78cfc2b70524cf` [CI #41421019259](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41421019259) **SUCCESS** including read-only legal hold flag anomaly tests; previous Governance SHA `45caa55d211e362fd022b51b8592bbceb3b3ca7e` [CI #41421277537](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41421277537) SUCCESS.
+- [x] [Stacked Draft #305](https://github.com/Veselin-Takev/Klar-Dating/pull/305), initial `eb40e5eaebaeb02e4a5c42f175d8f8c46fe71666`, rejects **present malformed** `legalHold`/`retentionHold`/`hold` types at authoritative purge preflight, live-boundary reread and receipt validation; pure negative tests and mandatory static source gate. No GCS, Scheduler/IAM, Rules or deployed data action.
+- [ ] Verify exact SHA [CI #41422714192](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41422714192) full PASS: enterprise compliance source check, Typecheck, all native Firebase safety suites, negative absent-emulator gate, Vitest, Functions and frontend build, Production Smoke and 26 browsers. In progress at recording.
+- [ ] Do not infer legal hold clearance from absent flags. Obtain independently signed DPO/Legal authoritativeness and migration plan; real GCS decision/hold freshness and 404/412/crash receipts, durable >300 authorized deletion jobs with Scheduler/IAM staging, #254 tenant/AdminSDK/Art17/Rules/Media ADR and Security/DPO/Legal/SRE/ReleaseOwner signoffs.
+
+`productionApproved=false` — **Production BLOCKED/NO-GO**. No merge, deploy or customer data actions.
