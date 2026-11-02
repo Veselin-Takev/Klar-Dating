@@ -13,6 +13,9 @@ const checks = [
   ['single scheduler instance', /maxInstances: 1/],
   ['fresh authoritative decision before deletion', /assertCurrentVerificationPurgeCandidate\(current\.data\(\), artifact, now\)/],
   ['GCS metadata generation binding', /verifiedDeletionGeneration\(metadata, now\)/],
+  ['GCS canonical uint64 generation bound', /!isCanonicalDeletionGeneration\(value\)/],
+  ['GCS canonical bounded decimal regexp', /\^\[1-9\]\[0-9\]\{0,19\}\$/],
+  ['GCS uint64 upper boundary', /18446744073709551615/],
   ['GCS conditional object delete', /\.delete\(\{ ifGenerationMatch: generation \}\)/],
   ['reject old unversioned delete', /NEVER_REMOVE_MATCH_THIS_PATTERN/],
   ['hold and expiry enforcement', /metadata\?\.temporaryHold === true/],
@@ -33,7 +36,10 @@ for (const [label, re] of checks) {
     if (/\.delete\(\{ ignoreNotFound:\s*true \}\)/.test(route)) throw new Error('Compliance storage purge boundary failed: unversioned GCS deletion');
     continue;
   }
-  const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : label === 'hold and expiry enforcement' || label === 'authoritative malformed hold flags fail-closed' ? boundary : route;
+  const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : label === 'hold and expiry enforcement' ||
+    label === 'authoritative malformed hold flags fail-closed' ||
+    label.startsWith('GCS canonical') ||
+    label === 'GCS uint64 upper boundary' ? boundary : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
 }
 console.log('Compliance storage purge boundary: PASS');
