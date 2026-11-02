@@ -1,3 +1,13 @@
+## PR #159: Generator-Verifikation vervollständigt — 2026-11-02
+
+Bestehender Webcommit erhalten; Hono-/ip-address-Zielprüfung und Quell-Commit-Bindung korrigiert. 15 lokale Verifikator-Regressionen bestehen und sind in CI sowie Generator eingebunden. Genau die beiden Zielversionen sind am 02.11.2026 im offiziellen npm-Register bestätigt; gezielte vollständige OSV-Antworten ohne Advisories sind keine globale Entwarnung. Noch keine neuen Lockfiles übernommen; Generator, Frozen-Installationen, vollständiger Graph-/Scanreview und Pflicht-CI stehen aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
+## fast-uri integriert; weitere transitive HTTP-Abhängigkeiten vorbereitet — 2026-10-27
+
+PR #158 nach voller CI 40575377412 auf `7f13d4290b823741b265479277563e1b8e9d7051` integriert. Main `2808dc1cbb485f70b403681c108cea5a3361d950` exakt geprüft. Nächster Kandidat hono 4.13.14 / ip-address 10.7.5 innerhalb vorhandener Parent-Ranges; Manifeste unverändert. Generator-/Artefakt-/Graph-/Scan-/CI-Nachweise ausstehend. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
+
+---
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

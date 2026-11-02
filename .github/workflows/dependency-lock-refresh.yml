@@ -20,6 +20,8 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: '1.4.4'
+      - name: Verify candidate guard regressions
+        run: node --test phase2_work/scripts/test-lock-refresh-verifier.mjs
       - name: Generate range-compatible Hono and IP-address candidate without lifecycle scripts
         shell: bash
         run: |
