@@ -1,7 +1,6 @@
 import {
   DEFAULT_VERIFICATION_RETENTION_DAYS,
   MS_PER_DAY,
-  generatePurgeAuditDigest,
   type VerificationArtifactRecord,
 } from './storageRetentionEngine';
 
@@ -51,7 +50,6 @@ export function assertCurrentVerificationPurgeCandidate(
   if (!current || !hasUnambiguousVerificationHoldFlags(current) ||
       // An explicitly malformed purge marker must never be treated as false.
       (Object.hasOwn(current, 'photoPurged') && typeof current.photoPurged !== 'boolean') ||
-      Object.hasOwn(current, 'photoPurgedAt') || Object.hasOwn(current, 'auditDigest') ||
       !Number.isFinite(now) || now <= 0 ||
       !artifact.uid || !artifact.challengeId || !artifact.storagePath.startsWith(`verification/${artifact.uid}/`)) {
     throw new Error('verification_purge_candidate_unavailable');
@@ -75,40 +73,6 @@ export function assertCurrentVerificationPurgeCandidate(
       date <= 0 || date > now || now < date + DEFAULT_VERIFICATION_RETENTION_DAYS * MS_PER_DAY ||
       due > now || due < date + DEFAULT_VERIFICATION_RETENTION_DAYS * MS_PER_DAY) {
     throw new Error('verification_purge_candidate_changed');
-  }
-}
-
-
-/**
- * A completed purge must have an internally consistent, authoritative receipt.
- * This SHA-256 digest is a consistency check, NOT proof of physical deletion
- * or a tamper-resistant signature. Production reconciliation remains P0.
- */
-export function assertCompletedVerificationPurgeReceipt(
-  current: Record<string, unknown> | undefined,
-  artifact: VerificationArtifactRecord,
-  now: number,
-): void {
-  if (!current || current.photoPurged !== true || !artifact.photoPurged ||
-      !hasUnambiguousVerificationHoldFlags(current) ||
-      !Number.isSafeInteger(now) || now <= 0 ||
-      current.uid !== artifact.uid || current.storagePath !== artifact.storagePath) {
-    throw new Error('verification_purge_receipt_invalid');
-  }
-  const primary = decision(current.entscheidung);
-  const secondary = decision(current.status);
-  const decidedAt = epochMillis(current.decidedAt);
-  const purgedAt = epochMillis(current.photoPurgedAt);
-  if (primary !== null && secondary !== null && primary !== secondary ||
-      (current.entscheidung !== undefined && primary === null) ||
-      (current.status !== undefined && secondary === null) ||
-      (primary ?? secondary) !== artifact.status ||
-      decidedAt === null || decidedAt !== artifact.decidedAt ||
-      purgedAt === null || !Number.isSafeInteger(purgedAt) ||
-      purgedAt > now || purgedAt < decidedAt + DEFAULT_VERIFICATION_RETENTION_DAYS * MS_PER_DAY ||
-      typeof current.auditDigest !== 'string' || !/^[a-f0-9]{64}$/.test(current.auditDigest) ||
-      current.auditDigest !== generatePurgeAuditDigest(artifact.uid, artifact.challengeId, artifact.storagePath, purgedAt)) {
-    throw new Error('verification_purge_receipt_invalid');
   }
 }
 
