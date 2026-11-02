@@ -493,3 +493,14 @@ Prior audit [CI #41352274801](https://github.com/Veselin-Takev/Klar-Dating/actio
 - [ ] Independently prove P0 #202 live GCS legal hold/decision/404/412/crash receipts and durable >300 authorized queue, Scheduler/IAM, P0 #254 real tenant/Art17/Admin SDK and Product/DPO/Legal guest-media ADR, SRE 30-day P95 and real Security/DPO/Legal/SRE/ReleaseOwner signoffs.
 
 **P0 #202/#254 OPEN; `productionApproved=false`; Production BLOCKED/NO-GO.**
+
+
+### 2026-11-02 — Verifiable read-only 350-row native Firestore census
+
+- [x] [Draft #301](https://github.com/Veselin-Takev/Klar-Dating/pull/301), head `4df133e2c0cf03e01dd2d726979adeee8f4615ed` [CI #41415425785](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415425785) SUCCESS: four new conflicting project-ID negative cases, 1,507 Vitest, native Security Emulator, Production Smoke, 26 Browser PASS.
+- [x] Previous Governance PR #270 head `00b782cd67c7df7c63ea09087bf954a322914e95` [CI #41415629886](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41415629886) SUCCESS, valid on exact old head only.
+- [x] [Stacked Draft #302](https://github.com/Veselin-Takev/Klar-Dating/pull/302) `0bc8a2d2184a8191e0469b462efaa2ed0cdf2179` created; native Firestore 350 synthetic record inventory scenario added and source/mutation CI guards for true 300 incomplete vs 350 complete behavior. No GCS delete or production data touched.
+- [ ] Verify [#302 exact-head full CI #41417577397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41417577397) PASS: mandatory P0 gates + source mutations, full Typecheck, real Storage/Tenant Firestore/Retention Firestore, absent-Emulator negative, 350-row census, Didit, release-go evidence, build/smoke and 26 Browser. QUEUED at audit time.
+- [ ] **Do not count 350 census records as 350 authorized or durable GCS deletion jobs.** Separately evidence real decision/holds/404/412/crash receipts, >300 durable processing + Scheduler/IAM, Tenant/Admin SDK/Art17/BOLA/Media ADR, actual SRE 30-day P95 and independently signed Security/DPO/Legal/SRE/ReleaseOwner GO.
+
+P0 #202/#254 OPEN, `productionApproved=false`, Production BLOCKED/NO-GO.
