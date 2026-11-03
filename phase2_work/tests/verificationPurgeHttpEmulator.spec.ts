@@ -80,15 +80,17 @@ async function startApi(
   const url = 'http://127.0.0.1:' + address.port + '/api/admin/purge-verification-storage';
 
   return {
-    request: async (valid = true): Promise<HttpResult> => {
-      const body = '{}';
+    request: async (
+      valid = true, contentType = 'application/json',
+      body = '{}', signedBody = body,
+    ): Promise<HttpResult> => {
       const timestamp = String(Date.now());
       const signature = valid
-        ? complianceSignature(timestamp + '.' + body, secret)
+        ? complianceSignature(timestamp + '.' + signedBody, secret)
         : '0'.repeat(64);
       const response = await fetch(url, {
         method: 'POST', headers: {
-          'content-type': 'application/json',
+          'content-type': contentType,
           'X-Klar-Compliance-Timestamp': timestamp,
           'X-Klar-Compliance-Signature': signature,
         },
@@ -214,6 +216,26 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       } finally {
         await api.close();
         await valid.delete();
+      }
+    });
+  }, 90_000);
+
+  it('rejects an incorrectly encoded signed request rather than authenticating a fabricated body', async () => {
+    await withEvent(async ({ db, event }) => {
+      let deleted = false;
+      const api = await startApi(db, async () => { deleted = true; });
+      try {
+        // The wire body differs from the JSON body covered by the HMAC.
+        // With text/plain the raw JSON middleware must not parse the body.
+        const rejected = await api.request(true, 'text/plain', 'unparsed body', '{}');
+        expect(rejected.status).toBe(415);
+        expect(deleted).toBe(false);
+        const current = (await event.get()).data();
+        expect(current?.photoPurgeIntent).toBeUndefined();
+        expect(current?.photoPurgeProof).toBeUndefined();
+        expect(current?.photoPurged).toBe(false);
+      } finally {
+        await api.close();
       }
     });
   }, 90_000);
