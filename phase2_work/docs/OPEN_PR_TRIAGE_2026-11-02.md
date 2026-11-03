@@ -177,3 +177,17 @@ PR #203 exact head `5eaf88784aee333d3e9b2f2d7bb75aacd8a77927` [run 41556509748](
 ## Authoritative writer inventory finding — 2026-11-03
 
 Default-branch source inspection found `phase2_work/src/server/klarCore.ts` moderation decision transaction updates both user and verification request records, and `tx.create`s a new `verification_events` document with decision, due date and storage path. The Draft #203 purge revalidates fields of the event document. **Architecture gap to resolve:** whether later revocations/holds are authoritative in the user/request record or event snapshot, and whether all writers synchronize/fence those records. A direct mutation of event status in a mock TOCTOU test is not evidence that production writers actually mutate that field. [PR #203 comment](https://github.com/Veselin-Takev/Klar-Dating/pull/203#issuecomment-6596985778) requests canonical source-of-truth and writer inventory before fencing design. No remediation or production approval claimed; `productionApproved=false`; **NO-GO**. This docs commit requires exact-SHA CI.
+
+## Verification state authority: code-level mapping — 2026-11-03
+
+Read-only comparison of current default-branch `src/server/klarCore.ts` and PR #203 head `5eaf88784aee333d3e9b2f2d7bb75aacd8a77927`:
+
+| Lifecycle operation | Source / state | Observed write or read |
+| --- | --- | --- |
+| Photo submission | `klarCore.ts` ~293-310 | Creates `verification_requests`, sets `users.verificationStatus=in_pruefung` and request/path |
+| Moderation decision | `klarCore.ts` ~368-383 | One Firestore transaction updates `users` and `verification_requests`, **creates** a separate `verification_events` record with `entscheidung`, `storagePath`, `fotoLoeschenAb` |
+| Retention eligibility | PR #203 `complianceStorage.ts` ~97-115, ~250-282 | Checks **event** decision/path/due date, lease and `photoPurgeIntent`; no user/request reread is shown in this code path |
+| Destructive operation | PR #203 `complianceStorage.ts` ~37-49 | GCS metadata generation, Firestore `beforeDelete`, then generation-conditional GCS delete; no cross-service atomicity |
+| Receipt | PR #203 `complianceStorage.ts` ~310-330 | Post-delete event/lease revalidation and `photoPurgeProof`; cannot reverse deletion |
+
+**Decision required before remediation:** establish whether `verification_events` is immutable history or authoritative mutable retention state; identify which later user/request moderation and legal-hold writers may supersede it. Design a consistent state transition and conflict policy, including all writers, not just the purge worker. Test event-vs-user/request divergence and post-callback revocation with an explicit expected no-delete policy. Do not infer a real exploit solely from mocked event mutation. #203 remains Draft; #313 exact head `555bf7fe73300c34c05d0321545f974a18ea355c` run 41589714436 was `in_progress` when checked. This documentation commit needs exact-SHA CI. `productionApproved=false`; **NO-GO**.
