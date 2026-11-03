@@ -376,6 +376,33 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('fails closed if canonical decision changes after purge intent but before final authorization', async () => {
+    await withEvent(async ({ db, event }) => {
+      let metadataReads = 0;
+      let deleteCalls = 0;
+      const api = await startApi(db, async () => { deleteCalls++; }, async () => {
+        metadataReads++;
+        if (metadataReads === 2) {
+          // Legacy status remains approved; canonical moderation now rejects it.
+          await event.update({ entscheidung: 'abgelehnt' });
+        }
+        return [{ generation: '773', temporaryHold: false }];
+      });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({
+          status: 503, data: { ok: false, purgedCount: 0, failedCount: 1 },
+        });
+        expect(metadataReads).toBe(2);
+        expect(deleteCalls).toBe(0);
+        const record = (await event.get()).data();
+        expect(record?.photoPurged).toBe(false);
+        expect(record?.photoPurgeIntent).toMatchObject({ generation: '773' });
+        expect(record?.photoPurgeProof).toBeUndefined();
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
   it('blocks physical deletion if the Firestore lease expires before the final check', async () => {
     await withEvent(async ({ db, event }) => {
       let metadataReads = 0;
