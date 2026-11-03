@@ -5,7 +5,7 @@
  * This does NOT establish cross-service atomicity or cover dynamic SDK paths.
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve, relative, dirname } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
