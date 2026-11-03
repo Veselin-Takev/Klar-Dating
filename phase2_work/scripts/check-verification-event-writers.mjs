@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * P0 #202: source-only inventory of literal verification_events references.
- * Fail closed when a new production-code reference appears without review.
+ * Fail closed when a new quoted collection-path literal appears without review.\n * Bare prose comments are not Firestore accesses; dynamically assembled paths\n * remain outside this lexical guard and require code review.
  * This does NOT establish cross-service atomicity or cover dynamic SDK paths.
  */
 import { readFileSync, readdirSync } from 'node:fs';
@@ -48,7 +48,7 @@ export function readVerificationEventSourceMap() {
 export function verificationEventWriterViolations(files) {
   const issues = [];
   for (const [path, source] of files) {
-    const occurrences = [...source.matchAll(/\bverification_events\b/g)].length;
+    const occurrences = [...source.matchAll(/['"`]verification_events(?:\/[^'"`]*?)?['"`]/g)].length;
     const rule = expected.get(path);
     if (!rule && occurrences) {
       issues.push('unreviewed verification_events reference: ' + path);
