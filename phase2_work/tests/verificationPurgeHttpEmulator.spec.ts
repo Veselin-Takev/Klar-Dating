@@ -127,6 +127,30 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+  it.each([
+    ['bestaetigt', 'approved'],
+    ['abgelehnt', 'approved'],
+    ['approved', 'in_pruefung'],
+  ])('refuses a contradictory moderation decision (%s vs %s) without deleting', async (entscheidung, status) => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({ entscheidung, status });
+      let deleted = false;
+      const api = await startApi(db, async () => { deleted = true; });
+      try {
+        const result = await api.request();
+        expect(result.status).toBe(503);
+        expect(deleted).toBe(false);
+        const stored = (await event.get()).data();
+        expect(stored?.photoPurged).toBe(false);
+        expect(stored?.photoPurgeIntent).toBeUndefined();
+        expect(stored?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
+
   it('rejects bad HMAC before touching the DB; exactly one concurrent lease holder deletes', async () => {
     await withEvent(async ({ db, event, path }) => {
       let entered!: () => void;
