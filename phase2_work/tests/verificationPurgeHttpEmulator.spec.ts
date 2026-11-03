@@ -151,6 +151,40 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
   }, 90_000);
 
 
+  it('isolates a contradictory due row while processing the valid row in the same page', async () => {
+    await withEvent(async ({ db, event, path }) => {
+      await event.update({ entscheidung: 'abgelehnt', status: 'approved' });
+      const valid = db.collection('verification_events').doc(event.id + '-valid');
+      const goodPath = path.replace('/capture.jpg', '/valid.jpg');
+      const original = (await event.get()).data();
+      if (!original) throw new Error('verification_test_fixture_missing');
+      await valid.set({
+        ...original, storagePath: goodPath,
+        entscheidung: 'bestaetigt', status: 'approved',
+      });
+      const deleted: string[] = [];
+      const api = await startApi(db, async target => { deleted.push(target); });
+      try {
+        const response = await api.request();
+        expect(response).toMatchObject({
+          status: 503,
+          data: { ok: false, processed: 2, purgedCount: 1, failedCount: 1 },
+        });
+        expect(deleted).toEqual([goodPath]);
+        const corrupt = (await event.get()).data();
+        expect(corrupt?.photoPurged).toBe(false);
+        expect(corrupt?.photoPurgeIntent).toBeUndefined();
+        expect(corrupt?.photoPurgeProof).toBeUndefined();
+        const healthy = (await valid.get()).data();
+        expect(healthy?.photoPurged).toBe(true);
+        expect(healthy?.photoPurgeProof?.generation).toBe('773');
+      } finally {
+        await api.close();
+        await valid.delete();
+      }
+    });
+  }, 90_000);
+
   it('rejects bad HMAC before touching the DB; exactly one concurrent lease holder deletes', async () => {
     await withEvent(async ({ db, event, path }) => {
       let entered!: () => void;
