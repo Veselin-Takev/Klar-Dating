@@ -62,14 +62,14 @@ async function startApi(
     getBucket: () => {
       if (!enabled) throw new Error('disabled_purge_must_not_touch_storage');
       return {
-      file: (path: string) => ({
-        getMetadata: metadata,
-        delete: async (options: { ifGenerationMatch: string | number }) => {
-          expect(options).toEqual({ ifGenerationMatch: '773' });
-          await onDelete(path);
-        },
-      }),
-    };
+        file: (path: string) => ({
+          getMetadata: metadata,
+          delete: async (options: { ifGenerationMatch: string | number }) => {
+            expect(options).toEqual({ ifGenerationMatch: '773' });
+            await onDelete(path);
+          },
+        }),
+      };
     },
   }));
   const server = await new Promise<Server>(resolve => {
