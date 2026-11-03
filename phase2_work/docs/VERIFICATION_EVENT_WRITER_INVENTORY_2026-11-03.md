@@ -64,3 +64,13 @@ Der Batch-Handler isoliert jetzt **ausschließlich diesen bekannten Konflikttyp*
 Ein neuer Firestore-Emulator-Negativtest erstellt zwei fällige Einträge: einen widersprüchlichen und einen gültigen. Erwartet: `processed=2`, `purgedCount=1`, `failedCount=1`, **503**; nur das gültige Objekt wird gelöscht, während der Konflikteintrag ohne `photoPurgeIntent` und `photoPurgeProof` bleibt.
 
 **Grenzen:** Keine atomare Absicherung der nachgelagerten Firestore/GCS-Race, kein Nachweis über produktive Daten oder Cloud-Berechtigungen. CI/Emulator gegen die aktuelle exakte SHA sowie unabhängige AppSec-/DPO-/SRE-Freigaben sind weiterhin notwendig. `productionApproved=false`; **NO-GO**.
+
+## Default-Deny-Deployment-Sperre vor Firestore/GCS
+
+Der signierte Admin-Endpunkt `POST /api/admin/purge-verification-storage` bleibt ab diesem Review-Branch vorerst **standardmäßig deaktiviert**. Nach erfolgreicher HMAC-Authentifizierung fordert die Route exakt `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED=true` (klein geschrieben, keine Leerzeichen). Fehlender oder abweichender Wert ergibt **HTTP 503 / verification_storage_purge_disabled**, bevor `getDb()`, die Firestore-Lease oder der GCS-Bucket geöffnet wird. Ein unautorisierter Request bleibt 401. Dies ist ein zusätzlicher Runtime-Interlock gegen eine versehentliche destruktive Aktivierung; der bestehende signierte Scheduler erhält bei deaktivierter Route ein Fehlerergebnis und darf kein erfolgreiches Retention-Result melden.
+
+**Aktivierung ist hiermit NICHT freigegeben.** Die DPO-/AppSec-/SRE-/Release-Owner-Abnahme muss ein vollständiges All-Writer-Fencing-Konzept, die deterministische **Post-Authorization**-Race-Negativprüfung, realen Staging- und Storage-/Scheduler-/IAM-Nachweis sowie den fachlichen Zeitplan für datenschutzkonforme Löschung und die Überwachung des Retention-Backlogs umfassen. Eine reine Änderung der Umgebungsvariable ist weder Schutz gegen die Firestore/GCS-Race noch ein Produktions-GO.
+
+Tests: Unit-Test für exakte Schalterwerte; lokale Firestore-Emulator-Route mit gültiger Signatur und **ohne** Schalter muss 503 ohne DB-/GCS-Zugriff und ohne `photoPurgeIntent`/`photoPurgeProof` ergeben. Der `check:compliance-storage-purge`-Gate bewacht die Präsenz dieser Runtime-Sperre.
+
+**Neue SHA benötigt eine vollständige erfolgreiche CI sowie unabhängige Abnahmen.** Produktionsfreigabe unverändert `productionApproved=false`, **NO-GO**.
