@@ -340,3 +340,18 @@ Ergänzt: Unit-Tests für exakt erlaubte/abgelehnte Switch-Werte; Firestore-Emul
 **Exakter Branch-Head beim Check:** `44661a051beed49f1d8c7253b1626e0c78c56614`, [GitHub Actions 41612527136](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41612527136) **pending**, kein CI-PASS. Nachfolgende Audit-SHA muss ebenfalls getrennt geprüft werden.
 
 **Sicherheits-/Compliance-Grenze:** Der Default-Deny-Schalter schafft zunächst einen Löschrückstand und ist keine langfristige datenschutzrechtliche Lösung. Die aktive Retention-SLO, Backlog-Alarmierung, sichere Staging-Migration, all-writer Firestore/GCS-Fencing-Mechanik sowie unabhängige DPO/Legal-, AppSec-, SRE- und Release-Owner-Abnahmen müssen vor jeder Freischaltung belegt werden. Ohne diese Nachweise bleibt `productionApproved=false`, **BLOCKED / NO-GO**. Es erfolgte kein Merge, Cloud-Flag-Change oder Deployment.
+
+## Signaturbindung: Raw-Body-Parservergleich und gezielter Fix (03.11.2026)
+
+**Neuer konkret nachgewiesener Quellbefund in #203:** `src/server/routes/complianceStorage.ts` nutzte zuvor bei fehlendem `Buffer` ersatzweise `Buffer.from('{}')` als HMAC-Input. Gleichzeitig registrierte `server.ts` den globalen `express.json()`-Parser vor dem signierten Purge-Router. Ein reiner Route-`Buffer`-Zwang ohne Reihenfolge-Korrektur würde gültige Scheduler-Requests zurückweisen. Die Signatur muss stattdessen an die *tatsächlich empfangenen* Bytes gebunden werden.
+
+**Gezielte Code-Härtung im isolierten [Draft #203](https://github.com/Veselin-Takev/Klar-Dating/pull/203):**
+- `server.ts`: Pfadspezifischer 2-kB-`express.raw`-Parser für `/api/admin/purge-verification-storage` **vor** dem globalen JSON-Parser; übrige Middleware und API-Limiter bleiben erhalten.
+- `src/server/routes/complianceStorage.ts`: `Buffer.isBuffer(req.body)` vor HMAC erforderlich, sonst HTTP **415**; kein erfundener Ersatzbody. Unverändert: fehlende/ungültige HMAC → 401, Default-Deny-Deployment-Schalter → 503, bevor Firestore/GCS berührt werden.
+- `tests/verificationPurgeHttpEmulator.spec.ts`: HTTP-Negativtest mit falschem Media-Type und gegen die tatsächliche Payload abweichend signiertem Body, ohne DB-/Storage-Intent-/Audit-Mutation.
+- `scripts/check-compliance-storage-purge.mjs`: statischer Schutz der Parser-Reihenfolge und Verbot des HMAC-Fallbacks.
+- [Details/technische Grenzen](https://github.com/Veselin-Takev/Klar-Dating/blob/fix/202-verification-photo-decision-retention-20261029/phase2_work/docs/VERIFICATION_EVENT_WRITER_INVENTORY_2026-11-03.md).
+
+**Neuer exakter Code-Head:** `885153dfc5bfba7d8a5ecfd41a8935c1195ab667` mit [GitHub Actions 41614325781](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41614325781) **pending** bei der Abfrage. **Nicht als PASS darstellen.** Frühere CI-Erfolge betreffen andere SHAs. Der neue Audit-Commit erfordert eigenständige CI.
+
+Unverändert offen: Cross-Service-TOCTOU nach der letzten Autorisierung, All-Writer-Fencing einschließlich Art.-17-Kontolöschung, Live-Scheduler-/IAM-/Retention-Nachweise, unabhängige AppSec-/DPO-/SRE-/Release-Freigaben und Ruleset #73. Keine Änderung an `main`, keine Produktion, keine aktivierte Löschung. `productionApproved=false`; **BLOCKED / NO-GO**.
