@@ -48,3 +48,9 @@ Die neue Funktion `readConsistentVerificationDecision` normalisiert beide Felder
 Neue Tests: `tests/complianceStoragePurge.spec.ts` mit positiven und negativen Kombinationen; `tests/verificationPurgeHttpEmulator.spec.ts` prüft auf dem echten lokalen Firestore-Emulator die Antwort 503 sowie das Ausbleiben von Storage-Delete, `photoPurgeIntent` und `photoPurgeProof` bei widersprüchlichen Entscheidungen.
 
 **Grenzen:** Diese Änderung löst weder die bestehende *Post-Authorization*-TOCTOU-Race-Condition über Firestore und GCS noch den Konflikt aller externen Admin-SDK-Schreibpfade. Keine Live-/Staging-Evidenz und keine unabhängigen Security-/DPO-/SRE-Freigaben. Freigabe: **NO-GO**, `productionApproved=false`.
+
+## Post-Intent-Konflikt: Emulator-Negativtest
+
+Der Emulator-Test `fails closed if canonical decision changes after purge intent but before final authorization` simuliert nun eine **nach der dauerhaften Purge-Intent-Speicherung** eintreffende, mit `status='approved'` unvereinbare kanonische Entscheidung `entscheidung='abgelehnt'`. Die zweite Storage-Metadatenabfrage ist dafür ein deterministischer Synchronisationspunkt. Erwartet werden HTTP 503, null physische Löschaufrufe, unverändertes `photoPurged=false`, erhaltenes Intent und **kein** `photoPurgeProof`.
+
+Der Test beweist bei erfolgreichem Firestore-Emulator-Lauf nur die Schutzwirkung **vor** der letzten Autorisierungsprüfung; Änderungen zwischen dieser Prüfung und dem tatsächlichen GCS-Delete bleiben technisch nicht ausgeschlossen. Jede neue Test-SHA benötigt vollständige CI- und Emulator-Evidenz. Production NO-GO.
