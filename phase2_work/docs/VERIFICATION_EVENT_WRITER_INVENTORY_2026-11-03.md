@@ -84,3 +84,11 @@ Tests: Unit-Test für exakte Schalterwerte; lokale Firestore-Emulator-Route mit 
 `scripts/check-compliance-storage-purge.mjs` prüft jetzt die relative Registrierungsreihenfolge des pfadspezifischen Raw-Parsers, globalen JSON-Parsers und Compliance-Routers sowie das Fehlen des synthetischen HMAC-Body-Fallbacks.
 
 **Wichtig:** Dies ist eine Quellcode-/Testkorrektur auf dem Draft-Branch, keine unabhängig abgenommene Cloud-Konfiguration. Die Race nach der letzten Firestore-Prüfung, All-Writer-Fencing, produktive Retention-Evidenz, Backlog-Überwachung und unabhängige AppSec-/DPO-/SRE-Freigaben bleiben ausstehend. Kein Deployment/GO.
+
+## Parser-Inventar: CI-Regression und gezielte Reparatur (03.11.2026)
+
+Die letzte für #203 getestete SHA `885153dfc5bfba7d8a5ecfd41a8935c1195ab667` hatte [Actions Run 41614325781](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41614325781) **completed/failure**. Im Schritt **Tests** bestanden 1.431/1.432 Vitest-Tests; `tests/requestBodyPolicy.spec.ts:68` meldete `expected 15 to be 14`, weil die neu bewusst auf den Compliance-Pfad beschränkte `express.raw`-Middleware den bisherigen Parser-Baseline-Zähler von 14 auf 15 erhöht hat. Dies ist ein *Test-Inventar-Drift*, kein Nachweis eines erfolgreichen vollständigen CI-Laufs.
+
+Der Test wurde auf dem bestehenden Draft-Feature-Branch aktualisiert: Er erwartet nun 15 aktive Parserstellen mit `inflate: false` und prüft darüber hinaus, dass **exakt ein** scoped Raw-Parser für `/api/admin/purge-verification-storage` registriert ist und seine Position **nach** `rejectEncodedRequestBodies`, **vor** dem globalen `express.json`-Parser und **vor** dem Purge-Router liegt. Damit wird kein bloßer Zahlenwert erhöht, sondern der Zweck der Parser-Sicherheitsgrenze ausdrücklich regressionsgesichert.
+
+Reparatur-Code-Commit: `1acf3d77e69fccc69ced15a2f370ce08cf4c57fc`; [exakte CI 41616689790](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41616689790) war bei Dokumentationserstellung **in_progress**. Dokumentations-Folgecommits benötigen erneut CI-Readback. Der Firestore/GCS-Post-Authorization-TOCTOU-Befund sowie unabhängige Security/DPO/SRE-Freigaben bleiben davon unberührt. **NO-GO**; kein Deployment/Merge.
