@@ -38,3 +38,13 @@ The first integrated GitHub Actions run [41605092106](https://github.com/Veselin
 The scanner now checks **quoted literal collection/path names**, not bare prose references; an additional regression ensures comments in the retired scheduler do not break the gate, while a separate test rejects newly introduced collection-name aliases. This does **not** detect dynamically concatenated names and is not a semantic TypeScript/Firestore data-flow analysis. The updated exact PR commit and new CI must pass independently before the gate can be accepted.
 
 **The P0 cross-service delete race remains unresolved; no GO claim.**
+
+## Fail-closed widersprüchliche Moderationsfelder (03.11.2026)
+
+`src/server/routes/complianceStorage.ts` normalisierte bisher nur `entscheidung ?? status`. Bei gleichzeitig vorhandenen gegensätzlichen Werten (z. B. `entscheidung='bestaetigt'`, `status='in_pruefung'`) konnte deshalb trotz explizitem Pending-Status eine als genehmigt interpretierte Löschung in Betracht kommen.
+
+Die neue Funktion `readConsistentVerificationDecision` normalisiert beide Felder unabhängig und wirft `verification_photo_decision_conflict`, falls die Werte voneinander abweichen. Unbekannte nichtleere Werte werden niemals als Löschfreigabe interpretiert. **Die gleiche Prüfung erfolgt bei der Batch-Auswahl und bei der erneuten Prüfung unmittelbar vor der Storage-Löschung.**
+
+Neue Tests: `tests/complianceStoragePurge.spec.ts` mit positiven und negativen Kombinationen; `tests/verificationPurgeHttpEmulator.spec.ts` prüft auf dem echten lokalen Firestore-Emulator die Antwort 503 sowie das Ausbleiben von Storage-Delete, `photoPurgeIntent` und `photoPurgeProof` bei widersprüchlichen Entscheidungen.
+
+**Grenzen:** Diese Änderung löst weder die bestehende *Post-Authorization*-TOCTOU-Race-Condition über Firestore und GCS noch den Konflikt aller externen Admin-SDK-Schreibpfade. Keine Live-/Staging-Evidenz und keine unabhängigen Security-/DPO-/SRE-Freigaben. Freigabe: **NO-GO**, `productionApproved=false`.
