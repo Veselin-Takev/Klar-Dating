@@ -94,12 +94,32 @@ function readMatchingPurgeIntent(value: unknown, artifact: VerificationArtifactR
   };
 }
 
+/**
+ * Fail closed when legacy and canonical decision fields disagree. Choosing
+ * entscheidung by nullish precedence silently ignores a pending/revoked status.
+ * The same decoder must be used at scan time and immediately before deletion.
+ */
+export function readConsistentVerificationDecision(
+  data: Record<string, unknown>,
+): VerificationArtifactRecord['status'] {
+  const decode = (value: unknown): VerificationArtifactRecord['status'] | null => {
+    if (value == null) return null;
+    if (value === 'bestaetigt' || value === 'approved') return 'approved';
+    if (value === 'abgelehnt' || value === 'rejected') return 'rejected';
+    return 'pending'; // Unrecognized values never grant purge eligibility.
+  };
+  const canonical = decode(data.entscheidung);
+  const legacy = decode(data.status);
+  if (canonical && legacy && canonical !== legacy) {
+    throw new Error('verification_photo_decision_conflict');
+  }
+  return canonical ?? legacy ?? 'pending';
+}
+
 function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
-  const state = data?.entscheidung ?? data?.status;
-  const status = state === 'bestaetigt' || state === 'approved' ? 'approved'
-    : state === 'abgelehnt' || state === 'rejected' ? 'rejected' : 'pending';
+  const status = data ? readConsistentVerificationDecision(data) : 'pending';
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
     || status !== artifact.status || status === 'pending'
@@ -204,8 +224,7 @@ export function createVerificationStoragePurgeRouter(deps: {
             const uid = typeof data.uid === 'string' ? data.uid : '';
             const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
             const decidedAt = normalizeTimestamp(data.decidedAt);
-            const statusRaw = data.entscheidung ?? data.status;
-            const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
+            const status = readConsistentVerificationDecision(data);
             if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
             return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
           });
