@@ -8,19 +8,23 @@ assert.ok(changed.length > 0 && changed.every(file => allowed.includes(file)), '
 for (const file of ['package.json', 'phase2_work/package.json']) {
   const original = JSON.parse(execFileSync('git', ['show', `HEAD:${file}`], { encoding: 'utf8' }));
   const candidate = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.deepEqual(candidate, original, 'Transitive fast-uri refresh must not change manifest dependencies');
+  assert.deepEqual(candidate, original, 'Transitive HTTP dependency refresh must not change manifest dependencies');
 }
 for (const file of ['bun.lock', 'phase2_work/bun.lock']) {
   const lock = fs.readFileSync(file, 'utf8');
-  const versions = [...new Set([...lock.matchAll(/\["fast-uri@([^"]+)"/g)].map(match => match[1]))].sort();
-  assert.deepEqual(versions, ['3.1.9'], 'Reviewed fast-uri version required; no older or unreviewed version allowed');
+  for (const [name, version] of [['hono', '4.13.16'], ['ip-address', '10.7.5']]) {
+    const versions = [...new Set([...lock.matchAll(new RegExp('\\["' + name + '@([^"]+)"', 'g'))].map(match => match[1]))].sort();
+    assert.deepEqual(versions, [version], `Reviewed ${name} version required; no older or unreviewed version allowed`);
+  }
 }
 const sourceHead = process.env.SOURCE_HEAD;
 assert.match(sourceHead ?? '', /^[a-f0-9]{40}$/, 'Missing exact PR source revision');
+const checkoutCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+assert.equal(sourceHead, checkoutCommit, 'Candidate source revision must match workflow_dispatch checkout');
 const evidence = {
   schemaVersion: 1, purpose: 'review candidate; not approved or deployed',
-  sourceHead, checkoutCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  target: { package: 'fast-uri', versions: ['3.1.9'] },
+  sourceHead, checkoutCommit,
+  target: { packages: { hono: '4.13.16', 'ip-address': '10.7.5' } },
   node: process.version, bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
   hashes: Object.fromEntries(allowed.map(file => [file, {
     before: crypto.createHash('sha256').update(execFileSync('git', ['show', `HEAD:${file}`])).digest('hex'),
