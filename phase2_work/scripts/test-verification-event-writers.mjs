@@ -42,6 +42,23 @@ test('removing an approved creation operation is detected', () => {
   );
 });
 
+test('plain non-code legacy documentation is not mistaken for a writer', () => {
+  assert.deepEqual(
+    mutate('functions/src/deleteExpiredPhotos.ts', value =>
+      value + '\n// Legacy photo logic belongs to verification_events, not this job.\n',
+    ), [],
+  );
+});
+
+test('a new quoted collection alias cannot bypass the static inventory', () => {
+  assert.match(
+    mutate('src/server/routes/unreviewedAlias.ts', () =>
+      "const target = 'verification_events';\\nvoid target;",
+    ).join('\n'),
+    /unreviewed verification_events reference/,
+  );
+});
+
 test('removing a reviewed source is detected', () => {
   const copy = new Map(baseline);
   copy.delete('src/server/trustAndSafety.ts');
