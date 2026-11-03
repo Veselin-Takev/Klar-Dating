@@ -130,6 +130,17 @@ function assertStillEligibleForPurge(
   }
 }
 
+/**
+ * P0 #202 deployment safety interlock. A signed scheduler request is not itself
+ * release authorization. Retain a default-deny switch until the all-writer
+ * Firestore/GCS fencing protocol is independently verified and approved.
+ */
+export function isVerificationPhotoPurgeEnabled(
+  configured: string | undefined = process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED,
+): boolean {
+  return configured === 'true';
+}
+
 export function complianceSignature(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('hex');
 }
@@ -172,6 +183,10 @@ export function createVerificationStoragePurgeRouter(deps: {
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
     if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
+    // Before Firestore lease acquisition and before touching any GCS object.
+    if (!isVerificationPhotoPurgeEnabled()) {
+      return res.status(503).json({ code: 'verification_storage_purge_disabled' });
+    }
 
     const db = deps.getDb();
     const now = Date.now();
