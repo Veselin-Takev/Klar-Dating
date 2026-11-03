@@ -136,7 +136,7 @@ function assertStillEligibleForPurge(
  * Firestore/GCS fencing protocol is independently verified and approved.
  */
 export function isVerificationPhotoPurgeEnabled(
-  configured: string | undefined = process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED,
+  configured: string | undefined,
 ): boolean {
   return configured === 'true';
 }
@@ -184,7 +184,7 @@ export function createVerificationStoragePurgeRouter(deps: {
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
     if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
     // Before Firestore lease acquisition and before touching any GCS object.
-    if (!isVerificationPhotoPurgeEnabled()) {
+    if (!isVerificationPhotoPurgeEnabled(process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED)) {
       return res.status(503).json({ code: 'verification_storage_purge_disabled' });
     }
 
