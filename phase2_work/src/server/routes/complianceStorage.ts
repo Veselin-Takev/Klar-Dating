@@ -181,7 +181,10 @@ export function createVerificationStoragePurgeRouter(deps: {
 }): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
-    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
+    // Never authenticate an invented fallback body: HMAC must cover the exact
+    // received bytes. Wrong media types are intentionally not parsed by raw().
+    if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);
+    const body = req.body;
     if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
     // Before Firestore lease acquisition and before touching any GCS object.
     if (!isVerificationPhotoPurgeEnabled(process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED)) {
