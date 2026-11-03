@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 // Reuse the canonical 20-group policy gate; do not independently parse a stale Bash loop.
 import './check-retention-matrix.mjs';
 const script = readFileSync('scripts/configure-retention.sh', 'utf8');
@@ -20,11 +21,28 @@ const missingScript = required.filter(x => !configured.has(x));
 const missingDocs = required.filter(x => !docs.includes(`/${x}`));
 export function photoPurgeExportViolations(exportsSource, cronSource) {
   const failures = [];
-  const active = exportsSource.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('//'));
-  if (!active.includes("export { purgeVerificationStorageCron } from './purgeVerificationStorage';")
-    || !cronSource.includes('COMPLIANCE_JOB_SECRET')) failures.push('authenticated verification purge scheduler missing');
-  if (active.some(line => /^export\s+\{\s*deleteExpiredPhotosCron\s*\}\s+from\s+['"]\.\/deleteExpiredPhotos['"]\s*;?$/.test(line)))
-    failures.push('unsafe legacy creation-age scheduler must not be deployed');
+  const source = ts.createSourceFile('index.ts', exportsSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  if (source.parseDiagnostics.length) return ['invalid Functions entrypoint syntax'];
+  let hasScheduler = false;
+  let hasLegacyReference = false;
+  function visit(node) {
+    // Inspect decoded tokens so aliases, multiline declarations and escapes
+    // cannot change this entrypoint boundary. Comments are not executable code.
+    if (ts.isIdentifier(node) && node.text === 'deleteExpiredPhotosCron') hasLegacyReference = true;
+    if (ts.isStringLiteralLike(node) && /(?:^|\/)deleteExpiredPhotos(?:\.[cm]?[jt]s)?$/.test(node.text)) hasLegacyReference = true;
+    if (ts.isExportDeclaration(node) && !node.isTypeOnly
+      && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)
+      && node.moduleSpecifier.text === './purgeVerificationStorage'
+      && node.exportClause && ts.isNamedExports(node.exportClause)) {
+      hasScheduler ||= node.exportClause.elements.some(item => !item.isTypeOnly
+        && item.name.text === 'purgeVerificationStorageCron'
+        && (item.propertyName ?? item.name).text === 'purgeVerificationStorageCron');
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  if (!hasScheduler || !cronSource.includes('COMPLIANCE_JOB_SECRET')) failures.push('authenticated verification purge scheduler missing');
+  if (hasLegacyReference) failures.push('unsafe legacy creation-age scheduler must not be deployed');
   return failures;
 }
 const sourceViolations = [];

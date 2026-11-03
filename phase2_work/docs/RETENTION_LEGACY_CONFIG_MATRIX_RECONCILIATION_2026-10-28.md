@@ -23,3 +23,11 @@ Run `40767417927` on `34649d10f3ebcd5f01984decc6e066b8bcd98ee9` **FAILED** in En
 ## Regression guard for deployable photo schedulers (2026-10-28)
 
 The source-level predicate `photoPurgeExportViolations` is now exercised by `scripts/test-retention-photo-export.mjs` with negative mutations re-enabling the unsafe scanner, removing the authenticated scheduler, or removing its secret declaration. It checks active exports rather than comments. CI on the next exact HEAD and live operations inventory remain required. **NO-GO**.
+
+## Entrypoint guard hardening — 2026-11-03
+
+The entrypoint predicate now uses the existing locked TypeScript 5.8.3 parser rather than line matching. It rejects malformed source and legacy scheduler/module references, and requires a value export of the expected scheduler from the expected module. Comments and type-only declarations cannot satisfy that export requirement. The scanner runtime, dependency manifests and lockfiles are unchanged by this follow-up.
+
+Local validation on Node 24.22.1: the existing photo-export checks plus 22 additional syntax/export-boundary cases passed; expiry-writer checks and 20 mutations, matrix checks and 13 mutations, ACTIVE-evidence checks and 12 mutations, and policy-preflight checks and seven mutations passed. The working-tree secret pattern scan passed over 1,260 files before this documentation update. TypeScript was installed separately with lifecycle scripts disabled at the lockfile version for these targeted checks; this was not a frozen full application installation.
+
+These are static entrypoint checks, not whole-program reachability analysis, proof of scheduler authentication, actual ACTIVE TTL evidence or confirmation of deployed scheduler retirement. The existing cron secret marker remains only a source marker. Exact-head full CI and the separate local mandatory scanner self-test remain required; the latter is still blocked by Windows EPERM when creating link fixtures. Neither CI success nor this source-level correction establishes production approval. No cloud changes, test skips or merge performed.
