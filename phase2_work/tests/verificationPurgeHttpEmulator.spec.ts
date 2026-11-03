@@ -128,7 +128,7 @@ async function withEvent(
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
   it.each([
-    ['bestaetigt', 'approved'],
+    ['bestaetigt', 'in_pruefung'],
     ['abgelehnt', 'approved'],
     ['approved', 'in_pruefung'],
   ])('refuses a contradictory moderation decision (%s vs %s) without deleting', async (entscheidung, status) => {
