@@ -115,4 +115,34 @@ describe('decision-based verification object deletion safety', () => {
     })).rejects.toMatchObject({ code: 503 });
   });
 
+  // P0 #202: adversarial TOCTOU characterization. This test deliberately demonstrates
+  // a residual cross-service race; it is not a claim that the safety gate passes.
+  it('exposes the cross-service authorization-to-delete race for review', async () => {
+    let authorizeChecked!: () => void;
+    const checked = new Promise<void>(resolve => { authorizeChecked = resolve; });
+    let releaseDelete!: () => void;
+    const release = new Promise<void>(resolve => { releaseDelete = resolve; });
+    let decision: 'approved' | 'pending' = 'approved';
+    let deleted = false;
+    const operation = deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '77', temporaryHold: false, eventBasedHold: false }],
+      delete: async ({ ifGenerationMatch }) => {
+        await release;
+        expect(ifGenerationMatch).toBe('77');
+        deleted = true;
+      },
+    }, '77', async () => {
+      expect(decision).toBe('approved');
+      authorizeChecked();
+    });
+    await checked;
+    decision = 'pending'; // concurrent Firestore state update; GCS generation unchanged
+    releaseDelete();
+    await operation;
+    // Existing implementation deletes despite a revoked decision. This test
+    // documents the gap; a future fenced implementation must invert this assertion.
+    expect(decision).toBe('pending');
+    expect(deleted).toBe(true);
+  });
+
 });
