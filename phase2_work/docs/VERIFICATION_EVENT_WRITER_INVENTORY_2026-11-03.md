@@ -54,3 +54,13 @@ Neue Tests: `tests/complianceStoragePurge.spec.ts` mit positiven und negativen K
 Der Emulator-Test `fails closed if canonical decision changes after purge intent but before final authorization` simuliert nun eine **nach der dauerhaften Purge-Intent-Speicherung** eintreffende, mit `status='approved'` unvereinbare kanonische Entscheidung `entscheidung='abgelehnt'`. Die zweite Storage-Metadatenabfrage ist dafür ein deterministischer Synchronisationspunkt. Erwartet werden HTTP 503, null physische Löschaufrufe, unverändertes `photoPurged=false`, erhaltenes Intent und **kein** `photoPurgeProof`.
 
 Der Test beweist bei erfolgreichem Firestore-Emulator-Lauf nur die Schutzwirkung **vor** der letzten Autorisierungsprüfung; Änderungen zwischen dieser Prüfung und dem tatsächlichen GCS-Delete bleiben technisch nicht ausgeschlossen. Jede neue Test-SHA benötigt vollständige CI- und Emulator-Evidenz. Production NO-GO.
+
+## Bounded-Scan-Fehlerisolierung bei widersprüchlichen Entscheidungen
+
+Ein einzelner fälliger Verifizierungsdatensatz mit widersprüchlichem `entscheidung`/`status` löste zuvor in `docs.flatMap` die Exception `verification_photo_decision_conflict` aus. Damit brach die **gesamte Seite** ab und sonst gültige, fristgerechte Löschungen wurden unnötig zurückgestellt.
+
+Der Batch-Handler isoliert jetzt **ausschließlich diesen bekannten Konflikttyp** auf Datensatzebene: Der widersprüchliche Datensatz wird niemals an die Storage-Löschfunktion übergeben, wird in `invalid = docs.length - artifacts.length` als Fehler gezählt, und die übrigen gültigen Datensätze durchlaufen unverändert die transaktionalen Schutz- und Löschschritte. Andere, unbekannte Fehler lösen weiterhin den bisherigen Fail-Closed-Abbruch aus. Sind Konfliktzeilen enthalten, antwortet das HTTP-API aufgrund von `failedCount > 0` weiterhin mit **503**. Der dauerhafte Scan-Cursor/wrap-Mechanismus muss den Fehlerdatensatz später erneut zur Prüfung bringen; ein erfolgreicher Gesamtabschluss wird nicht behauptet.
+
+Ein neuer Firestore-Emulator-Negativtest erstellt zwei fällige Einträge: einen widersprüchlichen und einen gültigen. Erwartet: `processed=2`, `purgedCount=1`, `failedCount=1`, **503**; nur das gültige Objekt wird gelöscht, während der Konflikteintrag ohne `photoPurgeIntent` und `photoPurgeProof` bleibt.
+
+**Grenzen:** Keine atomare Absicherung der nachgelagerten Firestore/GCS-Race, kein Nachweis über produktive Daten oder Cloud-Berechtigungen. CI/Emulator gegen die aktuelle exakte SHA sowie unabhängige AppSec-/DPO-/SRE-Freigaben sind weiterhin notwendig. `productionApproved=false`; **NO-GO**.
