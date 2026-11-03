@@ -74,3 +74,13 @@ Der signierte Admin-Endpunkt `POST /api/admin/purge-verification-storage` bleibt
 Tests: Unit-Test für exakte Schalterwerte; lokale Firestore-Emulator-Route mit gültiger Signatur und **ohne** Schalter muss 503 ohne DB-/GCS-Zugriff und ohne `photoPurgeIntent`/`photoPurgeProof` ergeben. Der `check:compliance-storage-purge`-Gate bewacht die Präsenz dieser Runtime-Sperre.
 
 **Neue SHA benötigt eine vollständige erfolgreiche CI sowie unabhängige Abnahmen.** Produktionsfreigabe unverändert `productionApproved=false`, **NO-GO**.
+
+## Signierter Request-Body: keine synthetische HMAC-Eingabe
+
+**Quellbefund:** Bisher setzte die Compliance-Route bei fehlendem `Buffer` als HMAC-Prüfgrundlage ersatzweise `Buffer.from('{}')`. Die globale `express.json()`-Middleware war in `server.ts` vor der Purge-Route registriert. Dadurch wurde der signierte Scheduler-Body unter Umständen bereits in ein Objekt verwandelt und bei der HMAC-Prüfung nicht als tatsächlich empfangene Bytefolge verwendet. Ein simpler `Buffer`-Zwang in der Route allein würde gültige Scheduler-Aufrufe blockieren.
+
+**Korrektur:** Der exakt benannte Pfad `/api/admin/purge-verification-storage` bekommt in `server.ts` vor dem globalen JSON-Parser einen begrenzten `express.raw({ inflate:false, type:'application/json', limit:'2kb' })`-Parser. Die Route lehnt fehlende/non-raw Request-Bytes mit **415** ab und berechnet den HMAC ausschließlich auf dem tatsächlich empfangenen Buffer; anschließend gelten unverändert Signaturprüfung (401), Default-Deny-Deployment-Sperre (503), Rate Limiter, Lease und Retention-Regeln. Ein neuer Emulator-HTTP-Test sendet `text/plain` mit von der tatsächlichen Payload abweichender Signatur und verlangt 415 sowie keinerlei Intent-/Storage-/Audit-Mutation.
+
+`scripts/check-compliance-storage-purge.mjs` prüft jetzt die relative Registrierungsreihenfolge des pfadspezifischen Raw-Parsers, globalen JSON-Parsers und Compliance-Routers sowie das Fehlen des synthetischen HMAC-Body-Fallbacks.
+
+**Wichtig:** Dies ist eine Quellcode-/Testkorrektur auf dem Draft-Branch, keine unabhängig abgenommene Cloud-Konfiguration. Die Race nach der letzten Firestore-Prüfung, All-Writer-Fencing, produktive Retention-Evidenz, Backlog-Überwachung und unabhängige AppSec-/DPO-/SRE-Freigaben bleiben ausstehend. Kein Deployment/GO.
