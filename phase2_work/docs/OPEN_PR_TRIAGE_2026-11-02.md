@@ -211,3 +211,25 @@ Audit #313 head `f871183021aa29d3b6412399c7ce3c90b07de36b` passed [CI run 415916
 | Independent release | AppSec, DPO/Legal, SRE and release owner approvals on exact SHAs | No signoffs verified — **BLOCKED** |
 
 **Release rule:** All mandatory gates need verified evidence and independent approval; a CI-green characterization of an unsafe interleaving cannot be counted as a security PASS. No merge/deploy; `productionApproved=false`, **NO-GO**. This new documentation SHA requires separate CI verification.
+
+## Proposed ADR: verification-photo retention authority and fencing — 2026-11-03
+
+**Status: PROPOSED, NOT APPROVED OR IMPLEMENTED.** Exact-head verification: audit Draft #313 `1fd733b7c41dd78ee88e3b867a14e34ad8723f16` passed [Actions 41592387002](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41592387002); purge Draft #203 `5eaf88784aee333d3e9b2f2d7bb75aacd8a77927` passed [Actions 41556509748](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41556509748). Review submission arrays for both PRs are empty.
+
+### Proposed invariants
+
+1. `verification_events` is append-only evidence, **not** the sole mutable authorization source. A per-artifact authoritative retention record, bound to `uid`, request ID, immutable object path and object generation, carries `state`, `version`, `hold`, `leaseOwner`, `leaseEpoch`, `leaseUntil` and audit references. This is a **design proposal**, not a claim about existing schemas.
+2. Every moderator, hold, revocation, Art. 17 and purge writer must transact against the same record with an expected version and explicit permitted transitions. No direct bypass via alternate endpoints, Firestore rules or admin jobs.
+3. Define a point-of-no-return transition and legal policy. A conflicting hold/revocation before this point must prevent physical deletion. After that point, the API must not falsely promise that deletion can be cancelled; any later request needs an auditable conflict/compensation workflow. An in-flight GCS delete cannot be atomically rolled back through Firestore.
+4. Worker fencing must reject stale lease epochs and require bounded retries; generation CAS protects against replaced objects but **does not** fence an unchanged generation against a changed Firestore decision. Crash recovery and indefinite stuck states require defined transitions and alerts.
+5. Privacy minimization: never log biometric image bytes or raw sensitive payloads; persist only necessary redacted evidence, retention purpose and decision provenance. Preserve immutable audit evidence separately from deletion authority.
+
+### Required acceptance tests (fail-closed)
+
+- Pause immediately after final authorization, then issue a competing hold/revocation without replacing the object; verify **no forbidden delete** under the approved policy. The existing characterization test expects deletion and therefore does not satisfy this gate.
+- Two workers compete for the same lease; a stale epoch must not perform a late destructive action after takeover.
+- GCS 412 generation mismatch and 404 absent object must produce correct idempotent outcomes without false audit success; include retries and worker crash between delete and receipt.
+- Cross-record divergence: current user/request status supersedes an old `verification_events` snapshot; verify that a stale event alone cannot authorize purge.
+- Verify deployed old scheduler disabled, least-privilege IAM, alerting, rollback, data-retention policy and legal-hold enforcement in a staging environment.
+
+**Decision owners:** Security/AppSec, DPO/Legal, SRE/Operations and Release Owner. They must approve the authority model, late-revocation policy and destructive-boundary semantics before implementation can be called production-ready. No approval, merge or deployment inferred. `productionApproved=false`; **BLOCKED / NO-GO**. The newly created documentation SHA needs its own exact-head CI verification.
