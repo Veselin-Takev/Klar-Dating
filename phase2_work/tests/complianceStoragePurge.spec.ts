@@ -1,6 +1,18 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
+
+describe('verification photo purge deployment interlock', () => {
+  it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
+    'fails closed without the exact enabled flag: %s',
+    setting => {
+      expect(isVerificationPhotoPurgeEnabled(setting)).toBe(false);
+    },
+  );
+  it('allows explicit opt-in only with exact lowercase true', () => {
+    expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+  });
+});
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
