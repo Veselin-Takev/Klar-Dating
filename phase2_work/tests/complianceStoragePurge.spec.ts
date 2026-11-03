@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision } from '../src/server/routes/complianceStorage';
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -18,6 +18,29 @@ describe('verification storage compliance job authentication', () => {
     const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
     expect(validComplianceRequest(body, timestamp, valid, 'short', Number(timestamp))).toBe(false);
     expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), valid, secret, Number(timestamp))).toBe(false);
+  });
+});
+
+describe('fail-closed verification decision reconciliation', () => {
+  it.each([
+    [{ entscheidung: 'bestaetigt' }, 'approved'],
+    [{ status: 'approved' }, 'approved'],
+    [{ entscheidung: 'abgelehnt', status: 'rejected' }, 'rejected'],
+    [{ entscheidung: 'bestaetigt', status: 'approved' }, 'approved'],
+    [{ status: 'in_pruefung' }, 'pending'],
+    [{ entscheidung: null, status: 'approved' }, 'approved'],
+    [{}, 'pending'],
+  ] as const)('accepts consistent or unambiguous decision data %#', (record, expected) => {
+    expect(readConsistentVerificationDecision({ ...record })).toBe(expected);
+  });
+
+  it.each([
+    { entscheidung: 'bestaetigt', status: 'in_pruefung' },
+    { entscheidung: 'abgelehnt', status: 'approved' },
+    { entscheidung: 'bestaetigt', status: 'rejected' },
+    { entscheidung: 'approved', status: 'unexpected' },
+  ])('blocks contradictory or unknown concurrent decision state %#', record => {
+    expect(() => readConsistentVerificationDecision(record)).toThrow('verification_photo_decision_conflict');
   });
 });
 
