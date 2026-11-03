@@ -6,7 +6,13 @@ import { getDb } from '../src/server/db';
 import { recordPartnerConversion } from '../src/server/partnerReferralService';
 import { derivePartnerReferralToken, partnerReferralDocumentId } from '../src/server/partnerReferralCore';
 
-const profile = JSON.parse(readFileSync('firebase.pruefung.json', 'utf8'));
+// General test:ci starts firebase.json; the dedicated runner explicitly selects
+// firebase.pruefung.json. Never infer the profile from an arbitrary endpoint.
+const profileName = process.env.KLAR_PARTNER_EMULATOR_PROFILE ?? 'firebase.json';
+if (!['firebase.json', 'firebase.pruefung.json'].includes(profileName)) {
+  throw new Error('partner_conversion_emulator_unapproved_profile');
+}
+const profile = JSON.parse(readFileSync(profileName, 'utf8'));
 const match = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(process.env.FIRESTORE_EMULATOR_HOST ?? '');
 const projects = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT, process.env.FIREBASE_PROJECT_ID].filter(Boolean);
 if (process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1' || process.env.FIRESTORE_EMULATOR_HOST) {
