@@ -37,3 +37,13 @@ Das Deployment meldet `iad1`. Vor Einsatz echter personenbezogener Daten sind Ve
 ## Nachtrag: automatisch erzeugtes Preview
 
 Der Dokumentationscommit `acb78f9fc07cbfe0ed0af4eaaa4d869589ffc972` hat über die bestehende Git-Integration automatisch ein Preview erzeugt: Deployment `dpl_97f6hvGoBRjRUr1iN8ThF95gKD3W`, `READY`, `target=null`, URL `https://klar-dating-mjpw66w8w-ves3.vercel.app`. Es wurde keine manuelle Deployment-Aktion oder Promotion ausgeführt. Weitere Änderungen an diesem Branch können zusätzliche Preview-Builds auslösen; ein erfolgreicher Build ist kein End-to-End-Test und keine Produktionsfreigabe.
+
+## Vercel-CI-Setup-Prüfung — 2026-11-03
+
+Auf ausdrücklichen Nutzerauftrag wurde `npx skills use vercel/ci@setup` erfolgreich ausgeführt und der geladene Setup-Skill gelesen. Der Befehl lädt die Anleitung temporär; dies ist keine Aktivierung von Vercel CI und keine Plugin-Installation.
+
+Die anschließende GitHub-Abfrage meldet `isPrivate=false` für `Veselin-Takev/Klar-Dating`. Im geprüften Main-Tree `96c3857c53f5ced31fe1394895185f42c75bc716` fehlen `turbo.json`/`turbo.jsonc`; die Root- und App-Manifeste enthalten keine Turborepo-Konfiguration. Der bestehende Vercel-Projektbezug erfüllt allein nicht die CI-Voraussetzungen.
+
+Die [offizielle Vercel-CI-Dokumentation](https://vercel.com/docs/ci) (abgerufen 2026-11-03, Seitenstand 2026-10-28) verlangt Turborepo mindestens 2.11.7 und Vercel CLI mindestens 64.3.1; öffentliche GitHub-Repositories werden derzeit nicht unterstützt. Der geladene [Setup-Skill](https://github.com/vercel/ci) verlangt ein privates, mit Vercel verbundenes GitHub-Turborepo und einen Abbruch, wenn diese Voraussetzungen fehlen.
+
+**Ergebnis: Setup nicht anwendbar, Vercel CI nicht aktiviert.** Keine Änderung der Repository-Sichtbarkeit, keine Turborepo-Migration, keine Änderung an GitHub Actions, Branchschutz, Secrets oder Freigaberegeln. Die bestehenden GitHub-Actions-Pflichtprüfungen bleiben maßgeblich. Es wurde kein zusätzlicher Setup-PR angelegt; das Ergebnis wird in diesem bestehenden Dokumentations-PR festgehalten. Eine spätere Architekturentscheidung zu Turborepo oder Repository-Sichtbarkeit ist getrennt von dieser Prüfung zu treffen. Bestehende Vercel-Preview-Checks sind kein Nachweis für aktiviertes Vercel CI. Produktionsfreigabe bleibt NO-GO.
