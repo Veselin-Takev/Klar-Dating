@@ -30,3 +30,11 @@ These are reviewed **literal references** in these server/Functions sources, not
 Before enabling production purges, AppSec, DPO/Legal and SRE must approve a common transactional state machine and distributed fencing/compensation contract for **all** mutation paths, including account deletion. Demonstrate a negative race test which prevents unsafe deletion, as well as crash, stale lease, object hold, 404/412, audit receipt and retention/Art.-17 compatibility cases in emulator and staging.
 
 **No change to `main`, Cloud Scheduler, GCS objects, production credentials or live data is authorized by this documentation. `productionApproved=false`.**
+
+## CI regression and correction
+
+The first integrated GitHub Actions run [41605092106](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41605092106) **failed** on its new baseline assertion: the retired legacy `functions/src/deleteExpiredPhotos.ts` contains a plain-language comment mentioning `verification_events.fotoLoeschenAb` but does not access that collection. Four of five mutation tests passed. This was a static-scanner false positive, not evidence of a live photo deletion.
+
+The scanner now checks **quoted literal collection/path names**, not bare prose references; an additional regression ensures comments in the retired scheduler do not break the gate, while a separate test rejects newly introduced collection-name aliases. This does **not** detect dynamically concatenated names and is not a semantic TypeScript/Firestore data-flow analysis. The updated exact PR commit and new CI must pass independently before the gate can be accepted.
+
+**The P0 cross-service delete race remains unresolved; no GO claim.**
