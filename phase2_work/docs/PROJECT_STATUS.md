@@ -1,3 +1,15 @@
+## Release- und Vercel-Stilllegungsupdate (02.11.2026) – weiterhin NO-GO
+
+Nach ausdrücklicher Eigentümerbestätigung hat die Vercel-API den Delete des alten Projekts `login-page-prototype` (`prj_kfJ06pJHn3neZAkrtasYKezxuprF`) als `404 not_found` bestätigt; auch die Demo-Deployment-Abfrage liefert `404`. `list_projects` für `ves3` zeigt nur `klar-dating` (`prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`), dessen letztes Preview weiterhin `READY` ist. Vollständige Abgrenzung: [Vercel-Altprojekt-Stilllegung](VERCEL_LEGACY_PROTOTYPE_RISK_2026-11-02.md). Externe Neon-/Postgres-/Auth-Credentials sind **nicht** nachweislich rotiert. Separater GitHub-Governance-PR #251 (Head `89f0e744fa31d4f6dfb487acce8a9f4c2e4f8d8e`) [CI erfolgreich](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41533779126), aber ohne unabhängige Review-Freigabe; P0-#202-Kill-Switch #269 ebenfalls CI-grün, aber ungemergt. `main=96c3857c53f5ced31fe1394895185f42c75bc716` bleibt unverändert. **`productionApproved=false` – BLOCKED / NO-GO**.
+
+## Enterprise E2E Audit (02.11.2026) – Release NO-GO
+
+Quellbasis `main` `2808dc1cbb485f70b403681c108cea5a3361d950`; neuester geprüft erfolgreicher CI-Stand: Draft PR [#312](https://github.com/Veselin-Takev/Klar-Dating/pull/312), SHA `4ef6dde5874f7602f614f68a11dce2c0062b745f`, [CI #41474462939](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41474462939) SUCCESS (32 Schritte, nicht gemergt). Der umfassende source-/evidence-basierte Audit-Bericht [ENTERPRISE_E2E_AUDIT_2026-11-02.md](ENTERPRISE_E2E_AUDIT_2026-11-02.md) und das [Evidenzregister](ENTERPRISE_E2E_EVIDENCE_REGISTER_2026-11-02.json) dokumentieren **17 Findings: 8 P0, 7 P1, 2 P2** als Risiko-/Kontrolllücken, nicht als 17 nachgewiesene exploitable Bugs.
+
+Wesentliche Freigabeblocker: #202 Legacy-GCS-Foto-Purge/Quittung, #70 20-Gruppen-TTL-/Legal-Hold-/Live-ACTIVE-Evidenz, #254 Tenant/Art17/BOLA-Cutover, #55/#56 Partner-Conversion und Datenschutz, #73 GitHub-RuleSet mit null verpflichtenden Approvals, #8 fehlende tatsächliche Cloud-/SRE-/Recovery- und unabhängige Freigaben. Erfolgreiche CI/Source-Kontrollen sind **keine** Bestätigung produktiver Deployments. **`productionApproved=false`, BLOCKED / NO-GO.** Nur Audit-Branch/Dokumentation, keine Live-/Cloud-/main-Änderung und kein Merge.
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
