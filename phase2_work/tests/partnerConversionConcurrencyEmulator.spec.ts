@@ -35,7 +35,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('partner conversion concur
       db.collection('users').doc(buyerUid),
       db.collection('partner_campaigns').doc(campaignId),
       db.collection('partner_referrals').doc(partnerReferralDocumentId(token)),
-    ];
+    ] as const;
     try {
       await Promise.all([
         refs[0].set({ isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 }),
