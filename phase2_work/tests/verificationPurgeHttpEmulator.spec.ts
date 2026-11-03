@@ -33,9 +33,12 @@ if (active || process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1') {
 
 const secret = 'emulator-only-'.padEnd(64, 'x');
 const previousSecret = process.env.COMPLIANCE_JOB_SECRET;
+const previousPurgeEnabled = process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
 afterAll(() => {
   if (previousSecret === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
   else process.env.COMPLIANCE_JOB_SECRET = previousSecret;
+  if (previousPurgeEnabled === undefined) delete process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
+  else process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = previousPurgeEnabled;
 });
 
 type HttpResult = { status: number; data: Record<string, unknown> };
@@ -45,12 +48,20 @@ async function startApi(
   onDelete: (path: string) => Promise<void>,
   metadata: () => Promise<[{ generation: string; temporaryHold: boolean }]> =
     async () => [{ generation: '773', temporaryHold: false }],
+  enabled = true,
 ) {
   process.env.COMPLIANCE_JOB_SECRET = secret;
+  if (enabled) process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = 'true';
+  else delete process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
   const app = express();
   app.use('/api/admin', createVerificationStoragePurgeRouter({
-    getDb: () => db,
-    getBucket: () => ({
+    getDb: () => {
+      if (!enabled) throw new Error('disabled_purge_must_not_touch_firestore');
+      return db;
+    },
+    getBucket: () => {
+      if (!enabled) throw new Error('disabled_purge_must_not_touch_storage');
+      return {
       file: (path: string) => ({
         getMetadata: metadata,
         delete: async (options: { ifGenerationMatch: string | number }) => {
@@ -58,7 +69,8 @@ async function startApi(
           await onDelete(path);
         },
       }),
-    }),
+    };
+    },
   }));
   const server = await new Promise<Server>(resolve => {
     const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
@@ -127,6 +139,27 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+  it('rejects an authenticated purge when the default-deny deployment gate is unset', async () => {
+    await withEvent(async ({ db, event }) => {
+      let deleted = false;
+      const api = await startApi(db, async () => { deleted = true; }, undefined, false);
+      try {
+        const denied = await api.request();
+        expect(denied).toMatchObject({
+          status: 503, data: { code: 'verification_storage_purge_disabled' },
+        });
+        expect(deleted).toBe(false);
+        const record = (await event.get()).data();
+        expect(record?.photoPurged).toBe(false);
+        expect(record?.photoPurgeIntent).toBeUndefined();
+        expect(record?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
+
   it.each([
     ['bestaetigt', 'in_pruefung'],
     ['abgelehnt', 'approved'],
