@@ -12,7 +12,7 @@ for (const file of ['package.json', 'phase2_work/package.json']) {
 }
 for (const file of ['bun.lock', 'phase2_work/bun.lock']) {
   const lock = fs.readFileSync(file, 'utf8');
-  for (const [name, version] of [['hono', '4.13.14'], ['ip-address', '10.7.5']]) {
+  for (const [name, version] of [['hono', '4.13.16'], ['ip-address', '10.7.5']]) {
     const versions = [...new Set([...lock.matchAll(new RegExp('\\["' + name + '@([^"]+)"', 'g'))].map(match => match[1]))].sort();
     assert.deepEqual(versions, [version], `Reviewed ${name} version required; no older or unreviewed version allowed`);
   }
@@ -24,7 +24,7 @@ assert.equal(sourceHead, checkoutCommit, 'Candidate source revision must match w
 const evidence = {
   schemaVersion: 1, purpose: 'review candidate; not approved or deployed',
   sourceHead, checkoutCommit,
-  target: { packages: { hono: '4.13.14', 'ip-address': '10.7.5' } },
+  target: { packages: { hono: '4.13.16', 'ip-address': '10.7.5' } },
   node: process.version, bun: execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim(),
   hashes: Object.fromEntries(allowed.map(file => [file, {
     before: crypto.createHash('sha256').update(execFileSync('git', ['show', `HEAD:${file}`])).digest('hex'),

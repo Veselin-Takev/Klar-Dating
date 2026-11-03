@@ -9,7 +9,7 @@ const source = fs.readFileSync(new URL('./verify-lock-refresh.mjs', import.meta.
   .replace(/^import .*;\r?\n/gm, '');
 const revision = 'a'.repeat(40);
 const manifest = '{"dependencies":{"fixture":"1.0.0"}}';
-const lock = '{"packages":{"hono":["hono@4.13.14"],"ip-address":["ip-address@10.7.5"]}}';
+const lock = '{"packages":{"hono":["hono@4.13.16"],"ip-address":["ip-address@10.7.5"]}}';
 function execute(overrides = {}) {
   const files = {
     'package.json': manifest, 'phase2_work/package.json': manifest,
@@ -43,7 +43,7 @@ test('writes source-bound evidence, exact targets and hashes for a valid candida
   const evidence = JSON.parse(outputs.get('lock-refresh-evidence.json'));
   assert.equal(evidence.sourceHead, revision);
   assert.equal(evidence.checkoutCommit, revision);
-  assert.deepEqual(evidence.target.packages, { hono: '4.13.14', 'ip-address': '10.7.5' });
+  assert.deepEqual(evidence.target.packages, { hono: '4.13.16', 'ip-address': '10.7.5' });
   assert.equal(evidence.hashes['bun.lock'].candidate, crypto.createHash('sha256').update(lock).digest('hex'));
   assert.notEqual(evidence.hashes['bun.lock'].before, evidence.hashes['bun.lock'].candidate);
 });
@@ -56,9 +56,9 @@ for (const [name, overrides, expected] of [
   ['unexpected changed file', { changed: 'bun.lock\n.env\n' }, /Unexpected generated change scope/],
   ['root manifest mutation', { files: { 'package.json': '{"dependencies":{}}' } }, /must not change manifest/],
   ['app manifest mutation', { files: { 'phase2_work/package.json': '{"dependencies":{}}' } }, /must not change manifest/],
-  ['missing Hono', { files: { 'bun.lock': lock.replace('hono@4.13.14', 'other@4.13.14') } }, /Reviewed hono/],
+  ['missing Hono', { files: { 'bun.lock': lock.replace('hono@4.13.16', 'other@4.13.16') } }, /Reviewed hono/],
   ['older nested Hono', { files: { 'bun.lock': lock + '\n["hono@4.13.8"]' } }, /Reviewed hono/],
-  ['new unreviewed Hono', { files: { 'bun.lock': lock.replace('4.13.14', '4.13.15') } }, /Reviewed hono/],
+  ['new unreviewed Hono', { files: { 'bun.lock': lock.replace('4.13.16', '4.13.17') } }, /Reviewed hono/],
   ['older nested ip-address', { files: { 'phase2_work/bun.lock': lock + '\n["ip-address@10.7.2"]' } }, /Reviewed ip-address/],
   ['missing app target', { files: { 'phase2_work/bun.lock': '{"packages":{}}' } }, /Reviewed hono/],
   ['wrong Node version', { node: 'v24.22.1' }, /v22\.23\.3/],
