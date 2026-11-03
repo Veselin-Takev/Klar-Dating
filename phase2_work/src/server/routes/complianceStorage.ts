@@ -224,7 +224,17 @@ export function createVerificationStoragePurgeRouter(deps: {
             const uid = typeof data.uid === 'string' ? data.uid : '';
             const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
             const decidedAt = normalizeTimestamp(data.decidedAt);
-            const status = readConsistentVerificationDecision(data);
+            // One inconsistent record must fail closed without blocking other
+            // independently eligible records in the bounded page.
+            let status: VerificationArtifactRecord['status'];
+            try {
+              status = readConsistentVerificationDecision(data);
+            } catch (error) {
+              if (error instanceof Error && error.message === 'verification_photo_decision_conflict') {
+                return []; // Counted as failed below, never sent to Storage.
+              }
+              throw error; // Unknown validation failures still abort the scan.
+            }
             if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
             return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
           });
