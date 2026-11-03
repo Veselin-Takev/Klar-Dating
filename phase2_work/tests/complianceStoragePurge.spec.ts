@@ -145,4 +145,21 @@ describe('decision-based verification object deletion safety', () => {
     expect(deleted).toBe(true);
   });
 
+  it('prevents deletion when authorization is revoked before the delete call', async () => {
+    let decision: 'approved' | 'pending' = 'approved';
+    const calls: string[] = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => {
+        calls.push('metadata');
+        decision = 'pending'; // concurrent revocation before the final authorization callback
+        return [{ generation: '81', temporaryHold: false, eventBasedHold: false }];
+      },
+      delete: async () => { calls.push('delete'); },
+    }, '81', async () => {
+      calls.push('authorization');
+      if (decision !== 'approved') throw new Error('decision_revoked');
+    })).rejects.toThrow('decision_revoked');
+    expect(calls).toEqual(['metadata', 'authorization']);
+  });
+
 });
