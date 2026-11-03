@@ -195,3 +195,19 @@ Read-only comparison of current default-branch `src/server/klarCore.ts` and PR #
 ## Retention authority ADR decision gate — 2026-11-03
 
 Audit PR #313 exact previous head `29dcd305634177d9b1b7a4e570050ecbddcce4d1` passed [GitHub Actions 41590391720](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41590391720). Reviewed #203 current purge scan and original moderation transaction. Proposed an explicit [architecture decision review on #203](https://github.com/Veselin-Takev/Klar-Dating/pull/203#issuecomment-6597240661): event history vs canonical mutable per-artifact authorization, versioned state transitions for **all** moderation/hold/revocation/purge writers, defined point-of-no-return and late-change policy, stale-worker fencing, crash recovery and compensating action. A GCS generation CAS plus a Firestore predelete transaction is not atomic across systems. This is a recommendation requiring owner/independent AppSec/DPO/SRE acceptance, **not an implemented fix**. No merges or deployment; `productionApproved=false`; **NO-GO**. New documentation HEAD must pass its own CI.
+
+## P0 purge acceptance matrix — 2026-11-03
+
+Audit #313 head `f871183021aa29d3b6412399c7ce3c90b07de36b` passed [CI run 41591621051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41591621051). #203 remains Draft at `5eaf88784aee333d3e9b2f2d7bb75aacd8a77927` (CI 41556509748 PASS). Both PRs had no requested reviewers shown in the current PR metadata; this is **not** proof of complete review status.
+
+| Gate | Deterministic acceptance evidence | Current evidence / result |
+| --- | --- | --- |
+| Authority | ADR identifies canonical current per-artifact status and immutable audit record; inventory every writer | Event snapshot vs user/request authority unresolved — **BLOCKED** |
+| Writer fencing | Concurrent decision/hold mutation after purge authorization cannot cause forbidden delete; cover all writers | Characterization test observes deletion — **FAIL as security property** |
+| Worker ownership | Expired lease and late worker cannot delete after successor takes ownership | Source lease checks exist; interleaving test needed — **UNVERIFIED** |
+| Storage CAS | Replaced generation yields 412 and never deletes replacement; 404 does not fabricate success | Unit-level negative tests present; staging evidence missing — **PARTIAL** |
+| Crash recovery | Repeated invocation and cursor/receipt are idempotent after partial failure | Source intent/receipt exists; integrated recovery evidence missing — **UNVERIFIED** |
+| Cloud controls | Deployed old cron disabled, scheduler IAM, logs, alerts and restore evidence | No live evidence collected — **BLOCKED** |
+| Independent release | AppSec, DPO/Legal, SRE and release owner approvals on exact SHAs | No signoffs verified — **BLOCKED** |
+
+**Release rule:** All mandatory gates need verified evidence and independent approval; a CI-green characterization of an unsafe interleaving cannot be counted as a security PASS. No merge/deploy; `productionApproved=false`, **NO-GO**. This new documentation SHA requires separate CI verification.
