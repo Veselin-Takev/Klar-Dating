@@ -6,6 +6,8 @@ const checks = [
   ['protected purge endpoint', /purge-verification-storage/],
   ['environment secret', /COMPLIANCE_JOB_SECRET/],
   ['HMAC timing-safe validation', /timingSafeEqual/],
+  ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
+  ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
   ['verification path boundary', /startsWith\(`verification\/\$\{uid\}\/`\)/],
   ['daily scheduler', /schedule: '0 3 \* \* \*'/],
