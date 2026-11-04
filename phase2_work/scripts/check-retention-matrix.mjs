@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const script = readFileSync(resolve(project, 'scripts/configure-retention.sh'), 'utf8');
 const docs = readFileSync(resolve(project, 'docs/DATA_RETENTION.md'), 'utf8');
+const runbook = readFileSync(resolve(project, 'docs/PRODUCTION_RUNBOOK.md'), 'utf8');
 const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
 const groups = match[1].trim().split(/\s+/);
@@ -28,6 +29,27 @@ for (const group of groups) {
   assert(new RegExp('--collection-group=' + group + '(?![A-Za-z0-9_-])').test(docs),
     'Missing exact documented TTL group: ' + group);
 }
+// Require all operative verification text to reflect the current 20-group
+// source matrix, while keeping legal approval and LIVE ACTIVE state separate.
+const evidenceClaims = [
+  ['activation count', /Der zweite Befehl muss für alle 20 im Quellcode geplanten Collection Groups/],
+  ['staging ACTIVE count', /Status `ACTIVE` aller 20 Gruppen/],
+  ['saved evidence count', /Der Prüfer verlangt 20 distinct `expiresAt`-Felder/],
+  ['read-only live verification count', /validates all 20 ACTIVE TTL fields/],
+  ['legal approval is still outstanding', /\*\*keine\*\* DPO-\/Legal-Freigabe der erweiterten Matrix/],
+];
+for (const [description, pattern] of evidenceClaims) {
+  assert(pattern.test(docs), 'TTL documentation evidence count or approval drift: ' + description);
+}
+const activeRunbookClaims = [
+  ['live acceptance 20-group count', /verify all 20 planned `expiresAt` TTL collection-group policies ACTIVE after independent approval/],
+  ['read-only verifier 20-group count', /validates that all \*\*20\*\* planned `expiresAt` TTL policies are ACTIVE before exporting any file/],
+  ['runbook explicit no legal-go claim', /this technical validation is not a DPO\/Legal approval or Production GO/],
+];
+for (const [description, pattern] of activeRunbookClaims) {
+  assert(pattern.test(runbook), 'TTL runbook evidence-count or approval drift: ' + description);
+}
+
 for (const code of ['KLAR_APPLY_RETENTION', 'KLAR_ENVIRONMENT', 'KLAR_APPROVED_STAGING_PROJECT_ID',
   'KLAR_PRODUCTION_PROJECT_ID', 'KLAR_CONFIRM_RETENTION', 'KLAR_DATABASE_ID',
   'KLAR_RETENTION_LEGAL_APPROVED', 'KLAR_RETENTION_INVENTORY_APPROVED', 'KLAR_RETENTION_MATRIX_REVISION_APPROVED',
