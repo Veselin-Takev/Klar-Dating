@@ -23,17 +23,23 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   if (!legacyCron.includes("collection('funnel_events')")) {
     problems.push('unrelated funnel event cleanup was removed');
   }
+  // PR #203 removes the retired helper entirely; PR #269 retains a throwing shim.
+  // Both are safe only while the account-erasure boundary remains present.
   const start = helperSource.indexOf('export async function deleteExpiredPhotoPage(');
-  const end = helperSource.indexOf('export async function deleteAccountPhotos(', start);
-  if (start < 0 || end < start) {
-    problems.push('obsolete purge API or account-erasure boundary missing');
-  } else {
-    const disabledHelper = helperSource.slice(start, end);
-    if (!disabledHelper.includes("throw new Error('legacy_age_only_photo_purge_disabled')")) {
-      problems.push('obsolete upload-age helper does not fail closed');
-    }
-    if (/\.getFiles\s*\(|\.deleteFiles\s*\(|\.delete\s*\(|\.getMetadata\s*\(/.test(disabledHelper)) {
-      problems.push('obsolete upload-age helper still performs Storage access');
+  const end = helperSource.indexOf('export async function deleteAccountPhotos(');
+  if (end < 0) {
+    problems.push('account-erasure boundary missing');
+  } else if (start >= 0) {
+    if (start > end) {
+      problems.push('obsolete purge helper occurs after account-erasure boundary');
+    } else {
+      const disabledHelper = helperSource.slice(start, end);
+      if (!disabledHelper.includes("throw new Error('legacy_age_only_photo_purge_disabled')")) {
+        problems.push('obsolete upload-age helper does not fail closed');
+      }
+      if (/\\.getFiles\\s*\\(|\\.deleteFiles\\s*\\(|\\.delete\\s*\\(|\\.getMetadata\\s*\\(/.test(disabledHelper)) {
+        problems.push('obsolete upload-age helper still performs Storage access');
+      }
     }
   }
   if (!indexSource.includes("export { deleteExpiredPhotosCron } from './deleteExpiredPhotos';")) {
