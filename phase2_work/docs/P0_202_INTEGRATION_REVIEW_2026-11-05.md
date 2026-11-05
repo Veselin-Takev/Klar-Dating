@@ -245,3 +245,12 @@ Beim Review der Quellcode-Sperre fiel eine Abhängigkeitsgrenze auf: `NODE_ENV=t
 Ein lokaler Firestore-Emulator-HTTP-Negativtest prüft diesen Fall inklusive fehlender Lease, fehlendem Lösch-Intent/-Proof und null Storage-Delete-Aufrufen. Die statische CI-Policy verlangt außerdem die lokale Bucket-Injektion **nur im Test** und die tatsächliche produktive Server-Registrierung ohne injizierten Bucket. Dadurch ist ein bloßes Setzen der Emulator-Env-Variablen keine Live-Freigabe. 
 
 Dies ist ein zusätzlicher P0-Containment-Schutz, **kein Beweis für All-Writer-Atomicity**. Exakter CI-Commit, reale Cloud-IAM-Checks, Backlog-/DSGVO-Planung und unabhängige AppSec-/DPO-/SRE-/Release-Owner-Genehmigung bleiben separat notwendig. Kein Merge und kein Produktivdeploy. `productionApproved=false` / NO-GO.
+
+
+## VES-8 – HTTP-Antwortgröße vor dem Einlesen begrenzen (05.11.2026, Draft)
+
+Codeprüfung auf PR #322 zeigte in `functions/src/purgeVerificationStorage.ts` ein reales Verfügbarkeitsrisiko: `await response.text()` lud die gesamte Antwort eines Upstream-Dienstes in den Speicher, **bevor** `text.length > 2_048` geprüft wurde. Dieser Wert zählt zudem UTF-16-Zeichen statt Wire-Bytes. Ein fehlerhafter oder kompromittierter HTTP-Antwortdienst könnte damit größere Datenmengen übertragen als benötigt. Die 150-Sekunden-Abbruchfrist begrenzt nur die Laufzeit, nicht den allokierten Speicher.
+
+Der neue `readBoundedVerificationPurgeReceipt`-Prüfer liest den Response-Body schrittweise, akzeptiert insgesamt höchstens **2.048 Bytes**, bricht bei Überlauf den Reader ab und lehnt fehlendes oder falsches JSON-Content-Type, nicht valide UTF-8, fehlerhafte Content-Length und inkonsistente Abschlussbelege fail-closed ab. Erfolgreiche Quittungen benötigen weiterhin `ok:true`, `failedCount=0`, `hasMore=false`, `unresolvedFailureBacklog=false` sowie konsistente Zähler. Der Scheduler wertet keine empfangene Roh-Antwort als Log oder Abschlussnachweis. Neue Vitest-Negativtests decken Streaming-Abbruch, 2.048-Byte-Grenze, überhöhte Content-Length, ungültige Antworttypen und Bytes ab; der statische Enterprise-Guard verweigert `response.text()` im Scheduler.
+
+**Freigabestatus:** Ausschließlich Review-Code auf separatem Branch; eigene exact-SHA-CI und unabhängige SRE-/AppSec-Reviews erforderlich. Der P0 Firestore/GCS-TOCTOU-Befund bleibt offen, die Cloud-Runtime-Live-Sperre bleibt aktiv, kein Deployment oder Merge, `productionApproved=false`.
