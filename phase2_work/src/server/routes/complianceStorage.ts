@@ -148,7 +148,8 @@ export function complianceSignature(body: string, secret: string): string {
 export function validComplianceRequest(body: Buffer, timestampHeader: string | undefined, signatureHeader: string | undefined, secret: string, now = Date.now()): boolean {
   if (secret.length < 32 || !timestampHeader || !/^\d{10,16}$/.test(timestampHeader) || !signatureHeader || !/^[a-f0-9]{64}$/.test(signatureHeader)) return false;
   const timestamp = Number(timestampHeader);
-  if (!Number.isSafeInteger(timestamp) || Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS) return false;
+  if (!Number.isSafeInteger(timestamp) || !Number.isSafeInteger(now)
+    || Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS) return false;
   const expected = complianceSignature(`${timestampHeader}.${body.toString('utf8')}`, secret);
   const supplied = Buffer.from(signatureHeader, 'hex');
   const expectedBytes = Buffer.from(expected, 'hex');
