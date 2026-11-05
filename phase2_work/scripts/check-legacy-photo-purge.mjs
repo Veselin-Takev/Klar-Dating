@@ -12,8 +12,13 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   }
   // Guard against direct Storage SDK access as well as the retired wrapper.
   // This is a repository source regression check, not a proof of live cloud state.
-  if (/\b(?:deleteExpiredPhotoPage|getMaintenanceBucket|getStorage)\b|\.getFiles\s*\(|\.deleteFiles\s*\(|\.delete\s*\(|\.getMetadata\s*\(|\.file\s*\(|\bfrom\s*['"`][^'"`]*(?:storage|retention)[^'"`]*['"`]|collection\s*\(\s*['"`]verification_events['"`]\s*\)/.test(legacyCron)) {
+  if (/\b(?:deleteExpiredPhotoPage|getMaintenanceBucket|getStorage)\b|\.getFiles\s*\(|\.deleteFiles\s*\(|\.getMetadata\s*\(|\.file\s*\(|\bfrom\s*['"`][^'"`]*(?:storage|retention)[^'"`]*['"`]|collection\s*\(\s*['"`]verification_events['"`]\s*\)/.test(legacyCron)) {
     problems.push('legacy scheduled worker can reach photo-list or photo-purge logic');
+  }
+  // Allow only the existing Firestore funnel-event batch deletion; reject other direct deletes.
+  const withoutFunnelBatchDelete = legacyCron.replaceAll('batch.delete(doc.ref)', '');
+  if (/\.delete\s*\(/.test(withoutFunnelBatchDelete)) {
+    problems.push('legacy scheduled worker contains an unapproved direct delete call');
   }
   if (!legacyCron.includes("collection('funnel_events')")) {
     problems.push('unrelated funnel event cleanup was removed');
