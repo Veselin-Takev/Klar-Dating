@@ -72,3 +72,17 @@ Die Implementierung in `src/server/routes/complianceStorage.ts` führt Lease-Pr�
 5. Betrieb: signierter Job-Aufruf, IAM/Secret-Rotation, Monitoring und Alarmierung, kontrollierter Canary, Rollback und Eskalation bei Fehlerquote/Backlog.
 
 **Gate:** Solange diese Belege und unabhängige DPO-, AppSec-, SRE- und Release-Owner-Freigaben fehlen, bleiben PR #317 Draft und `productionApproved=false`. CI-Erfolg ist nur Repository-Evidenz. Der CI-Lauf [42042948194](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42042948194) für den vorherigen Head `17ec5f046ba8bd74f1b0e9edb2dd4f6ec0b32339` war bei der Abfrage `in_progress`.
+
+## Abgleich mit den Acceptance Criteria von Issue #202
+
+Quelle: [Issue #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202), Status bei Abfrage `open`. Der vorherige Head `ef2da6da5b41f40bb7178857c0fdd37b24add13e` bestand [CI 42044726657](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42044726657).
+
+| Kriterium | Repository-Stand | Für Abschluss weiterhin erforderlich |
+| --- | --- | --- |
+| Ein autoritativer, entscheidungsbasierter Purge-Pfad | Legacy-Upload-Alter-Löschung im Quelltext deaktiviert, neuer signierter Pfad und statischer Guard im Integrations-PR | Deploytes Scheduler-/Functions-Inventar, sichere Migration und Rollback |
+| Bounded Scan, Generation, Holds, 404/412 und Audit | Scanner-, Retention- und HTTP-Tests sowie transaktionale Intent-/Audit-Implementierung vorhanden | Staging-Nachweis zu Lease-Fencing, Objekt-Replacement, Storage-Retention und Cross-Service-Races |
+| Pending/Approved/Rejected, beschädigte Daten, Retries | Regressionstests in PR #317 enthalten; keine Aussage über vollständige Produktionsabdeckung | Emulator-Ergebnis je Acceptance Case mit Testnamen und Logs unabhängig abnehmen |
+| Korrekte Retention-Dokumentation und Art.-5/9/17-Review | `DATA_RETENTION.md` korrigiert, Einschränkungen dokumentiert | Schriftliche DPO-/Legal-Freigabe und Policy-Abgleich |
+| Sichere Aktivierung | **Nicht durchgeführt** | Genehmigter Staging-Canary, Live-Konfigurationsnachweis, AppSec/SRE/ReleaseOwner-Signoff |
+
+**Entscheidung:** Issue #202 nicht schließen, keine Produktionsfreigabe aus CI ableiten. Das separate [Issue #204](https://github.com/Veselin-Takev/Klar-Dating/issues/204) zu Profilbild-Zugriffsregeln bleibt ein eigenständiger P1-Sicherheitsbefund und wird nicht stillschweigend durch den Foto-Purge-PR als behoben dargestellt. `productionApproved=false`.
