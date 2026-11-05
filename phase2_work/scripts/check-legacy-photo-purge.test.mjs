@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { legacyPhotoPurgeViolations } from './check-legacy-photo-purge.mjs';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const read = path => readFileSync(resolve(root, path), 'utf8');
+const baseline = {
+  legacyCron: read('functions/src/deleteExpiredPhotos.ts'),
+  helperSource: read('functions/src/retention.ts'),
+  indexSource: read('functions/src/index.ts'),
+  modernCron: read('functions/src/purgeVerificationStorage.ts'),
+  policy: read('docs/DATA_RETENTION.md'),
+};
+
+test('canonical P0 legacy path cannot delete verification photos', () => {
+  assert.deepEqual(legacyPhotoPurgeViolations(baseline), []);
+});
+
+test('integration with PR #203 may remove retired helper but retain account erasure', () => {
+  const start = baseline.helperSource.indexOf('export async function deleteExpiredPhotoPage(');
+  const end = baseline.helperSource.indexOf('export async function deleteAccountPhotos(');
+  assert.ok(start >= 0 && end > start);
+  const withoutLegacyHelper = baseline.helperSource.slice(0, start) + baseline.helperSource.slice(end);
+  assert.deepEqual(legacyPhotoPurgeViolations({ ...baseline, helperSource: withoutLegacyHelper }), []);
+  const withoutErasure = withoutLegacyHelper.replace('export async function deleteAccountPhotos(', 'async function missingAccountErasure(');
+  assert.ok(legacyPhotoPurgeViolations({ ...baseline, helperSource: withoutErasure }).includes('account-erasure boundary missing'));
+});
+
+const mutations = [
+  ['legacy bucket import reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\ngetMaintenanceBucket()" })],
+  ['legacy age-only call reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\ndeleteExpiredPhotoPage(bucket, now)" })],
+  ['direct Storage SDK import reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nimport { getStorage } from 'firebase-admin/storage';" })],
+  ['direct bucket file access reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait bucket.file('verification/test/photo').delete()" })],
+  ['direct object deletion reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait photo.delete({ifGenerationMatch:'7'})" })],
+  ['bulk bucket deletion reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait bucket.deleteFiles({prefix:'verification/'})" })],
+  ['bulk helper deletion reinstated', b => ({ ...b, helperSource: b.helperSource.replace("throw new Error('legacy_age_only_photo_purge_disabled')", "await _bucket.deleteFiles({prefix:'verification/'}); throw new Error('legacy_age_only_photo_purge_disabled')") })],
+  ['direct storage metadata read reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait photo.getMetadata()" })],
+  ['aliased legacy retention import reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nimport { deleteExpiredPhotoPage as purge } from './retention';" })],
+  ['legacy callback deletes by Storage age', b => ({ ...b, legacyCron: b.legacyCron + "\nbucket.getFiles({prefix:'verification/'})" })],
+  ['legacy helper no longer fails closed', b => ({ ...b, helperSource: b.helperSource.replace("throw new Error('legacy_age_only_photo_purge_disabled')", 'return undefined as never') })],
+  ['legacy helper performs forbidden delete', b => ({ ...b, helperSource: b.helperSource.replace("throw new Error('legacy_age_only_photo_purge_disabled')", "await _bucket.getFiles({prefix:'verification/',maxResults:200,autoPaginate:false}); throw new Error('legacy_age_only_photo_purge_disabled')") })],
+  ['funnel cleanup removed', b => ({ ...b, legacyCron: b.legacyCron.replace("collection('funnel_events')", "collection('unrelated')") })],
+  ['new decision scheduler export dropped', b => ({ ...b, indexSource: b.indexSource.replace("export { purgeVerificationStorageCron } from './purgeVerificationStorage';", '') })],
+  ['decision scheduler loses secret', b => ({ ...b, modernCron: b.modernCron.replaceAll('COMPLIANCE_JOB_SECRET', 'UNSIGNED_JOB') })],
+  ['policy wrongly claims legacy active', b => ({ ...b, policy: b.policy.replace('Legacy-Pfad deaktiviert', 'Legacy-Pfad aktiv') })],
+];
+
+for (const [name, mutate] of mutations) {
+  test('rejects regression: ' + name, () => {
+    const changed = mutate(baseline);
+    assert.notDeepEqual(changed, baseline, 'mutation ineffective: ' + name);
+    assert.notEqual(legacyPhotoPurgeViolations(changed).length, 0, 'fail-open: ' + name);
+  });
+}
