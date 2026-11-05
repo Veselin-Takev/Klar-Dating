@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { assertCompleteVerificationPurgeReceipt, readBoundedVerificationPurgeReceipt } from '../functions/src/verificationPurgeJobReceipt';
+import {
+  assertCompleteVerificationPurgeReceipt, readBoundedVerificationPurgeReceipt,
+  verificationPurgeSchedulerFailureEvent,
+} from '../functions/src/verificationPurgeJobReceipt';
 
 const complete = {
   ok: true, processed: 3, purgedCount: 2, skippedCount: 1,
@@ -105,5 +108,28 @@ describe('streaming byte bound for purge scheduler receipts', () => {
     ['partial pass', json({ ...complete, hasMore: true })],
   ] as const)('rejects %s instead of acknowledging a purge', async (_description, response) => {
     await expect(readBoundedVerificationPurgeReceipt(response)).rejects.toThrow(/verification_purge_job_/);
+  });
+});
+
+
+describe('scheduler failure diagnostics are aggregate-only', () => {
+  it('classifies transport failures without exception or endpoint content', () => {
+    expect(verificationPurgeSchedulerFailureEvent('transport')).toEqual({
+      event: 'verification_photo_purge_scheduler_failed',
+      severity: 'ERROR', stage: 'transport',
+    });
+  });
+  it('records only numeric HTTP status for upstream failure', () => {
+    expect(verificationPurgeSchedulerFailureEvent('http', 503)).toEqual({
+      event: 'verification_photo_purge_scheduler_failed',
+      severity: 'ERROR', stage: 'http', httpStatus: 503,
+    });
+    expect(verificationPurgeSchedulerFailureEvent('http', NaN)).not.toHaveProperty('httpStatus');
+  });
+  it('never logs a raw receipt or error description for malformed replies', () => {
+    expect(verificationPurgeSchedulerFailureEvent('receipt')).toEqual({
+      event: 'verification_photo_purge_scheduler_failed',
+      severity: 'ERROR', stage: 'receipt',
+    });
   });
 });
