@@ -104,3 +104,19 @@ export async function readBoundedVerificationPurgeReceipt(
   }
   return assertCompleteVerificationPurgeReceipt(parsed);
 }
+
+
+/** Stable, allowlisted scheduler diagnostic with no response text or URLs. */
+export function verificationPurgeSchedulerFailureEvent(
+  stage: 'transport' | 'http' | 'receipt',
+  httpStatus?: number,
+) {
+  return {
+    event: 'verification_photo_purge_scheduler_failed' as const,
+    severity: 'ERROR' as const,
+    stage,
+    ...(stage === 'http' && typeof httpStatus === 'number'
+      && Number.isSafeInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599
+      ? { httpStatus } : {}),
+  };
+}
