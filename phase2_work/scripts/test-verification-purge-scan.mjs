@@ -438,3 +438,30 @@ test('full page at invocation budget keeps a durable resume cursor and hasMore f
   assert.deepEqual(checkpoints, [items[1].cursor]);
   assert.deepEqual(result, { scanned: 2, purged: 2, skipped: 0, failed: 0, pages: 1, hasMore: true });
 });
+
+test('deadline expiration after one full page prevents a second fetch and retains checkpoint', async () => {
+  const checkpoints = [];
+  let fetches = 0;
+  let expired = false;
+  const result = await scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 3,
+    fetch: async () => { fetches++; return items.slice(0, 2); },
+    handle: async () => ({ purged: 1, skipped: 1, failed: 0 }),
+    checkpoint: async cursor => { checkpoints.push(cursor); expired = true; },
+    deadline: () => expired,
+  });
+  assert.equal(fetches, 1);
+  assert.deepEqual(checkpoints, [items[1].cursor]);
+  assert.deepEqual(result, { scanned: 2, purged: 1, skipped: 1, failed: 0, pages: 1, hasMore: true });
+});
+
+test('a rejected checkpoint write does not attempt a second page', async () => {
+  let fetches = 0;
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 3,
+    fetch: async () => { fetches++; return items.slice(0, 2); },
+    handle: async () => ({ purged: 2, skipped: 0, failed: 0 }),
+    checkpoint: async () => { throw Error('durable_checkpoint_failed'); },
+  }), /durable_checkpoint_failed/);
+  assert.equal(fetches, 1);
+});
