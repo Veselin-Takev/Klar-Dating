@@ -114,7 +114,9 @@ export async function purgeSingleVerificationArtifact(
     };
   }
 
-  if (artifact.status === 'pending') {
+  // Only explicit moderation approvals/rejections authorize retention-based
+  // deletion. Unknown runtime values must fail closed like pending decisions.
+  if (artifact.status !== 'approved' && artifact.status !== 'rejected') {
     return {
       uid: artifact.uid,
       challengeId: artifact.challengeId,
