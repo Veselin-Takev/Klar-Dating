@@ -402,3 +402,39 @@ test('a fetch error propagates without advancing the checkpoint', async () => {
   }), /firestore_query_unavailable/);
   assert.equal(sideEffects, 0);
 });
+
+test('exactly full final page requires an empty follow-up fetch before declaring completion', async () => {
+  const checkpoints = [];
+  let fetches = 0;
+  const result = await scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 3,
+    fetch: async after => {
+      fetches++;
+      return after ? [] : items.slice(0, 2);
+    },
+    handle: async values => {
+      assert.deepEqual(values, [0, 1]);
+      return { purged: 1, skipped: 1, failed: 0 };
+    },
+    checkpoint: async cursor => { checkpoints.push(cursor); },
+  });
+  assert.equal(fetches, 2);
+  assert.equal(checkpoints.length, 2);
+  assert.deepEqual(checkpoints[0], items[1].cursor);
+  assert.equal(checkpoints[1], null);
+  assert.deepEqual(result, { scanned: 2, purged: 1, skipped: 1, failed: 0, pages: 1, hasMore: false });
+});
+
+test('full page at invocation budget keeps a durable resume cursor and hasMore flag', async () => {
+  const checkpoints = [];
+  let fetches = 0;
+  const result = await scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => { fetches++; return items.slice(0, 2); },
+    handle: async () => ({ purged: 2, skipped: 0, failed: 0 }),
+    checkpoint: async cursor => { checkpoints.push(cursor); },
+  });
+  assert.equal(fetches, 1);
+  assert.deepEqual(checkpoints, [items[1].cursor]);
+  assert.deepEqual(result, { scanned: 2, purged: 2, skipped: 0, failed: 0, pages: 1, hasMore: true });
+});
