@@ -148,6 +148,36 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+  it('consumes the signed nonce when an existing lease prevents scanning', async () => {
+    await withEvent(async ({ db, event }) => {
+      const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
+      await checkpoint.set({
+        leaseId: 'other-active-worker',
+        leaseUntil: new Date(Date.now() + 120_000),
+      });
+      let deletionCalls = 0;
+      const api = await startApi(db, async () => { deletionCalls++; });
+      const nonce = randomUUID();
+      try {
+        const busy = await api.request(true, 'application/json', '{}', '{}', nonce);
+        expect(busy).toMatchObject({
+          status: 503, data: { code: 'verification_storage_purge_busy' },
+        });
+        const receipt = await db.collection('verification_photo_purge_nonces').doc(nonce).get();
+        expect(receipt.exists).toBe(true);
+        expect(receipt.get('purpose')).toBe('verification_photo_purge');
+        const replay = await api.request(true, 'application/json', '{}', '{}', nonce);
+        expect(replay.status).toBe(401);
+        expect(deletionCalls).toBe(0);
+        const record = (await event.get()).data();
+        expect(record?.photoPurgeIntent).toBeUndefined();
+        expect(record?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('rejects a replayed signed nonce even when its second timestamp and HMAC are fresh', async () => {
     await withEvent(async ({ db, event }) => {
       let deletionCalls = 0;
