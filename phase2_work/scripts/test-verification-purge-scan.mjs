@@ -330,3 +330,35 @@ test('invalid fetched cursor rejects before destructive handling or checkpointin
   }), /purge_cursor_invalid/);
   assert.equal(sideEffects, 0);
 });
+
+test('replayed or backward cursor relative to persisted checkpoint is rejected', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  for (const stale of [items[0], items[1]]) {
+    let handled = 0;
+    let checkpoints = 0;
+    await assert.rejects(scanPurgePages({
+      initial: previous, pageSize: 2, maxPages: 1,
+      fetch: async after => { assert.deepEqual(after, previous); return [stale]; },
+      handle: async () => { handled++; return { purged: 0, skipped: 1, failed: 0 }; },
+      checkpoint: async () => { checkpoints++; },
+    }), /purge_order_invalid/);
+    assert.equal(handled, 0);
+    assert.equal(checkpoints, 0);
+  }
+});
+
+test('successful short page resets persisted checkpoint after processing', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  const writes = [];
+  const result = await scanPurgePages({
+    initial: previous, pageSize: 5, maxPages: 2,
+    fetch: async after => { assert.deepEqual(after, previous); return items.slice(2, 4); },
+    handle: async values => {
+      assert.deepEqual(values, [2, 3]);
+      return { purged: 1, skipped: 1, failed: 0 };
+    },
+    checkpoint: async cursor => { writes.push(cursor); },
+  });
+  assert.deepEqual(writes, [null]);
+  assert.deepEqual(result, { scanned: 2, purged: 1, skipped: 1, failed: 0, pages: 1, hasMore: false });
+});
