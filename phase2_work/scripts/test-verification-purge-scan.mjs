@@ -232,3 +232,35 @@ test('counter mismatches reject without persisting progress', async () => {
   }), /counts_invalid/);
   assert.equal(updates, 0);
 });
+
+test('duplicate cursor rows reject before handling or checkpointing', async () => {
+  let handled = 0;
+  let checkpoints = 0;
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => [items[0], items[0]],
+    handle: async () => { handled++; return { purged: 2, skipped: 0, failed: 0 }; },
+    checkpoint: async () => { checkpoints++; },
+  }), /purge_order_invalid/);
+  assert.equal(handled, 0);
+  assert.equal(checkpoints, 0);
+});
+
+test('checkpoint persistence failure is propagated and never reported as success', async () => {
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => items.slice(0, 2),
+    handle: async () => ({ purged: 2, skipped: 0, failed: 0 }),
+    checkpoint: async () => { throw Error('checkpoint_write_unavailable'); },
+  }), /checkpoint_write_unavailable/);
+});
+
+test('empty-page checkpoint failure is propagated', async () => {
+  await assert.rejects(scanPurgePages({
+    initial: { seconds: 10, nanos: 0, id: 'a' },
+    pageSize: 2, maxPages: 1,
+    fetch: async () => [],
+    handle: async () => { throw Error('unexpected handling'); },
+    checkpoint: async () => { throw Error('checkpoint_reset_unavailable'); },
+  }), /checkpoint_reset_unavailable/);
+});
