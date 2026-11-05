@@ -37,7 +37,7 @@ export async function scanPurgePages<T>(options: {
   let cursor = readPurgeCursor(options.initial);
   const result = { scanned: 0, purged: 0, skipped: 0, failed: 0, pages: 0, hasMore: false };
   for (let n = 0; n < maxPages; n++) {
-    if (n > 0 && options.deadline?.()) return { ...result, hasMore: true };
+    if (options.deadline?.()) return { ...result, hasMore: true };
     const page = await options.fetch(cursor, pageSize);
     if (!Array.isArray(page) || page.length > pageSize) throw Error('purge_page_invalid');
     if (!page.length) { await options.checkpoint(null); return result; }
