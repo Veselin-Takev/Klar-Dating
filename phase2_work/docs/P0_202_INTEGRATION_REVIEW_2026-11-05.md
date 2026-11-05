@@ -106,3 +106,7 @@ Der Scanner prüft nun vor dem Zugriff auf `item.cursor`, ob eine Fetch-Zeile ü
 ## Fetch-Vertrag und Firestore-Ausfall
 
 [CI 42051735028](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42051735028) bestätigte den vorherigen Head `8ec665459be675ddf4cc1948fd107e43c9d2e2a5` als erfolgreich. Zwei neue Negativtests prüfen den vorhandenen Fail-Closed-Pfad für nicht-arrayförmige Fetch-Antworten sowie für einen geworfenen Firestore-Abfragefehler. Beide müssen ohne Aufruf von `handle` oder `checkpoint` abbrechen. Diese Ergänzung ändert keine Produktionskonfiguration; der neue Head braucht eigene CI-Bestätigung. Unabhängige Reviews und Cloud-Evidenz bleiben offen. `productionApproved=false`.
+
+## Exakt volle Schlussseite und Invocation-Budget
+
+Der vorherige Head `b5adcb04184cafb89085e9538120cb081a5bc850` bestand [CI 42053518992](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42053518992). Zwei neue Tests prüfen den Grenzfall, dass eine letzte Seite genau `pageSize` Elemente enthält: Erst eine anschließende leere Fetch-Antwort bestätigt den vollständigen Abschluss und setzt den Cursor zurück. Wenn stattdessen `maxPages` erreicht wird, bleibt der zuletzt erfolgreich gespeicherte Cursor bestehen und `hasMore=true`, damit der Scheduler den Scan fortsetzen kann. Die neuen Commits erfordern eine separate CI-Bestätigung; die HTTP-Route meldet bei `hasMore=true` weiterhin einen retrybaren Status. PR #317 bleibt Draft, keine unabhängigen Reviews, `productionApproved=false`.
