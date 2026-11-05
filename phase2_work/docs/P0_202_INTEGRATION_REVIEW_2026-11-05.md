@@ -151,3 +151,7 @@ Ein einzelner inkonsistenter Datensatz (`verification_photo_decision_conflict`, 
 ## Retention-Arithmetik: nicht-endliche Dauer und Überlauf
 
 Der vorherige Head `488a77161cb794690032d683dff2ddf8a2f39247` bestand [CI 42063171808](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42063171808). In `storageRetentionEngine.ts` wurde eine Validierungslücke geschlossen: `NaN`, `Infinity`, `-Infinity` und arithmetischer Überlauf bei `retentionDays` werden in `calculateVerificationRetentionExpiry` jetzt explizit abgelehnt. Ein Regressionstest deckt diese Grenzwerte sowie die reguläre 30-Tage-Berechnung ab. Dies ist Defense-in-Depth für die Fristberechnung; die produktive Standardfrist bleibt unverändert. Die neuen Commits benötigen eigenen CI-Nachweis. Independent Reviews und Cloud-Fencing bleiben offen; `productionApproved=false`.
+
+## Retention-Entscheidung: ungültige Systemzeit fail-closed
+
+Der vorherige Head `f00a70fc3306353e80c260ee84bee90085f64af4` bestand [CI 42065941887](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42065941887). Ein weiterer Code-Fix verhindert, dass `isVerificationArtifactExpired` bei `now=Infinity` oder anderen ungültigen Evaluierungszeiten eine Löschung freigibt. Die Funktion liefert bei nicht-endlicher oder nicht-positiver Systemzeit `false`; der Regressionstest prüft `NaN`, `±Infinity`, negative und Null-Zeit sowie den exakten Ablaufzeitpunkt. Dieser Schutz ersetzt keine NTP-/Clock-Monitoring-Prüfung in Staging. Neue Commits erfordern eine eigene CI-Bestätigung; `productionApproved=false`.
