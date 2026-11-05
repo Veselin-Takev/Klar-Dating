@@ -9,6 +9,8 @@ const checks = [
   ['nonce bound to purge signature', /timestampHeader}\.\$\{nonceHeader}\./],
   ['nonce ledger transaction', /tx\.create\(nonceRef/],
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
+  ['durable failure progress callback', /recordFailedPage:\s*async/],
+  ['journal failures on verification event', /photoPurgeFailure:/],
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
