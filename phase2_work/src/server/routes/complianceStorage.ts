@@ -10,6 +10,8 @@ const MAX_PAGES = 4;
 const LEASE_MS = 5 * 60_000;
 const MAX_SCAN_MS = 100_000;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
+// Firestore TTL must be activated for this dedicated collection before production.
+const SIGNED_NONCE_RETENTION_MS = 15 * 60_000;
 
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
@@ -145,12 +147,24 @@ export function complianceSignature(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('hex');
 }
 
-export function validComplianceRequest(body: Buffer, timestampHeader: string | undefined, signatureHeader: string | undefined, secret: string, now = Date.now()): boolean {
-  if (secret.length < 32 || !timestampHeader || !/^\d{10,16}$/.test(timestampHeader) || !signatureHeader || !/^[a-f0-9]{64}$/.test(signatureHeader)) return false;
+export function validComplianceRequest(
+  body: Buffer, timestampHeader: string | undefined, nonceHeader: string | undefined,
+  signatureHeader: string | undefined, secret: string, now = Date.now(),
+): boolean {
+  // The nonce is bound to the signature AND to a durable Firestore receipt.
+  // Only lowercase UUIDv4 is accepted to prevent path injection and aliases.
+  if (secret.length < 32 || !timestampHeader || !/^\d{10,16}$/.test(timestampHeader)
+    || !nonceHeader || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(nonceHeader)
+    || !signatureHeader || !/^[a-f0-9]{64}$/.test(signatureHeader)) return false;
   const timestamp = Number(timestampHeader);
   if (!Number.isSafeInteger(timestamp) || !Number.isSafeInteger(now)
     || Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS) return false;
-  const expected = complianceSignature(`${timestampHeader}.${body.toString('utf8')}`, secret);
+  // Authenticate received bytes, not UTF-8 decoding: malformed sequences must not
+  // canonicalize into the replacement character and share an HMAC with other bytes.
+  const expected = createHmac('sha256', secret)
+    .update(`${timestampHeader}.${nonceHeader}.`, 'utf8')
+    .update(body)
+    .digest('hex');
   const supplied = Buffer.from(signatureHeader, 'hex');
   const expectedBytes = Buffer.from(expected, 'hex');
   return supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
@@ -186,7 +200,8 @@ export function createVerificationStoragePurgeRouter(deps: {
     // received bytes. Wrong media types are intentionally not parsed by raw().
     if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);
     const body = req.body;
-    if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
+    const nonce = req.get('X-Klar-Compliance-Nonce');
+    if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), nonce, req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
     // Before Firestore lease acquisition and before touching any GCS object.
     if (!isVerificationPhotoPurgeEnabled(process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED)) {
       return res.status(503).json({ code: 'verification_storage_purge_disabled' });
@@ -195,23 +210,38 @@ export function createVerificationStoragePurgeRouter(deps: {
     const db = deps.getDb();
     const now = Date.now();
     const checkpointRef = db.collection('system').doc('verification_photo_purge_scan_v1');
+    // A valid signature alone is replayable. Record its signed nonce durably
+    // in the same Firestore transaction that acquires/observes the scan lease.
+    const nonceRef = db.collection('verification_photo_purge_nonces').doc(nonce!);
     const leaseId = randomUUID();
     try {
       // One scanner owns the cursor at a time. A crashed process expires its
       // lease, whereas a committed page can safely be replayed idempotently.
       const ownership = await db.runTransaction(async tx => {
-        const snapshot = await tx.get(checkpointRef);
+        const [snapshot, usedNonce] = await Promise.all([
+          tx.get(checkpointRef), tx.get(nonceRef),
+        ]);
+        if (usedNonce.exists) return { kind: 'replay' as const, cursor: null };
         const state = snapshot.data();
         const leaseUntil = normalizeTimestamp(state?.leaseUntil);
         if (state?.leaseId && leaseUntil === null) throw new Error('verification_purge_lease_invalid');
-        if (leaseUntil !== null && leaseUntil > now) return { busy: true as const, cursor: null };
-        const cursor = readPurgeCursor(state?.cursor ?? null);
+        const busy = leaseUntil !== null && leaseUntil > now;
+        const cursor = busy ? null : readPurgeCursor(state?.cursor ?? null);
+        // Consume even busy requests: a valid signed invocation is single-use,
+        // including retries during another worker's active lease.
+        tx.create(nonceRef, {
+          purpose: 'verification_photo_purge',
+          usedAt: Timestamp.fromMillis(now),
+          expiresAt: Timestamp.fromMillis(now + SIGNED_NONCE_RETENTION_MS),
+        });
+        if (busy) return { kind: 'busy' as const, cursor: null };
         tx.set(checkpointRef, {
           leaseId, leaseUntil: new Date(now + LEASE_MS), lastStartedAt: new Date(now),
         }, { merge: true });
-        return { busy: false as const, cursor };
+        return { kind: 'owned' as const, cursor };
       });
-      if (ownership.busy) {
+      if (ownership.kind === 'replay') return res.sendStatus(401);
+      if (ownership.kind === 'busy') {
         return res.status(503).json({ code: 'verification_storage_purge_busy' });
       }
 
