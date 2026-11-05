@@ -83,6 +83,7 @@ test('durable failure journal permits progress to later valid pages', async () =
           failures: [{ id: 'id0', reason: 'decision_conflict' }] }
         : { purged: values.length, skipped: 0, failed: 0 };
     },
+    identifyItem: value => 'id' + value,
     recordFailedPage: async (next, _values, errors) => {
       for (const error of errors) failures.set(error.id, error.reason);
       cursor = next;
@@ -112,6 +113,7 @@ test('unavailable durable failure journal cannot move the cursor', async () => {
     fetch: async () => items.slice(0, 2),
     handle: async () => ({ purged: 1, skipped: 0, failed: 1,
       failures: [{ id: 'id0', reason: 'invalid_record' }] }),
+    identifyItem: value => 'id' + value,
     recordFailedPage: async () => { throw Error('durable_failure_journal_unavailable'); },
     checkpoint: async () => { writes++; },
   }), /durable_failure_journal_unavailable/);
