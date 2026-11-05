@@ -27,6 +27,8 @@ for (const [name, mutate] of [
   ['funnel cleanup removed', b => ({ ...b, legacyCron: b.legacyCron.replace("collection('funnel_events')", "collection('removed')") })],
   ['account erasure removed', b => ({ ...b, helperSource: b.helperSource.replace('export async function deleteAccountPhotos(', 'async function deletedAccountErasure(') })],
   ['retired helper reintroduced', b => ({ ...b, helperSource: b.helperSource + "\nexport async function deleteExpiredPhotoPage() { await photo.delete(); }" })],
+  ['retired helper reintroduced as a throwing shim', b => ({ ...b, helperSource: b.helperSource + "\nexport async function deleteExpiredPhotoPage() { throw new Error('disabled'); }" })],
+  ['retired helper reintroduced as a constant', b => ({ ...b, helperSource: b.helperSource + "\nexport const deleteExpiredPhotoPage = async () => { throw new Error('disabled'); }" })],
   ['policy falsely claims active legacy purge', b => ({ ...b, policy: b.policy.replace('deaktiviert nur diesen Upload-Alter-Löschpfad', 'aktiviert wieder diesen Upload-Alter-Löschpfad') })],
   ['scheduler secret removed', b => ({ ...b, modernCron: b.modernCron.replaceAll('COMPLIANCE_JOB_SECRET', 'UNSIGNED_JOB') })],
   ['decision scheduler export removed', b => ({ ...b, indexSource: b.indexSource.replace("export { purgeVerificationStorageCron } from './purgeVerificationStorage';", '') })],
