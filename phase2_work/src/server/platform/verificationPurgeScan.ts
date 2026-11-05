@@ -34,6 +34,9 @@ export async function scanPurgePages<T>(options: {
   fetch: (after: PurgeCursor | null, size: number) => Promise<PurgeItem<T>[]>;
   handle: (items: T[]) => Promise<PurgePageResult>;
   checkpoint: (after: PurgeCursor | null, completed?: T[]) => Promise<void>;
+  // Identify the canonical Firestore document for each processed page item.
+  // Required for failure journaling to reject out-of-page / duplicate receipts.
+  identifyItem?: (value: T) => string;
   // Must persist individual failure evidence AND cursor in one transaction, or throw.
   recordFailedPage?: (after: PurgeCursor | null, page: T[], failures: PurgeFailure[]) => Promise<void>;
   deadline?: () => boolean;
@@ -83,6 +86,22 @@ export async function scanPurgePages<T>(options: {
           || !item.id.length || item.id.includes('/')
           || !['decision_conflict', 'invalid_record', 'pending_decision', 'processing_error'].includes(item.reason))
         || new Set(failures.map(item => item.id)).size !== failures.length) {
+        throw Error('purge_failure_journal_invalid');
+      }
+      // The scanner must independently prove that every journaled failure
+      // belongs to precisely this page before authorizing cursor advancement.
+      // Do not rely solely on the adapter's callback to validate its own IDs.
+      if (!options.identifyItem) throw Error('purge_failure_journal_binding_missing');
+      const pageIds = new Set<string>();
+      for (const value of values) {
+        const id = options.identifyItem(value);
+        if (typeof id !== 'string' || !id.length || id.length > 1500
+          || id.includes('/') || pageIds.has(id)) {
+          throw Error('purge_failure_journal_invalid');
+        }
+        pageIds.add(id);
+      }
+      if (failures.some(failure => !pageIds.has(failure.id))) {
         throw Error('purge_failure_journal_invalid');
       }
       // This callback atomically journals named failures and advances the
