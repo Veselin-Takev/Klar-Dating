@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
@@ -15,11 +15,12 @@ export const purgeVerificationStorageCron = onSchedule({
   const url = new URL(origin);
   if (url.protocol !== 'https:' || url.origin !== origin) throw new Error('COMPLIANCE_API_ORIGIN must be an HTTPS origin without a path');
   const timestamp = String(Date.now());
+  const nonce = randomUUID();
   const body = '{}';
-  const signature = createHmac('sha256', jobSecret).update(`${timestamp}.${body}`).digest('hex');
+  const signature = createHmac('sha256', jobSecret).update(`${timestamp}.${nonce}.${body}`).digest('hex');
   const response = await fetch(`${origin}/api/admin/purge-verification-storage`, {
     method: 'POST', redirect: 'error', signal: AbortSignal.timeout(150_000),
-    headers: { 'content-type': 'application/json', 'X-Klar-Compliance-Timestamp': timestamp, 'X-Klar-Compliance-Signature': signature },
+    headers: { 'content-type': 'application/json', 'X-Klar-Compliance-Timestamp': timestamp, 'X-Klar-Compliance-Nonce': nonce, 'X-Klar-Compliance-Signature': signature },
     body,
   });
   if (!response.ok) throw new Error(`Verification storage purge failed: HTTP ${response.status}`);
