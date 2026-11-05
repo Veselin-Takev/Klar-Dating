@@ -295,3 +295,38 @@ test('invalid result counters reject without checkpointing', async () => {
     assert.equal(writes, 0);
   }
 });
+
+test('malformed persisted cursors fail before querying or checkpointing', async () => {
+  const invalid = [
+    { seconds: -1, nanos: 0, id: 'x' },
+    { seconds: 4102444801, nanos: 0, id: 'x' },
+    { seconds: 1, nanos: 1e9, id: 'x' },
+    { seconds: 1.5, nanos: 0, id: 'x' },
+    { seconds: 1, nanos: 0, id: '' },
+    { seconds: 1, nanos: 0, id: 'folder/file' },
+    { seconds: 1, nanos: 0, id: 'x'.repeat(1501) },
+    [],
+    'not-a-cursor',
+  ];
+  let sideEffects = 0;
+  for (const initial of invalid) {
+    await assert.rejects(scanPurgePages({
+      initial, pageSize: 2, maxPages: 1,
+      fetch: async () => { sideEffects++; return []; },
+      handle: async () => { sideEffects++; return { purged: 0, skipped: 0, failed: 0 }; },
+      checkpoint: async () => { sideEffects++; },
+    }), /purge_cursor_invalid/);
+  }
+  assert.equal(sideEffects, 0);
+});
+
+test('invalid fetched cursor rejects before destructive handling or checkpointing', async () => {
+  let sideEffects = 0;
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => [{ cursor: { seconds: 1, nanos: 0, id: 'a/b' }, value: 'unsafe' }],
+    handle: async () => { sideEffects++; return { purged: 0, skipped: 1, failed: 0 }; },
+    checkpoint: async () => { sideEffects++; },
+  }), /purge_cursor_invalid/);
+  assert.equal(sideEffects, 0);
+});
