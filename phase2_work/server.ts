@@ -484,6 +484,11 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
   app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
+  // Capture *actual* signed compliance bytes BEFORE the global JSON parser.
+  // The purge router verifies this raw Buffer and never accepts a fallback body.
+  // Keep the normal /api limiter and authentication-bypass routing below intact.
+  app.use('/api/admin/purge-verification-storage',
+    express.raw({ inflate: false, type: 'application/json', limit: '2kb' }));
   app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
 
   // Setup basic rate limiting
