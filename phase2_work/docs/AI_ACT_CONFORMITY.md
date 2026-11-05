@@ -41,3 +41,6 @@ Primärquellen für die weitere fachliche Prüfung:
 [EU-Kommission – KI-Kompetenz](https://digital-strategy.ec.europa.eu/en/faqs/ai-literacy-questions-answers),
 [EDPB – Verantwortlicher/Auftragsverarbeiter](https://www.edpb.europa.eu/sme/learn-the-basics/data-controller-or-data-processor_en),
 [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework).
+## Compliance-Abgleich vom 02.11.2026
+
+Der Eigentümer bestätigt ausschließlich Entwicklung. Der [aktuelle Compliance-Reifebericht](COMPLIANCE_AUDIT_2026-11-02.md) und das [Kontrollregister](COMPLIANCE_EVIDENCE_REGISTER_2026-11-02.json) ergänzen diesen Status um Betreiber-/Daten-/Anbieter-, Verbraucher-, Accessibility- und Governance-Nachweise. KI-Einstufung, tatsächliche Transparenz-/Kompetenzmaßnahmen sowie fachliche Abnahmen bleiben offen; **Produktion weiterhin NO-GO**. Der aktuelle Rechtsstand und die tatsächliche Betreiberrolle sind je Funktion zu prüfen; historische Dokumente oder allgemeine Modellsicherheitsaussagen ersetzen dies nicht.

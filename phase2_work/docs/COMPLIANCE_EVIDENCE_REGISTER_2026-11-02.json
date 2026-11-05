@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "assessedAt": "2026-11-02",
+  "baselineCommit": "2808dc1cbb485f70b403681c108cea5a3361d950",
+  "baselineTree": "45d0b247dbd41ef66d37474ac1220b13450051bc",
+  "scope": "Repository-/evidence-based compliance readiness audit, not a legal certification or production operating audit",
+  "operatorConfirmation": {
+    "source": "User statement in this chat on 2026-11-02",
+    "state": "development_only",
+    "legalEntityVerified": false,
+    "jurisdictionVerified": false,
+    "personalDevelopmentDataInventoryVerified": false
+  },
+  "decision": "NO-GO",
+  "productionApproved": false,
+  "independentLegalApproval": false,
+  "independentSecurityApproval": false,
+  "controls": [
+    {
+      "id": "C01",
+      "area": "Betreiberidentität und öffentliche Rechtstexte",
+      "priority": "P0",
+      "status": "not_verified",
+      "ownerRoles": [
+        "Product",
+        "Legal"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Bestätigte Identität, erreichbare Kontaktwege und belegte Tatsachenbehauptungen vor Veröffentlichung.",
+      "source": "src/screens/Rechtstexte.tsx"
+    },
+    {
+      "id": "C02",
+      "area": "Verarbeitungsverzeichnis, Zwecke und Rechtsgrundlagen",
+      "priority": "P0",
+      "status": "not_demonstrated",
+      "ownerRoles": [
+        "Privacy",
+        "Legal",
+        "Product"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Freigegebenes Datenfluss-/Zweckregister einschließlich besonderer Kategorien, Empfänger und Speicherfristen.",
+      "source": "docs/AI_ACT_CONFORMITY.md"
+    },
+    {
+      "id": "C03",
+      "area": "Einwilligung und Widerruf",
+      "priority": "P0",
+      "status": "partial",
+      "ownerRoles": [
+        "Engineering",
+        "Privacy"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Vollständige Wirkungs- und Teilfehlernachweise, eindeutiger Status und dauerhafte Nachbearbeitung.",
+      "source": "src/server/datenschutz.ts"
+    },
+    {
+      "id": "C04",
+      "area": "Auskunft, Portabilität und weitere Betroffenenrechte",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Privacy",
+        "Support",
+        "Engineering"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Vollständiges Dateninventar, rechtlich abgegrenzte Exporte und nachgewiesener fristgerechter Folgeprozess.",
+      "source": "src/server/datenschutz.ts"
+    },
+    {
+      "id": "C05",
+      "area": "Retention, Löschung und Backups",
+      "priority": "P0",
+      "status": "partial",
+      "ownerRoles": [
+        "Privacy",
+        "Engineering",
+        "SRE"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Konsistente Frist-/Hold-/Objekt-Policy, reale Lösch-/Wiederherstellungsnachweise und belegte Nutzerzusagen.",
+      "source": "docs/DATA_RETENTION.md"
+    },
+    {
+      "id": "C06",
+      "area": "Aktivierungsdaten und Analyselifecycle",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Product",
+        "Privacy",
+        "Engineering"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Zweck, Rechtsgrundlage, Aufbewahrung und Auskunftsabdeckung für alle aktiven Ereignisströme.",
+      "source": "src/server/platform/launchPlatform.ts"
+    },
+    {
+      "id": "C07",
+      "area": "Endgerätespeicherung, SDKs und Telemetrie",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Privacy",
+        "Frontend",
+        "SRE"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Zweckbezogenes Speicher-/SDK-Inventar und Browsernachweise vor/nach Einwilligung und Widerruf.",
+      "source": "src/main.tsx"
+    },
+    {
+      "id": "C08",
+      "area": "Anbieter, Auftragsverarbeitung und Transfers",
+      "priority": "P0",
+      "status": "not_demonstrated",
+      "ownerRoles": [
+        "Legal",
+        "Privacy",
+        "SRE"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Tatsächliche Dienste/Rollen, Verträge, Unterauftragnehmer, Datenstandorte und Transferinstrumente belegen.",
+      "source": "docs/AI_ACT_CONFORMITY.md"
+    },
+    {
+      "id": "C09",
+      "area": "KI-Einstufung, Transparenz und Kompetenz",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "AI Governance",
+        "Legal",
+        "Product"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Je tatsächlichem Use Case rollenbezogene Einstufung, Transparenz- und Kompetenznachweise; aktuellen Rechtsstand prüfen.",
+      "source": "docs/AI_ACT_CONFORMITY.md"
+    },
+    {
+      "id": "C10",
+      "area": "Alters-, Safety- und DSA-Pflichten",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Trust and Safety",
+        "Legal",
+        "Product"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "18+-Produktpolicy von gesetzlichen Voraussetzungen trennen; Dienste-/Größeneinstufung und Melde-/Beschwerdebetrieb belegen.",
+      "source": "src/server/platform/ageGateEngine.ts"
+    },
+    {
+      "id": "C11",
+      "area": "Vertrag, Zahlung, Widerruf und Kündigung",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Legal",
+        "Billing",
+        "Operations"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Aktive Funktionen/Preise, öffentliche Erklärungswege, Belege und tatsächliche Zustellung/Fehlerbearbeitung prüfen.",
+      "source": "src/server/contracts.ts"
+    },
+    {
+      "id": "C12",
+      "area": "Barrierefreiheit",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Accessibility",
+        "Legal",
+        "Product"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "BFSG-Anwendbarkeit dokumentieren; manuelle kritische Journeys und unabhängige Bewertung zum Release-Commit.",
+      "source": "docs/ACCESSIBILITY.md"
+    },
+    {
+      "id": "C13",
+      "area": "TOMs und sichere Lieferkette",
+      "priority": "P0",
+      "status": "partial",
+      "ownerRoles": [
+        "Security",
+        "Engineering",
+        "SRE"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Bestätigte Befunde beheben und technische sowie reale Betriebsnachweise am exakten Release-Artefakt prüfen.",
+      "source": "docs/SECURITY_AUDIT_STATUS_2026-10-26.md"
+    },
+    {
+      "id": "C14",
+      "area": "Vorfallmanagement und Wiederherstellung",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Security",
+        "Privacy",
+        "SRE"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Benannte Erreichbarkeit, Meldeentscheidung und dokumentierte Alarm-/Restore-/Rollback-Übungen.",
+      "source": "docs/INCIDENT_RESPONSE.md"
+    },
+    {
+      "id": "C15",
+      "area": "OSS-Lizenzen und ausgelieferte Artefakte",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Legal",
+        "Release Engineering"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Digestgebundene SBOM und vollständige Lizenz-/NOTICE-Prüfung der tatsächlich ausgelieferten Komponenten.",
+      "source": "src/vendor/qrcode-generator.LICENSE"
+    },
+    {
+      "id": "C16",
+      "area": "Marketingversprechen und Kostenkontrollen",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Product",
+        "Legal",
+        "Finance"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Unabhängig belegte Claims und reale Providerquoten/Billing-/Alarmnachweise; keine Geldgarantie aus internen Units.",
+      "source": "docs/MARKETING_CLAIM_EVIDENCE_2026-10-18.json"
+    },
+    {
+      "id": "C17",
+      "area": "Geschützte offizielle Produktionsfreigabe",
+      "priority": "P0",
+      "status": "not_demonstrated",
+      "ownerRoles": [
+        "Release Owner",
+        "Security",
+        "Privacy",
+        "Legal",
+        "SRE",
+        "Finance"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Geschützter Prozess mit authentifizierten unabhängigen Fachfreigaben und exaktem integriertem Release-Commit.",
+      "source": "RELEASE_MANIFEST.json"
+    },
+    {
+      "id": "C18",
+      "area": "Change, Schulungen und Pilot",
+      "priority": "P1",
+      "status": "partial",
+      "ownerRoles": [
+        "Business Owner",
+        "Change Lead",
+        "Independent QA"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Tatsächliche Schulungs-/Pilot-/Messbelege nach Scopefreigabe; Solo-Eigenprüfung ist keine unabhängige QA.",
+      "source": "docs/phase3/EVIDENCE_REGISTER.json"
+    },
+    {
+      "id": "C19",
+      "area": "DSFA und DSB-Benennungspflicht",
+      "priority": "P0",
+      "status": "applicability_open",
+      "ownerRoles": [
+        "Controller",
+        "Privacy",
+        "Legal"
+      ],
+      "assignedPeopleVerified": false,
+      "closureEvidence": "Dokumentiertes Risiko-/DSFA- und Benennungspflicht-Screening; nötige Fachverfahren vor entsprechender Verarbeitung.",
+      "source": "docs/AI_ACT_CONFORMITY.md"
+    }
+  ]
+}
