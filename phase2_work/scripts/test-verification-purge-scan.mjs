@@ -475,3 +475,12 @@ test('retention calculation rejects NaN, infinity and arithmetic overflow', () =
   assert.equal(calculateVerificationRetentionExpiry(1_700_000_000_000, 30), 1_702_592_000_000);
   assert.equal(isVerificationArtifactExpired(1_700_000_000_000, 1_702_592_000_000, 30), true);
 });
+
+test('invalid retention evaluation clock never authorizes deletion', () => {
+  const decidedAt = 1_700_000_000_000;
+  for (const now of [NaN, Infinity, -Infinity, -1, 0]) {
+    assert.equal(isVerificationArtifactExpired(decidedAt, now, 30), false);
+  }
+  assert.equal(isVerificationArtifactExpired(decidedAt, 1_702_591_999_999, 30), false);
+  assert.equal(isVerificationArtifactExpired(decidedAt, 1_702_592_000_000, 30), true);
+});
