@@ -78,20 +78,23 @@ async function startApi(
   const address = server.address();
   if (!address || typeof address === 'string') throw Error('http_test_listener_not_bound');
   const url = 'http://127.0.0.1:' + address.port + '/api/admin/purge-verification-storage';
+  const nonces = new Set<string>();
 
   return {
     request: async (
       valid = true, contentType = 'application/json',
-      body = '{}', signedBody = body,
+      body = '{}', signedBody = body, nonce = randomUUID(),
     ): Promise<HttpResult> => {
+      nonces.add(nonce);
       const timestamp = String(Date.now());
       const signature = valid
-        ? complianceSignature(timestamp + '.' + signedBody, secret)
+        ? complianceSignature(timestamp + '.' + nonce + '.' + signedBody, secret)
         : '0'.repeat(64);
       const response = await fetch(url, {
         method: 'POST', headers: {
           'content-type': contentType,
           'X-Klar-Compliance-Timestamp': timestamp,
+          'X-Klar-Compliance-Nonce': nonce,
           'X-Klar-Compliance-Signature': signature,
         },
         body,
@@ -102,9 +105,13 @@ async function startApi(
       try { data = JSON.parse(raw) as Record<string, unknown>; } catch { /* 401 is plain text */ }
       return { status: response.status, data };
     },
-    close: () => new Promise<void>((resolve, reject) => {
-      server.close(error => error ? reject(error) : resolve());
-    }),
+    close: async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => error ? reject(error) : resolve());
+      });
+      await Promise.all([...nonces].map(n =>
+        db.collection('verification_photo_purge_nonces').doc(n).delete()));
+    },
   };
 }
 
@@ -141,6 +148,24 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+  it('rejects a replayed signed nonce even when its second timestamp and HMAC are fresh', async () => {
+    await withEvent(async ({ db, event }) => {
+      let deletionCalls = 0;
+      const api = await startApi(db, async () => { deletionCalls++; });
+      const nonce = randomUUID();
+      try {
+        const first = await api.request(true, 'application/json', '{}', '{}', nonce);
+        expect(first.status).toBe(200);
+        const replay = await api.request(true, 'application/json', '{}', '{}', nonce);
+        expect(replay.status).toBe(401);
+        expect(deletionCalls).toBe(1);
+        expect((await event.get()).data()?.photoPurgeProof).toBeDefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('rejects an authenticated purge when the default-deny deployment gate is unset', async () => {
     await withEvent(async ({ db, event }) => {
       let deleted = false;
