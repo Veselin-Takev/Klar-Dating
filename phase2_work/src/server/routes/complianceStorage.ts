@@ -13,6 +13,11 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // Firestore TTL must be activated for this dedicated collection before production.
 const SIGNED_NONCE_RETENTION_MS = 15 * 60_000;
 
+// P0 VES-5: Release authorization is NOT a mutable environment variable.
+// No live photo purge may run before an independently reviewed cross-service
+// all-writer fencing protocol replaces this code-level prohibition.
+const VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED = false;
+
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
@@ -143,6 +148,32 @@ export function isVerificationPhotoPurgeEnabled(
   return configured === 'true';
 }
 
+/**
+ * Temporary P0 live-release lock. Until all-writer fencing is verified and
+ * independently approved, only isolated LOCAL emulator tests may reach the
+ * destructive route. This blocks even a mistakenly enabled environment flag.
+ *
+ * This is defense in depth, NOT a resolution of the Firestore/GCS race.
+ */
+export function isVerificationPhotoPurgeRuntimeAllowed(
+  environment: Pick<NodeJS.ProcessEnv,
+    'NODE_ENV' | 'K_SERVICE' | 'K_REVISION' | 'FUNCTION_TARGET' |
+    'FIRESTORE_EMULATOR_HOST' | 'FIREBASE_STORAGE_EMULATOR_HOST' |
+    'GCLOUD_PROJECT' | 'GOOGLE_CLOUD_PROJECT' | 'FIREBASE_PROJECT_ID'>,
+): boolean {
+  if (VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED) return true;
+  const loopback = /^(?:localhost|127\.0\.0\.1|\[::1\]):[1-9][0-9]{0,4}$/;
+  const projects = [
+    environment.GCLOUD_PROJECT, environment.GOOGLE_CLOUD_PROJECT,
+    environment.FIREBASE_PROJECT_ID,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+  return environment.NODE_ENV === 'test'
+    && !environment.K_SERVICE && !environment.K_REVISION && !environment.FUNCTION_TARGET
+    && loopback.test(environment.FIRESTORE_EMULATOR_HOST ?? '')
+    && loopback.test(environment.FIREBASE_STORAGE_EMULATOR_HOST ?? '')
+    && projects.every(project => project === 'demo-klar');
+}
+
 export function complianceSignature(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('hex');
 }
@@ -205,6 +236,11 @@ export function createVerificationStoragePurgeRouter(deps: {
     // Before Firestore lease acquisition and before touching any GCS object.
     if (!isVerificationPhotoPurgeEnabled(process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED)) {
       return res.status(503).json({ code: 'verification_storage_purge_disabled' });
+    }
+    // P0 fails closed even with valid HMAC and an enabled feature flag.
+    // Must execute BEFORE the first Firestore lease or Storage operation.
+    if (!isVerificationPhotoPurgeRuntimeAllowed(process.env)) {
+      return res.status(503).json({ code: 'verification_storage_purge_p0_live_blocked' });
     }
 
     const db = deps.getDb();
