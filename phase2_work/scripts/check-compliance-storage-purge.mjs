@@ -9,6 +9,7 @@ const checks = [
   ['nonce bound to purge signature', /timestampHeader}\.\$\{nonceHeader}\./],
   ['nonce ledger transaction', /tx\.create\(nonceRef/],
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
+  ['scheduler checks receipt rather than only HTTP 200', /assertCompleteVerificationPurgeReceipt/],
   ['durable failure progress callback', /recordFailedPage:\s*async/],
   ['journal failures on verification event', /photoPurgeFailure:/],
   ['persistent unresolved failure latch', /hasUnresolvedFailures:/],
@@ -21,7 +22,9 @@ const checks = [
   ['single scheduler instance', /maxInstances: 1/],
 ];
 for (const [label, re] of checks) {
-  const source = label === 'daily scheduler' || label === 'single scheduler instance' ? fn : label === 'protected purge endpoint' ? server + route : route;
+  const source = label === 'daily scheduler' || label === 'single scheduler instance'
+    || label === 'scheduler checks receipt rather than only HTTP 200' ? fn
+    : label === 'protected purge endpoint' ? server + route : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
 }
 // The scheduler signs the exact JSON bytes. A global express.json() parser
