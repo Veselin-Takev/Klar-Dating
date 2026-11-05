@@ -19,12 +19,16 @@ const reportPath = resolve(arg('report') ?? resolve(root, 'audit-results/ves10-r
 const archive = arg('archive');
 const manifestsOnly = process.argv.includes('--manifests-only');
 const wantedArchiveName = 'Klar_Enterprise_Final_15.09.2026.zip';
+// Independently pinned to the historical Git-reviewed manifest, not inferred
+// from two simultaneously modified input files.
+const historicalExpectedSha256 = '36b2a3ac3953cecc0bbfecbf7ca7f7cc2dd0e39f118820a51591bcce97725aac';
 
 function manifestValue(contents) {
   const entries = contents.split(/\r?\n/).filter(x => x.trim());
   if (entries.length !== 1) throw Error('invalid_manifest_entry_count');
   const line = /^([a-fA-F0-9]{64})[ \t]+\*?(\S+)$/.exec(entries[0]);
-  if (!line || basename(line[2].replace(/\\/g, '/')) !== wantedArchiveName) {
+  const target = line?.[2].replace(/\\/g, '/');
+  if (!line || (target !== '/mnt/data/' + wantedArchiveName && target !== wantedArchiveName)) {
     throw Error('invalid_manifest_format_or_filename');
   }
   return line[1].toLowerCase();
@@ -78,6 +82,7 @@ async function main() {
     const m1 = manifestValue(await readFile(manifestRoot, 'utf8'));
     const m2 = manifestValue(await readFile(manifestPhase, 'utf8'));
     if (m1 !== m2) throw Error('source_manifests_disagree');
+    if (m1 !== historicalExpectedSha256) throw Error('historical_release_digest_changed');
     result.manifestConsistency = true;
     result.expectedSha256 = m1;
     if (manifestsOnly && !archive) {
@@ -97,7 +102,8 @@ async function main() {
     result.verdict = 'FAIL';
     const allowed = new Set([
       'invalid_manifest_entry_count', 'invalid_manifest_format_or_filename',
-      'source_manifests_disagree', 'archive_argument_required_or_conflicts_with_manifests_only',
+      'source_manifests_disagree', 'historical_release_digest_changed',
+      'archive_argument_required_or_conflicts_with_manifests_only',
       'archive_filename_mismatch', 'archive_not_regular_file',
       'archive_changed_during_read', 'archive_sha256_mismatch',
     ]);
