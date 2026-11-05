@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scanPurgePages, readPurgeCursor } from '../src/server/platform/verificationPurgeScan.ts';
-import { calculateVerificationRetentionExpiry, isVerificationArtifactExpired } from '../src/server/platform/storageRetentionEngine.ts';
+import { calculateVerificationRetentionExpiry, isVerificationArtifactExpired, purgeSingleVerificationArtifact } from '../src/server/platform/storageRetentionEngine.ts';
 
 const items = Array.from({ length: 255 }, (_, i) => ({
   cursor: { seconds: 100 + i, nanos: 0, id: 'id' + i }, value: i,
@@ -483,4 +483,34 @@ test('invalid retention evaluation clock never authorizes deletion', () => {
   }
   assert.equal(isVerificationArtifactExpired(decidedAt, 1_702_591_999_999, 30), false);
   assert.equal(isVerificationArtifactExpired(decidedAt, 1_702_592_000_000, 30), true);
+});
+
+test('unknown moderation status never reaches Storage deletion or audit update', async () => {
+  for (const status of ['unknown', '', null, undefined, 'PENDING', 'bestaetigt']) {
+    let deletes = 0;
+    let audits = 0;
+    const result = await purgeSingleVerificationArtifact({
+      uid: 'u1', challengeId: 'c1', storagePath: 'verification/u1/photo',
+      status, decidedAt: 1_700_000_000_000,
+    }, async () => { deletes++; }, async () => { audits++; }, 1_702_592_000_001);
+    assert.equal(result.reason, 'pending_decision');
+    assert.equal(result.purged, false);
+    assert.equal(deletes, 0);
+    assert.equal(audits, 0);
+  }
+});
+
+test('explicit approved or rejected decision retains the normal deletion path', async () => {
+  for (const status of ['approved', 'rejected']) {
+    let deletes = 0;
+    let audits = 0;
+    const result = await purgeSingleVerificationArtifact({
+      uid: 'u1', challengeId: 'c1', storagePath: 'verification/u1/photo',
+      status, decidedAt: 1_700_000_000_000,
+    }, async () => { deletes++; }, async () => { audits++; }, 1_702_592_000_001);
+    assert.equal(result.reason, 'expired');
+    assert.equal(result.purged, true);
+    assert.equal(deletes, 1);
+    assert.equal(audits, 1);
+  }
 });
