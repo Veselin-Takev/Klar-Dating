@@ -51,7 +51,13 @@ export async function scanPurgePages<T>(options: {
     if (!counts || ![counts.purged, counts.skipped, counts.failed].every(v => Number.isSafeInteger(v) && v >= 0)
       || counts.purged + counts.skipped + counts.failed !== page.length) throw Error('purge_counts_invalid');
     // Failed items must remain eligible for retry: never checkpoint past them.
-    if (counts.failed > 0) throw Error('purge_page_failed_retry_required');
+    if (counts.failed > 0) {
+      // Report partial failures without advancing the cursor; the HTTP caller
+      // can return retryable 503 with accurate counts and replay this page.
+      return { ...result, scanned: result.scanned + page.length,
+        purged: result.purged + counts.purged, skipped: result.skipped + counts.skipped,
+        failed: result.failed + counts.failed, pages: result.pages + 1, hasMore: true };
+    }
     const full = page.length === pageSize;
     cursor = full ? last : null;
     // Advance only after a completed page; repeat after a crashed page is safe.
