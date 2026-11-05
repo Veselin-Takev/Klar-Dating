@@ -46,6 +46,9 @@ export async function scanPurgePages<T>(options: {
     if (!page.length) { await options.checkpoint(null); return result; }
     let last = cursor;
     for (const item of page) {
+      // A malformed adapter result must produce a stable, non-destructive
+      // failure rather than an incidental TypeError while dereferencing it.
+      if (!item || typeof item !== 'object' || !('cursor' in item)) throw Error('purge_page_invalid');
       const next = readPurgeCursor(item.cursor);
       if (!next || (last && cursorOrder(next, last) <= 0)) throw Error('purge_order_invalid');
       last = next;
