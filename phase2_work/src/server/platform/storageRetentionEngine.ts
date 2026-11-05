@@ -56,10 +56,14 @@ export function calculateVerificationRetentionExpiry(
   if (!Number.isFinite(decidedAt) || decidedAt <= 0) {
     throw new Error('Ungültiger oder fehlender Entscheidungszeitpunkt (decidedAt).');
   }
-  if (retentionDays < 0) {
-    throw new Error('Aufbewahrungsdauer darf nicht negativ sein.');
+  if (!Number.isFinite(retentionDays) || retentionDays < 0) {
+    throw new Error('Aufbewahrungsdauer muss endlich und nicht negativ sein.');
   }
-  return decidedAt + retentionDays * MS_PER_DAY;
+  const expiry = decidedAt + retentionDays * MS_PER_DAY;
+  if (!Number.isFinite(expiry)) {
+    throw new Error('Berechneter Ablaufzeitpunkt ist ungültig.');
+  }
+  return expiry;
 }
 
 /**
