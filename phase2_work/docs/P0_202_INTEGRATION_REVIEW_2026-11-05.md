@@ -139,3 +139,11 @@ Required independent evidence before enabling purge:
 | Final production authorization | Release Owner | Not supplied | NO-GO |
 
 Every evidence record must identify environment, deployment revision, UTC timestamp, approver and immutable artifact link. This checklist does not authorize production mutation.
+
+## Operations: Poison-Pill-Seite und sichere Entstörung
+
+Ein einzelner inkonsistenter Datensatz (`verification_photo_decision_conflict`, fehlender Storage-Pfad, ungültiger `decidedAt` oder nicht zuordenbarer Audit-Intent) wird absichtlich als `failed` gezählt. Der Scanner checkpointet **nicht** hinter einer teilweise fehlgeschlagenen Seite. Damit kann derselbe Fehler bei jedem Scheduler-Lauf erneut auftreten und den nachfolgenden Backlog blockieren. Dies ist eine bewusst fail-closed ausgelegte Datenschutz-Schranke, kein Anlass, die fehlerhafte Zeile zu überspringen oder den Cursor manuell vorzusetzen.
+
+**Runbook für SRE und DPO:** (1) Bei wiederholtem 503/`failedCount>0` Alarm und P0/P1-Triage auslösen, Scanner-Flag im Zweifel deaktiviert lassen. (2) Unter restriktivem Zugriff ausschließlich Metadaten der betroffenen Firestore-Einträge und Entscheidungshistorie analysieren; keine KYC-Fotos oder Tokens in Logs/Tickets kopieren. (3) Datensatz-Ursache und rechtliche Löschgrundlage mit DPO/AppSec klären, Entscheidung/Audit-Intent nur über einen geprüften, revisionsfähigen Korrekturpfad reparieren. (4) Scanner im isolierten Staging mit identischem Fehlermuster erneut testen; Checkpoint muss erst nach vollständig erfolgreicher Seite fortschreiten. (5) Nach genehmigter Wiederaufnahme Backlog, Lease, `hasMore`, Fehlerzahl und Audit-Belege kontrollieren. **Nicht zulässig:** manuelles Cursor-Skippen, unprotokollierte Löschung, pauschale 404-Erfolgsannahme oder Aktivierung des alten Upload-Alter-Crons.
+
+**Offene Produkt-/Governanceentscheidung:** Ob und wie eine quarantänisierte Ausnahme-Warteschlange für fehlerhafte Entscheidungen zulässig wäre, erfordert eine gesonderte Datenschutz- und Sicherheitsprüfung. Sie ist in PR #317 nicht implementiert. Der erfolgreiche [CI-Lauf 42061072824](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42061072824) gilt für den vorherigen Head `79b57708e82d43479a1f392c2a8282f62749a99c`; der Dokumentations-Commit braucht eigenen CI-Nachweis. `productionApproved=false`.
