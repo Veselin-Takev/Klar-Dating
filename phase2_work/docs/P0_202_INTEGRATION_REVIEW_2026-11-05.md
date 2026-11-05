@@ -114,3 +114,28 @@ Der vorherige Head `b5adcb04184cafb89085e9538120cb081a5bc850` bestand [CI 420535
 ## Deadline-/Checkpoint-Grenze zwischen Seiten
 
 Der vorherige Head `f9a5b24ca8e4c90aff26d93cc412c1882c03330d` bestand [CI 42056214865](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42056214865). Zwei weitere Regressionstests prüfen: (1) Deadline-Ablauf unmittelbar nach einem erfolgreich persistierten Full-Page-Checkpoint verhindert einen weiteren Fetch, erhält den Cursor und meldet `hasMore=true`; (2) ein fehlgeschlagener Checkpoint-Schreibvorgang verhindert den Fetch der nächsten Seite und propagiert den Fehler. Diese Tests ergänzen, ersetzen aber keine echte Firestore-Transaktions-/Cloud-Lastprüfung. Die neuen Commits benötigen eigene exact-SHA-CI-Evidenz; unabhängige Reviews fehlen. `productionApproved=false`.
+
+## Independent Production Evidence Gate – release decision (2026-11-05)
+
+**Status: BLOCKED / NO-GO; productionApproved=false.** The last tested head `b2125873e4facee9fe2f0f4ccfd9d654ce4d3d55` passed [CI 42058988928](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42058988928). Independent reviews: 0. This CI result proves repository checks only, not production deployment safety.
+
+Required independent evidence before enabling purge:
+
+1. **SRE inventory:** Actual deployed Cloud Functions and Scheduler jobs (including legacy `deleteExpiredPhotosCron` and signed `purgeVerificationStorageCron`), targets, enablement state, IAM identities, logs, deployment revisions, and safe migration/rollback. Never blindly delete a deployed function.
+2. **AppSec + SRE writer-fencing:** Enumerate all Firestore decision writers and GCS object writers. Demonstrate that decision changes, legal holds and generation replacements cannot race a delete. Firestore transactions and GCS operations are **not** cross-service atomic; source-level guards are insufficient proof.
+3. **Staging QA:** Isolated, synthetic-artifact tests for pending/conflicting/missing decision, approved/rejected retention, legal hold, 404 reconciliation, 412 generation change, database and Storage failures, retries, concurrent Scheduler invocations and persisted checkpoint recovery. Capture immutable logs without KYC photos, secrets or personal identifiers.
+4. **SRE operations:** Observe lease expiration, audit receipts, sustained 503, failure counts, backlog and alert routing. Record a rehearsed stop/rollback procedure, ownership and escalation.
+5. **DPO/Legal:** Signed decision on GDPR Art. 5(1)(e), Art. 9 and Art. 17, including retention basis and deletion/audit evidence.
+6. **Release Owner:** Exact-SHA CI, branch protection, independent AppSec/SRE/DPO approvals, staging evidence links and explicit production enablement approval. Until then the default-deny `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED` switch stays off.
+
+| Gate | Owner | Evidence | Decision |
+| --- | --- | --- | --- |
+| Exact-SHA CI | Release Owner | 42058988928 (prior head) | PASS for prior head only |
+| Independent PR review | AppSec | Not supplied | OPEN |
+| Cloud inventory + migration | SRE | Not supplied | OPEN |
+| Writer fencing + race proof | AppSec/SRE | Not supplied | OPEN |
+| Synthetic staging scenarios | QA/SRE | Not supplied | OPEN |
+| GDPR review | DPO/Legal | Not supplied | OPEN |
+| Final production authorization | Release Owner | Not supplied | NO-GO |
+
+Every evidence record must identify environment, deployment revision, UTC timestamp, approver and immutable artifact link. This checklist does not authorize production mutation.
