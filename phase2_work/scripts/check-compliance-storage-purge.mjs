@@ -11,6 +11,8 @@ const checks = [
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
   ['scheduler bounds receipt while reading', /readBoundedVerificationPurgeReceipt/],
   ['durable failure progress callback', /recordFailedPage:\s*async/],
+  ['aggregate-only incomplete purge operational event', /verificationPurgeIncompleteEvent\(result, unresolvedFailureBacklog\)/],
+  ['PII-safe scheduler failure event', /verificationPurgeSchedulerFailureEvent/],
   ['journal failures on verification event', /photoPurgeFailure:/],
   ['persistent unresolved failure latch', /hasUnresolvedFailures:/],
   ['full clean cycle latch reset', /cycleHadFailures: false/],
@@ -27,7 +29,8 @@ const checks = [
 ];
 for (const [label, re] of checks) {
   const source = label === 'daily scheduler' || label === 'single scheduler instance'
-    || label === 'scheduler bounds receipt while reading' ? fn
+    || label === 'scheduler bounds receipt while reading'
+    || label === 'PII-safe scheduler failure event' ? fn
     : label === 'protected purge endpoint' || label === 'production router uses no test Storage injection'
       ? server + route : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
