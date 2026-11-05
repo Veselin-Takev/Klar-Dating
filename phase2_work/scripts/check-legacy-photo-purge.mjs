@@ -26,7 +26,7 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   // The integrated baseline permanently removes the upload-age helper.
   // Reject any reintroduction, even a nominal throwing shim: a future caller
   // must not be able to restore this unsafe API without explicit review.
-  if (/\\b(?:export\\s+)?(?:async\\s+)?function\\s+deleteExpiredPhotoPage\\s*\\(|\\b(?:const|let|var)\\s+deleteExpiredPhotoPage\\b/.test(helperSource)) {
+  if (/\b(?:export\s+)?(?:async\s+)?function\s+deleteExpiredPhotoPage\s*\(|\b(?:const|let|var)\s+deleteExpiredPhotoPage\b/.test(helperSource)) {
     problems.push('retired upload-age purge helper reintroduced');
   }
   if (!helperSource.includes('export async function deleteAccountPhotos(')) {
