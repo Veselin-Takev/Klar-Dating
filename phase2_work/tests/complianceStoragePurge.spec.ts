@@ -32,11 +32,18 @@ describe('P0 VES-5 source-locked live deployment veto', () => {
     { FIRESTORE_EMULATOR_HOST: undefined },
     { FIREBASE_STORAGE_EMULATOR_HOST: undefined },
     { FIREBASE_STORAGE_EMULATOR_HOST: 'storage.googleapis.com:443' },
+    { GCLOUD_PROJECT: undefined },
     { GOOGLE_CLOUD_PROJECT: 'klar-production' },
     { FIREBASE_PROJECT_ID: 'another-project' },
   ])('blocks live, cloud, or incomplete emulator targets even if opt-in is true: %#', changed => {
     const environment = { ...validEmulator, ...changed };
     expect(isVerificationPhotoPurgeRuntimeAllowed(environment)).toBe(false);
+  });
+  it('fails closed when every project identity is absent despite local emulator endpoints', () => {
+    expect(isVerificationPhotoPurgeRuntimeAllowed({
+      NODE_ENV: 'test', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+      FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199',
+    })).toBe(false);
   });
 });
 
