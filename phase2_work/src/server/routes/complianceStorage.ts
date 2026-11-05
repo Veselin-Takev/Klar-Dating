@@ -168,6 +168,7 @@ export function isVerificationPhotoPurgeRuntimeAllowed(
     environment.FIREBASE_PROJECT_ID,
   ].filter((value): value is string => typeof value === 'string' && value.length > 0);
   return environment.NODE_ENV === 'test'
+    && projects.length > 0 // Empty identity cannot establish an isolated demo environment.
     && !environment.K_SERVICE && !environment.K_REVISION && !environment.FUNCTION_TARGET
     && loopback.test(environment.FIRESTORE_EMULATOR_HOST ?? '')
     && loopback.test(environment.FIREBASE_STORAGE_EMULATOR_HOST ?? '')
