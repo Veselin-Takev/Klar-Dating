@@ -6,7 +6,7 @@ const checks = [
   ['protected purge endpoint', /purge-verification-storage/],
   ['environment secret', /COMPLIANCE_JOB_SECRET/],
   ['HMAC timing-safe validation', /timingSafeEqual/],
-  ['nonce bound to purge signature', /timestampHeader}\.\$\{nonceHeader}\.\$\{body\.toString/],
+  ['nonce bound to purge signature', /timestampHeader}\.\$\{nonceHeader}\./],
   ['nonce ledger transaction', /tx\.create\(nonceRef/],
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
@@ -27,6 +27,10 @@ const jsonAt = server.indexOf('app.use(express.json({');
 const routerAt = server.indexOf("app.use('/api/admin', createVerificationStoragePurgeRouter(");
 if (rawAt < 0 || jsonAt < 0 || routerAt < 0 || !(rawAt < jsonAt && jsonAt < routerAt)) {
   throw new Error('Compliance storage purge boundary failed: raw parser registration order');
+}
+const verifier = route.split('export function validComplianceRequest(')[1]?.split('function normalizeTimestamp(')[0] ?? '';
+if (!verifier.includes('.update(body)') || verifier.includes("toString('utf8')")) {
+  throw new Error('Compliance storage purge boundary failed: verifier must HMAC raw bytes');
 }
 if (!route.includes('if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);')
   || route.includes("Buffer.from('{}')")
