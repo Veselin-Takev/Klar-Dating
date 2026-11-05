@@ -156,6 +156,22 @@ test('deadline expiry during fetch prevents starting destructive page handling',
   assert.equal(checkpoints, 0);
 });
 
+test('expired deadline during empty fetch preserves the durable cursor', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  let expired = false;
+  let writes = 0;
+  const result = await scanPurgePages({
+    initial: previous, pageSize: 2, maxPages: 2,
+    fetch: async () => { expired = true; return []; },
+    handle: async () => { throw Error('unexpected processing'); },
+    checkpoint: async () => { writes++; },
+    deadline: () => expired,
+  });
+  assert.equal(result.scanned, 0);
+  assert.equal(result.hasMore, true);
+  assert.equal(writes, 0);
+});
+
 test('a deadline is respected after a complete page checkpoint', async () => {
   let checks = 0;
   let deadlineChecks = 0;
