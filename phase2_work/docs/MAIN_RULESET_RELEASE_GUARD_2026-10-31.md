@@ -51,3 +51,7 @@ Das neue [Dependabot-PR #315](https://github.com/Veselin-Takev/Klar-Dating/pull/
 ## Review-Nachtrag 05.11.2026
 
 PR #316 und dieser Branch ändern beide den Release-Workflow-Pin von actions/attest auf 4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f und passen denselben Release-Validator an. Die beiden Patches sind in diesen zwei Stellen gleichgerichtet; #251 enthält zusätzlich den Ruleset-Release-Gate. Deshalb #316 nicht unabhängig oder blind zusätzlich integrieren. Vor einer Supersession: aktueller main-Stand, vollständiger Diff, unabhängiger Supply-Chain-Review, exact-SHA-CI und nachgewiesene Übernahme in main. Produktionsfreigabe bleibt BLOCKED/NO-GO.
+
+## CI-Abschlussnachweis 05.11.2026
+
+GitHub Actions [Run 41998467601](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41998467601) für den exakt geprüften PR-Head `e08694c8ec04a07a2a5326c0910d437f39982d61` wurde als `completed/success` zurückgegeben; Job `validate` ebenfalls `completed/success`, keine fehlgeschlagenen Schritte. Dieser E2-Nachweis gilt **ausschließlich für den genannten Commit**. Durch diesen Dokumentationsnachtrag entsteht ein neuer Head, für den der alte CI-Erfolg nicht automatisch gilt. Die live erzwungene Ruleset-Härtung, unabhängige Reviews und P0-/Cloud-Nachweise bleiben offen. `productionApproved=false`, **NO-GO**.
