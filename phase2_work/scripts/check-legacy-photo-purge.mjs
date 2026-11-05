@@ -51,7 +51,7 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
   if (!modernCron.includes('/api/admin/purge-verification-storage') || !modernCron.includes('COMPLIANCE_JOB_SECRET')) {
     problems.push('decision-aware signed purge integration missing');
   }
-  if (!policy.includes('Legacy-Pfad deaktiviert') && !policy.includes('Legacy') || !policy.includes('productionApproved=false')) {
+  if (!policy.includes('**Legacy-Cron:**') || !policy.includes('deaktiviert nur diesen Upload-Alter-Löschpfad') || !policy.includes('productionApproved=false')) {
     problems.push('retention policy has not been corrected or retains a misleading GO claim');
   }
   return problems;
