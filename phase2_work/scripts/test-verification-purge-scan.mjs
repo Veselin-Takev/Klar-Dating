@@ -49,17 +49,17 @@ test('invalid cursors, wrong ordering and oversized pages fail closed', async ()
   }), /order_invalid/);
 });
 
-test('individual failures advance checkpoint for eventual retry after wrap', async () => {
+test('individual failures do not checkpoint past failed artifacts', async () => {
   let cursor = null;
-  const scan = await scanPurgePages({
+  let checkpoints = 0;
+  await assert.rejects(scanPurgePages({
     initial: null, pageSize: 2, maxPages: 1,
     fetch: async () => items.slice(0, 2),
     handle: async () => ({ purged: 0, skipped: 1, failed: 1 }),
-    checkpoint: async next => { cursor = next; },
-  });
-  assert.equal(scan.failed, 1);
-  assert.equal(scan.hasMore, true);
-  assert.equal(cursor.id, 'id1');
+    checkpoint: async next => { cursor = next; checkpoints++; },
+  }), /purge_page_failed_retry_required/);
+  assert.equal(checkpoints, 0);
+  assert.equal(cursor, null);
 });
 
 test('a fatal page error never advances the checkpoint', async () => {
