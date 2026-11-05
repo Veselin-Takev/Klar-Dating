@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { assertCompleteVerificationPurgeReceipt } from '../functions/src/verificationPurgeJobReceipt';
+import { assertCompleteVerificationPurgeReceipt, readBoundedVerificationPurgeReceipt } from '../functions/src/verificationPurgeJobReceipt';
 
 const complete = {
   ok: true, processed: 3, purgedCount: 2, skippedCount: 1,
