@@ -33,7 +33,19 @@ function manifestValue(contents) {
   }
   return line[1].toLowerCase();
 }
-async function digestArchive(path) {
+/**
+ * Pure function exported for offline fixtures. The command-line invocation
+ * always uses the fixed historical digest; this optional expected parameter
+ * is NOT exposed as a user-supplied release override.
+ */
+export function verifyManifestPair(first, second, expected = historicalExpectedSha256) {
+  const m1 = manifestValue(first);
+  const m2 = manifestValue(second);
+  if (m1 !== m2) throw Error('source_manifests_disagree');
+  if (m1 !== expected) throw Error('historical_release_digest_changed');
+  return m1;
+}
+export async function digestArchive(path) {
   // O_NOFOLLOW rejects a symlink in the final path component; never extract
   // or execute archive content. The caller must verify the source/provenance
   // independently before counting this as an authentic historical release.
@@ -79,10 +91,10 @@ async function main() {
     ],
   };
   try {
-    const m1 = manifestValue(await readFile(manifestRoot, 'utf8'));
-    const m2 = manifestValue(await readFile(manifestPhase, 'utf8'));
-    if (m1 !== m2) throw Error('source_manifests_disagree');
-    if (m1 !== historicalExpectedSha256) throw Error('historical_release_digest_changed');
+    const m1 = verifyManifestPair(
+      await readFile(manifestRoot, 'utf8'),
+      await readFile(manifestPhase, 'utf8'),
+    );
     result.manifestConsistency = true;
     result.expectedSha256 = m1;
     if (manifestsOnly && !archive) {
@@ -114,4 +126,8 @@ async function main() {
   console.log('VES-10 archive audit: ' + result.verdict);
   if (result.verdict === 'FAIL') process.exitCode = 1;
 }
-await main();
+// Imported test fixtures may exercise pure helpers, but the release CLI never
+// accepts a runtime override for the immutable historical checksum.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}
