@@ -1,7 +1,7 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { assertCompleteVerificationPurgeReceipt } from './verificationPurgeJobReceipt';
+import { readBoundedVerificationPurgeReceipt } from './verificationPurgeJobReceipt';
 
 const secret = defineSecret('COMPLIANCE_JOB_SECRET');
 const endpoint = defineString('COMPLIANCE_API_ORIGIN', { description: 'HTTPS origin of the Klar API; no path or credentials.' });
@@ -28,15 +28,9 @@ export const purgeVerificationStorageCron = onSchedule({
   // Reject legacy/partial responses and unresolved errors even if a proxy or
   // future route regression returns status 200.
   if (!response.ok) throw new Error(`Verification storage purge failed: HTTP ${response.status}`);
-  const text = await response.text();
-  if (text.length > 2_048) throw new Error('verification_purge_job_receipt_oversize');
-  let payload: unknown;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    throw new Error('verification_purge_job_receipt_json_invalid');
-  }
-  const receipt = assertCompleteVerificationPurgeReceipt(payload);
+  // Read at most 2 KiB of wire bytes; never use response.text() here,
+  // which buffers unbounded input before a length check can run.
+  const receipt = await readBoundedVerificationPurgeReceipt(response);
   // Aggregates only; do not log UIDs, verification paths, signed messages,
   // HMAC values, auth headers or untrusted server response text.
   console.info(JSON.stringify({

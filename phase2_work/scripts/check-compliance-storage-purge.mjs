@@ -9,7 +9,7 @@ const checks = [
   ['nonce bound to purge signature', /timestampHeader}\.\$\{nonceHeader}\./],
   ['nonce ledger transaction', /tx\.create\(nonceRef/],
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
-  ['scheduler checks receipt rather than only HTTP 200', /assertCompleteVerificationPurgeReceipt/],
+  ['scheduler bounds receipt while reading', /readBoundedVerificationPurgeReceipt/],
   ['durable failure progress callback', /recordFailedPage:\s*async/],
   ['journal failures on verification event', /photoPurgeFailure:/],
   ['persistent unresolved failure latch', /hasUnresolvedFailures:/],
@@ -27,7 +27,7 @@ const checks = [
 ];
 for (const [label, re] of checks) {
   const source = label === 'daily scheduler' || label === 'single scheduler instance'
-    || label === 'scheduler checks receipt rather than only HTTP 200' ? fn
+    || label === 'scheduler bounds receipt while reading' ? fn
     : label === 'protected purge endpoint' || label === 'production router uses no test Storage injection'
       ? server + route : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
@@ -50,5 +50,14 @@ if (!route.includes('if (!Buffer.isBuffer(req.body)) return res.sendStatus(415);
   || !fn.includes('X-Klar-Compliance-Nonce')
   || !fn.includes('${timestamp}.${nonce}.${body}')) {
   throw new Error('Compliance storage purge boundary failed: signed raw-body fail-closed binding');
+}
+if (fn.includes('await response.text()')) {
+  throw new Error('Compliance storage purge boundary failed: unbounded scheduler receipt read');
+}
+const receiptReader = fs.readFileSync('functions/src/verificationPurgeJobReceipt.ts', 'utf8');
+if (!receiptReader.includes('MAX_BYTES = 2_048')
+  || !receiptReader.includes('reader.cancel()')
+  || !receiptReader.includes('bytes > MAX_BYTES')) {
+  throw new Error('Compliance storage purge boundary failed: missing streaming receipt byte limit');
 }
 console.log('Compliance storage purge boundary: PASS');
