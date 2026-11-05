@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scanPurgePages, readPurgeCursor } from '../src/server/platform/verificationPurgeScan.ts';
+import { calculateVerificationRetentionExpiry, isVerificationArtifactExpired } from '../src/server/platform/storageRetentionEngine.ts';
 
 const items = Array.from({ length: 255 }, (_, i) => ({
   cursor: { seconds: 100 + i, nanos: 0, id: 'id' + i }, value: i,
@@ -464,4 +465,13 @@ test('a rejected checkpoint write does not attempt a second page', async () => {
     checkpoint: async () => { throw Error('durable_checkpoint_failed'); },
   }), /durable_checkpoint_failed/);
   assert.equal(fetches, 1);
+});
+
+test('retention calculation rejects NaN, infinity and arithmetic overflow', () => {
+  for (const duration of [NaN, Infinity, -Infinity, -1]) {
+    assert.throws(() => calculateVerificationRetentionExpiry(1_700_000_000_000, duration));
+  }
+  assert.throws(() => calculateVerificationRetentionExpiry(1_700_000_000_000, Number.MAX_VALUE));
+  assert.equal(calculateVerificationRetentionExpiry(1_700_000_000_000, 30), 1_702_592_000_000);
+  assert.equal(isVerificationArtifactExpired(1_700_000_000_000, 1_702_592_000_000, 30), true);
 });
