@@ -236,3 +236,12 @@ Ein lokaler Testmodus mit gesetzten loopback-Emulator-Hosts, aber **ohne irgende
 ### PR #321 CI Typecheck-Korrektur
 
 Enterprise CI #1758 (`42098240510`) auf Commit `e2297c46db7c061621ece2321abf56e777019e68` scheiterte **im Typecheck** (TS2345), weil `Pick<NodeJS.ProcessEnv,...>` alle benannten Umgebungsvariablen als Pflicht-Properties modelliert, die tatsächliche `process.env`-Abbildung aber optionale Einträge erlaubt. Das Interface des P0-Runtime-Guards akzeptiert jetzt `Record<string, string | undefined>`; die Laufzeitbedingungen bleiben unverändert fail-closed. Der zusätzlich eingeführte Schutz verlangt weiterhin **mindestens eine** gültige Projektkennung. Nachfolgende Tests des gescheiterten CI-Laufs wurden nicht ausgeführt; neuer exact-SHA-CI-Nachweis erforderlich. Keine Produktivfreigabe.
+
+
+### VES-5: Cloud-Runtime-Spoofing trotz Emulator-Variablen verhindern
+
+Beim Review der Quellcode-Sperre fiel eine Abhängigkeitsgrenze auf: `NODE_ENV=test` und Loopback-Emulator-Variablen sind **konfigurierbar** und beweisen allein nicht, dass das Server-SDK tatsächlich ausschließlich Emulator-Dienste verwendet. Der produktive Einstiegspunkt in `server.ts` injiziert ausschließlich `getDb`; `getBucket` bleibt dort ausdrücklich **nicht** gesetzt. Die Compliance-Route erlaubt jetzt den destruktiven Testpfad nur, wenn **zusätzlich** ein expliziter `getBucket`-Mock vom lokalen Testharness injiziert wird. Eine signierte Anfrage mit wirksamem Feature-Flag und vollständig emulierten Umgebungswerten wird auf einem produktionsähnlich erstellten Router weiterhin **vor Firestore-/Storage-Zugriffen** mit HTTP 503 blockiert.
+
+Ein lokaler Firestore-Emulator-HTTP-Negativtest prüft diesen Fall inklusive fehlender Lease, fehlendem Lösch-Intent/-Proof und null Storage-Delete-Aufrufen. Die statische CI-Policy verlangt außerdem die lokale Bucket-Injektion **nur im Test** und die tatsächliche produktive Server-Registrierung ohne injizierten Bucket. Dadurch ist ein bloßes Setzen der Emulator-Env-Variablen keine Live-Freigabe. 
+
+Dies ist ein zusätzlicher P0-Containment-Schutz, **kein Beweis für All-Writer-Atomicity**. Exakter CI-Commit, reale Cloud-IAM-Checks, Backlog-/DSGVO-Planung und unabhängige AppSec-/DPO-/SRE-/Release-Owner-Genehmigung bleiben separat notwendig. Kein Merge und kein Produktivdeploy. `productionApproved=false` / NO-GO.
