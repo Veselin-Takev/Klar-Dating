@@ -480,6 +480,7 @@ export function createVerificationStoragePurgeRouter(deps: {
           // A failure marker remains on the original verification_events
           // document, so Art.-17 account erasure covers it automatically.
           // Cursor advancement and all failure markers share ONE transaction.
+          identifyItem: doc => doc.id,
           recordFailedPage: async (cursor: PurgeCursor | null, docs, failures) => {
             const ids = new Set(docs.map(doc => doc.id));
             if (failures.some(failure => !ids.has(failure.id))
