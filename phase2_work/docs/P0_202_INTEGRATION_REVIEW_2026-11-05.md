@@ -231,3 +231,8 @@ Neue Vitest-Fälle prüfen gültige und unvollständige Belege, Typ-/Zählerfehl
 ### P0 VES-5 Fail-Closed-Nachtrag: fehlende Projektidentität
 
 Ein lokaler Testmodus mit gesetzten loopback-Emulator-Hosts, aber **ohne irgendeine Projektkennung**, darf die Quellcode-Sperre nicht passieren. `isVerificationPhotoPurgeRuntimeAllowed` fordert jetzt mindestens eine explizite Projektkennung, und alle vorhandenen Kennungen müssen exakt `demo-klar` lauten. Ein Unit-Negativtest prüft diesen Fall. Der zusätzliche Patch verändert keine echte Cloud-Konfiguration, führt kein Deployment aus und benötigt exact-SHA-CI.
+
+
+### PR #321 CI Typecheck-Korrektur
+
+Enterprise CI #1758 (`42098240510`) auf Commit `e2297c46db7c061621ece2321abf56e777019e68` scheiterte **im Typecheck** (TS2345), weil `Pick<NodeJS.ProcessEnv,...>` alle benannten Umgebungsvariablen als Pflicht-Properties modelliert, die tatsächliche `process.env`-Abbildung aber optionale Einträge erlaubt. Das Interface des P0-Runtime-Guards akzeptiert jetzt `Record<string, string | undefined>`; die Laufzeitbedingungen bleiben unverändert fail-closed. Der zusätzlich eingeführte Schutz verlangt weiterhin **mindestens eine** gültige Projektkennung. Nachfolgende Tests des gescheiterten CI-Laufs wurden nicht ausgeführt; neuer exact-SHA-CI-Nachweis erforderlich. Keine Produktivfreigabe.
