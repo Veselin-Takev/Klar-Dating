@@ -265,9 +265,23 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         expect(corrupt?.photoPurged).toBe(false);
         expect(corrupt?.photoPurgeIntent).toBeUndefined();
         expect(corrupt?.photoPurgeProof).toBeUndefined();
+        expect(corrupt?.photoPurgeFailure?.code).toBe('decision_conflict');
+        expect(response.data.unresolvedFailureBacklog).toBe(true);
         const healthy = (await valid.get()).data();
         expect(healthy?.photoPurged).toBe(true);
         expect(healthy?.photoPurgeProof?.generation).toBe('773');
+        // A repaired invalid row must be retried on the next cursor wrap,
+        // clear the durable error marker and never re-delete its neighbor.
+        await event.update({ entscheidung: 'bestaetigt' });
+        const retried = await api.request();
+        expect(retried).toMatchObject({
+          status: 200, data: { failedCount: 0, purgedCount: 1, skippedCount: 1,
+            unresolvedFailureBacklog: false },
+        });
+        const repaired = (await event.get()).data();
+        expect(repaired?.photoPurged).toBe(true);
+        expect(repaired?.photoPurgeFailure).toBeUndefined();
+        expect(deleted).toEqual([goodPath, path]);
       } finally {
         await api.close();
         await valid.delete();

@@ -1,8 +1,8 @@
 import express, { Router } from 'express';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
-import { FieldPath, Timestamp, type Firestore } from 'firebase-admin/firestore';
-import { readPurgeCursor, scanPurgePages } from '../platform/verificationPurgeScan';
+import { FieldPath, FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { readPurgeCursor, scanPurgePages, type PurgeFailure, type PurgeCursor } from '../platform/verificationPurgeScan';
 import { executeVerificationRetentionBatch, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 
 const MAX_BATCH = 25;
@@ -237,6 +237,9 @@ export function createVerificationStoragePurgeRouter(deps: {
         if (busy) return { kind: 'busy' as const, cursor: null };
         tx.set(checkpointRef, {
           leaseId, leaseUntil: new Date(now + LEASE_MS), lastStartedAt: new Date(now),
+          // A complete clean pass may span multiple bounded invocations.
+          // A new cycle begins only at the persisted null cursor.
+          cycleHadFailures: cursor === null ? false : state?.cycleHadFailures === true,
         }, { merge: true });
         return { kind: 'owned' as const, cursor };
       });
@@ -268,6 +271,7 @@ export function createVerificationStoragePurgeRouter(deps: {
             });
           },
           handle: async docs => {
+          const failedReasons = new Map<string, PurgeFailure['reason']>();
           const artifacts: VerificationArtifactRecord[] = docs.flatMap(doc => {
             const data = doc.data();
             const uid = typeof data.uid === 'string' ? data.uid : '';
@@ -280,18 +284,24 @@ export function createVerificationStoragePurgeRouter(deps: {
               status = readConsistentVerificationDecision(data);
             } catch (error) {
               if (error instanceof Error && error.message === 'verification_photo_decision_conflict') {
-                return []; // Counted as failed below, never sent to Storage.
+                failedReasons.set(doc.id, 'decision_conflict');
+                 return []; // Never sent to Storage; durable failure note follows.
               }
               throw error; // Unknown validation failures still abort the scan.
             }
-            if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
+            if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) {
+              failedReasons.set(doc.id, 'invalid_record');
+              return [];
+            }
             return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
           });
 
             // Invalid due records and pending decisions must not be silently
             // declared purged; record aggregate failure and revisit on wrap.
-            const invalid = docs.length - artifacts.length;
-            if (!artifacts.length) return { purged: 0, skipped: 0, failed: docs.length };
+            if (!artifacts.length) return {
+              purged: 0, skipped: 0, failed: docs.length,
+              failures: [...failedReasons].map(([id, reason]) => ({ id, reason })),
+            };
           const bucket = deps.getBucket?.() ?? getStorage().bucket();
           const proofs = new Map<string, PurgeProof>();
           const summary = await executeVerificationRetentionBatch(
@@ -408,22 +418,65 @@ export function createVerificationStoragePurgeRouter(deps: {
           );
 
 
-            const pendingOrFailed = summary.results.filter(item =>
-              item.reason === 'error' || item.reason === 'pending_decision').length;
+            for (const item of summary.results) {
+              if (item.reason === 'error' || item.reason === 'pending_decision') {
+                failedReasons.set(item.challengeId, item.reason === 'error'
+                  ? 'processing_error' : 'pending_decision');
+              }
+            }
             return {
               purged: summary.purgedCount,
               skipped: summary.results.filter(item =>
                 item.reason === 'already_purged' || item.reason === 'not_expired').length,
-              failed: invalid + pendingOrFailed,
+              failed: failedReasons.size,
+              failures: [...failedReasons].map(([id, reason]) => ({ id, reason })),
             };
           },
-          checkpoint: async cursor => {
+          // A failure marker remains on the original verification_events
+          // document, so Art.-17 account erasure covers it automatically.
+          // Cursor advancement and all failure markers share ONE transaction.
+          recordFailedPage: async (cursor: PurgeCursor | null, docs, failures) => {
+            const ids = new Set(docs.map(doc => doc.id));
+            if (failures.some(failure => !ids.has(failure.id))
+              || new Set(failures.map(failure => failure.id)).size !== failures.length) {
+              throw Error('verification_purge_failure_receipt_invalid');
+            }
             await db.runTransaction(async tx => {
-              const snapshot = await tx.get(checkpointRef);
-              assertActivePurgeLease(snapshot.data(), leaseId);
+              const lease = await tx.get(checkpointRef);
+              assertActivePurgeLease(lease.data(), leaseId);
+              const codes = new Map(failures.map(failure => [failure.id, failure.reason]));
+              for (const doc of docs) {
+                const code = codes.get(doc.id);
+                // Never record UID, Storage path, signed body or raw error text.
+                tx.update(doc.ref, code
+                  ? { photoPurgeFailure: { code, lastAttemptAt: Timestamp.fromMillis(now) } }
+                  : { photoPurgeFailure: FieldValue.delete() });
+              }
               tx.update(checkpointRef, {
                 cursor, lastCheckpointAt: new Date(),
                 leaseUntil: new Date(Date.now() + LEASE_MS),
+                lastFailedAt: new Date(), lastFailedCount: failures.length,
+                cycleHadFailures: true, hasUnresolvedFailures: true,
+              });
+            });
+          },
+          checkpoint: async (cursor, completed) => {
+            await db.runTransaction(async tx => {
+              const snapshot = await tx.get(checkpointRef);
+              assertActivePurgeLease(snapshot.data(), leaseId);
+              for (const doc of completed ?? []) {
+                tx.update(doc.ref, { photoPurgeFailure: FieldValue.delete() });
+              }
+              tx.update(checkpointRef, {
+                cursor, lastCheckpointAt: new Date(),
+                leaseUntil: new Date(Date.now() + LEASE_MS),
+                // The backlog latch clears only after reaching the end of an
+                // entire cycle with no failed page. A page-level success alone
+                // must never acknowledge previously journaled unresolved work.
+                ...(cursor === null ? {
+                  hasUnresolvedFailures: snapshot.data()?.cycleHadFailures === true,
+                  cycleHadFailures: false,
+                } : {}),
               });
             });
           },
@@ -433,24 +486,26 @@ export function createVerificationStoragePurgeRouter(deps: {
       }
       // Never acknowledge an incomplete scan until the lease is safely
       // released. On a process crash the expiring lease permits recovery.
+      let unresolvedFailureBacklog = true;
       try {
-        await db.runTransaction(async tx => {
+        unresolvedFailureBacklog = await db.runTransaction(async tx => {
           const snapshot = await tx.get(checkpointRef);
           if (snapshot.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
           tx.update(checkpointRef, { leaseId: null, leaseUntil: null });
+          return snapshot.data()?.hasUnresolvedFailures === true;
         });
       } catch {
         scanFailed = true;
       }
       if (scanFailed || !result) throw new Error('verification_purge_incomplete');
-      // A bounded backlog and retryable errors must not report a full PASS.
-      // The scheduled caller will retry; the durable cursor prevents
-      // repeatedly processing the first due rows.
-      const incomplete = result.failed > 0 || result.hasMore;
+      // A clean *page* is not a clean *cycle*: never report success while any
+      // earlier error in the bounded pass still awaits a full clean revisit.
+      const incomplete = result.failed > 0 || result.hasMore || unresolvedFailureBacklog;
       return res.status(incomplete ? 503 : 200).json({
         ok: !incomplete, processed: result.scanned, purgedCount: result.purged,
         skippedCount: result.skipped, failedCount: result.failed,
         hasMore: result.hasMore, pages: result.pages,
+        unresolvedFailureBacklog,
       });
     } catch {
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
