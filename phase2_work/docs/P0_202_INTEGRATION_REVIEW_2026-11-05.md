@@ -176,3 +176,12 @@ Der eigenständige, nicht gemergte Remediation-Zweig `fix/p0-202-purge-nonce-rep
 Der bestehende Standard-Deny-Interlock vor sämtlichen Firestore-/GCS-Aufrufen bleibt erhalten. Server und Scheduler müssen gemeinsam migriert und in Staging geprüft werden; alte Scheduler-Signaturen werden absichtlich abgelehnt. Ein zusätzlicher Firestore-Emulatortest prüft doppelte Nonces mit frisch berechnetem zweiten HMAC. Ein erfolgreicher Quellcode-/CI-Test ist **keine** Cloud-Aktivierung.
 
 **Nicht gelöst:** P0 Post-Authorization-TOCTOU und vollständiges All-Writer-Fencing. Keine Cloud-/IAM-/DPO-/AppSec-/SRE-Freigabe, kein Merge, kein Produktionsdeploy; `productionApproved=false`.
+
+
+## A-03 Folgehärtung: Bytegenaue HMAC-Prüfung und Busy-Replay (05.11.2026)
+
+Bei der Review wurde ein Unterschied zwischen behaupteter **Raw-Byte-Signierung** und der Implementierung gefunden: `Buffer.toString('utf8')` im Verifier ersetzt ungültige UTF-8-Sequenzen und kann verschiedene Wire-Bytefolgen auf denselben HMAC-Eingabetext abbilden. Der Verifier aktualisiert HMAC-SHA256 jetzt erst mit dem ASCII-Präfix `timestamp.nonce.` und anschließend mit dem **unveränderten Request-Buffer**. Ein neuer Unit-Negativtest trennt das ungültige Byte `0xff` von der UTF-8-Repräsentation von U+FFFD und fordert die Ablehnung des falsch signierten Ersatztextes. Der Enterprise-Static-Guard erzwingt die bytegenaue HMAC-Eingabe.
+
+Der neue Firestore-Emulator-Negativtest prüft auch bei aktivem fremdem Scan-Lease: erste gültig signierte Nonce → HTTP 503/busy und persistierte Nonce-Quittung; wiederholter Aufruf derselben Nonce → HTTP 401, ohne GCS-Delete, Intent oder Proof. Der Wiederanlauf muss eine **neue** Nonce verwenden. Der Code ist ausschließlich Review-Kandidat auf PR #318; der aktuelle HEAD benötigt eigene exact-SHA-CI inklusive tatsächlich gelaufener Emulator-Tests.
+
+**Weiterhin offen:** Post-Authorization-TOCTOU/All-Writer-Fencing (P0), Cloud- und Scheduler-Migration, aktives TTL-Policy-Inventar, unabhängige AppSec-/DPO-/SRE-/Release-Owner-Freigabe. Alle produktiven Purges bleiben standardmäßig aus. `productionApproved=false`, **NO-GO**.
