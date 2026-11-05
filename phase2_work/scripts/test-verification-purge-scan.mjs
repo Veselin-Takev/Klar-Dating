@@ -362,3 +362,18 @@ test('successful short page resets persisted checkpoint after processing', async
   assert.deepEqual(writes, [null]);
   assert.deepEqual(result, { scanned: 2, purged: 1, skipped: 1, failed: 0, pages: 1, hasMore: false });
 });
+
+test('malformed fetched page rows fail with stable error before any destructive side effects', async () => {
+  for (const row of [null, undefined, 42, 'invalid', {}, { value: 'missing-cursor' }]) {
+    let handled = 0;
+    let checkpoints = 0;
+    await assert.rejects(scanPurgePages({
+      initial: null, pageSize: 1, maxPages: 1,
+      fetch: async () => [row],
+      handle: async () => { handled++; return { purged: 0, skipped: 1, failed: 0 }; },
+      checkpoint: async () => { checkpoints++; },
+    }), /purge_page_invalid/);
+    assert.equal(handled, 0);
+    assert.equal(checkpoints, 0);
+  }
+});
