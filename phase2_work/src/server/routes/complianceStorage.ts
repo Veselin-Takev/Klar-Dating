@@ -159,7 +159,12 @@ export function validComplianceRequest(
   const timestamp = Number(timestampHeader);
   if (!Number.isSafeInteger(timestamp) || !Number.isSafeInteger(now)
     || Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS) return false;
-  const expected = complianceSignature(`${timestampHeader}.${nonceHeader}.${body.toString('utf8')}`, secret);
+  // Authenticate received bytes, not UTF-8 decoding: malformed sequences must not
+  // canonicalize into the replacement character and share an HMAC with other bytes.
+  const expected = createHmac('sha256', secret)
+    .update(`${timestampHeader}.${nonceHeader}.`, 'utf8')
+    .update(body)
+    .digest('hex');
   const supplied = Buffer.from(signatureHeader, 'hex');
   const expectedBytes = Buffer.from(expected, 'hex');
   return supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
