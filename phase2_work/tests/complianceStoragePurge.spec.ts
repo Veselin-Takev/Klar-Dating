@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { createHmac } from 'node:crypto';
 import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
@@ -36,6 +37,26 @@ describe('verification storage compliance job authentication', () => {
       expect(validComplianceRequest(body, timestamp, candidate, signed, secret, Number(timestamp))).toBe(false);
     },
   );
+
+  it('signs exact raw request bytes without lossy UTF-8 normalization', () => {
+    // 0xff is not valid UTF-8; .toString('utf8') produces U+FFFD.
+    // The old implementation incorrectly accepted a signature of the
+    // replacement-character bytes for the different original wire bytes.
+    const malformedWireBytes = Buffer.from([0xff]);
+    const replacementCharacterBytes = Buffer.from([0xef, 0xbf, 0xbd]);
+    const prefix = `${timestamp}.${nonce}.`;
+    const signBytes = (bytes: Buffer) => createHmac('sha256', secret)
+      .update(prefix, 'utf8').update(bytes).digest('hex');
+    const rawSignature = signBytes(malformedWireBytes);
+    const replacementSignature = signBytes(replacementCharacterBytes);
+    expect(rawSignature).not.toBe(replacementSignature);
+    expect(validComplianceRequest(
+      malformedWireBytes, timestamp, nonce, rawSignature, secret, Number(timestamp),
+    )).toBe(true);
+    expect(validComplianceRequest(
+      malformedWireBytes, timestamp, nonce, replacementSignature, secret, Number(timestamp),
+    )).toBe(false);
+  });
 
   it('rejects modified bytes, wrong secret, wrong nonce and stale timestamp', () => {
     const invalidBodySignature = complianceSignature(`${timestamp}.${nonce}.{} `, secret);
