@@ -19,6 +19,16 @@ test('canonical P0 legacy path cannot delete verification photos', () => {
   assert.deepEqual(legacyPhotoPurgeViolations(baseline), []);
 });
 
+test('integration with PR #203 may remove retired helper but retain account erasure', () => {
+  const start = baseline.helperSource.indexOf('export async function deleteExpiredPhotoPage(');
+  const end = baseline.helperSource.indexOf('export async function deleteAccountPhotos(');
+  assert.ok(start >= 0 && end > start);
+  const withoutLegacyHelper = baseline.helperSource.slice(0, start) + baseline.helperSource.slice(end);
+  assert.deepEqual(legacyPhotoPurgeViolations({ ...baseline, helperSource: withoutLegacyHelper }), []);
+  const withoutErasure = withoutLegacyHelper.replace('export async function deleteAccountPhotos(', 'async function missingAccountErasure(');
+  assert.ok(legacyPhotoPurgeViolations({ ...baseline, helperSource: withoutErasure }).includes('account-erasure boundary missing'));
+});
+
 const mutations = [
   ['legacy bucket import reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\ngetMaintenanceBucket()" })],
   ['legacy age-only call reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\ndeleteExpiredPhotoPage(bucket, now)" })],
