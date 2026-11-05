@@ -40,6 +40,9 @@ export async function scanPurgePages<T>(options: {
     if (options.deadline?.()) return { ...result, hasMore: true };
     const page = await options.fetch(cursor, pageSize);
     if (!Array.isArray(page) || page.length > pageSize) throw Error('purge_page_invalid');
+    // An empty fetch can also consume the remaining budget. Never reset the
+    // durable cursor after expiration, even when no artifacts were returned.
+    if (options.deadline?.()) return { ...result, hasMore: true };
     if (!page.length) { await options.checkpoint(null); return result; }
     let last = cursor;
     for (const item of page) {
@@ -47,9 +50,6 @@ export async function scanPurgePages<T>(options: {
       if (!next || (last && cursorOrder(next, last) <= 0)) throw Error('purge_order_invalid');
       last = next;
     }
-    // Fetching a page may exhaust the time budget. Do not begin its mutations
-    // after the deadline; replay from the last persisted checkpoint next run.
-    if (options.deadline?.()) return { ...result, hasMore: true };
     const counts = await options.handle(page.map(item => item.value));
     if (!counts || ![counts.purged, counts.skipped, counts.failed].every(v => Number.isSafeInteger(v) && v >= 0)
       || counts.purged + counts.skipped + counts.failed !== page.length) throw Error('purge_counts_invalid');
