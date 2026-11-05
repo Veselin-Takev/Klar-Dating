@@ -18,7 +18,7 @@ export function assertCompleteVerificationPurgeReceipt(value: unknown): Verifica
   const data = value as Record<string, unknown>;
   const fields = ['processed', 'purgedCount', 'skippedCount', 'failedCount', 'pages'] as const;
   if (fields.some(field => typeof data[field] !== 'number'
-    || !Number.isSafeInteger(data[field])
+    || !Number.isSafeInteger(data[field] as number)
     || (data[field] as number) < 0)
     || data.processed !== (data.purgedCount as number) + (data.skippedCount as number) + (data.failedCount as number)) {
     throw Error('verification_purge_job_receipt_invalid');
