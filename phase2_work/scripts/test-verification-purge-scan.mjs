@@ -89,6 +89,26 @@ test('a later failed page retains only the previous successful checkpoint', asyn
   assert.equal(cursor.id, 'id1');
 });
 
+test('a partial final page with a failed item must not reset the checkpoint', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  let persisted = previous;
+  let writes = 0;
+  const result = await scanPurgePages({
+    initial: previous, pageSize: 5, maxPages: 2,
+    fetch: async after => {
+      assert.deepEqual(after, previous);
+      return items.slice(2, 4);
+    },
+    handle: async () => ({ purged: 1, skipped: 0, failed: 1 }),
+    checkpoint: async next => { persisted = next; writes++; },
+  });
+  assert.equal(result.scanned, 2);
+  assert.equal(result.failed, 1);
+  assert.equal(result.hasMore, true);
+  assert.equal(writes, 0);
+  assert.deepEqual(persisted, previous);
+});
+
 test('a fatal page error never advances the checkpoint', async () => {
   let checkpoints = 0;
   await assert.rejects(scanPurgePages({
