@@ -57,6 +57,7 @@ if (fn.includes('await response.text()')) {
 const receiptReader = fs.readFileSync('functions/src/verificationPurgeJobReceipt.ts', 'utf8');
 if (!receiptReader.includes('MAX_BYTES = 2_048')
   || !receiptReader.includes('reader.cancel()')
+  || !receiptReader.includes('cancelUnusedReceiptBody(response.body)')
   || !receiptReader.includes('bytes > MAX_BYTES')) {
   throw new Error('Compliance storage purge boundary failed: missing streaming receipt byte limit');
 }
