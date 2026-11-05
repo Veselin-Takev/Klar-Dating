@@ -102,3 +102,7 @@ Zwei zusätzliche Regressionstests sichern die Wiederaufnahmegrenze ab: Ein vom 
 ## Scanner-Adapter: expliziter Fail-Closed-Fehler für defekte Zeilen
 
 Der Scanner prüft nun vor dem Zugriff auf `item.cursor`, ob eine Fetch-Zeile überhaupt ein Objekt mit Cursor-Feld ist. Fehlerhafte Adapter-Ergebnisse (`null`, `undefined`, primitive Werte oder fehlendes Feld) lösen stabil `purge_page_invalid` aus, statt eines zufälligen JavaScript-`TypeError`. Ein Regressionstest bestätigt, dass weder `handle` noch `checkpoint` aufgerufen werden. Die Änderung verhindert keine Storage-Races und ist nicht als Cloud-Nachweis zu werten. Für den vorherigen Head `3976a9301bbb6c18dcf6177ed9b0ad2ab10c9a29` war [CI 42051291415](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42051291415) bei der letzten Abfrage noch in Bearbeitung; der aktuelle Head benötigt erneut eine CI-Prüfung. PR #317 bleibt Draft und `productionApproved=false`.
+
+## Fetch-Vertrag und Firestore-Ausfall
+
+[CI 42051735028](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42051735028) bestätigte den vorherigen Head `8ec665459be675ddf4cc1948fd107e43c9d2e2a5` als erfolgreich. Zwei neue Negativtests prüfen den vorhandenen Fail-Closed-Pfad für nicht-arrayförmige Fetch-Antworten sowie für einen geworfenen Firestore-Abfragefehler. Beide müssen ohne Aufruf von `handle` oder `checkpoint` abbrechen. Diese Ergänzung ändert keine Produktionskonfiguration; der neue Head braucht eigene CI-Bestätigung. Unabhängige Reviews und Cloud-Evidenz bleiben offen. `productionApproved=false`.
