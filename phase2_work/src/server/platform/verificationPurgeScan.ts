@@ -1,7 +1,12 @@
 /** Bounded and resumable verification purge scan; caller owns Firestore lease/checkpoint. */
 export type PurgeCursor = { seconds: number; nanos: number; id: string };
 export type PurgeItem<T> = { cursor: PurgeCursor; value: T };
-export type PurgePageResult = { purged: number; skipped: number; failed: number };
+export type PurgeFailureReason = 'decision_conflict' | 'invalid_record' | 'pending_decision' | 'processing_error';
+export type PurgeFailure = { id: string; reason: PurgeFailureReason };
+export type PurgePageResult = {
+  purged: number; skipped: number; failed: number;
+  failures?: PurgeFailure[];
+};
 export type PurgeScanResult = PurgePageResult & { scanned: number; pages: number; hasMore: boolean };
 
 export function readPurgeCursor(value: unknown): PurgeCursor | null {
@@ -28,7 +33,9 @@ export async function scanPurgePages<T>(options: {
   maxPages: number;
   fetch: (after: PurgeCursor | null, size: number) => Promise<PurgeItem<T>[]>;
   handle: (items: T[]) => Promise<PurgePageResult>;
-  checkpoint: (after: PurgeCursor | null) => Promise<void>;
+  checkpoint: (after: PurgeCursor | null, completed?: T[]) => Promise<void>;
+  // Must persist individual failure evidence AND cursor in one transaction, or throw.
+  recordFailedPage?: (after: PurgeCursor | null, page: T[], failures: PurgeFailure[]) => Promise<void>;
   deadline?: () => boolean;
 }): Promise<PurgeScanResult> {
   const { pageSize, maxPages } = options;
@@ -36,6 +43,7 @@ export async function scanPurgePages<T>(options: {
     || !Number.isSafeInteger(maxPages) || maxPages < 1 || maxPages > 10) throw Error('purge_scan_limit_invalid');
   let cursor = readPurgeCursor(options.initial);
   const result = { scanned: 0, purged: 0, skipped: 0, failed: 0, pages: 0, hasMore: false };
+  let failedEarlier = false;
   for (let n = 0; n < maxPages; n++) {
     if (options.deadline?.()) return { ...result, hasMore: true };
     const page = await options.fetch(cursor, pageSize);
@@ -43,7 +51,10 @@ export async function scanPurgePages<T>(options: {
     // An empty fetch can also consume the remaining budget. Never reset the
     // durable cursor after expiration, even when no artifacts were returned.
     if (options.deadline?.()) return { ...result, hasMore: true };
-    if (!page.length) { await options.checkpoint(null); return result; }
+    if (!page.length) {
+      await options.checkpoint(null);
+      return { ...result, hasMore: failedEarlier };
+    }
     let last = cursor;
     for (const item of page) {
       // A malformed adapter result must produce a stable, non-destructive
@@ -56,24 +67,38 @@ export async function scanPurgePages<T>(options: {
     const counts = await options.handle(page.map(item => item.value));
     if (!counts || ![counts.purged, counts.skipped, counts.failed].every(v => Number.isSafeInteger(v) && v >= 0)
       || counts.purged + counts.skipped + counts.failed !== page.length) throw Error('purge_counts_invalid');
-    // Failed items must remain eligible for retry: never checkpoint past them.
-    if (counts.failed > 0) {
-      // Report partial failures without advancing the cursor; the HTTP caller
-      // can return retryable 503 with accurate counts and replay this page.
-      return { ...result, scanned: result.scanned + page.length,
-        purged: result.purged + counts.purged, skipped: result.skipped + counts.skipped,
-        failed: result.failed + counts.failed, pages: result.pages + 1, hasMore: true };
-    }
+    const values = page.map(item => item.value);
     const full = page.length === pageSize;
-    cursor = full ? last : null;
-    // Advance only after a completed page; repeat after a crashed page is safe.
-    await options.checkpoint(cursor);
+    const next = full ? last : null;
+    if (counts.failed > 0) {
+      if (!options.recordFailedPage) {
+        // Preserve the original strict behavior for non-journaling callers.
+        return { ...result, scanned: result.scanned + page.length,
+          purged: result.purged + counts.purged, skipped: result.skipped + counts.skipped,
+          failed: result.failed + counts.failed, pages: result.pages + 1, hasMore: true };
+      }
+      const failures = counts.failures;
+      if (!Array.isArray(failures) || failures.length !== counts.failed
+        || failures.some(item => !item || typeof item.id !== 'string'
+          || !item.id.length || item.id.includes('/')
+          || !['decision_conflict', 'invalid_record', 'pending_decision', 'processing_error'].includes(item.reason))
+        || new Set(failures.map(item => item.id)).size !== failures.length) {
+        throw Error('purge_failure_journal_invalid');
+      }
+      // This callback atomically journals named failures and advances the
+      // durable cursor. If that fails, no progress may be acknowledged.
+      await options.recordFailedPage(next, values, failures);
+      failedEarlier = true;
+    } else {
+      await options.checkpoint(next, values);
+    }
+    cursor = next;
     result.scanned += page.length;
     result.purged += counts.purged;
     result.skipped += counts.skipped;
     result.failed += counts.failed;
     result.pages++;
-    if (!full) return result;
+    if (!full) return { ...result, hasMore: failedEarlier };
   }
   return { ...result, hasMore: true };
 }
