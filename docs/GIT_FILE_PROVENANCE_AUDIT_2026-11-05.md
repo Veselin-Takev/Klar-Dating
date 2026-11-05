@@ -42,3 +42,30 @@ Ein synthetischer Git-Regressions-Test prüft die Wiederherstellbarkeit entfernt
 Der P0-Befund VES-5 (Firestore/GCS Post-Authorization TOCTOU und All-Writer-Fencing) bleibt offen. PR #317–#325 bleiben ungemergt. Die produktive Foto-Löschung ist gesperrt und productionApproved=false. Dieser Dateiaudit ersetzt weder Cloud-IAM-/TTL-Nachweise noch AppSec-/DPO-/SRE-/Release-Owner-Freigaben.
 
 **Aussagegrenze:** Weder vollständige erreichbare Git-Objekte noch ein grüner CI-Lauf können beweisen, dass alle lokal erstellten Dateien aus der Zeit vor der ersten Git-Einlieferung je erhalten geblieben sind.
+
+## Reproduzierter Vollhistorien-Nachweis (GitHub Actions #1)
+
+**Workflow:** https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42117202145
+**Geprüfter erster Audit-Commit:** 37579d4651438aac3982d7131b7689c4e7b204b1
+**Ergebnis:** SUCCESS, native Regression 1/1 bestanden, Git-Objektprüfung REACHABLE_GIT_HISTORY_INTACT_WITH_EXTERNAL_LIMITATIONS, git fsck bestanden.
+
+| Kennzahl | Messwert |
+| --- | ---: |
+| Remote-Branches zum Audit-Zeitpunkt | 337 (inklusive neuem Audit-Branch) |
+| Git-Tags | 0 |
+| Alle erreichbaren Git-Objekte | 18.930 |
+| Fehlende Git-Objekte | 0 |
+| Historisch einzigartige Git-Dateipfade | 1.694 |
+| Dateipfade auf main | 1.311 |
+| Historische Dateipfade nicht mehr auf main | 383 |
+| Historische Pfade auf keiner Branch-Spitze, aber weiterhin über Git-Commits erreichbar | 10 |
+| Submodule/Gitlinks | 0 |
+| Fehlende externe Archiv-Referenzen aus SHA256SUMS-Dateien | 2 Referenzen auf dasselbe ZIP |
+
+**Interpretation:** Alle in diesem vollständigen Ref-Fetch erreichbaren Objekte sind verfügbar und Integrität der Git-Objektdaten wurde geprüft. 383 alte Dateipfade fehlen auf dem main-Tip, aber das ist nicht gleichbedeutend mit Dateiverlust; 10 Namen liegen ausschließlich in historischen Commits und sind aus der Historie wiederherstellbar. Die 2 SHA256SUMS-Referenzen stammen aus zwei versionierten Prüfsummendateien (Repository-Wurzel und phase2_work), welche **dasselbe** extern gespeicherte Klar_Enterprise_Final_15.09.2026.zip referenzieren. Für das tatsächliche ZIP gibt es aus Git allein keinen Erhaltungsbeleg.
+
+**Maschinenlesbare Evidence:** https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42117202145/artifacts/13457501807 (JSON und Markdown, SHA256 des CI-Artefakts bf34a7c5ae884977bee5f8a5b62fc00407b90f3ac651a1dae2e2c41ecbe504bd; GitHub-Aufbewahrung bis 05.12.2026). Enthalten sind sämtliche 1.694 historisch erfassten Pfade und die Liste der 10 rein historischen Pfade. Die Git-Objekte selbst werden durch Git-Referenzen erhalten, das zeitlich begrenzte CI-Berichtartefakt ist kein langfristiges Archiv.
+
+**Nachkontrolle CI:** Die allgemeine Enterprise-CI #1767 für denselben Commit scheiterte an ihrer Workflow-Toolchain-Policy (zusätzlicher Audit-Workflow enthielt zunächst keine Setup-Bun-Aktion mit Pin Bun 1.4.4). Kein Code-/Objektintegritätsfehler. Die neue Audit-Workflow-Datei wurde deshalb im Folgecommit 9769cbf145b11a6d0c4af59b9371dbbbcb99e9da um die freigegebene gepinnte Bun-Aktion ergänzt. Für den finalen Head ist eine unabhängige erneute CI-Prüfung erforderlich.
+
+**Enterprise-Entscheidung:** Git-intern *erreichbare* Dateien sind nach dieser Prüfung erhalten; die Erhaltung aller Dateien **seit der tatsächlichen Produktentwicklung vor dem ersten Git-Commit** sowie extern gespeicherter ZIP-Archive ist **nicht bewiesen**. Vor einer Garantieerklärung sind externe Release-Backups und Prüfsummen unabhängig zu belegen. Produktionsfreigabe bleibt NO-GO; productionApproved=false.
