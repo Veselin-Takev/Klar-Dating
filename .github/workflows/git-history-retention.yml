@@ -1,0 +1,53 @@
+name: Klar Git History Retention Audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/git-history-retention.yml'
+      - 'scripts/audit-git-history-retention.mjs'
+      - 'scripts/audit-git-history-retention.test.mjs'
+      - 'docs/GIT_FILE_PROVENANCE_AUDIT_2026-11-05.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/git-history-retention.yml'
+      - 'scripts/audit-git-history-retention.mjs'
+      - 'scripts/audit-git-history-retention.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: klar-git-history-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.23.3'
+      - name: Fetch every available branch and tag
+        run: |
+          git fetch --force --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch --force --tags origin
+          test "$(git rev-parse --is-shallow-repository)" = "false"
+      - name: Verify history-audit regression with a local synthetic repository
+        run: node --test scripts/audit-git-history-retention.test.mjs
+      - name: Verify all reachable Git objects and historical file paths
+        run: node scripts/audit-git-history-retention.mjs --report=audit-results/git-history-retention.json
+      - name: Upload complete path inventories and audit summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: git-history-retention-${{ github.run_id }}-${{ github.run_attempt }}
+          path: audit-results/
+          if-no-files-found: warn
+          retention-days: 30
