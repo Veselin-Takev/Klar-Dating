@@ -377,3 +377,28 @@ test('malformed fetched page rows fail with stable error before any destructive 
     assert.equal(checkpoints, 0);
   }
 });
+
+test('a non-array fetch result is rejected before processing or checkpointing', async () => {
+  for (const malformed of [null, undefined, {}, 'unexpected', 7]) {
+    let sideEffects = 0;
+    await assert.rejects(scanPurgePages({
+      initial: null, pageSize: 2, maxPages: 1,
+      fetch: async () => malformed,
+      handle: async () => { sideEffects++; return { purged: 0, skipped: 0, failed: 0 }; },
+      checkpoint: async () => { sideEffects++; },
+    }), /purge_page_invalid/);
+    assert.equal(sideEffects, 0);
+  }
+});
+
+test('a fetch error propagates without advancing the checkpoint', async () => {
+  let sideEffects = 0;
+  await assert.rejects(scanPurgePages({
+    initial: { seconds: 101, nanos: 0, id: 'id1' },
+    pageSize: 2, maxPages: 1,
+    fetch: async () => { throw Error('firestore_query_unavailable'); },
+    handle: async () => { sideEffects++; return { purged: 0, skipped: 0, failed: 0 }; },
+    checkpoint: async () => { sideEffects++; },
+  }), /firestore_query_unavailable/);
+  assert.equal(sideEffects, 0);
+});
