@@ -43,3 +43,11 @@ The successful verdict `ARCHIVE_BYTES_MATCH_MANIFESTS_CUSTODY_UNVERIFIED` confir
 ## Current release status
 
 VES-10 remains **open** until the original archive and custody are validated. VES-5 P0 Firestore/GCS cross-service fencing remains unresolved; no merge/deploy or production photo deletion. `productionApproved=false`.
+
+## Additional anti-rebaseline control and test evidence
+
+Two simultaneously edited manifests must not silently redefine the approved September 2026 hash. The verifier therefore pins the historical SHA-256 `36b2a3ac3953cecc0bbfecbf7ca7f7cc2dd0e39f118820a51591bcce97725aac` independently in code and rejects a coordinated checksum rewrite with `historical_release_digest_changed`. The manifest target is likewise restricted to the recorded `/mnt/data/Klar_Enterprise_Final_15.09.2026.zip` or its exact basename, not an arbitrary path sharing that basename.
+
+Native tests use a synthetic ZIP with an unrelated hash through **pure, imported helpers**, never through an override to the release command. The actual CLI does not accept a user-supplied expected digest and refuses a synthetic ZIP as original evidence. A passing fixture test does not close VES-10; successful real-archive verification is still pending an authentic source, safe handling, and owner attestation.
+
+All changes are review-only on dependent Draft PR #327. The automatic manifest-only audit remains explicitly `MANIFESTS_CONSISTENT_ARCHIVE_UNVERIFIED` until a verifiable original exists. `productionApproved=false`.
