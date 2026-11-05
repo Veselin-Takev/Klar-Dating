@@ -237,6 +237,9 @@ export function createVerificationStoragePurgeRouter(deps: {
         if (busy) return { kind: 'busy' as const, cursor: null };
         tx.set(checkpointRef, {
           leaseId, leaseUntil: new Date(now + LEASE_MS), lastStartedAt: new Date(now),
+          // A complete clean pass may span multiple bounded invocations.
+          // A new cycle begins only at the persisted null cursor.
+          cycleHadFailures: cursor === null ? false : state?.cycleHadFailures === true,
         }, { merge: true });
         return { kind: 'owned' as const, cursor };
       });
@@ -453,6 +456,7 @@ export function createVerificationStoragePurgeRouter(deps: {
                 cursor, lastCheckpointAt: new Date(),
                 leaseUntil: new Date(Date.now() + LEASE_MS),
                 lastFailedAt: new Date(), lastFailedCount: failures.length,
+                cycleHadFailures: true, hasUnresolvedFailures: true,
               });
             });
           },
@@ -466,6 +470,13 @@ export function createVerificationStoragePurgeRouter(deps: {
               tx.update(checkpointRef, {
                 cursor, lastCheckpointAt: new Date(),
                 leaseUntil: new Date(Date.now() + LEASE_MS),
+                // The backlog latch clears only after reaching the end of an
+                // entire cycle with no failed page. A page-level success alone
+                // must never acknowledge previously journaled unresolved work.
+                ...(cursor === null ? {
+                  hasUnresolvedFailures: snapshot.data()?.cycleHadFailures === true,
+                  cycleHadFailures: false,
+                } : {}),
               });
             });
           },
@@ -475,24 +486,26 @@ export function createVerificationStoragePurgeRouter(deps: {
       }
       // Never acknowledge an incomplete scan until the lease is safely
       // released. On a process crash the expiring lease permits recovery.
+      let unresolvedFailureBacklog = true;
       try {
-        await db.runTransaction(async tx => {
+        unresolvedFailureBacklog = await db.runTransaction(async tx => {
           const snapshot = await tx.get(checkpointRef);
           if (snapshot.data()?.leaseId !== leaseId) throw new Error('verification_purge_lease_lost');
           tx.update(checkpointRef, { leaseId: null, leaseUntil: null });
+          return snapshot.data()?.hasUnresolvedFailures === true;
         });
       } catch {
         scanFailed = true;
       }
       if (scanFailed || !result) throw new Error('verification_purge_incomplete');
-      // A bounded backlog and retryable errors must not report a full PASS.
-      // The scheduled caller will retry; the durable cursor prevents
-      // repeatedly processing the first due rows.
-      const incomplete = result.failed > 0 || result.hasMore;
+      // A clean *page* is not a clean *cycle*: never report success while any
+      // earlier error in the bounded pass still awaits a full clean revisit.
+      const incomplete = result.failed > 0 || result.hasMore || unresolvedFailureBacklog;
       return res.status(incomplete ? 503 : 200).json({
         ok: !incomplete, processed: result.scanned, purgedCount: result.purged,
         skippedCount: result.skipped, failedCount: result.failed,
         hasMore: result.hasMore, pages: result.pages,
+        unresolvedFailureBacklog,
       });
     } catch {
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
