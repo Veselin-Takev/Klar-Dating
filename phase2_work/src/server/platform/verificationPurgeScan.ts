@@ -50,6 +50,8 @@ export async function scanPurgePages<T>(options: {
     const counts = await options.handle(page.map(item => item.value));
     if (!counts || ![counts.purged, counts.skipped, counts.failed].every(v => Number.isSafeInteger(v) && v >= 0)
       || counts.purged + counts.skipped + counts.failed !== page.length) throw Error('purge_counts_invalid');
+    // Failed items must remain eligible for retry: never checkpoint past them.
+    if (counts.failed > 0) throw Error('purge_page_failed_retry_required');
     const full = page.length === pageSize;
     cursor = full ? last : null;
     // Advance only after a completed page; repeat after a crashed page is safe.
