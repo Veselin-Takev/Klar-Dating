@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { assertCompleteVerificationPurgeReceipt } from './verificationPurgeJobReceipt';
 
 const secret = defineSecret('COMPLIANCE_JOB_SECRET');
 const endpoint = defineString('COMPLIANCE_API_ORIGIN', { description: 'HTTPS origin of the Klar API; no path or credentials.' });
@@ -23,5 +24,26 @@ export const purgeVerificationStorageCron = onSchedule({
     headers: { 'content-type': 'application/json', 'X-Klar-Compliance-Timestamp': timestamp, 'X-Klar-Compliance-Nonce': nonce, 'X-Klar-Compliance-Signature': signature },
     body,
   });
+  // A successful HTTP transport result is NOT a successful retention pass.
+  // Reject legacy/partial responses and unresolved errors even if a proxy or
+  // future route regression returns status 200.
   if (!response.ok) throw new Error(`Verification storage purge failed: HTTP ${response.status}`);
+  const text = await response.text();
+  if (text.length > 2_048) throw new Error('verification_purge_job_receipt_oversize');
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error('verification_purge_job_receipt_json_invalid');
+  }
+  const receipt = assertCompleteVerificationPurgeReceipt(payload);
+  // Aggregates only; do not log UIDs, verification paths, signed messages,
+  // HMAC values, auth headers or untrusted server response text.
+  console.info(JSON.stringify({
+    event: 'verification_photo_purge_completed',
+    processed: receipt.processed,
+    purgedCount: receipt.purgedCount,
+    skippedCount: receipt.skippedCount,
+    pages: receipt.pages,
+  }));
 });
