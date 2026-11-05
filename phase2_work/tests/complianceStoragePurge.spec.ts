@@ -24,6 +24,13 @@ describe('verification storage compliance job authentication', () => {
     expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(true);
   });
 
+  it.each([NaN, Infinity, -Infinity, 0, -1, 1.5])(
+    'rejects an invalid verifier clock even with a correct HMAC: %s', now => {
+      const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
+      expect(validComplianceRequest(body, timestamp, valid, secret, now)).toBe(false);
+    },
+  );
+
   it('rejects replay, wrong secret and malformed signatures', () => {
     const signature = complianceSignature(`${timestamp}.{} `, secret);
     expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(false);
