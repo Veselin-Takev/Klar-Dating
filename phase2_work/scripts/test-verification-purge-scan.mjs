@@ -120,6 +120,24 @@ test('a fatal page error never advances the checkpoint', async () => {
   assert.equal(checkpoints, 0);
 });
 
+test('an already expired deadline blocks the initial fetch and preserves checkpoint', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  let fetches = 0;
+  let writes = 0;
+  const result = await scanPurgePages({
+    initial: previous, pageSize: 2, maxPages: 2,
+    fetch: async () => { fetches++; return items.slice(2, 4); },
+    handle: async () => { throw Error('deadline bypassed'); },
+    checkpoint: async () => { writes++; },
+    deadline: () => true,
+  });
+  assert.deepEqual(result, {
+    scanned: 0, purged: 0, skipped: 0, failed: 0, pages: 0, hasMore: true,
+  });
+  assert.equal(fetches, 0);
+  assert.equal(writes, 0);
+});
+
 test('a deadline is respected after a complete page checkpoint', async () => {
   let checks = 0;
   const scan = await scanPurgePages({
