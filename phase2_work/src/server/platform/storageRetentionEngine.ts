@@ -74,7 +74,8 @@ export function isVerificationArtifactExpired(
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
 ): boolean {
-  if (!Number.isFinite(decidedAt) || decidedAt <= 0) return false;
+  // An invalid clock must never make a retention decision eligible for deletion.
+  if (!Number.isFinite(decidedAt) || decidedAt <= 0 || !Number.isFinite(now) || now <= 0) return false;
   const expiry = calculateVerificationRetentionExpiry(decidedAt, retentionDays);
   return now >= expiry;
 }
