@@ -266,6 +266,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         expect(corrupt?.photoPurgeIntent).toBeUndefined();
         expect(corrupt?.photoPurgeProof).toBeUndefined();
         expect(corrupt?.photoPurgeFailure?.code).toBe('decision_conflict');
+        expect(response.data.unresolvedFailureBacklog).toBe(true);
         const healthy = (await valid.get()).data();
         expect(healthy?.photoPurged).toBe(true);
         expect(healthy?.photoPurgeProof?.generation).toBe('773');
@@ -274,7 +275,8 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         await event.update({ entscheidung: 'bestaetigt' });
         const retried = await api.request();
         expect(retried).toMatchObject({
-          status: 200, data: { failedCount: 0, purgedCount: 1, skippedCount: 1 },
+          status: 200, data: { failedCount: 0, purgedCount: 1, skippedCount: 1,
+            unresolvedFailureBacklog: false },
         });
         const repaired = (await event.get()).data();
         expect(repaired?.photoPurged).toBe(true);
