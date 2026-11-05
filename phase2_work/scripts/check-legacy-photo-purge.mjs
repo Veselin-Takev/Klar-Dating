@@ -37,7 +37,7 @@ export function legacyPhotoPurgeViolations({ legacyCron, helperSource, indexSour
       if (!disabledHelper.includes("throw new Error('legacy_age_only_photo_purge_disabled')")) {
         problems.push('obsolete upload-age helper does not fail closed');
       }
-      if (/\\.getFiles\\s*\\(|\\.deleteFiles\\s*\\(|\\.delete\\s*\\(|\\.getMetadata\\s*\\(/.test(disabledHelper)) {
+      if (/\.getFiles\s*\(|\.deleteFiles\s*\(|\.delete\s*\(|\.getMetadata\s*\(/.test(disabledHelper)) {
         problems.push('obsolete upload-age helper still performs Storage access');
       }
     }
