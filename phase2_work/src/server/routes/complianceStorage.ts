@@ -3,6 +3,10 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto
 import { getStorage } from 'firebase-admin/storage';
 import { FieldPath, FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { readPurgeCursor, scanPurgePages, type PurgeFailure, type PurgeCursor } from '../platform/verificationPurgeScan';
+import {
+  verificationPurgeIncompleteEvent, verificationPurgeP0BlockedEvent,
+  verificationPurgeUnavailableEvent,
+} from '../platform/verificationPurgeTelemetry';
 import { executeVerificationRetentionBatch, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 
 const MAX_BATCH = 25;
@@ -244,6 +248,7 @@ export function createVerificationStoragePurgeRouter(deps: {
     // test bucket; require this explicit source-code test seam as well.
     if (!isVerificationPhotoPurgeRuntimeAllowed(process.env)
       || typeof deps.getBucket !== 'function') {
+      console.error(JSON.stringify(verificationPurgeP0BlockedEvent()));
       return res.status(503).json({ code: 'verification_storage_purge_p0_live_blocked' });
     }
 
@@ -541,6 +546,9 @@ export function createVerificationStoragePurgeRouter(deps: {
       // A clean *page* is not a clean *cycle*: never report success while any
       // earlier error in the bounded pass still awaits a full clean revisit.
       const incomplete = result.failed > 0 || result.hasMore || unresolvedFailureBacklog;
+      if (incomplete) {
+        console.warn(JSON.stringify(verificationPurgeIncompleteEvent(result, unresolvedFailureBacklog)));
+      }
       return res.status(incomplete ? 503 : 200).json({
         ok: !incomplete, processed: result.scanned, purgedCount: result.purged,
         skippedCount: result.skipped, failedCount: result.failed,
@@ -548,6 +556,8 @@ export function createVerificationStoragePurgeRouter(deps: {
         unresolvedFailureBacklog,
       });
     } catch {
+      // No raw exception, user identifiers, object paths, signed data or tokens.
+      console.error(JSON.stringify(verificationPurgeUnavailableEvent()));
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
     }
   });
