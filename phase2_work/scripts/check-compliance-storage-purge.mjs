@@ -11,6 +11,7 @@ const checks = [
   ['nonce replay rejection', /ownership\.kind === 'replay'/],
   ['scheduler bounds receipt while reading', /readBoundedVerificationPurgeReceipt/],
   ['durable failure progress callback', /recordFailedPage:\s*async/],
+  ['journal failures bound to exact page IDs', /identifyItem:\s*doc\s*=>\s*doc\.id/],
   ['aggregate-only incomplete purge operational event', /verificationPurgeIncompleteEvent\(result, unresolvedFailureBacklog\)/],
   ['PII-safe scheduler failure event', /verificationPurgeSchedulerFailureEvent/],
   ['journal failures on verification event', /photoPurgeFailure:/],
