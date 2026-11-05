@@ -140,6 +140,7 @@ test('an already expired deadline blocks the initial fetch and preserves checkpo
 
 test('a deadline is respected after a complete page checkpoint', async () => {
   let checks = 0;
+  let deadlineChecks = 0;
   const scan = await scanPurgePages({
     initial: null, pageSize: 40, maxPages: 6,
     fetch: async after => {
@@ -148,7 +149,7 @@ test('a deadline is respected after a complete page checkpoint', async () => {
     },
     handle: async () => ({ purged: 0, skipped: 40, failed: 0 }),
     checkpoint: async () => { checks++; },
-    deadline: () => true,
+    deadline: () => ++deadlineChecks > 1,
   });
   assert.equal(scan.scanned, 40);
   assert.equal(scan.hasMore, true);
