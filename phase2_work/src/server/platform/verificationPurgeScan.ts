@@ -47,6 +47,9 @@ export async function scanPurgePages<T>(options: {
       if (!next || (last && cursorOrder(next, last) <= 0)) throw Error('purge_order_invalid');
       last = next;
     }
+    // Fetching a page may exhaust the time budget. Do not begin its mutations
+    // after the deadline; replay from the last persisted checkpoint next run.
+    if (options.deadline?.()) return { ...result, hasMore: true };
     const counts = await options.handle(page.map(item => item.value));
     if (!counts || ![counts.purged, counts.skipped, counts.failed].every(v => Number.isSafeInteger(v) && v >= 0)
       || counts.purged + counts.skipped + counts.failed !== page.length) throw Error('purge_counts_invalid');
