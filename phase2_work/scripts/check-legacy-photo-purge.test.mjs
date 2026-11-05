@@ -24,6 +24,7 @@ const mutations = [
   ['legacy age-only call reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\ndeleteExpiredPhotoPage(bucket, now)" })],
   ['direct Storage SDK import reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nimport { getStorage } from 'firebase-admin/storage';" })],
   ['direct bucket file access reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait bucket.file('verification/test/photo').delete()" })],
+  ['direct object deletion reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait photo.delete({ifGenerationMatch:'7'})" })],
   ['bulk bucket deletion reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait bucket.deleteFiles({prefix:'verification/'})" })],
   ['bulk helper deletion reinstated', b => ({ ...b, helperSource: b.helperSource.replace("throw new Error('legacy_age_only_photo_purge_disabled')", "await _bucket.deleteFiles({prefix:'verification/'}); throw new Error('legacy_age_only_photo_purge_disabled')") })],
   ['direct storage metadata read reinstated', b => ({ ...b, legacyCron: b.legacyCron + "\nawait photo.getMetadata()" })],
