@@ -167,3 +167,12 @@ Der vorherige Head `ebadafc7045597b9a1fcd196853c374ad2a9afc1` bestand [CI 420685
 ## HMAC-Zeitfenster: ungültige Verifier-Uhr fail-closed
 
 Der vorherige Head `7da736acb94361e35ba40eecccd6abb956d60705` bestand [CI 42076124964](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42076124964). In `validComplianceRequest` wurde ein Grenzfall geschlossen: Bei `now=NaN` war `Math.abs(now - timestamp) > SIGNATURE_MAX_AGE_MS` stets `false`, sodass ein korrekt signierter Request die Altersprüfung trotz ungültiger Verifier-Zeit passieren konnte. Jetzt muss auch `now` eine sichere ganze Zahl sein. Der Vitest-Regressionstest prüft `NaN`, `±Infinity`, Null, negative und gebrochene Zeitwerte mit gültiger HMAC-Signatur. Der Patch ersetzt weder Clock-Synchronisation noch IAM-/Scheduler-Prüfung. Neue Commits benötigen exact-SHA-CI; `productionApproved=false`.
+
+
+## A-03 Signierte Purge-Aufrufe: Einmal-Nonce und Replay-Sperre (Remediation-Zweig, 05.11.2026)
+
+Der eigenständige, nicht gemergte Remediation-Zweig `fix/p0-202-purge-nonce-replay-20261105` (auf PR #317 aufgebaut) bindet eine zufällige UUIDv4-Nonce kryptografisch an Timestamp und **exakte Raw-Body-Bytes** des HMAC. Die API speichert jede erfolgreich verifizierte Nonce **atomar mit der Lease-Abfrage** als `verification_photo_purge_nonces/{nonce}` (ein zweiter signierter Aufruf derselben Nonce wird als HTTP 401 abgewiesen). Auch bei bereits belegter Lease wird die Nonce verbraucht, damit nach deren Ablauf kein Replay möglich wird. Die Nonce-Dokumente enthalten nur Purpose, UTC-Zeitpunkt und `expiresAt`, nicht den HMAC-Key oder die Payload. Der 15-Minuten-TTL-Marker ist **ohne separat aktivierte und geprüfte Firestore-TTL keine Löschungsgarantie**. Ein verpflichtender Cloud-/DPO-Review muss die `verification_photo_purge_nonces`-TTL je Umgebung bestätigen.
+
+Der bestehende Standard-Deny-Interlock vor sämtlichen Firestore-/GCS-Aufrufen bleibt erhalten. Server und Scheduler müssen gemeinsam migriert und in Staging geprüft werden; alte Scheduler-Signaturen werden absichtlich abgelehnt. Ein zusätzlicher Firestore-Emulatortest prüft doppelte Nonces mit frisch berechnetem zweiten HMAC. Ein erfolgreicher Quellcode-/CI-Test ist **keine** Cloud-Aktivierung.
+
+**Nicht gelöst:** P0 Post-Authorization-TOCTOU und vollständiges All-Writer-Fencing. Keine Cloud-/IAM-/DPO-/AppSec-/SRE-Freigabe, kein Merge, kein Produktionsdeploy; `productionApproved=false`.
