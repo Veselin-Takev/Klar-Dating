@@ -93,6 +93,7 @@ const ENTSCHEIDEN = {
   analytics_events: { art: 'geloescht', grund: 'Wird geloescht.' },
   public_profiles: { art: 'geloescht', grund: 'Wird geloescht.' },
   system: { art: 'bleibt', grund: 'Systemweite Konfiguration ohne Personenbezug.' },
+  verification_photo_purge_nonces: { art: 'bleibt', grund: 'Kurzlebige replay-resistente Scheduler-Nonce ohne UID, Token, Payload oder personenbezogenen Objektverweis. Nur UUIDv4, Zweck und UTC-Zeitpunkte. expiresAt nach 15 Minuten; die Cloud-TTL muss je Umgebung ACTIVE nachgewiesen und die Löschlatenz überwacht werden. Keine eindeutige Nutzerzuordnung und keine dauerhafte Aufbewahrung vorgesehen.' },
   users: { art: 'geloescht', grund: 'Das Profil selbst.' },
   chats: { art: 'geloescht', grund: 'Ein Chat gehoert beiden; ein halber Chat nuetzt niemandem.' },
   messages: { art: 'geloescht', grund: 'Unterkollektion von chats.' },
