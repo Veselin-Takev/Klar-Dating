@@ -65,6 +65,30 @@ test('individual failures report retryable counts without checkpointing past art
   assert.equal(cursor, null);
 });
 
+test('a later failed page retains only the previous successful checkpoint', async () => {
+  let cursor = null;
+  const checkpoints = [];
+  const pages = [];
+  const result = await scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 3,
+    fetch: async after => after ? items.slice(2, 4) : items.slice(0, 2),
+    handle: async values => {
+      pages.push(values);
+      return pages.length === 1
+        ? { purged: 2, skipped: 0, failed: 0 }
+        : { purged: 0, skipped: 1, failed: 1 };
+    },
+    checkpoint: async next => { cursor = next; checkpoints.push(next); },
+  });
+  assert.equal(result.scanned, 4);
+  assert.equal(result.purged, 2);
+  assert.equal(result.failed, 1);
+  assert.equal(result.hasMore, true);
+  assert.equal(result.pages, 2);
+  assert.equal(checkpoints.length, 1);
+  assert.equal(cursor.id, 'id1');
+});
+
 test('a fatal page error never advances the checkpoint', async () => {
   let checkpoints = 0;
   await assert.rejects(scanPurgePages({
