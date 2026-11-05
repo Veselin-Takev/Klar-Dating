@@ -49,6 +49,7 @@ async function startApi(
   metadata: () => Promise<[{ generation: string; temporaryHold: boolean }]> =
     async () => [{ generation: '773', temporaryHold: false }],
   enabled = true,
+  testBucketInjected = true,
 ) {
   process.env.COMPLIANCE_JOB_SECRET = secret;
   if (enabled) process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = 'true';
@@ -59,7 +60,7 @@ async function startApi(
       if (!enabled) throw new Error('disabled_purge_must_not_touch_firestore');
       return db;
     },
-    getBucket: () => {
+    getBucket: testBucketInjected ? () => {
       if (!enabled) throw new Error('disabled_purge_must_not_touch_storage');
       return {
         file: (path: string) => ({
@@ -70,7 +71,7 @@ async function startApi(
           },
         }),
       };
-    },
+    } : undefined,
   }));
   const server = await new Promise<Server>(resolve => {
     const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
@@ -177,6 +178,29 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         else process.env.NODE_ENV = previousNodeEnv;
         if (previousService === undefined) delete process.env.K_SERVICE;
         else process.env.K_SERVICE = previousService;
+      }
+    });
+  }, 90_000);
+
+  it('blocks a production-style router without injected mock Storage, even with spoofed emulator env', async () => {
+    await withEvent(async ({ db, event }) => {
+      let deleteCalls = 0;
+      // The production server instantiates its router without getBucket.
+      // Even when runtime variables resemble a local emulator and the
+      // request has a valid HMAC, no Firestore lease or Storage operation is allowed.
+      const api = await startApi(db, async () => { deleteCalls++; }, undefined, true, false);
+      try {
+        const denied = await api.request();
+        expect(denied).toMatchObject({
+          status: 503, data: { code: 'verification_storage_purge_p0_live_blocked' },
+        });
+        expect(deleteCalls).toBe(0);
+        expect((await event.get()).data()?.photoPurgeIntent).toBeUndefined();
+        expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
+        const lease = await db.collection('system').doc('verification_photo_purge_scan_v1').get();
+        expect(lease.exists).toBe(false);
+      } finally {
+        await api.close();
       }
     });
   }, 90_000);

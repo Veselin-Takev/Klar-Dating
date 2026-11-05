@@ -239,7 +239,11 @@ export function createVerificationStoragePurgeRouter(deps: {
     }
     // P0 fails closed even with valid HMAC and an enabled feature flag.
     // Must execute BEFORE the first Firestore lease or Storage operation.
-    if (!isVerificationPhotoPurgeRuntimeAllowed(process.env)) {
+    // Environment variables are operator-controlled and cannot alone prove
+    // that SDKs point at emulators. The production router never injects a
+    // test bucket; require this explicit source-code test seam as well.
+    if (!isVerificationPhotoPurgeRuntimeAllowed(process.env)
+      || typeof deps.getBucket !== 'function') {
       return res.status(503).json({ code: 'verification_storage_purge_p0_live_blocked' });
     }
 

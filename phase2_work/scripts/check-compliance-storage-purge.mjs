@@ -16,7 +16,9 @@ const checks = [
   ['full clean cycle latch reset', /cycleHadFailures: false/],
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
   ['P0 source-locked live release disabled', /const VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED = false/],
-  ['P0 denies before Cloud Firestore or Storage use', /if \(!isVerificationPhotoPurgeRuntimeAllowed\(process\.env\)\)/],
+  ['P0 denies before Cloud Firestore or Storage use', /if \(!isVerificationPhotoPurgeRuntimeAllowed\(process\.env\)/],
+  ['P0 must require injected emulator-only bucket', /typeof deps\.getBucket !== 'function'/],
+  ['production router uses no test Storage injection', /createVerificationStoragePurgeRouter\(\{ getDb: getFirestore \}\)/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
   ['verification path boundary', /startsWith\(`verification\/\$\{uid\}\/`\)/],
@@ -26,7 +28,8 @@ const checks = [
 for (const [label, re] of checks) {
   const source = label === 'daily scheduler' || label === 'single scheduler instance'
     || label === 'scheduler checks receipt rather than only HTTP 200' ? fn
-    : label === 'protected purge endpoint' ? server + route : route;
+    : label === 'protected purge endpoint' || label === 'production router uses no test Storage injection'
+      ? server + route : route;
   if (!re.test(source)) throw new Error(`Compliance storage purge boundary failed: ${label}`);
 }
 // The scheduler signs the exact JSON bytes. A global express.json() parser
