@@ -138,6 +138,24 @@ test('an already expired deadline blocks the initial fetch and preserves checkpo
   assert.equal(writes, 0);
 });
 
+test('deadline expiry during fetch prevents starting destructive page handling', async () => {
+  const previous = { seconds: 101, nanos: 0, id: 'id1' };
+  let expired = false;
+  let handled = 0;
+  let checkpoints = 0;
+  const result = await scanPurgePages({
+    initial: previous, pageSize: 2, maxPages: 2,
+    fetch: async () => { expired = true; return items.slice(2, 4); },
+    handle: async () => { handled++; return { purged: 2, skipped: 0, failed: 0 }; },
+    checkpoint: async () => { checkpoints++; },
+    deadline: () => expired,
+  });
+  assert.equal(result.scanned, 0);
+  assert.equal(result.hasMore, true);
+  assert.equal(handled, 0);
+  assert.equal(checkpoints, 0);
+});
+
 test('a deadline is respected after a complete page checkpoint', async () => {
   let checks = 0;
   let deadlineChecks = 0;
@@ -149,7 +167,7 @@ test('a deadline is respected after a complete page checkpoint', async () => {
     },
     handle: async () => ({ purged: 0, skipped: 40, failed: 0 }),
     checkpoint: async () => { checks++; },
-    deadline: () => ++deadlineChecks > 1,
+    deadline: () => ++deadlineChecks > 2,
   });
   assert.equal(scan.scanned, 40);
   assert.equal(scan.hasMore, true);
