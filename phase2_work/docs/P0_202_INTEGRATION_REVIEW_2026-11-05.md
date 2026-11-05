@@ -226,3 +226,8 @@ Neue Vitest-Fälle prüfen gültige und unvollständige Belege, Typ-/Zählerfehl
 **Grenze:** Dieser P0-Sicherheitsstopp ist **keine Beseitigung der Race Condition** und keine Berechtigung für Live-Löschungen. Er sperrt ausdrücklich auch echte Staging-Purge-Durchläufe; zur geplanten Wiederaufnahme wird ein separat reviewter Code-Änderungs-PR mit reproduzierbar wirksamem All-Writer-Fencing, Cloud-/GCS-/IAM-/Legal-Hold-Staging-Nachweisen und unabhängiger AppSec-, DPO-, SRE- und Release-Owner-Freigabe benötigt. Der globale DSGVO-Löschrückstau bleibt ein operatives und rechtliches Risiko, das nicht als gelöst markiert werden darf.
 
 **Governance:** `productionApproved=false`; kein autonomer Merge, keine Aktivierung produktiver Foto-Löschung. Neue Implementierung zunächst nur ein Draft-Review-Kandidat, dessen CI auf exaktem SHA nachgewiesen werden muss.
+
+
+### P0 VES-5 Fail-Closed-Nachtrag: fehlende Projektidentität
+
+Ein lokaler Testmodus mit gesetzten loopback-Emulator-Hosts, aber **ohne irgendeine Projektkennung**, darf die Quellcode-Sperre nicht passieren. `isVerificationPhotoPurgeRuntimeAllowed` fordert jetzt mindestens eine explizite Projektkennung, und alle vorhandenen Kennungen müssen exakt `demo-klar` lauten. Ein Unit-Negativtest prüft diesen Fall. Der zusätzliche Patch verändert keine echte Cloud-Konfiguration, führt kein Deployment aus und benötigt exact-SHA-CI.
