@@ -66,6 +66,70 @@ test('individual failures report retryable counts without checkpointing past art
   assert.equal(cursor, null);
 });
 
+test('durable failure journal permits progress to later valid pages', async () => {
+  let cursor = null;
+  const failures = new Map();
+  const seen = [];
+  const run = () => scanPurgePages({
+    initial: cursor, pageSize: 2, maxPages: 3,
+    fetch: async after => {
+      const index = after ? items.findIndex(item => item.cursor.id === after.id) + 1 : 0;
+      return items.slice(index, index + 2);
+    },
+    handle: async values => {
+      seen.push(...values);
+      return values.includes(0) && !failures.has('id0')
+        ? { purged: 1, skipped: 0, failed: 1,
+          failures: [{ id: 'id0', reason: 'decision_conflict' }] }
+        : { purged: values.length, skipped: 0, failed: 0 };
+    },
+    recordFailedPage: async (next, _values, errors) => {
+      for (const error of errors) failures.set(error.id, error.reason);
+      cursor = next;
+    },
+    checkpoint: async (next, values) => {
+      for (const value of values ?? []) failures.delete('id' + value);
+      cursor = next;
+    },
+  });
+  const first = await run();
+  assert.deepEqual({ scanned: first.scanned, purged: first.purged,
+    failed: first.failed, hasMore: first.hasMore },
+  { scanned: 6, purged: 5, failed: 1, hasMore: true });
+  assert.equal(cursor.id, 'id5');
+  assert.equal(failures.get('id0'), 'decision_conflict');
+  const second = await run();
+  assert.equal(second.scanned, 6);
+  assert.equal(second.failed, 0);
+  assert.equal(cursor.id, 'id11');
+  assert.deepEqual(seen, Array.from({ length: 12 }, (_, i) => i));
+});
+
+test('unavailable durable failure journal cannot move the cursor', async () => {
+  let writes = 0;
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => items.slice(0, 2),
+    handle: async () => ({ purged: 1, skipped: 0, failed: 1,
+      failures: [{ id: 'id0', reason: 'invalid_record' }] }),
+    recordFailedPage: async () => { throw Error('durable_failure_journal_unavailable'); },
+    checkpoint: async () => { writes++; },
+  }), /durable_failure_journal_unavailable/);
+  assert.equal(writes, 0);
+});
+
+test('an invalid failure journal refuses cursor progress', async () => {
+  let writes = 0;
+  await assert.rejects(scanPurgePages({
+    initial: null, pageSize: 2, maxPages: 1,
+    fetch: async () => items.slice(0, 2),
+    handle: async () => ({ purged: 1, skipped: 0, failed: 1, failures: [] }),
+    recordFailedPage: async () => { writes++; },
+    checkpoint: async () => { writes++; },
+  }), /purge_failure_journal_invalid/);
+  assert.equal(writes, 0);
+});
+
 test('a later failed page retains only the previous successful checkpoint', async () => {
   let cursor = null;
   const checkpoints = [];
