@@ -90,3 +90,7 @@ Quelle: [Issue #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202), S
 ## Negative Scanner-Grenzwerte (05.11.2026)
 
 [CI 42046257238](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42046257238) bestätigt den vorherigen Head `0b5dd9c1e4d81112609fceb8875c8fd26329bf5a` als erfolgreich; für die nachfolgenden Änderungen gilt dieser Nachweis **nicht**. Zwei neue Testfälle in `scripts/test-verification-purge-scan.mjs` prüfen, dass ungültige Scan-Limits (Null, zu groß, NaN/Infinity) bereits vor Fetch/Handle/Checkpoint abgewiesen werden und ungültige Ergebniszähler (NaN, negativ, Bruchteile, Infinity) niemals einen Checkpoint schreiben. Dies sind Repository-Regressionstests, keine Emulator-/Cloud-Evidenz. PR #317 hat bei der letzten Abfrage keine Reviews und bleibt Draft; `productionApproved=false`.
+
+## Persistierte und geladene Cursor: Fail-Closed-Negativtests
+
+Der vorherige Head `67e034402f82f488a7519c3d220d9afd6a6c1056` bestand [CI 42048286928](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42048286928). Zwei weitere Regressionstests prüfen nun ungültige persistierte Cursor (negative/zu große Zeit, ungültige Nanosekunden, Bruchteile, leere/überlange IDs, Pfadtrennzeichen, falsche Datentypen) und ungültige Cursor aus der Fetch-Antwort. Die Assertions stellen sicher, dass vor einer Ablehnung weder Lösch-Handler noch Checkpoint-Schreibvorgänge aufgerufen werden; bei persistiert ungültigem Cursor findet auch kein Fetch statt. Der neue Commit benötigt eine eigene exact-SHA-CI-Bestätigung. `productionApproved=false`.
