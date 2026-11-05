@@ -214,3 +214,25 @@ Neue Vitest-Fälle prüfen gültige und unvollständige Belege, Typ-/Zählerfehl
 **Evidenz:** Der Vorgänger-HEAD `ebb8bb8ffce599085ec8a6bef12b2bfaec687991` bestand [CI #1756](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42091043027) vollständig. Aus den Logs: 194 Testdateien und 1.446 Vitest-Tests bestanden; `verificationPurgeHttpEmulator.spec.ts` lief mit 19 Tests, zusätzlich 26 Playwright-Tests bestanden. **Die hier neuen Änderungen benötigen erneut exact-SHA-CI.**
 
 **Nicht gelöst:** P0 VES-5 Firestore/GCS Post-Authorization-TOCTOU/All-Writer-Fencing; Cloud-Scheduler/IAM/TTL-Live-Nachweise und DPO/AppSec/SRE/Release-Owner-Freigaben fehlen. Kein Merge, kein Produktiv-Deployment, `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED` default deny, `productionApproved=false`, NO-GO.
+
+
+
+## P0 VES-5: Zusätzliche Quellcode-Sperre für alle Live-Löschungen (Review, 05.11.2026)
+
+**Problem:** Die bereits nachgewiesene Firestore/GCS-Post-Authorization-TOCTOU-Lücke bleibt offen. Zuvor genügte bei korrekt signierter Scheduler-Anfrage die Umgebungsvariable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED=true`, um trotz ausstehender All-Writer-Fencing- und Release-Freigaben den destruktiven Cloud-Pfad zu aktivieren. Die Dokumentationswarnung und der bisherige Default-Deny waren gegenüber einer irrtümlichen Flag-Aktivierung nicht ausreichend.
+
+**Temporäre Sicherung im separaten VES-5-Draft:** `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED=false` ist ein **quellcodegebundener**, nicht per Env überschreibbarer Blocker. Die Route lehnt **vor Firestore- und GCS-Zugriffen** signierte Requests auch mit aktivem Feature-Flag als HTTP 503 `verification_storage_purge_p0_live_blocked` ab. Bis zur unabhängigen Freigabe können ausschließlich lokale, isolierte Tests mit `NODE_ENV=test`, loopbackgebundenen Firestore- **und** Storage-Emulator-Hosts, ohne Cloud-Run-/Functions-Runtime-Signale und ausschließlich `demo-klar`-Projektkennungen den Destruktionspfad erreichen. Neue Unit-Negativtests prüfen Production/Staging, Cloud-Run-Kennungen, nichtlokale oder fehlende Emulatordienste und reale Projektkennungen; ein Firestore-Emulator-HTTP-Test verifiziert, dass die API selbst bei gültigem HMAC und aktivem Feature-Flag keine Firestore-/GCS-Schreibvorgänge ausführt. Der Enterprise-Static-Guard kontrolliert die Code-Sperre.
+
+**Grenze:** Dieser P0-Sicherheitsstopp ist **keine Beseitigung der Race Condition** und keine Berechtigung für Live-Löschungen. Er sperrt ausdrücklich auch echte Staging-Purge-Durchläufe; zur geplanten Wiederaufnahme wird ein separat reviewter Code-Änderungs-PR mit reproduzierbar wirksamem All-Writer-Fencing, Cloud-/GCS-/IAM-/Legal-Hold-Staging-Nachweisen und unabhängiger AppSec-, DPO-, SRE- und Release-Owner-Freigabe benötigt. Der globale DSGVO-Löschrückstau bleibt ein operatives und rechtliches Risiko, das nicht als gelöst markiert werden darf.
+
+**Governance:** `productionApproved=false`; kein autonomer Merge, keine Aktivierung produktiver Foto-Löschung. Neue Implementierung zunächst nur ein Draft-Review-Kandidat, dessen CI auf exaktem SHA nachgewiesen werden muss.
+
+
+### P0 VES-5 Fail-Closed-Nachtrag: fehlende Projektidentität
+
+Ein lokaler Testmodus mit gesetzten loopback-Emulator-Hosts, aber **ohne irgendeine Projektkennung**, darf die Quellcode-Sperre nicht passieren. `isVerificationPhotoPurgeRuntimeAllowed` fordert jetzt mindestens eine explizite Projektkennung, und alle vorhandenen Kennungen müssen exakt `demo-klar` lauten. Ein Unit-Negativtest prüft diesen Fall. Der zusätzliche Patch verändert keine echte Cloud-Konfiguration, führt kein Deployment aus und benötigt exact-SHA-CI.
+
+
+### PR #321 CI Typecheck-Korrektur
+
+Enterprise CI #1758 (`42098240510`) auf Commit `e2297c46db7c061621ece2321abf56e777019e68` scheiterte **im Typecheck** (TS2345), weil `Pick<NodeJS.ProcessEnv,...>` alle benannten Umgebungsvariablen als Pflicht-Properties modelliert, die tatsächliche `process.env`-Abbildung aber optionale Einträge erlaubt. Das Interface des P0-Runtime-Guards akzeptiert jetzt `Record<string, string | undefined>`; die Laufzeitbedingungen bleiben unverändert fail-closed. Der zusätzlich eingeführte Schutz verlangt weiterhin **mindestens eine** gültige Projektkennung. Nachfolgende Tests des gescheiterten CI-Laufs wurden nicht ausgeführt; neuer exact-SHA-CI-Nachweis erforderlich. Keine Produktivfreigabe.

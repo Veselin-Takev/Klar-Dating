@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createHmac } from 'node:crypto';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, isVerificationPhotoPurgeRuntimeAllowed } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -12,6 +12,38 @@ describe('verification photo purge deployment interlock', () => {
   );
   it('allows explicit opt-in only with exact lowercase true', () => {
     expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+  });
+});
+
+describe('P0 VES-5 source-locked live deployment veto', () => {
+  const validEmulator = {
+    NODE_ENV: 'test', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+    FIREBASE_STORAGE_EMULATOR_HOST: 'localhost:9199', GCLOUD_PROJECT: 'demo-klar',
+  };
+  it('permits the isolated local emulator test with the separate feature flag', () => {
+    expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+    expect(isVerificationPhotoPurgeRuntimeAllowed(validEmulator)).toBe(true);
+  });
+  it.each([
+    { NODE_ENV: 'production' }, { NODE_ENV: 'development' },
+    { K_SERVICE: 'klar-api' }, { K_REVISION: 'klar-v1' }, { FUNCTION_TARGET: 'api' },
+    { FIRESTORE_EMULATOR_HOST: 'firestore.googleapis.com:443' },
+    { FIRESTORE_EMULATOR_HOST: '10.0.0.1:8080' },
+    { FIRESTORE_EMULATOR_HOST: undefined },
+    { FIREBASE_STORAGE_EMULATOR_HOST: undefined },
+    { FIREBASE_STORAGE_EMULATOR_HOST: 'storage.googleapis.com:443' },
+    { GCLOUD_PROJECT: undefined },
+    { GOOGLE_CLOUD_PROJECT: 'klar-production' },
+    { FIREBASE_PROJECT_ID: 'another-project' },
+  ])('blocks live, cloud, or incomplete emulator targets even if opt-in is true: %#', changed => {
+    const environment = { ...validEmulator, ...changed };
+    expect(isVerificationPhotoPurgeRuntimeAllowed(environment)).toBe(false);
+  });
+  it('fails closed when every project identity is absent despite local emulator endpoints', () => {
+    expect(isVerificationPhotoPurgeRuntimeAllowed({
+      NODE_ENV: 'test', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+      FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199',
+    })).toBe(false);
   });
 });
 

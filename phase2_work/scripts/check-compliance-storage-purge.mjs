@@ -15,6 +15,8 @@ const checks = [
   ['persistent unresolved failure latch', /hasUnresolvedFailures:/],
   ['full clean cycle latch reset', /cycleHadFailures: false/],
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
+  ['P0 source-locked live release disabled', /const VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED = false/],
+  ['P0 denies before Cloud Firestore or Storage use', /if \(!isVerificationPhotoPurgeRuntimeAllowed\(process\.env\)\)/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
   ['verification path boundary', /startsWith\(`verification\/\$\{uid\}\/`\)/],

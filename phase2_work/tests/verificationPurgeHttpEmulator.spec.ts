@@ -148,6 +148,39 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+  it('vetoes cloud-deployment purge even with valid HMAC and explicit enabled flag, before DB/Storage writes', async () => {
+    await withEvent(async ({ db, event }) => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      const previousService = process.env.K_SERVICE;
+      let deletes = 0;
+      process.env.NODE_ENV = 'production';
+      process.env.K_SERVICE = 'klar-production';
+      try {
+        const api = await startApi(db, async () => { deletes++; });
+        try {
+          const result = await api.request();
+          expect(result).toMatchObject({
+            status: 503, data: { code: 'verification_storage_purge_p0_live_blocked' },
+          });
+          expect(deletes).toBe(0);
+          const row = (await event.get()).data();
+          expect(row?.photoPurged).toBe(false);
+          expect(row?.photoPurgeIntent).toBeUndefined();
+          expect(row?.photoPurgeProof).toBeUndefined();
+          const checkpoint = await db.collection('system').doc('verification_photo_purge_scan_v1').get();
+          expect(checkpoint.exists).toBe(false);
+        } finally {
+          await api.close();
+        }
+      } finally {
+        if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = previousNodeEnv;
+        if (previousService === undefined) delete process.env.K_SERVICE;
+        else process.env.K_SERVICE = previousService;
+      }
+    });
+  }, 90_000);
+
   it('consumes the signed nonce when an existing lease prevents scanning', async () => {
     await withEvent(async ({ db, event }) => {
       const checkpoint = db.collection('system').doc('verification_photo_purge_scan_v1');
