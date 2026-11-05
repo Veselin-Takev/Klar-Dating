@@ -156,10 +156,9 @@ export function isVerificationPhotoPurgeEnabled(
  * This is defense in depth, NOT a resolution of the Firestore/GCS race.
  */
 export function isVerificationPhotoPurgeRuntimeAllowed(
-  environment: Pick<NodeJS.ProcessEnv,
-    'NODE_ENV' | 'K_SERVICE' | 'K_REVISION' | 'FUNCTION_TARGET' |
-    'FIRESTORE_EMULATOR_HOST' | 'FIREBASE_STORAGE_EMULATOR_HOST' |
-    'GCLOUD_PROJECT' | 'GOOGLE_CLOUD_PROJECT' | 'FIREBASE_PROJECT_ID'>,
+  // Runtime environment variables are optional even when their names are
+  // statically known; absent values must be denied, not made type-required.
+  environment: Record<string, string | undefined>,
 ): boolean {
   if (VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED) return true;
   const loopback = /^(?:localhost|127\.0\.0\.1|\[::1\]):[1-9][0-9]{0,4}$/;
