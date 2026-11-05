@@ -60,3 +60,15 @@ Der vorherige Head `0d3bd517cc06c73d0ed9e6ad657af186f0246a24` bestand [CI 420382
 ## Legacy-Helper-Referenzen (05.11.2026)
 
 Die Regex-Reparatur auf Head `fbf3aa1dc69d989777ff58cf979659685e42ac12` ist durch [CI 42041342103](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42041342103) bestätigt. Eine weitere statische Guard-Härtung erkennt neben Deklarationen auch direkte Aufrufe und Zuweisungen von `deleteExpiredPhotoPage` im geprüften `functions/src/retention.ts`-Quelltext. Zwei zusätzliche Mutationstests prüfen diese Varianten. Diese textbasierte Schranke ist ausdrücklich **kein** vollständiger AST-/Call-Graph-Beweis; Alias-Aufrufe, dynamische Imports und fremde Quellen benötigen separate Reviews. Neue Commits bedürfen eigener exact-SHA-CI-Prüfung. `productionApproved=false`.
+
+## Offene Cloud-Evidenz für die Freigabe (05.11.2026)
+
+Die Implementierung in `src/server/routes/complianceStorage.ts` führt Lease-Prüfungen, transaktionale Purge-Intents, Generation-Preconditions, Storage-Metadatenkontrollen und einen Audit-Proof durch. **Diese Codeprüfung beweist keine Cross-Service-Atomizität** zwischen Firestore und Cloud Storage. Für die Freigabe sind folgende **noch nicht belegte** Staging-/Produktionsnachweise mit Umgebung, Zeitstempel, verantwortlicher Person und redigiertem Beleg erforderlich:
+
+1. Cloud Scheduler / Cloud Functions: Inventar der tatsächlich deployten Legacy- und neuen Trigger, Region, Zeitplan, Service Account, Aufrufpfad und Nachweis, dass der alte Upload-Alter-Löschpfad keine Fotos mehr löscht.
+2. Firestore: reale Lease-Konkurrenz, Ablauf und Wiederaufnahme sowie Checkpoint-Replay nach Prozessabbruch; keine gleichzeitigen Löschungen durch überlappende Worker.
+3. Storage: Holds/Retention-Locks, Generation-412, bereits fehlendes Objekt (404) mit und ohne persistierten Intent, Wiederauftauchen eines Objekts und Prüfung der Objektgeneration bei Reconciliation.
+4. Datenschutz/Audit: Entscheidungsänderung vor Löschung, idempotente Wiederholung, vollständige und minimierte Audit-Evidenz sowie Art.-17-Löschung unabhängig vom Scheduler.
+5. Betrieb: signierter Job-Aufruf, IAM/Secret-Rotation, Monitoring und Alarmierung, kontrollierter Canary, Rollback und Eskalation bei Fehlerquote/Backlog.
+
+**Gate:** Solange diese Belege und unabhängige DPO-, AppSec-, SRE- und Release-Owner-Freigaben fehlen, bleiben PR #317 Draft und `productionApproved=false`. CI-Erfolg ist nur Repository-Evidenz. Der CI-Lauf [42042948194](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42042948194) für den vorherigen Head `17ec5f046ba8bd74f1b0e9edb2dd4f6ec0b32339` war bei der Abfrage `in_progress`.
