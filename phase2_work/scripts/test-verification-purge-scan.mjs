@@ -264,3 +264,34 @@ test('empty-page checkpoint failure is propagated', async () => {
     checkpoint: async () => { throw Error('checkpoint_reset_unavailable'); },
   }), /checkpoint_reset_unavailable/);
 });
+
+test('invalid scan limits reject before any fetch or destructive handling', async () => {
+  let calls = 0;
+  for (const [pageSize, maxPages] of [[0, 1], [101, 1], [1, 0], [1, 11], [NaN, 1], [1, Infinity]]) {
+    await assert.rejects(scanPurgePages({
+      initial: null, pageSize, maxPages,
+      fetch: async () => { calls++; return []; },
+      handle: async () => { calls++; return { purged: 0, skipped: 0, failed: 0 }; },
+      checkpoint: async () => { calls++; },
+    }), /purge_scan_limit_invalid/);
+  }
+  assert.equal(calls, 0);
+});
+
+test('invalid result counters reject without checkpointing', async () => {
+  for (const invalid of [
+    { purged: NaN, skipped: 1, failed: 0 },
+    { purged: -1, skipped: 3, failed: 0 },
+    { purged: 1.5, skipped: 0.5, failed: 0 },
+    { purged: 1, skipped: 0, failed: Infinity },
+  ]) {
+    let writes = 0;
+    await assert.rejects(scanPurgePages({
+      initial: null, pageSize: 2, maxPages: 1,
+      fetch: async () => items.slice(0, 2),
+      handle: async () => invalid,
+      checkpoint: async () => { writes++; },
+    }), /purge_counts_invalid/);
+    assert.equal(writes, 0);
+  }
+});
