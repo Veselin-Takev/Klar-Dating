@@ -237,3 +237,8 @@ Der bisherige Scheduler las den gesamten HTTP-Antwortbody mit `response.text()`,
 ### VES-8 – Upstream-Stream-Cleanup bei abgelehnten Quittungen (Draft, 05.11.2026)
 
 Auch vor der 2-KiB-Streaming-Lesephase abgelehnte JSON-Quittungen (Content-Type oder Content-Length nicht zulässig) müssen den Response-Body explizit abbrechen. Der Scheduler tut dies nun ohne auf möglicherweise blockierende Cancel-Promises zu warten und cancelt auch Streams, deren Read fehlschlägt. Dadurch werden Netzwerkressourcen frühzeitig freigegeben, während der Job weiterhin einen Fehler statt eines vermeintlichen Löschabschlusses meldet. Ein echter produktiver Retention-Nachweis oder Cross-Service-Fencing entsteht dadurch nicht; VES-5/VES-8-Freigabegates bleiben NO-GO.
+
+
+### 05.11.2026 – Datensparsame Purge-Fehlerereignisse (Review)
+
+Der periodische Foto-Löschprozess erhält feste, strukturierte Betriebsereignisse für partiellen/unvollständigen Scan, unerwarteten Fehler, P0-Live-Blockade und Scheduler-Transport-/HTTP-/Receipt-Fehler. Die Aufzeichnungen enthalten nur fest typisierte Ereignisnamen, numerische aggregierte Verarbeitungs-/Fehlerwerte, boolesche Rückstauflags und ggf. den numerischen HTTP-Status. Keine personenbezogenen Kennungen, Objektpfade, Payloads, Signaturen oder freie Fehlermeldungen. CI prüft diese Allowlist; der Betrieb muss erst noch unabhängige Alert-Policies, Testalarme und die Fristen-Eskalation bestätigen. Das ist Monitoring-Vorbereitung, keine Retention-Erfüllung und keine Freigabe des destruktiven Purge-Pfades. `productionApproved=false`, NO-GO.
