@@ -38,6 +38,16 @@ export function assertCompleteVerificationPurgeReceipt(value: unknown): Verifica
 }
 
 
+/**
+ * Discard invalid upstream responses immediately. Do not await cancellation:
+ * a misbehaving upstream must not be able to stall the scheduler while its
+ * error is being reported. The rejection is handled to avoid unhandled
+ * promise errors when the stream was already locked or closed.
+ */
+function cancelUnusedReceiptBody(body: ReadableStream<Uint8Array> | null): void {
+  if (body) void body.cancel().catch(() => undefined);
+}
+
 /** Read a scheduler receipt with a hard, on-the-wire byte limit.
  * response.text() buffers the whole response before a post-hoc length check;
  * a malformed upstream response could exhaust memory before validation.
@@ -49,6 +59,7 @@ export async function readBoundedVerificationPurgeReceipt(
   const MAX_BYTES = 2_048;
   const contentType = response.headers.get('content-type') ?? '';
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(contentType)) {
+    cancelUnusedReceiptBody(response.body);
     throw Error('verification_purge_job_receipt_content_type_invalid');
   }
   const announcedLength = response.headers.get('content-length');
@@ -56,6 +67,7 @@ export async function readBoundedVerificationPurgeReceipt(
     && (!/^[0-9]+$/.test(announcedLength)
       || !Number.isSafeInteger(Number(announcedLength))
       || Number(announcedLength) > MAX_BYTES)) {
+    cancelUnusedReceiptBody(response.body);
     throw Error('verification_purge_job_receipt_oversize');
   }
   if (!response.body) throw Error('verification_purge_job_receipt_empty');
@@ -71,12 +83,15 @@ export async function readBoundedVerificationPurgeReceipt(
       }
       bytes += chunk.value.byteLength;
       if (bytes > MAX_BYTES) {
-        // Stop upstream delivery immediately rather than buffering the rest.
-        await reader.cancel().catch(() => undefined);
         throw Error('verification_purge_job_receipt_oversize');
       }
       chunks.push(chunk.value);
     }
+  } catch (error) {
+    // Cancel on an oversized, broken or aborted read, not only on the
+    // particular oversize branch. Do not wait for untrusted cancellation.
+    void reader.cancel().catch(() => undefined);
+    throw error;
   } finally {
     reader.releaseLock();
   }

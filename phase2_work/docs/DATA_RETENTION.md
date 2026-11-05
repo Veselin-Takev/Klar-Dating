@@ -232,3 +232,8 @@ Diese Entwicklung ist **ausschließlich** ein Draft-/Source-Kandidat. Keine selb
 ### VES-8 – Streaming-sichere Purge-Abschlussquittungen (Draft, 05.11.2026)
 
 Der bisherige Scheduler las den gesamten HTTP-Antwortbody mit `response.text()`, bevor eine Längenprüfung erfolgte. Die Korrektur setzt das **Byte-Limit von 2 KiB beim Streaming** durch, verwirft Überlängen sofort und verifiziert erst danach die UTF-8-/JSON- und Vollständigkeitsregeln. Die Größe entspricht der erwarteten kleinen Aggregatantwort und ist kein Limit für das eigentliche Fotoobjekt. Fehlende oder falsche Content-Type-Angaben, malformed Body und unvollständige Antworten bleiben Fehler. Das reduziert unkontrollierte Ressourcenbelegung bei defektem/proxyverändertem Upstream und erzeugt weder neue personenbezogene Felder noch zusätzliche Löschungen. Es ist kein Beleg für die aktive Cloud-Konfiguration oder eine durchgeführte Retention-Löschung. `productionApproved=false`; P0 all-writer fencing bleibt offen.
+
+
+### VES-8 – Upstream-Stream-Cleanup bei abgelehnten Quittungen (Draft, 05.11.2026)
+
+Auch vor der 2-KiB-Streaming-Lesephase abgelehnte JSON-Quittungen (Content-Type oder Content-Length nicht zulässig) müssen den Response-Body explizit abbrechen. Der Scheduler tut dies nun ohne auf möglicherweise blockierende Cancel-Promises zu warten und cancelt auch Streams, deren Read fehlschlägt. Dadurch werden Netzwerkressourcen frühzeitig freigegeben, während der Job weiterhin einen Fehler statt eines vermeintlichen Löschabschlusses meldet. Ein echter produktiver Retention-Nachweis oder Cross-Service-Fencing entsteht dadurch nicht; VES-5/VES-8-Freigabegates bleiben NO-GO.

@@ -69,15 +69,32 @@ describe('streaming byte bound for purge scheduler receipts', () => {
     expect(pulls).toBeLessThanOrEqual(3);
   });
 
+  it('cancels a non-JSON upstream body without reading it', async () => {
+    let pulled = false;
+    let canceled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) { pulled = true; controller.enqueue(new Uint8Array(500)); },
+      cancel() { canceled = true; },
+    }, { highWaterMark: 0 });
+    const response = new Response(stream, { headers: { 'content-type': 'text/html' } });
+    await expect(readBoundedVerificationPurgeReceipt(response))
+      .rejects.toThrow('verification_purge_job_receipt_content_type_invalid');
+    expect(canceled).toBe(true);
+    expect(pulled).toBe(false);
+  });
+
   it('rejects an announced oversized response before reading any chunk', async () => {
     let pulled = false;
+    let canceled = false;
     const stream = new ReadableStream<Uint8Array>({
       pull(controller) { pulled = true; controller.enqueue(new Uint8Array([123])); controller.close(); },
+      cancel() { canceled = true; },
     }, { highWaterMark: 0 });
     await expect(readBoundedVerificationPurgeReceipt(new Response(stream, {
       headers: { 'content-type': 'application/json', 'content-length': '2049' },
     }))).rejects.toThrow('verification_purge_job_receipt_oversize');
     expect(pulled).toBe(false);
+    expect(canceled).toBe(true);
   });
 
   it.each([
