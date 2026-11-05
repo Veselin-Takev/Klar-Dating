@@ -86,3 +86,7 @@ Quelle: [Issue #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202), S
 | Sichere Aktivierung | **Nicht durchgeführt** | Genehmigter Staging-Canary, Live-Konfigurationsnachweis, AppSec/SRE/ReleaseOwner-Signoff |
 
 **Entscheidung:** Issue #202 nicht schließen, keine Produktionsfreigabe aus CI ableiten. Das separate [Issue #204](https://github.com/Veselin-Takev/Klar-Dating/issues/204) zu Profilbild-Zugriffsregeln bleibt ein eigenständiger P1-Sicherheitsbefund und wird nicht stillschweigend durch den Foto-Purge-PR als behoben dargestellt. `productionApproved=false`.
+
+## Negative Scanner-Grenzwerte (05.11.2026)
+
+[CI 42046257238](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42046257238) bestätigt den vorherigen Head `0b5dd9c1e4d81112609fceb8875c8fd26329bf5a` als erfolgreich; für die nachfolgenden Änderungen gilt dieser Nachweis **nicht**. Zwei neue Testfälle in `scripts/test-verification-purge-scan.mjs` prüfen, dass ungültige Scan-Limits (Null, zu groß, NaN/Infinity) bereits vor Fetch/Handle/Checkpoint abgewiesen werden und ungültige Ergebniszähler (NaN, negativ, Bruchteile, Infinity) niemals einen Checkpoint schreiben. Dies sind Repository-Regressionstests, keine Emulator-/Cloud-Evidenz. PR #317 hat bei der letzten Abfrage keine Reviews und bleibt Draft; `productionApproved=false`.
