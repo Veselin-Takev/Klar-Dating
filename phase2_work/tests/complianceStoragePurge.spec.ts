@@ -17,26 +17,32 @@ describe('verification photo purge deployment interlock', () => {
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
   const timestamp = String(Date.now());
+  const nonce = '123e4567-e89b-42d3-a456-426614174000';
   const body = Buffer.from('{}');
+  const signed = complianceSignature(`${timestamp}.${nonce}.${body.toString('utf8')}`, secret);
 
-  it('accepts only a fresh HMAC proof', () => {
-    const signature = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
-    expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(true);
+  it('accepts only a fresh nonce-bound HMAC proof', () => {
+    expect(validComplianceRequest(body, timestamp, nonce, signed, secret, Number(timestamp))).toBe(true);
   });
 
   it.each([NaN, Infinity, -Infinity, 0, -1, 1.5])(
     'rejects an invalid verifier clock even with a correct HMAC: %s', now => {
-      const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
-      expect(validComplianceRequest(body, timestamp, valid, secret, now)).toBe(false);
+      expect(validComplianceRequest(body, timestamp, nonce, signed, secret, now)).toBe(false);
     },
   );
 
-  it('rejects replay, wrong secret and malformed signatures', () => {
-    const signature = complianceSignature(`${timestamp}.{} `, secret);
-    expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(false);
-    const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
-    expect(validComplianceRequest(body, timestamp, valid, 'short', Number(timestamp))).toBe(false);
-    expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), valid, secret, Number(timestamp))).toBe(false);
+  it.each([undefined, '', '../bad', '123e4567-e89b-12d3-a456-426614174000', nonce.toUpperCase()])(
+    'rejects a missing or malformed nonce: %s', candidate => {
+      expect(validComplianceRequest(body, timestamp, candidate, signed, secret, Number(timestamp))).toBe(false);
+    },
+  );
+
+  it('rejects modified bytes, wrong secret, wrong nonce and stale timestamp', () => {
+    const invalidBodySignature = complianceSignature(`${timestamp}.${nonce}.{} `, secret);
+    expect(validComplianceRequest(body, timestamp, nonce, invalidBodySignature, secret, Number(timestamp))).toBe(false);
+    expect(validComplianceRequest(body, timestamp, nonce, signed, 'short', Number(timestamp))).toBe(false);
+    expect(validComplianceRequest(body, timestamp, '123e4567-e89b-42d3-a456-426614174001', signed, secret, Number(timestamp))).toBe(false);
+    expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), nonce, signed, secret, Number(timestamp))).toBe(false);
   });
 });
 
