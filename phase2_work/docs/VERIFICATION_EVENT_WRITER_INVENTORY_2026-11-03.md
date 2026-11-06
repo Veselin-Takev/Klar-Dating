@@ -152,3 +152,9 @@ In the new review-only `verificationPurgeFirestoreFence.ts` helper, both `transa
 Der überprüfte Source-Writer `src/server/platform/verificationPurgeFirestoreFence.ts` akzeptiert jetzt für `photoPurgeFence` **nur** die wohldefinierte Feldmenge je Zustand (`open`, `deleting`, `deleted`). Zusätzliche Sidecar-Felder, insbesondere Hinweise auf einen ausstehenden Hold oder Recovery-Fall, gelten als Schema-Mismatch und blockieren `reserveVerificationPurgeEvent`, `transactVerificationEventDecision` und `transactVerificationEventLegalHold` fail-closed. `check-verification-storage-writers.mjs` und seine Mutationstests fordern, dass alle drei Parserpfade das exakte Feldschema validieren.
 
 Grenzen: lexikalischer Source-Guard; keine Gewähr gegen externe Admin-SDK-Writer, kein GCS-seitiges Hold-Protokoll, keine automatische DPO-Reconciliation, keine Produktionseinführung. P0 VES-5 bleibt offen, Produktiv-Löschung gesperrt.
+
+## 06.11.2026 – Canonical root-event and Storage owner checks for three transactional methods
+
+Review-only `verificationPurgeFirestoreFence.ts` now checks `DocumentReference.path === 'verification_events/{eventId}'`. A parent collection ID alone cannot rule out nested `tenants/{tenantId}/verification_events/...` paths. The same event-level Firestore transaction validates a nonempty, slash-safe UID and the nonempty `verification/{uid}/...` Storage prefix for reservation, decision, and hold writes. Both source inventories require the exact root check and three shared owner-check call sites. Mutation tests fail if root or a participating decision/hold owner check is removed.
+
+This is fail-closed for unreviewed nested tenant collections, not full tenant architecture. External Admin SDK/GCS operations remain outside these gates. P0 VES-5 OPEN / NO-GO, live purge source-locked.
