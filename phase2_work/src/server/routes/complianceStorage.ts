@@ -130,6 +130,12 @@ export function readConsistentVerificationDecision(
 function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
+  // Fail closed on a partial future migration: a new per-event fencing
+  // marker must NOT silently coexist with an old last-check-only delete.
+  // The model in verificationPurgeFence.ts is NOT yet an integrated protocol.
+  if (data && Object.prototype.hasOwnProperty.call(data, 'photoPurgeFence')) {
+    throw new Error('verification_photo_fence_protocol_not_yet_wired');
+  }
   const status = data ? readConsistentVerificationDecision(data) : 'pending';
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
