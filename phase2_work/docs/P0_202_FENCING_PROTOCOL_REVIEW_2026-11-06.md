@@ -137,3 +137,9 @@ Der Firestore-Adapter akzeptierte bisher ansonsten wohlgeformte `photoPurgeFence
 **Evidence:** Firestore emulator tests cover foreign Storage owner for all three APIs, empty file suffix, slash-bearing UID and nested tenant references (no mutation). Both static writer inventories and mutation tests pin root canonical path and all three owner checks. No destructive Storage operation, IAM modification, merge or release-flag change.
 
 **Remaining P0:** Nonparticipating Admin SDK writers, account erasure, real GCS legal-hold/operation interlocks, Cloud IAM and Firestore/GCS post-final-check TOCTOU are still unresolved. Future tenant-hierarchical event schema needs explicit versioned, authorized migration. `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED=false`, `productionApproved=false`, VES-5 P0 OPEN / NO-GO.
+
+### Exact-SHA CI #1797 – Static mutation-test classification corrected (06.11.2026)
+
+[Enterprise CI #1797](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42236364530) for Draft PR #336 HEAD `a4fdadb9d031e8a49057fe258ae43c8cf50a4899` completed **FAIL** at Enterprise static gates. The new `test-verification-event-writers.mjs` mutation removed the root reference comparison, and the static inventory **correctly refused** the altered source. It reported `verification_events reference count drift` (the removed literal also changes the source's counted references) instead of the test's single expected string `authorized operation drift`. The security gate remained fail-closed; the test assertion was too narrow.
+
+Commit `15b2792318c28bd36ce9a40d92445f875fb5d67b` accepts **either** of those explicit fail-closed source-inventory signals without changing the runtime root-ref check or permitting an unreviewed writer. An exact-SHA complete CI run on the final documentation commit, not this older revision, is still required before CI validation. P0 VES-5 remains OPEN, live deletion stays disabled, `productionApproved=false` and NO-GO.
