@@ -96,3 +96,27 @@ test('allowing silent reuse of a prior Storage intent must fail the writer inven
     src.replace('assertNoPriorPurgeIntent(data);', 'void data.photoPurgeIntent;'),
   ).join('\n'), /boundary signature drift/);
 });
+
+test('removing the unresolved-intent guard from decision writer fails CI inventory', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace(
+      'const next = changeVerificationPurgeDecision(fence, decision);\n    assertWriterHasNoUnreconciledPurgeState(data);',
+      'const next = changeVerificationPurgeDecision(fence, decision);',
+    ),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('removing the unresolved-intent guard from legal-hold writer fails CI inventory', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace(
+      'const next = placeVerificationPurgeLegalHold(fence);\n    assertWriterHasNoUnreconciledPurgeState(data);',
+      'const next = placeVerificationPurgeLegalHold(fence);',
+    ),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('bypassing the deleted-photo check is a review-blocking static mutation', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('data.photoPurged !== false', 'false'),
+  ).join('\n'), /boundary signature drift/);
+});

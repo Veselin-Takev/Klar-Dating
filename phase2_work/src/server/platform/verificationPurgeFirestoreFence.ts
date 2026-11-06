@@ -126,6 +126,25 @@ function assertNoPriorPurgeIntent(data: Record<string, unknown>): void {
   }
 }
 
+/**
+ * A post-deletion decision change or an "effective" legal-hold acknowledgement
+ * must not race an unresolved Storage operation. Even a null intent/proof
+ * marker is ambiguous and requires operator-backed reconciliation.
+ *
+ * Called AFTER the pure fence transition check so a busy/deleted fence keeps
+ * its explicit error reason, but BEFORE any Firestore mutation.
+ */
+function assertWriterHasNoUnreconciledPurgeState(
+  data: Record<string, unknown> | undefined,
+): void {
+  if (!data || data.photoPurged !== false
+      || Object.prototype.hasOwnProperty.call(data, 'photoPurgeIntent')
+      || Object.prototype.hasOwnProperty.call(data, 'photoPurgeProof')
+      || Object.prototype.hasOwnProperty.call(data, 'photoPurgedAt')) {
+    throw new Error('verification_purge_fence_writer_requires_reconciliation');
+  }
+}
+
 function assertEventRef(ref: DocumentReference): void {
   if (ref.parent.id !== 'verification_events' || !ref.id) {
     throw new Error('verification_purge_fence_wrong_collection');
@@ -202,8 +221,10 @@ export async function transactVerificationEventDecision(
   assertEventRef(ref);
   return db.runTransaction(async tx => {
     const snap = await tx.get(ref);
-    const { fence } = inspectVerificationEvent(snap.data());
+    const data = snap.data();
+    const { fence } = inspectVerificationEvent(data);
     const next = changeVerificationPurgeDecision(fence, decision);
+    assertWriterHasNoUnreconciledPurgeState(data);
     tx.update(ref, {
       photoPurgeFence: next,
       entscheidung: decision === 'approved' ? 'bestaetigt'
@@ -221,8 +242,10 @@ export async function transactVerificationEventLegalHold(
   assertEventRef(ref);
   return db.runTransaction(async tx => {
     const snap = await tx.get(ref);
-    const { fence } = inspectVerificationEvent(snap.data());
+    const data = snap.data();
+    const { fence } = inspectVerificationEvent(data);
     const next = placeVerificationPurgeLegalHold(fence);
+    assertWriterHasNoUnreconciledPurgeState(data);
     tx.update(ref, { photoPurgeFence: next });
     return next;
   });

@@ -140,3 +140,9 @@ This does not constrain unreviewed external Admin SDK writers nor make a Firesto
 The Firestore reservation helper now refuses **any** preexisting `photoPurgeIntent`, including a matching legacy generation or null marker, until operator-backed reconciliation is separately proven. New intents are committed with `permitId` and `fenceEpoch` tied to the exact `photoPurgeFence` transaction. The `check-verification-storage-writers.mjs` source inventory checks the no-reuse guard and permit/epoch linkage; mutation tests fail if either is removed.
 
 This static check is not a Cloud Storage identity inventory, GCS hold interlock or validated recovery workflow. Crash/replay state must remain in the retention backlog and P0 VES-5 must stay open.
+
+## 06.11.2026 – Firestore writer post-purge reconciliation guard
+
+In the new review-only `verificationPurgeFirestoreFence.ts` helper, both `transactVerificationEventDecision` and `transactVerificationEventLegalHold` now refuse to acknowledge a change when `photoPurged` is not explicitly `false` or an unresolved `photoPurgeIntent`, `photoPurgeProof`, or `photoPurgedAt` field exists. This is a same-document transactional check, run after pure fence phase validation and before the Firestore update. The existing real Firestore emulator suite checks no-write behavior; source inventory and three mutation regressions require both call sites and the deleted-photo guard.
+
+**This cannot constrain non-participating Admin SDK writers**, cannot stop an already in-flight GCS request, and is not an effective Storage-side legal hold. DPO/SRE manual reconciliation remains necessary. P0 VES-5 OPEN; no activation or production authorization.
