@@ -97,3 +97,28 @@ Reparatur-Code-Commit: `1acf3d77e69fccc69ced15a2f370ce08cf4c57fc`; [exakte CI 41
 ## VES-5 Review-Fortsetzung: Alle Cloud-Aufrufe zusätzlich ohne Test-Bucket-Injektion blockiert (05.11.2026)
 
 Die `server.ts`-Registrierung der Compliance-Route übergibt lediglich `getDb`, **keinen** `getBucket`-Override. Die neue Sicherheitsschranke `typeof deps.getBucket === 'function'` ist zusätzlich zur unverändert deaktivierten P0-Live-Freigabekonstante, der aktivierungsabhängigen Feature-Flag-Prüfung und dem isolierten `demo-klar`-Emulator-Kontext erforderlich. Dies verhindert, dass lediglich per Umgebungsvariablen vorgetäuschte Emulator-Konfigurationen den Produktionspfad mit einem echten SDK-Bucket erreichen. Neue HTTP-Emulatortests und statischer Entrypoint-Guard sind Bestandteil der separaten Draft-PR-Änderung. Die tatsächliche Cross-Service-TOCTOU-Race bleibt offen; eine unabhängige Bestätigung sämtlicher Admin-SDK-Writer in der Cloud steht aus. Keine Produktionsfreigabe.
+
+
+## VES-5 – Admin SDK Storage-Writer-Drift-Inventar (06.11.2026, Review)
+
+Der bisherige Check `scripts/check-verification-event-writers.mjs` inventarisiert statisch die Firestore-Collection-`verification_events`, nicht aber die **physischen GCS-Löschpfade**. Ein neuer unabhängiger source-only Guard `scripts/check-verification-storage-writers.mjs` erfasst deshalb bekannte direkte `verification/`-Storage-Prefixe und `file.delete`-Aufrufe in `server.ts`, `src/server/**` und `functions/src/**` (ohne Tests):
+
+| Pfad | Funktion | Statischer Grenzwert |
+| --- | --- | --- |
+| `src/server/klarCore.ts` | Erzeugt/prüft den alten Nutzerfoto-Pfad | 2 `verification/`-Pfadliterale, 0 File-Deletes |
+| `src/server/routes/complianceStorage.ts` | Signierter, source-locked Review-Purge mit Generation-CAS | 1 Pfadliterale, 1 `file.delete` mit `ifGenerationMatch` und P0-Konstante weiterhin `false` |
+| `functions/src/retention.ts` | Art.-17-Löschung über Storage-Bucket | 1 Pfadliterale, 1 `file.delete` mit `ifGenerationMatch`, Hold-Checks |
+| `src/server/trustAndSafety.ts` | Art.-17-Orchestrator, ruft die Storage-Löschung auf | gesonderte Quelle-/Aufrufsignatur verlangt |
+
+Fehlende, neu eingeführte oder verdoppelte direkte Storage-Writer lösen ein **CI-FAIL** aus. Negative Mutationstests prüfen neue Writer-Dateien, geänderte GCS-Generation-CAS, freigeschaltete P0-Konstante, entfernte Hold-Checks und gebrochene Art.-17-Anbindung. Die neue Test- und Inventarprüfung ist in `check:retention-p0` und somit im Enterprise Static Gate verankert.
+
+**Beweisgrenze:** Dies ist eine lexikalische Source-Drift-Erkennung, keine AST-/Data-Flow-Analyse. Dynamisch zusammengesetzte Pfade, benannte indirekte Lösch-Helper, externe Worker, Firebase Console, deployed Storage Rules, Admin-SDK-IAM und sonstige Buckets können davon unentdeckt bleiben. Ein erfolgreicher Test beweist **nicht**, dass die Firestore/GCS-Post-Authorization-TOCTOU-Lücke verhindert wird. Das nötige transaktional koordinierte All-Writer-Fencing und der deterministische *nach der letzten Firestore-Freigabe* einsetzende Widerrufstest bleiben VES-5-P0-Freigabegates. Kein Merge, keine Live-Löschung, `productionApproved=false` / NO-GO bis AppSec/DPO/SRE/Release-Owner die Cloud-/IAM-/Emulator-/Staging-Nachweise abnehmen.
+
+
+## VES-5 Review-Grenzen und CI-Readback (06.11.2026)
+
+Der aktuelle Review-Head von Draft PR #329 ist `631c180a208a64686572a26511708c8d5e21e630`. Der GitHub-Actions-Lauf [42165699118](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42165699118) meldete für diesen Commit `completed/success`, einschließlich Job `validate: completed/success`. GitHub meldete **0 eingereichte Reviews**. Dies ist eine Momentaufnahme der **vorausgehenden SHA**; ein nachfolgender Dokumentationscommit benötigt eigenen CI-Readback.
+
+**Konkret nachgeprüfte lexikalische Bypass-Grenzen:** Der Guard in `scripts/check-verification-storage-writers.mjs` zählt wörtliche `verification/`-Präfixe und `file.delete(`/`photo.delete(`. Indirekte Aufrufe über Alias-Variablen, separate Helper und dynamisch zusammengesetzte Storage-Pfade können dadurch unentdeckt bleiben. Die vorhandenen zehn Source-Mutationstests prüfen deklarierte Muster, nicht alle erreichbaren Cloud-/Admin-SDK-Writer. Vor einem späteren Fencing-Review sind zusätzliche negative Alias-/Helper-/Dynamic-Path-Tests und eine unabhängige semantische Callgraph-/Cloud-IAM-Inventur erforderlich; **diese zusätzlichen Tests wurden in diesem Dokumentationsschritt nicht implementiert oder ausgeführt**.
+
+Die Post-Authorization-Race zwischen Firestore-Entscheidungsänderung und GCS-`ifGenerationMatch`-Delete ist unverändert **offen**. Kein Cloud-/Staging-/TTL-/DPO-/SRE-Nachweis und keine unabhängige Abnahme wird durch diesen Dokumentationsnachtrag ersetzt. Der produktive Purge bleibt deaktiviert; `productionApproved=false`, **BLOCKED / NO-GO**. Kein Merge oder Deployment.
