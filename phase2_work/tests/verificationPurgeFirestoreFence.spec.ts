@@ -286,12 +286,53 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     }
   });
 
-  it('never acknowledges a permit if owner path is inconsistent', async () => {
+  it('rejects foreign-owner storage paths for all three transactional writer methods', async () => {
     await withEvent(async (ref) => {
       await ref.update({ storagePath: 'verification/other-person/private.jpg' });
+      const before = (await ref.get()).data();
       await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '600'))
         .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      await expect(transactVerificationEventDecision(db, ref, 'pending'))
+        .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      const after = (await ref.get()).data();
+      expect(after?.photoPurgeFence).toEqual(before?.photoPurgeFence);
+      expect(after?.entscheidung).toBe('bestaetigt');
+      expect(after?.photoPurgeIntent).toBeUndefined();
     });
+  });
+
+  it('rejects an empty photo suffix or malformed owner ID without changing decisions or holds', async () => {
+    await withEvent(async (ref) => {
+      const before = (await ref.get()).data();
+      await ref.update({ storagePath: 'verification/' + before?.uid + '/' });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '610'))
+        .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      const after = (await ref.get()).data();
+      expect(after?.photoPurgeFence).toEqual(before?.photoPurgeFence);
+    });
+    await withEvent(async (ref) => {
+      await ref.update({ uid: 'owner/other', storagePath: 'verification/owner/other/private.jpg' });
+      await expect(transactVerificationEventDecision(db, ref, 'pending'))
+        .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+      expect((await ref.get()).data()?.photoPurgeFence)
+        .toMatchObject({ phase: 'open', epoch: 0 });
+    });
+  });
+
+  it('rejects nested tenant verification_events references until canonical tenant migration', async () => {
+    const nested = db.collection('tenants').doc('tenant-a')
+      .collection('verification_events').doc('event-' + randomUUID());
+    await expect(reserveVerificationPurgeEvent(db, nested, randomUUID(), '620'))
+      .rejects.toThrow('verification_purge_fence_wrong_collection');
+    await expect(transactVerificationEventDecision(db, nested, 'pending'))
+      .rejects.toThrow('verification_purge_fence_wrong_collection');
+    await expect(transactVerificationEventLegalHold(db, nested))
+      .rejects.toThrow('verification_purge_fence_wrong_collection');
+    expect((await nested.get()).exists).toBe(false);
   });
 
   it('refuses an early, not-yet-expired decision even if a due-date field is forged', async () => {
