@@ -83,3 +83,16 @@ test('deleting the 30-day expiry guard is a security boundary change', () => {
     src.replace('!isVerificationArtifactExpired(decidedAt, now)', 'false'),
   ).join('\n'), /boundary signature drift/);
 });
+
+test('removing the durable permit and epoch binding must fail the writer inventory gate', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('permitId: next.permitId, fenceEpoch: next.epoch,',
+      'permitId: next.permitId,'),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('allowing silent reuse of a prior Storage intent must fail the writer inventory gate', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('assertNoPriorPurgeIntent(data);', 'void data.photoPurgeIntent;'),
+  ).join('\n'), /boundary signature drift/);
+});
