@@ -13,9 +13,11 @@ import { readVerificationEventSourceMap } from './check-verification-event-write
 const expected = new Map([
   ['src/server/platform/verificationPurgeFirestoreFence.ts', {
     // Owner-path validation only; this helper does NOT touch Cloud Storage.
-    paths: 1, deletes: 0,
+    // Owner prefix is checked twice: startsWith and non-empty suffix length.
+    paths: 2, deletes: 0,
     signature: /data\.storagePath\.startsWith\('verification\/' \+ data\.uid/,
-    second: /tx\.update\(ref, \{ photoPurgeFence: next \}\)/,
+    second: /tx\.update\(ref, \{ photoPurgeFence: next, photoPurgeIntent: intent \}\)/,
+    third: /!isVerificationArtifactExpired\(decidedAt, now\)/,
   }],
   ['src/server/klarCore.ts', {
     paths: 2, deletes: 0,
