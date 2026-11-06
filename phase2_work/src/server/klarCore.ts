@@ -1,5 +1,6 @@
 import { getAppBucket } from './storage';
 import { toPublicProfile } from './platform/launchPlatform';
+import { initialVerificationEventFence } from './platform/verificationPurgeFirestoreFence';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
@@ -377,7 +378,10 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
       tx.update(requestRef, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() });
       tx.create(firestore.collection('verification_events').doc(), { uid: ziel, moderatorUid: uid(req),
         entscheidung, begruendung: begruendung || null, at: FieldValue.serverTimestamp(), decidedAt,
-        storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
+        storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000),
+        // Created atomically with the moderation decision. The legacy purge
+        // refuses this field until the full all-writer/GCS protocol is reviewed.
+        photoPurgeFence: initialVerificationEventFence(bestaetigt ? 'approved' : 'rejected') });
       const publicProfile = toPublicProfile(ziel, { ...user.data(), ...decision });
       const publicRef = firestore.collection('public_profiles').doc(ziel);
       if (bestaetigt && publicProfile) tx.set(publicRef, publicProfile); else tx.delete(publicRef);

@@ -11,6 +11,12 @@ import { fileURLToPath } from 'node:url';
 import { readVerificationEventSourceMap } from './check-verification-event-writers.mjs';
 
 const expected = new Map([
+  ['src/server/platform/verificationPurgeFirestoreFence.ts', {
+    // Owner-path validation only; this helper does NOT touch Cloud Storage.
+    paths: 1, deletes: 0,
+    signature: /data\.storagePath\.startsWith\('verification\/' \+ data\.uid/,
+    second: /tx\.update\(ref, \{ photoPurgeFence: next \}\)/,
+  }],
   ['src/server/klarCore.ts', {
     paths: 2, deletes: 0,
     signature: /pfad\.startsWith\(\`verification\/\$\{meine\}\//,

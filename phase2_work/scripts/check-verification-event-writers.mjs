@@ -10,9 +10,15 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const expected = new Map([
+  ['src/server/platform/verificationPurgeFirestoreFence.ts', {
+    count: 1,
+    signature: /ref\.parent\.id !== 'verification_events'/,
+    secondSignature: /db\.runTransaction\(async tx =>/,
+  }],
   ['src/server/klarCore.ts', {
     count: 1,
     signature: /tx\.create\(firestore\.collection\('verification_events'\)\.doc\(\)/,
+    secondSignature: /photoPurgeFence:\s*initialVerificationEventFence\(/,
   }],
   ['src/server/datenschutz.ts', {
     count: 1,
