@@ -70,3 +70,16 @@ test('documentation mentioning a route is not misidentified as direct Storage wr
     src + '\n// Verification route /api/verification/decide is retired.\n',
   ), []);
 });
+
+test('a Firestore reservation without atomic GCS intent is rejected by the static gate', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('tx.update(ref, { photoPurgeFence: next, photoPurgeIntent: intent });',
+      'tx.update(ref, { photoPurgeFence: next });'),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('deleting the 30-day expiry guard is a security boundary change', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('!isVerificationArtifactExpired(decidedAt, now)', 'false'),
+  ).join('\n'), /boundary signature drift/);
+});
