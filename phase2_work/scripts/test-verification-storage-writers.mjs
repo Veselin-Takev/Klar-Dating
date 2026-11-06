@@ -120,3 +120,15 @@ test('bypassing the deleted-photo check is a review-blocking static mutation', (
     src.replace('data.photoPurged !== false', 'false'),
   ).join('\n'), /boundary signature drift/);
 });
+
+test('unknown open-fence marker cannot be silently ignored after static refactoring', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace("hasExactFenceFields(value, ['phase', 'epoch', 'decision', 'legalHold'])", 'true'),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('removal of exact schema completeness check fails the security inventory', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace('actual.length === fields.length', 'true'),
+  ).join('\n'), /boundary signature drift/);
+});

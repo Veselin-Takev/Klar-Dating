@@ -37,26 +37,45 @@ function validDecision(value: unknown): value is VerificationPurgeDecision {
   return value === 'pending' || value === 'approved' || value === 'rejected';
 }
 
+/**
+ * Unknown fields may represent a pending legal hold, migration marker or
+ * recovery claim from another writer. Do not silently discard them while
+ * accepting the rest of a destructive-operation fence.
+ */
+function hasExactFenceFields(
+  state: Record<string, unknown>, fields: readonly string[],
+): boolean {
+  const actual = Object.keys(state);
+  return actual.length === fields.length
+    && fields.every(field => Object.prototype.hasOwnProperty.call(state, field));
+}
+
 /** Missing, partial, malformed, or unrecognized state MUST NOT auto-migrate. */
 export function parsePersistedVerificationPurgeFence(value: unknown): VerificationPurgeFence {
   if (!isRecord(value) || !validEpoch(value.epoch) || !validDecision(value.decision)) {
     throw new Error('verification_purge_fence_record_invalid');
   }
-  if (value.phase === 'open' && typeof value.legalHold === 'boolean'
-      && !('permitId' in value) && !('generation' in value) && !('receiptDigest' in value)) {
+  if (value.phase === 'open'
+      && hasExactFenceFields(value, ['phase', 'epoch', 'decision', 'legalHold'])
+      && typeof value.legalHold === 'boolean') {
     return { phase: 'open', epoch: value.epoch, decision: value.decision, legalHold: value.legalHold };
   }
   if ((value.phase === 'deleting' || value.phase === 'deleted')
       && value.decision !== 'pending'
       && typeof value.permitId === 'string' && UUID_V4.test(value.permitId)
       && typeof value.generation === 'string' && GCS_GENERATION.test(value.generation)) {
-    if (value.phase === 'deleting' && value.legalHold === false && !('receiptDigest' in value)) {
+    if (value.phase === 'deleting'
+        && hasExactFenceFields(value,
+          ['phase', 'epoch', 'decision', 'legalHold', 'permitId', 'generation'])
+        && value.legalHold === false) {
       return {
         phase: 'deleting', epoch: value.epoch, decision: value.decision,
         legalHold: false, permitId: value.permitId, generation: value.generation,
       };
     }
-    if (value.phase === 'deleted' && !('legalHold' in value)
+    if (value.phase === 'deleted'
+        && hasExactFenceFields(value,
+          ['phase', 'epoch', 'decision', 'permitId', 'generation', 'receiptDigest'])
         && typeof value.receiptDigest === 'string' && /^[0-9a-f]{64}$/.test(value.receiptDigest)) {
       return {
         phase: 'deleted', epoch: value.epoch, decision: value.decision,

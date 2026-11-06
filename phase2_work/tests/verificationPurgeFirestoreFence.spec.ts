@@ -29,6 +29,44 @@ if (emulator) {
 }
 const suite = emulator ? describe : describe.skip;
 
+describe('VES-5 persisted fence strict schema (no emulator required)', () => {
+  it('accepts only precisely defined fields for an open state', () => {
+    const open = initialVerificationEventFence('approved');
+    expect(parsePersistedVerificationPurgeFence(open)).toEqual(open);
+    for (const extra of ['pendingLegalHold', 'holdRequested', 'recoveryClaim', 'migrationMarker']) {
+      expect(() => parsePersistedVerificationPurgeFence({ ...open, [extra]: true }))
+        .toThrow('verification_purge_fence_record_invalid');
+    }
+    expect(() => parsePersistedVerificationPurgeFence({
+      phase: 'open', epoch: 0, decision: 'approved',
+    })).toThrow('verification_purge_fence_record_invalid');
+  });
+
+  it('rejects unknown sidecar holds and recovery data on an active deletion permit', () => {
+    const deleting = {
+      phase: 'deleting', epoch: 1, decision: 'approved',
+      legalHold: false, permitId: randomUUID(), generation: '800',
+    };
+    expect(parsePersistedVerificationPurgeFence(deleting)).toEqual(deleting);
+    for (const extra of ['pendingLegalHold', 'recoveryClaim', 'leaseUntil']) {
+      expect(() => parsePersistedVerificationPurgeFence({ ...deleting, [extra]: true }))
+        .toThrow('verification_purge_fence_record_invalid');
+    }
+  });
+
+  it('rejects unknown or incompatible fields on a deleted record', () => {
+    const deleted = {
+      phase: 'deleted', epoch: 2, decision: 'rejected',
+      permitId: randomUUID(), generation: '900', receiptDigest: 'a'.repeat(64),
+    };
+    expect(parsePersistedVerificationPurgeFence(deleted)).toEqual(deleted);
+    expect(() => parsePersistedVerificationPurgeFence({ ...deleted, pendingLegalHold: true }))
+      .toThrow('verification_purge_fence_record_invalid');
+    expect(() => parsePersistedVerificationPurgeFence({ ...deleted, legalHold: false }))
+      .toThrow('verification_purge_fence_record_invalid');
+  });
+});
+
 suite('VES-5: transaction-backed Firestore fence, staging-only integration contract', () => {
   const app = initializeApp({ projectId: 'demo-klar' }, 'fence-txn-' + randomUUID());
   const db = getFirestore(app, 'verification-purge-fence-tests');
@@ -52,6 +90,23 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     });
     try { await body(ref, db); } finally { await ref.delete(); }
   }
+
+  it('blocks unknown pending hold/migration fields within the persisted event fence', async () => {
+    await withEvent(async ref => {
+      await ref.update({ 'photoPurgeFence.pendingLegalHold': true });
+      const before = (await ref.get()).data();
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '801'))
+        .rejects.toThrow('verification_purge_fence_record_invalid');
+      await expect(transactVerificationEventDecision(db, ref, 'pending'))
+        .rejects.toThrow('verification_purge_fence_record_invalid');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_record_invalid');
+      const after = (await ref.get()).data();
+      expect(after?.photoPurgeFence).toEqual(before?.photoPurgeFence);
+      expect(after?.entscheidung).toBe(before?.entscheidung);
+      expect(after?.photoPurgeIntent).toBeUndefined();
+    });
+  });
 
   it('persists a monotonic GCS-generation permit and rejects post-claim decision AND legal hold writes', async () => {
     await withEvent(async (ref) => {
