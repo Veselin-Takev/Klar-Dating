@@ -177,6 +177,60 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     });
   });
 
+  it('does not ACK a decision or legal hold while any legacy GCS intent is unreconciled', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({
+        photoPurgeIntent: {
+          generation: '977', storagePath: 'verification/original/capture.jpg',
+          preparedAt: new Date(),
+        },
+      });
+      const before = (await ref.get()).data();
+      await expect(transactVerificationEventDecision(db, ref, 'pending'))
+        .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+      const after = (await ref.get()).data();
+      expect(after?.entscheidung).toBe(before?.entscheidung);
+      expect(after?.status).toBe(before?.status);
+      expect(after?.photoPurgeFence).toEqual(before?.photoPurgeFence);
+      expect(after?.photoPurgeIntent).toEqual(before?.photoPurgeIntent);
+    });
+  });
+
+  it('null or malformed old intents cannot be treated as safe empty records', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ photoPurgeIntent: null });
+      await expect(transactVerificationEventDecision(db, ref, 'pending'))
+        .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+      expect((await ref.get()).data()?.photoPurgeFence)
+        .toMatchObject({ phase: 'open', epoch: 0, legalHold: false });
+    });
+  });
+
+  it('does not claim a new effective hold or moderation status after an uncoordinated purge receipt', async () => {
+    for (const evidence of [
+      { photoPurged: true },
+      { photoPurgeProof: { generation: '1000', method: 'delete_acknowledged' } },
+      { photoPurgedAt: new Date() },
+      { photoPurgeProof: null },
+    ]) {
+      await withEvent(async (ref) => {
+        await ref.update(evidence);
+        await expect(transactVerificationEventDecision(db, ref, 'pending'))
+          .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+        await expect(transactVerificationEventLegalHold(db, ref))
+          .rejects.toThrow('verification_purge_fence_writer_requires_reconciliation');
+        expect((await ref.get()).data()).toMatchObject({
+          status: 'approved', entscheidung: 'bestaetigt',
+          photoPurgeFence: { phase: 'open', epoch: 0, legalHold: false },
+        });
+      });
+    }
+  });
+
   it('never acknowledges a permit if owner path is inconsistent', async () => {
     await withEvent(async (ref) => {
       await ref.update({ storagePath: 'verification/other-person/private.jpg' });
