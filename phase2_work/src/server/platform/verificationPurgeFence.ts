@@ -59,7 +59,7 @@ function nextEpoch(epoch: number): number {
 }
 
 function assertPermitId(permitId: string): void {
-  if (typeof permitId !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(permitId)) {
+  if (typeof permitId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(permitId)) {
     throw new Error('verification_purge_invalid_fence_permit');
   }
 }
@@ -142,7 +142,7 @@ export function releaseVerificationPurgeLegalHold(
 
 export function assertVerificationPurgeDeletePermit(
   state: VerificationPurgeFence, permitId: string, generation: string,
-): void {
+): asserts state is VerificationPurgeDeletingFence {
   if (state.phase !== 'deleting' || state.permitId !== permitId
       || state.generation !== generation) {
     throw new Error('verification_purge_fence_token_mismatch');
