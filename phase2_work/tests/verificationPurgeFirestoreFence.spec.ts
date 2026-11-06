@@ -150,6 +150,25 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     });
   });
 
+  it('characterizes an uncoordinated legal-hold acknowledgement after deletion reservation (P0 open)', async () => {
+    await withEvent(async (ref) => {
+      const permit = randomUUID();
+      await reserveVerificationPurgeEvent(db, ref, permit, '734');
+      // A privileged external writer can bypass the transactional coordinator.
+      // This deliberately demonstrates a false effective hold acknowledgement.
+      await ref.update({ photoPurgeFence: {
+        phase: 'open', epoch: 2, decision: 'approved', legalHold: true,
+      } });
+      const data = (await ref.get()).data();
+      expect(data?.photoPurgeFence).toMatchObject({ phase: 'open', legalHold: true });
+      expect(data?.photoPurged).toBe(false);
+      // The already-issued generation-bound GCS permit is not canceled by
+      // overwriting Firestore state. No physical Storage delete is attempted.
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '734'))
+        .rejects.toThrow('verification_purge_fence_legal_hold');
+    });
+  });
+
   it('never acknowledges a permit if owner path is inconsistent', async () => {
     await withEvent(async (ref) => {
       await ref.update({ storagePath: 'verification/other-person/private.jpg' });
