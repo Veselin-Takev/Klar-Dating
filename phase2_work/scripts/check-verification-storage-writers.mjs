@@ -13,9 +13,12 @@ import { readVerificationEventSourceMap } from './check-verification-event-write
 const expected = new Map([
   ['src/server/platform/verificationPurgeFirestoreFence.ts', {
     // Owner-path validation only; this helper does NOT touch Cloud Storage.
-    // Owner prefix is checked twice: startsWith and non-empty suffix length.
-    paths: 2, deletes: 0,
-    signature: /data\.storagePath\.startsWith\('verification\/' \+ data\.uid/,
+    // One owner prefix construction plus shared checks in all three writers.
+    paths: 1, deletes: 0,
+    signature: /const prefix = 'verification\/' \+ uid \+ '\/'/,
+    ownerPathCheck: /path\.startsWith\(prefix\) \|\| path\.length <= prefix\.length/,
+    rootCollectionCheck: /ref\.path !== 'verification_events\/' \+ ref\.id/,
+    writerOwnerCheckCalls: 3,
     second: /tx\.update\(ref, \{ photoPurgeFence: next, photoPurgeIntent: intent \}\)/,
     third: /!isVerificationArtifactExpired\(decidedAt, now\)/,
     fourth: /permitId: next\.permitId, fenceEpoch: next\.epoch/,
@@ -75,7 +78,11 @@ export function verificationStorageWriterViolations(sources) {
         || (rule.strictFenceShapeCalls
           && count(source, /hasExactFenceFields\(value,/g) !== rule.strictFenceShapeCalls)
         || (rule.strictFenceFields && !rule.strictFenceFields.test(source))
-        || (rule.strictFenceCompleteness && !rule.strictFenceCompleteness.test(source)))) {
+        || (rule.strictFenceCompleteness && !rule.strictFenceCompleteness.test(source))
+        || (rule.ownerPathCheck && !rule.ownerPathCheck.test(source))
+        || (rule.rootCollectionCheck && !rule.rootCollectionCheck.test(source))
+        || (rule.writerOwnerCheckCalls && count(source,
+          /assertVerificationEventOwnerPath\(data\);/g) !== rule.writerOwnerCheckCalls))) {
       problems.push('verification storage boundary signature drift: ' + path);
     }
   }
