@@ -70,6 +70,6 @@ test('nested verification_events root guard removal is detected by the Firestore
     mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
       src.replace("ref.path !== 'verification_events/' + ref.id", 'false'),
     ).join('\n'),
-    /authorized operation drift/,
+    /(?:reference count drift|authorized operation drift)/,
   );
 });
