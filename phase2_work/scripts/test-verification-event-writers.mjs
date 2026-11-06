@@ -64,3 +64,12 @@ test('removing a reviewed source is detected', () => {
   copy.delete('src/server/trustAndSafety.ts');
   assert.match(verificationEventWriterViolations(copy).join('\n'), /missing verification_events reviewed source/);
 });
+
+test('nested verification_events root guard removal is detected by the Firestore inventory', () => {
+  assert.match(
+    mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+      src.replace("ref.path !== 'verification_events/' + ref.id", 'false'),
+    ).join('\n'),
+    /authorized operation drift/,
+  );
+});
