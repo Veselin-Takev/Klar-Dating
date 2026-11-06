@@ -11,9 +11,10 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const expected = new Map([
   ['src/server/platform/verificationPurgeFirestoreFence.ts', {
-    count: 1,
+    count: 2,
     signature: /ref\.parent\.id !== 'verification_events'/,
     secondSignature: /db\.runTransaction\(async tx =>/,
+    thirdSignature: /ref\.path !== 'verification_events\/' \+ ref\.id/,
   }],
   ['src/server/klarCore.ts', {
     count: 1,
@@ -60,7 +61,8 @@ export function verificationEventWriterViolations(files) {
       issues.push('unreviewed verification_events reference: ' + path);
     } else if (rule && occurrences !== rule.count) {
       issues.push('verification_events reference count drift: ' + path + ' (' + occurrences + ' vs ' + rule.count + ')');
-    } else if (rule && (!rule.signature.test(source) || (rule.secondSignature && !rule.secondSignature.test(source)))) {
+    } else if (rule && (!rule.signature.test(source) || (rule.secondSignature && !rule.secondSignature.test(source))
+      || (rule.thirdSignature && !rule.thirdSignature.test(source)))) {
       issues.push('verification_events authorized operation drift: ' + path);
     }
   }
