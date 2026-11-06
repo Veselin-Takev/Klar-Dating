@@ -13,6 +13,7 @@ const expected = new Map([
   ['src/server/klarCore.ts', {
     count: 1,
     signature: /tx\.create\(firestore\.collection\('verification_events'\)\.doc\(\)/,
+    secondSignature: /photoPurgeFence:\s*initialVerificationEventFence\(/,
   }],
   ['src/server/datenschutz.ts', {
     count: 1,
