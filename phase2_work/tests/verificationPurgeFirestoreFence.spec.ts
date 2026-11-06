@@ -128,6 +128,28 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     });
   });
 
+
+  it('characterizes a noncompliant Admin SDK writer bypassing the reserved fence (P0 still open)', async () => {
+    await withEvent(async (ref) => {
+      const permit = randomUUID();
+      await reserveVerificationPurgeEvent(db, ref, permit, '733');
+      // Simulates an existing privileged writer that bypasses the coordinator.
+      // This is an intentional vulnerability-characterization regression:
+      // Firestore's same-document fencing alone cannot stop uncoordinated writes.
+      await ref.update({ entscheidung: 'abgelehnt', status: 'rejected' });
+      const data = (await ref.get()).data();
+      expect(data?.photoPurgeFence).toMatchObject({
+        phase: 'deleting', permitId: permit, decision: 'approved', generation: '733',
+      });
+      expect(data?.entscheidung).toBe('abgelehnt');
+      expect(data?.status).toBe('rejected');
+      await expect(transactVerificationEventLegalHold(db, ref))
+        .rejects.toThrow('verification_purge_fence_decision_drift');
+      // No physical delete is attempted; the lesson is that ALL real writers
+      // must be migrated and constrained by independently verified IAM.
+    });
+  });
+
   it('never acknowledges a permit if owner path is inconsistent', async () => {
     await withEvent(async (ref) => {
       await ref.update({ storagePath: 'verification/other-person/private.jpg' });
