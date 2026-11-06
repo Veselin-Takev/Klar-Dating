@@ -134,3 +134,9 @@ The adapter is not yet linked to Art.17, all moderation revisions, legal hold GC
 The new reviewed `verificationPurgeFirestoreFence.ts` writer must persist `photoPurgeFence` and `photoPurgeIntent` **in the same `tx.update`**, after verifying that both `fotoLoeschenAb` and `decidedAt + 30 days` are due, the record is not already purged, and any prior intent binds the same object generation and canonical owner/status. The source guard `check-verification-storage-writers.mjs` now pins these invariants and its mutation tests fail if the atomic intent write or retention clock guard is removed.
 
 This does not constrain unreviewed external Admin SDK writers nor make a Firestore transaction atomic with Cloud Storage. The old live-purge code path remains denied for fenced records. Open DPO/SRE retention-backlog escalation and VES-5 P0 cross-service fencing remain blocking.
+
+## 06.11.2026 – Review gate for stale Storage intent replay and fence-epoch ownership
+
+The Firestore reservation helper now refuses **any** preexisting `photoPurgeIntent`, including a matching legacy generation or null marker, until operator-backed reconciliation is separately proven. New intents are committed with `permitId` and `fenceEpoch` tied to the exact `photoPurgeFence` transaction. The `check-verification-storage-writers.mjs` source inventory checks the no-reuse guard and permit/epoch linkage; mutation tests fail if either is removed.
+
+This static check is not a Cloud Storage identity inventory, GCS hold interlock or validated recovery workflow. Crash/replay state must remain in the retention backlog and P0 VES-5 must stay open.

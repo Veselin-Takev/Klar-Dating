@@ -114,20 +114,16 @@ function eventTimestampMillis(value: unknown): number | null {
   return null;
 }
 
-function existingPurgeIntent(
-  value: unknown, generation: string, path: string,
-  decidedAt: number, status: 'approved' | 'rejected',
-): Record<string, unknown> | null {
-  if (value === undefined) return null;
-  if (!isRecord(value)
-      || value.generation !== generation
-      || value.storagePath !== path
-      || value.decidedAt !== decidedAt
-      || value.status !== status
-      || eventTimestampMillis(value.preparedAt) === null) {
-    throw new Error('verification_purge_fence_intent_mismatch');
+/**
+ * No prior GCS delete intent may be silently reclaimed with a new token.
+ * Even a matching old intent might correspond to an unresolved, in-flight
+ * generation-conditional Storage delete after worker crash. Require a separate
+ * audited reconciliation path; this helper has no GCS access or reset API.
+ */
+function assertNoPriorPurgeIntent(data: Record<string, unknown>): void {
+  if (Object.prototype.hasOwnProperty.call(data, 'photoPurgeIntent')) {
+    throw new Error('verification_purge_fence_prior_intent_requires_reconciliation');
   }
-  return value;
 }
 
 function assertEventRef(ref: DocumentReference): void {
@@ -177,13 +173,19 @@ export async function reserveVerificationPurgeEvent(
         || decidedAt > now || dueAt > now || !isVerificationArtifactExpired(decidedAt, now)) {
       throw new Error('verification_purge_fence_retention_not_due');
     }
+    // Check the persisted exclusive fence first. An already-deleting
+    // event must reject every competing permit, even when an old intent
+    // is present. This is pure validation: no Firestore mutation occurs.
     const next = startVerificationPurgeFence(fence, permitId, generation);
-    const priorIntent = existingPurgeIntent(
-      data.photoPurgeIntent, generation, data.storagePath, decidedAt, next.decision,
-    );
-    const intent = priorIntent ?? {
+    // Only an eligible OPEN state may reach the replay check. Never
+    // inherit a previous, potentially in-flight GCS deletion claim.
+    // Reconciliation needs independently verified generation/audit proof.
+    assertNoPriorPurgeIntent(data);
+    const intent = {
       generation, storagePath: data.storagePath, decidedAt,
       status: next.decision, preparedAt: new Date(now),
+      // Bind the durable intent to exactly this transaction's fencing claim.
+      permitId: next.permitId, fenceEpoch: next.epoch,
     };
     // Persist an exclusive permit AND the immutable-by-contract GCS intent
     // atomically; a write after this transaction is not enough to establish

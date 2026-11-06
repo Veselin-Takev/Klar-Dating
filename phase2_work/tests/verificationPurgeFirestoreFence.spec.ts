@@ -68,7 +68,7 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
       expect(data?.photoPurgeFence).toMatchObject({ phase: 'deleting', permitId: permit });
       expect(data?.photoPurgeIntent).toMatchObject({
         generation: '733', storagePath: data?.storagePath, status: 'approved',
-        decidedAt: expect.any(Number),
+        decidedAt: expect.any(Number), permitId: permit, fenceEpoch: 1,
       });
       expect(data?.photoPurgeProof).toBeUndefined();
       expect(data?.photoPurged).toBe(false);
@@ -257,14 +257,14 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
         },
       });
       await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '802'))
-        .rejects.toThrow('verification_purge_fence_intent_mismatch');
+        .rejects.toThrow('verification_purge_fence_prior_intent_requires_reconciliation');
       expect((await ref.get()).data()?.photoPurgeFence)
         .toMatchObject({ phase: 'open', epoch: 0 });
       expect((await ref.get()).data()?.photoPurgeIntent.generation).toBe('801');
     });
   });
 
-  it('preserves a matching prior immutable-by-contract intent in the atomic reservation', async () => {
+  it('refuses to silently reuse a matching legacy intent with a new token', async () => {
     await withEvent(async (ref) => {
       const data = (await ref.get()).data()!;
       const preparedAt = new Date(Date.now() - 20_000);
@@ -274,11 +274,40 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
           decidedAt: data.decidedAt.toMillis(), status: 'approved', preparedAt,
         },
       });
-      await reserveVerificationPurgeEvent(db, ref, randomUUID(), '810');
+      const token = randomUUID();
+      await expect(reserveVerificationPurgeEvent(db, ref, token, '810'))
+        .rejects.toThrow('verification_purge_fence_prior_intent_requires_reconciliation');
       const final = (await ref.get()).data()!;
-      expect(final.photoPurgeFence).toMatchObject({ phase: 'deleting', generation: '810' });
-      expect(final.photoPurgeIntent.generation).toBe('810');
+      expect(final.photoPurgeFence).toMatchObject({ phase: 'open', epoch: 0 });
+      expect(final.photoPurgeIntent).toMatchObject({ generation: '810', status: 'approved' });
       expect(final.photoPurgeIntent.preparedAt.toMillis()).toBe(preparedAt.getTime());
+      expect(final.photoPurgeIntent.permitId).toBeUndefined();
+    });
+  });
+
+  it('refuses any prior intent even when its metadata is empty or a null marker', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ photoPurgeIntent: null });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '820'))
+        .rejects.toThrow('verification_purge_fence_prior_intent_requires_reconciliation');
+      expect((await ref.get()).data()?.photoPurgeFence)
+        .toMatchObject({ phase: 'open', epoch: 0 });
+    });
+  });
+
+  it('a worker retry never issues a different permit for an unresolved deleting state', async () => {
+    await withEvent(async (ref) => {
+      const first = randomUUID();
+      await reserveVerificationPurgeEvent(db, ref, first, '830');
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '830'))
+        .rejects.toThrow('verification_purge_fence_already_claimed');
+      const state = (await ref.get()).data()!;
+      expect(state.photoPurgeFence).toMatchObject({
+        phase: 'deleting', permitId: first, epoch: 1,
+      });
+      expect(state.photoPurgeIntent).toMatchObject({
+        generation: '830', permitId: first, fenceEpoch: 1,
+      });
     });
   });
 
