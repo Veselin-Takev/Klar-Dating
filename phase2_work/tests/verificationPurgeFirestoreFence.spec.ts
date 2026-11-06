@@ -40,8 +40,12 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     const suffix = randomUUID().replace(/-/g, '');
     const ref = db.collection('verification_events').doc('fence-' + suffix);
     const uid = 'owner-' + suffix;
+    const now = Date.now();
     await ref.set({
       uid, storagePath: 'verification/' + uid + '/capture.jpg',
+      // Deliberately due: 30 days elapsed and scheduled expiry in the past.
+      decidedAt: new Date(now - 31 * 86_400_000),
+      fotoLoeschenAb: new Date(now - 86_400_000),
       status: state, entscheidung: state === 'approved' ? 'bestaetigt'
         : state === 'rejected' ? 'abgelehnt' : 'in_pruefung',
       photoPurged: false, photoPurgeFence: initialVerificationEventFence(state),
@@ -62,6 +66,10 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
       expect(data?.status).toBe('approved');
       expect(data?.entscheidung).toBe('bestaetigt');
       expect(data?.photoPurgeFence).toMatchObject({ phase: 'deleting', permitId: permit });
+      expect(data?.photoPurgeIntent).toMatchObject({
+        generation: '733', storagePath: data?.storagePath, status: 'approved',
+        decidedAt: expect.any(Number),
+      });
       expect(data?.photoPurgeProof).toBeUndefined();
       expect(data?.photoPurged).toBe(false);
     });
@@ -174,6 +182,88 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
       await ref.update({ storagePath: 'verification/other-person/private.jpg' });
       await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '600'))
         .rejects.toThrow('verification_purge_fence_invalid_owner_path');
+    });
+  });
+
+  it('refuses an early, not-yet-expired decision even if a due-date field is forged', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ decidedAt: new Date(Date.now() - 86_400_000) });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '701'))
+        .rejects.toThrow('verification_purge_fence_retention_not_due');
+      const snap = (await ref.get()).data();
+      expect(snap?.photoPurgeFence).toMatchObject({ phase: 'open', epoch: 0 });
+      expect(snap?.photoPurgeIntent).toBeUndefined();
+    });
+  });
+
+  it('refuses a future scheduled retention date even when 30 days have elapsed', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ fotoLoeschenAb: new Date(Date.now() + 86_400_000) });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '702'))
+        .rejects.toThrow('verification_purge_fence_retention_not_due');
+      expect((await ref.get()).data()?.photoPurgeIntent).toBeUndefined();
+    });
+  });
+
+  it('refuses invalid or absent retention dates rather than trusting a caller clock', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ fotoLoeschenAb: FieldValue.delete() });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '703'))
+        .rejects.toThrow('verification_purge_fence_retention_not_due');
+    });
+    await withEvent(async (ref) => {
+      await ref.update({ decidedAt: 'not-a-date' });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '704'))
+        .rejects.toThrow('verification_purge_fence_retention_not_due');
+    });
+  });
+
+  it('does not reserve a purge for a previously purged or ambiguously recorded object', async () => {
+    await withEvent(async (ref) => {
+      await ref.update({ photoPurged: true });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '705'))
+        .rejects.toThrow('verification_purge_already_completed_or_ambiguous');
+    });
+    await withEvent(async (ref) => {
+      await ref.update({ photoPurgeProof: { generation: '100' } });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '706'))
+        .rejects.toThrow('verification_purge_already_completed_or_ambiguous');
+    });
+  });
+
+  it('never replaces a conflicting durable intent with a new GCS generation', async () => {
+    await withEvent(async (ref) => {
+      const data = (await ref.get()).data()!;
+      await ref.update({
+        photoPurgeIntent: {
+          generation: '801', storagePath: data.storagePath,
+          decidedAt: data.decidedAt.toMillis(), status: 'approved',
+          preparedAt: new Date(),
+        },
+      });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '802'))
+        .rejects.toThrow('verification_purge_fence_intent_mismatch');
+      expect((await ref.get()).data()?.photoPurgeFence)
+        .toMatchObject({ phase: 'open', epoch: 0 });
+      expect((await ref.get()).data()?.photoPurgeIntent.generation).toBe('801');
+    });
+  });
+
+  it('preserves a matching prior immutable-by-contract intent in the atomic reservation', async () => {
+    await withEvent(async (ref) => {
+      const data = (await ref.get()).data()!;
+      const preparedAt = new Date(Date.now() - 20_000);
+      await ref.update({
+        photoPurgeIntent: {
+          generation: '810', storagePath: data.storagePath,
+          decidedAt: data.decidedAt.toMillis(), status: 'approved', preparedAt,
+        },
+      });
+      await reserveVerificationPurgeEvent(db, ref, randomUUID(), '810');
+      const final = (await ref.get()).data()!;
+      expect(final.photoPurgeFence).toMatchObject({ phase: 'deleting', generation: '810' });
+      expect(final.photoPurgeIntent.generation).toBe('810');
+      expect(final.photoPurgeIntent.preparedAt.toMillis()).toBe(preparedAt.getTime());
     });
   });
 
