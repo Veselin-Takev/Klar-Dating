@@ -91,6 +91,12 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
               setFehler(t("ageGate.errorRateLimit"));
               return;
             }
+            // A missing Vercel API route is a deployment/backend problem,
+            // NOT an invalid birth date. Never fall back to browser authority.
+            if ([404, 405, 502, 503, 504].includes(res.status)) {
+              setFehler(t("ageGate.errorService"));
+              return;
+            }
             if (res.status >= 500) {
               setFehler(t("ageGate.errorService"));
               return;
