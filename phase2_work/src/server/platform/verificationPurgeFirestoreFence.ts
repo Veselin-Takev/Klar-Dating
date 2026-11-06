@@ -9,6 +9,7 @@
  * workflow. The legacy purge remains source-locked and rejects any fence field.
  */
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
+import { isVerificationArtifactExpired } from './storageRetentionEngine';
 import {
   changeVerificationPurgeDecision,
   initialVerificationPurgeFence,
@@ -96,6 +97,39 @@ function inspectVerificationEvent(data: Record<string, unknown> | undefined): {
   return { fence, decision };
 }
 
+function eventTimestampMillis(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (value instanceof Date) {
+    const dateValue = value.getTime();
+    return Number.isSafeInteger(dateValue) && dateValue > 0 ? dateValue : null;
+  }
+  if (value && typeof value === 'object' && 'toMillis' in value
+      && typeof value.toMillis === 'function') {
+    const millis: unknown = value.toMillis();
+    return typeof millis === 'number' && Number.isSafeInteger(millis) && millis > 0
+      ? millis : null;
+  }
+  return null;
+}
+
+function existingPurgeIntent(
+  value: unknown, generation: string, path: string,
+  decidedAt: number, status: 'approved' | 'rejected',
+): Record<string, unknown> | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)
+      || value.generation !== generation
+      || value.storagePath !== path
+      || value.decidedAt !== decidedAt
+      || value.status !== status
+      || eventTimestampMillis(value.preparedAt) === null) {
+    throw new Error('verification_purge_fence_intent_mismatch');
+  }
+  return value;
+}
+
 function assertEventRef(ref: DocumentReference): void {
   if (ref.parent.id !== 'verification_events' || !ref.id) {
     throw new Error('verification_purge_fence_wrong_collection');
@@ -123,14 +157,38 @@ export async function reserveVerificationPurgeEvent(
     const snap = await tx.get(ref);
     const data = snap.data();
     const { fence } = inspectVerificationEvent(data);
-    if (data?.photoPurged === true) throw new Error('verification_purge_already_completed');
-    if (typeof data?.uid !== 'string' || !data.uid
+    if (data?.photoPurged !== false || data?.photoPurgeProof != null
+        || data?.photoPurgedAt != null) {
+      throw new Error('verification_purge_already_completed_or_ambiguous');
+    }
+    if (typeof data.uid !== 'string' || !data.uid
       || typeof data.storagePath !== 'string'
-      || !data.storagePath.startsWith('verification/' + data.uid + '/')) {
+      || !data.storagePath.startsWith('verification/' + data.uid + '/')
+      || data.storagePath.length <= ('verification/' + data.uid + '/').length) {
       throw new Error('verification_purge_fence_invalid_owner_path');
     }
+    // A permit is not authorization to delete before the retained photo is
+    // due. Check canonical decision time AND the scheduled due time inside
+    // the exact transaction which persists the permit.
+    const decidedAt = eventTimestampMillis(data.decidedAt);
+    const dueAt = eventTimestampMillis(data.fotoLoeschenAb);
+    const now = Date.now();
+    if (decidedAt === null || dueAt === null || dueAt < decidedAt
+        || dueAt > now || !isVerificationArtifactExpired(decidedAt, now)) {
+      throw new Error('verification_purge_fence_retention_not_due');
+    }
     const next = startVerificationPurgeFence(fence, permitId, generation);
-    tx.update(ref, { photoPurgeFence: next });
+    const priorIntent = existingPurgeIntent(
+      data.photoPurgeIntent, generation, data.storagePath, decidedAt, next.decision,
+    );
+    const intent = priorIntent ?? {
+      generation, storagePath: data.storagePath, decidedAt,
+      status: next.decision, preparedAt: new Date(now),
+    };
+    // Persist an exclusive permit AND the immutable-by-contract GCS intent
+    // atomically; a write after this transaction is not enough to establish
+    // this protection. No GCS object is deleted by this helper.
+    tx.update(ref, { photoPurgeFence: next, photoPurgeIntent: intent });
     return next;
   });
 }
