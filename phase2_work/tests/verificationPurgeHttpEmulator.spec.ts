@@ -567,6 +567,30 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it('never deletes an event with a partially migrated, uncoordinated purge fence', async () => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({
+        photoPurgeFence: {
+          phase: 'deleting', epoch: 7, decision: 'approved',
+          legalHold: false, permitId: randomUUID(), generation: '773',
+        },
+      });
+      let deletes = 0;
+      const api = await startApi(db, async () => { deletes++; });
+      try {
+        const result = await api.request();
+        expect(result).toMatchObject({
+          status: 503, data: { ok: false, purgedCount: 0, failedCount: 1 },
+        });
+        expect(deletes).toBe(0);
+        const record = (await event.get()).data();
+        expect(record?.photoPurgeProof).toBeUndefined();
+        expect(record?.photoPurged).toBe(false);
+        expect(record?.photoPurgeFence).toMatchObject({ phase: 'deleting', epoch: 7 });
+      } finally { await api.close(); }
+    });
+  }, 90_000);
+
   it('blocks physical deletion when moderation is changed after the first eligibility check', async () => {
     await withEvent(async ({ db, event }) => {
       let metadataReads = 0;
