@@ -174,7 +174,7 @@ export async function reserveVerificationPurgeEvent(
     const dueAt = eventTimestampMillis(data.fotoLoeschenAb);
     const now = Date.now();
     if (decidedAt === null || dueAt === null || dueAt < decidedAt
-        || dueAt > now || !isVerificationArtifactExpired(decidedAt, now)) {
+        || decidedAt > now || dueAt > now || !isVerificationArtifactExpired(decidedAt, now)) {
       throw new Error('verification_purge_fence_retention_not_due');
     }
     const next = startVerificationPurgeFence(fence, permitId, generation);

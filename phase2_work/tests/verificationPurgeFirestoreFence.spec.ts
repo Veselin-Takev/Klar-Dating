@@ -196,6 +196,21 @@ suite('VES-5: transaction-backed Firestore fence, staging-only integration contr
     });
   });
 
+  it('rejects future decision time even when due schedule is in the past', async () => {
+    await withEvent(async (ref) => {
+      const now = Date.now();
+      await ref.update({
+        decidedAt: new Date(now + 86_400_000),
+        fotoLoeschenAb: new Date(now - 86_400_000),
+      });
+      await expect(reserveVerificationPurgeEvent(db, ref, randomUUID(), '720'))
+        .rejects.toThrow('verification_purge_fence_retention_not_due');
+      const data = (await ref.get()).data();
+      expect(data?.photoPurgeFence).toMatchObject({ phase: 'open', epoch: 0 });
+      expect(data?.photoPurgeIntent).toBeUndefined();
+    });
+  });
+
   it('refuses a future scheduled retention date even when 30 days have elapsed', async () => {
     await withEvent(async (ref) => {
       await ref.update({ fotoLoeschenAb: new Date(Date.now() + 86_400_000) });
