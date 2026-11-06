@@ -66,3 +66,17 @@ The production purge source veto remains unchanged (`VERIFICATION_PHOTO_PURGE_P0
 A second Firestore-emulator regression deliberately overwrites the persisted `deleting` state with an `open/legalHold=true` document through a privileged, **nonparticipating** writer after a valid reservation. The database accepts the write, even though the already-issued GCS permit cannot be canceled by this Firestore update. The later compliant reservation correctly refuses the hold, but that does **not** retroactively make the original deletion safe. The test performs no GCS call and does not assert that this unauthorized state transition is prevented.
 
 **Required P0 closure:** inventory/restrict every privileged writer and forbid direct mutation of the fence, coordinate storage-side holds before acknowledging a hold, and test the actual GCS operation under a deterministic post-reservation interleaving. Independent Cloud IAM/AppSec/DPO/SRE evidence remains missing. `productionApproved=false`; live purge veto remains disabled. New exact-SHA CI must be read back.
+
+## 06.11.2026 – Retention eligibility and generation-bound intent are now atomic (Draft increment)
+
+The review-only `reserveVerificationPurgeEvent` helper has been hardened so a transaction **cannot** claim a deletion permit solely because the current moderation status is approved/rejected. On the same `verification_events/{id}` snapshot it verifies:
+- `photoPurged === false`, no previous proof and no `photoPurgedAt` (ambiguous historical state must be reconciled, not deleted again);
+- a consistent moderation decision with the persisted fence, an owner-matching nonempty `verification/{uid}/...` path and an `open` fence without legal hold;
+- valid Firestore decision and scheduled-due timestamps; both the scheduled time **and** the 30-day period from `decidedAt` must be elapsed according to the service clock;
+- any preexisting `photoPurgeIntent` must exactly match the same GCS generation, owner path, decidedAt, status and original preparation time. A different intent is never overwritten.
+
+On success, **one Firestore transaction** writes both the monotonically versioned `deleting` permit and `photoPurgeIntent` containing the exact GCS generation and current canonical event identity. This is a prerequisite for future all-writer coordination, not permission to call GCS; the helper still performs **zero** Storage operations and the legacy purge still rejects all fenced events.
+
+The Firestore-emulator tests now cover expiry-before-due, a future scheduled date, invalid/missing dates, prior purge receipts, inconsistent generation/intent, matching existing intent, no unintended write on failure, concurrent reservations and hold/revocation semantics. The static Storage writer inventory checks that **both** permit and intent appear in the same `tx.update` and that 30-day eligibility cannot silently disappear; mutation regressions test those guards.
+
+**Not resolved:** actual Storage generation metadata authenticity, physical Cloud Storage deletion, legal hold/GCS IAM interlock, external writer adoption, Art.17 ownership, unsafe cross-service interleaving, crash-safe reconciliation and DPO-approved retention backlog. A successful Firestore check does not prove atomicity with GCS. P0 VES-5 remains OPEN; productively destructive purge stays source-locked, `productionApproved=false`, NO-GO. Before approvals, do not merge or deploy this Draft PR.
