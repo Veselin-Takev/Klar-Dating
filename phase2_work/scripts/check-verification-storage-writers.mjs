@@ -20,6 +20,9 @@ const expected = new Map([
     third: /!isVerificationArtifactExpired\(decidedAt, now\)/,
     fourth: /permitId: next\.permitId, fenceEpoch: next\.epoch/,
     fifth: /assertNoPriorPurgeIntent\(data\)/,
+    sixth: /data\.photoPurged !== false/,
+    seventh: /Object\.prototype\.hasOwnProperty\.call\(data, 'photoPurgeIntent'\)/,
+    decisionHoldGuardCalls: 2,
   }],
   ['src/server/klarCore.ts', {
     paths: 2, deletes: 0,
@@ -60,7 +63,12 @@ export function verificationStorageWriterViolations(sources) {
         || (rule.second && !rule.second.test(source))
         || (rule.third && !rule.third.test(source))
         || (rule.fourth && !rule.fourth.test(source))
-        || (rule.fifth && !rule.fifth.test(source)))) {
+        || (rule.fifth && !rule.fifth.test(source))
+        || (rule.sixth && !rule.sixth.test(source))
+        || (rule.seventh && !rule.seventh.test(source))
+        || (rule.decisionHoldGuardCalls && count(source,
+          /assertWriterHasNoUnreconciledPurgeState\(data\);/g)
+            !== rule.decisionHoldGuardCalls))) {
       problems.push('verification storage boundary signature drift: ' + path);
     }
   }
