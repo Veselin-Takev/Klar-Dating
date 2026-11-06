@@ -132,3 +132,27 @@ test('removal of exact schema completeness check fails the security inventory', 
     src.replace('actual.length === fields.length', 'true'),
   ).join('\n'), /boundary signature drift/);
 });
+
+test('removing strict root verification-event reference validation fails the Storage inventory', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace("ref.path !== 'verification_events/' + ref.id", 'false'),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('decision writer cannot omit canonical Storage-owner validation', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace(
+      'const next = changeVerificationPurgeDecision(fence, decision);\n    assertWriterHasNoUnreconciledPurgeState(data);\n    assertVerificationEventOwnerPath(data);',
+      'const next = changeVerificationPurgeDecision(fence, decision);\n    assertWriterHasNoUnreconciledPurgeState(data);',
+    ),
+  ).join('\n'), /boundary signature drift/);
+});
+
+test('legal-hold writer cannot omit canonical Storage-owner validation', () => {
+  assert.match(mutate('src/server/platform/verificationPurgeFirestoreFence.ts', src =>
+    src.replace(
+      'const next = placeVerificationPurgeLegalHold(fence);\n    assertWriterHasNoUnreconciledPurgeState(data);\n    assertVerificationEventOwnerPath(data);',
+      'const next = placeVerificationPurgeLegalHold(fence);\n    assertWriterHasNoUnreconciledPurgeState(data);',
+    ),
+  ).join('\n'), /boundary signature drift/);
+});

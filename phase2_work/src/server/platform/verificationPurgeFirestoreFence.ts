@@ -164,9 +164,38 @@ function assertWriterHasNoUnreconciledPurgeState(
   }
 }
 
+/**
+ * In this deployment verification events are rooted at the top-level
+ * collection. Checking only parent.id would incorrectly accept a nested
+ * tenants/{tenant}/verification_events/{event} reference under Admin SDK.
+ * A future hierarchical migration requires an explicit authenticated
+ * tenant resolver and a separately reviewed reference contract.
+ */
 function assertEventRef(ref: DocumentReference): void {
-  if (ref.parent.id !== 'verification_events' || !ref.id) {
+  if (!ref.id || ref.parent.id !== 'verification_events'
+      || ref.path !== 'verification_events/' + ref.id) {
     throw new Error('verification_purge_fence_wrong_collection');
+  }
+}
+
+/**
+ * Every participant, not only the destructive worker, must bind the
+ * canonical event to its Storage owner. Reject malformed or foreign paths
+ * before acknowledging moderation or legal-hold transitions.
+ */
+function assertVerificationEventOwnerPath(
+  data: Record<string, unknown> | undefined,
+): asserts data is Record<string, unknown> {
+  const uid = data?.uid;
+  const path = data?.storagePath;
+  if (typeof uid !== 'string' || !uid || uid.trim() !== uid
+      || uid.includes('/') || uid.includes('\\')
+      || typeof path !== 'string') {
+    throw new Error('verification_purge_fence_invalid_owner_path');
+  }
+  const prefix = 'verification/' + uid + '/';
+  if (!path.startsWith(prefix) || path.length <= prefix.length) {
+    throw new Error('verification_purge_fence_invalid_owner_path');
   }
 }
 
@@ -195,12 +224,7 @@ export async function reserveVerificationPurgeEvent(
         || data?.photoPurgedAt != null) {
       throw new Error('verification_purge_already_completed_or_ambiguous');
     }
-    if (typeof data.uid !== 'string' || !data.uid
-      || typeof data.storagePath !== 'string'
-      || !data.storagePath.startsWith('verification/' + data.uid + '/')
-      || data.storagePath.length <= ('verification/' + data.uid + '/').length) {
-      throw new Error('verification_purge_fence_invalid_owner_path');
-    }
+    assertVerificationEventOwnerPath(data);
     // A permit is not authorization to delete before the retained photo is
     // due. Check canonical decision time AND the scheduled due time inside
     // the exact transaction which persists the permit.
@@ -244,6 +268,7 @@ export async function transactVerificationEventDecision(
     const { fence } = inspectVerificationEvent(data);
     const next = changeVerificationPurgeDecision(fence, decision);
     assertWriterHasNoUnreconciledPurgeState(data);
+    assertVerificationEventOwnerPath(data);
     tx.update(ref, {
       photoPurgeFence: next,
       entscheidung: decision === 'approved' ? 'bestaetigt'
@@ -265,6 +290,7 @@ export async function transactVerificationEventLegalHold(
     const { fence } = inspectVerificationEvent(data);
     const next = placeVerificationPurgeLegalHold(fence);
     assertWriterHasNoUnreconciledPurgeState(data);
+    assertVerificationEventOwnerPath(data);
     tx.update(ref, { photoPurgeFence: next });
     return next;
   });
