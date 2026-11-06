@@ -146,3 +146,9 @@ This static check is not a Cloud Storage identity inventory, GCS hold interlock 
 In the new review-only `verificationPurgeFirestoreFence.ts` helper, both `transactVerificationEventDecision` and `transactVerificationEventLegalHold` now refuse to acknowledge a change when `photoPurged` is not explicitly `false` or an unresolved `photoPurgeIntent`, `photoPurgeProof`, or `photoPurgedAt` field exists. This is a same-document transactional check, run after pure fence phase validation and before the Firestore update. The existing real Firestore emulator suite checks no-write behavior; source inventory and three mutation regressions require both call sites and the deleted-photo guard.
 
 **This cannot constrain non-participating Admin SDK writers**, cannot stop an already in-flight GCS request, and is not an effective Storage-side legal hold. DPO/SRE manual reconciliation remains necessary. P0 VES-5 OPEN; no activation or production authorization.
+
+## 06.11.2026 – Persisted Fence Schema: strikt statt stillschweigender Feldprojektion
+
+Der überprüfte Source-Writer `src/server/platform/verificationPurgeFirestoreFence.ts` akzeptiert jetzt für `photoPurgeFence` **nur** die wohldefinierte Feldmenge je Zustand (`open`, `deleting`, `deleted`). Zusätzliche Sidecar-Felder, insbesondere Hinweise auf einen ausstehenden Hold oder Recovery-Fall, gelten als Schema-Mismatch und blockieren `reserveVerificationPurgeEvent`, `transactVerificationEventDecision` und `transactVerificationEventLegalHold` fail-closed. `check-verification-storage-writers.mjs` und seine Mutationstests fordern, dass alle drei Parserpfade das exakte Feldschema validieren.
+
+Grenzen: lexikalischer Source-Guard; keine Gewähr gegen externe Admin-SDK-Writer, kein GCS-seitiges Hold-Protokoll, keine automatische DPO-Reconciliation, keine Produktionseinführung. P0 VES-5 bleibt offen, Produktiv-Löschung gesperrt.
