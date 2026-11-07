@@ -5,14 +5,26 @@ set -euo pipefail
 : "${KLAR_REGION:?KLAR_REGION is required}"
 : "${KLAR_SERVICE:?KLAR_SERVICE is required}"
 : "${KLAR_IMAGE:?KLAR_IMAGE must be an immutable image reference}"
+: "${KLAR_IMAGE_REPOSITORY:?KLAR_IMAGE_REPOSITORY must identify the approved GHCR klar-app repository}"
 : "${KLAR_CONFIRM_PRODUCTION:?Set KLAR_CONFIRM_PRODUCTION=deploy}"
 
 if [[ "${KLAR_CONFIRM_PRODUCTION}" != "deploy" ]]; then
   echo "Refusing production deployment without KLAR_CONFIRM_PRODUCTION=deploy" >&2
   exit 2
 fi
-if [[ ! "${KLAR_IMAGE}" =~ @sha256:[0-9a-f]{64}$ ]]; then
-  echo "KLAR_IMAGE must end with an immutable @sha256 digest" >&2
+# An immutable digest alone is NOT an approved image: an unrelated registry
+# can also publish a valid sha256. Enforce the same canonical GHCR source
+# already required by promote-prod.sh, before the GO preflight or gcloud.
+if [[ ! "${KLAR_IMAGE_REPOSITORY}" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*/klar-app$ ]]; then
+  echo "KLAR_IMAGE_REPOSITORY must be the approved GHCR klar-app repository" >&2
+  exit 2
+fi
+if [[ ! "${KLAR_IMAGE}" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*/klar-app@sha256:[0-9a-f]{64}$ ]]; then
+  echo "KLAR_IMAGE must be an immutable GHCR klar-app digest" >&2
+  exit 2
+fi
+if [[ "${KLAR_IMAGE}" != "${KLAR_IMAGE_REPOSITORY}@sha256:"* ]]; then
+  echo "KLAR_IMAGE is outside the approved image repository" >&2
   exit 2
 fi
 
