@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -11,6 +11,26 @@ describe('verification photo purge deployment interlock', () => {
   );
   it('allows explicit opt-in only with exact lowercase true', () => {
     expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+  });
+});
+
+describe('destructive purge requires explicit Storage bucket selection', () => {
+  it.each([
+    undefined, '', ' ', '  klar-admin.firebasestorage.app',
+    'klar-admin.firebasestorage.app ', 'gs://klar-admin.firebasestorage.app',
+    'https://storage.googleapis.com/other-bucket',
+    'OTHER-BUCKET', 'bad..bucket', 'bucket.-name',
+    'bucket-.name', 'path/name', 'bucket\\name',
+  ])('rejects missing or malformed bucket name: %s', name => {
+    expect(validatedVerificationPurgeBucketName(name)).toBeNull();
+  });
+
+  it.each([
+    'klar-admin.firebasestorage.app',
+    'klar-admin.appspot.com',
+    'synthetic-test-bucket-1',
+  ])('accepts a deliberately supplied bucket name: %s', name => {
+    expect(validatedVerificationPurgeBucketName(name)).toBe(name);
   });
 });
 
