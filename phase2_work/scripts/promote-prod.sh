@@ -27,7 +27,7 @@ node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"
 node "$(dirname "${BASH_SOURCE[0]}")/check-production-checkout-identity.mjs"
 command -v gcloud >/dev/null
 
-node scripts/validate-promotion-evidence.mjs "${KLAR_PROMOTION_EVIDENCE}" "${KLAR_PROMOTE_IMAGE}" "${KLAR_PROMOTE_REVISION}" "${GITHUB_SHA:-${KLAR_BUILD_SHA:-}}"
+node "$(dirname "${BASH_SOURCE[0]}")/validate-promotion-evidence.mjs" "${KLAR_PROMOTION_EVIDENCE}" "${KLAR_PROMOTE_IMAGE}" "${KLAR_PROMOTE_REVISION}" "${GITHUB_SHA:-${KLAR_BUILD_SHA:-}}"
 
 revision_image="$(gcloud run revisions describe "${KLAR_PROMOTE_REVISION}" --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" --format='value(spec.containers[0].image)')"
 [[ "${revision_image}" == "${KLAR_PROMOTE_IMAGE}" ]] || { echo "Candidate revision image does not match approved immutable image" >&2; exit 2; }
