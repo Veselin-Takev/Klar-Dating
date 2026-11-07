@@ -111,9 +111,11 @@ export async function proxyKlarApi(
   if (upstreamUrl.origin === url.origin) return unavailable('api_proxy_loop');
 
   const headers = new Headers();
-  // Only explicitly reviewed headers are sent to the trusted backend. Host,
-  // forwarding headers, Vercel internals and untrusted proxy hops are omitted.
-  for (const key of ['authorization', 'accept', 'content-type', 'cookie', 'origin', 'x-request-id']) {
+  // The Cloud Run API verifies Firebase Bearer tokens, not Vercel/browser
+  // cookies. Never transfer preview protection or session cookies to a
+  // separate upstream service (data minimization and credential isolation).
+  // Host, forwarding headers, Vercel internals and proxy hops are omitted.
+  for (const key of ['authorization', 'accept', 'content-type', 'origin', 'x-request-id']) {
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }
