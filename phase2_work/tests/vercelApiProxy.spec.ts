@@ -15,6 +15,8 @@ const ageRequest = (method = 'POST') => new Request(
     headers: {
       authorization: 'Bearer dummy-test-token',
       'content-type': 'application/json',
+      // Preview protection/browser cookies must never reach Cloud Run.
+      cookie: '_vercel_jwt=preview-secret; __session=browser-session',
       'x-forwarded-host': 'attacker.example',
     },
     ...(method === 'POST' ? { body: JSON.stringify({ geburtsdatum: '2000-01-01' }) } : {}),
@@ -54,6 +56,7 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
       expect(String(url)).toBe('https://' + backendHost + '/api/account/alter');
       const headers = new Headers(options?.headers);
       expect(headers.get('authorization')).toBe('Bearer dummy-test-token');
+      expect(headers.get('cookie')).toBeNull();
       expect(headers.get('x-forwarded-host')).toBeNull();
       expect(options?.method).toBe('POST');
       expect(new TextDecoder().decode(options?.body as ArrayBuffer)).toContain('geburtsdatum');
@@ -67,6 +70,24 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
     expect((await response.json()).code).toBe('unauthorized');
     expect(response.headers.get('set-cookie')).toBeNull();
     expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('never forwards browser cookies even for a non-age API request', async () => {
+    const send = vi.fn(async (_url: URL | RequestInfo, options?: RequestInit) => {
+      const forwarded = new Headers(options?.headers);
+      expect(forwarded.has('cookie')).toBe(false);
+      expect(forwarded.get('authorization')).toBe('Bearer dummy-test-token');
+      return Response.json({ code: 'unauthorized' }, { status: 401 });
+    }) as typeof fetch;
+    const request = new Request(
+      'https://klar-dating.vercel.app/api/account/status',
+      { headers: {
+        authorization: 'Bearer dummy-test-token',
+        cookie: '__session=secret; _vercel_jwt=preview-auth',
+      } },
+    );
+    expect((await proxyKlarApi(request, env, send)).status).toBe(401);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('accepts Vercel captured API path and retains normal query parameters', async () => {
@@ -101,6 +122,65 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
       { method: 'POST', body: 'x'.repeat(901 * 1024) },
     );
     expect((await proxyKlarApi(request, env, send)).status).toBe(413);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('cancels an oversized chunked body before contacting the upstream backend', async () => {
+    const send = vi.fn<typeof fetch>();
+    let canceled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(500 * 1024));
+        controller.enqueue(new Uint8Array(500 * 1024));
+      },
+      cancel() { canceled = true; },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body: stream,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    const response = await proxyKlarApi(request, env, send);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'api_payload_too_large' });
+    expect(send).not.toHaveBeenCalled();
+    expect(canceled).toBe(true);
+  });
+
+  it('forwards only a fully received, under-limit streamed body', async () => {
+    const send = vi.fn(async (_url: URL | RequestInfo, options?: RequestInit) => {
+      expect(new TextDecoder().decode(options?.body as ArrayBuffer)).toBe('{"ok":true}');
+      return Response.json({ code: 'unauthorized' }, { status: 401 });
+    }) as typeof fetch;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"ok":'));
+        controller.enqueue(new TextEncoder().encode('true}'));
+        controller.close();
+      },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    expect((await proxyKlarApi(request, env, send)).status).toBe(401);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not forward an unreadable request stream or return a fabricated age result', async () => {
+    const send = vi.fn<typeof fetch>();
+    const body = new ReadableStream<Uint8Array>({
+      pull() { throw new Error('unexpected incoming stream failure'); },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    const response = await proxyKlarApi(request, env, send);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'api_payload_unreadable' });
     expect(send).not.toHaveBeenCalled();
   });
 
