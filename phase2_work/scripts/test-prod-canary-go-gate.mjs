@@ -9,16 +9,19 @@ import { collectReleaseApprovalFailures } from './release-go-evidence.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const releaseCheck = 'node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"';
+const checkoutCheck = 'node "$(dirname "${BASH_SOURCE[0]}")/check-production-checkout-identity.mjs"';
 const scripts = ['scripts/deploy-prod.sh', 'scripts/promote-prod.sh'];
 
 test('canary and promotion both enforce the exact-SHA GO check before any GCP invocation', () => {
   for (const path of scripts) {
     const text = readFileSync(resolve(root, path), 'utf8');
     const gate = text.indexOf(releaseCheck);
+    const sourceGate = text.indexOf(checkoutCheck);
     const gcloud = text.indexOf('command -v gcloud');
     const firstCloudRun = text.indexOf('gcloud run ');
     assert.ok(gate >= 0, path + ' missing release approval check');
-    assert.ok(gcloud > gate, path + ' must check GO before even locating gcloud');
+    assert.ok(sourceGate > gate, path + ' must bind actual source to approved SHA after evidence GO');
+    assert.ok(gcloud > sourceGate, path + ' must verify source identity before even locating gcloud');
     assert.ok(firstCloudRun > gate, path + ' must check GO before Cloud Run commands');
     assert.ok(text.includes('set -euo pipefail'), path + ' must fail fast');
   }
@@ -90,6 +93,54 @@ test('rejected GO preflight blocks explicit canary and promotion before any GCP 
       assert.equal(existsSync(spyPath), false, path + ' must never invoke gcloud');
       rmSync(nodeSpyPath, { force: true });
     }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('Git checkout identity gate accepts only exact clean tracked source', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'klar-checkout-identity-'));
+  try {
+    writeFileSync(join(tmp, 'git'), `#!/bin/sh
+if [ "$1" = "rev-parse" ]; then
+  if [ "$KLAR_FAKE_GIT_MODE" = "unavailable" ]; then exit 1; fi
+  if [ "$KLAR_FAKE_GIT_MODE" = "wrong-sha" ]; then printf '%040d\\n' 0; else printf '%s\\n' "$KLAR_FAKE_SHA"; fi
+  exit 0
+fi
+if [ "$1" = "diff" ]; then
+  if [ "$KLAR_FAKE_GIT_MODE" = "dirty" ]; then exit 1; fi
+  if [ "$KLAR_FAKE_GIT_MODE" = "unavailable" ]; then exit 128; fi
+  exit 0
+fi
+exit 2
+`, { mode: 0o755 });
+    const sha = 'a'.repeat(40);
+    const base = {
+      ...process.env,
+      PATH: tmp + ':' + (process.env.PATH ?? ''),
+      GITHUB_SHA: sha,
+      KLAR_FAKE_SHA: sha,
+    };
+    for (const [mode, expected] of [
+      ['clean', 0],
+      ['wrong-sha', 2],
+      ['dirty', 2],
+      ['unavailable', 2],
+    ]) {
+      const result = spawnSync(process.execPath, ['scripts/check-production-checkout-identity.mjs'], {
+        cwd: root,
+        env: { ...base, KLAR_FAKE_GIT_MODE: mode },
+        encoding: 'utf8', timeout: 15000,
+      });
+      assert.equal(result.status, expected, 'unexpected checkout verdict for ' + mode
+        + ': ' + result.stderr);
+    }
+    const missing = spawnSync(process.execPath, ['scripts/check-production-checkout-identity.mjs'], {
+      cwd: root,
+      env: { ...base, GITHUB_SHA: '' },
+      encoding: 'utf8', timeout: 15000,
+    });
+    assert.equal(missing.status, 2, 'empty declared SHA must always fail');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
