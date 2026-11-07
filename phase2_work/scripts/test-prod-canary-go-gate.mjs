@@ -27,6 +27,64 @@ test('canary and promotion both enforce the exact-SHA GO check before any GCP in
   }
 });
 
+test('canary refuses foreign or mutable images before release approval or gcloud', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'klar-canary-image-gate-'));
+  const invoked = join(tmp, 'any-external-command-called');
+  try {
+    for (const name of ['node', 'gcloud']) {
+      writeFileSync(join(tmp, name),
+        '#!/bin/sh\nprintf "called\\n" >> "$KLAR_IMAGE_GATE_SPY"\nexit 0\n',
+        { mode: 0o755 });
+    }
+    const digest = 'a'.repeat(64);
+    const approved = 'ghcr.io/example/klar-app';
+    const base = {
+      ...process.env,
+      PATH: tmp + ':' + (process.env.PATH ?? ''),
+      KLAR_IMAGE_GATE_SPY: invoked,
+      KLAR_PROJECT_ID: 'demo-klar',
+      KLAR_REGION: 'europe-west3',
+      KLAR_SERVICE: 'klar-test-only',
+      KLAR_CONFIRM_PRODUCTION: 'deploy',
+      KLAR_IMAGE_REPOSITORY: approved,
+    };
+    const rejected = [
+      { image: 'ghcr.io/outsider/klar-app@sha256:' + digest,
+        expected: /outside the approved image repository/ },
+      { image: 'ghcr.io/example/foreign-app@sha256:' + digest,
+        expected: /immutable GHCR klar-app digest/ },
+      { image: 'docker.io/example/klar-app@sha256:' + digest,
+        expected: /immutable GHCR klar-app digest/ },
+      { image: approved + ':latest',
+        expected: /immutable GHCR klar-app digest/ },
+    ];
+    for (const scenario of rejected) {
+      const result = spawnSync('bash', ['scripts/deploy-prod.sh'], {
+        cwd: root,
+        env: { ...base, KLAR_IMAGE: scenario.image },
+        encoding: 'utf8',
+        timeout: 15000,
+      });
+      assert.equal(result.status, 2,
+        'a foreign/mutable image must never proceed: ' + result.stderr);
+      assert.match(result.stderr, scenario.expected);
+      assert.equal(existsSync(invoked), false,
+        'reject image before both release-check Node and Cloud Run CLI');
+    }
+    const missingRepository = spawnSync('bash', ['scripts/deploy-prod.sh'], {
+      cwd: root,
+      env: { ...base, KLAR_IMAGE_REPOSITORY: '', KLAR_IMAGE: approved + '@sha256:' + digest },
+      encoding: 'utf8',
+      timeout: 15000,
+    });
+    assert.equal(missingRepository.status, 1,
+      'a missing image repository must be denied');
+    assert.equal(existsSync(invoked), false);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('a synthetic NO-GO decision cannot be overridden by a protected approval flag alone', () => {
   const failures = collectReleaseApprovalFailures({
     manifest: {
