@@ -88,7 +88,8 @@ test('canary refuses foreign or mutable images before release approval or gcloud
 
 test('canary traffic updates only the verified immutable revision, never a mutable tag', () => {
   const deploy = readFileSync(resolve(root, 'scripts/deploy-prod.sh'), 'utf8');
-  assert.match(deploy, /--to-revisions "\\$\\{candidate_revision\\}=10"/);
+  assert.ok(deploy.includes('--to-revisions "${candidate_revision}=10"'),
+    'canary must use the explicit revision name for its 10% traffic');
   assert.doesNotMatch(deploy, /--to-tags candidate=(?:10|100)/,
     'mutable tag traffic assignment is not an acceptable release target');
   assert.doesNotMatch(deploy, /echo "gcloud run services update-traffic/,
