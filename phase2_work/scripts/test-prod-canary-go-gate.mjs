@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectReleaseApprovalFailures } from './release-go-evidence.mjs';
+import { validateCanaryState } from './validate-canary-state.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const releaseCheck = 'node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"';
@@ -83,6 +84,68 @@ test('canary refuses foreign or mutable images before release approval or gcloud
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('canary traffic updates only the verified immutable revision, never a mutable tag', () => {
+  const deploy = readFileSync(resolve(root, 'scripts/deploy-prod.sh'), 'utf8');
+  assert.match(deploy, /--to-revisions "\\$\\{candidate_revision\\}=10"/);
+  assert.doesNotMatch(deploy, /--to-tags candidate=(?:10|100)/,
+    'mutable tag traffic assignment is not an acceptable release target');
+  assert.doesNotMatch(deploy, /echo "gcloud run services update-traffic/,
+    'do not print an unguarded 100% promotion command');
+  assert.match(deploy, /candidate_image.*gcloud run revisions describe/s,
+    'the deployed candidate image must be inspected before traffic change');
+  assert.match(deploy, /validate-canary-state\.mjs" \\\
+  before /);
+  assert.match(deploy, /validate-canary-state\.mjs" \\\
+  after /);
+});
+
+test('tagged candidate must match an exact 0% revision before the health probes', () => {
+  const revision = 'klar-service-candidate-12345';
+  const url = 'https://candidate---klar-service-abcdef.a.run.app';
+  const fresh = { status: { traffic: [
+    { revisionName: 'klar-service-stable', percent: 100 },
+    { revisionName: revision, tag: 'candidate', url },
+  ] } };
+  assert.equal(validateCanaryState(fresh, 'before', revision), url);
+  assert.throws(() => validateCanaryState(fresh, 'before', 'klar-service-other'),
+    /Candidate tag does not uniquely target/);
+  assert.throws(() => validateCanaryState({
+    status: { traffic: [
+      { revisionName: 'klar-service-stable', percent: 90 },
+      { revisionName: revision, tag: 'candidate', percent: 10, url },
+    ] },
+  }, 'before', revision), /zero traffic/);
+  assert.throws(() => validateCanaryState({ status: { traffic: [
+    { revisionName: revision, tag: 'candidate', url },
+    { revisionName: revision, tag: 'candidate', url },
+  ] } }, 'before', revision), /uniquely target/);
+  assert.throws(() => validateCanaryState({ status: { traffic: [
+    { revisionName: revision, tag: 'candidate', url: 'https://attacker.example/' },
+  ] } }, 'before', revision), /direct HTTPS Cloud Run/);
+});
+
+test('post-shift check requires exactly 10% candidate and 100% total traffic', () => {
+  const revision = 'klar-service-candidate-12345';
+  const url = 'https://candidate---klar-service-abcdef.a.run.app';
+  const state = { status: { traffic: [
+    { revisionName: revision, tag: 'candidate', percent: 10, url },
+    { revisionName: 'klar-service-stable', percent: 90 },
+  ] } };
+  assert.equal(validateCanaryState(state, 'after', revision), url);
+  assert.throws(() => validateCanaryState({ status: { traffic: [
+    { revisionName: revision, tag: 'candidate', percent: 90, url },
+    { revisionName: 'klar-service-stable', percent: 10 },
+  ] } }, 'after', revision), /exactly 10/);
+  assert.throws(() => validateCanaryState({ status: { traffic: [
+    { revisionName: revision, tag: 'candidate', percent: 10, url },
+    { revisionName: 'klar-service-stable', percent: 50 },
+  ] } }, 'after', revision), /total 100/);
+  assert.throws(() => validateCanaryState({ status: { traffic: [
+    { revisionName: revision, tag: 'candidate', percent: '10', url },
+    { revisionName: 'klar-service-stable', percent: 90 },
+  ] } }, 'after', revision), /Invalid candidate traffic percentage/);
 });
 
 test('a synthetic NO-GO decision cannot be overridden by a protected approval flag alone', () => {
