@@ -15,7 +15,11 @@ import {
 
 const emulator = process.env.FIRESTORE_EMULATOR_HOST ?? '';
 const dedicated = process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1';
-const required = dedicated || process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+// Any non-empty CI sentinel other than explicit false/0 requires emulator execution.
+// Fail closed when providers use "1" or another truthy value instead of "true".
+const ciEnabled = (value: string | undefined) =>
+  Boolean(value?.trim() && !/^(?:false|0)$/i.test(value.trim()));
+const required = dedicated || ciEnabled(process.env.CI) || ciEnabled(process.env.GITHUB_ACTIONS);
 if (required && !emulator) throw Error('fence_firestore_emulator_required');
 if (emulator) {
   const config = JSON.parse(readFileSync(dedicated ? 'firebase.pruefung.json' : 'firebase.json', 'utf8'));
