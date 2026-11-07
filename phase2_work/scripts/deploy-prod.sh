@@ -42,16 +42,42 @@ command -v curl >/dev/null
 previous_image="$(gcloud run services describe "${KLAR_SERVICE}"   --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}"   --format='value(spec.template.spec.containers[0].image)')"
 
 revision_suffix="candidate-${GITHUB_RUN_ID:-$(date +%s)}"
+candidate_revision="${KLAR_SERVICE}-${revision_suffix}"
 gcloud run deploy "${KLAR_SERVICE}"   --project "${KLAR_PROJECT_ID}"   --region "${KLAR_REGION}"   --image "${KLAR_IMAGE}"   --revision-suffix "${revision_suffix}"   --tag candidate   --no-traffic   --quiet
 
-candidate_url="$(gcloud run services describe "${KLAR_SERVICE}"   --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}"   --format='value(status.traffic[?tag==candidate].url)')"
+# The mutable "candidate" tag is useful for pre-traffic health probes, but
+# production traffic must be bound to an explicit immutable revision. Check
+# the revision image and its tag target before any service traffic update.
+candidate_image="$(gcloud run revisions describe "${candidate_revision}" \
+  --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" \
+  --format='value(spec.containers[0].image)')"
+[[ "${candidate_image}" == "${KLAR_IMAGE}" ]] || {
+  echo "Candidate revision image differs from approved immutable image" >&2
+  exit 2
+}
+
+candidate_state="$(gcloud run services describe "${KLAR_SERVICE}" \
+  --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" \
+  --format='json(status.traffic)')"
+candidate_url="$(node "$(dirname "${BASH_SOURCE[0]}")/validate-canary-state.mjs" \
+  before "${candidate_revision}" "${candidate_state}")"
 
 curl --fail --silent --show-error --retry 5 --retry-all-errors "${candidate_url}/api/health" >/dev/null
 curl --fail --silent --show-error --retry 5 --retry-all-errors "${candidate_url}/api/ready" >/dev/null
 
-gcloud run services update-traffic "${KLAR_SERVICE}"   --project "${KLAR_PROJECT_ID}"   --region "${KLAR_REGION}"   --to-tags candidate=10   --quiet
+# --to-tags would follow whichever revision currently holds the mutable tag.
+# Use an explicit revision name and verify the result before reporting success.
+gcloud run services update-traffic "${KLAR_SERVICE}" \
+  --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" \
+  --to-revisions "${candidate_revision}=10" --quiet
 
-echo "Canary deployed at 10%."
+post_state="$(gcloud run services describe "${KLAR_SERVICE}" \
+  --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" \
+  --format='json(status.traffic)')"
+node "$(dirname "${BASH_SOURCE[0]}")/validate-canary-state.mjs" \
+  after "${candidate_revision}" "${post_state}" >/dev/null
+
+echo "Canary deployed at 10% on verified revision: ${candidate_revision}."
 echo "Previous image: ${previous_image}"
 echo "Candidate image: ${KLAR_IMAGE}"
 echo "Do NOT promote using an unguarded gcloud update-traffic command."
