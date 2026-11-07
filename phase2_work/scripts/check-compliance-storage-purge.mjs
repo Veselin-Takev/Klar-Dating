@@ -47,7 +47,7 @@ if (bucketCheck < 0 || dbAccess < 0 || bucketCheck >= dbAccess) {
 if (!server.includes('createVerificationStoragePurgeRouter({ getDb: getFirestore })')) {
   throw new Error('Compliance storage purge boundary failed: production router test bucket injector forbidden');
 }
-const hardStop = route.indexOf("if (!deps.getBucket) {\\n      return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });".replace('\\n', '\n'));
+const hardStop = route.indexOf("if (process.env.NODE_ENV === 'production' || !deps.getBucket) {\\n      return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });".replace('\\n', '\n'));
 if (hardStop < 0 || hardStop >= dbAccess) {
   throw new Error('Compliance storage purge boundary failed: P0 hard stop must precede Firestore and Storage');
 }
