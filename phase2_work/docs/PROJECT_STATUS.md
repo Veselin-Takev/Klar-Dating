@@ -1607,3 +1607,30 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## VES-5: verifizierter CI-Emulator-Abbruch – 07.11.2026
+
+Draft [PR #339](https://github.com/Veselin-Takev/Klar-Dating/pull/339)
+auf #336 behebt das stille Überspringen der Firestore-Fencing-Suite bei
+fehlendem CI-Emulator. Beide CI-Sentinels erzwingen jetzt einen Abbruch vor
+SDK-Initialisierung; Standard- und dediziertes Emulator-Profil bleiben getrennt.
+Details und verbleibende Gates:
+[VES-5-Prüfbericht](VES5_FENCE_EMULATOR_CI_2026-11-07.md).
+
+Die vollständige [Enterprise-CI 42379433515](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42379433515)
+ist auf dem unveränderten Code-Commit
+`30f3d83e2b6bce7b5ff62d88ec04c5fc3c7a2795` erfolgreich abgeschlossen.
+Der Job-Log bestätigt 199 Testdateien / 1.539 Tests, darunter alle 28 Tests in
+`verificationPurgeFirestoreFence.spec.ts`, sowie 26 Browser-Akzeptanztests.
+Statische Enterprise-Gates inklusive der 15 neuen Preflight-Regressionen,
+Typecheck, Functions-Build, App-Build und Produktions-Smoke: PASS.
+Dieser Nachtrag ändert ausschließlich den narrativen Projektstatus und keine
+getesteten Anwendungs-, Test-, Build- oder Release-Eingaben. Er aktualisiert den
+im Prüfbericht zunächst als ausstehend dokumentierten CI-Nachweis.
+
+VES-5, VES-8 und VES-11 bleiben offen: unabhängige All-Writer-/Tenant-Prüfung,
+reale Firestore/GCS-Race-/Crash- und IAM/Hold/TTL-Nachweise, freigegebenes
+API-Backend und AppSec/DPO/Legal/SRE/Release-Owner-Sign-offs sind weiterhin
+notwendig. PR #339 und seine Vorgänger sind Draft und unmerged.
+`productionApproved=false`, **Produktion NO-GO**. Weder das automatische
+Vercel-Preview noch die Release-Desk-Oberfläche bestätigen eine Produktionsfreigabe.
