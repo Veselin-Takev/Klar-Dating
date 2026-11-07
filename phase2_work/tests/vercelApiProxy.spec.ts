@@ -104,6 +104,65 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
     expect(send).not.toHaveBeenCalled();
   });
 
+  it('cancels an oversized chunked body before contacting the upstream backend', async () => {
+    const send = vi.fn<typeof fetch>();
+    let canceled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(500 * 1024));
+        controller.enqueue(new Uint8Array(500 * 1024));
+      },
+      cancel() { canceled = true; },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body: stream,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    const response = await proxyKlarApi(request, env, send);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'api_payload_too_large' });
+    expect(send).not.toHaveBeenCalled();
+    expect(canceled).toBe(true);
+  });
+
+  it('forwards only a fully received, under-limit streamed body', async () => {
+    const send = vi.fn(async (_url: URL | RequestInfo, options?: RequestInit) => {
+      expect(new TextDecoder().decode(options?.body as ArrayBuffer)).toBe('{"ok":true}');
+      return Response.json({ code: 'unauthorized' }, { status: 401 });
+    }) as typeof fetch;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"ok":'));
+        controller.enqueue(new TextEncoder().encode('true}'));
+        controller.close();
+      },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    expect((await proxyKlarApi(request, env, send)).status).toBe(401);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not forward an unreadable request stream or return a fabricated age result', async () => {
+    const send = vi.fn<typeof fetch>();
+    const body = new ReadableStream<Uint8Array>({
+      pull() { throw new Error('unexpected incoming stream failure'); },
+    });
+    const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+      method: 'POST',
+      body,
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' });
+    const response = await proxyKlarApi(request, env, send);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'api_payload_unreadable' });
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it('fails closed on upstream network failures, rather than reporting successful verification', async () => {
     const send = vi.fn(async () => { throw new Error('connect ETIMEDOUT'); }) as typeof fetch;
     const response = await proxyKlarApi(ageRequest(), env, send);
