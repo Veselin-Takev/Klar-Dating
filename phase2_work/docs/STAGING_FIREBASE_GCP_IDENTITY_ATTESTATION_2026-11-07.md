@@ -90,6 +90,14 @@ The **Billing > My Projects > Change billing** dialog for `klar-admin` is now vi
 
 **Next manual control:** Select **Mein Rechnungskonto** in the chooser to inspect the resulting confirmation text, **without clicking the final Set account / Confirm button**. Confirm the intended account and the charges/Blaze implications with the user, and then perform a separate explicit approval of the actual billing linkage. Once linked, independently verify `billingEnabled=true` for `klar-admin`, create and confirm EUR 10 project-scoped monthly alerts at 50/80/100% **before any new billable resources or staging CI cloud access**. A trial credit is not a universal hard spend cap; do not click Upgrade simply to select a billing account.
 
+## Billing account selected in project-link confirmation (2026-11-07)
+
+A new user-provided Google Cloud screenshot shows the **Klar Admin** project billing selection confirmation with **Mein Rechnungskonto** selected. The prominent final action is **Konto festlegen** (Set account); it is not shown as completed. The UI states the project charges will be billed to the selected account and warns about possible effects on previously reserved-use commitments/discounts. Prior screenshot of this account showed an active Free Trial and approximate credit/balance at the time, but **credit application to this project and current billing state have not been independently reverified**.
+
+The user previously selected Option B as an **implementation preference**, not evidence that a billing-link operation has occurred. The next step is an explicit user-side **Konto festlegen** action, only if the user accepts pay-as-you-go billing, the Spark-to-Blaze plan upgrade and that the 10-EUR target is **not** an enforced total-project cap. No deployment, Firebase database, IAM role or API should be enabled before checking the resulting project association and creating/verifying a scoped monthly EUR 10 alerts-only budget (50%/80%/100%) immediately afterwards. Do not publish unredacted account details.
+
+Official docs: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans ; https://docs.cloud.google.com/billing/docs/how-to/modify-project ; https://docs.cloud.google.com/billing/docs/how-to/budgets
+
 ## Minimal redacted evidence record
 
 ```text
