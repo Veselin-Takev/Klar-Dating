@@ -51,6 +51,13 @@
 - [Dependent P0 Draft #345](https://github.com/Veselin-Takev/Klar-Dating/pull/345), SHA `e1db047498a797220869ad88243de958c9e17f22`, [Enterprise CI 42416021972](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42416021972) **completed SUCCESS** with `validate` SUCCESS, independently verified on unchanged SHA. No formal review, Cloud IAM/holds proof, all-writer fencing or real Firestore/GCS late-hold negative race proof. **VES-5 P0 still OPEN**.
 - Cloud Staging `klar-admin` billing link was screenshot-confirmed but the project-only EUR 10 monthly budget with actual-cost 50/80/100 alerts is still not demonstrated from saved account UI. Do not add paid Cloud resources on this evidence alone.
 
+## Vercel preview availability vs API readiness — 2026-11-07
+
+- Authenticated Vercel deployment inventory for team `ves3`, project `klar-dating`, exact SHA `113f9c4a9e2357ef3e08d40cb0536a0abc503662` returned deployment **`dpl_Hii9vqv819sirgLhiDMJ64VdfvEf`** with **READY** state and no production target. [Vercel inspector](https://vercel.com/ves3/klar-dating/Hii9vqv819sirgLhiDMJ64VdfvEf). This proves a Git-connected *preview deployment built*, **not** verified API Function routing or a working age gate.
+- A read-only, **non-decrypted** `filter_project_envs` query returned **zero project-level environment variables** for `ves3/klar-dating`. This supports that the required `KLAR_API_UPSTREAM_ORIGIN` and `KLAR_API_ALLOWED_HOST` are not shown in project env configuration; shared external configuration was not exhaustively audited. No secret values were requested or retrieved.
+- An unauthenticated preview API GET could not be reached through the available website inspection source. That is **not** an HTTP status code or proof that the proxy Function executed. Git-backed preview source file-tree API likewise returned unavailable (404) and cannot prove Function output. Independent preview HTTP smoke and live authenticated staging API checks remain **NOT VERIFIED**.
+- Production must remain untouched. Do not fabricate an upstream origin, authorize public Cloud Run access or mark VES-11 P0 closed merely because a preview is READY. Separate approved Cloud Run staging identity, Firebase Auth/App Check, real Firestore database and limited staging budget must precede the backend e2e stage.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
