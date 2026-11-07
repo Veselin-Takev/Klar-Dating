@@ -12,9 +12,20 @@ vi.mock('../src/server/db', () => ({
 vi.mock('firebase-admin/storage', () => ({
   getStorage: () => ({ bucket: doubles.bucket }),
 }));
-vi.mock('node:fs', () => ({
-  readFileSync: () => JSON.stringify(doubles.config),
-}));
+// Preserve the real module (including its default export). Other test/runtime
+// dependencies import node:fs through both CJS-style default and named exports.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  const readFileSync = (...args: Parameters<typeof actual.readFileSync>) =>
+    args[0] === 'firebase-applet-config.json'
+      ? JSON.stringify(doubles.config)
+      : actual.readFileSync(...args);
+  return {
+    ...actual,
+    default: { ...actual, readFileSync },
+    readFileSync,
+  };
+});
 
 import { getAppBucket } from '../src/server/storage';
 
