@@ -95,10 +95,10 @@ test('canary traffic updates only the verified immutable revision, never a mutab
     'do not print an unguarded 100% promotion command');
   assert.match(deploy, /candidate_image.*gcloud run revisions describe/s,
     'the deployed candidate image must be inspected before traffic change');
-  assert.match(deploy, /validate-canary-state\.mjs" \\\
-  before /);
-  assert.match(deploy, /validate-canary-state\.mjs" \\\
-  after /);
+  assert.ok(deploy.includes('before "${candidate_revision}" "${candidate_state}"'),
+    'validate exact candidate tag before health checks');
+  assert.ok(deploy.includes('after "${candidate_revision}" "${post_state}"'),
+    'validate exact traffic percentage after rollout');
 });
 
 test('tagged candidate must match an exact 0% revision before the health probes', () => {
