@@ -94,6 +94,61 @@ describe('P0 hard stop for real verification-photo deletion (no Cloud resources)
   });
 });
 
+describe('production cannot bypass P0 hard stop using a test bucket injector', () => {
+  it('still returns 503 and touches no DB with valid HMAC in production mode', async () => {
+    const previous = {
+      nodeEnv: process.env.NODE_ENV,
+      secret: process.env.COMPLIANCE_JOB_SECRET,
+      enabled: process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED,
+    };
+    const secret = 'test-only-not-a-live-key'.padEnd(64, 'z');
+    let touchedDb = false;
+    let touchedBucket = false;
+    let server: Server | undefined;
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.COMPLIANCE_JOB_SECRET = secret;
+      process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = 'true';
+      const app = express();
+      app.use('/api/admin', createVerificationStoragePurgeRouter({
+        getDb: () => { touchedDb = true; throw new Error('unexpected_db_access'); },
+        getBucket: () => { touchedBucket = true; throw new Error('unexpected_bucket_access'); },
+      }));
+      server = await new Promise<Server>(resolve => {
+        const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      });
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('missing_test_listener');
+      const timestamp = String(Date.now());
+      const body = '{}';
+      const result = await fetch(
+        'http://127.0.0.1:' + address.port + '/api/admin/purge-verification-storage',
+        { method: 'POST', headers: {
+          'content-type': 'application/json',
+          'X-Klar-Compliance-Timestamp': timestamp,
+          'X-Klar-Compliance-Signature': complianceSignature(timestamp + '.' + body, secret),
+        }, body },
+      );
+      expect(result.status).toBe(503);
+      expect(await result.json()).toMatchObject({
+        code: 'verification_storage_purge_p0_fencing_unverified',
+      });
+      expect(touchedDb).toBe(false);
+      expect(touchedBucket).toBe(false);
+    } finally {
+      if (server) await new Promise<void>((resolve, reject) => {
+        server!.close(err => err ? reject(err) : resolve());
+      });
+      if (previous.nodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous.nodeEnv;
+      if (previous.secret === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
+      else process.env.COMPLIANCE_JOB_SECRET = previous.secret;
+      if (previous.enabled === undefined) delete process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
+      else process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = previous.enabled;
+    }
+  });
+});
+
 describe('destructive purge HTTP bucket gate (no Cloud resources)', () => {
   it('returns 503 on a valid HMAC before Firestore when explicit bucket is absent', async () => {
     const previous = {
