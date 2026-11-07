@@ -39,6 +39,18 @@ A user-provided Google Cloud **Billing > My billing accounts** screenshot shows 
 
 **Next read-only verification:** In Billing > **My projects** (German: *Meine Projekte*), locate `klar-admin` and record only whether a billing account is linked and the account's non-sensitive display name (redact billing-account ID). Then open the relevant account's **Budgets & alerts** and check a monthly, EUR 10, specifically `klar-admin`-scoped budget and its 50/80/100% alerts. An alerts-only budget is **not** a hard spending limit. Do not change association, create a new billing account or enable billable resources from this observation.
 
+## Organization-parent console evidence — 2026-11-07
+
+A user-provided Google Cloud **IAM & Admin > Settings** screenshot for project `klar-admin` shows the text that **Access Transparency is unavailable for projects not associated with an organization**. Together with the earlier Billing > My Projects display under **No organization**, this supports that **`klar-admin` currently has no organization parent**. The similarly named `klar-app-admin-org` seen as an organization associated with one available billing account does **not** automatically make it the project's Resource Manager parent. Independently authenticate and inspect the project parent before treating this as an API-certified inventory item.
+
+**Decision: do not migrate by default.** A move from a standalone project into an organization can change inherited organization policies and effective IAM; this requires a deliberate move analysis and owner approval, and is not a prerequisite for emulator-based tests.
+
+**Billing remains disabled.** The identity-and-automation plan is staged: (A) continue free, isolated emulator tests and read-only console inspection, without Cloud mutations; (B) before creating the recommended Google Cloud Workload Identity Pool/Provider for scheduled GitHub OIDC cloud API scans, obtain explicit approval for enabling scoped project billing, confirm monthly alerts and cost-risk controls, then grant minimal identity access. Google Cloud's Workload Identity Federation setup guide explicitly asks that billing be enabled for the pool project. Neither the screenshot nor the current repo proves any WIF pool or read-only cloud service account already exists.
+
+Sources:
+- https://docs.cloud.google.com/resource-manager/docs/project-migration
+- https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
+
 ## Minimal redacted evidence record
 
 ```text
