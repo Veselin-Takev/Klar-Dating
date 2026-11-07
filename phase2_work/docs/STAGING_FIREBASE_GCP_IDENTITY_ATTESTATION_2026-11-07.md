@@ -84,6 +84,12 @@ The user opened the Overview page of a billing account displayed as **Mein Rechn
 
 Next action: Return to **Cloud Billing > My Projects**, select `klar-admin` row → three-dot menu → **Change billing**; inspect offered billing account names, payer/currency and Free Trial vs Paid status **without clicking Set account**. Do not click the Free Trial **Upgrade** button for this inspection. Separately authorize any actual billing association after choosing an account and confirming its cost implications. Google official guides: https://docs.cloud.google.com/billing/docs/how-to/modify-project and https://docs.cloud.google.com/free/docs/free-cloud-features.
 
+## Billing selection dialog — user screenshot 2026-11-07
+
+The **Billing > My Projects > Change billing** dialog for `klar-admin` is now visible. It offers two selectable managed account display names: **Mein Rechnungskonto** and **My Billing Account**. The former was separately observed in a Free Trial account overview with approximately EUR 269 credit and 89 days remaining. **Neither has yet been selected or linked in the project** based on the supplied screenshot; currency, payer authorization and availability of promotional credits for this target project require confirmation. Other projects in the same view are unrelated and must not be affected.
+
+**Next manual control:** Select **Mein Rechnungskonto** in the chooser to inspect the resulting confirmation text, **without clicking the final Set account / Confirm button**. Confirm the intended account and the charges/Blaze implications with the user, and then perform a separate explicit approval of the actual billing linkage. Once linked, independently verify `billingEnabled=true` for `klar-admin`, create and confirm EUR 10 project-scoped monthly alerts at 50/80/100% **before any new billable resources or staging CI cloud access**. A trial credit is not a universal hard spend cap; do not click Upgrade simply to select a billing account.
+
 ## Minimal redacted evidence record
 
 ```text
