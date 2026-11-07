@@ -5,6 +5,7 @@ import { useAuth } from "../lib/AuthContext";
 import { getAuthToken } from "../lib/api";
 import { saveGuestConsent } from "../lib/guestConsent";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { birthdateFromParts, partsFromBirthdate } from "../lib/birthdateEntry";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DSG-02 — Altersangabe und Einwilligung
@@ -32,12 +33,25 @@ interface Props {
 }
 
 export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { refreshProfile, user } = useAuth();
   const [schritt, setSchritt] = useState<"alter" | "einwilligung">(
     alterBereitsGeprueft ? "einwilligung" : "alter",
   );
-  const [geburtsdatum, setGeburtsdatum] = useState("");
+  // Direct numeric entry avoids decade-scrolling on mobile. The native calendar
+  // remains available, and both modes produce the same canonical ISO date.
+  const [modus, setModus] = useState<"direkt" | "kalender">("direkt");
+  const [tag, setTag] = useState("");
+  const [monat, setMonat] = useState("");
+  const [jahr, setJahr] = useState("");
+  const [kalenderDatum, setKalenderDatum] = useState("");
+  const [fehlerAmDatum, setFehlerAmDatum] = useState(false);
+  const geburtsdatum = modus === "kalender"
+    ? (partsFromBirthdate(kalenderDatum) ? kalenderDatum : "")
+    : (birthdateFromParts(tag, monat, jahr) ?? "");
+  const monthFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? "de", {
+    month: "long", timeZone: "UTC",
+  });
   const [zwecke, setZwecke] = useState<Zwecke>({ ki_auswertung: false, fehlerberichte: false, produktanalyse: false });
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
@@ -50,9 +64,11 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
     e.preventDefault();
     if (laeuft) return;
     setFehler(null);
+    setFehlerAmDatum(false);
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(geburtsdatum)) {
+    if (!geburtsdatum) {
       setFehler(t("ageGate.errorInvalid"));
+      setFehlerAmDatum(true);
       return;
     }
 
@@ -84,6 +100,7 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
           case 'INVALID_BIRTHDATE':
           case 'INVALID_BIRTHDATE_FUTURE':
           case 'INVALID_BIRTHDATE_PLAUSIBILITY':
+            setFehlerAmDatum(true);
             setFehler(t("ageGate.errorInvalid"));
             return;
           default:
@@ -192,7 +209,7 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
   }
 
   return (
-    <div className="min-h-[100dvh] bg-canvas flex items-center justify-center p-6">
+    <div className="min-h-[100dvh] bg-canvas flex items-start justify-center px-4 pt-6 pb-12 sm:items-center sm:px-6 sm:py-8">
       <div className="w-full max-w-md">
         <div className="flex justify-end mb-4">
           <LanguageSwitcher />
@@ -204,24 +221,131 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
               {t("ageGate.intro")}
             </p>
 
-            <label htmlFor="geb" className="block text-ink mb-2">
-              {t("ageGate.birthdateLabel")}
-            </label>
-            <input
-              id="geb"
-              name="geburtsdatum"
-              type="date"
-              required
-              min="1900-01-01"
-              value={geburtsdatum}
-              onChange={(e) => {
-                setGeburtsdatum(e.target.value);
-                setFehler(null);
-              }}
-              aria-invalid={!!fehler}
-              aria-describedby={fehler ? "geb-fehler" : undefined}
-              className="w-full p-4 rounded-2xl border border-line-ui bg-surface text-ink mb-2"
-            />
+            <fieldset
+              aria-describedby={fehler ? "geb-hinweis geb-fehler" : "geb-hinweis"}
+              className="mb-2"
+            >
+              <legend className="block text-ink font-medium mb-3">
+                {t("ageGate.birthdateLabel")}
+              </legend>
+
+              {modus === "direkt" ? (
+                <div id="geb-eingabe" className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)] gap-2 sm:gap-3">
+                  <div className="min-w-0">
+                    <label htmlFor="geb-tag" className="block mb-2 text-sm text-ink">
+                      {t("ageGate.dayLabel")}
+                    </label>
+                    <input
+                      id="geb-tag"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="bday-day"
+                      pattern="[0-9]*"
+                      maxLength={2}
+                      placeholder={t("ageGate.dayPlaceholder")}
+                      value={tag}
+                      onChange={e => {
+                        setTag(e.target.value.replace(/\D/g, "").slice(0, 2));
+                        setFehler(null);
+                        setFehlerAmDatum(false);
+                      }}
+                      aria-invalid={fehlerAmDatum}
+                      className="w-full min-h-[52px] px-3 rounded-xl border border-line-ui bg-surface text-ink text-base text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label htmlFor="geb-monat" className="block mb-2 text-sm text-ink">
+                      {t("ageGate.monthLabel")}
+                    </label>
+                    <select
+                      id="geb-monat"
+                      autoComplete="bday-month"
+                      value={monat}
+                      onChange={e => {
+                        setMonat(e.target.value);
+                        setFehler(null);
+                        setFehlerAmDatum(false);
+                      }}
+                      aria-invalid={fehlerAmDatum}
+                      className="w-full min-h-[52px] px-2 rounded-xl border border-line-ui bg-surface text-ink text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                      <option value="">{t("ageGate.monthPlaceholder")}</option>
+                      {Array.from({ length: 12 }, (_, monthIndex) => {
+                        const monthValue = String(monthIndex + 1).padStart(2, "0");
+                        return (
+                          <option key={monthValue} value={monthValue}>
+                            {monthFormatter.format(new Date(Date.UTC(2020, monthIndex, 1)))}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label htmlFor="geb-jahr" className="block mb-2 text-sm text-ink">
+                      {t("ageGate.yearLabel")}
+                    </label>
+                    <input
+                      id="geb-jahr"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="bday-year"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      placeholder={t("ageGate.yearPlaceholder")}
+                      value={jahr}
+                      onChange={e => {
+                        setJahr(e.target.value.replace(/\D/g, "").slice(0, 4));
+                        setFehler(null);
+                        setFehlerAmDatum(false);
+                      }}
+                      aria-invalid={fehlerAmDatum}
+                      className="w-full min-h-[52px] px-2 rounded-xl border border-line-ui bg-surface text-ink text-base text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <input
+                  id="geb"
+                  name="geburtsdatum"
+                  type="date"
+                  data-testid="geburtsdatum-input"
+                  autoComplete="bday"
+                  min="1900-01-01"
+                  value={kalenderDatum}
+                  onChange={e => {
+                    setKalenderDatum(e.target.value);
+                    setFehler(null);
+                    setFehlerAmDatum(false);
+                  }}
+                  aria-label={t("ageGate.birthdateLabel")}
+                  aria-invalid={fehlerAmDatum}
+                  className="w-full min-h-[52px] p-3 rounded-xl border border-line-ui bg-surface text-ink text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                />
+              )}
+              <p id="geb-hinweis" className="text-sm text-muted mt-3">
+                {t("ageGate.dateInputHint")}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (modus === "direkt") {
+                    setKalenderDatum(geburtsdatum);
+                    setModus("kalender");
+                  } else {
+                    const parts = partsFromBirthdate(kalenderDatum);
+                    setTag(parts?.day ?? "");
+                    setMonat(parts?.month ?? "");
+                    setJahr(parts?.year ?? "");
+                    setModus("direkt");
+                  }
+                  setFehler(null);
+                  setFehlerAmDatum(false);
+                }}
+                className="inline-flex items-center min-h-11 mt-2 text-base underline underline-offset-4 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {t(modus === "direkt" ? "ageGate.useCalendar" : "ageGate.useDirect")}
+              </button>
+            </fieldset>
 
             {fehler && (
               <p id="geb-fehler" role="alert" className="text-base mb-2 text-warn">
@@ -231,8 +355,8 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
 
             <button
               type="submit"
-              disabled={laeuft || !geburtsdatum}
-              className="w-full py-4 mt-4 rounded-2xl bg-accent text-on-accent font-medium disabled:opacity-50"
+              disabled={laeuft}
+              className="w-full min-h-[52px] py-3 mt-4 rounded-2xl bg-accent text-on-accent font-medium text-base disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {laeuft ? t("ageGate.checking") : t("ageGate.next")}
             </button>
