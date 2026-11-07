@@ -51,6 +51,33 @@ Sources:
 - https://docs.cloud.google.com/resource-manager/docs/project-migration
 - https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
 
+## User-selected staging option B — 2026-11-07 (planning, not a billing authorization)
+
+The user has selected **B: controlled cloud-staging verification with a EUR 10/month target**. This authorizes preparing the setup, **not** choosing a billing account, attaching billing, enabling APIs, creating IAM identities/databases or deploying services without a deliberate confirmation of the precise settings and costs.
+
+### Billing/Blaze change control
+
+1. Existing Console screenshot: `klar-admin` is under *No organization*, Billing > My projects reports **billing disabled**, and Firebase uses **Spark**. Two active billing accounts exist; **no particular account was selected**. Do not assume the similarly named `klar-app-admin-org` account is the correct payer or infer organization ownership.
+2. Inspect the intended active billing account **display name, billing currency, payer/legal owner and permitted access** before picking it. Do not capture payment details or publish billing-account IDs. User must affirm the selected account before attachment.
+3. Linking an active billing account to the underlying Firebase GCP project **automatically upgrades Spark to Blaze**; this allows pay-as-you-go charges. It does **not** imply an automatic EUR 10 cap.
+4. Immediately after linking (if specifically approved), create a **EUR 10/month, `klar-admin`-only alerts-only budget**, notification thresholds 50%/80%/100% (EUR 5/8/10), and confirm email recipients. No chargeable resources/API rollout until project scoping and alerts are verified.
+5. Google Cloud now documents **spend cap budgets** for eligible single-project **single-service** workloads, including Cloud Run, Cloud Run functions and certain AI services; they **do not provide an all-service EUR 10 project cap** and do not cover Firestore by this list. Check eligibility and configuration separately for relevant services; limits may be exceeded due to enforcement latency. Preserve low quotas and isolated staging regardless.
+6. If the currency differs from EUR, do not enter "10" and misrepresent it as EUR; confirm exchange-rate policy/target before setup. A budget alert is not a spend limit; avoid automated billing disable without impact review.
+7. Proceed only after user shares a redacted view of available account selection (or the intended account display name/currency), and verifies the correct payer. No payment details, credentials, or service-account JSON are needed.
+
+### After budget evidence
+
+- Apply a dedicated, minimal-trust GitHub Actions OIDC/WIF reader to the attested **project number `999168390318`**, with trusted refs and identity attribute restrictions. First read **metadata only**: resource names, DB IDs/locations, role bindings (redacted), Cloud Run/Scheduler/bucket retention and budget state. Do not read customer document contents, photos, secrets or PII.
+- For integration and adversarial Firestore/GCS tests, obtain **additional** approval for isolated synthetic resources. VES-5 destructive operation tests stay off production.
+- Record exact SHA, time, role and outputs in VES-12/VES-8; keep VES-5/VES-11 and overall production **NO-GO** pending independent signoff.
+
+Official sources:
+- https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+- https://docs.cloud.google.com/billing/docs/how-to/verify-billing-enabled
+- https://docs.cloud.google.com/billing/docs/how-to/budgets
+- https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps
+- https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
+
 ## Minimal redacted evidence record
 
 ```text
