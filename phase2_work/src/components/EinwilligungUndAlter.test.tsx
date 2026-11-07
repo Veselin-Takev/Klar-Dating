@@ -63,7 +63,7 @@ describe('mobile accessible age gate', () => {
   });
 
   it('keeps the date and reports backend outage without falsely flagging the date as invalid', async () => {
-    const fetchStub = vi.fn(async () => ({
+    const fetchStub = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => ({
       ok: false, status: 503, json: async () => ({ code: 'api_backend_unavailable' }),
     }));
     vi.stubGlobal('fetch', fetchStub);
@@ -73,8 +73,8 @@ describe('mobile accessible age gate', () => {
     await waitFor(() => expect(fetchStub).toHaveBeenCalledTimes(1));
     const [url, init] = fetchStub.mock.calls[0];
     expect(url).toBe('/api/account/alter');
-    expect(JSON.parse(init.body)).toEqual({ geburtsdatum: '2000-11-10' });
-    expect(init.headers.Authorization).toBe('Bearer test-token');
+    expect(JSON.parse(init?.body as string)).toEqual({ geburtsdatum: '2000-11-10' });
+    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer test-token');
     expect(await screen.findByRole('alert')).toHaveTextContent('ageGate.errorService');
     expect(screen.getByRole('textbox', { name: 'ageGate.yearLabel' })).toHaveValue('2000');
     expect(screen.getByRole('textbox', { name: 'ageGate.dayLabel' })).toHaveAttribute('aria-invalid', 'false');
