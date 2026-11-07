@@ -43,6 +43,14 @@
 - **VES-11** authenticated backend age gate still P0 and requires approved Cloud Run origin, Auth/App Check, Firestore/IAM and preview tests; no production rollout. Cloud staging budget **10 EUR / 50-80-100%** remains unverified from screenshot (saved target `0.00/0.00`, thresholds `50/90/100`); do not deploy additional billable services until verified.
 - `productionApproved=false`, release **NO-GO**; no main merge, Cloud IAM/billing changes or live Storage operations.
 
+## VES-11 age-gate proxy stream memory boundary — 2026-11-07
+
+- [Existing Draft #337](https://github.com/Veselin-Takev/Klar-Dating/pull/337) Vercel same-origin age API proxy has previously passed [Enterprise CI 42241971969](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42241971969) on its own exact SHA `e66283fe6635b757d4fd3236ddd54041a56813e6`. A green CI does **not** prove the missing approved Cloud Run origin, Vercel preview route or authenticated Firebase DOB flow.
+- **New dependent [Draft #346](https://github.com/Veselin-Takev/Klar-Dating/pull/346)**, exact SHA `113f9c4a9e2357ef3e08d40cb0536a0abc503662`: request body was formerly read entirely via `request.arrayBuffer()` before enforcing the 900 KiB limit. Incremental streamed read now cancels over-limit bodies before forwarding; unreadable streams fail closed with HTTP 400. New negative and positive tests cover chunked overflow, successful bounded streaming and read failures. This fixes a concrete resource exhaustion exposure in the Vercel proxy review branch, **not** the missing backend/age-gate P0.
+- [Enterprise CI 42416976358](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42416976358) on #346 was **in_progress at the time of this entry**. Independent reviewer signoff, Vercel staging preview, authenticated negative/positive DOB checks and approved API upstream are missing. **No production deployment**, `productionApproved=false`.
+- [Dependent P0 Draft #345](https://github.com/Veselin-Takev/Klar-Dating/pull/345), SHA `e1db047498a797220869ad88243de958c9e17f22`, [Enterprise CI 42416021972](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42416021972) **completed SUCCESS** with `validate` SUCCESS, independently verified on unchanged SHA. No formal review, Cloud IAM/holds proof, all-writer fencing or real Firestore/GCS late-hold negative race proof. **VES-5 P0 still OPEN**.
+- Cloud Staging `klar-admin` billing link was screenshot-confirmed but the project-only EUR 10 monthly budget with actual-cost 50/80/100 alerts is still not demonstrated from saved account UI. Do not add paid Cloud resources on this evidence alone.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
