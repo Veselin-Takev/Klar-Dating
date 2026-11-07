@@ -63,7 +63,10 @@ test('explicitly disabled CI sentinels allow a local no-emulator run', () => {
 
 test('the regression detects removal of either CI sentinel', () => {
   for (const sentinel of ['CI', 'GITHUB_ACTIONS']) {
-    const mutated = guard.replace(` || ciEnabled(process.env.${sentinel})`, '');
+    const pattern = sentinel === 'CI'
+      ? "  || Boolean(process.env.CI?.trim() && !/^(?:false|0)$/i.test(process.env.CI.trim()))"
+      : "  || Boolean(process.env.GITHUB_ACTIONS?.trim()\n    && !/^(?:false|0)$/i.test(process.env.GITHUB_ACTIONS.trim()))";
+    const mutated = guard.replace(pattern, '');
     assert.notEqual(mutated, guard);
     assert.doesNotThrow(() => check({
       CI: '', GITHUB_ACTIONS: '', [sentinel]: 'true', FIRESTORE_EMULATOR_HOST: '',
