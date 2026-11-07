@@ -36,6 +36,10 @@ test('local developer runs may skip without an emulator', () => {
 for (const [label, env, error] of [
   ['CI without emulator', { FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
   ['GitHub Actions without CI sentinel', { CI: '', GITHUB_ACTIONS: 'true', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
+  ['CI numeric enabled sentinel', { CI: '1', GITHUB_ACTIONS: '', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
+  ['GitHub Actions numeric enabled sentinel', { CI: '', GITHUB_ACTIONS: '1', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
+  ['CI noncanonical enabled sentinel', { CI: 'YES', GITHUB_ACTIONS: '', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
+  ['GitHub Actions noncanonical enabled sentinel', { CI: '', GITHUB_ACTIONS: 'yes', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
   ['dedicated run without emulator', { CI: '', KLAR_REQUIRE_FIRESTORE_EMULATOR: '1', FIRESTORE_EMULATOR_HOST: '' }, /fence_firestore_emulator_required/],
   ['remote endpoint', { FIRESTORE_EMULATOR_HOST: 'firestore.googleapis.com:8080' }, /fence_emulator_unsafe_target/],
   ['default run using dedicated port', { FIRESTORE_EMULATOR_HOST: 'localhost:8085' }, /fence_emulator_unsafe_target/],
@@ -49,9 +53,17 @@ for (const [label, env, error] of [
     assert.throws(() => check(env), error);
   });
 }
+test('explicitly disabled CI sentinels allow a local no-emulator run', () => {
+  for (const disabled of ['false', 'FALSE', '0', '']) {
+    assert.doesNotThrow(() => check({
+      CI: disabled, GITHUB_ACTIONS: disabled, FIRESTORE_EMULATOR_HOST: '',
+    }));
+  }
+});
+
 test('the regression detects removal of either CI sentinel', () => {
   for (const sentinel of ['CI', 'GITHUB_ACTIONS']) {
-    const mutated = guard.replace(` || process.env.${sentinel} === 'true'`, '');
+    const mutated = guard.replace(` || ciEnabled(process.env.${sentinel})`, '');
     assert.notEqual(mutated, guard);
     assert.doesNotThrow(() => check({
       CI: '', GITHUB_ACTIONS: '', [sentinel]: 'true', FIRESTORE_EMULATOR_HOST: '',
