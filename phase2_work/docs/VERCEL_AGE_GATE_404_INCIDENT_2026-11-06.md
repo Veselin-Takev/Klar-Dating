@@ -42,3 +42,12 @@ A stacked Draft patch now reads `request.body` incrementally, accumulates only u
 
 **Acceptance:** Require exact-head pinned-Node CI, independent AppSec review, Vercel preview Function confirmation and preview smoke tests with an approved staging Cloud Run origin, then validated server-side DOB/consent workflows using synthetic test accounts. This request-body guard does not create a backend origin or fix the existing live 404; VES-11 remains P0 OPEN. Do not merge to main or deploy production based solely on these tests.
 
+
+## Follow-up review (2026-11-07): prevent cross-origin browser-cookie forwarding
+
+The Vercel API proxy previously forwarded the entire incoming browser `Cookie` header to the separately hosted, pinned Cloud Run API along with the Firebase `Authorization: Bearer` token. Because this header may contain preview-access cookies (such as `_vercel_jwt`), browser session values or third-party application cookies, propagating it across an additional trust boundary is an unnecessary sensitive-data disclosure. The checked-in `server.ts` `requireAuth` middleware validates a Firebase Bearer ID token, and source search found no `req.cookies`, `cookieParser`, or `credentials: 'include'` dependencies in the reviewed Klar paths. This finding is source-level; no exfiltration in a deployed environment has been established.
+
+The same review-only VES-11 branch removes `cookie` from the request-header allowlist. It continues to forward the required Firebase `authorization` header. Positive and negative regression tests inject `_vercel_jwt` and `__session` cookies, require the upstream request to have no `cookie` header, and retain a 401 from a mocked protected endpoint. The proxy still strips upstream `set-cookie` responses; a complete server-side session-cookie workflow, if introduced later, must undergo a separate explicit design review instead of weakening this boundary.
+
+**CI caveat:** Updating this branch invalidates the former exact-SHA CI success `113f9c4a9e2357ef3e08d40cb0536a0abc503662`. Require a new exact-HEAD Enterprise CI (tests/typecheck/build/browser), then independently verify preview and backend Auth/Cloud Run integration. This hardening does **not** resolve the absent approved staging backend or real DOB acceptance. VES-11 remains P0 OPEN, release NO-GO, no production merge/deployment.
+
