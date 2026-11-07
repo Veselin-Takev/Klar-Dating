@@ -48,3 +48,10 @@ This code does not create, authorize or access a real GCS bucket. **Actual bucke
 
 This revision supersedes any earlier CI result on the same draft branch. Require a new exact-HEAD Enterprise CI, peer review and separate staged cloud evidence before merge. The project budget gate (EUR 10 monthly, 50/80/100 alerts) remains unverified.
 
+
+## CI failure and repair — node:fs module mock
+
+[Enterprise CI run 42414110302](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42414110302) on SHA `78763b9e152ffe324a9e4fe3b000463f683c84b2` **FAILED at Tests**. Raw job logs show `tests/storageBucketIsolation.spec.ts` aborted during import (zero executed cases) with Vitest's **missing `default` export on the `node:fs` test mock**, leaving 192 test files and 1,379 individual tests passed; subsequent build and browser jobs were skipped. This is a concrete test-harness regression, not proof of a storage-runtime defect.
+
+A follow-up change preserves the real `node:fs` named/default exports via `importOriginal` while intercepting only `firebase-applet-config.json` reads. This avoids breaking other imports and retains the fixture for cross-project Storage-negative tests. **New exact-HEAD CI is required**; do not claim PASS from code review alone. The parent #343 previously passed on a distinct exact SHA, which does not attest this child.
+
