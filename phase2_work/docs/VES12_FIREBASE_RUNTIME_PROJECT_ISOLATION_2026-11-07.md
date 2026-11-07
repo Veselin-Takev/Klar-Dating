@@ -22,3 +22,14 @@ The backend Firebase Admin SDK resolver, `src/server/firebaseRuntime.ts`, previo
 - [ ] VES-5 real Firestore/GCS late-hold adversarial proof and VES-11 age API remain P0 open, production release `productionApproved=false`.
 
 Reference: [VES-12](https://linear.app/takev/issue/VES-12), [Release evidence Draft PR #341](https://github.com/Veselin-Takev/Klar-Dating/pull/341).
+
+## Follow-up: pre-initialized Admin app cross-project reuse
+
+The `getServerFirebaseApp()` consumer in `src/server/db.ts` originally used `getApps()[0]` without checking either the Admin app's default name or `app.options.projectId`. Even after validating environment variables in PR #343, a **previously initialized** Firebase Admin app with a different project ID could be reused for Firestore, Auth, and Storage, silently defeating the project selection.
+
+The stacked review branch **requires the default Admin app** (`[DEFAULT]`) and rejects an already-initialized default app when its configured `options.projectId` is absent or does not match the resolved runtime project ID. It initializes a correct default app when only unrelated named Admin apps exist. This intentionally fails closed for ambiguous app identity. It never reuses a non-default named app.
+
+New unit cases in `tests/nativeFirestoreBoundary.spec.ts` cover an existing default app with matching, conflicting or missing project ID, as well as a pre-existing unrelated named app. The suite also asserts that Firestore initialization remains fail-closed on mismatch. Compatibility of environments relying on implicit ADC app initialization must be reviewed before merge; no automatic change to Cloud Run or Firebase Admin credentials is made.
+
+**Verification pending:** exact-head CI and independent runtime review on the dependent PR. The parent #343 CI success only attests SHA `601c316c4b875242989f488473bba61b4c22322c`. Neither its success nor these source-level changes constitute real `klar-admin` Firestore/Cloud verification.
+
