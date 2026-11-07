@@ -333,17 +333,14 @@ export function EinwilligungUndAlter({ onFertig, alterBereitsGeprueft = false }:
                     setModus("kalender");
                   } else {
                     const parts = partsFromBirthdate(kalenderDatum);
-                    if (parts) {
-                      setTag(parts.day);
-                      setMonat(parts.month);
-                      setJahr(parts.year);
-                    }
+                    setTag(parts?.day ?? "");
+                    setMonat(parts?.month ?? "");
+                    setJahr(parts?.year ?? "");
                     setModus("direkt");
                   }
                   setFehler(null);
                   setFehlerAmDatum(false);
                 }}
-                aria-controls="geb-eingabe"
                 className="inline-flex items-center min-h-11 mt-2 text-base underline underline-offset-4 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 {t(modus === "direkt" ? "ageGate.useCalendar" : "ageGate.useDirect")}
