@@ -5,7 +5,11 @@ import { test } from 'node:test';
 
 // Execute the real dependency-free module, with no Firebase/Admin SDK mocks.
 const source = stripTypeScriptTypes(readFileSync(new URL('../functions/src/retention.ts', import.meta.url), 'utf8'));
-const { deleteAccountPhotos } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { deleteAccountPhotos: deleteAccountPhotosReal } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+// Legacy verification-object scenarios run only through the explicit
+// nonproduction test mode; real account deletion does not use this override.
+const deleteAccountPhotos = (bucket, uid) =>
+  deleteAccountPhotosReal(bucket, uid, 'unsafe-emulator-test-only');
 
 function photo(options = {}) {
   return {
@@ -23,6 +27,59 @@ function photo(options = {}) {
 function bucket(files) {
   return { async getFiles() { return [files, null]; } };
 }
+
+test('real account erasure rejects unfenced verification photos before any delete', async () => {
+  let deleted = 0;
+  let profileTouched = false;
+  const photo = { async getMetadata() { return [{ generation: '7' }]; },
+    async delete() { deleted++; } };
+  const storage = { async getFiles({ prefix }) {
+    if (prefix === 'verification/owner/') return [[photo], null];
+    if (prefix === 'profiles/owner/') profileTouched = true;
+    return [[], null];
+  } };
+  await assert.rejects(deleteAccountPhotosReal(storage, 'owner'), /verification_photo_p0_fencing_unverified/);
+  assert.equal(deleted, 0);
+  assert.equal(profileTouched, false);
+});
+
+test('profile-only erasure succeeds when verification prefix stays absent', async () => {
+  const requests = [];
+  let deleted = 0;
+  const profile = { async getMetadata() { return [{ generation: '7' }]; },
+    async delete({ ifGenerationMatch }) {
+      assert.equal(ifGenerationMatch, '7');
+      deleted++;
+    } };
+  const storage = { async getFiles({ prefix }) {
+    requests.push(prefix);
+    return [prefix === 'profiles/owner/' && deleted === 0 ? [profile] : [], null];
+  } };
+  assert.equal(await deleteAccountPhotosReal(storage, 'owner'), false);
+  assert.equal(deleted, 1);
+  assert.deepEqual(requests, [
+    'verification/owner/', 'profiles/owner/', 'verification/owner/',
+  ]);
+  assert.equal(await deleteAccountPhotosReal(storage, 'owner'), true);
+  assert.equal(deleted, 1);
+});
+
+test('late verification photo creation is not silently acknowledged as account erasure', async () => {
+  let verificationReads = 0;
+  let profileDeletions = 0;
+  const file = { async getMetadata() { return [{ generation: '7' }]; },
+    async delete() { profileDeletions++; } };
+  const storage = { async getFiles({ prefix }) {
+    if (prefix === 'verification/owner/') {
+      verificationReads++;
+      return [verificationReads === 1 ? [] : [file], null];
+    }
+    return [[file], null];
+  } };
+  await assert.rejects(deleteAccountPhotosReal(storage, 'owner'), /verification_photo_p0_fencing_unverified/);
+  assert.equal(profileDeletions, 1);
+  assert.equal(verificationReads, 2);
+});
 
 test('bounds pages, re-lists after deletion and requires empty prefixes before completion', async () => {
   const objects = new Map();
