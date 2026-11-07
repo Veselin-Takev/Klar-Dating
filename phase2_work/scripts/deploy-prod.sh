@@ -16,6 +16,12 @@ if [[ ! "${KLAR_IMAGE}" =~ @sha256:[0-9a-f]{64}$ ]]; then
   exit 2
 fi
 
+# A candidate with 10% canary traffic is a production release action.
+# Do not contact GCP while the repository's exact-SHA GO evidence is NO-GO.
+# This check also requires the protected release approval and independent reviews.
+command -v node >/dev/null
+node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"
+
 command -v gcloud >/dev/null
 command -v curl >/dev/null
 
