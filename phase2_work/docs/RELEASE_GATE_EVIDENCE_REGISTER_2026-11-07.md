@@ -28,6 +28,13 @@
 - The user reports that the previously unknown Google project `prime-casing-48f9p` was reviewed and appears in order; the security inquiry is **deprioritized by user confirmation**, not independently attested here. No ownership, billing-security or creator attribution should be asserted without direct cloud evidence.
 - Both real production blockers, **VES-5** and **VES-11**, and `productionApproved=false` remain unchanged. No production promotion or merges.
 
+## CI blocker and remediation — Draft #344 (2026-11-07)
+
+- [CI 42414110302](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42414110302), SHA `78763b9e152ffe324a9e4fe3b000463f683c84b2`, **completed FAILURE** at `Tests`: 192 test files / 1,379 test cases PASS; one new suite `tests/storageBucketIsolation.spec.ts` failed during module import (zero tests executed), because its `node:fs` mock did not include a default export. Build and browser acceptance were skipped. Previous CI success of parent #343 is **not** a success for #344.
+- In stacked [Draft #344](https://github.com/Veselin-Takev/Klar-Dating/pull/344), the test now uses a partial, real-module-preserving `node:fs` mock, intercepting only the checked-in Firebase config read; new source SHA `e245b9c68a06a4675767fb0586d32e321dd3026c`. Documentation-only follow-up gives final HEAD `6e3a10a7dee58f3b55d9e2bc52986d686e189844`.
+- [New Enterprise CI 42414827630](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42414827630) on exact final head **pending at last check**. Do not treat failure as remediated until this run finishes successfully; verify six storage boundary tests, native Firestore regressions, full build and browser checks. Then obtain independent AppSec/SRE review.
+- Cloud resource attestation, IAM, actual GCS legal-hold race tests, Firebase staging API, and verified EUR 10/month budget remain open. Production **NO-GO**, `productionApproved=false`, no merges/deployments.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
