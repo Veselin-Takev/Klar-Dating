@@ -97,7 +97,7 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const bucket = getAppBucket();
     const paths = [`profiles/${prefix}/a.jpg`, `verification/${prefix}/a.jpg`, `profiles/${prefix}-other/a.jpg`];
     for (const path of paths) await bucket.file(path).save(image);
-    await deleteAccountPhotos(bucket, prefix);
+    await deleteAccountPhotos(bucket, prefix, 'unsafe-emulator-test-only');
     expect((await bucket.file(paths[0]!).exists())[0]).toBe(false);
     expect((await bucket.file(paths[1]!).exists())[0]).toBe(false);
     expect((await bucket.file(paths[2]!).exists())[0]).toBe(true);
