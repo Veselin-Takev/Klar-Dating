@@ -78,6 +78,12 @@ Official sources:
 - https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps
 - https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
 
+## Further billing-account view (2026-11-07, screenshots only)
+
+The user opened the Overview page of a billing account displayed as **Mein Rechnungskonto**. The page indicates a **Free Trial billing account**, approximately **EUR 269 remaining trial credit** and **89 days remaining**, with **EUR 0 November costs** in the current period. It is **NOT** the `klar-admin` project's **Change billing** dialog. These figures are account-level and time-sensitive, not project allocation, not a guaranteed monthly 10-EUR limit, and not evidence that `klar-admin` has been linked. No raw billing-account ID or payment details are retained here.
+
+Next action: Return to **Cloud Billing > My Projects**, select `klar-admin` row → three-dot menu → **Change billing**; inspect offered billing account names, payer/currency and Free Trial vs Paid status **without clicking Set account**. Do not click the Free Trial **Upgrade** button for this inspection. Separately authorize any actual billing association after choosing an account and confirming its cost implications. Google official guides: https://docs.cloud.google.com/billing/docs/how-to/modify-project and https://docs.cloud.google.com/free/docs/free-cloud-features.
+
 ## Minimal redacted evidence record
 
 ```text
