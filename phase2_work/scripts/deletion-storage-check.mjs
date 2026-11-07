@@ -81,6 +81,28 @@ test('late verification photo creation is not silently acknowledged as account e
   assert.equal(verificationReads, 2);
 });
 
+test('production rejects the legacy emulator-only deletion override', async () => {
+  const previous = process.env.NODE_ENV;
+  let bucketAccessed = false;
+  try {
+    process.env.NODE_ENV = 'production';
+    await assert.rejects(deleteAccountPhotosReal({
+      async getFiles() { bucketAccessed = true; return [[], null]; },
+    }, 'owner', 'unsafe-emulator-test-only'), /verification_photo_p0_fencing_unverified/);
+    assert.equal(bucketAccessed, false);
+  } finally {
+    if (previous === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previous;
+  }
+});
+
+test('server account-deletion caller cannot opt into emulator-only verification deletion', () => {
+  const caller = readFileSync(new URL('../src/server/trustAndSafety.ts', import.meta.url), 'utf8');
+  assert.match(caller, /deleteAccountPhotos\(getAppBucket\(\), meineUid\)/);
+  assert.doesNotMatch(caller, /deleteAccountPhotos\(getAppBucket\(\),\s*meineUid\s*,/,
+    'live account-deletion must not use the legacy unsafe test mode');
+});
+
 test('bounds pages, re-lists after deletion and requires empty prefixes before completion', async () => {
   const objects = new Map();
   for (const [prefix, size] of [['verification/owner/', 205], ['profiles/owner/', 102], ['profiles/owner-other/', 1]]) {
