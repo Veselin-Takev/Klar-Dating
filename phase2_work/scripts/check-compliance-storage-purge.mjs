@@ -9,6 +9,7 @@ const checks = [
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
   ['explicit purge bucket checked', /validatedVerificationPurgeBucketName\(process\.env\.FIREBASE_STORAGE_BUCKET\)/],
   ['unconfigured purge bucket returns 503', /verification_storage_purge_bucket_unconfigured/],
+  ['P0 unfenced production purge returns 503', /verification_storage_purge_p0_fencing_unverified/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
   ['verification path boundary', /startsWith\(`verification\/\$\{uid\}\/`\)/],
@@ -40,5 +41,14 @@ const bucketCheck = route.indexOf('if (!deps.getBucket && !purgeBucketName)');
 const dbAccess = route.indexOf('const db = deps.getDb();');
 if (bucketCheck < 0 || dbAccess < 0 || bucketCheck >= dbAccess) {
   throw new Error('Compliance storage purge boundary failed: bucket check must precede Firestore access');
+}
+// The only real production server wiring must never provide the test-only
+// getBucket injector while the Firestore-to-GCS fencing race is unresolved.
+if (!server.includes('createVerificationStoragePurgeRouter({ getDb: getFirestore })')) {
+  throw new Error('Compliance storage purge boundary failed: production router test bucket injector forbidden');
+}
+const hardStop = route.indexOf("if (process.env.NODE_ENV === 'production' || !deps.getBucket) {\\n      return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });".replace('\\n', '\n'));
+if (hardStop < 0 || hardStop >= dbAccess) {
+  throw new Error('Compliance storage purge boundary failed: P0 hard stop must precede Firestore and Storage');
 }
 console.log('Compliance storage purge boundary: PASS');
