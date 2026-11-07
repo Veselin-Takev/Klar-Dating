@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectReleaseApprovalFailures } from './release-go-evidence.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const releaseCheck = 'node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"';
@@ -23,16 +24,44 @@ test('canary and promotion both enforce the exact-SHA GO check before any GCP in
   }
 });
 
-test('NO-GO repository manifest blocks even explicit canary and promotion confirmations before GCP', () => {
+test('a synthetic NO-GO decision cannot be overridden by a protected approval flag alone', () => {
+  const failures = collectReleaseApprovalFailures({
+    manifest: {
+      releaseEvidence: { status: 'VERIFIED' },
+      releaseGovernance: {
+        decision: 'NO-GO',
+        productionApproved: false,
+        blockers: [],
+        integrationEvidence: { overallDecision: 'GO' },
+      },
+    },
+    checklist: '- [x] Synthetic checked item',
+    env: {
+      KLAR_PRODUCTION_RELEASE_APPROVED: 'true',
+      GITHUB_SHA: 'a'.repeat(40),
+    },
+  });
+  assert.ok(failures.some(reason => reason.includes('not explicitly GO and approved')),
+    'a true environment flag must never override a NO-GO manifest');
+});
+
+test('rejected GO preflight blocks explicit canary and promotion before any GCP command', () => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-release-no-go-'));
   const spyPath = join(tmp, 'gcloud-called');
+  const nodeSpyPath = join(tmp, 'node-approval-check-called');
   try {
     writeFileSync(join(tmp, 'gcloud'),
       '#!/bin/sh\nprintf "called\\n" >> "$KLAR_GCLOUD_SPY_FILE"\nexit 0\n', { mode: 0o755 });
+    // An explicit denying Node preflight makes the test stable even after a
+    // legitimate future GO replaces the repository's current NO-GO manifest.
+    writeFileSync(join(tmp, 'node'),
+      '#!/bin/sh\necho called >> "$KLAR_NODE_SPY_FILE"\necho "mock-release-approval-denied" >&2\nexit 42\n',
+      { mode: 0o755 });
     const env = {
       ...process.env,
       PATH: tmp + ':' + (process.env.PATH ?? ''),
       KLAR_GCLOUD_SPY_FILE: spyPath,
+      KLAR_NODE_SPY_FILE: nodeSpyPath,
       KLAR_PROJECT_ID: 'demo-klar',
       KLAR_REGION: 'europe-west3',
       KLAR_SERVICE: 'klar-staging-test-only',
@@ -54,10 +83,12 @@ test('NO-GO repository manifest blocks even explicit canary and promotion confir
       const result = spawnSync('bash', [path], {
         cwd: root, env, encoding: 'utf8', timeout: 20000,
       });
-      assert.notEqual(result.status, 0, path + ' must reject a NO-GO manifest');
-      assert.match(result.stderr, /Production release approval check FAILED/,
-        path + ' must fail via the independent release evidence validator');
+      assert.notEqual(result.status, 0, path + ' must reject a failing GO preflight');
+      assert.match(result.stderr, /mock-release-approval-denied/,
+        path + ' must invoke and honor the release evidence validator');
+      assert.equal(existsSync(nodeSpyPath), true, path + ' must execute the preflight');
       assert.equal(existsSync(spyPath), false, path + ' must never invoke gcloud');
+      rmSync(nodeSpyPath, { force: true });
     }
   } finally {
     rmSync(tmp, { recursive: true, force: true });
