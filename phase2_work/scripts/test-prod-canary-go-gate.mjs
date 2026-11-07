@@ -186,7 +186,7 @@ esac
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /mock-evidence-denied/);
-    const invokedScripts = readFileSync(nodeLog, 'utf8').trim().split('\\n');
+    const invokedScripts = readFileSync(nodeLog, 'utf8').trim().split('\n');
     assert.equal(invokedScripts.length, 3, 'GO, checkout and promotion evidence validators required');
     assert.equal(invokedScripts[2], trustedValidator,
       'promotion validator must come from checked-out release script directory, not caller CWD');
