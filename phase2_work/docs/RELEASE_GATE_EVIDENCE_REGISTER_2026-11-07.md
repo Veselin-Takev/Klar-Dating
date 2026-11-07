@@ -19,6 +19,14 @@
 | Release SHA CI | #339 CI on one exact commit only | Independent full CI on *final consolidated* commit, immutable artifact digest, SBOM/dependency security review and provenance | **OPEN** |
 | Compliance and approvals | Existing repository/Linear issue plans | AppSec, DPO/Legal, SRE, QA and Release Owner sign the same immutable candidate | **OPEN** |
 
+## Latest checked CI and runtime staging hardening — 2026-11-07
+
+- **VES-5 CI fail-closed guard** [Draft #342](https://github.com/Veselin-Takev/Klar-Dating/pull/342): exact commit `3dcc6c203907c6ca78c85af39031ab77920d364f`, [Enterprise CI run 42407127495](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42407127495) returned **completed SUCCESS**, and the single `validate` job returned **SUCCESS**. This establishes CI success on #342's branch only, not an independently verified cross-service Firestore/GCS purge interlock. Draft remains unmerged and VES-5 P0 open.
+- **VES-12 Firebase runtime mismatch fix** [Draft #343](https://github.com/Veselin-Takev/Klar-Dating/pull/343), exact SHA `601c316c4b875242989f488473bba61b4c22322c`: reject disagreeing `GCLOUD_PROJECT` / `GOOGLE_CLOUD_PROJECT` / `FIREBASE_PROJECT_ID` and avoid importing the Firestore database ID from an unrelated Firebase config into an explicitly selected staging project. [Enterprise CI run 42413071403](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42413071403) was **in_progress** at last check; do not claim it passed. This is a separate unmerged review-only branch from `main`.
+- **Screenshot-based user-verified Cloud account state**: `klar-admin` has Billing linked to `Mein Rechnungskonto`, but its saved monthly budget listed `0,00 € / 0,00 €`, thresholds `50/90/100` and name `10`. This **does not prove** the intended EUR 10 threshold or EUR 8 middle alert. Validate amount, actual-cost thresholds, account scope and notifications before creating billable Firestore, Cloud Run or Workload Identity resources.
+- The user reports that the previously unknown Google project `prime-casing-48f9p` was reviewed and appears in order; the security inquiry is **deprioritized by user confirmation**, not independently attested here. No ownership, billing-security or creator attribution should be asserted without direct cloud evidence.
+- Both real production blockers, **VES-5** and **VES-11**, and `productionApproved=false` remain unchanged. No production promotion or merges.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
