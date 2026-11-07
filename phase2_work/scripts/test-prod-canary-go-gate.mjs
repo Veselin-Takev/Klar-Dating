@@ -108,6 +108,10 @@ if [ "$1" = "rev-parse" ]; then
   exit 0
 fi
 if [ "$1" = "diff" ]; then
+  # A positive test verdict is allowed ONLY for a repo-root diff. A cwd-
+  # relative diff misses tracked root governance files such as .github/*.
+  if [ "$2" != "--quiet" ] || [ "$3" != "HEAD" ] ||
+     [ "$4" != "--" ] || [ "$5" != ":/" ]; then exit 7; fi
   if [ "$KLAR_FAKE_GIT_MODE" = "dirty" ]; then exit 1; fi
   if [ "$KLAR_FAKE_GIT_MODE" = "unavailable" ]; then exit 128; fi
   exit 0
