@@ -23,6 +23,8 @@ set -euo pipefail
 # promotion. Preserve the same immutable exact-SHA GO gate used at deploy.
 command -v node >/dev/null
 node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"
+# The approved SHA must be the real, clean checked-out source (not just an env claim).
+node "$(dirname "${BASH_SOURCE[0]}")/check-production-checkout-identity.mjs"
 command -v gcloud >/dev/null
 
 node scripts/validate-promotion-evidence.mjs "${KLAR_PROMOTION_EVIDENCE}" "${KLAR_PROMOTE_IMAGE}" "${KLAR_PROMOTE_REVISION}" "${GITHUB_SHA:-${KLAR_BUILD_SHA:-}}"
