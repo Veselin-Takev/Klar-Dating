@@ -21,6 +21,8 @@ fi
 # This check also requires the protected release approval and independent reviews.
 command -v node >/dev/null
 node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"
+# The approved SHA must be the real, clean checked-out source (not just an env claim).
+node "$(dirname "${BASH_SOURCE[0]}")/check-production-checkout-identity.mjs"
 
 command -v gcloud >/dev/null
 command -v curl >/dev/null
