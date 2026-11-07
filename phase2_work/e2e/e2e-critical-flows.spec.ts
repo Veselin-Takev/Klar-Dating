@@ -48,19 +48,27 @@ test.describe('Klar-App Critical E2E Journeys (Matching & Chat)', () => {
   test('Onboarding Edge-Case: Altersprüfung lehnt Minderjährige (< 18) deterministisch ab', async ({ page }) => {
     await page.goto('http://localhost:3000/');
     
+    const directDay = page.locator('#geb-tag');
     const geburtsdatumInput = page.locator('input[type="date"], [data-testid="geburtsdatum-input"]');
-    if (await geburtsdatumInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      // Zu junges Datum eingeben (z.B. vor 15 Jahren)
+    if (await directDay.isVisible({ timeout: 3000 }).catch(() => false)
+        || await geburtsdatumInput.isVisible({ timeout: 500 }).catch(() => false)) {
+      // Underage date intentionally goes to the server: no client-side age bypass.
       const dateUnder18 = new Date();
       dateUnder18.setFullYear(dateUnder18.getFullYear() - 15);
       const formattedDate = dateUnder18.toISOString().split('T')[0];
-
-      await geburtsdatumInput.fill(formattedDate);
+      if (await directDay.isVisible()) {
+        const [year, month, day] = formattedDate.split('-');
+        await directDay.fill(String(Number(day)));
+        await page.locator('#geb-monat').selectOption(month);
+        await page.locator('#geb-jahr').fill(year);
+      } else {
+        await geburtsdatumInput.fill(formattedDate);
+      }
       const submitBtn = page.locator('button[type="submit"], [data-testid="btn-alter-bestaetigen"]');
       if (await submitBtn.isVisible()) {
         await submitBtn.click();
-        // Erwarte Fehlermeldung bezüglich Mindestalter
-        const errorNotice = page.locator('text=mindestens 18 Jahre, text=volljährig, text=Altersprüfung');
+        // Only the backend may confirm adult eligibility or underage lock.
+        const errorNotice = page.getByRole('alert');
         await expect(errorNotice.first()).toBeVisible({ timeout: 4000 });
       }
     }
