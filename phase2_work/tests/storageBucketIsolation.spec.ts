@@ -48,13 +48,15 @@ describe('Firebase Storage project isolation', () => {
   it('uses an explicit reviewed bucket for a different staging project', () => {
     process.env.FIREBASE_STORAGE_BUCKET = 'klar-admin.firebasestorage.app';
     expect(getAppBucket()).toEqual({ name: 'klar-admin.firebasestorage.app' });
-    expect(doubles.bucket).toHaveBeenCalledExactlyOnceWith('klar-admin.firebasestorage.app');
+    expect(doubles.bucket).toHaveBeenCalledTimes(1);
+    expect(doubles.bucket).toHaveBeenCalledWith('klar-admin.firebasestorage.app');
   });
 
   it('permits the checked-in bucket when the Admin project matches the config project', () => {
     doubles.projectId = 'legacy-project';
     expect(getAppBucket()).toEqual({ name: 'legacy-project.firebasestorage.app' });
-    expect(doubles.bucket).toHaveBeenCalledExactlyOnceWith('legacy-project.firebasestorage.app');
+    expect(doubles.bucket).toHaveBeenCalledTimes(1);
+    expect(doubles.bucket).toHaveBeenCalledWith('legacy-project.firebasestorage.app');
   });
 
   it('does not treat a blank bucket override as explicit authorization', () => {
