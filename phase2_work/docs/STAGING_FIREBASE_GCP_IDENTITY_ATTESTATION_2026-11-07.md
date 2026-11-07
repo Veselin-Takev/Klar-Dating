@@ -1,9 +1,24 @@
 # Klar Staging Project Identity and Read-Only Cloud Verification — 2026-11-07
 
-**Status: UNVERIFIED / NO-GO**. No Firebase/GCP resource creation or production mutation is authorized by this document. Corresponds to Linear [VES-12](https://linear.app/takev/issue/VES-12).
+**Project identity: SCREENSHOT-CONFIRMED (2026-11-07); authenticated cloud API attestation still pending. Production: NO-GO.** No Firebase/GCP resource creation or production mutation is authorized by this document. Corresponds to Linear [VES-12](https://linear.app/takev/issue/VES-12).
+
+## New user-provided Console evidence — 2026-11-07
+
+Two screenshots of the signed-in Google Cloud project dashboard and Firebase project settings show the same project identity:
+
+| Source | Project name | Project ID | Project number |
+| --- | --- | --- | --- |
+| Google Cloud project information | Klar Admin | `klar-admin` | `999168390318` |
+| Firebase project settings > General | Klar Admin | `klar-admin` | `999168390318` |
+
+**Assessment:** The user-visible Console pages show a consistent Google Cloud/Firebase project identity. There is no need to create another project named `klar-admin`. Firebase Settings currently shows the **Spark/free plan**, **zero registered Firebase apps**, and environment type **Unspecified**. These screenshots do **not** establish any deployed Firestore database, storage bucket, IAM policy, Cloud Run service, Scheduler, billing-account attachment, or a real EUR 10 project budget; these remain to be inspected.
+
+Evidence sensitivity: source screenshots were supplied in the chat and include account UI. Do **not** publish or embed unredacted screenshots or personal account/email fields in GitHub. This document records only non-secret project metadata. A direct, independently authenticated read-only API inventory remains outstanding.
+
+**Next user-assisted step:** Open Firebase Console > Build > Firestore Database and report whether a database exists, its ID/location if present, or the uninitialized creation prompt. Do not click Create or choose the permanent database location until data residence, security policy and cost review. In parallel, inspect Cloud Billing > Budgets & alerts and identify whether an active project-scoped budget for `klar-admin` actually exists; do not conflate the Firebase Spark plan with an independently verified spend cap.
 
 ## Existing evidence (not proof of cloud ownership)
-- Linear VES-12 recorded user-reported Firebase and GCP ID **`klar-admin`** (2026-11-06), with Firestore and Cloud Run reportedly not yet created; Firebase/GCP project number, IAM, billing and Firebase activation are unverified.
+- Linear VES-12 previously recorded user-reported Firebase and GCP ID **`klar-admin`** (2026-11-06). New 2026-11-07 Console screenshots now support matching project IDs and numeric project numbers, but IAM, billing and cloud-service inventories remain unverified.
 - Current `main`: `phase2_work/.firebaserc` sets default **`striped-antler-500815-e6`**; `phase2_work/firebase-applet-config.json` also selects this **different project** and a named Firestore database `ai-studio-remixklarcl-ee70d0d2-a8cd-49f4-9bbe-2f0f90fbf1e3`. **DO NOT** apply these defaults to `klar-admin` or copy this web configuration to a staging deployment.
 - Backend `phase2_work/src/server/firebaseRuntime.ts` selects `GCLOUD_PROJECT`/`GOOGLE_CLOUD_PROJECT` and `FIRESTORE_DATABASE_ID` overrides. Frontend and Admin SDK must agree on exact project/database identity before enabling authenticated tests.
 - Vercel `klar-dating` is a hosting project, **not** independent evidence of Google Cloud project existence or ownership.
