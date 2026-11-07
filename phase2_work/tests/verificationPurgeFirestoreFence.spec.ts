@@ -14,10 +14,11 @@ import {
 } from '../src/server/platform/verificationPurgeFirestoreFence';
 
 const emulator = process.env.FIRESTORE_EMULATOR_HOST ?? '';
-const required = process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1';
+const dedicated = process.env.KLAR_REQUIRE_FIRESTORE_EMULATOR === '1';
+const required = dedicated || process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 if (required && !emulator) throw Error('fence_firestore_emulator_required');
 if (emulator) {
-  const config = JSON.parse(readFileSync(required ? 'firebase.pruefung.json' : 'firebase.json', 'utf8'));
+  const config = JSON.parse(readFileSync(dedicated ? 'firebase.pruefung.json' : 'firebase.json', 'utf8'));
   const local = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(emulator);
   const projectIds = [process.env.GCLOUD_PROJECT, process.env.GOOGLE_CLOUD_PROJECT,
     process.env.FIREBASE_PROJECT_ID].filter(Boolean);
