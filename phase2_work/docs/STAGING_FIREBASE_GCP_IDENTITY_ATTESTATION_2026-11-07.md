@@ -33,6 +33,12 @@ Evidence sensitivity: source screenshots were supplied in the chat and include a
 4. Read Cloud Billing > Budgets & alerts for the **project-scoped** monthly EUR 10 target, currency, billing account attachment and 50/80/100% notification thresholds (5/8/10 EUR). A normal alerts-only budget **does not cap spending**. No billing changes or resources created before explicit approval.
 5. Read-only check Firestore databases (IDs, locations, editions), Cloud Run services, Cloud Scheduler jobs and Cloud Storage buckets/retention metadata. No document bodies, biometrics or user profile data. Record absence as *user-verified* rather than assumed.
 
+## New 2026-11-07 Billing Console screenshot evidence
+
+A user-provided Google Cloud **Billing > My billing accounts** screenshot shows **two active billing accounts** (one organization-scoped and one without a listed organization) and each account displaying **EUR 0 spent in the last 30 days**. This account-level list does **not** establish whether the staging project `klar-admin` is linked to either billing account, whether billing is enabled for that project, or whether any **project-scoped EUR 10/month budget** exists. The screenshot also contains account identifiers; **do not preserve or republish raw billing account IDs or payment information**.
+
+**Next read-only verification:** In Billing > **My projects** (German: *Meine Projekte*), locate `klar-admin` and record only whether a billing account is linked and the account's non-sensitive display name (redact billing-account ID). Then open the relevant account's **Budgets & alerts** and check a monthly, EUR 10, specifically `klar-admin`-scoped budget and its 50/80/100% alerts. An alerts-only budget is **not** a hard spending limit. Do not change association, create a new billing account or enable billable resources from this observation.
+
 ## Minimal redacted evidence record
 
 ```text
