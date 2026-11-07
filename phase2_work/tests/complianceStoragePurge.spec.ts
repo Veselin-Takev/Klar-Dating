@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
+import express from 'express';
+import type { Server } from 'node:http';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -11,6 +13,83 @@ describe('verification photo purge deployment interlock', () => {
   );
   it('allows explicit opt-in only with exact lowercase true', () => {
     expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+  });
+});
+
+describe('destructive purge requires explicit Storage bucket selection', () => {
+  it.each([
+    undefined, '', ' ', '  klar-admin.firebasestorage.app',
+    'klar-admin.firebasestorage.app ', 'gs://klar-admin.firebasestorage.app',
+    'https://storage.googleapis.com/other-bucket',
+    'OTHER-BUCKET', 'bad..bucket', 'bucket.-name',
+    'bucket-.name', 'path/name', 'bucket\\name',
+  ])('rejects missing or malformed bucket name: %s', name => {
+    expect(validatedVerificationPurgeBucketName(name)).toBeNull();
+  });
+
+  it.each([
+    'klar-admin.firebasestorage.app',
+    'klar-admin.appspot.com',
+    'synthetic-test-bucket-1',
+  ])('accepts a deliberately supplied bucket name: %s', name => {
+    expect(validatedVerificationPurgeBucketName(name)).toBe(name);
+  });
+});
+
+describe('destructive purge HTTP bucket gate (no Cloud resources)', () => {
+  it('returns 503 on a valid HMAC before Firestore when explicit bucket is absent', async () => {
+    const previous = {
+      bucket: process.env.FIREBASE_STORAGE_BUCKET,
+      secret: process.env.COMPLIANCE_JOB_SECRET,
+      enabled: process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED,
+    };
+    const secret = 'unit-test-only-'.padEnd(64, 'x');
+    let firestoreTouched = false;
+    let server: Server | undefined;
+    try {
+      delete process.env.FIREBASE_STORAGE_BUCKET;
+      process.env.COMPLIANCE_JOB_SECRET = secret;
+      process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = 'true';
+      const app = express();
+      app.use('/api/admin', createVerificationStoragePurgeRouter({
+        getDb: () => {
+          firestoreTouched = true;
+          throw new Error('unauthorized_test_firestore_access');
+        },
+      }));
+      server = await new Promise<Server>(resolve => {
+        const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      });
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('missing_test_listener');
+      const timestamp = String(Date.now());
+      const body = '{}';
+      const res = await fetch('http://127.0.0.1:' + address.port
+        + '/api/admin/purge-verification-storage', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'X-Klar-Compliance-Timestamp': timestamp,
+          'X-Klar-Compliance-Signature': complianceSignature(timestamp + '.' + body, secret),
+        },
+        body,
+      });
+      expect(res.status).toBe(503);
+      expect(await res.json()).toMatchObject({
+        code: 'verification_storage_purge_bucket_unconfigured',
+      });
+      expect(firestoreTouched).toBe(false);
+    } finally {
+      if (server) await new Promise<void>((resolve, reject) => {
+        server!.close(error => error ? reject(error) : resolve());
+      });
+      if (previous.bucket === undefined) delete process.env.FIREBASE_STORAGE_BUCKET;
+      else process.env.FIREBASE_STORAGE_BUCKET = previous.bucket;
+      if (previous.secret === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
+      else process.env.COMPLIANCE_JOB_SECRET = previous.secret;
+      if (previous.enabled === undefined) delete process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
+      else process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = previous.enabled;
+    }
   });
 });
 
