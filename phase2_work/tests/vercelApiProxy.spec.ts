@@ -15,6 +15,8 @@ const ageRequest = (method = 'POST') => new Request(
     headers: {
       authorization: 'Bearer dummy-test-token',
       'content-type': 'application/json',
+      // Preview protection/browser cookies must never reach Cloud Run.
+      cookie: '_vercel_jwt=preview-secret; __session=browser-session',
       'x-forwarded-host': 'attacker.example',
     },
     ...(method === 'POST' ? { body: JSON.stringify({ geburtsdatum: '2000-01-01' }) } : {}),
@@ -54,6 +56,7 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
       expect(String(url)).toBe('https://' + backendHost + '/api/account/alter');
       const headers = new Headers(options?.headers);
       expect(headers.get('authorization')).toBe('Bearer dummy-test-token');
+      expect(headers.get('cookie')).toBeNull();
       expect(headers.get('x-forwarded-host')).toBeNull();
       expect(options?.method).toBe('POST');
       expect(new TextDecoder().decode(options?.body as ArrayBuffer)).toContain('geburtsdatum');
@@ -67,6 +70,24 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
     expect((await response.json()).code).toBe('unauthorized');
     expect(response.headers.get('set-cookie')).toBeNull();
     expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('never forwards browser cookies even for a non-age API request', async () => {
+    const send = vi.fn(async (_url: URL | RequestInfo, options?: RequestInit) => {
+      const forwarded = new Headers(options?.headers);
+      expect(forwarded.has('cookie')).toBe(false);
+      expect(forwarded.get('authorization')).toBe('Bearer dummy-test-token');
+      return Response.json({ code: 'unauthorized' }, { status: 401 });
+    }) as typeof fetch;
+    const request = new Request(
+      'https://klar-dating.vercel.app/api/account/status',
+      { headers: {
+        authorization: 'Bearer dummy-test-token',
+        cookie: '__session=secret; _vercel_jwt=preview-auth',
+      } },
+    );
+    expect((await proxyKlarApi(request, env, send)).status).toBe(401);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('accepts Vercel captured API path and retains normal query parameters', async () => {
