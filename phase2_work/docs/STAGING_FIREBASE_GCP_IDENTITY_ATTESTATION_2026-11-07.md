@@ -98,6 +98,16 @@ The user previously selected Option B as an **implementation preference**, not e
 
 Official docs: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans ; https://docs.cloud.google.com/billing/docs/how-to/modify-project ; https://docs.cloud.google.com/billing/docs/how-to/budgets
 
+## Billing linkage confirmed by user console — 2026-11-07
+
+The user-provided **Cloud Billing > My Projects** screenshot now shows the `Klar Admin` project, ID `klar-admin`, with billing account display name **`Mein Rechnungskonto`** in its row. The console toast reports successful account change. **Project-to-account linkage: confirmed from Console screenshot.** Billing account numeric IDs, personal identities, and payment details have not been reproduced. No direct authenticated Billing API receipt has been collected.
+
+The screenshot does **not** confirm a EUR 10 project budget, notification thresholds, current trial-credit eligibility, Firebase Blaze confirmation in the Firebase console, or any service deployments. Per Firebase pricing documentation, linking a Cloud Billing account from Google Cloud automatically upgrades the underlying Firebase project to **Blaze**; the new Firebase plan display should be checked separately.
+
+**Next gate (before enabling any new billable resources):** Under linked billing account **Mein Rechnungskonto** open **Budgets & alerts / Budgets und Limits**, create an **alerts-only** monthly budget explicitly scoped to the *single project* `klar-admin`, fixed amount **EUR 10** (verify billing currency first), with **actual-cost** alerts at 50% (EUR 5), 80% (EUR 8), 100% (EUR 10). Verify alert emails enabled and inspect resulting budget summary including exact project scope. The Google default 50/90/100 thresholds must be adjusted if 80 is desired. Budget emails and cost reporting may lag and are not a hard cap. The user's choice of a billing account does not imply approval to create Firestore, Cloud Run, Workload Identity pools, or production services.
+
+References: https://docs.cloud.google.com/billing/docs/how-to/budgets ; https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+
 ## Minimal redacted evidence record
 
 ```text
