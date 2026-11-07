@@ -36,6 +36,64 @@ describe('destructive purge requires explicit Storage bucket selection', () => {
   });
 });
 
+describe('P0 hard stop for real verification-photo deletion (no Cloud resources)', () => {
+  it('rejects valid HMAC, explicit bucket and activation flag before any DB or GCS', async () => {
+    const previous = {
+      bucket: process.env.FIREBASE_STORAGE_BUCKET,
+      secret: process.env.COMPLIANCE_JOB_SECRET,
+      enabled: process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED,
+    };
+    let dbCalled = false;
+    let server: Server | undefined;
+    try {
+      process.env.FIREBASE_STORAGE_BUCKET = 'reviewed-test-bucket.firebasestorage.app';
+      process.env.COMPLIANCE_JOB_SECRET = 'p0-synthetic-secret'.padEnd(64, 'z');
+      process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = 'true';
+      const app = express();
+      // Production server only supplies getDb, never test-only getBucket.
+      app.use('/api/admin', createVerificationStoragePurgeRouter({
+        getDb: () => {
+          dbCalled = true;
+          throw new Error('unexpected_firestore_access');
+        },
+      }));
+      server = await new Promise<Server>(resolve => {
+        const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      });
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('missing_http_test_listener');
+      const body = '{}';
+      const timestamp = String(Date.now());
+      const signature = complianceSignature(
+        timestamp + '.' + body, process.env.COMPLIANCE_JOB_SECRET,
+      );
+      const result = await fetch(
+        'http://127.0.0.1:' + address.port + '/api/admin/purge-verification-storage',
+        { method: 'POST', headers: {
+          'content-type': 'application/json',
+          'X-Klar-Compliance-Timestamp': timestamp,
+          'X-Klar-Compliance-Signature': signature,
+        }, body },
+      );
+      expect(result.status).toBe(503);
+      expect(await result.json()).toMatchObject({
+        code: 'verification_storage_purge_p0_fencing_unverified',
+      });
+      expect(dbCalled).toBe(false);
+    } finally {
+      if (server) await new Promise<void>((resolve, reject) => {
+        server!.close(error => error ? reject(error) : resolve());
+      });
+      if (previous.bucket === undefined) delete process.env.FIREBASE_STORAGE_BUCKET;
+      else process.env.FIREBASE_STORAGE_BUCKET = previous.bucket;
+      if (previous.secret === undefined) delete process.env.COMPLIANCE_JOB_SECRET;
+      else process.env.COMPLIANCE_JOB_SECRET = previous.secret;
+      if (previous.enabled === undefined) delete process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED;
+      else process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED = previous.enabled;
+    }
+  });
+});
+
 describe('destructive purge HTTP bucket gate (no Cloud resources)', () => {
   it('returns 503 on a valid HMAC before Firestore when explicit bucket is absent', async () => {
     const previous = {
