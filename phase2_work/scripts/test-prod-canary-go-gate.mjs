@@ -146,6 +146,56 @@ exit 2
   }
 });
 
+test('promotion validator cannot be replaced by changing the caller working directory', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'klar-promotion-path-'));
+  const nodeLog = join(tmp, 'node-args.txt');
+  const cloudLog = join(tmp, 'gcloud-calls.txt');
+  const trustedValidator = resolve(root, 'scripts/validate-promotion-evidence.mjs');
+  try {
+    writeFileSync(join(tmp, 'node'), `#!/bin/sh
+printf '%s\\n' "$1" >> "$KLAR_NODE_ARGS_LOG"
+case "$1" in
+  *check-production-release-approval.mjs|*check-production-checkout-identity.mjs) exit 0 ;;
+  *validate-promotion-evidence.mjs) echo "mock-evidence-denied" >&2; exit 42 ;;
+  *) exit 44 ;;
+esac
+`, { mode: 0o755 });
+    writeFileSync(join(tmp, 'gcloud'),
+      '#!/bin/sh\necho called >> "$KLAR_GCLOUD_CALLS"\nexit 0\n', { mode: 0o755 });
+    const env = {
+      ...process.env,
+      PATH: tmp + ':' + (process.env.PATH ?? ''),
+      KLAR_NODE_ARGS_LOG: nodeLog,
+      KLAR_GCLOUD_CALLS: cloudLog,
+      KLAR_CONFIRM_PROMOTION: 'promote',
+      KLAR_PROJECT_ID: 'demo-klar',
+      KLAR_REGION: 'europe-west3',
+      KLAR_SERVICE: 'klar-test',
+      KLAR_PROMOTE_REVISION: 'candidate-test',
+      KLAR_PROMOTE_IMAGE: 'ghcr.io/example/klar-app@sha256:' + 'a'.repeat(64),
+      KLAR_IMAGE_REPOSITORY: 'ghcr.io/example/klar-app',
+      KLAR_PROMOTION_EVIDENCE: join(tmp, 'untrusted-evidence.json'),
+      KLAR_EVIDENCE_ENVIRONMENT: 'production',
+      KLAR_EVIDENCE_NOT_BEFORE: '2026-11-01T00:00:00.000Z',
+      KLAR_EVIDENCE_NOT_AFTER: '2026-11-08T00:00:00.000Z',
+      KLAR_EVIDENCE_HOSTS: 'example.com',
+      GITHUB_SHA: 'a'.repeat(40),
+    };
+    const result = spawnSync('bash', [resolve(root, 'scripts/promote-prod.sh')], {
+      cwd: tmp, env, encoding: 'utf8', timeout: 20000,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /mock-evidence-denied/);
+    const invokedScripts = readFileSync(nodeLog, 'utf8').trim().split('\\n');
+    assert.equal(invokedScripts.length, 3, 'GO, checkout and promotion evidence validators required');
+    assert.equal(invokedScripts[2], trustedValidator,
+      'promotion validator must come from checked-out release script directory, not caller CWD');
+    assert.equal(existsSync(cloudLog), false, 'no Cloud Run command before rejecting evidence');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('emergency rollback is not blocked by the deploy/promotion GO preflight', () => {
   const rollback = readFileSync(resolve(root, 'scripts/rollback-cloud-run.sh'), 'utf8');
   assert.equal(rollback.includes('check-production-release-approval.mjs'), false,
