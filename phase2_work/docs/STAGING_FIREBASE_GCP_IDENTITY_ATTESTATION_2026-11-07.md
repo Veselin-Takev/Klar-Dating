@@ -108,6 +108,20 @@ The screenshot does **not** confirm a EUR 10 project budget, notification thresh
 
 References: https://docs.cloud.google.com/billing/docs/how-to/budgets ; https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
 
+## User screenshot: budget edit form partially configured (2026-11-07)
+
+The user supplied a Cloud Billing **Budgets & alerts > Edit budget** screenshot for billing account **Mein Rechnungskonto**. The form shows:
+- **Alerts-only** budget mode selected; **monthly** period; current budget name **`10`** (not yet the recommended descriptive name).
+- The **Projects** multi-select expanded with **`Klar Admin / klar-admin`** and another project. **`klar-admin` is not visibly checked** in the screenshot. It is not yet verified that only the staging project will be included. Do not choose *All projects* or include unrelated resources.
+- Specified-amount budget type is visible, but its **numeric target (EUR 10)** and the configured **50/80/100 actual-cost thresholds and email recipients** are not in view and cannot be asserted.
+- The screenshot shows **Edit budget**, not **Create budget**; check whether this budget was previously used for a different project before repurposing it. Do not silently change existing project-wide or other-project budget coverage.
+- **Other savings** is checked in the displayed form; alert calculations may be affected by discounts, credits or savings. Review scope and cost baseline, and consider separately monitoring gross/pre-credit costs when free-trial credits may mask underlying usage.
+- No screenshot of Save/Finish or the resulting budget summary has been supplied. **Budget status: not verified / not yet accepted as the EUR 10 staging gate.**
+
+Next user verification: select **only** `Klar Admin / klar-admin` in the project dropdown and confirm; rename `10` to `Klar-Staging-10EUR` if it is indeed the intended staging budget; inspect the specified target, currency and actual-cost 50/80/100 thresholds and email alerts before saving. If the existing budget serves other projects, cancel edits and create a new dedicated project-scoped budget instead. No Cloud/Firebase/production operations are authorized by this screenshot.
+
+Official reference: https://docs.cloud.google.com/billing/docs/how-to/budgets
+
 ## Minimal redacted evidence record
 
 ```text
