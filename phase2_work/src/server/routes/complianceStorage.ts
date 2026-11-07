@@ -223,7 +223,7 @@ export function createVerificationStoragePurgeRouter(deps: {
     // is reserved for deterministic local emulator tests. Do not add a
     // production getBucket injector until all writers share a reviewed,
     // transactionally fenced protocol and adversarial staging tests pass.
-    if (!deps.getBucket) {
+    if (process.env.NODE_ENV === 'production' || !deps.getBucket) {
       return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });
     }
 
