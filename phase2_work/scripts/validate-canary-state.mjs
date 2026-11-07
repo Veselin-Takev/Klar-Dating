@@ -1,4 +1,4 @@
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Parse the Cloud Run API's status.traffic projection read from gcloud.
