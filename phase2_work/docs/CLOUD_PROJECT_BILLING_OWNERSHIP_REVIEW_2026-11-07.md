@@ -23,6 +23,16 @@ Google AI Studio documentation states that for some new users it can create a de
 
 Budget table under `Mein Rechnungskonto` shows **name `10`**, **monthly**, project **Klar Admin**, warning thresholds **50%, 90%, 100%**, and spend/target **`0,00 € / 0,00 €`**. Budget *name* is not an amount. **EUR 10 target has NOT been established**, and 80% alert is not configured as requested. Before any cloud resource enablement, inspect budget's **specified amount**, EUR currency, effect of credits/discounts, project scope and actual-cost alert thresholds; correct to EUR 10, 50/80/100 where appropriate and verify saved summary. Alert-only budgets do not guarantee a spending stop.
 
+## Clarification and permission boundary — 2026-11-07
+
+The user now states `gen-lang-client-0274270850` and `tough-cipher-440709-r5` are **old projects**; they are no longer current unexplained-project priorities. Their live IAM or billing histories have not been independently audited. Concentrate investigation on `prime-casing-48f9p`, without asserting compromise.
+
+A fresh user screenshot shows a **Cloud Billing cost report access denial** for `prime-casing-48f9p`, specifically missing `billing.resourceCosts.get`. **This is not a project IAM page or evidence of who created the project.** The console suggests `roles/iam.supportUser`, but do **not** request a broad support role solely to resolve this page; request only the minimal project-cost-view permission through the correct owner if cost visibility proves necessary. The billing-pool account is not the personal `Mein Rechnungskonto` currently linked to `klar-admin` per screenshots. Ownership, source of project creation, and invoice liability remain unknown.
+
+Official background: Google AI Studio documentation https://ai.google.dev/gemini-api/docs/api-key states that in some new-user onboarding flows a default GCP project and API key are created; this does not establish the origin of this specific project. Resource Manager's admin activity logs can help with creator attribution when available: https://docs.cloud.google.com/resource-manager/docs/audit-logging ; project-scoped billing report access: https://docs.cloud.google.com/billing/docs/how-to/reports .
+
+**Immediate priority:** inspect the unknown project's Google AI Studio project/API-key metadata and separate project IAM, or ask Google support for provenance if denied; separately correct the user-owned `klar-admin` budget screenshot showing `0,00 € / 0,00 €` and 50/90/100 (still not accepted as a EUR 10 cap). Do not modify any cloud resource or revoke permissions based solely on the billing denial.
+
 ## Read-only evidence collection sequence
 
 1. Open Cloud Resource Manager **Manage resources** with each applicable organization context and Google account. Collect IDs, numeric project numbers, parent organizations, creation timestamp, lifecycle state and authorized owners (redacted).
