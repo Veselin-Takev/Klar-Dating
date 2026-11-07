@@ -141,6 +141,22 @@ export function isVerificationPhotoPurgeEnabled(
   return configured === 'true';
 }
 
+/**
+ * Destructive retention jobs must select a reviewed bucket by its exact name.
+ * GCS's implicit default bucket is not a reliable identity boundary.
+ * This checks the name shape only; IAM, provenance and legal holds require
+ * independent staging evidence before enabling photo deletion.
+ */
+export function validatedVerificationPurgeBucketName(value: string | undefined): string | null {
+  if (!value || value !== value.trim()
+      || value.length < 3 || value.length > 222
+      || !/^[a-z0-9][a-z0-9._-]*[a-z0-9]$/.test(value)
+      || value.includes('..') || value.includes('.-') || value.includes('-.')) {
+    return null;
+  }
+  return value;
+}
+
 export function complianceSignature(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body).digest('hex');
 }
@@ -190,6 +206,13 @@ export function createVerificationStoragePurgeRouter(deps: {
     // Before Firestore lease acquisition and before touching any GCS object.
     if (!isVerificationPhotoPurgeEnabled(process.env.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED)) {
       return res.status(503).json({ code: 'verification_storage_purge_disabled' });
+    }
+    // When a test-injected bucket is absent, never call getDb() or Storage
+    // unless a separately reviewed, explicit bucket name was provided.
+    const purgeBucketName = deps.getBucket
+      ? null : validatedVerificationPurgeBucketName(process.env.FIREBASE_STORAGE_BUCKET);
+    if (!deps.getBucket && !purgeBucketName) {
+      return res.status(503).json({ code: 'verification_storage_purge_bucket_unconfigured' });
     }
 
     const db = deps.getDb();
@@ -262,7 +285,7 @@ export function createVerificationStoragePurgeRouter(deps: {
             // declared purged; record aggregate failure and revisit on wrap.
             const invalid = docs.length - artifacts.length;
             if (!artifacts.length) return { purged: 0, skipped: 0, failed: docs.length };
-          const bucket = deps.getBucket?.() ?? getStorage().bucket();
+          const bucket = deps.getBucket?.() ?? getStorage().bucket(purgeBucketName!);
           const proofs = new Map<string, PurgeProof>();
           const summary = await executeVerificationRetentionBatch(
             artifacts,
