@@ -214,6 +214,18 @@ export function createVerificationStoragePurgeRouter(deps: {
     if (!deps.getBucket && !purgeBucketName) {
       return res.status(503).json({ code: 'verification_storage_purge_bucket_unconfigured' });
     }
+    // P0: Authoritative Firestore decisions and GCS deletion are not atomic.
+    // A late legal hold / moderation revocation after the final Firestore
+    // check can still race with the GCS delete. Do NOT permit the production
+    // route to be activated by environment variables alone.
+    //
+    // The production server only injects getDb, never getBucket. The latter
+    // is reserved for deterministic local emulator tests. Do not add a
+    // production getBucket injector until all writers share a reviewed,
+    // transactionally fenced protocol and adversarial staging tests pass.
+    if (!deps.getBucket) {
+      return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });
+    }
 
     const db = deps.getDb();
     const now = Date.now();
