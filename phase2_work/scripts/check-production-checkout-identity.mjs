@@ -34,10 +34,12 @@ if (!validSha.test(actual) || actual !== declared) {
   process.exit(2);
 }
 
-// Reject both staged and unstaged tracked modifications, including release
-// scripts and the governance evidence sources. Untracked build outputs
-// (release/, dist/) are not treated as a source change.
-const diff = spawnSync('git', ['diff', '--quiet', 'HEAD', '--'], {
+// Reject staged and unstaged changes to tracked files in the *entire*
+// repository, including root .github workflows and CODEOWNERS. The CLI is
+// invoked from phase2_work, so an unqualified pathspec would inspect only
+// that subtree. Git's :/ pathspec explicitly anchors the diff at repo root.
+// Untracked artifacts are outside this tracked-source check.
+const diff = spawnSync('git', ['diff', '--quiet', 'HEAD', '--', ':/'], {
   cwd: checkout, timeout: 10000, encoding: 'utf8',
   stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 4096,
 });
