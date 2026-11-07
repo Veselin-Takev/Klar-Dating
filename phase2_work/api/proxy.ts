@@ -57,6 +57,39 @@ function validatedRoute(url: URL): string | null {
   return path;
 }
 
+/**
+ * Enforce the request-body limit while streaming. Reading request.arrayBuffer()
+ * before checking the size buffers an arbitrary-size request in memory.
+ * Do not forward any part of an oversized or unreadable request upstream.
+ */
+async function readBoundedRequestBody(request: Request): Promise<ArrayBuffer | null> {
+  if (!request.body) return new ArrayBuffer(0);
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      byteLength += value.byteLength;
+      if (byteLength > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const body = new Uint8Array(byteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body.buffer;
+}
+
 export async function proxyKlarApi(
   request: Request,
   env: NodeJS.ProcessEnv = process.env,
@@ -92,10 +125,14 @@ export async function proxyKlarApi(
   }
   let body: ArrayBuffer | undefined;
   if (hasBody) {
-    body = await request.arrayBuffer();
-    if (body.byteLength > MAX_BODY_BYTES) {
-      return unavailable('api_payload_too_large', 413);
+    let bounded: ArrayBuffer | null;
+    try {
+      bounded = await readBoundedRequestBody(request);
+    } catch {
+      return unavailable('api_payload_unreadable', 400);
     }
+    if (bounded === null) return unavailable('api_payload_too_large', 413);
+    body = bounded;
   }
 
   try {
