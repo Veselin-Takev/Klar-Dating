@@ -1701,3 +1701,25 @@ its own automatic CI is separate from the completed code run above.
 ## Admin repository hardening — 2026-11-08
 
 TenantAwareFirestoreRepository enforces tenants/default document paths and Zod input/output schemas without raw SDK references. A mandatory legacy source drift guard and negative test were added. **50 legacy consumers remain; --certify FAILS**, so baselineFixed=false and productionApproved=false. IAM boundaries and coordinated migration prerequisites are recorded in [IAM_AND_ADMIN_BOUNDARIES](../../docs/security/IAM_AND_ADMIN_BOUNDARIES.md). Full new-candidate CI pending; prior 1,536 PASS is not inherited.
+
+## Verified Admin wrapper checkpoint — 2026-11-08
+
+[Full CI 42480731945](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42480731945)
+SUCCESS on code `b0dca22ce84b722bbdc9d6ba2ea3419c0fb47056`:
+1,437 Vitest + 86 Enterprise Node + 26 Browser = **1,549 PASS**.
+Additional mandatory Admin-source negative test: 1 PASS. Dedicated Rules: 92
+PASS repeated, not double-counted. Typecheck, Functions/App builds and smoke PASS.
+Native emulator verifies scoped repository read/write/delete without modifying
+legacy root data. This is wrapper verification, not universal adoption.
+
+**Admin SDK gate closure FAILED:** 50 legacy consumer files remain unmigrated.
+The --certify command returns failure as designed. The source scanner detects
+matched access drift, not all possible alias/reflection bypasses. Wrapper-only
+path rewriting would split existing root-based clients, Rules, transactions and
+jobs; the migration plan must be implemented and tested before adoption.
+Effective deployed IAM and external writer inventory are still UNVERIFIED.
+IAM_AND_ADMIN_BOUNDARIES.md is documentation, not privilege attestation.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT and is not
+READY FOR HUMAN MERGE SIGN-OFF. No CERTIFIED_PROCEED. This metadata checkpoint
+references the immutable tested code SHA; its own automatic CI is separate.

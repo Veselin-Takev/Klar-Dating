@@ -62,7 +62,7 @@
     "inventory": "phase2_work/docs/releases/v0.1.1-rc1/BASELINE_INVENTORY.json",
     "explicitAnyNodes": 202,
     "testFilesInventoried": 248,
-    "validatedUniqueTests": 1536,
+    "validatedUniqueTests": 1549,
     "reason": "Scoped containment and CI PASS; full tenant/schema/reachability certification remains open",
     "isolationClosure": {
       "status": "PASS_SCOPED_CONTAINMENT",
@@ -97,7 +97,15 @@
       "iamEvidence": "DOCUMENTED_SOURCE_ONLY_LIVE_UNVERIFIED",
       "report": "docs/security/IAM_AND_ADMIN_BOUNDARIES.md",
       "certification": "FAIL_LEGACY_UNSCOPED_ACCESS_REMAINS",
-      "baselineFixed": false
+      "baselineFixed": false,
+      "codeSha": "b0dca22ce84b722bbdc9d6ba2ea3419c0fb47056",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42480731945",
+      "vitest": 1437,
+      "enterpriseNode": 86,
+      "playwright": 26,
+      "distinctAcrossTheseSuites": 1549,
+      "additionalAdminSourceNegativeTest": 1,
+      "wrapperTests": "PASS_SCOPED"
     }
   }
 }

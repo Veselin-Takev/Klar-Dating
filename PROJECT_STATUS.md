@@ -10,3 +10,5 @@ Latest scoped verification: 1,527 PASS on 4dc39cd5; full tenant certification re
 Finalizing evidence: 1,536 PASS on f8f6fa59; lead PR #358 supersedes #356/#357. baselineFixed=false, productionApproved=false. Full Admin SDK/IAM certification remains open.
 
 Admin repository: implemented and under verification; 50 legacy consumer files still require coordinated migration. IAM documented, effective deployed privileges unverified. baselineFixed=false.
+
+Verified Admin wrapper checkpoint: 1,549 PASS on b0dca22c plus 1 static negative test. Fifty legacy consumer files and unverified effective IAM prevent certification; baselineFixed=false.
