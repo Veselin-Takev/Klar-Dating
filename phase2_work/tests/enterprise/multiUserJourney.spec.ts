@@ -86,29 +86,31 @@ function createMockFirestore(seedData?: { users?: Record<string, any>; contacts?
   return { firestore, db };
 }
 
-test('Multi-User Journey: Full identity verification pipeline with primary and fallback', async () => {
+test('Multi-User Journey: unconfigured identity providers fail closed for primary and fallback', async () => {
   const primary = new IdNowProvider();
   const secondary = new DiditProvider();
   const manager = new VerificationManager(primary, secondary);
 
-  // 1. Primary provider succeeds
+  // 1. An unconfigured primary cannot verify identity.
   const primaryResult = await manager.verifyUser({
     userId: 'user_alice',
     documentType: 'PASSPORT',
     frontImageUrl: 'https://storage.example.com/alice_id.jpg',
   });
-  assert.equal(primaryResult.success, true);
+  assert.equal(primaryResult.success, false);
+  assert.match(primaryResult.error ?? "", /Offline/);
   assert.equal(primaryResult.providerUsed, 'IDNOW');
 
-  // 2. Primary provider failure routes seamlessly to Didit
+  // 2. An unconfigured fallback must also deny verification.
   primary.isHealthy = async () => false;
   const fallbackResult = await manager.verifyUser({
     userId: 'user_bob',
     documentType: 'ID_CARD',
     frontImageUrl: 'https://storage.example.com/bob_id.jpg',
   });
-  assert.equal(fallbackResult.success, true);
-  assert.equal(fallbackResult.providerUsed, 'DIDIT');
+  assert.equal(fallbackResult.success, false);
+  assert.match(fallbackResult.error ?? "", /Offline/);
+  assert.equal(fallbackResult.verificationId, '');
 });
 
 test('Multi-User Journey: Verified contact orchestration, quota ledger enforcement, duplicate prevention & 5s undo', async () => {

@@ -61,7 +61,7 @@
     "test:all": "npm run typecheck && npm run test:ci && bun run playwright test",
     "release:verify": "npm run check:enterprise && npm run check:functions && npm run typecheck && npm run test:ci && npm run build && npm run test:production && bun run playwright test",
     "test:prompt-security": "vitest run --config vitest.security.config.ts",
-    "test:enterprise": "npm run test:launch && node --import=tsx --test tests/enterprise/*.spec.ts",
+    "test:enterprise": "npm run test:launch && node scripts/run-enterprise-tests.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:marketing-claims": "node scripts/check-marketing-claims.mjs && node scripts/test-marketing-claims.mjs",
     "check:adoption-evidence": "node --test scripts/test-adoption-evidence.mjs && node scripts/check-adoption-evidence.mjs",

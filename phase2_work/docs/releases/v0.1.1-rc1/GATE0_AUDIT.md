@@ -41,9 +41,9 @@ DateRatingChartWidget and DateSuccessTrendWidget now import one shared type.
 Other similarly named interfaces differ in fields and have not been falsely
 merged. Type-only extraction changes no render, hook or storage behavior.
 
-All 19 tests/enterprise/*.spec.ts files use node:test. Vitest excludes them,
+Correction after execution: the 19 original Enterprise files mixed runners. securityGuardrails uses Vitest and is already run by test:prompt-security; offlineQueueResilience needs the browser/Vite harness and now runs in the ordinary Vitest suite. The remaining 17 run through the explicit Node runner. Vitest excludes them,
 and the previous separate command selected only platform.spec.ts; CI did not
-invoke that command. The Enterprise command now selects all 19 and CI runs it.
+invoke that command. The Enterprise command now selects every classified Node suite and CI runs it.
 The test-separation gate rejects loss of the command or CI invocation.
 
 ## Verification boundaries and remaining work
