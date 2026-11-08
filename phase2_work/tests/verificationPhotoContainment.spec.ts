@@ -20,7 +20,12 @@ describe('VES-5 production deletion containment — test-first contract', () => 
     const getBucket = vi.fn(() => { throw new Error('GCS must not be touched'); });
     const app = express();
     app.use('/api/admin', createVerificationStoragePurgeRouter({ getDb: getDb as any, getBucket: getBucket as any }));
-    const server = app.listen(0, '127.0.0.1');
+    // Wait for the listener before querying its ephemeral port: address() may be null
+    // until the asynchronous listening event fires on GitHub-hosted runners.
+    const server = await new Promise<ReturnType<typeof app.listen>>((resolve, reject) => {
+      const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+      listener.once('error', reject);
+    });
     try {
       const address = server.address();
       if (!address || typeof address === 'string') throw new Error('listen_failed');
@@ -41,7 +46,7 @@ describe('VES-5 production deletion containment — test-first contract', () => 
       expect(getDb).not.toHaveBeenCalled();
       expect(getBucket).not.toHaveBeenCalled();
     } finally {
-      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+      if (server.listening) await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     }
   });
 
