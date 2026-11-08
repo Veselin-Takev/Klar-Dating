@@ -33,7 +33,7 @@
     "productionApproved": false,
     "reviewCandidateSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
     "candidateVerified": false,
-    "fullPreflight": "BLOCKED_WAVE3_AND_OPERATIONAL_SIGNOFF",
+    "fullPreflight": "BLOCKED",
     "productionOperationalEvidence": "pending-issue-8",
     "scopeNote": "Current RC1 Wave 2 evidence; historical governance retained separately. No production approval or data cutover.",
     "firebaseTests": "PASS_NATIVE_AND_118_RULES",
@@ -75,7 +75,8 @@
       "budgetPolicy": "max 100 additional GitHub Actions minutes; none spent in this iteration",
       "lastVerificationDate": "2026-10-10",
       "networkCheckout": "DNS_BLOCKED"
-    }
+    },
+    "blockReason": "WAVE3_AND_OPERATIONAL_SIGNOFF"
   },
   "gate0": {
     "version": "v0.1.1-rc1",

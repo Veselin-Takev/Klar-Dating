@@ -50,7 +50,7 @@
     "productionApproved": false,
     "reviewCandidateSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
     "candidateVerified": false,
-    "fullPreflight": "BLOCKED_WAVE3_AND_OPERATIONAL_SIGNOFF",
+    "fullPreflight": "BLOCKED",
     "productionOperationalEvidence": "pending-issue-8",
     "scopeNote": "Current RC1 Wave 2 evidence; historical governance retained separately. No production approval or data cutover.",
     "firebaseTests": "PASS_NATIVE_AND_118_RULES",
@@ -338,7 +338,8 @@
         "liveTtlEvidence": "NOT_VERIFIED",
         "independentReleaseApprovals": "NOT_VERIFIED"
       }
-    }
+    },
+    "blockReason": "WAVE3_AND_OPERATIONAL_SIGNOFF"
   },
   "gate0": {
     "version": "v0.1.1-rc1",
