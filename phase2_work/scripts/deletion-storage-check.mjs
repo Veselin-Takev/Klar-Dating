@@ -69,6 +69,66 @@ test('holds and missing generations prevent completion', async () => {
   }
 });
 
+test('rejects malformed storage holds without deleting either verification or profile objects', async () => {
+  const malformed = [
+    { temporaryHold: 'true' }, { temporaryHold: 'false' },
+    { eventBasedHold: 'false' }, { eventBasedHold: 'true' },
+    { temporaryHold: 0 }, { eventBasedHold: { active: false } },
+    { temporaryHold: null }, { eventBasedHold: null },
+  ];
+  for (const metadata of malformed) {
+    let deleted = 0;
+    await assert.rejects(
+      deleteAccountPhotos(bucket([photo({ metadata, onDelete() { deleted++; } })]), 'owner'),
+      /storage_object_held_or_invalid/,
+      'malformed/unknown hold metadata must fail closed',
+    );
+    assert.equal(deleted, 0, 'no physical delete is allowed');
+  }
+});
+
+test('rejects invalid and rounded GCS generations before account erasure', async () => {
+  const invalid = [
+    undefined, null, false, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1,
+    '0', '0007', '-7', '7e3', '7.0', 'n/a', {},
+  ];
+  for (const generation of invalid) {
+    let deleted = 0;
+    await assert.rejects(
+      deleteAccountPhotos(bucket([photo({ metadata: { generation }, onDelete() { deleted++; } })]), 'owner'),
+      /Photo generation missing or invalid/,
+      'only decimal-positive GCS generation values can reach delete()',
+    );
+    assert.equal(deleted, 0);
+  }
+  let deleted = 0;
+  await assert.rejects(deleteAccountPhotos(bucket([{
+    async getMetadata() { return [null]; },
+    async delete() { deleted++; },
+  }]), 'owner'), /storage_object_held_or_invalid/);
+  assert.equal(deleted, 0, 'missing GCS metadata must never authorize destruction');
+});
+
+test('characterizes still-unfenced verification erasure despite a separate Firestore legal hold (P0)', async () => {
+  // This is an explicit unresolved-P0 characterization, NOT a passing hold-
+  // safety test: deleteAccountPhotos has no Firestore / authorization input.
+  // An account erasure will delete an unheld GCS object even if a separate
+  // Firestore verification_events record is preserved. This must change
+  // under an approved all-writer protocol before production release.
+  const firestoreVerificationEvent = { legalHold: true, photoPurgeHold: true };
+  let deleted = 0;
+  const storage = {
+    async getFiles({ prefix }) {
+      return prefix === 'verification/owner/'
+        ? [[photo({ onDelete() { deleted++; } })], null]
+        : [[], null];
+    },
+  };
+  assert.equal(firestoreVerificationEvent.legalHold, true);
+  assert.equal(await deleteAccountPhotos(storage, 'owner'), false);
+  assert.equal(deleted, 1, 'P0: the current account-erasure path lacks a shared Firestore hold fence');
+});
+
 test('rejects oversized and empty-but-continuing pages', async () => {
   await assert.rejects(deleteAccountPhotos(bucket(Array.from({ length: 101 }, () => photo())), 'owner'), /storage_page_limit_exceeded/);
   await assert.rejects(deleteAccountPhotos({ async getFiles() { return [[], { pageToken: 'more' }]; } }, 'owner'), /storage_erasure_no_progress/);
