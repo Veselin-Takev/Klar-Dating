@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "auditedSha": "04e80e803ff64b4d7d51f599e5e54ad79c4033e2",
+  "canonicalPr": 358,
+  "completedAtUtc": "2026-11-08T20:10:49.578307+00:00",
+  "decision": "BLOCKED_NO_GO",
+  "productionApproved": false,
+  "applicationTreeChanged": false,
+  "environment": {
+    "node": "22.23.3",
+    "bun": "1.4.4",
+    "java": "21.0.13",
+    "npmFinal": "10.9.2",
+    "npmInitial": "11.9.0",
+    "project": "demo-klar",
+    "cloudIdentitiesConfigured": false,
+    "syntheticOnly": true,
+    "CI": "true",
+    "METADATA_SERVER_DETECTION": "none",
+    "KLAR_TENANT_CHECKLIST_MIGRATION_READY": "true",
+    "KLAR_TENANT_AUTH_MIGRATION_READY": "true",
+    "KLAR_TENANT_PAYMENTS_MIGRATION_READY": "true"
+  },
+  "freshResults": {
+    "typecheck": {
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "069ae4c015c4c8306a709dc39e6b02fbfeba28e86cdc44df8b304f6bb152d46a"
+    },
+    "build": {
+      "command": "npm run build",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "b1d750547373ace2c5b66ab1514ed035c679268bfd9bf2d51e6084e389ab0975"
+    },
+    "functions-build": {
+      "command": "npm run check:functions",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "e614192f5274d8eca7b44ce77344f432edbaaf97b5b3179aba1b8a3f943ffa55"
+    },
+    "tests-ci": {
+      "command": "npm run test:ci",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "8bccf109785cd15748c7b6d898f1488b51f5f13af307c607d12beb7ea24112ae"
+    },
+    "rules-tests": {
+      "command": "npm run test:rules",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "d139a0c0875b8c2c99dba72f642705f7ccc687ed0a0db14c326f436057fdbd30"
+    },
+    "enterprise-node": {
+      "command": "node scripts/run-enterprise-tests.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "7dbcd3d16cd4952f3429ce525e5da15a26504bc45f38225ac791a105f50395b6"
+    },
+    "admin-boundaries-outer": {
+      "command": "node --test scripts/admin-sdk-boundaries.test.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "2ecacbb6d5d6acb7e4a3adc5bc2eb1564fa46740ca30e59b06cf8827e3bfc512"
+    },
+    "iam-collection-outer": {
+      "command": "node --test scripts/runtime-iam-manifests.test.mjs scripts/tenant-collection-inventory.test.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "e675db876bdebae2343f9d4fdbb0cfc3f68b7441df933adc8022d38be1bdab0d"
+    },
+    "retention-tests": {
+      "command": "node scripts/test-retention-matrix.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "8ceb9ff47be6f75e0c00b2a57ddcecd1bd1ef290a665f3859b00a6340e8ee987"
+    },
+    "ttl-negative-outer": {
+      "command": "node scripts/test-retention-active-evidence.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "26e6ff6f20241ec8fd93c48d1cc09d0de94a3972f5d6937e8401c0dcd8d81602"
+    },
+    "ttl-matrix": {
+      "command": "node scripts/check-retention-matrix.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "3802570493a9cc0bfce427696711435a2944f27c1791e2963533bade0d4361f3"
+    },
+    "iam-manifest": {
+      "command": "node scripts/check-iam-manifest-matching.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "3475f5099b31773f3ee1aca41b89a4f360382b0d398dc8ca3d353a9950ecf080"
+    },
+    "secrets": {
+      "command": "node scripts/check-secrets.mjs",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "7bd313d04a7b3cb47ca343abf5d65173b6f6e051cfd0b7ad8800fefb20cefc3f"
+    },
+    "browser-tests": {
+      "command": "bun run playwright test --reporter=line",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "6f648b304e09464159da331bdcf568bf3a05d4fb38d577b072aac99c3a725c84"
+    },
+    "production-smoke": {
+      "command": "npm run test:production",
+      "exitCode": 0,
+      "result": "PASS",
+      "logSha256": "5b419a7b1f25e9a42ffbce7d0eeab968660785beaaaeda9756b9cf77a3790b15"
+    },
+    "storage-repro": {
+      "command": "firebase emulators:exec --project demo-klar --config /tmp/klar-audit-proof-firebase.json --only firestore,storage \"node /tmp/klar-storage-access-repro.mjs\"",
+      "exitCode": 0,
+      "result": "GAPS_REPRODUCED",
+      "logSha256": "d897ca5125dedd2e2d8ffd57f584bc8c0559622cfeb5ea2126abc78fc77b0f2f"
+    }
+  },
+  "counts": {
+    "vitest": 1524,
+    "vitestFiles": 206,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1636,
+    "dedicatedRulesRepeated": 118,
+    "adminBoundary": 12,
+    "iamAndCollection": 10
+  },
+  "sca": {
+    "fullApp": {
+      "command": "bun audit --json",
+      "exitCode": 1,
+      "packages": 17,
+      "advisoryEntries": 35,
+      "uniqueAdvisoryUrls": 30,
+      "entriesBySeverity": {
+        "moderate": 17,
+        "high": 15,
+        "low": 3
+      },
+      "responseSha256": "61410aad7e249514f9628a7b3bc8a01b89622b4cfe1f8496cb0379b7c4d1de5e"
+    },
+    "productionApp": {
+      "command": "bun audit --production --json",
+      "exitCode": 1,
+      "advisories": {
+        "deepmerge": [
+          {
+            "id": 1243505,
+            "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+            "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+            "severity": "low",
+            "vulnerable_versions": ">=4.2.0 <=4.3.1",
+            "cwe": [
+              "CWE-1321"
+            ],
+            "cvss": {
+              "score": 5.3,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N"
+            }
+          }
+        ],
+        "glob": [
+          {
+            "id": 1244013,
+            "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+            "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+            "severity": "moderate",
+            "vulnerable_versions": ">=9.0.0 <=14.0.1",
+            "cwe": [
+              "CWE-400"
+            ],
+            "cvss": {
+              "score": 0,
+              "vectorString": null
+            }
+          }
+        ],
+        "ip-address": [
+          {
+            "id": 1242883,
+            "url": "https://github.com/advisories/GHSA-rxp7-6hxx-x8q5",
+            "title": "ip-address: Address6 matches a zone identifier in quadratic time ahead of its length limit, allowing a single long string to stall the process",
+            "severity": "moderate",
+            "vulnerable_versions": "<=10.7.3",
+            "cwe": [
+              "CWE-1333"
+            ],
+            "cvss": {
+              "score": 0,
+              "vectorString": null
+            }
+          }
+        ],
+        "re2js": [
+          {
+            "id": 1243620,
+            "url": "https://github.com/advisories/GHSA-gg6h-894w-4m9c",
+            "title": "RE2JS: Quadratic-time denial of service in re2js lookbehind matching",
+            "severity": "high",
+            "vulnerable_versions": ">=2.2.0 <2.8.7",
+            "cwe": [
+              "CWE-407",
+              "CWE-1333"
+            ],
+            "cvss": {
+              "score": 7.5,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+            }
+          }
+        ],
+        "uuid": [
+          {
+            "id": 1119441,
+            "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+            "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+            "severity": "moderate",
+            "vulnerable_versions": "<11.1.1",
+            "cwe": [
+              "CWE-787",
+              "CWE-1285"
+            ],
+            "cvss": {
+              "score": 7.5,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+            }
+          }
+        ],
+        "minimatch": [
+          {
+            "id": 1244623,
+            "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+            "title": "minimatch has potential denial of service via globparts amplification",
+            "severity": "moderate",
+            "vulnerable_versions": ">=7.0.0 <11.0.1",
+            "cwe": [
+              "CWE-405"
+            ],
+            "cvss": {
+              "score": 0,
+              "vectorString": null
+            }
+          }
+        ]
+      },
+      "responseSha256": "9e4dcae35a5f6aa1cb8e19c5801a2fd1248f626f9a7c81895776605fabf8b8b1"
+    },
+    "functions": {
+      "command": "npm audit --prefix functions --package-lock-only --json",
+      "exitCode": 1,
+      "metadata": {
+        "info": 0,
+        "low": 0,
+        "moderate": 6,
+        "high": 0,
+        "critical": 0,
+        "total": 6
+      },
+      "responseSha256": "6ffec4231712f00ac72eb091937dcbb0eb5930454357a41d7737383df0e421b1"
+    }
+  },
+  "storageObservations": {
+    "anonymousProfileRead": "ALLOWED",
+    "underageProfileRead": "ALLOWED",
+    "verificationUploadAfterDeletionTombstone": "ALLOWED",
+    "unauthenticatedRead": "DENIED",
+    "foreignTenantRead": "DENIED",
+    "productionAccessed": false
+  },
+  "existingCi": {
+    "runId": 42505817983,
+    "jobId": 128808097657,
+    "headSha": "04e80e803ff64b4d7d51f599e5e54ad79c4033e2",
+    "result": "success",
+    "evidenceInspected": [
+      "run metadata",
+      "job steps",
+      "decoded job log"
+    ],
+    "semgrepReported": {
+      "rules": 616,
+      "targets": 1154,
+      "findings": 0
+    },
+    "artifactContentsRedownloaded": false
+  },
+  "review": {
+    "mainRulesetId": 25756841,
+    "requiredApprovals": 0,
+    "requiredCodeOwnerReview": false,
+    "pr358Reviews": 0
+  },
+  "initialAttempts": {
+    "sandboxChildProcessTests": "admin boundary and TTL output assertions failed; both passed on repeat outside sandbox",
+    "productionSmoke": "initial port preflight blocked by own browser Firestore orphan; identified PID 7837 terminated; smoke passed after cleanup"
+  },
+  "notVerified": [
+    "live IAM and deployed service identity",
+    "live TTL and actual erasure",
+    "provider deletion receipts",
+    "production data cutover",
+    "independent AppSec/DPO/SRE/legal signoffs",
+    "complete browser Art17 final-sweep journey",
+    "full-history gitleaks",
+    "fresh full Semgrep execution"
+  ]
+}
