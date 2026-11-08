@@ -31,7 +31,7 @@ service firebase.storage {
       // At most two Firestore documents per Storage request. The server writes
       // this fence atomically with the deletion job; missing legacy fences deny.
       let user = firestore.get(/databases/(default)/documents/tenants/default/users/$(uid)).data;
-      return user.isAdult == true && user.mediaAccessState == 'active';
+      return user.isAdult == true && (!('active' in user) || user.active != false) && user.mediaAccessState == 'active';
     }
     function eligibleReader() {
       return signedIn() && !istGast() && activeAdult(request.auth.uid);
@@ -39,17 +39,17 @@ service firebase.storage {
 
     match /verification/{uid}/{datei} {
       allow read: if false;
-      allow create, update: if eligibleReader() && request.auth.uid == uid
-                   && !firestore.exists(/databases/(default)/documents/tenants/default/account_deletions/$(uid))
-                   && istBild() && request.resource.size < 8 * 1024 * 1024;
+      // Legacy verification upload endpoints are retired. Direct uploads can
+      // mint download capabilities even when reads are forbidden.
+      allow create, update: if false;
       allow delete: if false;   // nur serverseitig, nach der Entscheidung
     }
 
     match /profiles/{uid}/{datei} {
-      allow read: if eligibleReader() && activeAdult(uid);
-      allow create, update: if eligibleReader() && request.auth.uid == uid
-                   && !firestore.exists(/databases/(default)/documents/tenants/default/account_deletions/$(uid))
-                   && istBild() && request.resource.size < 8 * 1024 * 1024;
+      allow read: if false; // Protected reads require the token-verified API.
+      // Profile writes go through the authenticated API, which creates no
+      // long-lived Firebase download capabilities.
+      allow create, update: if false;
       allow delete: if eligibleReader() && request.auth.uid == uid;
     }
   }

@@ -1,7 +1,8 @@
 import { readBoundedResponse } from '../boundedResponse';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Router, text, raw, type Request } from 'express';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from '../sharedRateLimit';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { z } from 'zod';
 
@@ -377,7 +378,7 @@ export function createKycRouter(deps: KycDependencies) {
     if (!hasRecentAuthentication(user.auth_time)) return res.status(401).json({ code: 'recent_login_required', error: 'Bitte vor der Identitätsprüfung erneut anmelden.' });
     return next();
   };
-  const kycStatusReadLimiter = rateLimit({
+  const kycStatusReadLimiter = rateLimit({ namespace: 'kyc-status', repository: deps.repository,
     windowMs: 60 * 1000,
     limit: 30,
     keyGenerator: (req) => actor(req)?.uid ?? ipKeyGenerator(req.ip ?? ''),

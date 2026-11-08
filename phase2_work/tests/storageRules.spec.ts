@@ -26,18 +26,19 @@ async function seedUser(uid: string, data: Record<string, unknown>) {
 describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and automatic photo retention', () => {
   it.each(['anonymous', 'minor', 'missing', 'unmigrated', 'erasing'])('denies profile reads to %s principals, including forged adult claims', async kind => {
     const path = `profiles/${prefix}/reader-${kind}.jpg`;
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+    await getAppBucket().file(path).save(image, { metadata: {contentType:'image/jpeg', metadata:{firebaseStorageDownloadTokens:crypto.randomUUID()}} });
     const uid = `${prefix}-${kind}`;
     if (kind !== 'missing') await seedUser(uid, { isAdult: kind !== 'minor', ...(kind === 'unmigrated' ? {} : {mediaAccessState: kind === 'erasing' ? 'erasing' : 'active'}) });
     const actor = env.authenticatedContext(uid, { isAdult: true, firebase: { sign_in_provider: kind === 'anonymous' ? 'anonymous' : 'password' } }).storage('gs://demo-klar.appspot.com');
     await assertFails(actor.ref(path).getDownloadURL());
     await assertSucceeds(user(prefix).ref(path).delete());
   });
-  it('permits active adult readers but immediately blocks a fenced owner', async () => {
+  it('denies direct uploads and denies direct reads even for active adults but immediately blocks a fenced owner', async () => {
     const reader = `${prefix}-adult-reader`, path = `profiles/${prefix}/adult-read.jpg`;
     await seedUser(reader, { isAdult: true, mediaAccessState: 'active' });
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, {contentType:'image/jpeg'})));
-    await assertSucceeds(user(reader).ref(path).getDownloadURL());
+    await getAppBucket().file(path).save(image, { metadata: {contentType:'image/jpeg', metadata:{firebaseStorageDownloadTokens:crypto.randomUUID()}} });
+    await assertFails(Promise.resolve(user(prefix).ref(path).put(image, {contentType:'image/jpeg'})));
+    await assertFails(user(reader).ref(path).getDownloadURL());
     await seedUser(prefix, { isAdult: true, mediaAccessState: 'erasing' });
     await assertFails(user(reader).ref(path).getDownloadURL());
     await seedUser(prefix, { isAdult: false, mediaAccessState: 'active' });
@@ -48,7 +49,7 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
   it.each(['pending', 'manual_review', 'completed'])('blocks create and update for every existing deletion job (%s)', async status => {
     const uid = `${prefix}-deletion-${status}`, path = `verification/${uid}/photo.jpg`;
     await seedUser(uid, {isAdult:true,mediaAccessState:'active'});
-    await assertSucceeds(Promise.resolve(user(uid).ref(path).put(image,{contentType:'image/jpeg'})));
+    await getAppBucket().file(path).save(image, {metadata:{contentType:'image/jpeg'}});
     await env.withSecurityRulesDisabled(context => context.firestore().doc(`tenants/default/account_deletions/${uid}`).set({status}));
     await assertFails(Promise.resolve(user(uid).ref(path).put(image,{contentType:'image/jpeg'})));
     await assertFails(Promise.resolve(user(uid).ref(`verification/${uid}/new.jpg`).put(image,{contentType:'image/jpeg'})));
@@ -63,7 +64,7 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
   it.each(['tenant-a', 'tenant-b'])('denies tenant-scoped UID collisions in Storage (%s)', async tenant => {
     const tenantClaims = {tenant, sign_in_provider: 'password' as const};
     const path = `profiles/${prefix}/tenant-check.jpg`;
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, {contentType: 'image/jpeg'})));
+    await getAppBucket().file(path).save(image, { metadata: {contentType:'image/jpeg', metadata:{firebaseStorageDownloadTokens:crypto.randomUUID()}} });
     const foreign = env.authenticatedContext(prefix, {firebase: tenantClaims}).storage('gs://demo-klar.appspot.com');
     await assertFails(foreign.ref(path).getDownloadURL());
     await assertFails(Promise.resolve(foreign.ref(path).put(image, {contentType: 'image/jpeg'})));
@@ -71,9 +72,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(foreign.ref(`verification/${prefix}/tenant-check.jpg`).put(image, {contentType: 'image/jpeg'})));
     await assertSucceeds(user(prefix).ref(path).delete());
   });
-  it('allows only the non-guest owner to upload; no client can read a verification photo', async () => {
+  it('denies all direct verification uploads and reads, including the registered adult owner', async () => {
     const path = `verification/${prefix}/photo.jpg`;
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+    await getAppBucket().file(path).save(image, { metadata: {contentType:'image/jpeg', metadata:{firebaseStorageDownloadTokens:crypto.randomUUID()}} });
     await assertFails(Promise.resolve(user('another').ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(Promise.resolve(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(Promise.resolve(user(prefix, 'anonymous').ref(path).put(image, { contentType: 'image/jpeg' })));

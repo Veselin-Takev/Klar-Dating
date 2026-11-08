@@ -1,3 +1,4 @@
+import { ProtectedImage } from './ProtectedImage';
 import { useState, useEffect, useRef } from "react";
 import { getUserStorageItem, setUserStorageItem, klarStorage } from '../lib/userScopedStorage';
 import { Sparkles, AlertCircle, ChevronRight, X, TrendingUp, TrendingDown, Download, Check, History, Filter, ArrowRight, User, RefreshCw, Layers, Copy, Undo } from "lucide-react";
@@ -406,7 +407,7 @@ export function ProfileCheckWidget() {
             <div className="flex items-center justify-between relative z-10">
               <div className="flex items-center gap-4 w-full">
                 <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border-2 border-white dark:border-stone-700 shadow-sm">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&amp;fit=crop&amp;q=80&amp;w=150&amp;h=150" alt="Avatar" className="w-full h-full object-cover" />
+                  <ProtectedImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&amp;fit=crop&amp;q=80&amp;w=150&amp;h=150" alt="Avatar" className="w-full h-full object-cover" />
                   {analysisSuccess && (
                     <div className="absolute inset-0 bg-emerald-500/80 flex items-center justify-center  z-20">
                       <Check size={24} className="text-white drop-shadow-md" />

@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import {
   STRATEGIE,
   ZEITGRENZE_MS,
@@ -204,10 +205,7 @@ export async function beantworte(
 ): Promise<Antwort> {
   const strategie: Ersatzstrategie = STRATEGIE[endpunkt] ?? 'kein_ersatz';
   if (!STRATEGIE[endpunkt]) {
-    console.warn(
-      `[kiAufruf] Endpunkt "${endpunkt}" steht nicht in kiPolitik.STRATEGIE. ` +
-        'Es gilt kein_ersatz. Eintrag ergaenzen.',
-    );
+    logSafeFailure('unclassified_failure');
   }
 
   const ergebnis = await rufeKi(aufruf, beiwerk.zeitgrenzeMs);

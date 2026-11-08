@@ -1,7 +1,7 @@
 /**
  * Klar Platform - Storage Security Rules Validation Engine
  * 
- * Formal verification and execution model for storage.rules:
+ * Non-authoritative client policy model; native emulator Rules tests are the authority.
  * - /verification/{uid}/{datei}:
  *   - read: false (Strict zero-read Art. 9 biometric data protection)
  *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
@@ -130,7 +130,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
         return { allowed: false, reason: 'Dateigröße überschreitet das Limit von 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
       }
 
-      return { allowed: true, rulePath, code: 'ALLOWED' };
+      return { allowed: false, rulePath, code: 'PERMISSION_DENIED' };
     }
   }
 
@@ -152,7 +152,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       if (request.targetUserIsAdult !== true) {
         return { allowed: false, reason: 'Zielprofil ist nicht als volljährig freigegeben.', rulePath, code: 'PERMISSION_DENIED' };
       }
-      return { allowed: true, rulePath, code: 'ALLOWED' };
+      return { allowed: false, rulePath, code: 'PERMISSION_DENIED' };
     }
 
     // write: if istVolljaehrig() && request.auth.uid == uid && istBild() && request.resource.size < 8 * 1024 * 1024;
@@ -176,7 +176,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
         return { allowed: false, reason: 'Dateigröße überschreitet 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
       }
 
-      return { allowed: true, rulePath, code: 'ALLOWED' };
+      return { allowed: false, rulePath, code: 'PERMISSION_DENIED' };
     }
 
     // delete: if istVolljaehrig() && request.auth.uid == uid;

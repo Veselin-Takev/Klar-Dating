@@ -707,5 +707,38 @@
     "humanSignoff": "PENDING"
   },
   "baselineFixed": true,
-  "productionApproved": false
+  "productionApproved": false,
+  "systemWideRemediation": {
+    "pr": 360,
+    "date": "2026-11-08",
+    "auditedParentSha": "0e2c7e89fad3008f6d165c2b45ac1e936506043a",
+    "status": "IMPLEMENTED_VALIDATION_IN_PROGRESS",
+    "releaseDecision": "NO-GO",
+    "productionApproved": false,
+    "technicalSignOff": "PENDING",
+    "legalSignOff": "PENDING",
+    "report": "phase2_work/docs/security/SYSTEM_REMEDIATION_2026-11-08.md",
+    "implementedControls": [
+      "authenticated non-bearer media API and private client blobs",
+      "direct Storage reads/uploads closed; token revocation with confirmed postcondition",
+      "durable DSA locks and independently retried disable/revocation jobs",
+      "transaction-local Legal Hold containment and per-account purge authorization",
+      "persistent erasure retries with capped backoff and attention flag",
+      "fixed-field logging and atomic Firestore-backed rate limits"
+    ],
+    "liveEvidence": {
+      "legacyCapabilityMigration": "NOT_EXECUTED",
+      "allWriterHoldProtocol": "NOT_ATTESTED",
+      "effectiveCloudRunIamAndEdge": "NOT_RETRIEVED",
+      "loggingAndRetentionPolicies": "NOT_RETRIEVED"
+    },
+    "validation": {
+      "vitest": "RUNNING",
+      "targetedAuditSubset": 79,
+      "targetedCountsAddedToTotal": false,
+      "browserE2E": "PENDING",
+      "enterpriseStaticGates": "PASS",
+      "productionHighCriticalAdvisories": 0
+    }
+  }
 }

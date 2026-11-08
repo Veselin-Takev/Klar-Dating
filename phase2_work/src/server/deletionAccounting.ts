@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { TenantAwareFirestoreRepository, TenantTransaction, TenantQuery } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { z } from 'zod';
 import { FieldValue } from './db';
+import { assertDeletionNotHeld } from './deletionHolds';
 
 export const emptyDeletionCounts = () => ({
   chats: 0, nachrichten: 0, gateAntworten: 0, verbindungen: 0,
@@ -49,6 +50,7 @@ export function deletionAccounting(db: TenantAwareFirestoreRepository, uid: stri
     const data = await tx.read(ref, record);
     if (!data || data.status !== 'pending' || data.requestId !== requestId) throw new Error('deletion_job_mismatch');
     if (lease && (data.lease !== lease || typeof data.leaseUntil !== 'number' || !Number.isFinite(data.leaseUntil) || data.leaseUntil <= Date.now())) throw new Error('deletion_lease_lost');
+    await assertDeletionNotHeld(tx, uid);
     return readDeletionCounts(data);
   }
   function writeCount(tx: TenantTransaction, counts: DeletionCounts, key: DeletionCounter, amount: number) {
@@ -68,6 +70,7 @@ export function deletionAccounting(db: TenantAwareFirestoreRepository, uid: stri
   return {
     verify: () => db.transaction(readJob),
     deleteQuery,
+    deleteDocuments: (paths: string[]) => db.transaction(async tx => {await readJob(tx); for (const path of paths) tx.delete(path);}),
     deleteDocument: (path: string) => db.transaction(async tx => {await readJob(tx); tx.delete(path);}),
     deleteChat: (chat: string) => db.transaction(async tx => {
       const counts = await readJob(tx), current = await tx.read(chat, record);

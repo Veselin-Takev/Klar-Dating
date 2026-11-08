@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import { getAppBucket } from './storage';
 import { toPublicProfile } from './platform/launchPlatform';
 import { randomUUID } from 'node:crypto';
@@ -53,12 +54,12 @@ const uid = (req: Request): string => {
   return value;
 };
 
-function fehler(res: Response, e: unknown, wo: string) {
+function fehler(res: Response, e: unknown, _wo: string) {
   if (e instanceof InputError) {
     res.status(400).json({ error: e.message });
     return;
   }
-  console.error(wo, e);
+  logSafeFailure('unclassified_failure');
   res.status(500).json({ error: 'Das hat gerade nicht geklappt. Bitte erneut versuchen.' });
 }
 

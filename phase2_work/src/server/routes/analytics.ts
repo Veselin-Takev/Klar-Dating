@@ -1,5 +1,6 @@
 import express, { Router, type ErrorRequestHandler, type RequestHandler } from 'express';
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from '../sharedRateLimit';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { z } from 'zod';
@@ -13,7 +14,7 @@ type Dependencies = { requireAuth: RequestHandler; repository: () => TenantAware
 /** Mount before the global JSON parser, so oversized bodies never reach the 1 MB parser. */
 export function createAnalyticsRouter({ requireAuth, repository, enabled }: Dependencies) {
   const router = Router();
-  router.use(rateLimit({ windowMs: 60_000, limit: 30, keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''), standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'Too many analytics requests' } }));
+  router.use(rateLimit({ namespace: 'analytics', repository: repository, windowMs: 60_000, limit: 30, keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''), standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'Too many analytics requests' } }));
   router.use(express.json({ inflate: false, limit: 10 * 1024, strict: true }));
   const parseError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error.type === 'entity.too.large' || error.type === 'entity.parse.failed') { res.status(400).json({ error: 'Invalid analytics payload (maximum 10 KB)' }); return; }

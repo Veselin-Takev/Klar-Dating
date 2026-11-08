@@ -1,3 +1,4 @@
+// Pure domain journey: provider boundary injected; native security regressions exercise the default enforcer.
 import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -181,7 +182,8 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
       legalGround: 'harassment',
       factsAndCircumstances: 'Nachricht enthält wiederholte verbale Grenzüberschreitungen.',
     },
-    modDecisionTime
+    modDecisionTime,
+    async () => undefined
   );
   assert.equal(modDecision.restrictionType, 'account_suspension');
   assert.equal(modDecision.targetUid, userA);
@@ -214,7 +216,8 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
     'mod_supervisor_01',
     'overturned',
     'Kontextprüfung bestätigt Zitat-Charakter. Verwarnung ausgesprochen, Suspendierung aufgehoben.',
-    reviewTime
+    reviewTime,
+    async () => undefined
   );
   assert.equal(reviewOutcome.status, 'overturned');
 

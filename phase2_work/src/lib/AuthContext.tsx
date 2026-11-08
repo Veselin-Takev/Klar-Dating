@@ -1,3 +1,4 @@
+import { clearAppLogs } from './appLogs';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {  onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signInAnonymously, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence  } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -274,6 +275,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let authVersion = 0;
     let stopProfile: () => void = () => {};
     const unsubscribe = onAuthStateChanged(auth, async (currentUser: User | null) => {
+      clearAppLogs();
       const version = ++authVersion;
       ++profileRequest.current;
       stopProfile();

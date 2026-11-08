@@ -22,7 +22,7 @@ export function createMediaAccessGuard(repository: () => TenantAwareFirestoreRep
         const [owner, deletion] = await Promise.all([
           tx.read(`users/${user.uid}`, record), tx.read(`account_deletions/${user.uid}`, record),
         ]);
-        return owner?.isAdult === true && owner.mediaAccessState === 'active' && deletion === null;
+        return owner?.isAdult === true && owner.active !== false && owner.mediaAccessState === 'active' && deletion === null;
       });
       if (!allowed) { res.status(403).json({ code: 'media_access_denied' }); return; }
       next();

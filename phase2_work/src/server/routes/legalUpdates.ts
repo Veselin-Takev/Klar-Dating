@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { z } from 'zod';
@@ -60,7 +61,7 @@ export function createLegalUpdatesRouter(deps: { currentUserId: (req: Request) =
         .filter(id => ID.test(id));
       return res.json({ updates, acknowledgedIds });
     } catch (error) {
-      console.error('Legal updates read failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Rechtliche Updates derzeit nicht verfügbar.' });
     }
   });
@@ -100,7 +101,7 @@ export function createLegalUpdatesRouter(deps: { currentUserId: (req: Request) =
     } catch (error) {
       if (error instanceof Error && error.message === 'LEGAL_UPDATE_NOT_FOUND') return res.status(404).json({ error: 'Rechtliches Update nicht gefunden.' });
       if (error instanceof Error && error.message === 'LEGAL_UPDATE_INVALID') return res.status(409).json({ error: 'Rechtliches Update ist ungültig konfiguriert.' });
-      console.error('Legal update acknowledgement failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Rechtliches Update konnte nicht bestätigt werden.' });
     }
   });

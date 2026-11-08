@@ -1,3 +1,5 @@
+import { protectedMediaSource } from '../../lib/profileMedia';
+import mediaConfig from '../../../firebase-applet-config.json';
 import { z } from 'zod';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
@@ -67,7 +69,7 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
     age,
     location: city,
     bio: typeof data.bio === 'string' ? data.bio.trim().slice(0, 800) : '',
-    photoUrl: typeof data.photoUrl === 'string' ? data.photoUrl : '',
+    photoUrl: protectedMediaSource(typeof data.photoUrl === 'string' ? data.photoUrl : typeof data.photoURL === 'string' ? data.photoURL : '', mediaConfig.storageBucket) ?? '',
     interests: cleanStringList(data.interests),
     ...(cleanMusicPreferences(data.musicPreferences) ? { musicPreferences: cleanMusicPreferences(data.musicPreferences) } : {}),
     values: cleanStringList(data.values),

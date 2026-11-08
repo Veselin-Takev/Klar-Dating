@@ -1,3 +1,4 @@
+import { safeLogRecord } from '../../functions/src/loggingPrivacy';
 export interface AppLogEntry {
   id: string;
   timestamp: string;
@@ -19,26 +20,15 @@ export function initAppLogTracker() {
   const originalWarn = console.warn;
   const originalError = console.error;
 
-  const addEntry = (level: AppLogEntry['level'], args: unknown[], stack?: string) => {
+  const addEntry = (level: AppLogEntry['level'], args: unknown[], _stack?: string) => {
     try {
-      const message = args.map(arg => {
-        if (arg instanceof Error) return `${arg.name}: ${arg.message}\n${arg.stack || ''}`;
-        if (typeof arg === 'object') {
-          try {
-            return JSON.stringify(arg);
-          } catch {
-            return String(arg);
-          }
-        }
-        return String(arg);
-      }).join(' ');
+      const message = JSON.stringify(safeLogRecord(level, args));
 
       const entry: AppLogEntry = {
         id: `log_${Date.now()}_${crypto.randomUUID()}`,
         timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         level,
         message,
-        stack: stack || (level === 'error' ? new Error().stack : undefined),
       };
 
       logBuffer.unshift(entry);

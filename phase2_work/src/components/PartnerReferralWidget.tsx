@@ -1,3 +1,4 @@
+import { ProtectedImage } from './ProtectedImage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Copy, ExternalLink, Gift, Handshake, QrCode, Share2, ShieldCheck } from 'lucide-react';
 import { authFetch } from '../lib/authFetch';
@@ -243,7 +244,7 @@ export function PartnerReferralWidget() {
                 {showQr[item.campaign.id] && (
                   <div className="flex flex-col items-center gap-3 rounded-2xl border border-stone-200 dark:border-stone-700 bg-[#FAF8F5] p-4 dark:bg-stone-800">
                     {qrCodes[item.campaign.id]
-                      ? <img src={qrCodes[item.campaign.id]} alt={'QR-Code für ' + item.campaign.name + ' Partnerlink'} className="h-52 w-52 rounded-xl bg-white p-2" />
+                      ? <ProtectedImage src={qrCodes[item.campaign.id]} alt={'QR-Code für ' + item.campaign.name + ' Partnerlink'} className="h-52 w-52 rounded-xl bg-white p-2" />
                       : <p role="status" className="text-sm">Der lokale QR-Code konnte nicht erzeugt werden. Der Empfehlungslink bleibt verfügbar.</p>}
                     <p className="text-xs text-center text-stone-600 dark:text-stone-300">Der QR-Code wird ausschließlich im Browser erzeugt; die URL wird nicht an einen QR-Code-Dienst übertragen.</p>
                   </div>

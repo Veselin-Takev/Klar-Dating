@@ -3,8 +3,10 @@ import type { Firestore } from 'firebase-admin/firestore';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { getServiceRepository, scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 import { randomUUID } from 'node:crypto';
+import { enforceAccountLock, securityJob } from '../accountSecurity';
 import { z } from 'zod';
 const record = z.record(z.string(), z.unknown());
+type SecurityEnforcer = (uid: string, repo: TenantAwareFirestoreRepository) => Promise<void>;
 import { InputError, requireString, optionalString } from '../pure';
 
 import type { JsonObject } from '../../types/strict';
@@ -110,7 +112,16 @@ export async function issueModerationDecision(
     appealDeadline: Timestamp.fromDate(deadlineDate),
   };
 
-  await db.create(decisionRef, record, decision);
+  if (action === 'account_suspended') {
+    await db.transaction(async tx => {
+      const previous = await tx.read(`account_security_jobs/${userId}`, record);
+      tx.create(decisionRef, record, decision);
+      tx.write(`users/${userId}`, record, { active: false, mediaAccessState: 'blocked' }, { merge: true });
+      tx.write(`account_locks/${userId}`, record, { lockedAt: now, reason: 'moderation' });
+      tx.write(`account_security_jobs/${userId}`, record, securityJob(previous, 'disable', now));
+    });
+    await enforceAccountLock(userId, db);
+  } else await db.create(decisionRef, record, decision);
   return decision;
 }
 
@@ -174,13 +185,14 @@ export async function recordModerationDecision(
   reportIdRaw: unknown,
   moderatorUid: string,
   decision: ModerationDecisionInput,
-  now: Date = new Date()
+  now: Date = new Date(),
+  enforceSecurity: SecurityEnforcer = enforceAccountLock
 ): Promise<DsaStatementOfReasons> {
   const reportId = requireString(reportIdRaw, 'reportId', 128);
   const db = scopeServiceDatabase(firestore, 'auth');
   const reportRef = `reports/${reportId}`;
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const snap = await tx.read(reportRef, record);
     if (!snap) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
@@ -188,6 +200,7 @@ export async function recordModerationDecision(
 
     const reportData = snap ?? {};
     const targetUid = requireString(reportData.reportedProfileId, 'reportedProfileId', 128);
+    const previousSecurity = await tx.read(`account_security_jobs/${targetUid}`, record);
 
     const statement = buildStatementOfReasons(reportId, targetUid, moderatorUid, decision, now);
 
@@ -210,13 +223,21 @@ export async function recordModerationDecision(
 
     if (decision.restrictionType === 'account_suspension' || decision.restrictionType === 'account_termination') {
       userUpdate.active = false;
+      userUpdate.mediaAccessState = 'blocked';
       userUpdate.suspendedReason = decision.factsAndCircumstances;
+      tx.write(`account_locks/${targetUid}`, record, { lockedAt: now, reason: 'moderation' });
+      tx.write(`account_security_jobs/${targetUid}`, record, securityJob(previousSecurity, 'disable', now));
+      tx.delete(`public_profiles/${targetUid}`);
     }
 
     tx.write(userRef, record, userUpdate, { merge: true });
 
     return statement;
   });
+  if (decision.restrictionType === 'account_suspension' || decision.restrictionType === 'account_termination') {
+    await enforceSecurity(result.targetUid, db);
+  }
+  return result;
 }
 
 export function submitDsaAppeal(
@@ -351,7 +372,8 @@ export async function reviewDsaAppeal(
   reviewerUid: string,
   outcome: 'upheld' | 'overturned',
   rationaleRaw: unknown,
-  now: Date = new Date()
+  now: Date = new Date(),
+  enforceSecurity: SecurityEnforcer = enforceAccountLock
 ): Promise<DsaAppeal> {
   const reportId = requireString(reportIdRaw, 'reportId', 128);
   if (outcome !== 'upheld' && outcome !== 'overturned') {
@@ -366,7 +388,7 @@ export async function reviewDsaAppeal(
   const db = scopeServiceDatabase(firestore, 'auth');
   const reportRef = `reports/${reportId}`;
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const snap = await tx.read(reportRef, record);
     if (!snap) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
@@ -385,6 +407,9 @@ export async function reviewDsaAppeal(
       throw new InputError('Diese Beschwerde wurde bereits abgeschlossen.');
     }
 
+    const target = typeof reportData.reportedProfileId === 'string' ? reportData.reportedProfileId : '';
+    const [previousSecurity, deletion] = target ? await Promise.all([tx.read(`account_security_jobs/${target}`, record), tx.read(`account_deletions/${target}`, record)]) : [null, null];
+    if (outcome === 'overturned' && deletion) throw new InputError('Konto nicht verfügbar.');
     const updatedAppeal: DsaAppeal = {
       ...appeal,
       status: outcome,
@@ -400,6 +425,7 @@ export async function reviewDsaAppeal(
 
     if (outcome === 'overturned' && typeof reportData.reportedProfileId === 'string' && reportData.reportedProfileId) {
       const userRef = `users/${reportData.reportedProfileId}`;
+      tx.write(`account_security_jobs/${target}`, record, securityJob(previousSecurity, 'enable', now));
       tx.write(userRef, record, {
           active: true,
           suspendedReason: null,
@@ -407,6 +433,8 @@ export async function reviewDsaAppeal(
         }, { merge: true });
     }
 
-    return updatedAppeal;
+    return {appeal:updatedAppeal, target};
   });
+  if (outcome === 'overturned' && result.target) await enforceSecurity(result.target, db);
+  return result.appeal;
 }

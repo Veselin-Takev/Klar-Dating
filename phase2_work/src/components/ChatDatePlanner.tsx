@@ -1,3 +1,4 @@
+import { ProtectedImage } from './ProtectedImage';
 import { klarStorage } from '../lib/userScopedStorage';
 import { useState, useEffect } from "react";
 import { Sparkles, Brain, MapPin, CalendarDays, CheckCircle2, X, Clock, History, Star, Edit3, ListChecks, Plus, Trash2, Search, Download, Camera, Filter } from "lucide-react";
@@ -878,7 +879,7 @@ Keine Markdown-Block-Syntax.`;
 
                           {entry.photo ? (
                             <div className="relative mt-2">
-                              <img src={entry.photo} alt="Date Snapshot" className="w-full h-32 object-cover rounded-lg border border-stone-200 dark:border-stone-700" />
+                              <ProtectedImage src={entry.photo} alt="Date Snapshot" className="w-full h-32 object-cover rounded-lg border border-stone-200 dark:border-stone-700" />
                               <button aria-label="Foto entfernen" onClick={() => removePhoto(entry.id)} className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70">
                                 <Trash2 size={12} />
                               </button>
@@ -915,7 +916,7 @@ Keine Markdown-Block-Syntax.`;
 
                       {!entry.rating && !entry.note && entry.photo && (
                         <div className="relative mt-2">
-                          <img src={entry.photo} alt="Date Snapshot" className="w-full h-32 object-cover rounded-lg border border-stone-200 dark:border-stone-700" />
+                          <ProtectedImage src={entry.photo} alt="Date Snapshot" className="w-full h-32 object-cover rounded-lg border border-stone-200 dark:border-stone-700" />
                           <button aria-label="Foto entfernen" onClick={() => removePhoto(entry.id)} className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70">
                             <Trash2 size={12} />
                           </button>

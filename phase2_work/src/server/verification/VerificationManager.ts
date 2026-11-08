@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import type { IVerificationProvider, VerificationRequest, VerificationResult } from './types.js';
 
 export class VerificationManager {
@@ -17,7 +18,7 @@ export class VerificationManager {
 
     try {
       if (await this.secondary.isHealthy()) {
-        console.info(`[Verification] Falling back to Secondary provider (${this.secondary.name})`);
+        logSafeFailure('unclassified_failure');
         return await this.secondary.verifyIdentity(request);
       }
     } catch (error) {

@@ -1,3 +1,4 @@
+import { ProtectedImage } from './ProtectedImage';
 import { useState } from "react";
 
 export function LogoLoader({ sizeClass = "w-20 h-20", text = "Wird geladen..." }: { sizeClass?: string; text?: string }) {
@@ -11,7 +12,7 @@ export function LogoLoader({ sizeClass = "w-20 h-20", text = "Wird geladen..." }
       aria-label={text}
     >
       {!hasError ? (
-        <img
+        <ProtectedImage
           src="/Klar_Logo.png"
           alt="Klar Logo"
           className={`${sizeClass} animate-pulse opacity-90 object-contain`}
