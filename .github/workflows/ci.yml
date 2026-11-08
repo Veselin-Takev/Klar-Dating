@@ -109,6 +109,9 @@ jobs:
       - name: Tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:ci
+      - name: Enterprise Node tests
+        if: steps.scope.outputs.full == 'true'
+        run: bun run test:enterprise
       - name: Build
         if: steps.scope.outputs.full == 'true'
         run: bun run build

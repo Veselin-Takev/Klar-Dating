@@ -1,17 +1,10 @@
+import type { DateHistoryEntry } from '../lib/dateHistoryTypes';
 import { klarStorage } from '../lib/userScopedStorage';
 import { useState } from "react";
 import { FileText, FileSpreadsheet, DownloadCloud } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-interface DateHistoryEntry {
-  id: string;
-  matchName: string;
-  title: string;
-  date: string;
-  rating?: number;
-  note?: string;
-}
 
 interface DateReflection {
   id: string;

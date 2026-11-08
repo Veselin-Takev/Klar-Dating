@@ -13,4 +13,7 @@ const workflow = readFileSync(resolve(repoRoot, '.github/workflows/llm-evaluatio
 if (!vitest.includes('tests/enterprise')) throw new Error('Deterministic test suite boundary missing');
 if (!workflow.includes('workflow_dispatch:')) throw new Error('Stochastic evaluation must be manually dispatched');
 if (!workflow.includes('KLAR_RUN_LLM_EVAL')) throw new Error('Stochastic evaluation opt-in guard missing');
+const ci = readFileSync(resolve(repoRoot, '.github/workflows/ci.yml'), 'utf8');
+if (!pkg.scripts['test:enterprise']?.includes('--test tests/enterprise/*.spec.ts')) throw new Error('All Enterprise Node suites must be selected');
+if (!ci.includes('run: bun run test:enterprise')) throw new Error('Enterprise Node suites must execute in CI');
 console.log('Deterministic/stochastic test separation: PASS');

@@ -191,5 +191,18 @@
       "liveTtlEvidence": "NOT_VERIFIED",
       "independentReleaseApprovals": "NOT_VERIFIED"
     }
+  },
+  "gate0": {
+    "version": "v0.1.1-rc1",
+    "status": "BLOCKED",
+    "baselineFixed": false,
+    "productionApproved": false,
+    "sourceCommit": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
+    "report": "phase2_work/docs/releases/v0.1.1-rc1/GATE0_AUDIT.md",
+    "inventory": "phase2_work/docs/releases/v0.1.1-rc1/BASELINE_INVENTORY.json",
+    "explicitAnyNodes": 202,
+    "testFilesInventoried": 248,
+    "validatedUniqueTests": null,
+    "reason": "Full candidate CI and complete schema/tenant/zero-any/reachability evidence outstanding"
   }
 }

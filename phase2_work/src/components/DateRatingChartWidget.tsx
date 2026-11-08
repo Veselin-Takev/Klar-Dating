@@ -1,16 +1,9 @@
+import type { DateHistoryEntry } from '../lib/dateHistoryTypes';
 import { klarStorage } from '../lib/userScopedStorage';
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { PieChart as PieChartIcon } from "lucide-react";
 
-interface DateHistoryEntry {
-  id: string;
-  matchName: string;
-  title: string;
-  date: string;
-  rating?: number;
-  note?: string;
-}
 
 export function DateRatingChartWidget() {
   const [data, setData] = useState<{name: string, value: number, color: string}[]>([]);

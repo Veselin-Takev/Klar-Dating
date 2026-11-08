@@ -1607,3 +1607,7 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## Gate 0 — v0.1.1-rc1, 2026-11-08
+
+**BLOCKED / baselineFixed=false / productionApproved=false.** Complete structural inventory, shared date-history type and missing Enterprise test execution are addressed in [the Gate 0 audit](releases/v0.1.1-rc1/GATE0_AUDIT.md). 202 explicit any nodes and unproven schema/tenant/reachability coverage prevent baseline certification. Exact execution counts remain pending candidate CI.
