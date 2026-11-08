@@ -109,6 +109,9 @@ jobs:
       - name: Tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:ci
+      - name: Dedicated Firestore rules
+        if: steps.scope.outputs.full == 'true'
+        run: npm run test:rules
       - name: Enterprise Node tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:enterprise

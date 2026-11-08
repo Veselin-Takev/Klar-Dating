@@ -68,6 +68,21 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
       expect(body.profile.id).toBe(identity(1 - index).uid); expect(body.profile.bio).toBe(marker);
     }
   });
+  it.each(['tenant-a', 'tenant-b'])('denies a signed custom-tenant token for an existing owner (%s)', async tenantId => {
+    const auth = getAuth(getServerFirebaseApp());
+    const customToken = await auth.createCustomToken(identity(0).uid, {tenantId});
+    const exchange = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=emulator`, {
+      method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({token: customToken, returnSecureToken: true}),
+    });
+    expect(exchange.status).toBe(200);
+    const data = await exchange.json() as {idToken: string};
+    expect((await auth.verifyIdToken(data.idToken)).tenantId).toBe(tenantId);
+    for (const path of ['/api/account/status', `/api/chats/${chatId}`, '/api/subscription/status']) {
+      const res = await fetch('http://127.0.0.1:3000' + path, {headers: {authorization: 'Bearer ' + data.idToken}});
+      expect(res.status).toBe(401);
+      expect(await res.text()).not.toContain(marker);
+    }
+  });
   it('denies an authenticated adult outsider and does not disclose profile data', async () => {
     const status = await request(2, '/api/account/status'); expect(status.status).toBe(200);
     expect((await status.json()).isAdult).toBe(true);

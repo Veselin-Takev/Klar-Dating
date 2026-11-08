@@ -13,7 +13,7 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function signedIn() { return request.auth != null; }
+    function signedIn() { return request.auth != null && !('tenantId' in request.auth.token) && !('tenant_id' in request.auth.token) && (!('firebase' in request.auth.token) || !('tenant' in request.auth.token.firebase)); }
     // GAST-01 (14.08.2026): Ein Gastkonto laedt keine Bilder hoch. Weder ein
     // Profilfoto (es gibt kein Gastprofil) noch ein Verifizierungsfoto (ein
     // Gastkonto ist beim naechsten Besuch weg, die Pruefung waere umsonst).

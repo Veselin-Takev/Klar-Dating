@@ -1,3 +1,4 @@
+import { assertDefaultTenantClaims } from './src/lib/defaultTenantBoundary';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
@@ -171,6 +172,7 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     const authInstance = getAuth(adminApp);
     // Check Firebase revocation/disabled-user state on every protected request.
     const decodedToken = await authInstance.verifyIdToken(idToken, true);
+    assertDefaultTenantClaims(decodedToken);
 
     if (decodedToken.uid && (await getFirestore().collection('account_deletions').doc(decodedToken.uid).get()).exists) {
       return res.status(409).json({ code: 'account_deletion_pending' });

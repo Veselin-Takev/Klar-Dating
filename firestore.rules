@@ -4,6 +4,9 @@ service cloud.firestore {
 
     function isAuthenticated() {
       return request.auth != null
+        && !('tenantId' in request.auth.token)
+        && !('tenant_id' in request.auth.token)
+        && (!('firebase' in request.auth.token) || !('tenant' in request.auth.token.firebase))
         && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid));
     }
 

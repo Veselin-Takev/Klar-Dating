@@ -773,3 +773,18 @@ describe('Klar & Partner server-only collections', () => {
     await assertFails(setDoc(target, { clientControlled: true }));
   });
 });
+
+describe('UID collisions from unsupported tenants', () => {
+  it.each(['tenant-a', 'tenant-b'])('denies private reads/writes for same UID from %s', async tenant => {
+    const db = env.authenticatedContext(ANNA, { firebase: {tenant, sign_in_provider: 'password'} }).firestore();
+    await assertFails(getDoc(doc(db, 'users/anna')));
+    await assertFails(updateDoc(doc(db, 'users/anna'), {name: 'foreign'}));
+    await assertFails(getDoc(doc(db, 'subscriptions/anna')));
+    await assertFails(setDoc(doc(db, 'users/anna/datePlans/foreign'), {title: 'foreign'}));
+    await assertSucceeds(getDoc(doc(als(ANNA), 'users/anna')));
+  });
+  it.each([{tenantId: 'a'}, {tenant_id: 'b'}, {tenantId: null}])('denies custom tenant aliases %j', async claims => {
+    const db = env.authenticatedContext(ANNA, claims).firestore();
+    await assertFails(getDoc(doc(db, 'users/anna')));
+  });
+});
