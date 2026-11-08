@@ -456,3 +456,11 @@ server.ts uses requestRouteForTelemetry for initial/final span routes, structure
 
 **Limits and approvals:** A passing structural gate does not authenticate every linked third-party evidence URL and does not, by itself, establish IAM enforcement against direct `gcloud` use. Maintain least-privilege production IAM, protected environment reviewers, exact SHA/image provenance, real observability evidence and independent AppSec/DPO/Legal/SRE/Release Owner approvals. The image provided to a manual deployment must be independently matched to the approved signed release artifact. All changes remain Draft; `main` and production are not modified by the review branch.
 
+
+### 2026-11-08 — VES-14: Canary observation numeric integrity (Draft, review only)
+
+The promotion evidence checker originally accepted finite but impossible values, including negative 5xx rates, negative p95 latency and availability greater than 100%, because only the upper or lower SLO threshold was enforced. Numeric strings were also coerced by `Number(...)`. A reported observation interval could be in the future if the caller provided a broad future trusted window. These are source-level validation defects; **there is no evidence of a real unauthorized promotion**.
+
+The stacked review branch `fix/ves14-promotion-evidence-metric-bounds-20261108` enforces strictly numeric `availability` and `errorRate5xx` within [0,1], non-negative finite numeric `p95LatencyMs`, exact numeric 10% traffic, integer numeric observation seconds and chronologically ordered trust windows. A future `observedUntil` is rejected beyond a 60-second clock-skew allowance. Existing SLO thresholds remain unchanged (availability >= 0.9995, p95 <= 300 ms, error rate <= 0.001). Mandatory `scripts/test-prod-canary-go-gate.mjs` now checks positive evidence and adversarial invalid/future values without contacting GCP.
+
+**Evidence boundary:** Source edits and tests require successful full Enterprise CI on the final branch SHA and independent AppSec/SRE review. Neither a locally generated metrics file nor a successful CI result is a cryptographic attestation of actual canary observations. Real signed observability provenance, locked Cloud IAM and an approved release are still required. `productionApproved=false`; **NO-GO**. No live promotion or traffic change was performed.
