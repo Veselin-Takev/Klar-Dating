@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import type { Server } from 'node:http';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, assertVerificationPurgeRecordNotHeld, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -116,6 +116,31 @@ describe('verification storage compliance job authentication', () => {
     const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
     expect(validComplianceRequest(body, timestamp, valid, 'short', Number(timestamp))).toBe(false);
     expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), valid, secret, Number(timestamp))).toBe(false);
+  });
+});
+
+describe('Firestore record-level verification photo preservation hold', () => {
+  it.each([
+    [{}, 'legacy record without a hold'],
+    [{ photoPurgeHold: false }, 'photo purge hold explicitly released'],
+    [{ legalHold: false }, 'legal hold explicitly released'],
+    [{ photoPurgeHold: false, legalHold: false }, 'both holds explicitly released'],
+  ] as const)('accepts $label only when no hold is active %#', (data) => {
+    expect(() => assertVerificationPurgeRecordNotHeld({ ...data })).not.toThrow();
+  });
+
+  it.each([
+    { photoPurgeHold: true },
+    { legalHold: true },
+    { photoPurgeHold: 'true' },
+    { legalHold: 'false' },
+    { photoPurgeHold: null },
+    { legalHold: { active: false } },
+    { photoPurgeHold: 0 },
+    { photoPurgeHold: false, legalHold: true },
+  ])('fails closed if a hold is asserted or malformed %#', data => {
+    expect(() => assertVerificationPurgeRecordNotHeld(data))
+      .toThrow('verification_photo_record_hold_or_invalid');
   });
 });
 
