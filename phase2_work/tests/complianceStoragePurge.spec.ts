@@ -125,7 +125,7 @@ describe('Firestore record-level verification photo preservation hold', () => {
     [{ photoPurgeHold: false }, 'photo purge hold explicitly released'],
     [{ legalHold: false }, 'legal hold explicitly released'],
     [{ photoPurgeHold: false, legalHold: false }, 'both holds explicitly released'],
-  ] as const)('accepts $label only when no hold is active %#', (data) => {
+  ] as const)('accepts an explicitly not-held Firestore record %#', (data, _label) => {
     expect(() => assertVerificationPurgeRecordNotHeld({ ...data })).not.toThrow();
   });
 
