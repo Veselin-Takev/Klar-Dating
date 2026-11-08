@@ -6,7 +6,7 @@ export type AnalyticsEvent = 'user_verified' | 'ad_watched' | 'subscription_star
 
 export async function trackEvent(userId: string, eventName: AnalyticsEvent, metadata: JsonObject = {}) {
   try {
-    const db = getDb() as any;
+    const db = getDb();
     // Die Events werden in einer dedizierten "analytics_events" Collection gespeichert,
     // welche von BigQuery exportiert werden kann.
     await db.collection('analytics_events').add({

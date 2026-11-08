@@ -59,3 +59,5 @@ and diagnostics), explicit/implicit any, runtime schemas, dead-code review,
 external writers and cross-tenant authorization are covered. Static inventory
 and a green CI alone cannot establish those properties. No new features,
 merge, RC tag or production activation is authorized by this audit report.
+
+Three explicit any escapes in non-test src code were also removed: analytics now uses the declared Firestore return type, checklist authentication accepts Express Request, and the checklist UI passes its already compatible key directly. Test/config any nodes remain open.

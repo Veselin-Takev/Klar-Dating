@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 
 const DEFAULTS: Record<string, boolean> = {
@@ -19,7 +19,7 @@ function sanitizeChecklist(value: unknown): Record<string, boolean> | null {
   return result;
 }
 
-export function createChecklistRouter(deps: { currentUserId: (req: any) => string | null; getFirestore: () => Firestore }): Router {
+export function createChecklistRouter(deps: { currentUserId: (req: Request) => string | null; getFirestore: () => Firestore }): Router {
   const router = Router();
   router.get('/checklists/date_prep', async (req, res) => {
     const uid = deps.currentUserId(req);
