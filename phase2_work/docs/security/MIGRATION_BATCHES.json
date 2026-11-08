@@ -6,24 +6,44 @@
     {
       "id": "A",
       "scope": "Chat archival scheduled job",
-      "files": ["phase2_work/functions/src/archiveInactiveChats.ts"],
+      "files": [
+        "phase2_work/functions/src/archiveInactiveChats.ts"
+      ],
       "commit": "6d9c91d5",
       "tenantAuthority": "Explicit deployer-controlled KLAR_MAINTENANCE_TENANT_ID",
       "cutoverGuard": "ENABLE_CHAT_ARCHIVAL=true AND KLAR_TENANT_MIGRATION_READY=true",
-      "operations": ["tenant-local bounded chat scan", "tenant-local cursor", "closed read/list/write/delete transaction"],
+      "operations": [
+        "tenant-local bounded chat scan",
+        "tenant-local cursor",
+        "closed read/list/write/delete transaction"
+      ],
       "liveDataMigration": "NOT_EXECUTED"
     },
     {
       "id": "B",
       "scope": "Checklist API",
-      "files": ["phase2_work/src/server/routes/checklists.ts"],
+      "files": [
+        "phase2_work/src/server/routes/checklists.ts"
+      ],
       "commit": "387c2254",
       "tenantAuthority": "Verified Firebase default-tenant claims via API repository adapter",
       "cutoverGuard": "KLAR_TENANT_CHECKLIST_MIGRATION_READY=true",
-      "operations": ["schema-validated scoped read", "schema-validated scoped merge write"],
+      "operations": [
+        "schema-validated scoped read",
+        "schema-validated scoped merge write"
+      ],
       "liveDataMigration": "NOT_EXECUTED"
     }
   ],
   "baselineFixed": false,
-  "productionApproved": false
+  "productionApproved": false,
+  "verification": {
+    "codeSha": "84575f87f42d581e1ca071270a4b8a042e36dbad",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42484272103",
+    "result": "SUCCESS",
+    "mainSuites": 1552,
+    "additionalIamChecks": 6,
+    "terraform": "PASS_LOCAL_INIT_VALIDATE_FMT_ONLY",
+    "liveDataMigration": "NOT_EXECUTED"
+  }
 }

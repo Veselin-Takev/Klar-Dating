@@ -18,3 +18,5 @@ Legacy migration: 50/50 not complete. SDK factory confinement and Semgrep implem
 Latest verification: 1,549 PASS and Semgrep 119 files / zero findings on 9a93f02a. Tenant migration remains incomplete; static IAM conformity blocked. baselineFixed=false; PR #358 DRAFT.
 
 Batches A/B: 2/50 consumers migrated in source; 48 remain. IAM module and render-enforced dedicated runtime identity implemented, not provisioned. Cutover flags remain disabled outside synthetic tests. baselineFixed=false.
+
+Verified batch checkpoint: 2/50 migrated, 48 open; 1,552 main-suite PASS plus 6 IAM checks on 84575f87. IAM render enforcement implemented, no provisioning/cutover. baselineFixed=false. Stopped for batch review.

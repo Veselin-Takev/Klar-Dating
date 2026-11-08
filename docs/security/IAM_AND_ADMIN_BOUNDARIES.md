@@ -166,3 +166,31 @@ locally. No provisioning, plan/apply or effective cloud-IAM verification is clai
 
 Full changed-candidate CI pending. baselineFixed=false; productionApproved=false.
 Stop after these bounded batches for review; no CERTIFIED_PROCEED.
+
+## Batch A/B verified checkpoint — 2026-11-08
+
+Full [CI 42484272103](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42484272103)
+SUCCESS on `84575f87f42d581e1ca071270a4b8a042e36dbad`: **1,552 PASS**
+(1,440 Vitest in 198 files + 86 Enterprise Node + 26 Playwright). Dedicated
+Rules: 92 repeated PASS, not double-counted. Six additional IAM render/negative
+checks PASS. Semgrep fixture PASS and production scan 119 files / zero findings.
+Typecheck, Functions/App builds and production smoke PASS.
+
+Batch A native tests verify tenant-local archive transactions/cursors, pending
+erasure protection and unchanged foreign-tenant/root records. Batch B verifies
+scoped API merge writes, retained root data and 503 before approved cutover.
+The shared helper uses native Date values at the API/Functions SDK boundary to
+avoid cross-package Timestamp instances. Release CLI tests now supply the
+explicit synthetic runtime identity required by rendering. The initial candidate
+CI exposed both integration issues; both pass in the completed run above.
+
+Progress: **2/50 consumer files migrated in source, 48 open**. Terraform runtime
+identity/bindings are IMPLEMENTED; local init/validate/fmt PASS. No plan/apply,
+service-account creation, deployed IAM attestation, live data migration or
+production cutover was performed. Source identity slots remain render-only;
+missing/default/cross-project service accounts are rejected by rendering.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT for review
+of these bounded batches. Work stops here for the next review step, with no
+CERTIFIED_PROCEED. This metadata checkpoint refers to the immutable tested code
+SHA; its own automatic CI is separate.
