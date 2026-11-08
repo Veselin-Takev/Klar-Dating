@@ -4,6 +4,7 @@ import { getServiceRepository } from './src/server/firestoreRepository/nativeDat
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
 import { createMediaAccessGuard } from './src/server/mediaAccess';
 import { createMediaRouter } from './src/server/routes/media';
+import { containLegacySuspension } from './src/server/accountSecurity';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
@@ -181,7 +182,10 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     const decodedToken = await authInstance.verifyIdToken(idToken, true);
     const tenantContext = resolveVerifiedTenantContext(decodedToken);
 
-    if (await getServiceRepository('auth').read(`account_locks/${decodedToken.uid}`, z.record(z.string(), z.unknown()))) {
+    const repository = getServiceRepository('auth');
+    const [lock, profile] = await Promise.all([repository.read(`account_locks/${decodedToken.uid}`, z.record(z.string(), z.unknown())),repository.read(`users/${decodedToken.uid}`,z.record(z.string(),z.unknown()))]);
+    if (lock || profile?.active === false) {
+      if (!lock) await containLegacySuspension(decodedToken.uid,repository).catch(()=>undefined);
       return res.status(401).json({ code: 'account_locked' });
     }
     if (decodedToken.uid && await getServiceRepository('auth').read(`account_deletions/${decodedToken.uid}`, z.record(z.string(), z.unknown()))) {

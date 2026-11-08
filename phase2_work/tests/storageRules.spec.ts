@@ -61,6 +61,13 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const client = env.authenticatedContext(uid, {firebase:{sign_in_provider:'password'}}).firestore();
     await assertFails(client.doc(`tenants/default/users/${uid}`).update({mediaAccessState:'active'}));
   });
+  it('denies legacy suspended principals before any lock backfill, including privileged claims', async () => {
+    const uid = `${prefix}-legacy-suspended`;
+    await seedUser(uid,{uid,isAdult:true,mediaAccessState:'active',active:false,name:'Synthetic blocked account'});
+    const client=env.authenticatedContext(uid,{role:'admin',firebase:{sign_in_provider:'password'}}).firestore();
+    await assertFails(client.doc(`tenants/default/users/${uid}`).get());
+    await assertFails(client.doc(`tenants/default/users/${uid}`).update({name:'forbidden'}));
+  });
   it.each(['tenant-a', 'tenant-b'])('denies tenant-scoped UID collisions in Storage (%s)', async tenant => {
     const tenantClaims = {tenant, sign_in_provider: 'password' as const};
     const path = `profiles/${prefix}/tenant-check.jpg`;

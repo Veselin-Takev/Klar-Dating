@@ -151,7 +151,9 @@ it.runIf(!!process.env.FIREBASE_AUTH_EMULATOR_HOST)('serves uploaded media only 
   const response=await fetch('http://127.0.0.1:3000'+path,{headers});expect(response.status).toBe(200);expect(response.headers.get('cache-control')).toContain('no-store');expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([255,216,255,224]));
   expect((await fetch('http://127.0.0.1:3000'+path)).status).toBe(401);
   const file=getAppBucket().file(path!.replace('/api/media/',''));const [metadata]=await file.getMetadata();expect(metadata.metadata?.firebaseStorageDownloadTokens).toBeUndefined();
-  await user.update({active:false,mediaAccessState:'blocked'});
-  expect((await fetch('http://127.0.0.1:3000'+path,{headers})).status).toBe(403);
- }finally{if(path)await getAppBucket().file(path.replace('/api/media/','')).delete();await db.recursiveDelete(user);await getAuth(getServerFirebaseApp()).deleteUser(uid);}
+  await user.update({active:false}); // Legacy DSA rows may not have a lock yet.
+  expect((await fetch('http://127.0.0.1:3000'+path,{headers})).status).toBe(401);
+  expect((await db.doc('account_locks/'+uid).get()).exists).toBe(true);
+  expect((await getAuth(getServerFirebaseApp()).getUser(uid)).disabled).toBe(true);
+ }finally{if(path)await getAppBucket().file(path.replace('/api/media/','')).delete();await Promise.all([db.recursiveDelete(user),db.doc('account_locks/'+uid).delete(),db.doc('account_security_jobs/'+uid).delete()]);await getAuth(getServerFirebaseApp()).deleteUser(uid);}
 },30_000);

@@ -11,6 +11,22 @@ export function securityJob(previous: Record<string, unknown> | null, action: 'd
   return { requestId: randomUUID(), action, createdAt: now, nextAttemptAt: now, lease: previous?.lease ?? '', leaseUntil: Number(previous?.leaseUntil) || 0 };
 }
 
+/** Upgrade legacy server-owned suspension state without changing the original
+ * DSA decision or its appeal deadline. Clients cannot set active=false. */
+export async function containLegacySuspension(uid: string, repo: SecurityRepository): Promise<void> {
+  const queued = await repo.transaction(async tx => {
+    const [user, lock, previous] = await Promise.all([tx.read(`users/${uid}`,record),tx.read(`account_locks/${uid}`,record),tx.read(`account_security_jobs/${uid}`,record)]);
+    if (!user || user.active !== false || lock) return false;
+    const now=new Date();
+    tx.write(`users/${uid}`,record,{mediaAccessState:'blocked'},{merge:true});
+    tx.write(`account_locks/${uid}`,record,{lockedAt:now,reason:'legacy_suspension'});
+    tx.write(`account_security_jobs/${uid}`,record,securityJob(previous,'disable',now));
+    tx.delete(`public_profiles/${uid}`);
+    return true;
+  });
+  if (queued) await enforceAccountLock(uid,repo);
+}
+
 /** Attempt both operations, even if either provider operation fails. A durable
  * Firestore fence must already exist. Never expose provider error payloads. */
 export async function disableAndRevoke(uid: string, auth: Pick<Auth, 'updateUser' | 'revokeRefreshTokens'> = getAuth()): Promise<void> {
