@@ -14,6 +14,7 @@ describe('statutory public form serialization', () => {
   });
   it.each(['cancel', 'withdraw'] as const)('preserves the no-JavaScript %s form contract', kind => {
     const html = renderContractForm('de', kind);
+    expect(html).toMatch(/<title>[^<]+ · Klar<\/title>/);
     expect(html).toContain('method="post"');
     expect(html).toContain('action="/vertraege/erklaerung"');
     expect(html).toContain(`name="kind" value="${kind}"`);

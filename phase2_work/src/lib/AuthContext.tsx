@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const isCurrent = () => request === profileRequest.current && auth.currentUser?.uid === currentUser.uid;
     setDiagnosticsConsent(false);
     try {
-      const docRef = doc(db, 'users', currentUser.uid);
+      const docRef = doc(db, 'tenants', 'default', 'users', currentUser.uid);
       let snapshot = await getDocFromServer(docRef);
       if (!isCurrent()) throw new Error('Die Sitzung hat sich geändert.');
       if (!snapshot.exists() && createIfMissing) {
@@ -212,7 +212,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user || auth.currentUser?.uid !== user.uid) throw new Error('Bitte erneut anmelden.');
     {
       try {
-        const docRef = doc(db, 'users', user.uid);
+        const docRef = doc(db, 'tenants', 'default', 'users', user.uid);
         const fieldsToPersist = omitUndefinedFields(data);
         const updatePayload = {
           ...fieldsToPersist,
@@ -302,7 +302,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         void claimReferral();
         // Apply revocations and status downgrades while the account is open.
         // Cached or optimistic snapshots cannot authorize any new state.
-        stopProfile = onSnapshot(doc(db, 'users', currentUser.uid), { includeMetadataChanges: true }, (snapshot: DocumentSnapshot) => {
+        stopProfile = onSnapshot(doc(db, 'tenants', 'default', 'users', currentUser.uid), { includeMetadataChanges: true }, (snapshot: DocumentSnapshot) => {
           if (!isCurrent()) return;
           if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) {
             setDiagnosticsConsent(false);

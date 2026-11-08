@@ -15,7 +15,7 @@ async function createAccount(request: APIRequestContext) {
   // profile interest so AuthGate can complete its real onboarding gate; never
   // rely on the removed unscoped localStorage onboarding flag.
   const profile = await request.patch(
-    `http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=interests`,
+    `http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/tenants/default/users/${uid}?updateMask.fieldPaths=interests`,
     {
       headers: { Authorization: 'Bearer owner' },
       data: { fields: { interests: { arrayValue: { values: [{ stringValue: 'Musik' }] } } } },
@@ -27,7 +27,7 @@ async function createAccount(request: APIRequestContext) {
 async function seedChat(request: APIRequestContext, participants: string[]) {
   // Fixed loopback demo endpoint: these fixtures cannot reach production.
   const chatId = 'browser-' + crypto.randomUUID();
-  const result = await request.patch(`http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/chats/${chatId}`, {
+  const result = await request.patch(`http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/tenants/default/chats/${chatId}`, {
     headers: { Authorization: 'Bearer owner' },
     data: { fields: {
       participants: { arrayValue: { values: participants.map(stringValue => ({ stringValue })) } },

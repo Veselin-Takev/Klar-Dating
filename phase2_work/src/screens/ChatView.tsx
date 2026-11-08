@@ -1001,7 +1001,7 @@ Der Einstieg sollte kreativ, freundlich und auf eine Gemeinsamkeit oder etwas au
       }
 
       const viewer = user.uid;
-      const messagesRef = query(collection(db, `chats/${id}/messages`), orderBy('createdAt', 'desc'), limit(100));
+      const messagesRef = query(collection(db, `tenants/default/chats/${id}/messages`), orderBy('createdAt', 'desc'), limit(100));
       unsubscribeMessages = onSnapshot(messagesRef, snapshot => {
         if (!active || auth.currentUser?.uid !== viewer) return;
         const unreadIds: string[] = [];

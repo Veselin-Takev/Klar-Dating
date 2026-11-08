@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('../src/lib/firebase', () => ({ auth: mocks.auth, db: {} }));
 vi.mock('firebase/firestore', () => ({
-  doc: (_db: unknown, _collection: string, uid: string) => ({ uid }),
+  doc: (_db: unknown, ...segments: string[]) => ({ uid: segments.at(-1), path: segments.join('/') }),
   getDocFromServer: mocks.read,
   setDoc: vi.fn(), updateDoc: vi.fn(),
   waitForPendingWrites: vi.fn().mockResolvedValue(undefined),
@@ -49,6 +49,7 @@ describe('authoritative profile state', () => {
     localStorage.setItem('klar_einw_fehlerberichte', 'ja');
     mocks.read.mockResolvedValue(snapshot({ uid: 'alice', isAdult: false, einwilligung: null }));
     await signIn('alice');
+    expect(mocks.read.mock.calls[0]?.[0].path).toBe('tenants/default/users/alice');
     expect(context.profileData).toMatchObject({ uid: 'alice', isAdult: false, einwilligung: null });
     expect(hasDiagnosticsConsent()).toBe(false);
     expect(context.loading).toBe(false);

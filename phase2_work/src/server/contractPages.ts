@@ -8,7 +8,7 @@ import { createRequestI18n } from '../i18n/server';
 function page(language: SupportedLanguage, title: string, content: ReactNode) {
   return '<!doctype html>' + renderToStaticMarkup(h('html', {lang: language},
     h('head', null, h('meta', {charSet: 'utf-8'}), h('meta', {name: 'viewport', content: 'width=device-width, initial-scale=1'}),
-      h('title', null, title, ' · Klar'), h('link', {rel: 'stylesheet', href: '/contracts.css'})),
+      h('title', null, title + ' · Klar'), h('link', {rel: 'stylesheet', href: '/contracts.css'})),
     h('body', null, h('main', null, h('h1', null, title), content))));
 }
 export function renderContractForm(language: SupportedLanguage, kind: 'cancel' | 'withdraw') {
@@ -16,7 +16,7 @@ export function renderContractForm(language: SupportedLanguage, kind: 'cancel' |
   const field = (name: string, label: string, type: string, required: boolean, maxLength: number) =>
     h('p', {key: name}, h('label', {htmlFor: name}, label), h('br'), h('input', {id: name, name, type, maxLength, required}));
   return page(language, t(kind === 'cancel' ? 'contracts.cancelLink' : 'contracts.withdrawLink'), [
-    h('nav', {key: 'nav', 'aria-label': t('settings.language')}, ...['de', 'en', 'es', 'fr'].map(lang => h('a', {key: lang, href: '?lang=' + lang, lang}, lang.toUpperCase(), ' '))),
+    h('nav', {key: 'nav', 'aria-label': t('settings.language')}, ...['de', 'en', 'es', 'fr'].flatMap((lang,index) => [index ? ' · ' : null, h('a', {key: lang, href: '?lang=' + lang, lang}, lang.toUpperCase())])),
     h('p', {key: 'intro'}, t('contracts.intro')),
     h('form', {key: 'form', method: 'post', action: '/vertraege/erklaerung'},
       h('input', {type: 'hidden', name: 'requestId', value: randomUUID()}), h('input', {type: 'hidden', name: 'kind', value: kind}), h('input', {type: 'hidden', name: 'language', value: language}),
