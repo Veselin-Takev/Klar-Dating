@@ -1611,3 +1611,40 @@ PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [
 ## Gate 0 — v0.1.1-rc1, 2026-11-08
 
 **BLOCKED / baselineFixed=false / productionApproved=false.** Complete structural inventory, shared date-history type and missing Enterprise test execution are addressed in [the Gate 0 audit](releases/v0.1.1-rc1/GATE0_AUDIT.md). 202 explicit any nodes and unproven schema/tenant/reachability coverage prevent baseline certification. Exact execution counts remain pending candidate CI.
+
+### Gate-0-Ausführungsergebnis — 2026-11-08
+
+[PR #356](https://github.com/Veselin-Takev/Klar-Dating/pull/356), Code-Commit
+`7c63dfc057394b43327b1b153817ef0fad3d5290`, vollständige
+[CI 42476528171](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42476528171): SUCCESS.
+
+- Vitest: 194 Dateien, 1.398/1.398 PASS.
+- Enterprise Node: 17 Dateien, 86/86 PASS, keine Skips.
+- Playwright: 26/26 PASS.
+- Diese drei getrennten Suiten: **1.510/1.510 PASS**. Die sechs erneut
+  ausgeführten Launch-Tests sind schon in Vitest enthalten und nicht addiert.
+- Zusätzlich: Prompt-Security 11 PASS, Functions-Kompatibilität 2 PASS und
+  weitere statische/Node-Gates erfolgreich. Deren Gesamtzahl ist hier nicht
+  als deduplizierte repositoryweite Baseline zertifiziert.
+- Typecheck, Functions-Build, App-Build und Produktions-Smoke: PASS.
+
+Der vorherige Erweiterungslauf 42475957501 deckte acht Fehler auf. Behoben:
+Consent-Testsecret ausschließlich im isolierten Testprozess; Runner-Zuordnung
+für die bereits separat geprüfte Vitest-Prompt-Suite und die browserabhängige
+Offline-Queue-Suite; veraltete Erfolgserwartungen für absichtlich deaktivierte
+Identitätsprovider; vollständige Adult-Fixtures plus Negativtest im Storage-Modell.
+Die produktiven Autorisierungsregeln wurden dafür nicht gelockert.
+
+Die Inventarzahlen beziehen sich auf den ursprünglichen RC-Commit. Nach der
+Korrektur verbleiben 199 explizite any-Knoten repositoryweit, davon keiner in
+nicht-testbezogenen Dateien unter phase2_work/src. Gemeinsamer DateHistoryEntry
+ersetzt drei identische Definitionen; nicht identische Typen bleiben getrennt.
+
+**Gate 0 bleibt ROT / BLOCKED, baselineFixed=false.** Offene Anforderungen:
+repositoryweites Zero-any, vollständige Runtime-Schema- und Tenant-Nachweise,
+semantische Prüfung sämtlicher Pfade/Mocks und lückenlose Zuordnung aller
+inventarisierten Testdateien (inklusive separater Rules-Diagnostik) zu einer
+verbindlichen Gesamtausführung. Der Dateikatalog ist eine vollständige
+strukturelle Bestandsaufnahme, keine abgeschlossene semantische Codeprüfung.
+Die historische Testzahl ist damit aktualisiert, die Baseline nicht fixiert.
+Keine Feature-Entwicklung, kein Merge/Tag und keine Produktionsfreigabe.
