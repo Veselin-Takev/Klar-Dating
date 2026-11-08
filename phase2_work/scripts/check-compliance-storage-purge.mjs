@@ -8,6 +8,8 @@ const checks = [
   ['HMAC timing-safe validation', /timingSafeEqual/],
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
   ['explicit purge bucket checked', /validatedVerificationPurgeBucketName\(process\.env\.FIREBASE_STORAGE_BUCKET\)/],
+  ['record-level hold validation', /assertVerificationPurgeRecordNotHeld\(data\)/],
+  ['hold and legal-hold must be checked', /\['photoPurgeHold', 'legalHold'\]/],
   ['unconfigured purge bucket returns 503', /verification_storage_purge_bucket_unconfigured/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
