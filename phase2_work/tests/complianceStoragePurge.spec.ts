@@ -180,6 +180,12 @@ describe('decision-based verification object deletion safety', () => {
   it.each([
     { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
     { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
+    { label: 'string temporary hold', metadata: { generation: '12', temporaryHold: 'true' } },
+    { label: 'string event hold', metadata: { generation: '12', eventBasedHold: 'false' } },
+    { label: 'null temporary hold', metadata: { generation: '12', temporaryHold: null } },
+    { label: 'null event hold', metadata: { generation: '12', eventBasedHold: null } },
+    { label: 'numeric temporary hold', metadata: { generation: '12', temporaryHold: 0 } },
+    { label: 'object event hold', metadata: { generation: '12', eventBasedHold: { active: false } } },
     { label: 'missing generation', metadata: { temporaryHold: false } },
     { label: 'non-decimal generation', metadata: { generation: 'other' } },
     { label: 'invalid numeric generation', metadata: { generation: -1 } },
