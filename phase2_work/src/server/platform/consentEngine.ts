@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 /**
  * Klar Platform - GDPR Art. 9 Explicit Consent Ledger & Purpose-Bound Processing Engine
  * 
@@ -10,9 +12,11 @@
  */
 
 import crypto from 'node:crypto';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import type { Firestore } from 'firebase-admin/firestore';
 import type { JsonObject } from '../../types/strict';
 
+const record = z.object({art9Consent: z.object({version: z.number().int().positive().optional(), purposes: z.unknown(), withdrawnAt: z.string().nullable().optional()}).passthrough().optional()}).passthrough();
 export const ART9_PURPOSES = [
   'art9_sexual_orientation',
   'art9_religious_philosophical',
@@ -112,7 +116,7 @@ export function filterProfileSensitiveFields<T extends JsonObject>(
  * Records a new explicit consent grant in the tamper-evident audit ledger.
  */
 export async function recordExplicitConsent(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   userId: string,
   declaredPurposes: Partial<Record<Art9Purpose, boolean>>,
   now: Date = new Date(),
@@ -140,15 +144,18 @@ export async function recordExplicitConsent(
     withdrawnAt: null,
   };
 
-  const auditLogRef = firestore.collection('consent_audit_log').doc();
-  const userRef = firestore.collection('users').doc(userId);
+  const repo = scopeServiceDatabase(firestore, 'auth');
+  const auditLogRef = `consent_audit_log/${crypto.randomUUID()}`;
+  const userRef = `users/${userId}`;
   const consentAuditSecret = process.env.CONSENT_AUDIT_SECRET ?? process.env.AUDIT_LOG_SECRET_KEY;
   if (!consentAuditSecret || consentAuditSecret.length < 32) throw new Error('CONSENT_AUDIT_SECRET is required for append-only consent audit records');
   const subjectPseudonym = crypto.createHmac('sha256', consentAuditSecret).update(userId, 'utf8').digest('hex');
 
-  await firestore.runTransaction(async (tx: Transaction) => {
+  await repo.transaction(async tx => {
+    const deletion = await tx.read(`account_deletions/${userId}`, record);
+    if (deletion) throw new Error('account_unavailable');
     // 1. Write immutable audit log
-    tx.set(auditLogRef, {
+    tx.create(auditLogRef, record, {
       subjectPseudonym,
       action: 'grant',
       version: CURRENT_ART9_CONSENT_VERSION,
@@ -159,14 +166,10 @@ export async function recordExplicitConsent(
     });
 
     // 2. Commit current state to user profile
-    tx.set(
-      userRef,
-      {
+    tx.write(userRef, record, {
         art9Consent: consentState,
         updatedAt: timestampStr,
-      },
-      { merge: true }
-    );
+      }, { merge: true });
   });
 
   return consentState;
@@ -221,15 +224,16 @@ export function normalizeArt9Purposes(
  * data from user and public_profiles documents, and appends withdrawal audit entry.
  */
 export async function revokeExplicitConsent(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   userId: string,
   purposeToRevoke?: Art9Purpose | 'all',
   now: Date = new Date()
 ): Promise<{ ok: boolean; updatedState: Art9ConsentState; purgedFields: string[] }> {
   const timestampStr = now.toISOString();
-  const userRef = firestore.collection('users').doc(userId);
-  const publicProfileRef = firestore.collection('public_profiles').doc(userId);
-  const auditLogRef = firestore.collection('consent_audit_log').doc();
+  const userRef = `users/${userId}`;
+  const publicProfileRef = `public_profiles/${userId}`;
+  const repo = scopeServiceDatabase(firestore, 'auth');
+  const auditLogRef = `consent_audit_log/${crypto.randomUUID()}`;
   const consentAuditSecret = process.env.CONSENT_AUDIT_SECRET ?? process.env.AUDIT_LOG_SECRET_KEY;
   if (!consentAuditSecret || consentAuditSecret.length < 32) throw new Error('CONSENT_AUDIT_SECRET is required for append-only consent audit records');
   const subjectPseudonym = crypto.createHmac('sha256', consentAuditSecret).update(userId, 'utf8').digest('hex');
@@ -237,15 +241,17 @@ export async function revokeExplicitConsent(
 
   let nextState: Art9ConsentState;
 
-  await firestore.runTransaction(async (tx: Transaction) => {
+  await repo.transaction(async tx => {
     // Firestore requires every transactional read to finish before the first
     // write. Read both the private and public profile before preparing any
     // audit or purge writes, so the cascade is atomic and actually executes.
     const [userDoc, publicProfileDoc] = await Promise.all([
-      tx.get(userRef),
-      tx.get(publicProfileRef),
+      tx.read(userRef, record),
+      tx.read(publicProfileRef, record),
     ]);
-    const existingState: Art9ConsentState | undefined = userDoc.data()?.art9Consent;
+    const deletion = await tx.read(`account_deletions/${userId}`, record);
+    if (deletion) throw new Error('account_unavailable');
+    const existingState = userDoc?.art9Consent;
 
     // Reconstruct all known purposes from validated booleans; a missing or
     // malformed stored state cannot implicitly grant a purpose during revocation.
@@ -274,7 +280,7 @@ export async function revokeExplicitConsent(
       withdrawnAt: (!purposeToRevoke || purposeToRevoke === 'all') ? timestampStr : (existingState?.withdrawnAt || null),
     };
 
-    tx.set(auditLogRef, {
+    tx.create(auditLogRef, record, {
       subjectPseudonym,
       action: 'withdrawal',
       revokedPurpose: purposeToRevoke || 'all',
@@ -292,16 +298,16 @@ export async function revokeExplicitConsent(
       purgeUpdate[f] = null;
     }
 
-    tx.set(userRef, purgeUpdate, { merge: true });
+    tx.write(userRef, record, purgeUpdate, { merge: true });
 
     // Also purge from public profile if present. Its snapshot was read
     // above before any writes, satisfying Firestore transaction ordering.
-    if (publicProfileDoc.exists) {
+    if (publicProfileDoc !== null) {
       const pubPurgeUpdate: JsonObject = { updatedAt: timestampStr };
       for (const f of fieldsToPurge) {
         pubPurgeUpdate[f] = null;
       }
-      tx.set(publicProfileRef, pubPurgeUpdate, { merge: true });
+      tx.write(publicProfileRef, record, pubPurgeUpdate, { merge: true });
     }
   });
 

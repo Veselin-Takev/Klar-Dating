@@ -171,7 +171,7 @@ export function PastDatesArchiveWidget() {
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-1 block">Atmosphäre & Notizen</label>
+                <label className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-1 block">Atmosphäre &amp; Notizen</label>
                 <div className="relative">
                   <FileText size={14} className="absolute left-3 top-3 text-stone-400" />
                   <textarea

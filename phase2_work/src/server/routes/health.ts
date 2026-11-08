@@ -4,7 +4,8 @@
  */
 import { timingSafeEqual } from 'node:crypto';
 import { Router, type Request, type Response, type RequestHandler } from 'express';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
 import { observabilityPrometheus } from '../observability';
 
 export type HealthStats = {
@@ -17,7 +18,7 @@ export type HealthStats = {
 };
 
 export type HealthRouterDeps = {
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   healthStats: HealthStats;
   /** Optional: system-health (moderator). Omit to skip that route. */
   requireAuth?: RequestHandler;
@@ -26,7 +27,7 @@ export type HealthRouterDeps = {
 
 export function createHealthRouter(deps: HealthRouterDeps): Router {
   const router = Router();
-  const { getFirestore, healthStats } = deps;
+  const { repository, healthStats } = deps;
 
   // Version, keine Zaehlwerte. Sie ist ohne Anmeldung erreichbar, und
   // alles darin waere oeffentlich.
@@ -36,7 +37,7 @@ export function createHealthRouter(deps: HealthRouterDeps): Router {
 
   router.get('/ready', async (_req, res) => {
     try {
-      await getFirestore().collection('system').doc('readiness').get();
+      await repository().read('system/readiness', z.record(z.string(),z.unknown()));
       res.json({ ok: true });
     } catch {
       res.status(503).json({ ok: false });

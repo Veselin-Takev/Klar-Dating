@@ -1249,7 +1249,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             </button>
           ) : (
             <div className="mt-3">
-              <p className="text-xs text-stone-500 mb-2 flex items-center gap-1"><Sparkles size={12}/> KI-Vorschläge (aus Journal & Chat):</p>
+              <p className="text-xs text-stone-500 mb-2 flex items-center gap-1"><Sparkles size={12}/> KI-Vorschläge (aus Journal &amp; Chat):</p>
               <div className="flex gap-2 flex-wrap">
                 {nogoSuggestions.map((sug, i) => (
                   <button
@@ -1436,7 +1436,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               {showPreview ? (
                 <div className="mb-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl overflow-hidden shadow-sm">
                   <div className="h-32 bg-stone-200 dark:bg-stone-800 w-full relative">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400&h=300" alt="Cover" className="w-full h-full object-cover" />
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&amp;fit=crop&amp;q=80&amp;w=400&amp;h=300" alt="Cover" className="w-full h-full object-cover" />
                     <div className="absolute inset-0  from-black/60 to-transparent"></div>
                     <div className="absolute bottom-3 left-4 text-white">
                       <h4 className="font-semibold text-lg drop-shadow-md">Du, 29</h4>
@@ -1968,7 +1968,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className={settingsCategory === 'privacy' ? 'mt-6' : 'hidden'}>
               <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
                 <ShieldCheck size={18} className="text-stone-500" />
-                Datenschutz & Sichtbarkeit
+                Datenschutz &amp; Sichtbarkeit
               </h4>
               <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
                 <p className="text-xs text-stone-500 mb-4">Lege fest, welche Profilinformationen für andere Nutzer sichtbar sind.</p>

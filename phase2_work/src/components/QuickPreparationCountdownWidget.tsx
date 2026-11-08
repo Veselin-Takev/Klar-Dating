@@ -151,7 +151,7 @@ export function QuickPreparationCountdownWidget() {
               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                 <Shirt size={20} />
               </div>
-              <h3 className="text-lg font-medium">Outfit & Check</h3>
+              <h3 className="text-lg font-medium">Outfit &amp; Check</h3>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm">

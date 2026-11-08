@@ -1,3 +1,7 @@
+import { z } from 'zod';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
+const storedRecord = z.record(z.string(), z.unknown());
 import type { UserMusicPreferences } from '../../types/user';
 import crypto from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -127,10 +131,11 @@ export function evaluateCityLaunchReadiness(activeUsers: number, verifiedUsers: 
   };
 }
 
-export async function getLocalDensity(db: Firestore, city: LaunchCity) {
-  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
-  const active = snap.docs.filter(doc => doc.data().active !== false && daysSince(doc.data().lastActiveAt) <= 7).length;
-  const verified = snap.docs.filter(doc => doc.data().active !== false && doc.data().isVerified === true && daysSince(doc.data().lastActiveAt) <= 7).length;
+export async function getLocalDensity(db: Firestore | TenantAwareFirestoreRepository, city: LaunchCity) {
+  const repo = scopeServiceDatabase(db, 'auth');
+  const snap = (await repo.listAll('public_profiles', storedRecord, {where:['location','==',city]})).slice(0,500);
+  const active = snap.filter(doc => doc.data.active !== false && daysSince(doc.data.lastActiveAt) <= 7).length;
+  const verified = snap.filter(doc => doc.data.active !== false && doc.data.isVerified === true && daysSince(doc.data.lastActiveAt) <= 7).length;
   return { city, activeUsers: active, verifiedUsers: verified, band: densityBand(active), threshold: active < 5 ? 5 : active < 20 ? 20 : active < 50 ? 50 : 100 };
 }
 
@@ -170,7 +175,7 @@ function reasonsFor(a: CompatibilityProfile, b: CompatibilityProfile): Recommend
 }
 
 export async function getRecommendations(
-  db: Firestore,
+  db: Firestore | TenantAwareFirestoreRepository,
   uid: string,
   profile: CompatibilityProfile & { location?: string; minAge?: number; maxAge?: number; limit?: number },
 ) {
@@ -179,24 +184,18 @@ export async function getRecommendations(
   const minAge = Math.max(18, Math.min(80, profile.minAge ?? 18));
   const maxAge = Math.max(minAge, Math.min(100, profile.maxAge ?? 80));
   const limit = Math.max(1, Math.min(30, profile.limit ?? 12));
-  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
+  const repo = scopeServiceDatabase(db, 'auth');
+  const snap = (await repo.listAll('public_profiles', storedRecord, {where:['location','==',city]})).slice(0,500);
   const blocked = new Set<string>();
   // Never truncate an exclusion list: an omitted block is a privacy failure.
   // Bound work and fail closed if an exceptional account exceeds the scan budget.
   for (const [ownField, otherField] of [['blockerUid', 'blockedUid'], ['blockedUid', 'blockerUid']] as const) {
-    const query = db.collection('blocks').where(ownField, '==', uid).limit(200);
-    let cursor: import('firebase-admin/firestore').QueryDocumentSnapshot | undefined;
-    for (let page = 0; ; page++) {
-      if (page >= 50) throw new Error('Block list scan budget exceeded');
-      const result = await (cursor ? query.startAfter(cursor) : query).get();
-      result.forEach(document => blocked.add(String(document.data()[otherField])));
-      if (result.size < 200) break;
-      cursor = result.docs[result.docs.length - 1];
-    }
+    const rows = await repo.listAll('blocks', storedRecord, {where:[ownField,'==',uid]});
+    for (const row of rows) blocked.add(String(row.data[otherField]));
   }
 
-  const candidates = snap.docs
-    .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
+  const candidates = snap
+    .map(d => ({ id: d.id, data: d.data }))
     .filter(({ id, data }) => id !== uid && data.isExample !== true && !blocked.has(id) && data.active !== false && data.isVerified === true)
     .filter(({ data }) => typeof data.age === 'number' && data.age >= minAge && data.age <= maxAge)
     .filter(({ data }) => daysSince(data.lastActiveAt) <= 7)
@@ -262,13 +261,13 @@ function safeActivationMetadata(metadata: Record<string, unknown>): Record<strin
   return result;
 }
 
-export async function recordActivation(db: Firestore, uid: string, eventName: string, eventId?: string, metadata: Record<string, unknown> = {}) {
+export async function recordActivation(db: Firestore | TenantAwareFirestoreRepository, uid: string, eventName: string, eventId?: string, metadata: Record<string, unknown> = {}) {
   if (!ACTIVATION_EVENTS.has(eventName)) throw new Error('Unsupported activation event');
   const safeId = typeof eventId === 'string' && /^[A-Za-z0-9_-]{8,120}$/.test(eventId)
     ? eventId
     : crypto.randomUUID();
-  const ref = db.collection('activation_events').doc(safeId);
-  await ref.create({ uid, eventName, metadata: safeActivationMetadata(metadata), createdAt: FieldValue.serverTimestamp() });
+  const repo = scopeServiceDatabase(db, 'auth');
+  await repo.create(`activation_events/${safeId}`, storedRecord, { uid, eventName, metadata: safeActivationMetadata(metadata), createdAt: FieldValue.serverTimestamp() });
   return { eventId: safeId, weight: ACTIVATION_WEIGHTS[eventName] ?? 0 };
 }
 

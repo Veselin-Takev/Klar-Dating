@@ -38,7 +38,7 @@ export async function executeWithResilience<T>(
         // Exponential backoff before next try
         await new Promise((resolve) => setTimeout(resolve, backoffMs * Math.pow(2, attempt - 1)));
       } else {
-        console.warn(`[Resilience] Service ${serviceName} failed after ${retries + 1} attempt(s). Triggering safe fallback.`, error);
+        console.warn('[resilience_fallback] %s %d', serviceName, retries + 1);
         return await fallbackAction();
       }
     }

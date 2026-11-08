@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 /**
  * Klar Platform - Hard Age-Gate & Minor Protection Engine (P0 Zero-Tolerance Mandate)
  * 
@@ -10,8 +12,10 @@
 
 import crypto from 'node:crypto';
 import { alterInJahren } from '../pure';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import type { Firestore } from 'firebase-admin/firestore';
 
+const record = z.object({accountStatus: z.string().optional(), isUnderage: z.boolean().optional()}).passthrough();
 export const MINIMUM_AGE = 18;
 export const MAXIMUM_PLAUSIBLE_AGE = 120;
 
@@ -145,7 +149,7 @@ export interface AgeProcessOutcome {
  * - Adult submissions record verified status with tamper-evident audit evidence.
  */
 export async function processAgeVerification(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   userId: string,
   birthdateStr: unknown,
   options?: { now?: Date; ipHash?: string }
@@ -153,15 +157,16 @@ export async function processAgeVerification(
   const now = options?.now || new Date();
   const timestampStr = now.toISOString();
 
-  const userRef = firestore.collection('users').doc(userId);
-  const publicProfileRef = firestore.collection('public_profiles').doc(userId);
-  const attemptRef = firestore.collection('age_verification_attempts').doc();
+  const repo = scopeServiceDatabase(firestore, 'auth');
+  const userRef = `users/${userId}`, publicProfileRef = `public_profiles/${userId}`, attemptRef = `age_verification_attempts/${crypto.randomUUID()}`;
 
   let outcome: AgeProcessOutcome;
 
-  await firestore.runTransaction(async (tx: Transaction) => {
-    const userDoc = await tx.get(userRef);
-    const userData = userDoc.data() || {};
+  await repo.transaction(async tx => {
+    const userDoc = await tx.read(userRef, record);
+    const deletion = await tx.read(`account_deletions/${userId}`, record);
+    if (deletion) throw new Error('account_unavailable');
+    const userData = userDoc || {};
 
     // 1. Zero Tolerance: Check if account is already permanently locked as underage
     if (userData.accountStatus === 'locked_underage' || userData.isUnderage === true) {
@@ -188,7 +193,7 @@ export async function processAgeVerification(
         });
 
         // Record immutable audit entry
-        tx.set(attemptRef, {
+        tx.write(attemptRef, record, {
           userId,
           outcome: 'rejected_underage',
           timestamp: timestampStr,
@@ -197,9 +202,7 @@ export async function processAgeVerification(
         });
 
         // LOCK ACCOUNT & PURGE MINOR DATA (Zero Data Retention)
-        tx.set(
-          userRef,
-          {
+        tx.write(userRef, record, {
             isAdult: false,
             isUnderage: true,
             accountStatus: 'locked_underage',
@@ -212,9 +215,7 @@ export async function processAgeVerification(
             seekingGender: null,
             draftProfile: null,
             updatedAt: timestampStr,
-          },
-          { merge: true }
-        );
+          }, { merge: true });
 
         // Delete public profile if present
         tx.delete(publicProfileRef);
@@ -255,7 +256,7 @@ export async function processAgeVerification(
       ipHash: options?.ipHash,
     });
 
-    tx.set(attemptRef, {
+    tx.write(attemptRef, record, {
       userId,
       outcome: 'verified_adult',
       timestamp: timestampStr,
@@ -263,18 +264,14 @@ export async function processAgeVerification(
       ipHash: options?.ipHash || null,
     });
 
-    tx.set(
-      userRef,
-      {
+    tx.write(userRef, record, {
         geburtsdatum: validation.birthdateClean,
         isAdult: true,
         isUnderage: false,
         alterGeprueftAm: timestampStr,
         accountStatus: userData.accountStatus === 'pending_age' ? 'active' : (userData.accountStatus || 'active'),
         updatedAt: timestampStr,
-      },
-      { merge: true }
-    );
+      }, { merge: true });
 
     outcome = {
       ok: true,

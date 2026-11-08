@@ -12,7 +12,7 @@ export class VerificationManager {
         return await this.primary.verifyIdentity(request);
       }
     } catch (error) {
-      console.warn(`[Verification] Primary provider (${this.primary.name}) failed.`, error);
+      console.warn('verification_primary_unavailable');
     }
 
     try {
@@ -21,7 +21,7 @@ export class VerificationManager {
         return await this.secondary.verifyIdentity(request);
       }
     } catch (error) {
-      console.error(`[Verification] Secondary provider (${this.secondary.name}) failed.`, error);
+      console.error('verification_secondary_unavailable');
     }
 
     return {

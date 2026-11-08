@@ -464,7 +464,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                     <span>Wird gespeichert…</span>
                   </>
                 ) : (
-                  <span>Passwort speichern & anmelden</span>
+                  <span>Passwort speichern &amp; anmelden</span>
                 )}
               </button>
 

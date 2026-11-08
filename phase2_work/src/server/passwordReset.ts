@@ -1,10 +1,11 @@
 import type { Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb } from './db';
+import { z } from 'zod';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
 import { rateLimiter } from '../security/rateLimiter';
 import { ipKeyGenerator } from 'express-rate-limit';
-import { appendAuditLog } from './platform/auditLog';
+import { appendRepositoryAuditLog } from './platform/auditLog';
 
 /**
  * Password recovery is intentionally delegated to Firebase Auth as the only
@@ -23,22 +24,22 @@ export function anonymizeIdentifier(id: string): string {
   return crypto.createHash('sha256').update(`klar_salt_${id.trim().toLowerCase()}`).digest('hex').slice(0, 16);
 }
 
+const record = z.object({count: z.number().int().nonnegative().optional(), windowStartedAt: z.number().finite().optional()}).passthrough();
 export async function checkAccountRateLimit(email: string): Promise<boolean> {
   const now = Date.now();
   const key = anonymizeIdentifier(email);
-  const ref = getDb().collection(ACCOUNT_RATE_LIMIT_COLLECTION).doc(key);
-  return getDb().runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const data = snap.exists ? snap.data() : undefined;
+  const ref = `${ACCOUNT_RATE_LIMIT_COLLECTION}/${key}`;
+  return getServiceRepository('auth').transaction(async (tx) => {
+    const data = await tx.read(ref, record);
     const windowStartedAt = Number(data?.windowStartedAt) || now;
     const count = Number(data?.count) || 0;
     const withinWindow = now - windowStartedAt < ACCOUNT_RATE_LIMIT_WINDOW_MS;
-    if (!snap.exists || !withinWindow) {
-      tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + ACCOUNT_RATE_LIMIT_WINDOW_MS) });
+    if (!data || !withinWindow) {
+      tx.write(ref, record, { count: 1, windowStartedAt: now, expiresAt: new Date(now + ACCOUNT_RATE_LIMIT_WINDOW_MS) });
       return true;
     }
     if (count >= ACCOUNT_RATE_LIMIT_MAX) return false;
-    tx.update(ref, { count: count + 1, expiresAt: new Date(windowStartedAt + ACCOUNT_RATE_LIMIT_WINDOW_MS) });
+    tx.write(ref, record, { count: count + 1, expiresAt: new Date(windowStartedAt + ACCOUNT_RATE_LIMIT_WINDOW_MS) }, {merge:true});
     return true;
   });
 }
@@ -100,7 +101,10 @@ export async function handleForgotPassword(req: Request, res: Response) {
   if (targetUid) {
     try {
       const callbackUrl = publicResetOrigin();
-      await getDb().collection('mail_queue').add({
+      const repository = getServiceRepository('auth');
+      await repository.transaction(async tx => {
+        if (await tx.read(`account_deletions/${targetUid}`, record)) throw new Error('account_unavailable');
+        tx.create(`mail_queue/${crypto.randomUUID()}`, record, {
         uid: targetUid,
         type: 'password_reset',
         payload: { callbackUrl },
@@ -108,9 +112,9 @@ export async function handleForgotPassword(req: Request, res: Response) {
         retryCount: 0,
         timestamp: new Date(),
         nextAttemptAt: new Date(),
-      });
+      }); });
       try {
-        await appendAuditLog(getDb(), {
+        await appendRepositoryAuditLog(repository, {
           type: 'auth.password_reset_requested',
           actorUid: targetUid,
           metadata: {

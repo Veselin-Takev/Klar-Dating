@@ -1,5 +1,7 @@
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
-import { getDb, FieldValue, runObservedTransaction } from './db';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { FieldValue } from './db';
 import { consentAuditSecret, signConsentAuditRecord, type ConsentAuditAction } from './consentAudit';
 
 export interface ConsentState {
@@ -10,6 +12,8 @@ export interface ConsentState {
   evidenceId?: string;
 }
 
+const consentSchema = z.object({version: z.number().int().positive(), erteiltAm: z.string().nullable(), zwecke: z.record(z.string(), z.boolean()), widerrufenAm: z.string().nullable(), evidenceId: z.string().optional()});
+const consentDocumentSchema = z.object({einwilligung: consentSchema.nullable().optional()}).passthrough();
 interface Decision {
   state: ConsentState;
   action: ConsentAuditAction;
@@ -24,15 +28,16 @@ export async function persistConsentDecision(
   actorUid: string,
   decide: (previous: ConsentState | null) => Decision,
 ): Promise<{ einwilligung: ConsentState; evidenceId: string }> {
-  const db = getDb() as Firestore;
-  const userRef = db.collection('users').doc(actorUid);
-  const evidenceRef = userRef.collection('einwilligungen').doc();
+  const db = getServiceRepository('auth');
+  const userRef = `users/${actorUid}`, evidenceId = randomUUID(), evidenceRef = `${userRef}/einwilligungen/${evidenceId}`;
   const secret = consentAuditSecret();
-  return runObservedTransaction(db, 'consentPersistence.persistConsentDecision', async (tx: Transaction) => {
-    const snapshot = await tx.get(userRef);
-    const previous = (snapshot.data()?.einwilligung ?? null) as ConsentState | null;
+  return db.transaction(async tx => {
+    const snapshot = await tx.read(userRef, consentDocumentSchema);
+    const deletion = await tx.read(`account_deletions/${actorUid}`, consentDocumentSchema);
+    if (deletion) throw new Error('account_unavailable');
+    const previous = snapshot?.einwilligung ?? null;
     const decision = decide(previous);
-    const state = { ...decision.state, evidenceId: evidenceRef.id };
+    const state = { ...decision.state, evidenceId: evidenceId };
     const record = signConsentAuditRecord({
       actorUid,
       action: decision.action,
@@ -44,13 +49,13 @@ export async function persistConsentDecision(
       source: 'authenticated-api',
       ...(decision.withdrawnPurpose ? { withdrawnPurpose: decision.withdrawnPurpose } : {}),
     }, secret);
-    tx.create(evidenceRef, {
+    tx.create(evidenceRef, consentDocumentSchema, {
       ...state, ...record, at: FieldValue.serverTimestamp(),
       art: decision.action === 'granted' ? 'erteilt' : 'widerrufen',
       ...(decision.withdrawnPurpose ? { widerrufenerZweck: decision.withdrawnPurpose } : {}),
     });
-    tx.set(userRef, { einwilligung: state, updatedAt: record.recordedAt }, { merge: true });
-    return { einwilligung: state, evidenceId: evidenceRef.id };
+    tx.write(userRef, consentDocumentSchema, { einwilligung: state, updatedAt: record.recordedAt }, { merge: true });
+    return { einwilligung: state, evidenceId: evidenceId };
   });
 }
 

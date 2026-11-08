@@ -1,10 +1,12 @@
 import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { randomUUID } from 'node:crypto';
 import { FieldValue } from '../db';
 import { z } from 'zod';
 import { normalizeLaunchCity } from '../platform/launchPlatform';
 
+const record = z.record(z.string(), z.unknown());
 const vibeSchema = z.enum(['Casual', 'Romantic', 'Adventure']);
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -45,44 +47,44 @@ function uidFrom(req: Request, currentUserId: (req: Request) => string | null): 
   return currentUserId(req);
 }
 
-async function verifyConnection(db: Firestore, uid: string, connectionUid: string): Promise<{ ok: true; profile: Record<string, unknown> } | { ok: false; status: number; error: string }> {
+async function verifyConnection(db: TenantAwareFirestoreRepository, uid: string, connectionUid: string): Promise<{ ok: true; profile: Record<string, unknown> } | { ok: false; status: number; error: string }> {
   if (connectionUid === uid) return { ok: false, status: 400, error: 'Ungültige Verbindung.' };
-  const profileSnap = await db.collection('public_profiles').doc(connectionUid).get();
-  if (!profileSnap.exists) return { ok: false, status: 404, error: 'Verbindung nicht verfügbar.' };
-  const profile = profileSnap.data() ?? {};
+  const profileSnap = await db.read(`public_profiles/${connectionUid}`, record);
+  if (!profileSnap) return { ok: false, status: 404, error: 'Verbindung nicht verfügbar.' };
+  const profile = profileSnap ?? {};
   if (profile.isVerified !== true || profile.active === false || profile.isExample === true) {
     return { ok: false, status: 403, error: 'Diese Verbindung ist derzeit nicht für einen Date-Plan verfügbar.' };
   }
   const [forward, reverse] = await Promise.all([
-    db.collection('blocks').doc(`${uid}_${connectionUid}`).get(),
-    db.collection('blocks').doc(`${connectionUid}_${uid}`).get(),
+    db.read(`blocks/${uid}_${connectionUid}`, record),
+    db.read(`blocks/${connectionUid}_${uid}`, record),
   ]);
-  if (forward.exists || reverse.exists) return { ok: false, status: 403, error: 'Diese Verbindung ist derzeit nicht verfügbar.' };
+  if (forward || reverse) return { ok: false, status: 403, error: 'Diese Verbindung ist derzeit nicht verfügbar.' };
   return { ok: true, profile };
 }
 
-export function createDatePlansRouter(deps: { currentUserId: (req: Request) => string | null; getFirestore: () => Firestore }): Router {
+export function createDatePlansRouter(deps: { currentUserId: (req: Request) => string | null; repository: () => TenantAwareFirestoreRepository }): Router {
   const router = Router();
 
   router.get('/date-planner/connections', async (req, res) => {
     const uid = uidFrom(req, deps.currentUserId);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const user = await deps.getFirestore().collection('users').doc(uid).get();
-      const city = normalizeLaunchCity(user.data()?.location);
+      const user = await deps.repository().read(`users/${uid}`, record);
+      const city = normalizeLaunchCity(user?.location);
       if (!city) return res.json({ connections: [] });
-      const snap = await deps.getFirestore().collection('public_profiles').where('location', '==', city).limit(100).get();
+      const snap = await deps.repository().list('public_profiles', record, {where:['location','==',city], limit:100});
       const blocked = new Set<string>();
       const [outgoing, incoming] = await Promise.all([
-        deps.getFirestore().collection('blocks').where('blockerUid', '==', uid).limit(200).get(),
-        deps.getFirestore().collection('blocks').where('blockedUid', '==', uid).limit(200).get(),
+        deps.repository().listAll('blocks', record, {where:['blockerUid','==',uid]}),
+        deps.repository().listAll('blocks', record, {where:['blockedUid','==',uid]}),
       ]);
-      outgoing.forEach(doc => blocked.add(String(doc.data().blockedUid)));
-      incoming.forEach(doc => blocked.add(String(doc.data().blockerUid)));
-      const connections = snap.docs
-        .filter(doc => doc.id !== uid && !blocked.has(doc.id) && doc.data().isVerified === true && doc.data().active !== false && doc.data().isExample !== true)
+      outgoing.forEach(doc => blocked.add(String(doc.data.blockedUid)));
+      incoming.forEach(doc => blocked.add(String(doc.data.blockerUid)));
+      const connections = snap
+        .filter(doc => doc.id !== uid && !blocked.has(doc.id) && doc.data.isVerified === true && doc.data.active !== false && doc.data.isExample !== true)
         .slice(0, 30)
-        .map(doc => ({ id: doc.id, name: String(doc.data().name ?? '').slice(0, 80), age: Number(doc.data().age ?? 0), city }));
+        .map(doc => ({ id: doc.id, name: String(doc.data.name ?? '').slice(0, 80), age: Number(doc.data.age ?? 0), city }));
       return res.json({ connections });
     } catch {
       logSafeFailure('date_connections_failure');
@@ -103,7 +105,7 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
       return res.status(400).json({ error: 'Bitte wähle eine unterstützte Stadt und einen gültigen Vibe.' });
     }
     try {
-      const connection = await verifyConnection(deps.getFirestore(), uid, parsed.data.connectionUid);
+      const connection = await verifyConnection(deps.repository(), uid, parsed.data.connectionUid);
       if (!connection.ok) return res.status(connection.status).json({ error: connection.error });
       const ideas = curatedIdeas[parsed.data.vibe].map((idea, index) => ({
         ...idea,
@@ -123,8 +125,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     const uid = uidFrom(req, deps.currentUserId);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const snap = await deps.getFirestore().collection('users').doc(uid).collection('datePlans').orderBy('startsAt', 'asc').limit(50).get();
-      return res.json({ plans: snap.docs.map(doc => { const data = doc.data(); return { id: doc.id, ...data, date: data.startsAt, matchName: data.connectionName, idea: data.description }; }) });
+      const snap = await deps.repository().list(`users/${uid}/datePlans`, record, {orderBy:'startsAt', limit:50});
+      return res.json({ plans: snap.map(doc => { const data = doc.data; return { id: doc.id, ...data, date: data.startsAt, matchName: data.connectionName, idea: data.description }; }) });
     } catch {
       logSafeFailure('date_plans_read_failure');
       return res.status(503).json({ error: 'Date-Kalender derzeit nicht verfügbar.', plans: [] });
@@ -139,9 +141,9 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     const startsAt = new Date(parsed.data.startsAt);
     if (startsAt.getTime() <= Date.now() - 60_000) return res.status(400).json({ error: 'Das Date muss in der Zukunft liegen.' });
     try {
-      const connection = await verifyConnection(deps.getFirestore(), uid, parsed.data.connectionUid);
+      const connection = await verifyConnection(deps.repository(), uid, parsed.data.connectionUid);
       if (!connection.ok) return res.status(connection.status).json({ error: connection.error });
-      const ref = deps.getFirestore().collection('users').doc(uid).collection('datePlans').doc();
+      const id = randomUUID(), ref = `users/${uid}/datePlans/${id}`;
       const data = {
         connectionUid: parsed.data.connectionUid,
         connectionName: String(connection.profile.name ?? 'Verbindung').slice(0, 80),
@@ -157,8 +159,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       };
-      await ref.create(data);
-      return res.status(201).json({ plan: { id: ref.id, ...data } });
+      await deps.repository().transaction(async tx => { if (await tx.read(`account_deletions/${uid}`, record)) throw new Error('account_unavailable'); tx.create(ref, record, data); });
+      return res.status(201).json({ plan: { id, ...data } });
     } catch {
       logSafeFailure('date_plan_create_failure');
       return res.status(503).json({ error: 'Date konnte nicht gespeichert werden.' });
@@ -170,10 +172,10 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(req.params.planId)) return res.status(400).json({ error: 'Ungültige Plan-ID.' });
     try {
-      const ref = deps.getFirestore().collection('users').doc(uid).collection('datePlans').doc(req.params.planId);
-      const snap = await ref.get();
-      if (!snap.exists) return res.status(404).json({ error: 'Date nicht gefunden.' });
-      await ref.delete();
+      const ref = `users/${uid}/datePlans/${req.params.planId}`;
+      const snap = await deps.repository().read(ref, record);
+      if (!snap) return res.status(404).json({ error: 'Date nicht gefunden.' });
+      await deps.repository().delete(ref);
       return res.json({ ok: true });
     } catch {
       logSafeFailure('date_plan_delete_failure');
@@ -185,8 +187,8 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     const uid = uidFrom(req, deps.currentUserId);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const snap = await deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').orderBy('startsAt', 'asc').limit(50).get();
-      return res.json({ availability: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) });
+      const snap = await deps.repository().list(`users/${uid}/dateAvailability`, record, {orderBy:'startsAt', limit:50});
+      return res.json({ availability: snap.map(doc => ({ id: doc.id, ...doc.data })) });
     } catch {
       logSafeFailure('date_availability_read_failure');
       return res.status(503).json({ error: 'Verfügbarkeit derzeit nicht verfügbar.', availability: [] });
@@ -201,9 +203,9 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     const startsAt = new Date(parsed.data.startsAt);
     if (startsAt.getTime() <= Date.now()) return res.status(400).json({ error: 'Die Verfügbarkeit muss in der Zukunft liegen.' });
     try {
-      const ref = deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').doc();
-      await ref.create({ startsAt: startsAt.toISOString(), createdAt: FieldValue.serverTimestamp() });
-      return res.status(201).json({ availability: { id: ref.id, startsAt: startsAt.toISOString() } });
+      const id = randomUUID(), ref = `users/${uid}/dateAvailability/${id}`;
+      await deps.repository().transaction(async tx => {if(await tx.read(`account_deletions/${uid}`,record))throw new Error('account_unavailable');tx.create(ref,record,{startsAt:startsAt.toISOString(),createdAt:FieldValue.serverTimestamp()});});
+      return res.status(201).json({ availability: { id, startsAt: startsAt.toISOString() } });
     } catch {
       logSafeFailure('date_availability_create_failure');
       return res.status(503).json({ error: 'Verfügbarkeit konnte nicht gespeichert werden.' });
@@ -215,7 +217,7 @@ export function createDatePlansRouter(deps: { currentUserId: (req: Request) => s
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(req.params.id)) return res.status(400).json({ error: 'Ungültige ID.' });
     try {
-      await deps.getFirestore().collection('users').doc(uid).collection('dateAvailability').doc(req.params.id).delete();
+      await deps.repository().delete(`users/${uid}/dateAvailability/${req.params.id}`);
       return res.json({ ok: true });
     } catch {
       logSafeFailure('date_availability_delete_failure');

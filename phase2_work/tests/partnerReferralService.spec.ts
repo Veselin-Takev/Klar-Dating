@@ -1,3 +1,4 @@
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -72,7 +73,7 @@ const auditSecret = 'test-audit-secret-at-least-thirty-two-characters';
 const tokenSecret = 'test-partner-referral-secret-at-least-thirty-two-characters';
 function deps(db: ReturnType<typeof makeFirestore>): PartnerReferralServiceDeps {
   return {
-    getFirestore: () => db,
+    repository: () => scopedSdkFixture(db),
     tokenSecret: () => tokenSecret,
     auditSecret: () => auditSecret,
     publicUrl: () => 'https://klar.example',

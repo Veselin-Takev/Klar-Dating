@@ -3,7 +3,8 @@ import type { Request, Response } from 'express';
 import { authMiddleware } from '../src/core/auth/authMiddleware';
 import { afterEach, describe, expect, it } from 'vitest';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb, getServerFirebaseApp } from '../src/server/db';
+import { scopedFirestoreFixture as getDb } from './helpers/scopedFirestoreFixture';
+import { getServerFirebaseApp } from '../src/server/db';
 import { verifyAndCreditAdMobSsv } from '../src/server/platform/admobSsvEngine';
 const accounts: string[] = [];
 afterEach(async () => {

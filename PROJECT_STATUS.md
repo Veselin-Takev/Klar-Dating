@@ -1,3 +1,9 @@
+## Welle 2 Abschluss — Verifikation läuft
+
+33 weitere Legacy-Kandidaten wurden auf das geschlossene Tenant-Repository umgestellt: **43/50**, sieben Infrastruktur-/Utility-Dateien verbleiben. C/D/E sind im Quellcode umgestellt; ihr Abschluss ist bis zum erneuten vollständigen Test- und Semgrep-Lauf **nicht zertifiziert**. Die früheren Testzahlen und CI-SHAs unten sind historische Nachweise, keine Bestätigung des neuen Arbeitsstands.
+
+Einzelprüfungen: 129 gezielte HTTP-/Security-Tests und 86 Enterprise-Tests PASS; Produktions-Build PASS. Der abschließende Gesamtlauf und repositoryweite SAST-Lauf sind noch offen. `baselineFixed=false`, `productionApproved=false`; keine produktive Migration oder Freigabe.
+
 # Klar project status
 
 Canonical current status: [phase2_work/docs/PROJECT_STATUS.md](phase2_work/docs/PROJECT_STATUS.md).

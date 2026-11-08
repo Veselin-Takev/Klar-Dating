@@ -1,3 +1,9 @@
+## Welle 2 Abschluss — Verifikation läuft
+
+33 weitere Legacy-Kandidaten wurden auf das geschlossene Tenant-Repository umgestellt: **43/50**, sieben Infrastruktur-/Utility-Dateien verbleiben. C/D/E sind im Quellcode umgestellt; ihr Abschluss ist bis zum erneuten vollständigen Test- und Semgrep-Lauf **nicht zertifiziert**. Die früheren Testzahlen und CI-SHAs unten sind historische Nachweise, keine Bestätigung des neuen Arbeitsstands.
+
+Einzelprüfungen: 129 gezielte HTTP-/Security-Tests und 86 Enterprise-Tests PASS; Produktions-Build PASS. Der abschließende Gesamtlauf und repositoryweite SAST-Lauf sind noch offen. `baselineFixed=false`, `productionApproved=false`; keine produktive Migration oder Freigabe.
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**

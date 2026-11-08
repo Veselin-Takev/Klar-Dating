@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -11,19 +12,13 @@ afterEach(async () => {
 });
 
 async function endpoint(options: { uid?: string | null; fail?: boolean } = {}) {
-  const set = vi.fn().mockImplementation(async () => {
-    if (options.fail) throw new Error('private storage detail');
-  });
-  const tokenDoc = vi.fn(() => ({ set }));
-  const tokenCollection = vi.fn(() => ({ doc: tokenDoc }));
-  const userDoc = vi.fn(() => ({ collection: tokenCollection }));
-  const usersCollection = vi.fn(() => ({ doc: userDoc }));
-  const db = { collection: usersCollection, runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }) };
-
+  const set = vi.fn();
+  const f = tenantRepositoryHarness({}, (path,action) => {if (options.fail && action === 'write' && path.includes('/fcmTokens/')) throw new Error('private storage detail');}, (path,data,options) => {if (path.includes('/fcmTokens/')) set(data,options);});
+  const userDoc = f.paths, tokenCollection = f.paths, tokenDoc = f.paths;
   const app = express();
   app.use(express.json());
   app.use('/api', createDeviceTokenRouter({
-    getFirestore: () => db as any,
+    repository: () => f.repo,
     currentUserId: () => options.uid === undefined ? 'user-a' : options.uid,
   }));
   const server = app.listen(0, '127.0.0.1');
@@ -79,9 +74,7 @@ describe('device-token HTTP boundary', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(api.userDoc).toHaveBeenCalledWith('user-a');
-    expect(api.tokenCollection).toHaveBeenCalledWith('fcmTokens');
-    expect(api.tokenDoc).toHaveBeenCalledWith(validToken);
+    expect(api.tokenDoc).toHaveBeenCalledWith('tenants/default/users/user-a/fcmTokens/' + validToken);
     expect(api.set).toHaveBeenCalledWith(
       expect.objectContaining({ platform: 'web', createdAt: expect.anything() }),
       { merge: true },

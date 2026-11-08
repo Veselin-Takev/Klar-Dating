@@ -1,16 +1,18 @@
 import express, { Router, type Request } from 'express';
 import { distributedRateLimit } from '../distributedRateLimiter';
 import { resolveActivationEventId } from './activationEventId';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 import type { LaunchCity } from '../platform/launchPlatform';
 
 export type LaunchRouterDeps = {
   currentUserId: (req: Request) => string | null;
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   normalizeLaunchCity: (value: unknown) => LaunchCity | null;
-  getLocalDensity: (db: Firestore, city: import('../platform/launchPlatform').LaunchCity) => Promise<{ city: string; activeUsers: number; verifiedUsers: number; band: string; threshold: number }>;
+  getLocalDensity: (db: TenantAwareFirestoreRepository, city: import('../platform/launchPlatform').LaunchCity) => Promise<{ city: string; activeUsers: number; verifiedUsers: number; band: string; threshold: number }>;
   referralCodeFor: (uid: string) => string;
-  recordActivation: (db: Firestore, uid: string, eventName: string, eventId?: string, metadata?: Record<string, unknown>) => Promise<unknown>;
+  recordActivation: (db: TenantAwareFirestoreRepository, uid: string, eventName: string, eventId?: string, metadata?: Record<string, unknown>) => Promise<unknown>;
   activationScore: (events: string[]) => { score: number; activated: boolean };
   serverTimestamp: () => unknown;
   publicUrl: () => string | undefined;
@@ -33,7 +35,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Einladungsversuche. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
   const activationWriteLimiter = distributedRateLimit({
     collection: 'rate_limit_launch_activation_write',
@@ -44,7 +46,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Aktivierungsereignisse. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
   const foundingClaimLimiter = distributedRateLimit({
     collection: 'rate_limit_launch_founding_claim',
@@ -55,7 +57,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Founding-Member-Versuche. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   const referralGenerationLimiter = distributedRateLimit({
@@ -67,7 +69,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Einladungslink-Anfragen. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   const launchSummaryReadLimiter = distributedRateLimit({
@@ -79,7 +81,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Launch-Status-Anfragen. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   const activationSummaryReadLimiter = distributedRateLimit({
@@ -91,18 +93,18 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Aktivierungsstatus-Anfragen. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   router.get('/launch/summary', launchSummaryReadLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      const userData = userSnap.data() ?? {};
+      const userSnap = await deps.repository().read(`users/${uid}`, record);
+      const userData = userSnap ?? {};
       const city = deps.normalizeLaunchCity(req.query.city ?? userData.location);
       if (!city) return res.status(400).json({ error: 'Bitte wähle eine unterstützte Stadt.' });
-      const density = await deps.getLocalDensity(deps.getFirestore(), city);
+      const density = await deps.getLocalDensity(deps.repository(), city);
       return res.json({
         ...density,
         message: density.activeUsers < 5
@@ -126,13 +128,13 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
         return res.status(503).json({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
       }
       const code = deps.referralCodeFor(uid);
-      const db = deps.getFirestore();
-      const userRef = db.collection('users').doc(uid);
-      const deletionRef = db.collection('account_deletions').doc(uid);
-      const available = await db.runTransaction(async tx => {
-        const [user, deletion] = await tx.getAll(userRef, deletionRef);
-        if (!user || !deletion || !user.exists || deletion.exists) return false;
-        tx.update(userRef, { referralCode: code });
+      const db = deps.repository();
+      const userRef = `users/${uid}`;
+      const deletionRef = `account_deletions/${uid}`;
+      const available = await db.transaction(async tx => {
+        const [user, deletion] = await Promise.all([tx.read(userRef, record), tx.read(deletionRef, record)]);
+        if (!user || deletion !== null) return false;
+        tx.write(userRef, record, { referralCode: code }, { merge: true });
         return true;
       });
       if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
@@ -150,25 +152,22 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const code = typeof req.body?.code === 'string' ? req.body.code.trim().toUpperCase() : '';
       if (!/^[A-Z0-9_-]{10}$/.test(code)) return res.status(400).json({ error: 'Ungültiger Einladungslink.' });
-      const db = deps.getFirestore();
-      const inviterSnap = await db.collection('users').where('referralCode', '==', code).limit(1).get();
-      if (inviterSnap.empty || inviterSnap.docs[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
-      const userRef = db.collection('users').doc(uid);
-      const inviterRef = inviterSnap.docs[0]?.ref;
-      const available = await db.runTransaction(async (tx: Transaction) => {
+      const db = deps.repository();
+      const inviterSnap = await db.list('users', record, {where:['referralCode','==',code], limit:2});
+      if (inviterSnap.length !== 1 || inviterSnap[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
+      const userRef = `users/${uid}`;
+      const inviterId = inviterSnap[0]!.id, inviterRef = `users/${inviterId}`;
+      const available = await db.transaction(async tx => {
         if (!inviterRef) return false;
-        const [userSnap, inviter, userDeletion, inviterDeletion] = await tx.getAll(
-          userRef, inviterRef,
-          db.collection('account_deletions').doc(uid),
-          db.collection('account_deletions').doc(inviterRef.id),
-        );
-        if (!userSnap || !inviter || !userDeletion || !inviterDeletion
-          || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
-          || inviter.data()?.referralCode !== code) return false;
-        if (userSnap.data()?.referredBy) return true;
-        tx.update(userRef, { referredBy: inviterRef.id, referralQualified: false });
-        tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
-          inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
+        const [userSnap, inviter, userDeletion, inviterDeletion] = await Promise.all([
+          tx.read(userRef, record), tx.read(inviterRef, record),
+          tx.read(`account_deletions/${uid}`, record), tx.read(`account_deletions/${inviterId}`, record),
+        ]);
+        if (!userSnap || !inviter || userDeletion || inviterDeletion || inviter.referralCode !== code) return false;
+        if (userSnap?.referredBy) return true;
+        tx.write(userRef, record, { referredBy: inviterId, referralQualified: false }, { merge: true });
+        tx.write(`referral_events/${inviterId}_${uid}`, record, {
+          inviterUid: inviterId, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
         }, { merge: true });
         return true;
       });
@@ -188,7 +187,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const eventName = String(req.body?.eventName ?? '');
       const eventId = resolveActivationEventId(eventName, uid, req.body?.eventId);
       const result = await deps.recordActivation(
-        deps.getFirestore(), uid, eventName, eventId,
+        deps.repository(), uid, eventName, eventId,
         typeof req.body?.metadata === 'object' && req.body.metadata ? req.body.metadata : {},
       );
       return res.status(201).json(result);
@@ -204,23 +203,23 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const db = deps.getFirestore();
-      const userRef = db.collection('users').doc(uid);
-      const cohortRef = db.collection('system').doc('founding_500');
-      const result = await db.runTransaction(async (tx: Transaction) => {
-        const userSnap = await tx.get(userRef);
-        const cohortSnap = await tx.get(cohortRef);
-        if (!userSnap.exists) throw new Error('User not found');
-        const user = userSnap.data() ?? {};
+      const db = deps.repository();
+      const userRef = `users/${uid}`;
+      const cohortRef = 'system/founding_500';
+      const result = await db.transaction(async tx => {
+        const userSnap = await tx.read(userRef, record);
+        const cohortSnap = await tx.read(cohortRef, record);
+        if (!userSnap) throw new Error('User not found');
+        const user = userSnap ?? {};
         if (user.founding500Member === true) return { member: true, rank: user.founding500Rank ?? null, already: true };
         if (user.isAdult !== true || typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
           return { member: false, rank: null, reason: 'onboarding_incomplete' };
         }
-        const current = Number(cohortSnap.data()?.count ?? 0);
+        const current = Number(cohortSnap?.count ?? 0);
         if (current >= foundingLimit) return { member: false, rank: null, reason: 'cohort_full' };
         const rank = current + 1;
-        tx.set(cohortRef, { count: rank, updatedAt: deps.serverTimestamp() }, { merge: true });
-        tx.set(userRef, { founding500Member: true, founding500Rank: rank, founding500JoinedAt: deps.serverTimestamp() }, { merge: true });
+        tx.write(cohortRef, record, { count: rank, updatedAt: deps.serverTimestamp() }, { merge: true });
+        tx.write(userRef, record, { founding500Member: true, founding500Rank: rank, founding500JoinedAt: deps.serverTimestamp() }, { merge: true });
         return { member: true, rank, already: false };
       });
       if (result.member && !result.already) {
@@ -237,8 +236,8 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const snap = await deps.getFirestore().collection('activation_events').where('uid', '==', uid).limit(100).get();
-      const events: string[] = snap.docs.map((doc) => String(doc.data()?.eventName ?? ''));
+      const snap = await deps.repository().list('activation_events', record, {where:['uid','==',uid], limit:100});
+      const events: string[] = snap.map((doc) => String(doc.data.eventName ?? ''));
       const unique = Array.from(new Set(events));
       return res.json({ ...deps.activationScore(unique), events: unique });
     } catch (error) {

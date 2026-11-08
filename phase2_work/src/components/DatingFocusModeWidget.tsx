@@ -58,7 +58,7 @@ export function DatingFocusModeWidget() {
             Dating-Fokus-Modus
           </h3>
           <p className={`text-xs mt-1 ${isActive ? 'text-indigo-200' : 'text-stone-500 dark:text-stone-400'}`}>
-            Eine Stunde ungestört Profil pflegen & chatten
+            Eine Stunde ungestört Profil pflegen &amp; chatten
           </p>
         </div>
       </div>

@@ -17,7 +17,7 @@ export function InterestsSettings({ selectedInterests, onChange }: InterestsSett
 
   return (
     <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-800">Interessen & Präferenzen</h3>
+      <h3 className="text-lg font-semibold text-gray-800">Interessen &amp; Präferenzen</h3>
       <p className="text-sm text-gray-500">Wähle deine Interessen aus, um passende Kontakte und saisonale Highlights zu finden.</p>
       
       <div className="flex flex-wrap gap-2 pt-2">

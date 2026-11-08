@@ -21,5 +21,5 @@ import { reportClientError } from './diagnostics';
 export function melde(stelle: string, fehler: unknown, zusatz?: Record<string, unknown>): void {
   const e = fehler instanceof Error ? fehler : new Error(String(fehler));
   reportClientError(e);
-  if (import.meta.env.DEV) console.error(`[${stelle}]`, e, zusatz ?? '');
+  if (import.meta.env.DEV) console.error('[client_error] %s', stelle, e, zusatz ?? '');
 }

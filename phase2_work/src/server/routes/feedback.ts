@@ -1,11 +1,12 @@
 import { logSafeFailure } from '../safeErrorLog';
 import express, { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 export type FeedbackRouterDeps = {
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   now?: () => Date;
 };
 
@@ -14,7 +15,7 @@ const payloadSchema = z.object({
   text: z.string().max(2000).optional().default(''),
 }).strict();
 
-export function createFeedbackRouter({ getFirestore, now = () => new Date() }: FeedbackRouterDeps): Router {
+export function createFeedbackRouter({ repository, now = () => new Date() }: FeedbackRouterDeps): Router {
   const router = Router();
   // Anonymous feedback is intentionally public, but it is still a paid Firestore write.
   // Keep the business flow bounded independently of the broad /api limiter.
@@ -43,7 +44,7 @@ export function createFeedbackRouter({ getFirestore, now = () => new Date() }: F
     };
 
     try {
-      await getFirestore().collection('app_feedback').add(feedbackDoc);
+      await repository().create(`app_feedback/${randomUUID()}`, z.record(z.string(),z.unknown()), feedbackDoc);
       return res.json({ ok: true, message: 'Vielen Dank für dein Feedback!' });
     } catch (error) {
       logSafeFailure('feedback_storage_failure');

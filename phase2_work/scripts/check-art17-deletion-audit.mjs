@@ -12,10 +12,10 @@ const catalog = readSource('scripts/loeschkaskade.mjs');
 const failures = [];
 
 for (const token of [
-  ".where('ownerUid', '==', meineUid).limit(BATCH).get()",
-  "db.collection('partner_referral_conversions').where(field, '==', partnerUidRef)",
-  "db.collection('partner_referral_buyer_claims').where('buyerRef', '==', partnerUidRef)",
-  "db.collection('partner_referral_ledger').where(field, '==', partnerUidRef)",
+  "db.list('partner_referrals', record, {where:['ownerUid','==',meineUid], limit:BATCH})",
+  "select('partner_referral_conversions', field, partnerUidRef)",
+  "select('partner_referral_buyer_claims', 'buyerRef', partnerUidRef)",
+  "select('partner_referral_ledger', field, partnerUidRef)",
   "pseudonymousPartnerUid(meineUid, consentAuditSecret())",
 ]) if (!purge.includes(token)) failures.push(`missing deletion receipt control: ${token}`);
 
@@ -34,26 +34,26 @@ if (ownerCascadeStart < 0 || ownerCascadeEnd <= ownerCascadeStart) {
 const ownerCascade = ownerCascadeStart >= 0 && ownerCascadeEnd > ownerCascadeStart
   ? purge.slice(ownerCascadeStart, ownerCascadeEnd)
   : '';
-const lookup = ownerCascade.indexOf(".where('referralId', '==', referral.id)");
-const perReferralSlice = ownerCascade.indexOf('for (const referral of ownedReferrals.docs) {\n        checkDeletionSlice();');
+const lookup = ownerCascade.indexOf("'referralId', referral.id");
+const perReferralSlice = ownerCascade.indexOf('for (const referral of ownedReferrals) {\n        checkDeletionSlice();');
 if (perReferralSlice < 0) {
   failures.push('owner referral iteration must check deletion slice before each child purge');
 }
-const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(db.collection('partner_referral_buyer_claims')");
-const quarantine = ownerCascade.indexOf('await quarantineOwnedPartnerReferral(db, referral.ref, meineUid)');
+const claimDeletion = ownerCascade.indexOf("await loescheAbfrage(select('partner_referral_buyer_claims'");
+const quarantine = ownerCascade.indexOf('await quarantineOwnedPartnerReferral(db, `partner_referrals/${referral.id}`, meineUid)');
 if (quarantine < 0 || !(quarantine < claimDeletion)) {
   failures.push('owner referral must be transactionally quarantined before buyer claims are purged');
 }
 const quarantineSource = readSource('src/server/partnerReferralDeletion.ts');
 for (const required of [
-  'return db.runTransaction<OwnerReferralQuarantineResult>(async tx =>',
-  'const snapshot = await tx.get(referralRef);',
-  "if (snapshot.data()?.ownerUid !== ownerUid)",
-  "tx.update(referralRef, { status: 'deleting' });",
+  'return db.transaction<OwnerReferralQuarantineResult>(async tx =>',
+  'const current = await tx.read(path, schema);',
+  "if (current.ownerUid !== ownerUid)",
+  "tx.write(path, schema.partial(), {status:'deleting'}, {merge:true});",
 ]) {
   if (!quarantineSource.includes(required)) failures.push('missing transactional quarantine guard: ' + required);
 }
-const parentDeletion = ownerCascade.indexOf("await referral.ref.delete()");
+const parentDeletion = ownerCascade.indexOf("await accounting.deleteDocument(`partner_referrals/${referral.id}`)");
 const beforeParentGuard = ownerCascade.indexOf('checkDeletionSlice();\n        // Do not remove the parent pointer');
 if (beforeParentGuard < 0 || !(claimDeletion < beforeParentGuard && beforeParentGuard < parentDeletion)) {
   failures.push('owner referral parent deletion must recheck slice after buyer-claim purge');
@@ -67,19 +67,19 @@ for (const token of [
   'schemaVersion: 2', "status: 'completed'", 'expiresAt: new Date(completedAt.getTime() + 30 * 86_400_000)',
   'deletedChats: bericht.chats', 'deletedMessages: bericht.nachrichten',
   'pseudonymizedReports: bericht.pseudonymisiert',
-  'const snapshot = await tx.get(query.limit(400));',
-  'snapshot.docs.forEach(doc => tx.delete(doc.ref));',
-  'writeCount(tx, counts, key, snapshot.size);',
+  'const rows = await tx.list(query.path, record, {limit:200,',
+  'for (const row of rows) tx.delete(`${query.path}/${row.id}`);',
+  'writeCount(tx, counts, key, rows.length);',
   'deletion_accounting_migration_required',
 ]) if (!accounting.includes(token)) failures.push(`missing cumulative receipt control: ${token}`);
 for (const token of [
   "current.phase === 'final_sweep'", 'const counts = readDeletionCounts(current);',
-  'tx.create(receiptRef, buildDeletionAuditReceipt(counts, new Date(deps.now())));',
-  'tx.set(activeJobRef', "status: 'completed'", "lastError: 'accounting_migration_required'",
+  'tx.create(receiptRef, deletionRecord, buildDeletionAuditReceipt(counts, new Date(deps.now())));',
+  'tx.write(activeJobRef', "status: 'completed'", "lastError: 'accounting_migration_required'",
 ]) if (!worker.includes(token)) failures.push(`missing final-sweep receipt control: ${token}`);
 if (purge.includes("collection('deletion_log')")) failures.push('purge must not publish a premature completion receipt');
 const start = accounting.indexOf('export function buildDeletionAuditReceipt');
-const end = accounting.indexOf('/** Counted mutations', start);
+const end = accounting.indexOf('export interface TenantSelection', start);
 const receipt = accounting.slice(start, end);
 for (const forbidden of ['uid', 'requestId', 'email', 'sessionId', 'provider']) {
   if (receipt.includes(forbidden)) failures.push(`deletion receipt must not contain ${forbidden}`);

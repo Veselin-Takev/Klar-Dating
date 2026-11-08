@@ -81,7 +81,7 @@ export function SmartVerbindungBadgeWidget() {
             Smart-Verbindung-Badges
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Deine Meilensteine & Erfolge
+            Deine Meilensteine &amp; Erfolge
           </p>
         </div>
       </div>

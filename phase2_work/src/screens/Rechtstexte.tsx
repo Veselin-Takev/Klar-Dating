@@ -41,7 +41,7 @@ export default function Rechtstexte() {
             }`}
           >
             <Scale size={16} aria-hidden="true" />
-            AGB & Widerruf
+            AGB &amp; Widerruf
           </Link>
           <Link
             to="/rechtstexte/impressum"
@@ -54,7 +54,7 @@ export default function Rechtstexte() {
             }`}
           >
             <Building2 size={16} aria-hidden="true" />
-            Impressum (§ 5 DDG & DSA)
+            Impressum (§ 5 DDG &amp; DSA)
           </Link>
         </div>
       </header>
@@ -88,10 +88,10 @@ function DatenschutzContent() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-serif text-ink">2. Verarbeitungszwecke & Rechtsgrundlagen</h2>
+        <h2 className="text-lg font-serif text-ink">2. Verarbeitungszwecke &amp; Rechtsgrundlagen</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>
-            <strong>Bereitstellung des Dienstes & Verbindungsfindung:</strong> Zur Erstellung deines Kontos, Profils und
+            <strong>Bereitstellung des Dienstes &amp; Verbindungsfindung:</strong> Zur Erstellung deines Kontos, Profils und
             Vermittlung von Kontakten (Art. 6 Abs. 1 lit. b DSGVO – Vertragserfüllung).
           </li>
           <li>
@@ -104,7 +104,7 @@ function DatenschutzContent() {
             widerruflichen Einwilligung nach Art. 9 Abs. 2 lit. a DSGVO verarbeitet.
           </li>
           <li>
-            <strong>Sicherheit, Integrität & Moderation:</strong> Zur Betrugserkennung, Bot-Abwehr und Bearbeitung von
+            <strong>Sicherheit, Integrität &amp; Moderation:</strong> Zur Betrugserkennung, Bot-Abwehr und Bearbeitung von
             Meldungen nach DSA Art. 16 (Art. 6 Abs. 1 lit. c und f DSGVO).
           </li>
         </ul>
@@ -137,7 +137,7 @@ function DatenschutzContent() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-serif text-ink">4. Auftragsverarbeiter & Datentransfers</h2>
+        <h2 className="text-lg font-serif text-ink">4. Auftragsverarbeiter &amp; Datentransfers</h2>
         <p>
           Zur Bereitstellung der Applikation setzen wir zertifizierte Dienstleister im Rahmen strenger
           Auftragsverarbeitungsverträge (Art. 28 DSGVO) und mit EU-Standardvertragsklauseln (SCC) ein:
@@ -155,10 +155,10 @@ function AgbContent() {
   return (
     <article className="space-y-6 text-sm leading-relaxed text-stone-800 dark:text-stone-200">
       <h1 className="text-2xl sm:text-3xl font-serif text-ink mb-2">Allgemeine Geschäftsbedingungen (AGB)</h1>
-      <p className="text-xs text-muted">Inklusive gesetzlicher Widerrufsbelehrung & Kündigungsbutton (§§ 312k, 356a BGB)</p>
+      <p className="text-xs text-muted">Inklusive gesetzlicher Widerrufsbelehrung &amp; Kündigungsbutton (§§ 312k, 356a BGB)</p>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-serif text-ink">§ 1 Geltungsbereich & Mindestalter</h2>
+        <h2 className="text-lg font-serif text-ink">§ 1 Geltungsbereich &amp; Mindestalter</h2>
         <p>
           (1) Diese Bedingungen gelten für sämtliche Verträge und Nutzungshandlungen auf der Plattform Klar.
           <br />
@@ -185,7 +185,7 @@ function AgbContent() {
       </section>
 
       <section className="rounded-2xl border border-line-ui p-5 bg-card/40 space-y-3">
-        <h2 className="text-base font-semibold text-ink">§ 3 Kündigungsbutton & Beendigung (§ 312k BGB)</h2>
+        <h2 className="text-base font-semibold text-ink">§ 3 Kündigungsbutton &amp; Beendigung (§ 312k BGB)</h2>
         <p>
           (1) Kostenpflichtige Abonnements oder die dauerhafte Mitgliedschaft können jederzeit über die gesetzliche
           Kündigungsschaltfläche im Benutzerprofil („Vertrag kündigen“) mit sofortiger Wirkung oder zum Ende der
@@ -196,7 +196,7 @@ function AgbContent() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-serif text-ink">§ 4 Verhaltensregeln & DSA-Meldewege</h2>
+        <h2 className="text-lg font-serif text-ink">§ 4 Verhaltensregeln &amp; DSA-Meldewege</h2>
         <p>
           (1) Belästigung, Hassrede, Betrugsversuche oder die Weitergabe nicht-einvernehmlicher Inhalte sind streng
           untersagt.
@@ -214,7 +214,7 @@ function ImpressumContent() {
   return (
     <article className="space-y-6 text-sm leading-relaxed text-stone-800 dark:text-stone-200">
       <h1 className="text-2xl sm:text-3xl font-serif text-ink mb-2">Impressum</h1>
-      <p className="text-xs text-muted">Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG) & DSA (EU) 2022/2065</p>
+      <p className="text-xs text-muted">Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG) &amp; DSA (EU) 2022/2065</p>
 
       <section className="rounded-2xl border border-line-ui p-5 bg-card/40 space-y-3">
         <h2 className="text-base font-semibold text-ink">Dienstanbieter</h2>

@@ -5,7 +5,7 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { setDiagnosticsConsent } from "../lib/telemetryPrivacy";
 
 vi.mock("@sentry/react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@sentry/react")>();
+  const actual = await importOriginal() as typeof import("@sentry/react");
   return {
     ...actual,
     captureException: vi.fn(() => "event-123"),

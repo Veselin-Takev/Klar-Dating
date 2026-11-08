@@ -1,8 +1,11 @@
 // @vitest-environment node
+import { getDb as nativeDatabase } from '../src/server/db';
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { emptyDeletionCounts, deletionReceiptId } from '../src/server/deletionAccounting';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { purgeAccountData } from '../src/server/trustAndSafety';
 import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
@@ -15,7 +18,7 @@ async function setup() {
   let now = Date.now();
   const requestId = randomUUID(); paths.push('deletion_log/' + deletionReceiptId(requestId));
   await ref.set({ requestId, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), status: 'pending', phase: 'purge', nextAttemptAt: new Date(now), leaseUntil: 0, attempts: 0, hasDidit: true, subscriptionId: 'sub_test', customerId: 'cus_test' });
-  const deps: DeletionDependencies = { db: getDb(), now: () => now, disable: vi.fn(async () => {}), removeAuth: vi.fn(async () => {}),
+  const deps: DeletionDependencies = { repository: new TenantAwareFirestoreRepository(nativeDatabase(), 'default'), now: () => now, disable: vi.fn(async () => {}), removeAuth: vi.fn(async () => {}),
     purge: vi.fn(async () => {}), eraseProvider: vi.fn(async () => true), cancelSubscription: vi.fn(async () => {}) };
   return { uid, ref, deps, advance: (ms: number) => { now += ms; } };
 }

@@ -55,43 +55,43 @@ try {
     },
     {
       name: 'missing transactional referral quarantine',
-      from: 'await quarantineOwnedPartnerReferral(db, referral.ref, meineUid)',
+      from: 'await quarantineOwnedPartnerReferral(db, `partner_referrals/${referral.id}`, meineUid)',
       to: "Promise.resolve('already_deleting')",
       expectedError: /owner referral must be transactionally quarantined before buyer claims are purged/,
     },
     {
       name: 'missing referralId claim lookup',
-      from: ".where('referralId', '==', referral.id)",
-      to: ".where('buyerRef', '==', partnerUidRef)",
+      from: "'referralId', referral.id",
+      to: "'buyerRef', partnerUidRef",
     },
     {
       name: 'delete referral parent before buyer claims',
-      from: 'await referral.ref.delete();\n        recordDeletionProgress();',
-      to: "await referral.ref.delete();\n        recordDeletionProgress();",
+      from: 'await accounting.deleteDocument(`partner_referrals/${referral.id}`);\n        recordDeletionProgress();',
+      to: "await accounting.deleteDocument(`partner_referrals/${referral.id}`);\n        recordDeletionProgress();",
       modify: (source) => {
-        const claim = "await loescheAbfrage(db.collection('partner_referral_buyer_claims')\n          .where('referralId', '==', referral.id));";
-        const parent = 'await referral.ref.delete();';
+        const claim = "await loescheAbfrage(select('partner_referral_buyer_claims', 'referralId', referral.id));";
+        const parent = 'await accounting.deleteDocument(`partner_referrals/${referral.id}`);';
         assert.ok(source.includes(claim) && source.includes(parent), 'expected cascade statements absent');
         return source.replace(claim, parent).replace(
-          /await referral\.ref\.delete\(\);\n        recordDeletionProgress\(\);/,
+          /await accounting\.deleteDocument\(`partner_referrals\/\$\{referral\.id\}`\);\n        recordDeletionProgress\(\);/,
           claim + '\n        recordDeletionProgress();',
         );
       },
     },
     {
       name: 'buyer-claim deletion not awaited',
-      from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')",
-      to: "void loescheAbfrage(db.collection('partner_referral_buyer_claims')",
+      from: "await loescheAbfrage(select('partner_referral_buyer_claims'",
+      to: "void loescheAbfrage(select('partner_referral_buyer_claims'",
     },
     {
       name: 'omit parent referral deletion',
-      from: 'await referral.ref.delete();',
+      from: 'await accounting.deleteDocument(`partner_referrals/${referral.id}`);',
       to: 'void referral.id;',
     },
     {
       name: 'omit per-referral slice guard',
-      from: 'for (const referral of ownedReferrals.docs) {\n        checkDeletionSlice();',
-      to: 'for (const referral of ownedReferrals.docs) {',
+      from: 'for (const referral of ownedReferrals) {\n        checkDeletionSlice();',
+      to: 'for (const referral of ownedReferrals) {',
       expectedError: /owner referral iteration must check deletion slice before each child purge/,
     },
     {
@@ -102,7 +102,7 @@ try {
     },
     {
       name: 'omit buyer-claim deletion',
-      from: "await loescheAbfrage(db.collection('partner_referral_buyer_claims')\n          .where('referralId', '==', referral.id));",
+      from: "await loescheAbfrage(select('partner_referral_buyer_claims', 'referralId', referral.id));",
       to: 'void referral.id;',
     },
   ];

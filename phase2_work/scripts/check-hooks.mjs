@@ -93,8 +93,7 @@ function reactImporte(text) {
 /** Wird der Hook wirklich aufgerufen? `useRef(` UND `useRef<Typ>(`.
  *  Wortgrenze davor, damit `myUseRef(` nicht zählt. */
 function wirdBenutzt(text, hook) {
-  const re = new RegExp(`(?<![\\w.])${hook}\\s*(?:<[^;{}()]*>\\s*)?\\(`);
-  return re.test(text);
+  return [...text.matchAll(/(?<![\w.])(use[A-Za-z]+)\s*(?:<[^;{}()]*>\s*)?\(/g)].some(match => match[1] === hook);
 }
 
 const befunde = [];

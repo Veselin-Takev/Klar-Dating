@@ -154,7 +154,7 @@ const [generatingFor, setGeneratingFor] = useState<string | null>(null);
         <div>
           <h3 className="font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
             <Archive size={18} className="text-violet-500 dark:text-violet-400" />
-            Date-Archiv & Muster
+            Date-Archiv &amp; Muster
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
             Lerne aus vergangenen Dates

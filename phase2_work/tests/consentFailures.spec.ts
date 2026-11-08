@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 const db = vi.hoisted(() => {
   const get = vi.fn();
   const set = vi.fn();
   const userRef = { get, set, collection: () => ({ doc: () => ({ id: 'evidence' }) }) };
   return { collection: () => ({ doc: () => userRef }), runTransaction: vi.fn(), get, set };
 });
-vi.mock('../src/server/db', () => ({ getDb: () => db, FieldValue: { serverTimestamp: () => 'timestamp' } }));
+vi.mock('../src/server/db', () => ({ FieldValue: { serverTimestamp: () => 'timestamp' } }));
+vi.mock('../src/server/firestoreRepository/nativeDatabase',async importOriginal => ({...await importOriginal() as typeof import('../src/server/firestoreRepository/nativeDatabase'),getServiceRepository:()=>scopedSdkFixture(db)}));
 import { handleAlter, handleEinwilligung, handleEinwilligungLesen, handleEinwilligungWiderruf } from '../src/server/datenschutz';
 
 beforeEach(() => {

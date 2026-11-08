@@ -41,7 +41,7 @@ export function AdminI18nCoverageWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Globe className="text-blue-500" size={20} />
-          <h2 className="font-bold text-stone-900 dark:text-white">i18n Coverage & Fehlende Übersetzungen</h2>
+          <h2 className="font-bold text-stone-900 dark:text-white">i18n Coverage &amp; Fehlende Übersetzungen</h2>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium bg-stone-100 dark:bg-stone-700 px-2 py-1 rounded-md">

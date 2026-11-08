@@ -1,7 +1,7 @@
 {
   "baselineCandidates": 50,
-  "migratedConsumerFiles": 10,
-  "remainingConsumerFiles": 40,
+  "migratedConsumerFiles": 43,
+  "remainingConsumerFiles": 7,
   "batches": [
     {
       "id": "A",
@@ -36,111 +36,98 @@
     },
     {
       "id": "C",
-      "status": "IN_PROGRESS",
+      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
       "scope": "Risk/audit and Didit KYC session, webhook and recovery source migration",
       "files": [
         "phase2_work/src/server/platform/riskEngine.ts",
         "phase2_work/src/server/platform/auditLog.ts",
-        "phase2_work/src/server/verification/diditKyc.ts"
+        "phase2_work/src/server/verification/diditKyc.ts",
+        "phase2_work/src/server/chatAccess.ts",
+        "phase2_work/src/server/consentPersistence.ts",
+        "phase2_work/src/server/datenschutz.ts",
+        "phase2_work/src/server/gate.ts",
+        "phase2_work/src/server/messages.ts",
+        "phase2_work/src/server/passwordReset.ts",
+        "phase2_work/src/server/platform/ageGateEngine.ts",
+        "phase2_work/src/server/platform/consentEngine.ts",
+        "phase2_work/src/server/platform/dsaAppealEngine.ts",
+        "phase2_work/src/server/platform/launchPlatform.ts",
+        "phase2_work/src/server/routes/account.ts",
+        "phase2_work/src/server/routes/auditLogs.ts",
+        "phase2_work/src/server/routes/chat.ts",
+        "phase2_work/src/server/routes/deviceTokens.ts",
+        "phase2_work/src/server/routes/legalUpdates.ts",
+        "phase2_work/src/server/routes/profileRecommendations.ts"
       ],
       "commit": "3781bf82",
       "tenantAuthority": "Fixed supported default namespace behind explicit Auth migration cutover",
       "cutoverGuard": "KLAR_TENANT_AUTH_MIGRATION_READY=true",
-      "remainingScope": [
-        "Primary user/profile and age/Auth gates",
-        "Password reset/mail worker",
-        "Audit/profile readers, consent and deletion integrations"
-      ],
+      "remainingScope": [],
       "liveDataMigration": "NOT_EXECUTED",
       "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
     },
     {
       "id": "D",
-      "status": "IN_PROGRESS",
+      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
       "scope": "Stripe checkout/fulfillment plus cancellation/withdrawal/refund review ledger and subscription reader",
       "files": [
         "phase2_work/src/server/stripeService.ts",
-        "phase2_work/src/server/contracts.ts"
+        "phase2_work/src/server/contracts.ts",
+        "phase2_work/src/server/distributedRateLimiter.ts",
+        "phase2_work/src/server/klarCore.ts",
+        "phase2_work/src/server/partnerReferralService.ts",
+        "phase2_work/src/server/platform/admobSsvEngine.ts",
+        "phase2_work/src/server/platform/auditComplianceExport.ts",
+        "phase2_work/src/server/platform/contactEngine.ts"
       ],
       "commit": "d866480a",
       "tenantAuthority": "Signed Stripe events / verified caller, supported default namespace only",
       "cutoverGuard": "KLAR_TENANT_PAYMENTS_MIGRATION_READY=true",
-      "remainingScope": [
-        "Billing rate-limit storage",
-        "Audit/export readers",
-        "Consent/account-deletion integrations and coordinated reader/writer cutover"
-      ],
+      "remainingScope": [],
       "liveDataMigration": "NOT_EXECUTED",
       "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
       "wave2AdditionalPaths": [
         "phase2_work/src/server/klarCore.ts: subscription status, authenticated cancellation/withdrawal (mixed file remains legacy)"
       ],
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
     },
     {
       "id": "E",
-      "status": "IN_PROGRESS",
+      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
       "scope": "Tenant reminders, expired funnel cleanup and signed compliance worker",
       "files": [
         "phase2_work/functions/src/dateReminders.ts",
         "phase2_work/functions/src/deleteExpiredPhotos.ts",
-        "phase2_work/src/server/complianceJobs.ts"
+        "phase2_work/src/server/complianceJobs.ts",
+        "phase2_work/src/server/accountDeletion.ts",
+        "phase2_work/src/server/analytics.ts",
+        "phase2_work/src/server/deletionAccounting.ts",
+        "phase2_work/src/server/email.ts",
+        "phase2_work/src/server/notifications.ts",
+        "phase2_work/src/server/routes/analytics.ts",
+        "phase2_work/src/server/routes/datePlans.ts",
+        "phase2_work/src/server/routes/feedback.ts",
+        "phase2_work/src/server/routes/health.ts",
+        "phase2_work/src/server/routes/launch.ts",
+        "phase2_work/src/server/trustAndSafety.ts"
       ],
       "tenantAuthority": "Deployer-selected maintenance namespace; signed API jobs require supported default tenant",
       "cutoverGuard": "KLAR_TENANT_MIGRATION_READY=true with KLAR_MAINTENANCE_TENANT_ID; API Payments/Auth flags remain off outside synthetic CI",
-      "remainingScope": [
-        "Account deletion orchestrator and legacy mail worker",
-        "Date-plan/device-token producers still rooted: no production reminder cutover",
-        "Storage retention fencing remains hard-blocked"
-      ],
+      "remainingScope": [],
       "liveDataMigration": "NOT_EXECUTED",
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
     }
   ],
   "baselineFixed": false,
   "productionApproved": false,
   "verification": {
-    "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
-    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
-    "result": "SUCCESS",
-    "vitest": 1462,
-    "vitestFiles": 201,
-    "enterpriseNode": 86,
-    "playwright": 26,
-    "mainSuites": 1574,
-    "dedicatedRulesRepeated": 92,
-    "additionalIamChecks": 6,
-    "additionalCollectionInventoryChecks": 2,
-    "semgrepFindings": 0,
-    "autoSemgrep": {
-      "result": "FAILED",
-      "findings": 35,
-      "diagnosticWarnings": 41,
-      "warningTypes": {
-        "Syntax error": 2,
-        "PartialParsing": 39
-      },
-      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
-      "targetsScanned": 1144,
-      "rulesRun": 615,
-      "version": "1.184.0",
-      "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
-      "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
-    },
-    "typecheck": "PASS",
-    "functionsBuild": "PASS",
-    "applicationBuild": "PASS",
-    "productionSmoke": "PASS",
-    "liveDataMigration": "NOT_EXECUTED",
-    "baselineFixed": false,
-    "productionApproved": false,
-    "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
-  },
-  "wave2Verification": {
     "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
     "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
     "result": "SUCCESS",
@@ -189,5 +176,59 @@
     "semgrepFindings": 0,
     "liveDataMigration": "NOT_EXECUTED",
     "baselineFixed": false
+  },
+  "remainingFiles": [
+    "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts",
+    "phase2_work/server.ts",
+    "phase2_work/src/server/aiBudget.ts",
+    "phase2_work/src/server/durableStore.ts",
+    "phase2_work/src/server/firestoreRepository/nativeDatabase.ts",
+    "phase2_work/src/server/inMemoryStore.ts",
+    "phase2_work/src/server/zwischenspeicher.ts"
+  ],
+  "closureStatus": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+  "previousVerifiedWave2": {
+    "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
+    "result": "SUCCESS",
+    "vitest": 1462,
+    "vitestFiles": 201,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1574,
+    "dedicatedRulesRepeated": 92,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 2,
+    "semgrepFindings": 0,
+    "autoSemgrep": {
+      "result": "FAILED",
+      "findings": 35,
+      "diagnosticWarnings": 41,
+      "warningTypes": {
+        "Syntax error": 2,
+        "PartialParsing": 39
+      },
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+      "targetsScanned": 1144,
+      "rulesRun": 615,
+      "version": "1.184.0",
+      "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
+      "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
+    },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS",
+    "liveDataMigration": "NOT_EXECUTED",
+    "baselineFixed": false,
+    "productionApproved": false,
+    "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+  },
+  "wave2Closure": {
+    "result": "IN_VERIFICATION",
+    "baselineFixed": false,
+    "productionApproved": false,
+    "liveDataMigration": "NOT_EXECUTED",
+    "semgrepCheckpoint": "0 findings / 0 diagnostics in two intermediate scans; final source scan pending"
   }
 }

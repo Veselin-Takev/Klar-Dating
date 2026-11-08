@@ -26,7 +26,7 @@ export function GlobalErrorOverlay() {
         setHasError(false);
       } catch (err) {
         fehlversuche += 1;
-        console.warn(`Verbindungsprüfung fehlgeschlagen (${fehlversuche}/2):`, err);
+        console.warn('Verbindungsprüfung fehlgeschlagen: %d/2', fehlversuche);
         if (fehlversuche >= 2) {
           setHasError(true);
           setErrorMessage('Verbindung zum Server fehlgeschlagen. Bitte versuche es später erneut.');

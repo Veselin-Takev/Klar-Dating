@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -6,12 +7,13 @@ import { createAccountRouter } from '../src/server/routes/account';
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve())))); });
 async function endpoint(fail = false) {
-  const writes = vi.fn().mockImplementation(async () => { if (fail) throw new Error('internal secret'); });
-  const doc = vi.fn(() => ({ set: writes }));
+  const writes = vi.fn();
+  const f = tenantRepositoryHarness({'users/own-user': {isAdult:true}}, (path, action) => {if (fail && action === 'write' && path.endsWith('/own-user')) throw new Error('internal secret');}, (path,data,options) => {if (path.endsWith('/own-user')) writes(data,options);});
+  const doc = f.paths;
   const app = express(); app.use(express.json());
-  app.use('/api', createAccountRouter({ getFirestore: () => ({ collection: () => ({ doc }), runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }) }) as any,
+  app.use('/api', createAccountRouter({repository: () => f.repo,
     currentUserId: req => req.headers.authorization === 'Bearer test' ? 'own-user' : null,
-    getAuth: () => ({ revokeRefreshTokens: vi.fn() } as any) }));
+    getAuth: () => ({revokeRefreshTokens:vi.fn()} as never)}));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/account/preferences`;
@@ -21,7 +23,7 @@ describe('profile language HTTP boundary', () => {
   it('persists only supported language on the authenticated account', async () => {
     const api = await endpoint();
     for (const language of ['de', 'en', 'es', 'fr']) expect((await api.send({ language })).status).toBe(200);
-    expect(api.doc).toHaveBeenCalledWith('own-user');
+    expect(api.doc).toHaveBeenCalledWith('tenants/default/users/own-user');
     expect(api.writes).toHaveBeenLastCalledWith({ language: 'fr' }, { merge: true });
   });
   it('rejects unauthenticated calls, unsupported languages and privilege injection', async () => {

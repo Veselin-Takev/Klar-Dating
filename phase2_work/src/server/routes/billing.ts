@@ -1,6 +1,7 @@
 import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { getServiceRepository } from '../firestoreRepository/nativeDatabase';
 import { distributedRateLimit } from '../distributedRateLimiter';
 import { z } from 'zod';
 import { CheckoutConflictError } from '../stripeService';
@@ -10,7 +11,7 @@ export type BillingRouterDeps = {
   isBookable: () => boolean;
   validateReturnUrl: (returnUrl: string) => string;
   createCheckoutSession: (userId: string, returnUrl: string) => Promise<string | null>;
-  getFirestore?: () => Firestore;
+  repository?: () => TenantAwareFirestoreRepository;
 };
 
 const checkoutPayload = z.object({
@@ -22,13 +23,14 @@ export function createBillingRouter(deps: BillingRouterDeps): Router {
   const router = Router();
   const checkoutCreationLimiter = distributedRateLimit({
     collection: 'rate_limit_billing_checkout',
+    domain: 'payments',
     windowMs: 15 * 60 * 1000,
     limit: 5,
     keyGenerator: (req) => {
       const uid = deps.currentUserId(req);
       return uid ? 'uid:' + uid : '';
     },
-    getDb: deps.getFirestore,
+    repository: deps.repository ?? (() => getServiceRepository('payments')),
     message: { error: 'Zu viele Checkout-Anfragen. Bitte versuche es später erneut.' },
   });
 

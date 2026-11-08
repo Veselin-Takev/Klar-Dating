@@ -1,21 +1,21 @@
 import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import { distributedRateLimit } from '../distributedRateLimiter';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { FieldValue } from '../db';
 import { z } from 'zod';
 
 export type DeviceTokenRouterDeps = {
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   currentUserId: (req: Request) => string | null;
 };
 
 const payloadSchema = z.object({
   userId: z.string().min(1).max(128).optional(),
-  token: z.string().min(20).max(4096).regex(/^\S+$/, 'Invalid token'),
+  token: z.string().min(20).max(4096).regex(/^[A-Za-z0-9_:-]+$/, 'Invalid token'),
 }).strict();
 
-export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceTokenRouterDeps): Router {
+export function createDeviceTokenRouter({ repository, currentUserId }: DeviceTokenRouterDeps): Router {
   const router = Router();
   const deviceTokenWriteLimiter = distributedRateLimit({
     collection: 'rate_limit_device_token_write',
@@ -25,7 +25,7 @@ export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceT
       const uid = currentUserId(req);
       return uid ? 'uid:' + uid : '';
     },
-    getDb: getFirestore,
+    repository,
     message: { error: 'Zu viele Geräte-Token-Anfragen. Bitte versuche es später erneut.' },
   });
 
@@ -40,15 +40,11 @@ export function createDeviceTokenRouter({ getFirestore, currentUserId }: DeviceT
     }
 
     try {
-      await getFirestore()
-        .collection('users')
-        .doc(uid)
-        .collection('fcmTokens')
-        .doc(parsed.data.token)
-        .set({
-          createdAt: FieldValue.serverTimestamp(),
-          platform: 'web',
-        }, { merge: true });
+      await repository().transaction(async tx => {
+        const deletion = await tx.read(`account_deletions/${uid}`, z.record(z.string(), z.unknown()));
+        if (deletion) throw new Error('account_unavailable');
+        tx.write(`users/${uid}/fcmTokens/${parsed.data.token}`, z.object({createdAt:z.unknown(), platform:z.literal('web')}), {createdAt:FieldValue.serverTimestamp(), platform:'web'}, {merge:true});
+      });
 
       return res.json({ ok: true });
     } catch (error) {

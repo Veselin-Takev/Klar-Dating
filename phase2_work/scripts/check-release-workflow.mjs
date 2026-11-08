@@ -47,7 +47,7 @@ if (/^\s+workflow_dispatch:/m.test(text)) {
 if (/ghcr\.io\/veselin8606-source\/klar-app@/.test(text)) {
   failures.push("Production workflow must not hard-code a historical container registry owner.");
 }
-if (!text.includes('ghcr.io/${{ github.repository_owner }}/klar-app@${KLAR_RELEASE_DIGEST}')) {
+if (!text.includes('ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app@${KLAR_RELEASE_DIGEST}') || !text.includes('GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}')) {
   failures.push("Production image verification must use the immutable digest under github.repository_owner.");
 }
 if (!text.includes('KLAR_PRODUCTION_RELEASE_APPROVED: ${{ vars.KLAR_PRODUCTION_RELEASE_APPROVED }}')) {

@@ -2221,7 +2221,7 @@ Verbindung nicht gefunden</div>);
             onClick={() => setEmpathyAnalysis(null)}
             className="w-full mt-3 py-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 transition-colors text-sm font-medium"
           >
-            Abbrechen & Überarbeiten
+            Abbrechen &amp; Überarbeiten
           </button>
         </div>
       </div>

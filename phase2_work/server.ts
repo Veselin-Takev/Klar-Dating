@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
 import { TenantAwareFirestoreRepository } from './src/server/TenantAwareFirestoreRepository';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
@@ -176,7 +177,7 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     const decodedToken = await authInstance.verifyIdToken(idToken, true);
     const tenantContext = resolveVerifiedTenantContext(decodedToken);
 
-    if (decodedToken.uid && (await getFirestore().collection('account_deletions').doc(decodedToken.uid).get()).exists) {
+    if (decodedToken.uid && await getServiceRepository('auth').read(`account_deletions/${decodedToken.uid}`, z.record(z.string(), z.unknown()))) {
       return res.status(409).json({ code: 'account_deletion_pending' });
     }
     const session = validateServerAuthSession(decodedToken);
@@ -488,7 +489,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/internal/compliance', createComplianceJobsRouter());
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
-  app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
+  app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, repository: () => getServiceRepository('auth'), enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
   app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
 
   // Setup basic rate limiting
@@ -571,7 +572,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use(
     '/api',
     createHealthRouter({
-      getFirestore,
+      repository: () => getServiceRepository('auth'),
       healthStats,
       requireAuth,
       nurModeration,
@@ -768,7 +769,7 @@ const adminHealthCheckLimiter = rateLimit({
 
     let daten: Record<string, unknown> | undefined;
     try {
-      daten = (await getFirestore().collection("users").doc(meineUid).get()).data();
+      daten = await getServiceRepository('auth').read(`users/${meineUid}`, z.record(z.string(), z.unknown())) ?? undefined;
     } catch (e: unknown) {
       logSafeFailure('adult_consent_check_failure');
       return res.status(503).json({ error: "Prüfung derzeit nicht möglich. Bitte später erneut." });
@@ -852,7 +853,7 @@ const adminHealthCheckLimiter = rateLimit({
   // ausschliesslich hier geschrieben — der Client kann beides nach den
   // Firestore-Regeln nicht setzen.
 
-  app.use('/api', createLegalUpdatesRouter({ currentUserId, getFirestore }));
+  app.use('/api', createLegalUpdatesRouter({ currentUserId, repository: () => getServiceRepository('auth') }));
   // Live chat translation: authenticated, consent-gated and Art. 9-sanitized in translationEngine.
   app.post('/api/translate', handleTranslation);
 
@@ -860,7 +861,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use(
     '/api',
     createAccountRouter({
-      getFirestore,
+      repository: () => getServiceRepository('auth'),
       currentUserId,
       getAuth: () => getAuth(),
     }),
@@ -869,7 +870,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Launch/referral/activation HTTP composition lives in a dedicated router.
   app.use('/api', createLaunchRouter({
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     normalizeLaunchCity,
     getLocalDensity: (db, city: LaunchCity) => getLocalDensity(db, city),
     referralCodeFor,
@@ -882,7 +883,7 @@ const adminHealthCheckLimiter = rateLimit({
   // layer only; callback authenticity is enforced by campaign-specific HMAC.
   const partnerReferralDeps = {
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     tokenSecret: () => process.env.PARTNER_REFERRAL_SECRET ?? '',
     auditSecret: () => consentAuditSecret(),
     publicUrl: () => process.env.KLAR_PUBLIC_URL,
@@ -899,11 +900,11 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/api', createPartnerReferralPublicRouter(partnerReferralDeps));
   app.use('/api', createPartnerReferralRouter(partnerReferralDeps));
   // Public feedback is intentionally anonymous and has its own strict payload boundary.
-  app.use('/api', createFeedbackRouter({ getFirestore }));
+  app.use('/api', createFeedbackRouter({ repository: () => getServiceRepository('auth') }));
 
   app.use('/api', createProfileRecommendationsRouter({
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     toPublicProfile,
     normalizeLaunchCity,
     getRecommendations,
@@ -928,7 +929,7 @@ const adminHealthCheckLimiter = rateLimit({
     return res.json({ items });
   });
   app.use('/api', createChecklistRouter({ currentUserId, repositoryFor: req => new TenantAwareFirestoreRepository(getFirestore(), req.user) }));
-  app.use('/api', createDatePlansRouter({ currentUserId, getFirestore }));
+  app.use('/api', createDatePlansRouter({ currentUserId, repository: () => getServiceRepository('auth') }));
 
   // ═══════════════════════════════════════════════════════════════════════
   // Klar — Kernmechanik (P1)
@@ -980,7 +981,7 @@ const adminHealthCheckLimiter = rateLimit({
     '/api/admin',
     requireAuth,
     requireRole('admin', 'trust_safety', 'super_admin'),
-    createAuditLogRouter({ getFirestore }),
+    createAuditLogRouter({ repository: getServiceRepository }),
   );
 
 
@@ -1979,7 +1980,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
 
 
   // Push-token persistence lives behind the shared /api auth/age middleware.
-  app.use('/api', createDeviceTokenRouter({ getFirestore, currentUserId }));
+  app.use('/api', createDeviceTokenRouter({ repository: () => getServiceRepository('auth'), currentUserId }));
 
   // Klar+ checkout is server-gated by the same product decision that hides the UI action.
   app.use('/api', createBillingRouter({

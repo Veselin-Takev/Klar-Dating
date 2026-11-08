@@ -504,7 +504,7 @@ Halte es ermutigend und hilfreich.`;
             >
               <option value="motivierend">Motivierend 🌟</option>
               <option value="humorvoll">Humorvoll 😄</option>
-              <option value="direkt">Direkt & Klar 🎯</option>
+              <option value="direkt">Direkt &amp; Klar 🎯</option>
             </select>
           </div>
 
@@ -581,7 +581,7 @@ Halte es ermutigend und hilfreich.`;
                 }}
                 className="whitespace-nowrap px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-full text-xs font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
               >
-                😂 Witzig & Locker
+                😂 Witzig &amp; Locker
               </button>
               <button
                 onClick={() => {
@@ -592,7 +592,7 @@ Halte es ermutigend und hilfreich.`;
                 }}
                 className="whitespace-nowrap px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-full text-xs font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
               >
-                🥰 Aufrichtig & Tiefgründig
+                🥰 Aufrichtig &amp; Tiefgründig
               </button>
               <button
                 onClick={() => {
@@ -603,7 +603,7 @@ Halte es ermutigend und hilfreich.`;
                 }}
                 className="whitespace-nowrap px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-full text-xs font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
               >
-                🎯 Direkt & Selbstbewusst
+                🎯 Direkt &amp; Selbstbewusst
               </button>
               <button
                 onClick={() => {
@@ -946,7 +946,7 @@ Halte es ermutigend und hilfreich.`;
                     >
                       <option value="erstes_date">Erstes Date im Café</option>
                       <option value="peinliches_schweigen">Peinliches Schweigen überbrücken</option>
-                      <option value="flirten">Flirten & Neckisch schreiben</option>
+                      <option value="flirten">Flirten &amp; Neckisch schreiben</option>
                       <option value="ghosting">Höflich absagen (kein Ghosting)</option>
                     </select>
                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-stone-500">

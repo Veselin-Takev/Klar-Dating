@@ -5,7 +5,7 @@ import { ForgotPasswordForm } from './ForgotPasswordForm';
 import * as passwordResetService from './passwordResetService';
 
 vi.mock('./passwordResetService', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./passwordResetService')>();
+  const actual = await importOriginal() as typeof import('./passwordResetService');
   return {
     ...actual,
     requestPasswordReset: vi.fn(),

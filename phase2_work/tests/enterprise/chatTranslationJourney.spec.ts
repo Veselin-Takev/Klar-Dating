@@ -1,11 +1,10 @@
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
+import type { MinimalFirestore, MinimalTransaction, MinimalDocSnapshot } from '../helpers/legacyFirestoreFixtureTypes';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   processContactRequest,
   processContactUndo,
-  type MinimalFirestore,
-  type MinimalTransaction,
-  type MinimalDocSnapshot,
 } from '../../src/server/platform/contactEngine';
 import {
   processTranslation,
@@ -72,14 +71,14 @@ test('Story 2.1: Mutual match initializes canonical chat with Icebreaker Gate', 
   });
 
   // Step 1: Alice contacts Bob (first-directional, not mutual yet)
-  const res1 = await processContactRequest(firestore, 'user_alice', 'user_bob', fixedDate);
+  const res1 = await processContactRequest(scopedSdkFixture(firestore), 'user_alice', 'user_bob', fixedDate);
   assert.equal(res1.ok, true);
   assert.equal(res1.isMutual, false);
   assert.equal(res1.chatId, undefined);
   assert.ok(store.has('contacts/user_alice_user_bob'));
 
   // Step 2: Bob contacts Alice (reciprocal match!)
-  const res2 = await processContactRequest(firestore, 'user_bob', 'user_alice', fixedDate);
+  const res2 = await processContactRequest(scopedSdkFixture(firestore), 'user_bob', 'user_alice', fixedDate);
   assert.equal(res2.ok, true);
   assert.equal(res2.isMutual, true);
   assert.equal(res2.chatId, 'user_alice_user_bob');
@@ -105,7 +104,7 @@ test('Story 2.1: Undo within 5 seconds cleanly removes mutual chat', async () =>
     'chats/user_alice_user_bob': { participants: ['user_alice', 'user_bob'], isMutual: true },
   });
 
-  const undoRes = await processContactUndo(firestore, 'user_bob', 'user_alice', t1);
+  const undoRes = await processContactUndo(scopedSdkFixture(firestore), 'user_bob', 'user_alice', t1);
   assert.equal(undoRes.ok, true);
   assert.equal(store.has('contacts/user_bob_user_alice'), false);
   assert.equal(store.has('chats/user_alice_user_bob'), false, 'Chat must be torn down on undo');

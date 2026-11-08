@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express, { type Request } from 'express';
 import type { AddressInfo } from 'node:net';
@@ -65,7 +66,7 @@ async function request(options: { header?: string; user?: Row; consent?: boolean
     req.user = options.user as Request['user']; next();
   });
   app.use('/api', createPartnerReferralPublicRouter({
-    currentUserId: () => null, getFirestore: () => db.firestore,
+    currentUserId: () => null, repository: () => scopedSdkFixture(db.firestore),
     tokenSecret: () => secret, auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
     publicUrl: () => 'https://klar.example', webhookSecrets: () => ({}),
   }));
@@ -162,16 +163,16 @@ describe('unsafe configured partner destinations over HTTP', () => {
 
 it('sets webhook privacy headers before limiter infrastructure failure', async () => {
  const app=express();
- app.use('/api',createPartnerReferralPublicRouter({currentUserId:()=>null,getFirestore:()=>{throw new Error('simulated limiter outage')},tokenSecret:()=>secret,auditSecret:()=>secret,publicUrl:()=>destination,webhookSecrets:()=>({})}));
+ app.use('/api',createPartnerReferralPublicRouter({currentUserId:()=>null,repository:()=>{throw new Error('simulated limiter outage')},tokenSecret:()=>secret,auditSecret:()=>secret,publicUrl:()=>destination,webhookSecrets:()=>({})}));
  const server=app.listen(0,'127.0.0.1');servers.push(server);await new Promise<void>(resolve=>server.once('listening',resolve));
  const response=await fetch('http://127.0.0.1:'+(server.address() as AddressInfo).port+'/api/partner/webhook/partner',{method:'POST'});
- expect(response.status).toBe(500);expect(response.headers.get('cache-control')).toContain('no-store');expect(response.headers.get('pragma')).toBe('no-cache');expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+ expect(response.status).toBe(503);expect(response.headers.get('cache-control')).toContain('no-store');expect(response.headers.get('pragma')).toBe('no-cache');expect(response.headers.get('referrer-policy')).toBe('no-referrer');
 });
 
 it.each([undefined,{uid:'visitor',role:'admin'}])('sets admin privacy headers before strict authorization %j',async user=>{
  const app=express();if(user)app.use((req,_res,next)=>{req.user=user as unknown as Request['user'];next()});
  const firestore=vi.fn(()=>{throw new Error('Authorization must deny before database access')});
- app.use('/api',createPartnerReferralRouter({currentUserId:()=>null,getFirestore:firestore,tokenSecret:()=>secret,auditSecret:()=>secret,publicUrl:()=>destination,webhookSecrets:()=>({})}));
+ app.use('/api',createPartnerReferralRouter({currentUserId:()=>null,repository:()=>scopedSdkFixture(firestore()),tokenSecret:()=>secret,auditSecret:()=>secret,publicUrl:()=>destination,webhookSecrets:()=>({})}));
  const server=app.listen(0,'127.0.0.1');servers.push(server);await new Promise<void>(resolve=>server.once('listening',resolve));
  const response=await fetch('http://127.0.0.1:'+(server.address() as AddressInfo).port+'/api/admin/partners');expect(response.status).toBe(user?403:401);expect(firestore).not.toHaveBeenCalled();expect(response.headers.get('cache-control')).toContain('no-store');expect(response.headers.get('pragma')).toBe('no-cache');expect(response.headers.get('referrer-policy')).toBe('no-referrer');
 });

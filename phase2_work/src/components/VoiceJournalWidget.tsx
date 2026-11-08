@@ -112,7 +112,7 @@ export function VoiceJournalWidget({ onSave }: { onSave: (text: string, analysis
           onClick={stopRecording}
           className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-rose-500/20 "
         >
-          <Square size={16} className="fill-current" /> Aufnahme stoppen & speichern
+          <Square size={16} className="fill-current" /> Aufnahme stoppen &amp; speichern
         </button>
       ) : (
         <button

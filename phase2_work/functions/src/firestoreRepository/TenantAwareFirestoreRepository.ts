@@ -1,6 +1,6 @@
 import type { Firestore, DocumentData, WhereFilterOp, Query } from 'firebase-admin/firestore';
 export interface RuntimeSchema<T> { parse(input: unknown): T }
-export interface TenantQuery { limit: number; orderBy?: string; startAfter?: string; where?: readonly [string, WhereFilterOp, unknown] }
+export interface TenantQuery { limit: number; orderBy?: string; orderDirection?: 'asc' | 'desc'; whereAll?: readonly (readonly [string, WhereFilterOp, unknown])[]; startAfter?: string; where?: readonly [string, WhereFilterOp, unknown] }
 export interface TenantRow<T> { id: string; data: T }
 export interface TenantTransaction {
   read<T>(path: string, schema: RuntimeSchema<T>): Promise<T | null>;
@@ -28,9 +28,10 @@ export class TenantAwareFirestoreRepository {
     if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 200) throw new Error('tenant_query_limit_invalid');
     let query: Query = this.#db.collection(this.#path(path, false));
     if (options.where) query = query.where(...options.where);
-    if (options.orderBy) query = query.orderBy(options.orderBy);
+    if (options.whereAll) for (const clause of options.whereAll) query = query.where(...clause);
+    if (options.orderBy) query = query.orderBy(options.orderBy, options.orderDirection ?? 'asc');
     if (options.startAfter !== undefined) {
-      if (options.orderBy !== '__name__' || !/^[A-Za-z0-9_-]+$/.test(options.startAfter)) throw new Error('tenant_cursor_invalid');
+      if (options.orderBy !== '__name__' || !/^[A-Za-z0-9_:-]+$/.test(options.startAfter)) throw new Error('tenant_cursor_invalid');
       query = query.startAfter(options.startAfter);
     }
     return query.limit(options.limit);
@@ -52,6 +53,22 @@ export class TenantAwareFirestoreRepository {
   async list<T>(path: string, schema: RuntimeSchema<T>, options: TenantQuery): Promise<TenantRow<T>[]> {
     return (await this.#query(path, options).get()).docs.map(doc => ({id: doc.id, data: schema.parse(doc.data())}));
   }
+  /** Exhaustive bounded export/read. Never silently truncates at a page boundary. */
+  async listAll<T>(path: string, schema: RuntimeSchema<T>, options: Pick<TenantQuery, 'where' | 'whereAll'> = {}, maxRows = 10_000): Promise<TenantRow<T>[]> {
+    if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 10_000) throw new Error('tenant_scan_limit_invalid');
+    const rows: TenantRow<T>[] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const pageSize = Math.min(200, maxRows - rows.length + 1);
+      const page = await this.list(path, schema, {...options, orderBy: '__name__', limit: pageSize, ...(cursor ? {startAfter: cursor} : {})});
+      rows.push(...page);
+      if (rows.length > maxRows) throw new Error('tenant_scan_limit_exceeded');
+      if (page.length < pageSize) return rows;
+      cursor = page[page.length - 1]!.id;
+    }
+  }
+  /** Recursive removal stays inside the same validated tenant capability. */
+  async deleteTree(path: string): Promise<void> { await this.#db.recursiveDelete(this.#db.doc(this.#path(path, true))); }
   async transaction<T>(callback: (tx: TenantTransaction) => Promise<T>): Promise<T> {
     return this.#db.runTransaction(native => callback({
       read: async <V>(path: string, schema: RuntimeSchema<V>) => {

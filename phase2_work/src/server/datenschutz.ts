@@ -1,9 +1,13 @@
+import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { currentUserId } from './authorization';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb as getFirestore } from './db';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 import { persistConsentDecision } from './consentPersistence';
 import { processAgeVerification } from './platform/ageGateEngine';
-import { revokeExplicitConsent, type Art9Purpose } from './platform/consentEngine';
+import { revokeExplicitConsent } from './platform/consentEngine';
 import {
   EINWILLIGUNG_VERSION,
   pruefeEinwilligung,
@@ -23,7 +27,9 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function uid(req: Request): string {
-  return (req as { user?: { uid?: string } }).user?.uid as string;
+  const actor = currentUserId(req);
+  if (!actor) throw new Error('Unauthorized');
+  return actor;
 }
 
 function fehler(res: Response, code: number, nachricht: string): void {
@@ -43,11 +49,11 @@ function fehler(res: Response, code: number, nachricht: string): void {
  * einer heute 17-jährigen Person würde nie bemerkt. Datenminimierung spricht
  * dagegen — die Nachvollziehbarkeit der Alterszusage wiegt hier schwerer.
  */
-export async function handleAlter(req: Request, res: Response): Promise<void> {
+export async function handleAlter(req: Request, res: Response, repository?: TenantAwareFirestoreRepository): Promise<void> {
   const meineUid = uid(req);
   try {
     const outcome = await processAgeVerification(
-      getFirestore(),
+      repository ?? getServiceRepository('auth'),
       meineUid,
       req.body?.geburtsdatum
     );
@@ -147,14 +153,10 @@ export async function handleEinwilligungWiderruf(req: Request, res: Response): P
       },
     }));
 
-    // Trigger cascade purge of Art. 9 data and immutable withdrawal audit log
-    await revokeExplicitConsent(
-      getFirestore(),
-      uid(req),
-      (zweck === 'ki_auswertung' ? 'ai_personality_insights' : (zweck as Art9Purpose || 'all'))
-    ).catch((err) => {
-      console.warn('Cascade Art. 9 purge log:', err);
-    });
+    // Only the AI purpose maps to the separate Art. 9 state; a full withdrawal purges all Art. 9 fields.
+    if (zweck === undefined || zweck === 'ki_auswertung') {
+      await revokeExplicitConsent(getServiceRepository('auth'), uid(req), zweck === undefined ? 'all' : 'ai_personality_insights');
+    }
 
     res.json({ ok: true, ...result });
   } catch (e) {
@@ -196,8 +198,8 @@ export async function handleEinwilligungZweck(req: Request, res: Response): Prom
         },
       };
     });
-    if (!erlaubt) {
-      await revokeExplicitConsent(getFirestore(), uid(req), zweck === 'ki_auswertung' ? 'ai_personality_insights' : (zweck as Art9Purpose || 'all')).catch(err => console.warn('Cascade Art. 9 purge log:', err));
+    if (!erlaubt && zweck === 'ki_auswertung') {
+      await revokeExplicitConsent(getServiceRepository('auth'), uid(req), 'ai_personality_insights');
     }
     res.json({ ok: true, ...result });
   } catch (e) {
@@ -209,9 +211,9 @@ export async function handleEinwilligungZweck(req: Request, res: Response): Prom
 /** GET /api/einwilligung — aktueller Stand und die geltende Fassung. */
 export async function handleEinwilligungLesen(req: Request, res: Response): Promise<void> {
   try {
-    const snapshot = await getFirestore().collection('users').doc(uid(req)).get();
+    const snapshot = await getServiceRepository('auth').read(`users/${uid(req)}`, record);
     res.json({
-      einwilligung: snapshot.data()?.einwilligung ?? null,
+      einwilligung: snapshot?.einwilligung ?? null,
       aktuelleVersion: EINWILLIGUNG_VERSION,
       zwecke: ZWECKE,
     });
@@ -244,9 +246,9 @@ export async function handleEinwilligungLesen(req: Request, res: Response): Prom
 export async function handleExport(req: Request, res: Response): Promise<void> {
   const meineUid = uid(req);
   try {
-    const db = getFirestore();
+    const db = getServiceRepository('auth');
 
-    const profil = await db.collection('users').doc(meineUid).get();
+    const profil = await db.read(`users/${meineUid}`, record);
 
     // GEGENPRÜFUNG: E-Mail und Anzeigename liegen in Firebase Auth, nicht in
     // Firestore. Sie fehlten im Export, obwohl die Verarbeitungsübersicht sie
@@ -269,24 +271,24 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
     }
 
     const CHAT_GRENZE = 200;
-    const chats = await db.collection('chats').where('participants', 'array-contains', meineUid).limit(CHAT_GRENZE + 1).get();
+    const chats = await db.listAll('chats', record, {where:['participants','array-contains',meineUid]});
     const gespraeche: unknown[] = [];
     // GEGENPRÜFUNG: Der Export lief unbegrenzt über alle Chats, mit einer
     // Abfrage je Chat. Bei vielen Gesprächen läuft die Anfrage in die
     // Zeitgrenze und liefert gar nichts — eine Auskunft, die bei Vielnutzern
     // scheitert, ist keine. Grenze mit sichtbarem Hinweis statt stiller
     // Kürzung.
-    const chatDocs = chats.docs.slice(0, CHAT_GRENZE);
+    const chatDocs = chats.slice(0, CHAT_GRENZE);
     for (const c of chatDocs) {
-      const nachrichten = await c.ref.collection('messages').where('senderId', '==', meineUid).get();
+      const nachrichten = await db.listAll(`chats/${c.id}/messages`, record, {where:['senderId','==',meineUid]});
       // GEGENPRÜFUNG: `lastMessage` am Chatdokument kann der Text der
       // ANDEREN Person sein. Deshalb wird das Feld nicht ausgegeben.
       gespraeche.push({
         chatId: c.id,
-        beteiligte: c.data().participants,
-        begonnenAm: c.data().createdAt ?? null,
-        eigeneNachrichten: nachrichten.docs.map((m) => ({
-          id: m.id, text: m.data().text, createdAt: m.data().createdAt,
+        beteiligte: c.data.participants,
+        begonnenAm: c.data.createdAt ?? null,
+        eigeneNachrichten: nachrichten.map((m) => ({
+          id: m.id, text: m.data.text, createdAt: m.data.createdAt,
         })),
         hinweis: 'Nachrichten der anderen Person sind deren Daten und deshalb nicht enthalten.',
       });
@@ -295,14 +297,14 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
     // verfasster Freitext je Antwort. Fehlten im ersten Entwurf.
     const gateAntworten: unknown[] = [];
     for (const c of chatDocs) {
-      const g = await c.ref.collection('gate_answers').get();
-      g.docs
-        .filter((d) => d.data().uid === meineUid || d.id.startsWith(meineUid + '_'))
-        .forEach((d) => gateAntworten.push({ chatId: c.id, id: d.id, ...d.data() }));
+      const g = await db.listAll(`chats/${c.id}/gate_answers`, record);
+      g
+        .filter((d) => d.data.uid === meineUid || d.id.startsWith(meineUid + '_'))
+        .forEach((d) => gateAntworten.push({ chatId: c.id, id: d.id, ...d.data }));
     }
 
     const sammeln = async (pfad: string, feld: string) =>
-      (await db.collection(pfad).where(feld, '==', meineUid).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+      (await db.listAll(pfad, record, {where:[feld,'==',meineUid]})).map((d) => ({ id: d.id, ...d.data }));
 
     const [kontakteVon, kontakteAn, blockiert, meldungen, einwilligungen, quota,
            abo, verifizierung, altersversuche, kiZwischenspeicher, aiBudget] = await Promise.all([
@@ -310,19 +312,19 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
       sammeln('contacts', 'toUid'),
       sammeln('blocks', 'blockerUid'),
       sammeln('reports', 'reporterId'),
-      db.collection('users').doc(meineUid).collection('einwilligungen').get(),
-      db.collection('users').doc(meineUid).collection('quota_ledger').get(),
+      db.listAll(`users/${meineUid}/einwilligungen`, record),
+      db.listAll(`users/${meineUid}/quota_ledger`, record),
       // GEGENPRÜFUNG: Abo, Verifizierung und Altersversuche fehlten — alles
       // Daten zu dieser Person, alle unter Art. 15 auskunftspflichtig.
-      db.collection('subscriptions').doc(meineUid).get(),
-      db.collection('verification_events').where('uid', '==', meineUid).get(),
-      db.collection('age_attempts').where('uid', '==', meineUid).get(),
+      db.read(`subscriptions/${meineUid}`, record),
+      db.listAll('verification_events', record, {where:['uid','==',meineUid]}),
+      db.listAll('age_attempts', record, {where:['uid','==',meineUid]}),
       // 11.08.2026: Der Zwischenspeicher fuer KI-Auswertungen. Er enthaelt
       // Aussagen UEBER diese Person und ist damit auskunftspflichtig. Neu
       // angelegte Ablagen gehoeren hier eingetragen — sonst entsteht eine
       // Luecke, die niemandem auffaellt.
-      db.collection('users').doc(meineUid).collection('ki_zwischenspeicher').get(),
-      db.collection('users').doc(meineUid).collection('ai_budget').get(),
+      db.listAll(`users/${meineUid}/ki_zwischenspeicher`, record),
+      db.listAll(`users/${meineUid}/ai_budget`, record),
     ]);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -332,28 +334,28 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
       rechtsgrundlage: 'Art. 15 und Art. 20 DSGVO',
       konto,
       produktanalyse: await sammeln('funnel_events', 'userId'),
-      profil: profil.exists ? profil.data() : null,
+      profil: profil,
       gespraeche,
-      gespraechsvollstaendig: chats.size <= CHAT_GRENZE,
-      gespraecheGesamt: chats.size,
+      gespraechsvollstaendig: chats.length <= CHAT_GRENZE,
+      gespraecheGesamt: chats.length,
       gateAntworten,
-      abo: abo.exists ? abo.data() : null,
-      verifizierung: verifizierung.docs.map((d) => ({ id: d.id, ...d.data() })),
-      altersversuche: altersversuche.docs.map((d) => ({ id: d.id, ...d.data() })),
+      abo: abo,
+      verifizierung: verifizierung.map((d) => ({ id: d.id, ...d.data })),
+      altersversuche: altersversuche.map((d) => ({ id: d.id, ...d.data })),
       kontakte: { ausgehend: kontakteVon, eingehend: kontakteAn },
       blockierungen: blockiert,
       eigeneMeldungen: meldungen,
-      einwilligungen: einwilligungen.docs.map((d) => ({ id: d.id, ...d.data() })),
-      kontingent: quota.docs.map((d) => ({ id: d.id, ...d.data() })),
-      kiZwischenspeicher: kiZwischenspeicher.docs.map((d) => ({ id: d.id, ...d.data() })),
-      aiBudget: aiBudget.docs.map((d) => ({ id: d.id, ...d.data() })),
+      einwilligungen: einwilligungen.map((d) => ({ id: d.id, ...d.data })),
+      kontingent: quota.map((d) => ({ id: d.id, ...d.data })),
+      kiZwischenspeicher: kiZwischenspeicher.map((d) => ({ id: d.id, ...d.data })),
+      aiBudget: aiBudget.map((d) => ({ id: d.id, ...d.data })),
       nichtEnthalten: [
         'Nachrichten anderer Personen — deren Daten.',
         'Die Vorschauzeile eines Gesprächs (lastMessage) — sie kann von der anderen Person stammen.',
         'Meldungen über dieses Konto — Art. 15 Abs. 4 DSGVO.',
         'Serverprotokolle mit technischen Kennungen.',
-        chats.size > CHAT_GRENZE
-          ? `Nur die ersten ${CHAT_GRENZE} von ${chats.size} Gesprächen. Für den Rest bitte melden.`
+        chats.length > CHAT_GRENZE
+          ? `Nur die ersten ${CHAT_GRENZE} von ${chats.length} Gesprächen. Für den Rest bitte melden.`
           : null,
       ].filter(Boolean),
     });

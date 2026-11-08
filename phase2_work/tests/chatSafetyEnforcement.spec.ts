@@ -9,19 +9,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/server/safetyService', () => ({ assessSafetyMessage: mocks.assessSafetyMessage }));
-vi.mock('../src/server/db', () => ({
-  FieldValue: { serverTimestamp: () => 'server-time' },
-  getDb: () => ({
-    runTransaction: mocks.runTransaction,
-    collection: () => ({ doc: () => ({ collection: () => ({ doc: () => ({ id: 'message-id' }) }) }) }),
-  }),
-}));
+vi.mock('../src/server/firestoreRepository/nativeDatabase', () => ({getServiceRepository:()=>({transaction:mocks.runTransaction})}));
 vi.mock('../src/server/platform/launchPlatform', () => ({ recordActivation: vi.fn(async () => {}) }));
-vi.mock('../src/server/platform/auditLog', () => ({ appendAuditLog: mocks.appendAuditLog }));
+vi.mock('../src/server/platform/auditLog', () => ({ appendRepositoryAuditLog: mocks.appendAuditLog }));
 vi.mock('../src/server/chatAccess', () => ({
   ChatAccessError: class ChatAccessError extends Error { constructor(public status:number, public code:string, message:string){ super(message); } },
   validDocumentId: (v: unknown) => typeof v === 'string' && !!v,
-  readChatAccess: vi.fn(async () => ({ recipientId: 'user-2', data: {}, ref: {} })),
+  readChatAccess: vi.fn(async () => ({ recipientId: 'user-2', data: {}, ref: 'chats/chat-1' })),
 }));
 vi.mock('../src/server/authorization', () => ({ currentUserId: () => 'user-1' }));
 
@@ -38,7 +32,7 @@ async function invoke(text='hello') {
 describe('authoritative chat safety enforcement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.runTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({ get: async () => ({ exists: false }) }));
+    mocks.runTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({ read: async () => null }));
   });
 
   it('blocks a flagged message before the persistence transaction', async () => {

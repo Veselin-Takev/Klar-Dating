@@ -15,8 +15,8 @@ for (let i = firstBrace; i < source.length; i += 1) {
 if (end === -1) throw new Error('Chat read-path gate failed: loader boundary missing.');
 const loader = source.slice(start, end);
 const count = (re) => loader.match(re)?.length ?? 0;
-if (count(/\bdb\.runTransaction\s*\(/g) !== 1) throw new Error('Chat read-path gate failed: exactly one bounded transaction required.');
-if (count(/\btx\.getAll\s*\(/g) !== 1) throw new Error('Chat read-path gate failed: exactly one tx.getAll required.');
+if (count(/\bdb\.transaction\s*\(/g) !== 1) throw new Error('Chat read-path gate failed: exactly one bounded transaction required.');
+if (count(/\btx\.read\s*\(/g) !== 1 || !loader.includes('new Set<string>') || !loader.includes('Promise.all([...paths].map(')) throw new Error('Chat read-path gate failed: one deduplicated batch of scoped transaction reads required.');
 if (count(/public_profiles.*\.get\s*\(/g) !== 0) throw new Error('Chat read-path gate failed: per-entry profile reads forbidden.');
 if (count(/entries\.map\s*\(\s*async\b/g) !== 0) throw new Error('Chat read-path gate failed: async per-entry mapping forbidden.');
 const routeStart = source.indexOf("router.get('/chats'");

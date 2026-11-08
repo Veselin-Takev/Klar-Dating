@@ -35,6 +35,10 @@ export async function appendAuditLog(
   firestore: Firestore,
   input: { type: string; actorUid: string; metadata?: Record<string, string | number | boolean | null> },
 ): Promise<string> {
+  return appendRepositoryAuditLog(scopeServiceDatabase(firestore, 'auth'), input);
+}
+export async function appendRepositoryAuditLog(repo: Pick<import('../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository').TenantAwareFirestoreRepository, 'create'>,
+  input: {type: string; actorUid: string; metadata?: Record<string, string | number | boolean | null>}): Promise<string> {
   const payload = auditEventSchema.parse({
     schemaVersion: 1,
     type: input.type,
@@ -43,7 +47,6 @@ export async function appendAuditLog(
     metadata: input.metadata ?? {},
   });
   const id = crypto.randomUUID();
-  const repo = scopeServiceDatabase(firestore, 'auth');
   await repo.create(`audit_logs/${id}`, auditEventSchema, payload);
   return id;
 }

@@ -254,7 +254,7 @@ export function DatingTimelineWidget() {
         <div>
           <h3 className="font-semibold flex items-center gap-2 text-stone-900 dark:text-stone-100">
             <History size={20} className="text-indigo-500" />
-            Dating-Verlauf & Klar-Gefühl
+            Dating-Verlauf &amp; Klar-Gefühl
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
             Deine Entwicklung über die letzten Dates

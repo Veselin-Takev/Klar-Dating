@@ -58,7 +58,7 @@
     "check:auth-boundary:semgrep": "semgrep --test --config ../.semgrep/check-auth-boundary.yaml ../.semgrep/check-auth-boundary.ts --metrics=off --disable-version-check && semgrep scan --config ../.semgrep/check-auth-boundary.yaml --error --metrics=off --disable-version-check src/server server.ts functions/src",
     "check:public-firestore-rules": "node scripts/check-public-firestore-rules.mjs",
     "check:ai-pii-sanitizer": "node scripts/check-ai-pii-sanitizer.mjs",
-    "check:art17-deletion-audit": "node scripts/check-art17-deletion-audit.mjs 0 && node --test scripts/deletion-storage-check.mjs && node scripts/test-art17-owner-claim-cascade.mjs && node --experimental-strip-types --test scripts/test-partner-referral-quarantine.mjs && node --test scripts/test-art17-emulator-preflight.mjs",
+    "check:art17-deletion-audit": "node scripts/check-art17-deletion-audit.mjs 0 && node --test scripts/deletion-storage-check.mjs && node scripts/test-art17-owner-claim-cascade.mjs && node --import=tsx --test scripts/test-partner-referral-quarantine.mjs && node --test scripts/test-art17-emulator-preflight.mjs",
     "test:all": "npm run typecheck && npm run test:ci && bun run playwright test",
     "release:verify": "npm run check:enterprise && npm run check:functions && npm run typecheck && npm run test:ci && npm run build && npm run test:production && bun run playwright test",
     "test:prompt-security": "vitest run --config vitest.security.config.ts",
@@ -135,7 +135,8 @@
     "check:emulator-profile": "node --test scripts/check-emulator-ports.test.mjs scripts/check-rules-prerequisites.test.mjs",
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
     "check:codeowners": "node scripts/check-codeowners.mjs && node --test scripts/test-codeowners.mjs",
-    "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs"
+    "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs",
+    "check:semgrep:repository": "semgrep scan --config auto --error --strict --metrics=on --disable-version-check .."
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

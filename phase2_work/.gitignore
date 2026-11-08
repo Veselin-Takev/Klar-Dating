@@ -32,3 +32,6 @@ google-cloud-sdk-linux-x86_64.tar.gz
 
 functions/lib/
 docs/api/
+
+# Generated repository SAST evidence is uploaded by CI.
+semgrep-auto.json

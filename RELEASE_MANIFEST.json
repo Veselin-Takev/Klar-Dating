@@ -5,10 +5,10 @@
   "node": "22.23.3",
   "productionData": "no bundled sample profiles",
   "localLaunchCities": [
-    "M\u00fcnchen",
+    "München",
     "Berlin",
     "Hamburg",
-    "K\u00f6ln",
+    "Köln",
     "Frankfurt am Main"
   ],
   "foundingMembers": 500,
@@ -93,7 +93,7 @@
     "adminRepository": {
       "implementation": "TenantAwareFirestoreRepository",
       "adoption": "MIGRATION_BLOCKED",
-      "legacyConsumerFiles": 40,
+      "legacyConsumerFiles": 7,
       "iamEvidence": "DOCUMENTED_SOURCE_ONLY_LIVE_UNVERIFIED",
       "report": "docs/security/IAM_AND_ADMIN_BOUNDARIES.md",
       "certification": "FAIL_LEGACY_UNSCOPED_ACCESS_REMAINS",
@@ -124,9 +124,9 @@
       "iamCertification": "IMPLEMENTED_NOT_PROVISIONED"
     },
     "batchMigration": {
-      "migrated": 10,
+      "migrated": 43,
       "total": 50,
-      "remaining": 40,
+      "remaining": 7,
       "register": "phase2_work/docs/security/MIGRATION_BATCHES.json",
       "iam": "IMPLEMENTED_STATIC_VALIDATION_PASS_NOT_PROVISIONED",
       "terraformValidation": "PASS_LOCAL_1.13.5",
@@ -140,7 +140,7 @@
       "distinctAcrossTheseSuites": 1574,
       "additionalIamChecks": 6,
       "dedicatedRulesRepeated": 92,
-      "status": "WAVE2_PARTIAL_VERIFIED_WAITING_WAVE3",
+      "status": "WAVE2_CLOSURE_IN_VERIFICATION",
       "wave1": {
         "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
         "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
@@ -154,9 +154,9 @@
         "liveDataMigration": "NOT_EXECUTED",
         "baselineFixed": false
       },
-      "batchC": "IN_PROGRESS",
-      "batchD": "IN_PROGRESS",
-      "batchE": "IN_PROGRESS",
+      "batchC": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+      "batchD": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+      "batchE": "SOURCE_COMPLETE_PENDING_VERIFICATION",
       "wave2": {
         "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
         "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
@@ -193,6 +193,21 @@
         "baselineFixed": false,
         "productionApproved": false,
         "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+      },
+      "wave2Closure": {
+        "result": "IN_VERIFICATION",
+        "liveDataMigration": "NOT_EXECUTED",
+        "baselineFixed": false,
+        "productionApproved": false,
+        "remainingFiles": [
+          "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts",
+          "phase2_work/server.ts",
+          "phase2_work/src/server/aiBudget.ts",
+          "phase2_work/src/server/durableStore.ts",
+          "phase2_work/src/server/firestoreRepository/nativeDatabase.ts",
+          "phase2_work/src/server/inMemoryStore.ts",
+          "phase2_work/src/server/zwischenspeicher.ts"
+        ]
       }
     }
   }

@@ -18,6 +18,8 @@ permissions:
 jobs:
   validate:
     env:
+      # Emulator tests need no metadata-server discovery or cloud identity.
+      METADATA_SERVER_DETECTION: 'none'
       KLAR_TENANT_CHECKLIST_MIGRATION_READY: 'true'
       KLAR_TENANT_AUTH_MIGRATION_READY: 'true'
       KLAR_TENANT_PAYMENTS_MIGRATION_READY: 'true'
@@ -105,6 +107,17 @@ jobs:
           bun run check:enterprise
           bun run check:release-workflow
           bun run check:release-provenance
+      - name: Repository Semgrep (findings and parser errors block)
+        if: steps.scope.outputs.full == 'true'
+        run: bun run check:semgrep:repository --json --output=semgrep-auto.json
+      - name: Upload repository Semgrep evidence
+        if: always() && steps.scope.outputs.full == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: semgrep-auto-${{ github.run_id }}-${{ github.run_attempt }}
+          path: phase2_work/semgrep-auto.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Typecheck
         if: steps.scope.outputs.full == 'true'
         run: bun run typecheck

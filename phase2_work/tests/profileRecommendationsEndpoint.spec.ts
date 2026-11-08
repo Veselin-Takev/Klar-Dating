@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -18,7 +19,7 @@ function dbFor(user: { exists?: boolean; data?: Record<string, unknown> } = {}) 
   }));
   const db = {
     collection: vi.fn((name: string) => ({
-      doc: vi.fn(() => name === 'users' ? { get } : { set }),
+      doc: vi.fn(() => name === 'users' ? { get } : name==='account_deletions'? {get:async()=>({exists:false,data:()=>undefined})} : { set }),
     })),
   } as any;
   return { db, set, get };
@@ -29,7 +30,7 @@ async function endpoint(overrides: Partial<ProfileRecommendationsRouterDeps> = {
   const getRecommendations = vi.fn(async () => [{ id: 'candidate-1' }]);
   const deps: ProfileRecommendationsRouterDeps = {
     currentUserId: () => 'user-a',
-    getFirestore: () => store.db,
+    repository: () => scopedSdkFixture(store.db),
     normalizeLaunchCity: value => typeof value === 'string' && ['München','Berlin','Hamburg','Köln','Frankfurt am Main'].includes(value) ? value as any : null,
     toPublicProfile: (uid, data) => ({
       id: uid,
@@ -68,7 +69,7 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint({ toPublicProfile: vi.fn(() => profile) });
     const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
     expect(response.status).toBe(200);
-    expect(ctx.store.set).toHaveBeenCalledWith(profile);
+    expect(ctx.store.set).toHaveBeenCalledWith(profile, undefined);
     expect(await response.json()).toEqual({ ok: true, city: 'München' });
   });
 
@@ -127,7 +128,7 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const response = await fetch(ctx.base + '/recommendations?limit=5&minAge=25&maxAge=35');
     expect(response.status).toBe(200);
     expect(ctx.getRecommendations).toHaveBeenCalledWith(
-      ctx.store.db,
+      expect.objectContaining({transaction:expect.any(Function)}),
       'user-a',
       expect.objectContaining({
         location: 'München',

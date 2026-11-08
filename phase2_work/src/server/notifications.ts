@@ -1,44 +1,18 @@
 import { getMessaging } from 'firebase-admin/messaging';
-import { getDb } from './db';
-
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 export async function sendPushNotification(userId: string, title: string, body: string) {
   try {
-    const db = getDb();
-    const tokensSnapshot = await db.collection('users').doc(userId).collection('fcmTokens').get();
-
-    if (tokensSnapshot.empty) return;
-
-    const tokens = tokensSnapshot.docs.map(doc => doc.id);
-    const messaging = getMessaging();
-
-    const response = await messaging.sendEachForMulticast({
-      tokens,
-      notification: {
-        title,
-        body
-      },
-      // Data payload for custom handling if needed
-      data: {
-        click_action: "FLUTTER_NOTIFICATION_CLICK"
-      }
-    });
-
-    // Cleanup invalid tokens
-    if (response.failureCount > 0) {
-      const failedTokens: string[] = [];
-      response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-          if (tokens[idx]) failedTokens.push(tokens[idx] as string);
-        }
-      });
-
-      const batch = db.batch();
-      failedTokens.forEach(token => {
-        batch.delete(db.collection('users').doc(userId).collection('fcmTokens').doc(token));
-      });
-      await batch.commit();
+    const db = getServiceRepository('auth');
+    if (await db.read(`account_deletions/${userId}`, record)) return;
+    const rows = await db.listAll(`users/${userId}/fcmTokens`, record);
+    for (let offset=0;offset<rows.length;offset+=500) {
+      if (await db.read(`account_deletions/${userId}`, record)) return;
+      const tokens=rows.slice(offset,offset+500).map(row=>row.id);
+      const response=await getMessaging().sendEachForMulticast({tokens,notification:{title,body},data:{click_action:'FLUTTER_NOTIFICATION_CLICK'}});
+      const invalid=response.responses.flatMap((result,index)=>['messaging/invalid-registration-token','messaging/registration-token-not-registered'].includes(result.error?.code??'')&&tokens[index]?[tokens[index]!]:[]);
+      if(invalid.length)await db.transaction(async tx=>{for(const token of invalid)tx.delete(`users/${userId}/fcmTokens/${token}`);});
     }
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-  }
+  } catch { console.error('notification_dispatch_unavailable'); }
 }

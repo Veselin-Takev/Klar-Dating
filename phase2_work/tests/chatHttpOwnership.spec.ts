@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { z } from 'zod';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
 import { TenantAwareFirestoreRepository } from '../src/server/TenantAwareFirestoreRepository';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -11,7 +12,7 @@ if (process.env.CI === 'true' && !enabled) throw new Error('CI chat ownership ev
 const accounts: { uid: string; token: string }[] = [];
 let chatId: string;
 const marker = `synthetic-chat-profile-${randomUUID()}`;
-const db = () => getDb();
+const db = scopedFirestoreFixture;
 const identity = (index: number) => { const account = accounts[index]; if (!account) throw new Error('Missing test account'); return account; };
 const request = (index: number, path = `/api/chats/${chatId}`, body?: unknown) => fetch(`http://127.0.0.1:3000${path}`, {
   method: body === undefined ? 'GET' : 'POST',
@@ -72,18 +73,19 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
   it('isolates repository writes from legacy root data and rejects foreign tenant paths', async () => {
     const owner = identity(0).uid;
     const schema = z.object({marker: z.string()}).strict();
-    const repo = new TenantAwareFirestoreRepository(db(), await getAuth(getServerFirebaseApp()).verifyIdToken(identity(0).token, true));
-    const path = `users/${owner}`;
-    const scoped = db().doc(`tenants/default/${path}`);
+    const repo = new TenantAwareFirestoreRepository(getDb(), await getAuth(getServerFirebaseApp()).verifyIdToken(identity(0).token, true));
+    const path = `users/${owner}-repository`;
+    await getDb().doc(path).set({marker:'legacy-retained'});
+    const scoped = getDb().doc(`tenants/default/${path}`);
     try {
       await repo.write(path, schema, {marker});
       expect(await repo.read(path, schema)).toEqual({marker});
-      expect((await db().doc(path).get()).data()?.marker).toBeUndefined();
+      expect((await getDb().doc(path).get()).data()?.marker).toBe('legacy-retained');
       await expect(repo.read(`tenants/foreign/${path}`, schema)).rejects.toThrow('tenant_document_path_invalid');
       await repo.delete(path);
       expect((await scoped.get()).exists).toBe(false);
-      expect((await db().doc(path).get()).exists).toBe(true);
-    } finally { await scoped.delete(); }
+      expect((await getDb().doc(path).get()).exists).toBe(true);
+    } finally { await scoped.delete(); await getDb().doc(path).delete(); }
   });
   it('allows both participants and returns only the counterpart profile', async () => {
     for (const index of [0, 1]) {
@@ -112,7 +114,7 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
     const ownRef = db().doc(`tenants/default/users/${owner}/checklists/date_prep`);
     const foreignRef = db().doc(`tenants/default/users/${outsider}/checklists/date_prep`);
     await ownRef.set({checklist: {location: false}});
-    const legacy = db().doc(`users/${owner}/checklists/date_prep`);
+    const legacy = getDb().doc(`users/${owner}/checklists/date_prep`);
     await legacy.set({checklist:{location:false}, marker:'legacy-retained'});
     await foreignRef.set({checklist: {location: false}});
     const res = await fetch(`http://127.0.0.1:3000/api/checklists/date_prep?uid=${outsider}&tenantId=foreign`, {

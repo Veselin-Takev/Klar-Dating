@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture as getDb } from './helpers/scopedFirestoreFixture';
+import { getDb as nativeDatabase } from '../src/server/db';
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDeletion';
 
 // Firebase notes that concurrent emulator writes can hold locks for ~30 seconds.
@@ -43,8 +45,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     paths.push(ref.path);
     await ref.set({ ownerUid: 'owner', campaignId: 'campaign', status: 'active' });
     const states = await Promise.all([
-      quarantineOwnedPartnerReferral(db, ref, 'owner'),
-      quarantineOwnedPartnerReferral(db, ref, 'owner'),
+      quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${ref.id}`, 'owner'),
+      quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${ref.id}`, 'owner'),
     ]);
     expect(states.sort()).toEqual(['already_deleting', 'updated']);
     const snapshot = await ref.get();
@@ -61,7 +63,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     paths.push(referralRef.path, claimRef.path);
     await referralRef.set({ ownerUid: 'owner', status: 'active' });
     await claimRef.set({ referralId: referralRef.id, buyerRef: 'buyer' });
-    expect(await quarantineOwnedPartnerReferral(db, referralRef, 'owner')).toBe('updated');
+    expect(await quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${referralRef.id}`, 'owner')).toBe('updated');
 
     // Simulate a later conversion writer. The same status predicate as the
     // production conversion transaction blocks this write after quarantine.
@@ -74,7 +76,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
       }
     });
     expect((await unexpectedClaim.get()).exists).toBe(false);
-    expect(await quarantineOwnedPartnerReferral(db, referralRef, 'owner')).toBe('already_deleting');
+    expect(await quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${referralRef.id}`, 'owner')).toBe('already_deleting');
     expect((await claimRef.get()).exists).toBe(true);
     await claimRef.delete();
     await referralRef.delete();
@@ -101,7 +103,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
       return 'accepted';
     });
     const outcomes = await Promise.all([
-      quarantineOwnedPartnerReferral(db, referral, owner),
+      quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${referral.id}`, owner),
       tryClaim(claimedA),
       tryClaim(claimedB),
     ]);
@@ -126,7 +128,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('owner referral quarantine
     const ref = db.collection('partner_referrals').doc('erasure-' + randomUUID());
     paths.push(ref.path);
     await ref.set({ ownerUid: 'somebody-else', status: 'active' });
-    await expect(quarantineOwnedPartnerReferral(db, ref, 'owner'))
+    await expect(quarantineOwnedPartnerReferral(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), `partner_referrals/${ref.id}`, 'owner'))
       .rejects.toThrow('partner_referral_owner_changed');
     expect((await ref.get()).data()?.status).toBe('active');
   }, EMULATOR_CONTENTION_TIMEOUT_MS);

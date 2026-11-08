@@ -190,6 +190,7 @@ function kaskadenrumpf() {
 }
 
 const rumpf = kaskadenrumpf();
+const kaskadenSammlungen = tenantCollectionNames(rumpf ?? '');
 const fehler = [];
 const offen = [];
 
@@ -200,7 +201,7 @@ for (const [name, orte] of [...gefunden].sort()) {
     continue;
   }
   if (e.art === 'offen') offen.push({ name, grund: e.grund });
-  if (e.art === 'geloescht' && rumpf !== null && !rumpf.includes(`'${name}'`)) {
+  if (e.art === 'geloescht' && rumpf !== null && !rumpf.includes(`'${name}'`) && !kaskadenSammlungen.has(name)) {
     fehler.push({
       name,
       grund: 'als „geloescht" eingetragen, kommt aber in purgeAccountData nicht vor',

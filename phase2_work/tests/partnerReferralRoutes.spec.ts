@@ -1,3 +1,4 @@
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express, { type Request } from 'express';
@@ -21,6 +22,7 @@ function makeDb(seed: Array<{ collection: string; id: string; data: Record<strin
     collection: (name: string) => ({
       doc: (id: string) => docRef(name, id),
       limit: (_count: number) => ({ get: async () => ({ docs: [] }) }),
+      orderBy: (_field: string) => ({limit: (_count:number)=>({get:async()=>({docs:[]})})}),
       where: (_field: string, _op: string, _value: unknown) => ({ limit: (_count: number) => ({ get: async () => ({ docs: [] }) }) }),
     }),
     runTransaction: async (callback: (tx: {
@@ -41,7 +43,7 @@ function makeDb(seed: Array<{ collection: string; id: string; data: Record<strin
 }
 
 async function requestAdmin(claims: Record<string, unknown>) {
-  const getFirestore = vi.fn(() => makeDb());
+  const repository = vi.fn(() => scopedSdkFixture(makeDb()));
   const app = express();
   app.use((req, _res, next) => {
     req.user = {
@@ -57,7 +59,7 @@ async function requestAdmin(claims: Record<string, unknown>) {
       const uid = (req as Request & { user?: { uid?: unknown } }).user?.uid;
       return typeof uid === 'string' ? uid : null;
     },
-    getFirestore,
+    repository,
     tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
     auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
     publicUrl: () => 'https://klar-app.example',
@@ -67,14 +69,14 @@ async function requestAdmin(claims: Record<string, unknown>) {
   servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
   const url = 'http://127.0.0.1:' + (server.address() as AddressInfo).port + '/api/admin/partners';
-  return { response: await fetch(url), getFirestore };
+  return { response: await fetch(url), repository };
 }
 
 describe('Klar & Partner strict Admin claim boundary', () => {
   it('rejects role-only admin identity without touching Firestore', async () => {
     const result = await requestAdmin({ uid: 'user-1', role: 'admin', roles: ['admin'] });
     expect(result.response.status).toBe(403);
-    expect(result.getFirestore).not.toHaveBeenCalled();
+    expect(result.repository).not.toHaveBeenCalled();
     expect(result.response.headers.get('cache-control')).toContain('no-store');
     expect(result.response.headers.get('pragma')).toBe('no-cache');
     expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
@@ -84,13 +86,13 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const result = await requestAdmin({ uid: 'admin-1', admin: true });
     expect(result.response.status).toBe(200);
     expect(await result.response.json()).toEqual({ campaigns: [] });
-    expect(result.getFirestore).toHaveBeenCalled();
+    expect(result.repository).toHaveBeenCalled();
     expect(result.response.headers.get('cache-control')).toContain('no-store');
     expect(result.response.headers.get('pragma')).toBe('no-cache');
     expect(result.response.headers.get('referrer-policy')).toBe('no-referrer');
   });
   it('disables caching of personalized partner link responses, including failures', async () => {
-    const getFirestore = vi.fn(() => makeDb([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]));
+    const repository = vi.fn(() => scopedSdkFixture(makeDb([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }])));
     const app = express();
     app.use((req, _res, next) => {
       req.user = {
@@ -102,7 +104,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     });
     app.use('/api', createPartnerReferralRouter({
       currentUserId: () => 'user-1',
-      getFirestore,
+      repository,
       tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
       auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
       publicUrl: () => 'https://klar-app.example',
@@ -138,7 +140,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const app = express();
     app.use('/api', createPartnerReferralRouter({
       currentUserId: () => null,
-      getFirestore: () => { throw new Error('Unauthorized routes must not touch Firestore'); },
+      repository: () => { throw new Error('Unauthorized routes must not touch Firestore'); },
       tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
       auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
       publicUrl: () => 'https://klar-app.example',
@@ -166,7 +168,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
       currentUserId: () => null,
-      getFirestore: () => { throw new Error('Invalid token must not access Firestore'); },
+      repository: () => { throw new Error('Invalid token must not access Firestore'); },
       tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
       auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
       publicUrl: () => 'https://klar-app.example',
@@ -184,7 +186,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     // A syntactically valid token MUST still reach the existing distributed limiter.
     // Its deliberately unavailable Firestore dependency must fail closed, not bypass the gate.
     const validShape = await fetch(origin + '/api/partner/click/' + 'a'.repeat(64));
-    expect(validShape.status).toBe(500);
+    expect(validShape.status).toBe(503);
     expect(validShape.headers.get('cache-control')).toContain('no-store');
     expect(validShape.headers.get('pragma')).toBe('no-cache');
     expect(validShape.headers.get('referrer-policy')).toBe('no-referrer');
@@ -194,7 +196,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
     const app = express();
     app.use('/api', createPartnerReferralPublicRouter({
       currentUserId: () => null,
-      getFirestore: () => { throw new Error('Simulated limiter infrastructure outage'); },
+      repository: () => { throw new Error('Simulated limiter infrastructure outage'); },
       tokenSecret: () => 'partner-token-secret-at-least-thirty-two-characters',
       auditSecret: () => 'partner-audit-secret-at-least-thirty-two-characters',
       publicUrl: () => 'https://klar-app.example',
@@ -209,7 +211,7 @@ describe('Klar & Partner strict Admin claim boundary', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ event: 'invalid' }),
     });
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(503);
     expect(response.headers.get('cache-control')).toContain('no-store');
     expect(response.headers.get('pragma')).toBe('no-cache');
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');

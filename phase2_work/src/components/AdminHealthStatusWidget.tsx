@@ -96,7 +96,7 @@ export function AdminHealthStatusWidget() {
   return (
     <section aria-label="Enterprise Betriebs- und Compliance-Status" className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 p-5 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-bold text-stone-900 dark:text-stone-100"><Activity size={20}/>Enterprise Status & Compliance</h2>
+        <h2 className="flex items-center gap-2 font-bold text-stone-900 dark:text-stone-100"><Activity size={20}/>Enterprise Status &amp; Compliance</h2>
         <button type="button" onClick={() => void refresh()} disabled={loading} aria-label="Enterprise Status aktualisieren"
           className="rounded-lg border border-stone-300 dark:border-stone-600 px-3 py-2 text-xs disabled:opacity-50 flex items-center gap-2">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''}/>{loading ? 'Prüfe ...' : 'Aktualisieren'}

@@ -8,6 +8,7 @@ const RECEIPT_RETRY_BASE_MS = 60_000;
 const RECEIPT_RETRY_MAX_MS = 60 * 60_000;
 import express from 'express';
 import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { runAccountDeletion } from './accountDeletion';
 import { processContractCancellation, contractRecord, type ContractRepository } from './contracts';
 
 
@@ -99,9 +100,8 @@ export function createComplianceJobsRouter(db: () => ContractRepository = () => 
         const receipts = await firestore.list('contract_requests', contractRecord, {where: ['mailNextAttemptAt', '<=', new Date(now)], limit: 3});
         for (const job of receipts) await deliverContractReceipt(job.id, firestore);
         const deletions = await firestore.list('account_deletions', contractRecord, {where: ['nextAttemptAt', '<=', new Date(now)], limit: 1});
-        // Never pass a scoped deletion row to the still-global legacy erasure worker.
-        // Preserve the queue and fail closed until its coordinated Wave 3 migration.
-        if (deletions.length) return res.status(503).json({ code: 'tenant_deletion_worker_not_migrated' });
+        // Both workers resolve the supported default namespace from trusted configuration.
+        for (const job of deletions) await runAccountDeletion(job.id);
         await firestore.transaction(async tx => { const state = (await tx.read(lock, contractRecord)); if (state?.lease !== workerLease) return; tx.write(lock, contractRecord, { leaseUntil: 0, lastSuccessAt: new Date() }, { merge: true }); });
         return res.json({ ok: true, deletionJobs: deletions.length });
       } finally { await firestore.transaction(async tx => { const state = (await tx.read(lock, contractRecord)); if (state?.lease !== workerLease) return; tx.write(lock, contractRecord, { leaseUntil: 0 }, { merge: true }); }); }

@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { handleSendMessage } from '../src/server/messages';
 import { assessSafetyMessage } from '../src/server/safetyService';
 import { handleGateAnswer, handleGateStatus } from '../src/server/gate';
@@ -15,12 +16,18 @@ vi.mock('../src/server/safetyService', () => ({
 }));
 
 vi.mock('../src/server/db', async importOriginal => {
-  const real = await importOriginal<typeof import('../src/server/db')>();
+  const real = await importOriginal() as typeof import('../src/server/db');
   const { getFirestore } = await import('firebase-admin/firestore');
   return { ...real, getDb: () => {
     if (!process.env.FIRESTORE_EMULATOR_HOST) return real.getDb();
     return getFirestore(real.getServerFirebaseApp(), 'chat-security-tests');
   } };
+});
+vi.mock('../src/server/firestoreRepository/nativeDatabase', async importOriginal => {
+  const real = await importOriginal() as typeof import('../src/server/firestoreRepository/nativeDatabase');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const { TenantAwareFirestoreRepository } = await import('../functions/src/firestoreRepository/TenantAwareFirestoreRepository');
+  return {...real, getServiceRepository: () => new TenantAwareFirestoreRepository(getFirestore(real.getServerFirebaseApp(), 'chat-security-tests'),'default')};
 });
 let db: Firestore;
 let chatId: string;

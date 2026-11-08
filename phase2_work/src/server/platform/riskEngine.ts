@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 const record = z.record(z.string(), z.unknown());
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import type { Firestore } from 'firebase-admin/firestore';
 export type RiskSignals = {
   accountAgeDays?: number;
@@ -33,7 +34,7 @@ export function assessRisk(s: RiskSignals): RiskDecision {
 }
 
 export async function evaluateAccountRisk(
-  db: Firestore,
+  db: Firestore | TenantAwareFirestoreRepository,
   uid: string,
   extraSignals: Partial<RiskSignals> = {}
 ): Promise<RiskDecision> {
@@ -76,7 +77,7 @@ export async function evaluateAccountRisk(
 
     return decision;
   } catch (err) {
-    console.error(`[riskEngine] Error evaluating risk for user ${uid}:`, err);
+    console.error('risk_evaluation_unavailable');
     // Safety decisions must never degrade to a low-risk result when the
     // evidence store is unavailable. Callers must handle the outage explicitly.
     throw new Error('Risk evaluation unavailable; safety evidence could not be loaded.', { cause: err });

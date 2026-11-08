@@ -126,7 +126,7 @@ export function PartnerCampaignAdmin() {
   return (
     <section aria-labelledby="partner-admin-heading" className="space-y-6">
       <header className="rounded-2xl bg-[#FAF8F5] dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-5">
-        <h2 id="partner-admin-heading" className="font-serif text-2xl flex items-center gap-2"><ShieldCheck size={23} aria-hidden="true" /> Klar & Partner – Kampagnenverwaltung</h2>
+        <h2 id="partner-admin-heading" className="font-serif text-2xl flex items-center gap-2"><ShieldCheck size={23} aria-hidden="true" /> Klar &amp; Partner – Kampagnenverwaltung</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-300">Nur Firebase-Identitäten mit dem Custom Claim <code>admin: true</code> dürfen Kampagnen verwalten. Neue Links sind standardmäßig Entwürfe. Vor der Aktivierung muss die Marke anhand ihrer offiziellen Domain manuell verifiziert werden.</p>
       </header>
 

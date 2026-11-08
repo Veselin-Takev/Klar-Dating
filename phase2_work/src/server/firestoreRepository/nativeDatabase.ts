@@ -74,9 +74,9 @@ export async function initServerDb(): Promise<Firestore> {
 }
 
 /** Staged default-tenant service domains; never derives tenant from HTTP payload. */
-export function scopeServiceDatabase(db: Firestore, domain: 'auth' | 'payments') {
+export function scopeServiceDatabase(db: Firestore | TenantAwareFirestoreRepository, domain: 'auth' | 'payments') {
   if (process.env[`KLAR_TENANT_${domain.toUpperCase()}_MIGRATION_READY`] !== 'true') throw new Error('tenant_'+domain+'_migration_not_ready');
-  return new TenantAwareFirestoreRepository(db, 'default');
+  return db instanceof TenantAwareFirestoreRepository ? db : new TenantAwareFirestoreRepository(db, 'default');
 }
 export function getServiceRepository(domain: 'auth' | 'payments') {
   if (process.env[`KLAR_TENANT_${domain.toUpperCase()}_MIGRATION_READY`] !== 'true') throw new Error('tenant_'+domain+'_migration_not_ready');

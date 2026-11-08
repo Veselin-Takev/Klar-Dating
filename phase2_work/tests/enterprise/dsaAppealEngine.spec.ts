@@ -1,3 +1,4 @@
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -120,7 +121,7 @@ test('DSA Engine: recordModerationDecision suspends account and updates report w
   });
 
   const statement = await recordModerationDecision(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_001',
     'mod_chief',
     {
@@ -173,7 +174,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        firestore,
+        scopedSdkFixture(firestore),
         'rep_002',
         'usr_unrelated_stranger',
         'Ich möchte mich für diesen Nutzer beschweren.'
@@ -185,7 +186,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   // 2. Target user appeals within window
   const nowAppeal = new Date('2026-09-10T10:00:00Z');
   const appeal = await submitDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_002',
     'usr_target',
     'Die Anschuldigung trifft nicht zu, mein Dokument war gültig.',
@@ -200,7 +201,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        firestore,
+        scopedSdkFixture(firestore),
         'rep_002',
         'usr_target',
         'Noch ein zweiter Beschwerdeversuch.'
@@ -224,7 +225,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        lateFs,
+        scopedSdkFixture(lateFs),
         'rep_late',
         'usr_late_target',
         'Sehr späte Beschwerde nach Ablauf aller Fristen.',
@@ -258,7 +259,7 @@ test('DSA Engine: reviewDsaAppeal overturns restriction and restores account sta
 
   const reviewTime = new Date('2026-09-24T15:00:00Z');
   const reviewed = await reviewDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_003',
     'super_mod_anna',
     'overturned',

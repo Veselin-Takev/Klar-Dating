@@ -1,15 +1,18 @@
 import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 import type { CompatibilityProfile } from '../platform/compatibility';
 import type { LaunchCity, PublicProfile } from '../platform/launchPlatform';
 
 export type ProfileRecommendationsRouterDeps = {
   currentUserId: (req: Request) => string | null;
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   toPublicProfile: (uid: string, data: Record<string, unknown>) => PublicProfile | null;
   normalizeLaunchCity: (value: unknown) => LaunchCity | null;
   getRecommendations: (
-    db: Firestore,
+    db: Firestore | TenantAwareFirestoreRepository,
     uid: string,
     profile: CompatibilityProfile & { location?: string; minAge?: number; maxAge?: number; limit?: number },
   ) => Promise<unknown[]>;
@@ -41,10 +44,10 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      if (!userSnap.exists) return res.status(200).json({ ok: false, reason: 'Profil nicht gefunden' });
+      const userSnap = await deps.repository().read(`users/${uid}`, record);
+      if (!userSnap) return res.status(200).json({ ok: false, reason: 'Profil nicht gefunden' });
 
-      const userData = userSnap.data() ?? {};
+      const userData = userSnap ?? {};
       if (userData.isExample === true) {
         return res.status(200).json({ ok: false, reason: 'Beispielprofile dürfen nicht veröffentlicht werden.' });
       }
@@ -57,7 +60,13 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
         return res.status(200).json({ ok: false, reason: 'Für die Veröffentlichung fehlen Profilangaben.' });
       }
 
-      await deps.getFirestore().collection('public_profiles').doc(uid).set(publicProfile);
+      await deps.repository().transaction(async tx => {
+        const [owner, deletion] = await Promise.all([tx.read(`users/${uid}`, record), tx.read(`account_deletions/${uid}`, record)]);
+        if (!owner || deletion || owner.isAdult !== true) throw new Error('account_unavailable');
+        const latestProfile = deps.toPublicProfile(uid, owner);
+        if (!latestProfile) throw new Error('profile_incomplete');
+        tx.write(`public_profiles/${uid}`, record, latestProfile);
+      });
       return res.json({ ok: true, city: publicProfile.location });
     } catch (error) {
       console.error('Public profile publish failed', error);
@@ -85,13 +94,13 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
         return res.status(400).json({ error: 'Das maximale Alter darf nicht unter dem Mindestalter liegen.' });
       }
 
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      const data = userSnap.data() ?? {};
+      const userSnap = await deps.repository().read(`users/${uid}`, record);
+      const data = userSnap ?? {};
       const storedCity = typeof data.location === 'string' ? deps.normalizeLaunchCity(data.location) : null;
       if (city === undefined && data.location !== undefined && !storedCity) {
         return res.status(400).json({ error: 'Bitte aktualisiere deine Stadt auf einen unterstützten Standort.' });
       }
-      const result = await deps.getRecommendations(deps.getFirestore(), uid, {
+      const result = await deps.getRecommendations(deps.repository(), uid, {
         location: city ?? storedCity ?? undefined,
         minAge,
         maxAge,

@@ -1,3 +1,4 @@
+import { renderContractForm, renderContractError, renderContractReceipt } from './contractPages';
 import { createHash, randomUUID } from 'node:crypto';
 import { Router, urlencoded } from 'express';
 import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
@@ -180,39 +181,27 @@ export async function processContractCancellation(id: string, db: ContractReposi
   }
 }
 
-const escape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
-function page(language: string, title: string, content: string) {
-  return `<!doctype html><html lang="${escape(language)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)} · Klar</title><link rel="stylesheet" href="/contracts.css"></head><body><main><h1>${escape(title)}</h1>${content}</main></body></html>`;
-}
 export function createPublicContractsRouter(db: () => ContractRepository = () => getServiceRepository('payments')) {
   const router = Router();
   router.use((_req, res, next) => { res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow' }); next(); });
   router.get('/:action', (req, res) => {
     if (!['kuendigen', 'widerrufen'].includes(req.params.action)) return res.sendStatus(404);
     const kind = req.params.action === 'kuendigen' ? 'cancel' : 'withdraw';
-    const language = normalizeLanguage(req.query.lang); const { t } = createRequestI18n(language);
-    const title = t(kind === 'cancel' ? 'contracts.cancelLink' : 'contracts.withdrawLink');
-    const field = (name: string, label: string, type: string, required: boolean, maxLength: number) => `<p><label for="${name}">${escape(label)}</label><br><input id="${name}" name="${name}" type="${type}" maxlength="${maxLength}" ${required ? 'required' : ''}></p>`;
-    return res.type('html').send(page(language, title,
-      `<nav aria-label="${escape(t('settings.language'))}">${['de', 'en', 'es', 'fr'].map(lang => `<a href="?lang=${lang}" lang="${lang}">${lang.toUpperCase()}</a>`).join(' · ')}</nav><p>${escape(t('contracts.intro'))}</p>` +
-      `<form method="post" action="/vertraege/erklaerung"><input type="hidden" name="requestId" value="${randomUUID()}"><input type="hidden" name="kind" value="${kind}"><input type="hidden" name="language" value="${language}">` +
-      field('name', t('contracts.name'), 'text', true, 200) + field('email', t('contracts.email'), 'email', true, 254) + field('contract', t('contracts.contract'), 'text', true, 200) +
-      (kind === 'cancel' ? `<p><label for="cancellationType">${escape(t('contracts.cancellationType'))}</label><br><select id="cancellationType" name="cancellationType"><option value="ordinary">${escape(t('contracts.ordinary'))}</option><option value="extraordinary">${escape(t('contracts.extraordinary'))}</option></select></p>` + field('requestedEnd', t('contracts.requestedEnd'), 'date', false, 10) + `<p>${escape(t('contracts.earliest'))}</p>` : '') +
-      `<p><label for="reason">${escape(t('contracts.reason'))}</label><br><textarea id="reason" name="reason" maxlength="2000"></textarea></p>` +
-      `<button type="submit">${escape(t(kind === 'cancel' ? 'contracts.confirmCancel' : 'contracts.confirmWithdraw'))}</button></form>`));
+    const language = normalizeLanguage(req.query.lang);
+    return res.type('html').send(renderContractForm(language, kind));
   });
   router.post('/erklaerung', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false }), urlencoded({ inflate: false, extended: false, limit: '10kb' }), async (req, res) => {
-    const language = normalizeLanguage(req.body?.language); const { t } = createRequestI18n(language);
+    const language = normalizeLanguage(req.body?.language);
     const input = declarationSchema.safeParse(req.body);
-    if (!input.success) return res.status(400).type('html').send(page(language, t('contracts.error'), `<p role="alert">${escape(t('contracts.invalid'))}</p><p>${escape(t('contracts.back'))}</p>`));
+    if (!input.success) return res.status(400).type('html').send(renderContractError(language, true));
     try {
       const receipt = await acceptDeclaration(db(), input.data);
       const { deliverContractReceipt } = await import('./complianceJobs');
       // A mail outage cannot revoke the already persisted declaration; the scheduler retries.
       try { await deliverContractReceipt(receipt.id, db()); } catch { /* Durable pending outbox. */ }
-      return res.type('html').send(page(language, t('contracts.receipt'), `<p>${escape(t('contracts.receiptNote'))}</p><pre>${escape(receipt.text)}</pre><a download="Klar-${receipt.id}.txt" href="data:text/plain;charset=utf-8,${encodeURIComponent(receipt.text)}">${escape(t('contracts.download'))}</a>`));
+      return res.type('html').send(renderContractReceipt(language, receipt));
     } catch (error) {
-      return res.status(error instanceof ContractError ? error.status : 503).type('html').send(page(language, t('contracts.error'), `<p role="alert">${escape(t('contracts.unavailable'))}</p>`));
+      return res.status(error instanceof ContractError ? error.status : 503).type('html').send(renderContractError(language));
     }
   });
   return router;

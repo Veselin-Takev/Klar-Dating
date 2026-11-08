@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -31,7 +32,7 @@ async function endpoint(options: { fail?: boolean } = {}) {
   const db = { collection: vi.fn(() => ({ orderBy, limit })) } as any;
 
   const app = express();
-  app.use('/api/admin', createAuditLogRouter({ getFirestore: () => db }));
+  app.use('/api/admin', createAuditLogRouter({ repository: () => scopedSdkFixture(db)}));
   const server = app.listen(0, '127.0.0.1');
   servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));

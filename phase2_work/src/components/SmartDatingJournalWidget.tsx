@@ -87,7 +87,7 @@ export function SmartDatingJournalWidget() {
             KI-Dating-Journal
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Reflektiere dein Date & erkenne Muster
+            Reflektiere dein Date &amp; erkenne Muster
           </p>
         </div>
         {!analysis && !isLoading && (

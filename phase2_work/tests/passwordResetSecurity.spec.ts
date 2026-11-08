@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import express from 'express';
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import type { AddressInfo } from 'node:net';
 import {
   handleForgotPassword, handleVerifyResetToken, handleResetPassword, validatePasswordStrength,
@@ -31,10 +32,11 @@ const db = {
     get: async (ref: any) => ({ exists: state.has(ref.path), data: () => state.get(ref.path) }),
     set: (ref: any, value: any) => state.set(ref.path, value),
     update: (ref: any, value: any) => strictUpdate(ref.path, value),
+    create: (ref: any, value: any) => { if (ref.path.startsWith('mail_queue/')) mailAdd(); else state.set(ref.path, value); },
   }),
 } as any;
 
-vi.mock('../src/server/db', () => ({ getDb: () => db }));
+vi.mock('../src/server/firestoreRepository/nativeDatabase', () => ({ getServiceRepository: () => scopedSdkFixture(db) }));
 
 function request(app: express.Application, path: string, body: unknown) {
   return new Promise<Response>((resolve, reject) => {

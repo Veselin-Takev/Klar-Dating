@@ -1,11 +1,10 @@
+import type { MinimalFirestore, MinimalTransaction, MinimalDocSnapshot } from '../helpers/legacyFirestoreFixtureTypes';
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   processContactRequest,
   processContactUndo,
-  type MinimalFirestore,
-  type MinimalTransaction,
-  type MinimalDocSnapshot,
 } from '../../src/server/platform/contactEngine';
 import { DAILY_CONTACTS } from '../../src/server/pure';
 
@@ -65,7 +64,7 @@ test('processContactRequest rejects self-contact with 400 InputError', async () 
   const { firestore } = createMockFirestore();
   await assert.rejects(
     async () => {
-      await processContactRequest(firestore, 'user1', 'user1');
+      await processContactRequest(scopedSdkFixture(firestore), 'user1', 'user1');
     },
     { message: 'Kein Kontakt zum eigenen Konto.' }
   );
@@ -76,7 +75,7 @@ test('processContactRequest rejects unverified user with nicht_verifiziert', asy
     'users/user1': { isVerified: false, contactCount: 0 },
   });
 
-  const res = await processContactRequest(firestore, 'user1', 'user2');
+  const res = await processContactRequest(scopedSdkFixture(firestore), 'user1', 'user2');
   assert.equal(res.ok, false);
   assert.equal(res.grund, 'nicht_verifiziert');
   assert.equal(res.error, 'Für den ersten Kontakt ist die Verifizierung nötig.');
@@ -87,7 +86,7 @@ test('processContactRequest establishes contact, decrements quota, and records d
     'users/user1': { isVerified: true, contactCount: 2, contactDay: '2026-09-24' },
   });
 
-  const res = await processContactRequest(firestore, 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
+  const res = await processContactRequest(scopedSdkFixture(firestore), 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
   assert.equal(res.ok, true);
   assert.equal(res.uebrig, DAILY_CONTACTS - 3); // was 2, now 3, remaining = 8 - 3 = 5
   assert.equal(res.gesamt, DAILY_CONTACTS);
@@ -108,7 +107,7 @@ test('processContactRequest rejects duplicate contact with bereits_kontaktiert',
     'contacts/user1_user2': { fromUid: 'user1', toUid: 'user2', tag: '2026-09-24' },
   });
 
-  const res = await processContactRequest(firestore, 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
+  const res = await processContactRequest(scopedSdkFixture(firestore), 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
   assert.equal(res.ok, false);
   assert.equal(res.grund, 'bereits_kontaktiert');
   assert.equal(res.error, 'Diese Person hast du bereits angeschrieben.');
@@ -119,7 +118,7 @@ test('processContactRequest rejects contact when quota exhausted with limit', as
     'users/user1': { isVerified: true, contactCount: DAILY_CONTACTS, contactDay: '2026-09-24' },
   });
 
-  const res = await processContactRequest(firestore, 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
+  const res = await processContactRequest(scopedSdkFixture(firestore), 'user1', 'user2', new Date('2026-09-24T12:00:00Z'));
   assert.equal(res.ok, false);
   assert.equal(res.grund, 'limit');
   assert.ok(res.error?.includes('sind alle 8 Kontakte vergeben'));
@@ -134,7 +133,7 @@ test('processContactUndo successfully reverts contact within 5s window and decre
     'contacts/user1_user2': { fromUid: 'user1', toUid: 'user2', at: contactTime },
   });
 
-  const res = await processContactUndo(firestore, 'user1', 'user2', undoTime);
+  const res = await processContactUndo(scopedSdkFixture(firestore), 'user1', 'user2', undoTime);
   assert.equal(res.ok, true);
 
   // Verify contact was deleted
@@ -154,7 +153,7 @@ test('processContactUndo rejects reversal when exceeding 5s window', async () =>
     'contacts/user1_user2': { fromUid: 'user1', toUid: 'user2', at: contactTime },
   });
 
-  const res = await processContactUndo(firestore, 'user1', 'user2', undoTime);
+  const res = await processContactUndo(scopedSdkFixture(firestore), 'user1', 'user2', undoTime);
   assert.equal(res.ok, false);
   assert.equal(res.error, 'Die Rücknahme ist nicht mehr möglich.');
 
@@ -167,7 +166,7 @@ test('processContactUndo rejects non-existent contact', async () => {
     'users/user1': { isVerified: true, contactCount: 3 },
   });
 
-  const res = await processContactUndo(firestore, 'user1', 'user_none', new Date());
+  const res = await processContactUndo(scopedSdkFixture(firestore), 'user1', 'user_none', new Date());
   assert.equal(res.ok, false);
   assert.equal(res.error, 'Die Rücknahme ist nicht mehr möglich.');
 });

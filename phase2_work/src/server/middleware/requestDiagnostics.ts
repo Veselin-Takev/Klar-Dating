@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler } from 'express';
 import { extractTraceContext, startHttpSpan, runInSpan } from '../observability';
 import { requestRouteForTelemetry } from '../requestTelemetry';
 import type { HealthStats } from '../routes/health';
@@ -33,7 +33,9 @@ export function createRequestDiagnostics(log: (record: RequestLog) => void = rec
     res.setHeader('X-Request-ID', requestId);
     res.setHeader('X-Trace-ID', traceId);
     res.setHeader('traceparent', `00-${traceId}-${httpSpan.spanContext().spanId}-01`);
-    Object.assign(req, { requestId, traceId });
+    const correlated = req as Request & {requestId: string; traceId: string};
+    correlated.requestId = requestId;
+    correlated.traceId = traceId;
 
     let ended = false;
     const complete = (aborted: boolean) => {

@@ -169,7 +169,7 @@ export function PartnerReferralWidget() {
         <div className="flex items-start gap-4">
           <div className="rounded-2xl bg-[#E8E0D5] dark:bg-stone-800 p-3" aria-hidden="true"><Handshake size={24} /></div>
           <div className="min-w-0">
-            <h2 id="partner-referral-heading" className="font-serif text-2xl">Klar & Partner</h2>
+            <h2 id="partner-referral-heading" className="font-serif text-2xl">Klar &amp; Partner</h2>
             <p className="mt-2 text-sm leading-6 text-stone-700 dark:text-stone-300">Teile von Klar geprüfte Partnerangebote mit einem persönlichen Link oder QR-Code. Dein Name, deine E-Mail-Adresse und dein Profil werden nicht an die Marke übertragen.</p>
           </div>
         </div>
