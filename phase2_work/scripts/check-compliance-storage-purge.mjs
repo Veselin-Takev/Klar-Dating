@@ -9,6 +9,8 @@ const checks = [
   ['default-deny photo purge opt-in', /isVerificationPhotoPurgeEnabled\(process\.env\.KLAR_VERIFICATION_PHOTO_PURGE_ENABLED\)/],
   ['explicit purge bucket checked', /validatedVerificationPurgeBucketName\(process\.env\.FIREBASE_STORAGE_BUCKET\)/],
   ['record-level hold must be checked', /assertVerificationPurgeRecordNotHeld\(data\)/],
+  ['direct GCS helper requires final authorizer', /beforeDelete: \(\) => Promise<void>/],
+  ['untyped GCS calls missing authorizer fail closed', /verification_photo_final_authorization_missing/],
   ['legal and photo holds must be included', /\['photoPurgeHold', 'legalHold'\]/],
   ['temporary Storage hold requires literal false', /metadata\.temporaryHold !== undefined && metadata\.temporaryHold !== false/],
   ['event-based Storage hold requires literal false', /metadata\.eventBasedHold !== undefined && metadata\.eventBasedHold !== false/],
