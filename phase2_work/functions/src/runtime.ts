@@ -1,3 +1,4 @@
+import { TenantAwareFirestoreRepository } from './firestoreRepository/TenantAwareFirestoreRepository';
 import { openMaintenanceDatabase } from './firestoreRepository/nativeDatabase';
 import { getStorage } from 'firebase-admin/storage';
 import { defineString } from 'firebase-functions/params';
@@ -17,4 +18,12 @@ export function getMaintenanceDb() {
   const id = databaseId.value();
   if (!id) throw new Error('FIRESTORE_DATABASE_ID must match the Klar API database');
   return openMaintenanceDatabase(id);
+}
+
+/** Scheduler tenant is deployer-controlled configuration, never payload data. */
+export function getMaintenanceRepository() {
+  if (process.env.KLAR_TENANT_MIGRATION_READY !== 'true') throw new Error('tenant_migration_not_ready');
+  const tenant = process.env.KLAR_MAINTENANCE_TENANT_ID;
+  if (!tenant) throw new Error('maintenance_tenant_required');
+  return new TenantAwareFirestoreRepository(getMaintenanceDb(), tenant);
 }
