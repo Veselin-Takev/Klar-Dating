@@ -1,5 +1,5 @@
 // Minimal structural port keeps the app and Functions SDK installations independent.
-type Metadata = { generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null };
+type Metadata = { generation?: unknown; temporaryHold?: unknown; eventBasedHold?: unknown };
 type Photo = { getMetadata(): Promise<[Metadata, ...unknown[]]>; delete(options: { ifGenerationMatch: string | number }): Promise<unknown> };
 type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
@@ -22,9 +22,22 @@ export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<
     for (const file of files) {
       try {
         const [metadata] = await file.getMetadata();
-        if (metadata.temporaryHold || metadata.eventBasedHold) throw new Error('storage_object_held');
-        if (!metadata.generation) throw new Error('Photo generation missing');
-        await file.delete({ ifGenerationMatch: metadata.generation });
+        // Treat the provider response as untrusted at the destructive boundary.
+        // A null/string/numeric/unknown hold is not evidence of an unheld file.
+        if (!metadata
+          || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+          || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
+          throw new Error('storage_object_held_or_invalid');
+        }
+        const generation = metadata.generation;
+        // GCS generations are positive opaque decimal identifiers; do not pass
+        // undefined, non-decimal strings or rounded JS integers to delete().
+        if ((typeof generation !== 'string' && typeof generation !== 'number')
+          || !/^[1-9][0-9]*$/.test(String(generation))
+          || (typeof generation === 'number' && !Number.isSafeInteger(generation))) {
+          throw new Error('Photo generation missing or invalid');
+        }
+        await file.delete({ ifGenerationMatch: generation });
         deleted++;
       } catch (error) {
         // Concurrent deletion is harmless, but is not evidence of our progress.
