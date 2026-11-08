@@ -148,6 +148,52 @@ test('holds and missing generations prevent completion', async () => {
   }
 });
 
+test('production-default profile erasure fails closed on malformed GCS hold metadata', async () => {
+  const malformed = [
+    { temporaryHold: 'true' }, { temporaryHold: 'false' },
+    { eventBasedHold: 'false' }, { eventBasedHold: 'true' },
+    { temporaryHold: 0 }, { eventBasedHold: { active: false } },
+    { temporaryHold: null }, { eventBasedHold: null },
+  ];
+  for (const metadata of malformed) {
+    let deleted = 0;
+    const profile = photo({ metadata, onDelete() { deleted++; } });
+    const storage = { async getFiles({ prefix }) {
+      return prefix === 'verification/owner/' ? [[], null] : [[profile], null];
+    } };
+    await assert.rejects(deleteAccountPhotosReal(storage, 'owner'),
+      /storage_object_held_or_invalid/);
+    assert.equal(deleted, 0, 'no profile or verification delete may occur');
+  }
+});
+
+test('account erasure rejects invalid GCS generations before physical deletion', async () => {
+  const invalid = [
+    undefined, null, false, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1,
+    '0', '0007', '-7', '7e3', '7.0', 'n/a', {},
+  ];
+  for (const generation of invalid) {
+    let deleted = 0;
+    const profile = photo({ metadata: { generation }, onDelete() { deleted++; } });
+    const storage = { async getFiles({ prefix }) {
+      return prefix === 'verification/owner/' ? [[], null] : [[profile], null];
+    } };
+    await assert.rejects(deleteAccountPhotosReal(storage, 'owner'),
+      /Photo generation missing or invalid/);
+    assert.equal(deleted, 0);
+  }
+  let deleted = 0;
+  const storage = { async getFiles({ prefix }) {
+    return prefix === 'verification/owner/' ? [[], null] : [[{
+      async getMetadata() { return [null]; },
+      async delete() { deleted++; },
+    }], null];
+  } };
+  await assert.rejects(deleteAccountPhotosReal(storage, 'owner'),
+    /storage_object_held_or_invalid/);
+  assert.equal(deleted, 0);
+});
+
 test('rejects oversized and empty-but-continuing pages', async () => {
   await assert.rejects(deleteAccountPhotos(bucket(Array.from({ length: 101 }, () => photo())), 'owner'), /storage_page_limit_exceeded/);
   await assert.rejects(deleteAccountPhotos({ async getFiles() { return [[], { pageToken: 'more' }]; } }, 'owner'), /storage_erasure_no_progress/);
