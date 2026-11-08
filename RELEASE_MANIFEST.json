@@ -449,11 +449,11 @@
     "pr": 360,
     "date": "2026-11-08",
     "auditedParentSha": "0e2c7e89fad3008f6d165c2b45ac1e936506043a",
-    "status": "IMPLEMENTED_VALIDATION_IN_PROGRESS",
+    "status": "SOURCE_VERIFIED_PENDING_OPERATIONAL_EVIDENCE",
     "releaseDecision": "NO-GO",
     "productionApproved": false,
-    "technicalSignOff": "PENDING",
-    "legalSignOff": "PENDING",
+    "technicalSignOff": "BLOCKED_OPERATIONAL_EVIDENCE",
+    "legalSignOff": "BLOCKED",
     "report": "phase2_work/docs/security/SYSTEM_REMEDIATION_2026-11-08.md",
     "implementedControls": [
       "authenticated non-bearer media API and private client blobs",
@@ -470,12 +470,48 @@
       "loggingAndRetentionPolicies": "NOT_RETRIEVED"
     },
     "validation": {
-      "vitest": "RUNNING",
-      "targetedAuditSubset": 79,
-      "targetedCountsAddedToTotal": false,
-      "browserE2E": "PENDING",
+      "vitest": 1577,
+      "vitestFiles": 211,
+      "enterpriseNode": 86,
+      "browserE2E": 29,
+      "uniqueMainSuiteTests": 1692,
+      "originalAuditSubsetIncluded": 79,
+      "latestNativeTargetedSubset": 116,
+      "latestNativeTargetedFiles": 12,
+      "overlappingSubsetsAdded": false,
+      "dedicatedRulesRepeatedNotAdded": 118,
+      "launchTestsRepeatedNotAdded": 6,
       "enterpriseStaticGates": "PASS",
-      "productionHighCriticalAdvisories": 0
-    }
+      "typecheck": "PASS",
+      "functionsBuild": "PASS",
+      "applicationBuild": "PASS",
+      "productionSmoke": "PASS",
+      "productionHighCriticalAdvisories": 0,
+      "re2js": "2.8.7",
+      "semgrep": {
+        "rules": 616,
+        "targets": 1176,
+        "findings": 0,
+        "parserErrors": 0,
+        "runtimeExpected": 698,
+        "runtimeScanned": 698,
+        "runtimeMissing": 0
+      }
+    },
+    "runtimeCodeCommit": "f13c736781daaa333040df5a67c1b0ff7b002c6d",
+    "ci": {
+      "ciRun": 42532259296,
+      "ciJob": 128888879979,
+      "ciUrl": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42532259296",
+      "conclusion": "success"
+    },
+    "remainingReleaseBlockers": [
+      "Production legacy-capability and suspension inventory/migration not executed or independently attested.",
+      "All-writer and Hold-race protocol, approved per-account purge provenance and DSAR/appeal operations need independent Legal/SRE evidence.",
+      "Effective Cloud Run identities/IAM/ingress/WAF/proxy settings, log sinks and retention/TTL policies are not live verified.",
+      "Operational queue monitoring, attention escalation and human Legal/Tech sign-off remain open."
+    ],
+    "evidence": "phase2_work/docs/security/SYSTEM_REMEDIATION_EVIDENCE.json",
+    "codeTreeSha256": "1e0e6f142f6b93a646cd46f48c4dd021dab30d5c33e709ed87d19e2d333bbf91"
   }
 }

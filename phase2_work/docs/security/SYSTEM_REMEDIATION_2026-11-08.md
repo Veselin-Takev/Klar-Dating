@@ -1,6 +1,6 @@
 # PR #360 — Systemweite Remediation, 08.11.2026
 
-Status: **Code implementiert; Revalidierung läuft. Produktion NO-GO, Dual Sign-Off ausstehend.** Ausgangspunkt: Audit von `0e2c7e89fad3008f6d165c2b45ac1e936506043a`.
+Status: **Source verifiziert: 1.692 Hauptsuite-Tests PASS. Produktion NO-GO, Dual Sign-Off ausstehend.** Ausgangspunkt: Audit von `0e2c7e89fad3008f6d165c2b45ac1e936506043a`.
 
 ## Medien und Kontosperren
 
@@ -58,6 +58,6 @@ Ein Firebase-Disable sperrt auch die gewöhnliche Anmeldung und damit die normal
 
 Die ehemaligen Audit-Charakterisierungen sind jetzt eingecheckte Regressionstests mit den korrigierten Sicherheitserwartungen. Der 79er-System-Audit-Umfang ist Bestandteil der vollständigen Vitest-Suite. Zusätzliche Tests prüfen Capability-Replay, Auth-Teilausfälle, Lease-/Versionswechsel, explizite und fehlende Purge-Nachweise sowie Blob-Lebensdauer. Bestehende Tests wurden nur bei geänderten Verträgen/Fixtures angepasst: direkte SDK-Zugriffe sind nun verweigert; KYC-Fallback setzt einen funktionierenden gemeinsamen Limiter voraus; der 50-Fehler-Auftrag bleibt wiederholbar.
 
-Verbindliche Ergebnisse/Quellstand werden nach Abschluss der Läufe im Status und in der `systemWideRemediation`-Sektion beider RELEASE_MANIFEST-Dateien erfasst. Überlappende 79er-/Rules-Teilmengen werden nicht zur Gesamtsumme addiert. Kein Scope-Ausschluss, Test-Retry oder SAST-Suppressions-Eintrag wurde zur Erzeugung eines Passes hinzugefügt.
+Verifizierter Runtime-Commit: `f13c736781daaa333040df5a67c1b0ff7b002c6d`. Vollständige [Enterprise-CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42532259296): 1.577 Vitest + 86 Enterprise Node + 29 Chromium-E2E = **1.692 PASS**, alle Pflicht-Gates grün. Die 79 Audit-Tests sind darin enthalten; der zusätzliche lokale 116er-Lauf ist ebenfalls PASS. Semgrep: 616 Regeln, 1.176 Ziele, keine Findings/Parserfehler, 698/698 Runtime-Dateien. Typechecks, Functions-/App-Builds, Produktions-Smoke und Produktions-High/Critical-Gate PASS. Maschinenlesbare Nachweise stehen in `SYSTEM_REMEDIATION_EVIDENCE.json` und der `systemWideRemediation`-Sektion beider RELEASE_MANIFEST-Dateien. Überlappende 79er-/Rules-Teilmengen werden nicht zur Gesamtsumme addiert. Kein Scope-Ausschluss, Test-Retry oder SAST-Suppressions-Eintrag wurde zur Erzeugung eines Passes hinzugefügt.
 
 **Audit Release Status: NO-GO.** PR #360 bleibt Draft. Keine produktive Datenänderung, Deployment-, IAM- oder Legal-Freigabe. Erst Code-/Test-Nachweise plus unabhängig geprüfte Betriebsnachweise erlauben die Empfehlung für ein finales Dual Re-Audit.
