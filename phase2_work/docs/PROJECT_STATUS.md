@@ -1764,3 +1764,32 @@ serviceAccountName and IAM binding manifests. --certify still fails.
 The requested 50/50 migration and verified static IAM conformity are unfinished;
 no CERTIFIED_PROCEED. This metadata update records immutable tested code; its
 own automatic CI is distinct from the completed code run.
+
+## Enterprise atomic batches A/B and IAM — 2026-11-08
+
+Migration progress **2/50 source consumers**, 48 remaining (see
+[batch register](security/MIGRATION_BATCHES.json)). Batch A migrates the chat
+archival job to scoped queries/cursor and a closed transaction interface. Batch B
+migrates the Checklist API to the shared repository with Zod validation. A single
+canonical repository in functions/src/firestoreRepository is shared by both builds;
+the API adapter derives tenant authority from verified claims, while the scheduler
+requires explicit deployer-controlled tenant configuration. No raw refs escape.
+
+Both batches require explicit migration-ready cutover flags. No live data copy,
+cloud operation or flag activation has occurred. Root data is neither migrated
+automatically nor used as a fallback; API returns 503 until its cutover is approved.
+The server's root-based Auth gates and other consumers are still legacy and must
+be accounted for in the remaining coordinated migrations. Synthetic CI alone
+sets the Checklist flag to exercise the approved-test-data path.
+
+infra/iam creates a dedicated klar-runtime service account with Firestore data
+role in an explicit application project, limited Auth custom role, bucket-scoped
+object role and optional per-secret grants. The role is NOT document-path tenant
+IAM. Source Cloud Run templates now have a render-only serviceAccountName slot;
+rendered artifacts require an explicit matching klar-runtime email and approved
+project. Missing/default/cross-project identities fail before deployment. Six
+render/negative IAM tests PASS locally; Terraform 1.13.5 init/validate/fmt PASS
+locally. No provisioning, plan/apply or effective cloud-IAM verification is claimed.
+
+Full changed-candidate CI pending. baselineFixed=false; productionApproved=false.
+Stop after these bounded batches for review; no CERTIFIED_PROCEED.

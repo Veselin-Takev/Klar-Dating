@@ -1,0 +1,29 @@
+{
+  "baselineCandidates": 50,
+  "migratedConsumerFiles": 2,
+  "remainingConsumerFiles": 48,
+  "batches": [
+    {
+      "id": "A",
+      "scope": "Chat archival scheduled job",
+      "files": ["phase2_work/functions/src/archiveInactiveChats.ts"],
+      "commit": "6d9c91d5",
+      "tenantAuthority": "Explicit deployer-controlled KLAR_MAINTENANCE_TENANT_ID",
+      "cutoverGuard": "ENABLE_CHAT_ARCHIVAL=true AND KLAR_TENANT_MIGRATION_READY=true",
+      "operations": ["tenant-local bounded chat scan", "tenant-local cursor", "closed read/list/write/delete transaction"],
+      "liveDataMigration": "NOT_EXECUTED"
+    },
+    {
+      "id": "B",
+      "scope": "Checklist API",
+      "files": ["phase2_work/src/server/routes/checklists.ts"],
+      "commit": "387c2254",
+      "tenantAuthority": "Verified Firebase default-tenant claims via API repository adapter",
+      "cutoverGuard": "KLAR_TENANT_CHECKLIST_MIGRATION_READY=true",
+      "operations": ["schema-validated scoped read", "schema-validated scoped merge write"],
+      "liveDataMigration": "NOT_EXECUTED"
+    }
+  ],
+  "baselineFixed": false,
+  "productionApproved": false
+}

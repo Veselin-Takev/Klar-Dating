@@ -120,6 +120,8 @@ jobs:
 
       - name: Render immutable deployment manifests
         env:
+          KLAR_RUNTIME_PROJECT_ID: ${{ vars.KLAR_RUNTIME_PROJECT_ID }}
+          KLAR_RUNTIME_SERVICE_ACCOUNT: ${{ vars.KLAR_RUNTIME_SERVICE_ACCOUNT }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           rm -rf release/deploy

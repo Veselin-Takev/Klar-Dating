@@ -42,7 +42,8 @@
             }
           }
         ],
-        "containerConcurrency": 80
+        "containerConcurrency": 80,
+        "serviceAccountName": null
       }
     }
   }

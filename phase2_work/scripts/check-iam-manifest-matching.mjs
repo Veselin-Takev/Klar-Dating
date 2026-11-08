@@ -1,16 +1,18 @@
 import { readFileSync } from 'node:fs';
-const files = ['deploy/templates/cloud-run.json', 'deploy/templates/service.json'];
-const report = [];
+const files = ['deploy/templates/cloud-run.json','deploy/templates/service.json'];
 for (const path of files) {
-  const value = JSON.parse(readFileSync(path, 'utf8'));
-  if (value.kind !== 'Service') throw new Error('Unexpected deployment manifest kind');
-  const identity = value.spec?.template?.spec?.serviceAccountName ?? null;
-  report.push({path, serviceAccountName: identity, effectiveIamBindings: 'NOT_IN_REPOSITORY'});
+  const manifest = JSON.parse(readFileSync(path,'utf8'));
+  const spec = manifest.spec?.template?.spec;
+  if (manifest.kind !== 'Service' || !spec || !Object.hasOwn(spec,'serviceAccountName') || spec.serviceAccountName !== null) {
+    throw new Error('Source templates must expose a render-only service account slot');
+  }
 }
-const documentation = readFileSync('../docs/security/IAM_AND_ADMIN_BOUNDARIES.md','utf8');
-if (!documentation.includes('serviceAccountName is absent from both Cloud Run source templates')) {
-  throw new Error('IAM documentation must explicitly record the missing static runtime identities');
+const terraform = readFileSync('../infra/iam/main.tf','utf8');
+for (const marker of ['google_service_account','klar-runtime','roles/datastore.user','roles/storage.objectUser','google_project_iam_custom_role','google_secret_manager_secret_iam_member']) {
+  if (!terraform.includes(marker)) throw new Error('Missing runtime IAM module control: '+marker);
 }
-if (report.some(row => row.serviceAccountName !== null)) throw new Error('IAM static identity changed; review/update boundary documentation');
-console.log(JSON.stringify({documentationMatchesSources: true, certification:'BLOCKED_NO_EXPLICIT_IDENTITIES_OR_BINDINGS', manifests: report},null,2));
+if (/roles\/(owner|editor|iam.serviceAccountTokenCreator)/.test(terraform)) throw new Error('Broad runtime privilege is forbidden');
+const renderer = readFileSync('scripts/release-manifests.mjs','utf8');
+if (!renderer.includes('validateRuntimeIdentity(identity)') || !renderer.includes('manifest.spec.template.spec.serviceAccountName = serviceAccount')) throw new Error('Runtime identity enforcement missing');
+console.log('IAM manifest matching PASS: Terraform/runtime identity render contract implemented; provisioning and effective grants NOT VERIFIED.');
 if (process.argv.includes('--certify')) process.exitCode = 1;
