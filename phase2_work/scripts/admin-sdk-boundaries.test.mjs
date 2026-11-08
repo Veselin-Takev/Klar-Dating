@@ -52,7 +52,10 @@ test('blocks added raw SDK source and refuses certification with legacy access',
 for (const [name, source] of Object.entries({
   rootAlias: "import {firestore as open} from 'firebase-admin'; open();",
   barrel: "export * from '../db';",
-  importEquals: "import admin = require('firebase-admin'); const open=admin.firestore; open();",
+  namespaceBarrel: "export * as native from '../db';",
+  importEquals:
+    "import admin = require('firebase-admin'); const open=admin.firestore; open();",
+  protectedDrift: 'export const unexpectedRawCapability = true;',
   alias:
     "import {getFirestore as open} from 'firebase-admin/firestore'; const db=open();",
   rawFixture: "import {getDb as open} from './db'; const db=open();",
@@ -86,7 +89,12 @@ for (const [name, source] of Object.entries({
       const script = 'phase2_work/scripts/check-admin-sdk-boundaries.mjs';
       assert.equal(run(process.execPath, script, '--inventory').status, 0);
       writeFileSync(
-        join(dir, 'phase2_work/src/server/firestoreRepository/rogue.ts'),
+        join(
+          dir,
+          name === 'protectedDrift'
+            ? 'phase2_work/src/server/firestoreRepository/nativeDatabase.ts'
+            : 'phase2_work/src/server/firestoreRepository/rogue.ts',
+        ),
         source,
       );
       assert.notEqual(run(process.execPath, script, '--certify').status, 0);

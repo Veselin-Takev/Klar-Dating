@@ -71,7 +71,11 @@ for (const path of files) {
   const isApp = !path.startsWith('phase2_work/scripts/');
   let bad = false;
   function visit(node) {
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) bad = true;
+    if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    )
+      bad = true;
 
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       const module =
@@ -88,12 +92,18 @@ for (const path of files) {
           module,
         )
       ) {
-        if (!clause || (ts.isImportDeclaration(node) && clause.name)) bad = true;
+        if (!clause || (ts.isImportDeclaration(node) && clause.name))
+          bad = true;
         if (clause && !(ts.isImportDeclaration(node) && clause.isTypeOnly)) {
           const bindings = ts.isImportDeclaration(node)
             ? clause.namedBindings
             : clause;
-          if (!bindings || ts.isNamespaceImport(bindings)) bad = true;
+          if (
+            !bindings ||
+            ts.isNamespaceImport(bindings) ||
+            ts.isNamespaceExport(bindings)
+          )
+            bad = true;
           else if (ts.isNamedImports(bindings) || ts.isNamedExports(bindings))
             for (const element of bindings.elements) {
               const imported = (element.propertyName ?? element.name).text;
