@@ -25,7 +25,7 @@ export function scopedSdkFixture(fixture: unknown): TenantAwareFirestoreReposito
     runTransaction:<T>(callback:(tx:unknown)=>Promise<T>):Promise<T>=>{
       const adapt=(tx:any)=>callback({
         get:async(ref:any)=>ref.isQuery?ref.get():tx.getAll?(await tx.getAll(ref))[0]:tx.get(ref),
-        set:(ref:any,data:unknown,options?:{merge:boolean})=>options?.merge&&tx.update?tx.update(ref,data):tx.set(ref,data,options),
+        set:(ref:any,data:unknown,options?:{merge:boolean})=>tx.set(ref,data,options),
         create:(ref:any,data:unknown)=>tx.create?tx.create(ref,data):tx.set(ref,data),delete:(ref:any)=>tx.delete(ref),
       });
       return db.runTransaction?db.runTransaction(adapt):adapt({get:(ref:any)=>ref.get(),set:(ref:any,data:unknown,options:unknown)=>ref.set(data,options),create:(ref:any,data:unknown)=>ref.create?ref.create(data):ref.set(data),delete:(ref:any)=>ref.delete()});

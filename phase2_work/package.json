@@ -136,7 +136,7 @@
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
     "check:codeowners": "node scripts/check-codeowners.mjs && node --test scripts/test-codeowners.mjs",
     "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs",
-    "check:semgrep:repository": "semgrep scan --config auto --error --strict --metrics=on --disable-version-check .."
+    "check:semgrep:repository": "semgrep scan --config auto --error --strict --timeout=60 --jobs=2 --metrics=on --disable-version-check .."
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

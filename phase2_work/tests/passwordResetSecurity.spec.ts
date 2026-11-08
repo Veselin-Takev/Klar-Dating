@@ -30,7 +30,7 @@ const db = {
   }),
   runTransaction: async (fn: any) => fn({
     get: async (ref: any) => ({ exists: state.has(ref.path), data: () => state.get(ref.path) }),
-    set: (ref: any, value: any) => state.set(ref.path, value),
+    set: (ref: any, value: any, options?: {merge:boolean}) => state.set(ref.path, options?.merge?{...state.get(ref.path),...value}:value),
     update: (ref: any, value: any) => strictUpdate(ref.path, value),
     create: (ref: any, value: any) => { if (ref.path.startsWith('mail_queue/')) mailAdd(); else state.set(ref.path, value); },
   }),

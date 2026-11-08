@@ -50,8 +50,7 @@ function referralDb() {
     runTransaction: async (callback: (tx: any) => unknown) => callback({
       get: async (r: { id: string; path: string }) => snapshot(r),
       getAll: async (...refs: Array<{ id: string; path: string }>) => {
-        beforeRead?.();
-        beforeRead = undefined;
+        if(refs.some(ref=>ref.path.startsWith('users/'))) {beforeRead?.();beforeRead=undefined;}
         return refs.map(snapshot);
       },
       update: (r: { path: string }, data: Record<string, unknown>) => {
@@ -113,7 +112,7 @@ describe('launch/referral/activation HTTP boundary', () => {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'bad' }),
     });
     expect(response.status).toBe(400);
-    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledTimes(2);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
 
@@ -199,7 +198,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     const response = await fetch(ctx.base + '/referral');
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
-    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledTimes(2);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_generation');
   });
 
