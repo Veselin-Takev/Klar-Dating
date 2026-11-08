@@ -116,9 +116,26 @@ export function readConsistentVerificationDecision(
   return canonical ?? legacy ?? 'pending';
 }
 
+/**
+ * A record-level legal / preservation hold must deny even otherwise-expired
+ * verification photos. These fields are explicitly introduced as a review
+ * contract; unset is legacy state, while malformed present values fail closed.
+ * This is checked in every Firestore eligibility transaction, not a substitute
+ * for cross-service all-writer fencing after the last transaction.
+ */
+export function assertVerificationPurgeRecordNotHeld(data: Record<string, unknown>): void {
+  for (const field of ['photoPurgeHold', 'legalHold'] as const) {
+    const value = data[field];
+    if (value !== undefined && value !== false) {
+      throw new Error('verification_photo_record_hold_or_invalid');
+    }
+  }
+}
+
 function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
+  if (data) assertVerificationPurgeRecordNotHeld(data);
   const status = data ? readConsistentVerificationDecision(data) : 'pending';
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
