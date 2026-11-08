@@ -6,10 +6,34 @@ import { test } from 'node:test';
 // Execute the real dependency-free module, with no Firebase/Admin SDK mocks.
 const source = stripTypeScriptTypes(readFileSync(new URL('../functions/src/retention.ts', import.meta.url), 'utf8'));
 const { deleteAccountPhotos: deleteAccountPhotosReal } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
-// Legacy verification-object scenarios run only through the explicit
-// nonproduction test mode; real account deletion does not use this override.
+// Isolate every legacy dual-prefix test invocation. Never leave the unsafe
+// override enabled in the environment after a test or in a runtime caller.
+const LOCAL_EMULATOR_TEST = {
+  NODE_ENV: 'test',
+  KLAR_TEST_VERIFICATION_DELETE: 'allow',
+  FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199',
+  K_SERVICE: undefined,
+  FUNCTION_TARGET: undefined,
+  VERCEL_ENV: undefined,
+};
+async function withEnvironment(variables, action) {
+  const saved = Object.fromEntries(Object.keys(variables).map(key => [key, process.env[key]]));
+  try {
+    for (const [key, value] of Object.entries(variables)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    return await action();
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
 const deleteAccountPhotos = (bucket, uid) =>
-  deleteAccountPhotosReal(bucket, uid, 'unsafe-emulator-test-only');
+  withEnvironment(LOCAL_EMULATOR_TEST, () =>
+    deleteAccountPhotosReal(bucket, uid, 'unsafe-emulator-test-only'));
 
 function photo(options = {}) {
   return {
@@ -94,6 +118,51 @@ test('production rejects the legacy emulator-only deletion override', async () =
     if (previous === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previous;
   }
+});
+
+test('unsafe verification deletion rejects missing or misconfigured test runtime before Storage access', async () => {
+  const cases = [
+    { NODE_ENV: undefined },
+    { NODE_ENV: 'development' },
+    { NODE_ENV: 'production' },
+    { KLAR_TEST_VERIFICATION_DELETE: undefined },
+    { KLAR_TEST_VERIFICATION_DELETE: 'true' },
+    { FIREBASE_STORAGE_EMULATOR_HOST: undefined },
+    { FIREBASE_STORAGE_EMULATOR_HOST: '10.20.30.40:9199' },
+    { FIREBASE_STORAGE_EMULATOR_HOST: 'localhost.evil:9199' },
+    { K_SERVICE: 'klar-production' },
+    { FUNCTION_TARGET: 'purgeAccount' },
+    { VERCEL_ENV: 'preview' },
+  ];
+  for (const change of cases) {
+    let touched = 0;
+    await withEnvironment({ ...LOCAL_EMULATOR_TEST, ...change }, async () => {
+      await assert.rejects(deleteAccountPhotosReal({
+        async getFiles() { touched++; return [[], null]; },
+      }, 'owner', 'unsafe-emulator-test-only'), /verification_photo_p0_fencing_unverified/);
+    });
+    assert.equal(touched, 0, 'reject dangerous test override before Storage reads');
+  }
+});
+
+test('explicit loopback-only emulator override works only inside isolated test configuration', async () => {
+  const prefixes = [];
+  const storage = { async getFiles({ prefix }) {
+    prefixes.push(prefix);
+    return [[], null];
+  } };
+  assert.equal(await withEnvironment(LOCAL_EMULATOR_TEST,
+    () => deleteAccountPhotosReal(storage, 'owner', 'unsafe-emulator-test-only')), true);
+  assert.deepEqual(prefixes, ['verification/owner/', 'profiles/owner/']);
+});
+
+test('static account-delete safety contract checks opt-in and named cloud runtime markers', () => {
+  assert.match(source, /process\.env\.NODE_ENV === 'test'/);
+  assert.match(source, /process\.env\.KLAR_TEST_VERIFICATION_DELETE === 'allow'/);
+  assert.match(source, /FIREBASE_STORAGE_EMULATOR_HOST/);
+  assert.match(source, /!process\.env\.K_SERVICE/);
+  assert.match(source, /!process\.env\.FUNCTION_TARGET/);
+  assert.match(source, /!process\.env\.VERCEL_ENV/);
 });
 
 test('server account-deletion caller cannot opt into emulator-only verification deletion', () => {
