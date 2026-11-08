@@ -24,6 +24,16 @@ This review requires the callback in the **TypeScript function signature**, reje
 
 **Strict limitation:** A callback's existence does not establish the callback's authority. A synthetic no-op callback is used *only* in isolated unit tests. An external writer could still bypass the helper entirely, and a Legal Hold arriving **after** a successfully executed authorization callback can race the GCS operation. This patch is a defense against a direct-helper omission, **not** a solution to VES-5 all-writer fencing or a production GO.
 
+## Test-only destructive override: explicit local opt-in (2026-11-08)
+
+A further source review discovered that the account-photo helper's `unsafe-emulator-test-only` selector previously rejected only `NODE_ENV='production'`. A Cloud Run/Functions/Vercel deployment with an **unset** or non-production `NODE_ENV` could therefore reach the legacy dual-prefix verification-photo delete path if a future caller supplied the otherwise test-named mode. The existing ordinary account-erasure caller did **not** do this; this is a preventive code-boundary finding rather than an observed live destructive action.
+
+The runtime now denies that mode **before any Storage API read**, except when all conditions are present simultaneously: `NODE_ENV='test'`, `KLAR_TEST_VERIFICATION_DELETE='allow'`, `FIREBASE_STORAGE_EMULATOR_HOST` explicitly pointing at `127.0.0.1`, `localhost` or `[::1]` on a port, and absence of Cloud Run (`K_SERVICE`), Cloud Functions (`FUNCTION_TARGET`) and Vercel (`VERCEL_ENV`) runtime markers. The new opt-in flag has no production path; it is not a way to enable the signed retention purge. This is defense in depth, **not an authorization system for real verification photos**.
+
+The mandatory real-module `scripts/deletion-storage-check.mjs` now scopes the local override environment to each isolated test and restores prior variables. New negative test cases attempt missing, development and production `NODE_ENV`; missing/bogus opt-in; missing or non-loopback Storage emulator hosts; and each named cloud-runtime marker, all requiring zero `getFiles()` or `delete()` calls. A positive in-memory emulator fixture remains executable only with every explicit local condition. The actual `tests/storageRules.spec.ts` Storage Emulator fixture explicitly opts in within a `try/finally` and restores the environment.
+
+**Remaining limitation:** Node environment variables alone are not a cryptographic proof that a bucket is an emulator; therefore the test-only override must never be used with cloud credentials or real data. The ultimate solution is to remove or isolate the legacy dual-prefix helper entirely after the P0 test migration, and to implement independently reviewed all-writer fencing rather than activate it in production. `productionApproved=false`, **NO-GO**.
+
 ## Explicitly not proven
 
 1. **Post-authorization cross-service race:** If a moderator/legal authority revokes consent or sets a hold in Firestore *after* the last Firestore transaction, an in-flight GCS delete can still occur in isolated test-only paths. A GCS generation match is not a Firestore write fence. Fix requires a reviewed monotonic all-writer protocol, including external console/Admin SDK and bucket writers, and adversarial real staging tests that prove the late hold prevents irreversible deletion.
