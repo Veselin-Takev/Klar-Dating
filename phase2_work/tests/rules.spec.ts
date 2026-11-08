@@ -812,7 +812,7 @@ describe('staged default-tenant client profile boundary', () => {
     const ref=doc(als(ANNA),'tenants/foreign/users/anna');
     await assertFails(getDoc(ref));await assertFails(setDoc(ref,profile));
   });
-  it.each([{tenantId:'a'},{tenant_id:'a'},{firebase:{tenant:'a'}},{firebase:{tenant_id:'a'}},{tenantId:null}])('denies tenant-claim collisions %j', async claims => {
+  it.each([{tenantId:'a'},{tenant_id:'a'},{firebase:{tenant:'a',sign_in_provider:'password' as const}},{firebase:{tenant_id:'a',sign_in_provider:'password' as const}},{tenantId:null}])('denies tenant-claim collisions %j', async claims => {
     await seedScoped();const db=env.authenticatedContext(ANNA,claims).firestore();
     await assertFails(getDoc(doc(db,path)));await assertFails(updateDoc(doc(db,path),{name:'foreign'}));
   });
@@ -862,6 +862,7 @@ describe('scoped live chat reader boundary', () => {
   });
   it('rejects foreign namespace and named-tenant identity collisions',async()=>{
     await seed();await assertFails(getDoc(doc(als(ANNA),'tenants/foreign/chats/scoped/messages/one')));
-    const foreign=env.authenticatedContext(ANNA,{firebase:{tenant:'foreign'}}).firestore();await assertFails(getDoc(doc(foreign,message)));
+    const claims={firebase:{tenant:'foreign',sign_in_provider:'password' as const}};
+    const foreign=env.authenticatedContext(ANNA,claims).firestore();await assertFails(getDoc(doc(foreign,message)));
   });
 });
