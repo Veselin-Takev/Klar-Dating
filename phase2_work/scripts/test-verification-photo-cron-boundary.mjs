@@ -52,8 +52,8 @@ test('signed decision-aware purge path remains registered and requires explicit 
   assert.match(route, /leaseId: null, leaseUntil: null/, 'Purge scan lease must be released');
   assert.match(route, /result\.failed > 0 \|\| result\.hasMore/, 'Unfinished work must not be acknowledged as GO');
   assert.match(route, /ifGenerationMatch/, 'Purge route must use Storage generation preconditions');
-  assert.match(route, /temporaryHold === true/, 'Purge route must respect temporary object holds');
-  assert.match(route, /eventBasedHold === true/, 'Purge route must respect event-based holds');
+  assert.match(route, /metadata\.temporaryHold !== undefined && metadata\.temporaryHold !== false/, 'Purge route must reject malformed/active temporary holds');
+  assert.match(route, /metadata\.eventBasedHold !== undefined && metadata\.eventBasedHold !== false/, 'Purge route must reject malformed/active event-based holds');
   assert.match(route, /res\.status\(incomplete \? 503 : 200\)/, 'Partial failures and unfinished pages must be retryable HTTP errors');
   assert.doesNotMatch(route, /res\.json\(\{ ok: true, \.\.\.summary \}\)/, 'Do not disclose per-user purge paths');
   assert.match(engine, /artifact\.status !== 'approved' && artifact\.status !== 'rejected'/,
