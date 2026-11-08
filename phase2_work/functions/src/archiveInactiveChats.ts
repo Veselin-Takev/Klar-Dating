@@ -1,7 +1,6 @@
 import type { TenantAwareFirestoreRepository } from './firestoreRepository/TenantAwareFirestoreRepository';
 import { getMaintenanceRepository } from './runtime';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { Timestamp } from 'firebase-admin/firestore';
 import { info } from 'firebase-functions/logger';
 
 const record = {parse(value: unknown): Record<string, unknown> {
@@ -18,7 +17,7 @@ export const archiveInactiveMessagesCron = onSchedule({
 });
 
 
-export async function archiveTenantMessages(repo: TenantAwareFirestoreRepository, cutoff = Timestamp.fromMillis(Date.now() - 30 * 86_400_000)) {
+export async function archiveTenantMessages(repo: TenantAwareFirestoreRepository, cutoff = new Date(Date.now() - 30 * 86_400_000)) {
   const statePath = 'system/chat_archival';
   const state = await repo.read(statePath, record);
   const cursor = state?.cursor;
@@ -36,7 +35,7 @@ export async function archiveTenantMessages(repo: TenantAwareFirestoreRepository
       if (deletions.some(Boolean)) return 0;
       const old = await tx.list(`${path}/messages`, record, {where:['createdAt','<=',cutoff], limit:200});
       for (const message of old) {
-        tx.write(`${path}/archived_messages/${message.id}`, record, {...message.data, archivedAt:Timestamp.now()});
+        tx.write(`${path}/archived_messages/${message.id}`, record, {...message.data, archivedAt:new Date()});
         tx.delete(`${path}/messages/${message.id}`);
       }
       return old.length;
