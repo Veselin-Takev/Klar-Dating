@@ -34,6 +34,8 @@ The [current adversarial proof](audit-2026-11-08/storage-access-repro.mjs) asser
 
 The pinned Firebase CLI ignores NO_PROXY when it creates a ProxyAgent for local Storage-to-Firestore rule lookups. A narrowly scoped preload corrects **only HTTP loopback transport for demo-project emulators:exec**; outbound proxy settings remain intact. It neither mocks documents nor changes rule evaluation. Native positive controls prove legitimate access as well as rejection cases. No production Firebase CLI path is patched.
 
+The full native HTTP suite now waits for the actual local API readiness endpoint (bounded to 45 seconds) before starting. This removes a reproduced cold-start ECONNREFUSED race without retrying assertions or suppressing test failures.
+
 ## Rollout and remaining gates
 
 No automatic backfill exists. Accounts without the new trusted fence are deliberately denied media access until a reviewed eligibility migration or authoritative age check establishes it. Review active jobs and authoritative age data before any migration; never blindly mark all accounts active. Rules use the supported default Firestore database; named-database rollout requires separate compatibility work.

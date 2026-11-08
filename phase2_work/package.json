@@ -78,7 +78,7 @@
     "funnel:audit": "bun run tsx scripts/calculateFunnelDropoff.ts",
     "audit:loeschkaskade": "node scripts/loeschkaskade.mjs",
     "check:functions": "npm --prefix functions run build && node scripts/check-functions-region.mjs",
-    "test:ci": "node scripts/check-emulator-ports.mjs && node --require ./scripts/firebase-emulator-proxy.cjs ./node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --project demo-klar --only auth,firestore,storage 'concurrently -k -s first \"node --import=tsx server.ts\" \"npm test\"'",
+    "test:ci": "node scripts/check-emulator-ports.mjs && node --require ./scripts/firebase-emulator-proxy.cjs ./node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --project demo-klar --only auth,firestore,storage 'concurrently -k -s first \"node --import=tsx server.ts\" \"node scripts/wait-test-api.mjs && npm test\"'",
     "test:production": "node scripts/check-emulator-ports.mjs && node --require ./scripts/firebase-emulator-proxy.cjs ./node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --project demo-klar --only auth,firestore,storage \"node scripts/smoke-production.mjs\"",
     "audit:inventory": "node scripts/audit-inventory.mjs",
     "load:staging": "tsx scripts/load-slo.ts",
