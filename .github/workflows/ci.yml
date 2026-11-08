@@ -19,6 +19,8 @@ jobs:
   validate:
     env:
       KLAR_TENANT_CHECKLIST_MIGRATION_READY: 'true'
+      KLAR_TENANT_AUTH_MIGRATION_READY: 'true'
+      KLAR_TENANT_PAYMENTS_MIGRATION_READY: 'true'
     runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 45
     defaults:

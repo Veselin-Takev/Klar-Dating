@@ -20,7 +20,7 @@ for (const file of ['src/server/messages.ts', 'src/server/passwordReset.ts']) {
   }
 }
 
-if (!readFileSync('src/server/platform/auditLog.ts', 'utf8').includes('ref.create(payload)')) {
+if (!readFileSync('src/server/platform/auditLog.ts', 'utf8').includes('repo.create(`audit_logs/${id}`, auditEventSchema, payload)')) {
   throw new Error('central append-only audit writer missing');
 }
 console.log('Audit log append-only boundary: PASS');

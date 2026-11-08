@@ -5,7 +5,8 @@ export interface TenantRow<T> { id: string; data: T }
 export interface TenantTransaction {
   read<T>(path: string, schema: RuntimeSchema<T>): Promise<T | null>;
   list<T>(path: string, schema: RuntimeSchema<T>, query: TenantQuery): Promise<TenantRow<T>[]>;
-  write<T extends DocumentData>(path: string, schema: RuntimeSchema<T>, input: unknown): void;
+  write<T extends DocumentData>(path: string, schema: RuntimeSchema<T>, input: unknown, options?: {merge:true}): void;
+  create<T extends DocumentData>(path: string, schema: RuntimeSchema<T>, input: unknown): void;
   delete(path: string): void;
 }
 /** Canonical repository shared by Functions and API. Never exposes native refs/db. */
@@ -43,6 +44,10 @@ export class TenantAwareFirestoreRepository {
     if (options) await this.#db.doc(scoped).set(data, options);
     else await this.#db.doc(scoped).set(data);
   }
+  async create<T extends DocumentData>(path: string, schema: RuntimeSchema<T>, input: unknown): Promise<void> {
+    const scoped = this.#path(path, true), data = schema.parse(input);
+    await this.#db.doc(scoped).create(data);
+  }
   async delete(path: string): Promise<void> { await this.#db.doc(this.#path(path, true)).delete(); }
   async list<T>(path: string, schema: RuntimeSchema<T>, options: TenantQuery): Promise<TenantRow<T>[]> {
     return (await this.#query(path, options).get()).docs.map(doc => ({id: doc.id, data: schema.parse(doc.data())}));
@@ -55,9 +60,14 @@ export class TenantAwareFirestoreRepository {
       },
       list: async <V>(path: string, schema: RuntimeSchema<V>, options: TenantQuery) =>
         (await native.get(this.#query(path, options))).docs.map(doc => ({id: doc.id, data: schema.parse(doc.data())})),
-      write: <V extends DocumentData>(path: string, schema: RuntimeSchema<V>, input: unknown) => {
+      write: <V extends DocumentData>(path: string, schema: RuntimeSchema<V>, input: unknown, options?: {merge:true}) => {
         const scoped = this.#path(path, true), data = schema.parse(input);
-        native.set(this.#db.doc(scoped), data);
+        if (options) native.set(this.#db.doc(scoped), data, options);
+        else native.set(this.#db.doc(scoped), data);
+      },
+      create: <V extends DocumentData>(path: string, schema: RuntimeSchema<V>, input: unknown) => {
+        const scoped = this.#path(path, true), data = schema.parse(input);
+        native.create(this.#db.doc(scoped), data);
       },
       delete: (path: string) => { native.delete(this.#db.doc(this.#path(path, true))); },
     }));

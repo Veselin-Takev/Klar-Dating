@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, {before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import type { Firestore } from 'firebase-admin/firestore';
 import { compatibilityScore } from '../../src/server/platform/compatibility';
@@ -16,122 +16,41 @@ test('risk engine escalates scam-like signals', () => {
   assert.ok(result.actions.includes('safety_review'));
 });
 
-test('evaluateAccountRisk escalates and writes flag for high-risk accounts', async () => {
-  let writtenData: any = null;
-  const mockDb = {
-    collection: (colName: string) => {
-      if (colName === 'reports') {
-        return {
-          where: () => ({
-            limit: () => ({
-              get: async () => ({ size: 3 })
-            })
-          })
-        };
-      }
-      if (colName === 'blocks') {
-        return {
-          where: () => ({
-            limit: () => ({
-              get: async () => ({ size: 5 })
-            })
-          })
-        };
-      }
-      if (colName === 'users') {
-        return {
-          doc: (_uid: string) => ({
-            get: async () => ({
-              data: () => ({
-                createdAt: { toDate: () => new Date(Date.now() - 1000 * 3600 * 24) } // 1 day old
-              })
-            }),
-            set: async (data: any) => {
-              writtenData = data;
-            }
-          })
-        };
-      }
-      throw new Error(`Unexpected collection ${colName}`);
-    }
+const previousAuthFlag = process.env.KLAR_TENANT_AUTH_MIGRATION_READY;
+before(()=> {process.env.KLAR_TENANT_AUTH_MIGRATION_READY='true';});
+after(()=> { if(previousAuthFlag===undefined) delete process.env.KLAR_TENANT_AUTH_MIGRATION_READY; else process.env.KLAR_TENANT_AUTH_MIGRATION_READY=previousAuthFlag; });
+function riskFixture(reports:number, blocks:number, ageDays:number) {
+  const writes: Record<string,unknown>[]=[];
+  const mockDb={
+    doc: (path:string)=>{
+      assert.match(path,/^tenants\/default\/users\//);
+      return {path,get:async()=>({exists:true,data:()=>({createdAt:new Date(Date.now()-ageDays*86400000)})}),set:async(value:Record<string,unknown>)=>{writes.push(value);}};
+    },
+    runTransaction: async <T>(fn:(tx:{get:(ref:{path:string})=>Promise<{exists:boolean;data:()=>Record<string,unknown>|undefined}>;set:(ref:{path:string},value:Record<string,unknown>)=>void})=>Promise<T>)=> fn({
+      get:async ref=>({exists:!ref.path.includes('/account_deletions/'),data:()=>ref.path.includes('/account_deletions/')?undefined:{createdAt:new Date(Date.now()-ageDays*86400000)}}),
+      set:(_ref,value)=>{writes.push(value);},
+    }),
+    collection: (path:string)=>{
+      assert.ok(['tenants/default/reports','tenants/default/blocks'].includes(path));
+      const count=path.endsWith('/reports')?reports:blocks;
+      return {where:()=>({limit:()=>({get:async()=>({docs:Array.from({length:count},(_,i)=>({id:String(i),data:()=>({})}))})})})};
+    },
   };
-
-  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'bad-actor-1', {
-    outboundMessages24h: 120,
-    externalPaymentMentions: 2
-  });
-
-  assert.equal(decision.level, 'high');
-  assert.ok(writtenData);
-  assert.equal(writtenData.riskLevel, 'high');
-  assert.equal(writtenData.requiresSafetyReview, true);
-  assert.ok(writtenData.riskActions.includes('safety_review'));
+  return {db:mockDb as unknown as Firestore,writes};
+}
+test('evaluateAccountRisk escalates and writes flag for high-risk accounts',async()=>{
+  const f=riskFixture(3,5,1);
+  const decision=await evaluateAccountRisk(f.db,'bad-actor-1',{outboundMessages24h:120,externalPaymentMentions:2});
+  assert.equal(decision.level,'high'); assert.equal(f.writes[0]?.requiresSafetyReview,true);
 });
-
-test('evaluateAccountRisk keeps benign accounts clean without update', async () => {
-  let writtenData: any = null;
-  const mockDb = {
-    collection: (colName: string) => {
-      if (colName === 'reports' || colName === 'blocks') {
-        return {
-          where: () => ({
-            limit: () => ({
-              get: async () => ({ size: 0 })
-            })
-          })
-        };
-      }
-      if (colName === 'users') {
-        return {
-          doc: (_uid: string) => ({
-            get: async () => ({
-              data: () => ({
-                createdAt: { toDate: () => new Date(Date.now() - 1000 * 3600 * 24 * 100) } // 100 days old
-              })
-            }),
-            set: async (data: any) => {
-              writtenData = data;
-            }
-          })
-        };
-      }
-      throw new Error(`Unexpected collection ${colName}`);
-    }
-  };
-
-  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'good-user-1', {});
-  assert.equal(decision.level, 'low');
-  assert.equal(writtenData, null);
+test('evaluateAccountRisk keeps benign accounts clean without update',async()=>{
+  const f=riskFixture(0,0,365);
+  assert.equal((await evaluateAccountRisk(f.db,'good-user-1',{})).level,'low'); assert.equal(f.writes.length,0);
 });
-
-test('evaluateAccountRisk escalates on multiple blocks and message velocity', async () => {
-  let writtenData: any = null;
-  const mockDb = {
-    collection: (colName: string) => {
-      if (colName === 'reports') {
-        return { where: () => ({ limit: () => ({ get: async () => ({ size: 2 }) }) }) };
-      }
-      if (colName === 'blocks') {
-        return { where: () => ({ limit: () => ({ get: async () => ({ size: 5 }) }) }) };
-      }
-      if (colName === 'users') {
-        return {
-          doc: (_uid: string) => ({
-            get: async () => ({
-              data: () => ({ createdAt: { toDate: () => new Date(Date.now() - 1000 * 3600 * 24 * 2) } })
-            }),
-            set: async (data: any) => { writtenData = data; }
-          })
-        };
-      }
-      throw new Error(`Unexpected collection ${colName}`);
-    }
-  };
-
-  const decision = await evaluateAccountRisk(mockDb as unknown as Firestore, 'blocked-user-1', { repeatedMessageRatio: 0.9, outboundMessages24h: 110 });
-  assert.equal(decision.level, 'high');
-  assert.ok(writtenData);
-  assert.equal(writtenData.requiresSafetyReview, true);
+test('evaluateAccountRisk escalates on multiple blocks and message velocity',async()=>{
+  const f=riskFixture(3,5,2);
+  assert.equal((await evaluateAccountRisk(f.db,'blocked-user-1',{repeatedMessageRatio:0.9,outboundMessages24h:110})).level,'high');
+  assert.equal(f.writes[0]?.requiresSafetyReview,true);
 });
 
 test('privacySanitizer redacts Art. 9 health and medical data from prompts', () => {

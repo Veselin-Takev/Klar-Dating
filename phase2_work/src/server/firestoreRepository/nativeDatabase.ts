@@ -1,3 +1,4 @@
+import { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import fs from 'node:fs';
@@ -70,4 +71,14 @@ export async function initServerDb(): Promise<Firestore> {
   }
   try { await initialization; } catch (error) { initialization = null; throw error; }
   return db;
+}
+
+/** Staged default-tenant service domains; never derives tenant from HTTP payload. */
+export function scopeServiceDatabase(db: Firestore, domain: 'auth' | 'payments') {
+  if (process.env[`KLAR_TENANT_${domain.toUpperCase()}_MIGRATION_READY`] !== 'true') throw new Error('tenant_'+domain+'_migration_not_ready');
+  return new TenantAwareFirestoreRepository(db, 'default');
+}
+export function getServiceRepository(domain: 'auth' | 'payments') {
+  if (process.env[`KLAR_TENANT_${domain.toUpperCase()}_MIGRATION_READY`] !== 'true') throw new Error('tenant_'+domain+'_migration_not_ready');
+  return scopeServiceDatabase(getDb(), domain);
 }

@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
+const record = z.record(z.string(), z.unknown());
 import type { Firestore } from 'firebase-admin/firestore';
 export type RiskSignals = {
   accountAgeDays?: number;
@@ -35,34 +38,39 @@ export async function evaluateAccountRisk(
   extraSignals: Partial<RiskSignals> = {}
 ): Promise<RiskDecision> {
   try {
-    const [reportsSnap, blocksSnap, userDoc] = await Promise.all([
-      db.collection('reports').where('reportedProfileId', '==', uid).limit(50).get(),
-      db.collection('blocks').where('blockedUid', '==', uid).limit(50).get(),
-      db.collection('users').doc(uid).get(),
+    const repo = scopeServiceDatabase(db, 'auth');
+    const [reportsSnap, blocksSnap, userData] = await Promise.all([
+      repo.list('reports', record, {where:['reportedProfileId','==',uid],limit:50}),
+      repo.list('blocks', record, {where:['blockedUid','==',uid],limit:50}),
+      repo.read(`users/${uid}`, record),
     ]);
+    if (!userData) throw new Error('risk_subject_not_found');
 
-    const userData = userDoc && typeof userDoc.data === 'function' ? userDoc.data() : null;
     let accountAgeDays = 999;
-    if (userData?.createdAt?.toDate) {
-      accountAgeDays = Math.max(0, (Date.now() - userData.createdAt.toDate().getTime()) / 86_400_000);
-    }
+    const timestamp = userData.createdAt;
+    const date: unknown = timestamp instanceof Date ? timestamp : timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function' ? timestamp.toDate() : undefined;
+    if (date instanceof Date && Number.isFinite(date.getTime())) accountAgeDays = Math.max(0, (Date.now() - date.getTime()) / 86_400_000);
 
     const signals: RiskSignals = {
       accountAgeDays,
-      reportCount: reportsSnap ? reportsSnap.size : 0,
-      blockCount: blocksSnap ? blocksSnap.size : 0,
+      reportCount: reportsSnap.length,
+      blockCount: blocksSnap.length,
       ...extraSignals,
     };
 
     const decision = assessRisk(signals);
 
     if (decision.level === 'high') {
-      await db.collection('users').doc(uid).set({
+      await repo.transaction(async tx => {
+        const [current, deletion] = await Promise.all([tx.read(`users/${uid}`, record), tx.read(`account_deletions/${uid}`, record)]);
+        if (!current || deletion) throw new Error('risk_subject_not_available');
+        tx.write(`users/${uid}`, record, {
         riskLevel: decision.level,
         riskScore: decision.score,
         requiresSafetyReview: true,
         riskActions: decision.actions,
-      }, { merge: true });
+        }, {merge:true});
+      });
     }
 
     return decision;
