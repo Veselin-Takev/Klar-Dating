@@ -519,6 +519,42 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
     });
   }, 90_000);
 
+  it.each(['legalHold', 'photoPurgeHold'] as const)(
+    'stops a record-level %s placed after durable intent but before final Firestore authorization',
+    async field => {
+      await withEvent(async ({ db, event }) => {
+        let metadataReads = 0;
+        let deleteCalls = 0;
+        const api = await startApi(db, async () => { deleteCalls++; }, async () => {
+          metadataReads++;
+          if (metadataReads === 2) {
+            // Intent is already persisted. A hold before the final
+            // Firestore transaction must veto the irreversible GCS call.
+            expect((await event.get()).data()?.photoPurgeIntent)
+              .toMatchObject({ generation: '773' });
+            await event.update({ [field]: true });
+          }
+          return [{ generation: '773', temporaryHold: false }];
+        });
+        try {
+          const result = await api.request();
+          expect(result).toMatchObject({
+            status: 503, data: { ok: false, purgedCount: 0, failedCount: 1 },
+          });
+          expect(metadataReads).toBe(2);
+          expect(deleteCalls).toBe(0);
+          const stored = (await event.get()).data();
+          expect(stored?.photoPurged).toBe(false);
+          expect(stored?.photoPurgeIntent).toMatchObject({ generation: '773' });
+          expect(stored?.photoPurgeProof).toBeUndefined();
+        } finally {
+          await api.close();
+        }
+      });
+    },
+    90_000,
+  );
+
   it('blocks physical deletion if the Firestore lease expires before the final check', async () => {
     await withEvent(async ({ db, event }) => {
       let metadataReads = 0;
