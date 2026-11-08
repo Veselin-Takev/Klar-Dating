@@ -170,6 +170,12 @@ All listed PRs were **Draft and unmerged** at verification. Branch CI passing pr
 - Updated Draft #349 exact SHA **`ca97df699cc9b0bdca59add95cfe452293d7c141`**. [Enterprise CI #1908 / run 42457025368](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42457025368) was **in progress** at initial check. Require full exact-SHA SUCCESS before certifying these changes; historical #348 PASS is separate.
 - The new unit fixtures do **not** demonstrate lawful deletion or all-writer fencing. Late verification-object creation after the last listing, direct Admin SDK accesses, Firestore legal holds, Data Subject Request deadlines, bucket IAM and approved storage retention policy still require independent AppSec/DPO/Legal/SRE/Release Owner review and staging evidence. `productionApproved=false`, **NO-GO**; no main merge, storage deletion or cloud mutation.
 
+## 2026-11-08 — VES-5 DPO/SRE exception treatment while P0 purge remains blocked
+
+- Added the **review-only** `phase2_work/docs/VES5_DELETION_EXCEPTION_PLAYBOOK_2026-11-08.md` on this documentation branch. It explicitly separates signed scheduled retention (503 != success) from durable Art. 17 account-erasure jobs (verification photos must not disappear silently, requests must remain pending rather than show false completion).
+- Defines read-only backlog/age monitoring, DPO deadline and lawful-hold review, Trust & Safety evidence ownership, AppSec/SRE request-path attribution, safe 404/generation reconciliation, incident escalation, evidence fields and prohibited destructive shortcuts. Thresholds/deadlines require approval; no ungrounded SLA or invented legal exception is assumed.
+- **Important:** This runbook is a proposal, not a signed DPO procedure, and does not authorize bypassing the currently unmerged hard stops in [Draft #348](https://github.com/Veselin-Takev/Klar-Dating/pull/348) or [Draft #349](https://github.com/Veselin-Takev/Klar-Dating/pull/349). A real cross-service all-writer fence and DPO/AppSec/SRE/Release Owner signoffs are still required. **NO-GO**.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
