@@ -189,6 +189,42 @@ describe('Vercel Vite API proxy — fail closed before production release', () =
     expect(send).not.toHaveBeenCalled();
   });
 
+  it('enforces one absolute body deadline even when chunks keep arriving', async () => {
+    vi.useFakeTimers();
+    try {
+      const send = vi.fn<typeof fetch>();
+      let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+      let canceled = false;
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          streamController = controller;
+          controller.enqueue(new TextEncoder().encode('{"geburtsdatum":"'));
+        },
+        cancel() { canceled = true; },
+      });
+      const request = new Request('https://klar-dating.vercel.app/api/account/alter', {
+        method: 'POST', body: stream, duplex: 'half',
+      } as RequestInit & { duplex: 'half' });
+      const responsePromise = proxyKlarApi(request, env, send, 1_000);
+
+      // Deliver partial chunks often enough to defeat a per-chunk timeout.
+      // A correct *total* deadline still expires at 1,000ms.
+      await vi.advanceTimersByTimeAsync(450);
+      streamController?.enqueue(new TextEncoder().encode('2000-'));
+      await vi.advanceTimersByTimeAsync(450);
+      streamController?.enqueue(new TextEncoder().encode('01-'));
+      await vi.advanceTimersByTimeAsync(150);
+
+      const response = await responsePromise;
+      expect(response.status).toBe(408);
+      expect(await response.json()).toMatchObject({ code: 'api_payload_read_timeout' });
+      expect(canceled).toBe(true);
+      expect(send).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not await an uncooperative body cancellation after its deadline', async () => {
     const send = vi.fn<typeof fetch>();
     let cancelInvoked = false;
