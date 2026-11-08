@@ -1,6 +1,6 @@
 # ADR — v0.1.1-rc1 P0 verification-photo deletion containment
 
-- **Status:** Proposed / NOT approved
+- **Status:** Proposed for independent review; implemented as RC containment, NOT release-approved
 - **Date:** 2026-11-08
 - **Release:** `v0.1.1-rc1`
 - **Branch:** `release/v0.1.1-rc1`
@@ -37,6 +37,16 @@ Two operational deletion entrypoints must be considered together: the signed ver
 - Run every gate defined in `docs/releases/v0.1.1-rc1/RC_MANIFEST.md` on the exact **integrated RC SHA**. Treat missing/skipped tests and unexecutable audit commands as BLOCKED, not PASS.
 - Independent AppSec, DPO/Legal, SRE and Release Owner sign-off based on real staging evidence and source identity; no self-approval in place of required independent review.
 - Keep state `productionApproved=false` and NO-GO until all evidence is complete. `PROMOTE` is requested **only** for a verified READY FOR PROMOTION RC, and is separate from production traffic approval.
+
+## Implementation checkpoint — 2026-11-08
+
+The following narrow **RC-branch-only** containment is implemented but not yet certified:
+- Signed purge route denies with HTTP 503 after HMAC verification, before any Firestore/Storage operations.
+- Legacy upload-age helper rejects before Storage calls; its scheduled Cloud Function now only cleans independent funnel-event TTL.
+- Account-erasure helper checks the verification prefix before and after bounded profile-only cleanup, refuses existing verification objects, and validates GCS metadata holds and generation preconditions fail-closed.
+- Negative Vitest, Storage Emulator and dependency-free real-module tests were added or updated test-first where applicable, together with static gates.
+
+**Remaining unproven:** External writers and cloud Scheduler/IAM inventory; a verification-photo creation after the final inventory; cross-service post-authorization hold races; durable hold/recovery semantics; DPO-approved Art.17 exception/retry/backlog policy; actual latest integrated SHA gates. This is an intentional **temporary hard stop**, not a verified distributed fence or an authorization to suspend statutory obligations indefinitely.
 
 ## Consequences
 
