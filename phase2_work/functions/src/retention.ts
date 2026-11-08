@@ -8,13 +8,45 @@ type Bucket = {
 /** One bounded page per prefix; false means acknowledged progress, not completion.
  * Re-list from the beginning because deleted objects disappear. Never skip a hold
  * or generation conflict and then declare the account's storage empty.
+ *
+ * VES-5: verification photos are owned by a cross-service decision/hold
+ * protocol that is NOT yet safely fenced. Real account deletion may erase
+ * ordinary profile photos, but MUST NOT delete verification objects or claim
+ * account erasure complete while verification objects exist.
+ *
+ * The explicit legacy mode is reserved for isolated emulator/unit regression
+ * tests; it cannot run in a production Node process. Never enable it in any
+ * server/Functions account-deletion caller before the all-writer P0 review.
  */
-export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<boolean> {
+export async function deleteAccountPhotos(
+  bucket: Bucket, uid: string,
+  mode: 'profile-only' | 'unsafe-emulator-test-only' = 'profile-only',
+): Promise<boolean> {
   if (!uid || uid.includes('/') || uid === '.' || uid === '..') throw new Error('Invalid storage owner');
+  if (mode !== 'profile-only' && mode !== 'unsafe-emulator-test-only') {
+    throw new Error('invalid_account_photo_erasure_mode');
+  }
+  if (mode === 'unsafe-emulator-test-only' && process.env.NODE_ENV === 'production') {
+    throw new Error('verification_photo_p0_fencing_unverified');
+  }
+  const verificationPrefix = `verification/${uid}/`;
+  const assertNoUnfencedVerificationPhotos = async () => {
+    const [files, next] = await bucket.getFiles({
+      prefix: verificationPrefix, maxResults: 1, autoPaginate: false,
+    });
+    if (files.length > 0 || Boolean(next?.pageToken)) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
+  };
+  if (mode === 'profile-only') await assertNoUnfencedVerificationPhotos();
+
   let deleted = 0;
   let listed = 0;
   let more = false;
-  for (const prefix of [`verification/${uid}/`, `profiles/${uid}/`]) {
+  const prefixes = mode === 'profile-only'
+    ? [`profiles/${uid}/`]
+    : [verificationPrefix, `profiles/${uid}/`];
+  for (const prefix of prefixes) {
     const [files, next] = await bucket.getFiles({ prefix, maxResults: 100, autoPaginate: false });
     if (files.length > 100) throw new Error('storage_page_limit_exceeded');
     listed += files.length;
@@ -33,6 +65,11 @@ export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<
       }
     }
   }
+  // Recheck before reporting completion so a verification object added
+  // during profile cleanup cannot be silently treated as erased. This check
+  // alone is not an all-writer fence: concurrent creators still need the
+  // independently reviewed account-deletion tombstone protocol.
+  if (mode === 'profile-only') await assertNoUnfencedVerificationPhotos();
   if (!listed && !more) return true;
   if (!deleted) throw new Error('storage_erasure_no_progress');
   return false;
