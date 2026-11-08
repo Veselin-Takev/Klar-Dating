@@ -26,8 +26,20 @@ export async function deleteAccountPhotos(
   if (mode !== 'profile-only' && mode !== 'unsafe-emulator-test-only') {
     throw new Error('invalid_account_photo_erasure_mode');
   }
-  if (mode === 'unsafe-emulator-test-only' && process.env.NODE_ENV === 'production') {
-    throw new Error('verification_photo_p0_fencing_unverified');
+  if (mode === 'unsafe-emulator-test-only') {
+    // A test-only destructive override is never a production capability.
+    // NODE_ENV may be unset on deployed runtimes: allowlist a local emulator
+    // and an explicit test opt-in instead of merely rejecting "production".
+    const emulatorHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '';
+    const isolatedLocalTest = process.env.NODE_ENV === 'test'
+      && process.env.KLAR_TEST_VERIFICATION_DELETE === 'allow'
+      && /^(127\.0\.0\.1|localhost|\[::1\]):[1-9][0-9]{1,4}$/.test(emulatorHost)
+      && !process.env.K_SERVICE
+      && !process.env.FUNCTION_TARGET
+      && !process.env.VERCEL_ENV;
+    if (!isolatedLocalTest) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
   }
   const verificationPrefix = `verification/${uid}/`;
   const assertNoUnfencedVerificationPhotos = async () => {
