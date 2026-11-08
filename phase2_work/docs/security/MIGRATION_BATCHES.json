@@ -1,7 +1,7 @@
 {
   "baselineCandidates": 50,
-  "migratedConsumerFiles": 2,
-  "remainingConsumerFiles": 48,
+  "migratedConsumerFiles": 5,
+  "remainingConsumerFiles": 45,
   "batches": [
     {
       "id": "A",
@@ -33,17 +33,49 @@
         "schema-validated scoped merge write"
       ],
       "liveDataMigration": "NOT_EXECUTED"
+    },
+    {
+      "id": "C",
+      "status": "IN_PROGRESS",
+      "scope": "Wave 1 user/security sub-batch",
+      "files": [
+        "phase2_work/src/server/platform/riskEngine.ts",
+        "phase2_work/src/server/platform/auditLog.ts"
+      ],
+      "commit": "3781bf82",
+      "tenantAuthority": "Fixed supported default namespace behind explicit Auth migration cutover",
+      "cutoverGuard": "KLAR_TENANT_AUTH_MIGRATION_READY=true",
+      "remainingScope": [
+        "Primary user/profile and age/auth gates",
+        "Password reset/mail worker",
+        "KYC sessions",
+        "Audit/profile readers and related legacy consumers"
+      ],
+      "liveDataMigration": "NOT_EXECUTED"
+    },
+    {
+      "id": "D",
+      "status": "IN_PROGRESS",
+      "scope": "Stripe checkout/fulfillment transaction core",
+      "files": [
+        "phase2_work/src/server/stripeService.ts"
+      ],
+      "commit": "d866480a",
+      "tenantAuthority": "Signed Stripe events / verified caller, supported default namespace only",
+      "cutoverGuard": "KLAR_TENANT_PAYMENTS_MIGRATION_READY=true",
+      "remainingScope": [
+        "Subscription/entitlement API readers",
+        "Cancellation/withdrawal handlers",
+        "Billing rate limits and deletion/consent integrations"
+      ],
+      "liveDataMigration": "NOT_EXECUTED"
     }
   ],
   "baselineFixed": false,
   "productionApproved": false,
   "verification": {
-    "codeSha": "84575f87f42d581e1ca071270a4b8a042e36dbad",
-    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42484272103",
-    "result": "SUCCESS",
-    "mainSuites": 1552,
-    "additionalIamChecks": 6,
-    "terraform": "PASS_LOCAL_INIT_VALIDATE_FMT_ONLY",
-    "liveDataMigration": "NOT_EXECUTED"
+    "result": "PENDING_CURRENT_WAVE_CI",
+    "priorMainSuites": 1552,
+    "baselineFixed": false
   }
 }

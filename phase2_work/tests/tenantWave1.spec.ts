@@ -26,7 +26,7 @@ describe.runIf(Boolean(host))('Wave 1 native user/security boundaries',()=>{
     const db=getDb(), uid='risk-'+randomUUID(), own=db.doc(`tenants/default/users/${uid}`), deletion=db.doc(`tenants/default/account_deletions/${uid}`);
     await expect(evaluateAccountRisk(db,uid)).rejects.toThrow('Risk evaluation unavailable');
     await own.set({createdAt:new Date()}); await deletion.set({status:'pending'});
-    try {await expect(evaluateAccountRisk(db,uid,{externalPaymentMentions:3,reportCount:5,blockCount:5})).rejects.toThrow('Risk evaluation unavailable');expect((await own.get()).data()?.requiresSafetyReview).toBeUndefined();}
+    try {await expect(evaluateAccountRisk(db,uid)).rejects.toThrow('Risk evaluation unavailable');await expect(evaluateAccountRisk(db,uid,{externalPaymentMentions:3,reportCount:5,blockCount:5})).rejects.toThrow('Risk evaluation unavailable');expect((await own.get()).data()?.requiresSafetyReview).toBeUndefined();}
     finally {await Promise.all([own.delete(),deletion.delete()]);}
   });
   it('appends schema-validated pseudonymous audit data only under tenant prefix',async()=>{

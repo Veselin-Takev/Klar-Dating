@@ -57,6 +57,13 @@ describe('signed payment webhooks with real Firestore', { timeout: 20000 }, () =
     await expect(send('customer.subscription.deleted',{id:subscription})).rejects.toThrow('ambiguous_subscription_owner');
     expect((await scoped('processed_stripe_events/subscription_'+subscription).get()).exists).toBe(false);
   });
+  it('does not project a stale payment failure over a newer subscription state',async()=>{
+    const {uid,subscription}=await setup();
+    await scoped(`users/${uid}`).set({subscriptionId:subscription,billingStatus:'active'},{merge:true});
+    await scoped(`subscriptions/${uid}`).set({lastStripeEventCreated:Math.floor(Date.now()/1000)+3600,billingStatus:'active'});
+    expect(await send('invoice.payment_failed',{id:'invoice-test',subscription,metadata:{klarTenantId:'default'}})).toMatchObject({applied:false});
+    expect((await scoped(`subscriptions/${uid}`).get()).data()?.billingStatus).toBe('active');
+  });
   it('commits entitlement and receipt once under concurrent delivery', async () => {
     const { uid, session } = await setup(); const event = signedEvent('checkout.session.completed', session);
     const result = await Promise.all([handleStripeWebhook(event.body, event.signature), handleStripeWebhook(event.body, event.signature)]);

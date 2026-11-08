@@ -39,12 +39,13 @@ export async function evaluateAccountRisk(
 ): Promise<RiskDecision> {
   try {
     const repo = scopeServiceDatabase(db, 'auth');
-    const [reportsSnap, blocksSnap, userData] = await Promise.all([
+    const [reportsSnap, blocksSnap, userData, pendingDeletion] = await Promise.all([
       repo.list('reports', record, {where:['reportedProfileId','==',uid],limit:50}),
       repo.list('blocks', record, {where:['blockedUid','==',uid],limit:50}),
       repo.read(`users/${uid}`, record),
+      repo.read(`account_deletions/${uid}`, record),
     ]);
-    if (!userData) throw new Error('risk_subject_not_found');
+    if (!userData || pendingDeletion) throw new Error('risk_subject_not_available');
 
     let accountAgeDays = 999;
     const timestamp = userData.createdAt;

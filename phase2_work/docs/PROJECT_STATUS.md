@@ -1821,3 +1821,30 @@ baselineFixed=false; productionApproved=false. PR #358 remains DRAFT for review
 of these bounded batches. Work stops here for the next review step, with no
 CERTIFIED_PROCEED. This metadata checkpoint refers to the immutable tested code
 SHA; its own automatic CI is separate.
+
+## Wave 1 — C/D source migration checkpoint (2026-11-08)
+
+Progress **5/50 files, 45 remaining**: C migrates user risk evaluation and
+append-only Auth audit; D migrates Stripe checkout/fulfillment to the shared
+TenantAwareFirestoreRepository. Closed transactions now support scoped create
+and schema-validated merge writes. No native references are exposed.
+
+Risk reads only default-tenant profiles/reports/blocks and pending-erasure
+markers. High-risk writes recheck subject existence and pending erasure inside
+the same transaction. Audit uses create-only tenant paths, pseudonyms and its
+existing runtime schema. Stripe users/subscriptions, leases, event receipts and
+cancellation tombstones are scoped atomically. Completion requires the signed
+checkout's default-tenant marker, and foreign tenant metadata is ignored without
+entitlement writes. Subscription ownership ambiguity aborts before any writes;
+ordering and failed-commit retryability remain tested.
+
+Auth and Payments domain flags default OFF. Synthetic CI enables them for scoped
+fixtures. No live data move, account change, charge, refund or cutover is performed.
+Readiness flags MUST NOT be enabled for production while dependent root-based
+readers, deletion markers, KYC/session flows and cancellation/withdrawal handlers
+remain unmigrated. C/D overall remain IN PROGRESS; the batch register lists scope.
+Client sessionManager has no legacy Firestore access to migrate; this does not
+certify its client storage or complete server-session/KYC migration.
+
+Full current-wave CI pending; the prior 1,552 PASS count is historical.
+baselineFixed=false; productionApproved=false. Stop for Wave 2 after verification.

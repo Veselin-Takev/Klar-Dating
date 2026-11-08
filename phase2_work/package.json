@@ -93,7 +93,7 @@
     "seed:legal-updates": "node scripts/seed-legal-updates.mjs",
     "check:observability": "node scripts/check-observability.mjs && node scripts/test-slo-policy.mjs",
     "check:compliance-storage-purge": "node scripts/check-compliance-storage-purge.mjs",
-    "check:stripe-idempotency": "node scripts/check-stripe-idempotency.mjs",
+    "check:stripe-idempotency": "node scripts/check-stripe-idempotency.mjs && node scripts/check-stripe-webhook-ordering.mjs",
     "check:design-system": "node scripts/check-design-system.mjs",
     "check:language-switcher": "node scripts/check-language-switcher.mjs",
     "check:chat-translation": "node scripts/check-chat-translation.mjs",

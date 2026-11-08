@@ -93,7 +93,7 @@
     "adminRepository": {
       "implementation": "TenantAwareFirestoreRepository",
       "adoption": "MIGRATION_BLOCKED",
-      "legacyConsumerFiles": 48,
+      "legacyConsumerFiles": 45,
       "iamEvidence": "DOCUMENTED_SOURCE_ONLY_LIVE_UNVERIFIED",
       "report": "docs/security/IAM_AND_ADMIN_BOUNDARIES.md",
       "certification": "FAIL_LEGACY_UNSCOPED_ACCESS_REMAINS",
@@ -110,7 +110,7 @@
     "legacyMigration": {
       "status": "INCOMPLETE",
       "tenantRepositoryAdopted": "NOT_50_OF_50",
-      "legacyConsumerFiles": 48,
+      "legacyConsumerFiles": 45,
       "sdkFactories": "CONFINED_TO_REPOSITORY_INFRASTRUCTURE",
       "semgrepRule": "check-auth-boundary",
       "semgrepVersion": "1.184.0",
@@ -124,9 +124,9 @@
       "iamCertification": "IMPLEMENTED_NOT_PROVISIONED"
     },
     "batchMigration": {
-      "migrated": 2,
+      "migrated": 5,
       "total": 50,
-      "remaining": 48,
+      "remaining": 45,
       "register": "phase2_work/docs/security/MIGRATION_BATCHES.json",
       "iam": "IMPLEMENTED_STATIC_VALIDATION_PASS_NOT_PROVISIONED",
       "terraformValidation": "PASS_LOCAL_1.13.5",
@@ -140,7 +140,10 @@
       "distinctAcrossTheseSuites": 1552,
       "additionalIamChecks": 6,
       "dedicatedRulesRepeated": 92,
-      "status": "BATCHES_A_B_VERIFIED_REVIEW_PENDING"
+      "status": "BATCHES_A_B_VERIFIED_REVIEW_PENDING",
+      "wave1": "PENDING_CI",
+      "batchC": "IN_PROGRESS",
+      "batchD": "IN_PROGRESS"
     }
   }
 }

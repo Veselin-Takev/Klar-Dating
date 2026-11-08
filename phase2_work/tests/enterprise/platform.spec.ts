@@ -23,8 +23,8 @@ function riskFixture(reports:number, blocks:number, ageDays:number) {
   const writes: Record<string,unknown>[]=[];
   const mockDb={
     doc: (path:string)=>{
-      assert.match(path,/^tenants\/default\/users\//);
-      return {path,get:async()=>({exists:true,data:()=>({createdAt:new Date(Date.now()-ageDays*86400000)})}),set:async(value:Record<string,unknown>)=>{writes.push(value);}};
+      assert.match(path,/^tenants\/default\/(users|account_deletions)\//);
+      return {path,get:async()=>({exists:!path.includes('/account_deletions/'),data:()=>path.includes('/account_deletions/')?undefined:{createdAt:new Date(Date.now()-ageDays*86400000)}}),set:async(value:Record<string,unknown>)=>{writes.push(value);}};
     },
     runTransaction: async <T>(fn:(tx:{get:(ref:{path:string})=>Promise<{exists:boolean;data:()=>Record<string,unknown>|undefined}>;set:(ref:{path:string},value:Record<string,unknown>)=>void})=>Promise<T>)=> fn({
       get:async ref=>({exists:!ref.path.includes('/account_deletions/'),data:()=>ref.path.includes('/account_deletions/')?undefined:{createdAt:new Date(Date.now()-ageDays*86400000)}}),

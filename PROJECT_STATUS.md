@@ -20,3 +20,5 @@ Latest verification: 1,549 PASS and Semgrep 119 files / zero findings on 9a93f02
 Batches A/B: 2/50 consumers migrated in source; 48 remain. IAM module and render-enforced dedicated runtime identity implemented, not provisioned. Cutover flags remain disabled outside synthetic tests. baselineFixed=false.
 
 Verified batch checkpoint: 2/50 migrated, 48 open; 1,552 main-suite PASS plus 6 IAM checks on 84575f87. IAM render enforcement implemented, no provisioning/cutover. baselineFixed=false. Stopped for batch review.
+
+Wave 1 C/D: source progress 5/50, 45 open; C and D IN PROGRESS. Auth/Payments cutovers remain OFF outside synthetic CI. Current-wave tests pending; baselineFixed=false.
