@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
-import { TenantAwareFirestoreRepository } from './src/server/TenantAwareFirestoreRepository';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
@@ -103,11 +102,11 @@ import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
 
-import { appendAuditLog } from './src/server/platform/auditLog';
+import { appendRepositoryAuditLog } from './src/server/platform/auditLog';
 
 
 import { FieldValue } from './src/server/db';
-import { getDb as getFirestore } from './src/server/db';
+import {createVerifiedRequestRepository,getInfrastructureRepository,closeServerDb} from './src/server/firestoreRepository/nativeDatabase';
 import { handleBlock, handleReport, trustSafetyWriteLimiter } from './src/server/trustAndSafety';
 import { requireRole, currentUserId } from './src/server/authorization';
 import { parseSmartAuditInput, parseSmartAuditOutput } from './src/server/platform/smartAuditBoundary';
@@ -450,8 +449,7 @@ const adminHealthCheckLimiter = rateLimit({
     const start = Date.now();
     let fsOk = false, authOk = false;
     try {
-      const db = (await import("./src/server/db")).getDb();
-      await db.collection('system_health').doc('ping').get();
+      await getInfrastructureRepository().read('system_health/ping',z.record(z.string(),z.unknown()));
       fsOk = true;
     } catch (e: unknown) {
       logSafeFailure('firestore_health_failure');
@@ -554,7 +552,7 @@ const adminHealthCheckLimiter = rateLimit({
   });
   // Compliance purge is public only at the routing layer; the endpoint itself requires
   // a fresh HMAC proof with COMPLIANCE_JOB_SECRET and remains behind the API rate limiter.
-  app.use('/api/admin', createVerificationStoragePurgeRouter({ getDb: getFirestore }));
+  app.use('/api/admin', createVerificationStoragePurgeRouter());
 
   // BEFUND 10.08.2026: /api/health stand in BEIDEN Ausnahmelisten
   // (OEFFENTLICH und OHNE_ALTERSPRUEFUNG) -- die Route selbst gab es
@@ -928,7 +926,7 @@ const adminHealthCheckLimiter = rateLimit({
     ];
     return res.json({ items });
   });
-  app.use('/api', createChecklistRouter({ currentUserId, repositoryFor: req => new TenantAwareFirestoreRepository(getFirestore(), req.user) }));
+  app.use('/api', createChecklistRouter({ currentUserId, repositoryFor: req => createVerifiedRequestRepository(req.user) }));
   app.use('/api', createDatePlansRouter({ currentUserId, repository: () => getServiceRepository('auth') }));
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -1184,10 +1182,10 @@ const adminHealthCheckLimiter = rateLimit({
         try {
           const userId = currentUserId(req);
           if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-          const db = getFirestore();
+          const db = getServiceRepository('auth');
           const inputDigest = crypto.createHash('sha256').update(String(message), 'utf8').digest('hex');
           const outputDigest = crypto.createHash('sha256').update(serializeSafetyAuditOutput(antwort.koerper), 'utf8').digest('hex');
-          await appendAuditLog(db, {
+          await appendRepositoryAuditLog(db, {
             type: 'safety_check',
             actorUid: userId,
             metadata: { inputDigest, outputDigest },
@@ -2110,7 +2108,7 @@ export async function startServer() {
         await app.locals.closeDevServer?.();
         await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
         await workerStopped;
-        await getFirestore().terminate();
+        await closeServerDb();
         clearTimeout(deadline);
       } catch {
         console.error(JSON.stringify({ level: "ERROR", event: "server_shutdown_failed" }));

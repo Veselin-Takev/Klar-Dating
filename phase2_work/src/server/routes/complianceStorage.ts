@@ -1,6 +1,5 @@
 import express, { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { Firestore } from 'firebase-admin/firestore';
 
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 
@@ -26,9 +25,9 @@ export function validComplianceRequest(body: Buffer, timestampHeader: string | u
  * by an environment variable, feature flag, or injected Firebase dependency.
  */
 export function createVerificationStoragePurgeRouter(_deps: {
-  getDb: () => Firestore;
+  repository?: () => unknown;
   getBucket?: () => { file: (path: string) => { delete: (options?: unknown) => Promise<unknown> } };
-}): Router {
+} = {}): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), (req, res) => {
     res.set('Cache-Control', 'no-store');

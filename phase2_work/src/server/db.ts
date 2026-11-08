@@ -1,2 +1,8 @@
-/** Legacy compatibility facade; callers must migrate to TenantAwareFirestoreRepository. */
-export { FieldValue, getServerFirebaseApp, getDb, initServerDb, runObservedTransaction } from './firestoreRepository/nativeDatabase';
+/** Compatibility for emulator fixtures. Production callers use closed repository factories. */
+export {
+  FieldValue,
+  getServerFirebaseApp,
+  initServerDb,
+  closeServerDb,
+  getEmulatorDatabase as getDb,
+} from './firestoreRepository/nativeDatabase';

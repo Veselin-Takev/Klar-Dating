@@ -19,7 +19,7 @@ describe('VES-5 production deletion containment — test-first contract', () => 
     const getDb = vi.fn(() => { throw new Error('Firestore must not be touched'); });
     const getBucket = vi.fn(() => { throw new Error('GCS must not be touched'); });
     const app = express();
-    app.use('/api/admin', createVerificationStoragePurgeRouter({ getDb: getDb as any, getBucket: getBucket as any }));
+    app.use('/api/admin', createVerificationStoragePurgeRouter({ repository: getDb, getBucket }));
     // Wait for the listener before querying its ephemeral port: address() may be null
     // until the asynchronous listening event fires on GitHub-hosted runners.
     const server = await new Promise<ReturnType<typeof app.listen>>((resolve, reject) => {

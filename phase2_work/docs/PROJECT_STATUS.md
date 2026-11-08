@@ -1938,3 +1938,7 @@ implemented, not the requested full C/D completion. Stop for the Wave 3 review
 instruction, with the outstanding functional dependencies explicitly retained.
 This metadata checkpoint references the immutable tested code SHA; its own automatic
 CI is separate.
+
+## 2026-11-08 — Welle 3: Quellcode-Migration vollständig, Zertifizierung läuft
+
+Alle sieben verbliebenen Kandidaten sind auf geschlossene Tenant-Repositories migriert (50/50 im Register). Native SDK-Fabriken sind private Infrastruktur mit hashgeprüften Ausnahmen; Anwendungscode darf keine raw Emulator-Fixtures importieren. Lokale Speicher sind explizit lokal, starten leer und sind kein Cloud-Fehler-Fallback. Wartungsskripte verlangen explizite Tenant-Konfiguration. AI-Cache/Budget respektieren transaktionale Löschbarrieren. Vollständige unveränderliche CI-Evidenz steht noch aus; `baselineFixed=false`, `productionApproved=false`, PR #358 DRAFT.

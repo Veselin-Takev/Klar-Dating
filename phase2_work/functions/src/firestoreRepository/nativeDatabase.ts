@@ -1,7 +1,12 @@
 import { getFirestore } from 'firebase-admin/firestore';
-
-/** Infrastructure-only legacy factory; no tenant certification is implied. */
-export function openMaintenanceDatabase(databaseId: string) {
+import { TenantAwareFirestoreRepository } from './TenantAwareFirestoreRepository';
+/** Returns only a scoped capability. Database and tenant are explicit deployer configuration. */
+export function openMaintenanceRepository(
+  databaseId: string,
+  tenantId: string,
+): TenantAwareFirestoreRepository {
   if (!databaseId) throw new Error('Explicit maintenance database is required');
-  return getFirestore(databaseId);
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(tenantId))
+    throw new Error('maintenance_tenant_required');
+  return new TenantAwareFirestoreRepository(getFirestore(databaseId), tenantId);
 }

@@ -1,0 +1,9 @@
+{
+  "scope": "Reviewed private SDK constructors, canonical tenant repository and emulator-only fixture facade; no folder-wide exemptions",
+  "files": {
+    "phase2_work/functions/src/firestoreRepository/TenantAwareFirestoreRepository.ts": "3963e4a367fb42753870b97e80b3d0b27fa12d07c96ac0034e3a6f3465286690",
+    "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts": "877fc7dcf6198f981264ace3f1b1850912256844a7b7057bf5a232a8188e5b60",
+    "phase2_work/src/server/firestoreRepository/nativeDatabase.ts": "cc68680f3abbd9a418881a095e23b3c15a50565ed43f7281e0038b06c88c06d6",
+    "phase2_work/src/server/db.ts": "bf7402546cde20d44728503eb5344685ffbe1eb282fa34acbe44d1598f8c837d"
+  }
+}

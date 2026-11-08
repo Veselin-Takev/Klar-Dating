@@ -1,7 +1,7 @@
 {
   "baselineCandidates": 50,
-  "migratedConsumerFiles": 43,
-  "remainingConsumerFiles": 7,
+  "migratedConsumerFiles": 50,
+  "remainingConsumerFiles": 0,
   "batches": [
     {
       "id": "A",
@@ -123,6 +123,30 @@
       "wave2SourceStatus": "VERIFIED_SCOPED",
       "wave2VerifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
       "wave2ClosureNote": "Source migration and coupled client/Rules readers verified; production cutover disabled."
+    },
+    {
+      "id": "F",
+      "scope": "Final utility, local stores and private SDK factory capability migration",
+      "status": "SOURCE_MIGRATED_PENDING_FULL_CI",
+      "files": [
+        "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts",
+        "phase2_work/server.ts",
+        "phase2_work/src/server/aiBudget.ts",
+        "phase2_work/src/server/durableStore.ts",
+        "phase2_work/src/server/firestoreRepository/nativeDatabase.ts",
+        "phase2_work/src/server/inMemoryStore.ts",
+        "phase2_work/src/server/zwischenspeicher.ts"
+      ],
+      "tenantAuthority": "Verified default claims for API; explicit deployer-controlled tenant for maintenance; explicit validated tenant for local stores",
+      "operations": [
+        "closed tenant-prefixed repositories only",
+        "AI budget/cache transactional owner and erasure fences",
+        "native SDK factories return closed production capabilities",
+        "loopback demo-only raw emulator fixture hook denied in production/cloud and statically banned from app imports",
+        "explicit local-only empty stores; no automatic provider-error fallback",
+        "dry-run tenant-bound maintenance seeds/exports"
+      ],
+      "liveDataMigration": "NOT_EXECUTED"
     }
   ],
   "baselineFixed": false,
@@ -184,16 +208,8 @@
     "liveDataMigration": "NOT_EXECUTED",
     "baselineFixed": false
   },
-  "remainingFiles": [
-    "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts",
-    "phase2_work/server.ts",
-    "phase2_work/src/server/aiBudget.ts",
-    "phase2_work/src/server/durableStore.ts",
-    "phase2_work/src/server/firestoreRepository/nativeDatabase.ts",
-    "phase2_work/src/server/inMemoryStore.ts",
-    "phase2_work/src/server/zwischenspeicher.ts"
-  ],
-  "closureStatus": "WAVE2_COMPLETED_WAITING_WAVE3",
+  "remainingFiles": [],
+  "closureStatus": "WAVE3_SOURCE_COMPLETE_VERIFICATION_PENDING",
   "previousVerifiedWave2": {
     "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
     "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
@@ -325,6 +341,10 @@
     "phase2_work/src/lib/AuthContext.tsx",
     "phase2_work/src/screens/ChatView.tsx",
     "phase2_work/firestore.rules",
-    "phase2_work/src/server/contractPages.ts"
+    "phase2_work/src/server/contractPages.ts",
+    "phase2_work/scripts/sanitize-public-profiles.ts",
+    "phase2_work/scripts/evaluateMatchingMetrics.ts",
+    "phase2_work/scripts/calculateFunnelDropoff.ts",
+    "phase2_work/scripts/seed-legal-updates.mjs"
   ]
 }

@@ -3,5 +3,11 @@ import { TenantAwareFirestoreRepository as ScopedRepository } from '../../functi
 import { resolveVerifiedTenantContext } from './tenantRequestContext';
 /** API adapter: tenant authority is the revocation-verified token, never request input. */
 export class TenantAwareFirestoreRepository extends ScopedRepository {
-  constructor(db: Firestore, decodedToken: unknown) { super(db, resolveVerifiedTenantContext(decodedToken).tenant); }
+  constructor(
+    db: Firestore,
+    decodedToken: unknown,
+    observe?: <T>(work: () => Promise<T>) => Promise<T>,
+  ) {
+    super(db, resolveVerifiedTenantContext(decodedToken).tenant, observe);
+  }
 }

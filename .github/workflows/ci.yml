@@ -109,7 +109,10 @@ jobs:
           bun run check:release-provenance
       - name: Repository Semgrep (findings and parser errors block)
         if: steps.scope.outputs.full == 'true'
-        run: bun run check:semgrep:repository --json --output=semgrep-auto.json
+        run: |
+          bun run check:semgrep:repository --json --output=semgrep-auto.json
+          node --test scripts/semgrep-coverage.test.mjs
+          node scripts/check-semgrep-coverage.mjs semgrep-auto.json
       - name: Upload repository Semgrep evidence
         if: always() && steps.scope.outputs.full == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

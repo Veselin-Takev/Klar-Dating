@@ -1,12 +1,4 @@
 {
-  "scope": "Unmigrated legacy access; not approved tenant isolation",
-  "files": {
-    "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts": "148eac30cd43e55075412f64c34dad7d12d93a048bb6227bdff7b5469fb5d815",
-    "phase2_work/server.ts": "bd59a9bb135842785099bc5268d2e8cf71afe4fd7705553293331adb5a4c209b",
-    "phase2_work/src/server/aiBudget.ts": "ce4ae30da4bff292bccb9ab59ceb47292b45a27255f4850db0e663da342b4e36",
-    "phase2_work/src/server/durableStore.ts": "e1b116935842dd5dc657000232210af611e13b9b84e86f8240670abf8779e6d0",
-    "phase2_work/src/server/firestoreRepository/nativeDatabase.ts": "25ad7bbced96e58bd022bd36851a6a7759246edb7dc88f7a7212948db1b8e563",
-    "phase2_work/src/server/inMemoryStore.ts": "0174acaec5ed2546d27d55bea40d319942477c951f5fa415817ccf091d7cb7d9",
-    "phase2_work/src/server/zwischenspeicher.ts": "046ae485714acb5be2875e381b8bbbcbc43f119e3a0eea2ed0aba732d1912a0b"
-  }
+  "scope": "Unmigrated application SDK capabilities; infrastructure separately hash-pinned",
+  "files": {}
 }

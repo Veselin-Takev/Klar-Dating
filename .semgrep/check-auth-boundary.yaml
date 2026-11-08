@@ -5,7 +5,8 @@ rules:
     message: Native Admin Firestore constructors must remain inside the repository infrastructure boundary.
     paths:
       exclude:
-        - '**/firestoreRepository/**'
+        - '**/src/server/firestoreRepository/nativeDatabase.ts'
+        - '**/functions/src/firestoreRepository/nativeDatabase.ts'
         - '**/*.test.ts'
         - '**/*.spec.ts'
     pattern-either:
