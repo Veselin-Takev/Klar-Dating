@@ -204,3 +204,10 @@ tenant context. Deployer selects scheduler namespace; API supports default only.
 Scoped deletion rows are never passed into the root-based deletion worker.
 All production migration flags remain OFF; effective IAM and cross-service erasure
 fencing are unverified. See phase2_work/docs/security/MIGRATION_WAVE2.md.
+
+Wave 2 verified checkpoint: full CI 42490475690 SUCCESS on
+fff55a978c6184e46b687ba80cefd184cd341900, 1,574 main-suite PASS; 92 Rules repeated.
+Pinned constructor-boundary Semgrep: 0. Repository-wide auto: 35 findings and 41
+parser warnings, FAILED. Source adoption remains 10/50, C/D/E IN_PROGRESS.
+No deployed IAM, live cutover or cross-service erasure certification is asserted.
+baselineFixed=false; productionApproved=false; stop for Wave 3 review.

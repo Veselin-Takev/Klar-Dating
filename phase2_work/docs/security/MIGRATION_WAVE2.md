@@ -55,9 +55,18 @@ contract/compliance, reminder/expiry and canonical repository modules on the tes
 source. This is a scoped result; repository-wide Zero-any/runtime-schema certification
 remains open.
 
-Full changed-candidate verification is pending. The last complete baseline before
-this wave is **1,561 PASS** on `bd3c9f7095b4b76b48daf29fb44192e077f9bc74`,
-[CI 42486611334](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334).
+Full [CI 42490475690](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690) SUCCESS on
+`fff55a978c6184e46b687ba80cefd184cd341900`: **1,574 PASS** = 1,462 Vitest
+in 201 files + 86 Enterprise Node + 26 Playwright. Dedicated Rules: 92 repeated
+PASS, not double-counted. Six IAM checks and two collection-inventory checks PASS
+as additional static regressions. Typecheck, Functions/App builds and production
+smoke PASS. No tests were skipped in those main suites.
+
+Initial CI attempts exposed a deletion-catalog parser that missed closed-repository
+collection arguments, and a body-parser inventory that missed an imported `raw()`.
+Both source guards were corrected without removing their invariants. The collection
+catalog retains negative coverage, and all 14 active parser sites still require
+`inflate:false`. The successful complete run above includes both fixes.
 
 The new native tests cover root/foreign namespace preservation, retention-extension
 races, concurrent reminder claims, erasure denial, ambiguous dispatch, KYC decision
@@ -82,3 +91,13 @@ logging, dependency cooldown policy, dynamic regex, sanitization, shell executio
 HTTP/WebSocket use and Express diagnostics/response rules. They are OPEN, not
 suppressed or certified false positives. The green pinned constructor-boundary
 rule does not make the auto scan green.
+
+## Gate decision
+
+**WAVE 2 PARTIALLY IMPLEMENTED; NOT CERTIFIED.** C/D/E remain IN_PROGRESS despite
+all executed CI checks passing. Forty source candidates, dependent producers/readers,
+legacy erasure/mail, effective IAM and 35 auto-SAST findings remain open. Production
+flags stay OFF; `baselineFixed=false`, `productionApproved=false`. PR #358 remains
+DRAFT. Stop for the Wave 3 review instruction; no feature or production approval.
+The final documentation commit records this immutable tested code SHA; its automatic
+CI is a separate run and is not represented as the same tested HEAD.

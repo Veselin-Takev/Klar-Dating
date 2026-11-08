@@ -1888,3 +1888,31 @@ No live cutover or cloud changes were executed. Full changed-candidate CI pendin
 the previous 1,561 PASS remains historical until a new complete result is recorded.
 Pinned anti-bypass Semgrep: 0 local findings. Repository-wide auto scan: 35 open findings plus 41 diagnostic warnings.
 baselineFixed=false; productionApproved=false; PR #358 DRAFT.
+
+## Wave 2 verified checkpoint — 2026-11-08
+
+[Full CI 42490475690](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690)
+SUCCESS on `fff55a978c6184e46b687ba80cefd184cd341900`:
+**1,574 PASS** = 1,462 Vitest in 201 files + 86 Enterprise Node + 26 Playwright.
+Dedicated Rules: 92 repeated PASS, not added again. Six additional IAM and two
+collection-inventory regressions PASS. Typecheck, Functions/App builds and production
+smoke PASS. The deletion catalog and request-body parser source guards now recognize
+closed repository writes and the imported raw parser without dropping their checks.
+
+[Wave 2 evidence](security/MIGRATION_WAVE2.md): **10/50 source candidates migrated,
+40 remaining**. C/D/E remain IN_PROGRESS; primary profiles/Auth/age, reset/mail,
+consent, audit/export, billing limits and erasure still require coordinated migration.
+KYC now additionally persists the initial rate-limit window and prevents stale
+reconciliation decisions; native tests cover successful recovery and expiry reset.
+
+Pinned Semgrep anti-bypass: 0 findings / 119 production targets, fixtures PASS.
+Repository-wide official auto scan on 6dd7f87e: **35 open findings + 41 diagnostic
+warnings**, exit 1, 615 rules / 1,144 targets. This is not a clean auto-SAST result;
+no suppressions or false-positive certifications were added. Full IAM deployment
+and cross-service erasure fencing remain unverified. No live migration or cutover.
+
+baselineFixed=false; productionApproved=false; PR #358 DRAFT. Wave 2 is partially
+implemented, not the requested full C/D completion. Stop for the Wave 3 review
+instruction, with the outstanding functional dependencies explicitly retained.
+This metadata checkpoint references the immutable tested code SHA; its own automatic
+CI is separate.

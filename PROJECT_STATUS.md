@@ -31,3 +31,10 @@ C/D/E remain IN_PROGRESS; coordinated readers/writers and account erasure/mail s
 block closure. Current full CI pending. Repository-wide auto Semgrep has 35 open findings plus 41 diagnostic warnings independent
 of the pinned anti-bypass rule (0). baselineFixed=false; productionApproved=false.
 See [Wave 2 evidence](phase2_work/docs/security/MIGRATION_WAVE2.md).
+
+Wave 2 verified on **fff55a97**: **1,574 PASS** (1,462 Vitest + 86 Enterprise
+Node + 26 Playwright), full CI 42490475690 SUCCESS; Rules 92 repeated PASS.
+Progress remains **10/50 source candidates, 40 open; C/D/E IN_PROGRESS**.
+Pinned Semgrep: 0 findings. Repository-wide auto: 35 findings + 41 warnings, FAILED.
+Both manifests and the batch register retain baselineFixed=false and
+productionApproved=false. PR #358 DRAFT; stop for Wave 3 review.

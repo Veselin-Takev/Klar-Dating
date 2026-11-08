@@ -53,7 +53,8 @@
       ],
       "liveDataMigration": "NOT_EXECUTED",
       "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
-      "wave2SourceStatus": "IMPLEMENTED_VERIFICATION_PENDING"
+      "wave2SourceStatus": "VERIFIED_SCOPED",
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
     },
     {
       "id": "D",
@@ -76,7 +77,8 @@
       "wave2AdditionalPaths": [
         "phase2_work/src/server/klarCore.ts: subscription status, authenticated cancellation/withdrawal (mixed file remains legacy)"
       ],
-      "wave2SourceStatus": "IMPLEMENTED_VERIFICATION_PENDING"
+      "wave2SourceStatus": "VERIFIED_SCOPED",
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
     },
     {
       "id": "E",
@@ -95,26 +97,25 @@
         "Storage retention fencing remains hard-blocked"
       ],
       "liveDataMigration": "NOT_EXECUTED",
-      "wave2SourceStatus": "IMPLEMENTED_VERIFICATION_PENDING"
+      "wave2SourceStatus": "VERIFIED_SCOPED",
+      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900"
     }
   ],
   "baselineFixed": false,
   "productionApproved": false,
   "verification": {
-    "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
-    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
+    "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
     "result": "SUCCESS",
-    "vitest": 1449,
+    "vitest": 1462,
+    "vitestFiles": 201,
     "enterpriseNode": 86,
     "playwright": 26,
-    "mainSuites": 1561,
+    "mainSuites": 1574,
     "dedicatedRulesRepeated": 92,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 2,
     "semgrepFindings": 0,
-    "liveDataMigration": "NOT_EXECUTED",
-    "baselineFixed": false
-  },
-  "wave2Verification": {
-    "status": "PENDING_FULL_CI",
     "autoSemgrep": {
       "result": "FAILED",
       "findings": 35,
@@ -130,6 +131,63 @@
       "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
       "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
     },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS",
+    "liveDataMigration": "NOT_EXECUTED",
+    "baselineFixed": false,
+    "productionApproved": false,
     "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+  },
+  "wave2Verification": {
+    "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
+    "result": "SUCCESS",
+    "vitest": 1462,
+    "vitestFiles": 201,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1574,
+    "dedicatedRulesRepeated": 92,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 2,
+    "semgrepFindings": 0,
+    "autoSemgrep": {
+      "result": "FAILED",
+      "findings": 35,
+      "diagnosticWarnings": 41,
+      "warningTypes": {
+        "Syntax error": 2,
+        "PartialParsing": 39
+      },
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+      "targetsScanned": 1144,
+      "rulesRun": 615,
+      "version": "1.184.0",
+      "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
+      "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
+    },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS",
+    "liveDataMigration": "NOT_EXECUTED",
+    "baselineFixed": false,
+    "productionApproved": false,
+    "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+  },
+  "previousWaveVerification": {
+    "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
+    "result": "SUCCESS",
+    "vitest": 1449,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1561,
+    "dedicatedRulesRepeated": 92,
+    "semgrepFindings": 0,
+    "liveDataMigration": "NOT_EXECUTED",
+    "baselineFixed": false
   }
 }
