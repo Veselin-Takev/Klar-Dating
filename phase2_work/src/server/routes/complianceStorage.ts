@@ -14,13 +14,18 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null }, ...unknown[]]>;
+  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: unknown; eventBasedHold?: unknown }, ...unknown[]]>;
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
 export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
-  if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
+  // The Cloud Storage response is a trust boundary: only absent or literal
+  // boolean false is an unheld object. Unknown, null, string and numeric
+  // hold values must not be interpreted as permission to destroy a photo.
+  if (!metadata
+    || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+    || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
   }
   const generation = metadata.generation;
