@@ -1,3 +1,4 @@
+import { TenantAwareFirestoreRepository } from './src/server/TenantAwareFirestoreRepository';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
@@ -925,7 +926,7 @@ const adminHealthCheckLimiter = rateLimit({
     ];
     return res.json({ items });
   });
-  app.use('/api', createChecklistRouter({ currentUserId, getFirestore }));
+  app.use('/api', createChecklistRouter({ currentUserId, repositoryFor: req => new TenantAwareFirestoreRepository(getFirestore(), req.user) }));
   app.use('/api', createDatePlansRouter({ currentUserId, getFirestore }));
 
   // ═══════════════════════════════════════════════════════════════════════

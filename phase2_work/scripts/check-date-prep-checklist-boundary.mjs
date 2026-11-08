@@ -20,7 +20,8 @@ for (const marker of [
   'ownerUid',
 ]) if (!queue.includes(marker)) throw new Error(`Missing UID-scoped IndexedDB control: ${marker}`);
 for (const marker of [
-  "doc(`users/${uid}/checklists/date_prep`)",
+  'deps.repositoryFor(req)',
+  'tenant_checklist_migration_not_ready',
   'sanitizeChecklist',
   'updatedAt: new Date()',
 ]) if (!route.includes(marker)) throw new Error(`Missing server-authoritative checklist control: ${marker}`);

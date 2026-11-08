@@ -57,7 +57,7 @@ afterAll(async () => {
     await Promise.all([db().doc(`blocks/${a}_${b}`).delete(), db().doc(`blocks/${b}_${a}`).delete()]);
   }
   for (const account of accounts) {
-    await Promise.all([db().recursiveDelete(db().doc(`users/${account.uid}`)), db().doc(`public_profiles/${account.uid}`).delete(), db().doc(`account_deletions/${account.uid}`).delete()]);
+    await Promise.all([db().recursiveDelete(db().doc(`users/${account.uid}`)), db().recursiveDelete(db().doc(`tenants/default/users/${account.uid}`)), db().doc(`public_profiles/${account.uid}`).delete(), db().doc(`account_deletions/${account.uid}`).delete()]);
     await getAuth(getServerFirebaseApp()).deleteUser(account.uid);
   }
 }, 30_000);
@@ -109,9 +109,11 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
   });
   it('keeps Admin-SDK checklist reads/writes bound to verified owner despite forged request context', async () => {
     const owner = identity(0).uid, outsider = identity(2).uid;
-    const ownRef = db().doc(`users/${owner}/checklists/date_prep`);
-    const foreignRef = db().doc(`users/${outsider}/checklists/date_prep`);
+    const ownRef = db().doc(`tenants/default/users/${owner}/checklists/date_prep`);
+    const foreignRef = db().doc(`tenants/default/users/${outsider}/checklists/date_prep`);
     await ownRef.set({checklist: {location: false}});
+    const legacy = db().doc(`users/${owner}/checklists/date_prep`);
+    await legacy.set({checklist:{location:false}, marker:'legacy-retained'});
     await foreignRef.set({checklist: {location: false}});
     const res = await fetch(`http://127.0.0.1:3000/api/checklists/date_prep?uid=${outsider}&tenantId=foreign`, {
       method: 'PUT', headers: {authorization: 'Bearer ' + identity(0).token, 'content-type': 'application/json', 'x-tenant-id': 'foreign', 'x-user-id': outsider},
@@ -120,6 +122,7 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
     expect(res.status).toBe(200);
     expect((await ownRef.get()).data()?.checklist.location).toBe(true);
     expect((await foreignRef.get()).data()?.checklist.location).toBe(false);
+    expect((await legacy.get()).data()?.checklist.location).toBe(false);
   });
   it('denies an authenticated adult outsider and does not disclose profile data', async () => {
     const status = await request(2, '/api/account/status'); expect(status.status).toBe(200);
