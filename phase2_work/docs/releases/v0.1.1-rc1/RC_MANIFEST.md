@@ -1,7 +1,7 @@
 # RC Manifest — Klar v0.1.1-rc1
 
 **Phase:** A / PROPOSED RELEASE SCOPE  
-**Status:** BLOCKED — scope defined, implementation and RC verification not started  
+**Status:** BLOCKED — P0 containment code/test changes present in RC branch; mandatory verification and independent proof outstanding  
 **Date:** 2026-11-08  
 **Target tag (proposed, NOT created):** `v0.1.1-rc1`  
 **Branch:** `release/v0.1.1-rc1`  
@@ -41,12 +41,12 @@ Prepare ONE reviewable, test-first **fail-closed containment batch** for unprove
 - **MEDIUM:** Fail-closed handling of unexpected metadata may block operations on legacy objects. Require negative tests and safe reconciliation.
 - **HIGH:** A green branch-local CI, GitHub mergeability, storage-generation precondition or Firestore-only transaction cannot prove late-hold safety at the real GCS deletion boundary.
 
-## Phase B: TDD and code fusion — NOT STARTED
+## Phase B: TDD and code fusion — IN PROGRESS (unverified RC changes)
 
-1. Write/strengthen failing negative unit, real Firestore and Storage Emulator, and integration tests **before** production code fusion. Cover no cloud calls, stale permits, late holds, rejected decision, partial/pending account erasure, unknown metadata, missing bucket/project identity, crashes, retries and unexpected cloud environment markers.
-2. Inventory all Firestore, Storage and Admin SDK write/delete entrypoints; reconcile ancestor PR diffs against the exact `main` base. Integrate only reviewed requirements atomically, not entire stacked histories.
-3. Implement with production fail-closed behavior, **zero TODOs and no production mocks**. Test doubles belong only in tests.
-4. Update `phase2_work/CHANGELOG.md`, root `CHANGELOG.md` as needed, `PRODUCTION_READINESS.md`, ADRs, runbook and source/evidence register during implementation. Use Conventional Commits only, e.g. `test(retention): ...`, `fix(retention): ...`, `docs(release): ...`.
+1. **Started test-first:** the new `tests/verificationPhotoContainment.spec.ts` contract was committed before runtime changes. Existing `photoRetention`, Storage Emulator, account-erasure and dependency-free storage checks were updated for fail-closed containment. Test execution on final SHA remains required. Write/strengthen additional real Firestore/Storage staging adversarial cases before enabling deletion. Cover no cloud calls, stale permits, late holds, rejected decision, partial/pending account erasure, unknown metadata, missing bucket/project identity, crashes, retries and unexpected cloud environment markers.
+2. **Scope reviewed:** `#353` is 159 commits ahead of `main`, spanning 35 changed files. No blind branch/history merge was performed. Narrow runtime changes in the RC branch hard-disable the signed purge route and legacy age-worker, while account erasure refuses verification-photo deletions and only permits bounded profile-photo cleanup with strict hold/generation checks. A complete external/cloud writer inventory remains OPEN.
+3. **Narrow code implemented in RC (not validated):** `src/server/routes/complianceStorage.ts`, `functions/src/retention.ts` and `functions/src/deleteExpiredPhotos.ts` deny destructive verification operations. No production mocks, no activation flag or bypass path introduced. This is containment, not full distributed fencing.
+4. Continue documentation and report synchronization; `phase2_work/CHANGELOG.md`, scoped ADR and this RC manifest are updated on the release branch with Conventional Commits. Root readiness and cross-service source/evidence registers must remain consistent before sign-off.
 5. No force push to protected branches, no blind merges, no enabling production deletion, no production IAM/Storage/Cloud Run mutation.
 
 ## Phase C: mandatory gates — all UNVERIFIED on RC head
