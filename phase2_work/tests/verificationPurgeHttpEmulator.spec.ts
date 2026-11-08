@@ -186,6 +186,33 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
   }, 90_000);
 
 
+  it.each([
+    ['photoPurgeHold', true],
+    ['legalHold', true],
+    ['photoPurgeHold', 'true'],
+    ['legalHold', null],
+  ] as const)('blocks a signed purge if Firestore %s is %s', async (field, state) => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({ [field]: state });
+      const deleted: string[] = [];
+      const api = await startApi(db, async path => { deleted.push(path); });
+      try {
+        const response = await api.request();
+        expect(response.status).toBe(503);
+        expect(response.data).toMatchObject({
+          ok: false, processed: 1, purgedCount: 0, failedCount: 1,
+        });
+        expect(deleted).toEqual([]);
+        const latest = (await event.get()).data();
+        expect(latest?.photoPurged).toBe(false);
+        expect(latest?.photoPurgeIntent).toBeUndefined();
+        expect(latest?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('isolates a contradictory due row while processing the valid row in the same page', async () => {
     await withEvent(async ({ db, event, path }) => {
       await event.update({ entscheidung: 'abgelehnt', status: 'approved' });
