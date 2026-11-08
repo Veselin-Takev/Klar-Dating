@@ -10,6 +10,8 @@ const checks = [
   ['explicit purge bucket checked', /validatedVerificationPurgeBucketName\(process\.env\.FIREBASE_STORAGE_BUCKET\)/],
   ['record-level hold validation', /assertVerificationPurgeRecordNotHeld\(data\)/],
   ['hold and legal-hold must be checked', /\['photoPurgeHold', 'legalHold'\]/],
+  ['GCS temporary hold rejects non-false state', /metadata\.temporaryHold !== undefined && metadata\.temporaryHold !== false/],
+  ['GCS event-based hold rejects non-false state', /metadata\.eventBasedHold !== undefined && metadata\.eventBasedHold !== false/],
   ['unconfigured purge bucket returns 503', /verification_storage_purge_bucket_unconfigured/],
   ['disabled photo purge returns retryable error', /status\(503\)\.json\(\{ code: 'verification_storage_purge_disabled' \}\)/],
   ['30-day retention engine', /executeVerificationRetentionBatch/],
