@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { openMaintenanceDatabase } from './firestoreRepository/nativeDatabase';
 import { getStorage } from 'firebase-admin/storage';
 import { defineString } from 'firebase-functions/params';
 
@@ -16,5 +16,5 @@ export function getMaintenanceBucket() {
 export function getMaintenanceDb() {
   const id = databaseId.value();
   if (!id) throw new Error('FIRESTORE_DATABASE_ID must match the Klar API database');
-  return getFirestore(id);
+  return openMaintenanceDatabase(id);
 }

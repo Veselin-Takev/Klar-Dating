@@ -1723,3 +1723,22 @@ IAM_AND_ADMIN_BOUNDARIES.md is documentation, not privilege attestation.
 baselineFixed=false; productionApproved=false. PR #358 remains DRAFT and is not
 READY FOR HUMAN MERGE SIGN-OFF. No CERTIFIED_PROCEED. This metadata checkpoint
 references the immutable tested code SHA; its own automatic CI is separate.
+
+## Legacy migration / anti-bypass checkpoint — 2026-11-08
+
+PR #358 now confines native API and Functions SDK constructors to dedicated
+firestoreRepository infrastructure modules. Reminder uses the explicitly
+configured maintenance database instead of default getFirestore(). Legacy
+db.ts remains an explicitly marked compatibility facade. This refactoring
+is not a completed tenant path migration; all 50 legacy consumer files remain
+in the audit register with reviewed hashes and --certify remains FAIL.
+
+A real Semgrep 1.184.0 gate and locked Python dependency set were added to
+check:auth-boundary and CI. Negative fixtures check direct/alias, namespace and
+constructor bypasses. Factory confinement is not a proof that callers of a
+legacy facade are tenant scoped. Static IAM source/document matching confirms
+missing serviceAccountName in both Cloud Run templates and absent IAM bindings;
+least-privilege conformity is BLOCKED, not VERIFIED. Full candidate CI pending.
+
+baselineFixed=false; productionApproved=false. PR remains DRAFT until all
+consumer migrations, data/client/Rules/job cutover and IAM evidence are complete.

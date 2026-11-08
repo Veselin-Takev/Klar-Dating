@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-const db = fs.readFileSync('src/server/db.ts', 'utf8');
+const db = fs.readFileSync('src/server/firestoreRepository/nativeDatabase.ts', 'utf8');
 const durable = fs.readFileSync('src/server/durableStore.ts', 'utf8');
 const devDocs = fs.readFileSync('docs/DEVELOPMENT.md', 'utf8');
 const failures = [];

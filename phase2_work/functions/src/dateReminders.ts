@@ -1,4 +1,5 @@
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getMaintenanceDb } from './runtime';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
@@ -11,7 +12,7 @@ export const sendDateRemindersCron = onSchedule({
   maxInstances: 1,
   retryCount: 2,
 }, async () => {
-  const db = getFirestore();
+  const db = getMaintenanceDb();
   const now = new Date().toISOString();
   const plans = await db.collectionGroup('datePlans')
     .where('reminderAt', '<=', now)

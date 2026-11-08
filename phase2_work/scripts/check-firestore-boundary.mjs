@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const allowed = path.resolve('src/server/db.ts');
+const allowed = path.resolve('src/server/firestoreRepository/nativeDatabase.ts');
 const roots = [path.resolve('src/server'), path.resolve('server.ts')];
 const violations = [];
 
@@ -36,7 +36,7 @@ for (const file of roots.flatMap(filesUnder)) {
 
 if (violations.length) {
   throw new Error(
-    'Firestore boundary failed: native Firebase Admin getFirestore access is only allowed in src/server/db.ts. Violations:\n' + violations.join('\n'),
+    'Firestore boundary failed: native Firebase Admin getFirestore access is only allowed in src/server/firestoreRepository/nativeDatabase.ts. Violations:\n' + violations.join('\n'),
   );
 }
 

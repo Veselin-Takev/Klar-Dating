@@ -89,6 +89,12 @@ jobs:
         run: |
           bun ci
           npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+      - name: Install locked Semgrep
+        if: steps.scope.outputs.full == 'true'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/klar-semgrep"
+          "$RUNNER_TEMP/klar-semgrep/bin/pip" install --disable-pip-version-check -r ../.semgrep/requirements.txt
+          echo "$RUNNER_TEMP/klar-semgrep/bin" >> "$GITHUB_PATH"
       - name: Enterprise static gates
         if: steps.scope.outputs.full == 'true'
         run: |

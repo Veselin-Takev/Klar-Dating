@@ -96,3 +96,22 @@ IAM_AND_ADMIN_BOUNDARIES.md is documentation, not privilege attestation.
 baselineFixed=false; productionApproved=false. PR #358 remains DRAFT and is not
 READY FOR HUMAN MERGE SIGN-OFF. No CERTIFIED_PROCEED. This metadata checkpoint
 references the immutable tested code SHA; its own automatic CI is separate.
+
+## Static IAM manifest matching — 2026-11-08
+
+serviceAccountName is absent from both Cloud Run source templates
+(deploy/templates/cloud-run.json and deploy/templates/service.json in phase2_work).
+No IAM role binding manifests or Terraform IAM resources are present in the
+reviewed repository inventory. Document/source consistency is checked by
+scripts/check-iam-manifest-matching.mjs; --certify exits nonzero. Therefore
+static IAM conformity cannot be VERIFIED as least privilege. Actual default
+runtime identities and inherited grants must not be inferred from absent fields.
+
+Native SDK factories are now confined to server/firestoreRepository and
+functions/src/firestoreRepository. db.ts remains a legacy compatibility facade,
+not a tenant-scoped repository. Functions reminder now uses the explicit
+maintenance database. This removes direct SDK creation from job code without
+pretending that the global query or the 50 legacy consumer files are migrated.
+Semgrep check-auth-boundary is a real pinned-tool CI gate with positive/negative
+fixtures; the older check:auth-boundary Node command alone was not Semgrep.
+The factory guard checks creation sites; it does not certify all legacy queries.

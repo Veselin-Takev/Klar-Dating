@@ -1,0 +1,28 @@
+rules:
+  - id: check-auth-boundary
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: Native Admin Firestore constructors must remain inside the repository infrastructure boundary.
+    paths:
+      exclude:
+        - '**/firestoreRepository/**'
+        - '**/*.test.ts'
+        - '**/*.spec.ts'
+    pattern-either:
+      - patterns:
+          - pattern-inside: |
+              import { ..., getFirestore as $GET, ... } from 'firebase-admin/firestore';
+              ...
+          - pattern: $GET(...)
+      - patterns:
+          - pattern-inside: |
+              import { ..., getFirestore, ... } from 'firebase-admin/firestore';
+              ...
+          - pattern: getFirestore(...)
+      - pattern: $ADMIN.firestore(...)
+      - patterns:
+          - pattern-inside: |
+              import * as $ADMIN from 'firebase-admin/firestore';
+              ...
+          - pattern: $ADMIN.getFirestore(...)
+      - pattern: new $ADMIN.Firestore(...)
