@@ -118,7 +118,7 @@
     "check:rate-limit-ipv6": "node scripts/check-rate-limit-ipv6.mjs",
     "check:onboarding-integrity": "node scripts/check-onboarding-integrity.mjs",
     "check:release-provenance": "node --test scripts/release-provenance-no-go-check.mjs && node scripts/check-release-provenance.mjs",
-    "check:firestore-boundary": "node scripts/check-firestore-boundary.mjs",
+    "check:firestore-boundary": "node scripts/check-firestore-boundary.mjs && node scripts/check-durable-store-policy.mjs",
     "check:rate-limit-distribution": "node scripts/check-rate-limit-distribution.mjs",
     "check:chat-read-path": "node scripts/check-chat-read-path.mjs",
     "check:workflow-layout": "node scripts/check-workflow-layout.mjs",

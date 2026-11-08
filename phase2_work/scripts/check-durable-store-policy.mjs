@@ -11,11 +11,11 @@ if (!db.includes("process.env.NODE_ENV === 'development' && process.env.KLAR_ALL
 if (!durable.includes("process.env.NODE_ENV === 'development' && process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK === 'true'")) {
   failures.push('durableStore.ts must independently enforce the production fallback boundary.');
 }
-const guardedFallbacks = durable.match(/allowFallback && isPermissionDenied\(e\)/g)?.length ?? 0;
+const guardedFallbacks = durable.match(/allowFallback && isPermissionDenied\([A-Za-z_$][\w$]*\)/g)?.length ?? 0;
 if (guardedFallbacks < 9) {
   failures.push(`durableStore.ts must guard all provider-error fallback branches; found ${guardedFallbacks}, expected at least 9.`);
 }
-if (/catch \(e: unknown\) \{\s*fallbackActive = true;/.test(durable)) {
+if (/catch \([A-Za-z_$][\w$]*: unknown\) \{\s*fallbackActive = true;/.test(durable)) {
   failures.push('durableStore.ts must never activate fallback for an arbitrary caught error.');
 }
 if (!devDocs.includes('KLAR_ALLOW_DURABLE_DB_FALLBACK=true')) {
