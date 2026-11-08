@@ -27,7 +27,7 @@ describe.runIf(Boolean(host))('native age and consent namespace boundaries',()=>
     await recordExplicitConsent(f.repo,f.uid,{art9_sexual_orientation:true});
     await revokeExplicitConsent(f.repo,f.uid,'all');
     for(const path of [`users/${f.uid}`,`public_profiles/${f.uid}`]) {
-      expect((await f.own(path).get()).data()?.sexualOrientation).toBeUndefined();
+      expect((await f.own(path).get()).data()?.sexualOrientation).toBeNull();
       expect((await f.foreign(path).get()).data()?.sexualOrientation).toBe('synthetic-sensitive');
       expect((await f.root(path).get()).data()?.sexualOrientation).toBe('synthetic-sensitive');
     }

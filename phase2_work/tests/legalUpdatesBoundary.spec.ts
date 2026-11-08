@@ -6,9 +6,9 @@ describe('legal updates enterprise boundary', () => {
     const route = fs.readFileSync('src/server/routes/legalUpdates.ts', 'utf8');
     const rules = fs.readFileSync('firestore.rules', 'utf8');
     const layout = fs.readFileSync('src/components/Layout.tsx', 'utf8');
-    expect(route).toContain("collection('legal_updates')");
-    expect(route).toContain("collection('legal_acknowledgements')");
-    expect(route).toContain('runTransaction');
+    expect(route).toContain("list('legal_updates'");
+    expect(route).toContain('`users/${uid}/legal_acknowledgements');
+    expect(route).toContain('db.transaction(');
     expect(rules).toContain('match /legal_updates/{updateId}');
     expect(rules).toContain('allow read, write: if false;');
     expect(rules).toContain('match /users/{userId}/legal_acknowledgements/{updateId}');

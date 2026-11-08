@@ -14,7 +14,7 @@ test('protected authentication verifies Firebase ID-token revocation', () => {
 
 test('Firebase identity is assigned only after verification and deletion-pending guard', () => {
   const verified = auth.indexOf('await authInstance.verifyIdToken');
-  const deletion = auth.indexOf("collection('account_deletions')");
+  const deletion = auth.indexOf('read(`account_deletions/${decodedToken.uid}`');
   const assigned = auth.indexOf('req.user = decodedToken');
   expect(verified >= 0 && deletion > verified && assigned > deletion).toBe(true);
 });

@@ -29,7 +29,7 @@ const mailPayload = z.object({callbackUrl: z.string().optional(), paidUntil: z.u
 const record = z.object({uid: z.string().optional(), type: z.string().optional(), template: z.string().optional(),
   status: z.string().optional(), retryCount: z.number().int().nonnegative().optional(), mailLease: z.string().nullable().optional(),
   count: z.number().int().nonnegative().optional(), windowStartedAt: z.number().finite().optional(),
-  payload: mailPayload.optional(), paidUntil: z.union([z.string(), z.number(), z.date()]).optional(), plan: z.string().optional(), grund: z.string().optional(), aktenzeichen: z.string().optional(), at: z.unknown(),
+  payload: mailPayload.optional(), paidUntil: z.union([z.string(), z.number(), z.date()]).optional(), plan: z.string().optional(), grund: z.string().optional(), aktenzeichen: z.string().optional(), at: z.unknown().optional(),
 }).passthrough();
 const apiKey = process.env.SENDGRID_API_KEY;
 const MAIL_LEASE_MS = 5 * 60_000;

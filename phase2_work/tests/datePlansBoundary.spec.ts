@@ -12,8 +12,8 @@ describe('date planning privacy boundaries', () => {
   it('uses UID-scoped server collections and disables direct client writes', () => {
     const route = fs.readFileSync('src/server/routes/datePlans.ts', 'utf8');
     const rules = fs.readFileSync('firestore.rules', 'utf8');
-    expect(route).toContain("collection('users').doc(uid).collection('datePlans')");
-    expect(route).toContain("collection('users').doc(uid).collection('dateAvailability')");
+    expect(route).toContain('`users/${uid}/datePlans');
+    expect(route).toContain('`users/${uid}/dateAvailability');
     expect(rules).toContain('match /users/{userId}/datePlans/{planId}');
     expect(rules).toContain('match /users/{userId}/dateAvailability/{availabilityId}');
   });
