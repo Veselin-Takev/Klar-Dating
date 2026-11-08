@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import type { Server } from 'node:http';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, assertVerificationPurgeRecordNotHeld, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -119,6 +119,31 @@ describe('verification storage compliance job authentication', () => {
   });
 });
 
+describe('Firestore record-level verification photo preservation hold', () => {
+  it.each([
+    [{}, 'legacy record without a hold'],
+    [{ photoPurgeHold: false }, 'photo purge hold explicitly released'],
+    [{ legalHold: false }, 'legal hold explicitly released'],
+    [{ photoPurgeHold: false, legalHold: false }, 'both holds explicitly released'],
+  ] as const)('accepts an explicitly not-held Firestore record %#', (data, _label) => {
+    expect(() => assertVerificationPurgeRecordNotHeld({ ...data })).not.toThrow();
+  });
+
+  it.each([
+    { photoPurgeHold: true },
+    { legalHold: true },
+    { photoPurgeHold: 'true' },
+    { legalHold: 'false' },
+    { photoPurgeHold: null },
+    { legalHold: { active: false } },
+    { photoPurgeHold: 0 },
+    { photoPurgeHold: false, legalHold: true },
+  ])('fails closed if a hold is asserted or malformed %#', data => {
+    expect(() => assertVerificationPurgeRecordNotHeld(data))
+      .toThrow('verification_photo_record_hold_or_invalid');
+  });
+});
+
 describe('fail-closed verification decision reconciliation', () => {
   it.each([
     [{ entscheidung: 'bestaetigt' }, 'approved'],
@@ -155,6 +180,12 @@ describe('decision-based verification object deletion safety', () => {
   it.each([
     { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
     { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
+    { label: 'string temporary hold', metadata: { generation: '12', temporaryHold: 'true' } },
+    { label: 'string event hold', metadata: { generation: '12', eventBasedHold: 'false' } },
+    { label: 'null temporary hold', metadata: { generation: '12', temporaryHold: null } },
+    { label: 'null event hold', metadata: { generation: '12', eventBasedHold: null } },
+    { label: 'numeric temporary hold', metadata: { generation: '12', temporaryHold: 0 } },
+    { label: 'object event hold', metadata: { generation: '12', eventBasedHold: { active: false } } },
     { label: 'missing generation', metadata: { temporaryHold: false } },
     { label: 'non-decimal generation', metadata: { generation: 'other' } },
     { label: 'invalid numeric generation', metadata: { generation: -1 } },

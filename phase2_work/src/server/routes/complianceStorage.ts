@@ -14,13 +14,18 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null }, ...unknown[]]>;
+  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: unknown; eventBasedHold?: unknown }, ...unknown[]]>;
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
 export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
-  if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
+  // The Cloud Storage response is a trust boundary: only absent or literal
+  // boolean false is an unheld object. Unknown, null, string and numeric
+  // hold values must not be interpreted as permission to destroy a photo.
+  if (!metadata
+    || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+    || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
   }
   const generation = metadata.generation;
@@ -116,9 +121,26 @@ export function readConsistentVerificationDecision(
   return canonical ?? legacy ?? 'pending';
 }
 
+/**
+ * A record-level legal / preservation hold must deny even otherwise-expired
+ * verification photos. These fields are explicitly introduced as a review
+ * contract; unset is legacy state, while malformed present values fail closed.
+ * This is checked in every Firestore eligibility transaction, not a substitute
+ * for cross-service all-writer fencing after the last transaction.
+ */
+export function assertVerificationPurgeRecordNotHeld(data: Record<string, unknown>): void {
+  for (const field of ['photoPurgeHold', 'legalHold'] as const) {
+    const value = data[field];
+    if (value !== undefined && value !== false) {
+      throw new Error('verification_photo_record_hold_or_invalid');
+    }
+  }
+}
+
 function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
+  if (data) assertVerificationPurgeRecordNotHeld(data);
   const status = data ? readConsistentVerificationDecision(data) : 'pending';
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath
