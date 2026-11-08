@@ -19,7 +19,7 @@ describe('GET /api/kyc/status fallback behavior', () => {
       next();
     });
     app.use('/api/kyc', createKycRouter({
-      db: () => { throw new Error('DB should not be reached'); },
+      repository: () => { throw new Error('DB should not be reached'); },
       config: () => { throw new Error('Config should not be reached'); },
     } as any));
     const server = createServer(app);
@@ -37,7 +37,7 @@ describe('GET /api/kyc/status fallback behavior', () => {
 
   it('returns status: unavailable with 200 OK when KYC service is disabled/unavailable', async () => {
     const deps = {
-      db: () => { throw new Error('DB should not be reached when KYC disabled'); },
+      repository: () => { throw new Error('DB should not be reached when KYC disabled'); },
       config: () => { throw new KycError(503, 'kyc_unavailable'); },
     };
 

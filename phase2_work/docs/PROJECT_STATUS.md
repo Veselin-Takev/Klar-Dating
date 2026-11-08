@@ -1875,3 +1875,16 @@ markers are migrated and reviewed. No live data or payment operation was perform
 baselineFixed=false; productionApproved=false. PR #358 remains DRAFT.
 STOP for the Wave 2 review instruction; no CERTIFIED_PROCEED. This final metadata
 checkpoint references the immutable tested code SHA; its automatic CI is separate.
+
+## Wave 2 source checkpoint — 2026-11-08
+
+**10/50 migrated candidate files, 40 remaining**. [Detailed scope and limitations](security/MIGRATION_WAVE2.md).
+KYC sessions/webhooks/recovery, contracts/refund-review ledger, subscription reads,
+reminder/expiry jobs and signed compliance processing now use the tenant repository.
+C/D/E remain IN_PROGRESS: primary profiles/Auth/age gates, reset/mail, consent,
+audit/export and deletion integrations still require coordinated migration.
+Scoped deletion jobs fail closed rather than entering the root-based legacy worker.
+No live cutover or cloud changes were executed. Full changed-candidate CI pending;
+the previous 1,561 PASS remains historical until a new complete result is recorded.
+Pinned anti-bypass Semgrep: 0 local findings. Additional auto scan: 17 open findings.
+baselineFixed=false; productionApproved=false; PR #358 DRAFT.

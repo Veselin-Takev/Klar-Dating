@@ -15,7 +15,8 @@ import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
-import { ContractError, acceptDeclaration, declarationSchema } from './contracts';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { ContractError, acceptDeclaration, declarationSchema, contractRecord } from './contracts';
 import {
   CHALLENGE_TTL_MS,
   DAILY_CONTACTS,
@@ -398,7 +399,7 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
 // jederzeit fristlos kündbar — der Anbieter verliert die Vertragsbindung.
 
 async function ladeAbo(uidStr: string) {
-  const d = (await db().collection('subscriptions').doc(uidStr).get()).data() ?? {};
+  const d = await getServiceRepository('payments').read(`subscriptions/${uidStr}`, contractRecord) ?? {};
   return {
     plan: d.plan === 'plus' ? ('plus' as const) : ('frei' as const),
     startedAt: zuDatum(d.startedAt),
@@ -437,20 +438,20 @@ async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'c
       // Identity Toolkit API may be offline/disabled; fallback to token claims
     }
     if (!email) { res.status(400).json({ code: 'confirmation_email_required' }); return; }
-    const profile = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
-    const subscription = await db().collection('subscriptions').doc(uid(req)).get();
-    const subscriptionData = subscription.data() ?? {};
+    const repository = getServiceRepository('payments');
+    const profile = await repository.read(`users/${uid(req)}`, contractRecord);
+    const subscriptionData = await repository.read(`subscriptions/${uid(req)}`, contractRecord) ?? {};
+    if (!profile || await repository.read(`account_deletions/${uid(req)}`, contractRecord)) { res.status(409).json({ code: 'account_unavailable' }); return; }
     if (kind === 'cancel' && subscriptionData.plan !== 'plus') { res.status(409).json({ code: 'no_active_subscription' }); return; }
-    const terminationAt = kind === 'cancel' && subscriptionData.paidUntil instanceof Date ? subscriptionData.paidUntil :
-      kind === 'cancel' && typeof subscriptionData.paidUntil?.toDate === 'function' ? subscriptionData.paidUntil.toDate() : null;
+    const terminationAt = kind === 'cancel' ? zuDatum(subscriptionData.paidUntil) : null;
     const requestedEnd = terminationAt instanceof Date && !Number.isNaN(terminationAt.getTime()) ? terminationAt.toISOString().slice(0, 10) : '';
     const input = declarationSchema.parse({ requestId: req.body?.requestId ?? randomUUID(), kind,
-      language: ['de', 'en', 'es', 'fr'].includes(profile?.language) ? profile.language : 'de',
+      language: ['de', 'en', 'es', 'fr'].includes(profile.language ?? '') ? profile.language : 'de',
       name: name, email: email,
       contract: profile?.subscriptionId || 'Klar Plus', reason: req.body?.grund ?? '', cancellationType: 'ordinary', requestedEnd });
-    const receipt = await acceptDeclaration(db(), input, uid(req), { terminationAt });
+    const receipt = await acceptDeclaration(repository, input, uid(req), { terminationAt });
     const { deliverContractReceipt } = await import('./complianceJobs');
-    try { await deliverContractReceipt(receipt.id, db()); } catch { /* The declaration remains accepted. */ }
+    try { await deliverContractReceipt(receipt.id, repository); } catch { /* The declaration remains accepted. */ }
     res.status(202).json({ ok: true, status: 'pending', receipt });
   } catch (error) {
     if (error instanceof ContractError) { res.status(error.status).json({ code: error.code }); return; }

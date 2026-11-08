@@ -21,7 +21,7 @@ export class TenantAwareFirestoreRepository {
     if (typeof path !== 'string') throw new Error('tenant_document_path_invalid');
     const parts = path.split('/');
     if (parts.length < (document ? 2 : 1) || (parts.length % 2 === 0) !== document || parts[0] === 'tenants'
-        || parts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) throw new Error('tenant_document_path_invalid');
+        || parts.some((part, index) => !(index % 2 === 1 ? /^[A-Za-z0-9_:-]+$/ : /^[A-Za-z0-9_-]+$/).test(part))) throw new Error('tenant_document_path_invalid');
     return this.#prefix + path;
   }
   #query(path: string, options: TenantQuery): Query {

@@ -21,9 +21,13 @@ export function getMaintenanceDb() {
 }
 
 /** Scheduler tenant is deployer-controlled configuration, never payload data. */
-export function getMaintenanceRepository() {
+export function getMaintenanceTenantId() {
   if (process.env.KLAR_TENANT_MIGRATION_READY !== 'true') throw new Error('tenant_migration_not_ready');
   const tenant = process.env.KLAR_MAINTENANCE_TENANT_ID;
-  if (!tenant) throw new Error('maintenance_tenant_required');
+  if (!tenant || !/^[A-Za-z0-9_-]{1,64}$/.test(tenant)) throw new Error('maintenance_tenant_required');
+  return tenant;
+}
+export function getMaintenanceRepository() {
+  const tenant = getMaintenanceTenantId();
   return new TenantAwareFirestoreRepository(getMaintenanceDb(), tenant);
 }

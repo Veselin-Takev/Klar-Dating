@@ -194,3 +194,13 @@ baselineFixed=false; productionApproved=false. PR #358 remains DRAFT for review
 of these bounded batches. Work stops here for the next review step, with no
 CERTIFIED_PROCEED. This metadata checkpoint refers to the immutable tested code
 SHA; its own automatic CI is separate.
+
+## Wave 2 source checkpoint — 2026-11-08
+
+Source migration: 10/50 candidates, 40 still legacy. KYC, contract/refund ledger,
+subscription reader, reminder/expiry Functions and compliance worker use closed
+scoped repository operations. Signed API maintenance jobs reject missing/foreign
+tenant context. Deployer selects scheduler namespace; API supports default only.
+Scoped deletion rows are never passed into the root-based deletion worker.
+All production migration flags remain OFF; effective IAM and cross-service erasure
+fencing are unverified. See phase2_work/docs/security/MIGRATION_WAVE2.md.

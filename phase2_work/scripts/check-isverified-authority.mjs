@@ -24,8 +24,8 @@ for (const file of files) {
   }
 }
 const kyc = fs.readFileSync('src/server/verification/diditKyc.ts', 'utf8');
-if (!kyc.includes("tx.update(userRef, { isVerified: approved")) throw new Error('Signed Didit webhook is not the identity authority.');
-if (!kyc.includes("tx.update(publicProfile.ref, { isVerified: approved")) throw new Error('Public verification state is not synchronized from the signed provider event.');
+if (!kyc.includes("tx.write(userRef, kycRecord, { isVerified: approved")) throw new Error('Signed Didit webhook is not the identity authority.');
+if (!kyc.includes("tx.write(`public_profiles/${event.vendor_data}`, kycRecord, { isVerified: approved")) throw new Error('Public verification state is not synchronized from the signed provider event.');
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 if (!rules.includes("!('isVerified' in request.resource.data)")) throw new Error('Firestore client-write protection for isVerified is missing.');
 if (clientFailures.length) {

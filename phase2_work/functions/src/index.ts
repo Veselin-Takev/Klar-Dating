@@ -1,3 +1,4 @@
+import { getMaintenanceTenantId } from './runtime';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { createHmac } from 'node:crypto';
@@ -25,7 +26,9 @@ export const reconcileDiditKycCron = onSchedule({
   if (!origin || secret.length < 32) throw new Error('Invalid KYC reconciliation configuration');
   const url = new URL(origin);
   if (url.protocol !== 'https:' || url.origin !== origin) throw new Error('KLAR_API_ORIGIN must be an HTTPS origin without a path');
-  const body = JSON.stringify({ timestamp: Date.now() });
+  const tenantId = getMaintenanceTenantId();
+  if (tenantId !== 'default') throw new Error('api_maintenance_tenant_unsupported');
+  const body = JSON.stringify({ timestamp: Date.now(), tenantId });
   const signature = createHmac('sha256', secret).update(body).digest('hex');
   const response = await fetch(`${origin}/internal/kyc/reconcile`, {
     method: 'POST', redirect: 'error', signal: AbortSignal.timeout(100_000),

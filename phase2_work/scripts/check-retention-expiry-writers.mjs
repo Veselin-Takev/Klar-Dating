@@ -23,7 +23,7 @@ const writers = [
 for (const [group, file, marker] of writers) {
   assert(groups.has(group), 'Expiry-writing collection missing from TTL plan: ' + group);
   const code = read(file);
-  assert(code.includes("'" + group + "'") || code.includes(group + "/${claimed}"),
+  assert(code.includes("'" + group + "'") || code.includes(group + "/${sessionId}"),
     'Actual TTL writer group missing: ' + group);
   assert(code.includes(marker), 'Expected expiry writer pattern missing: ' + group);
 }
@@ -53,14 +53,20 @@ for (const [label, file, begin] of [
   // One bounded function block avoids accepting an unrelated write elsewhere.
   let section = code.slice(start, start + 3800);
   if (label === 'account_deletion_rate_limits') section = code.slice(Math.max(0, start - 600), start + 2200);
-  findDocumentWrite(section, 'set', label);
-  findDocumentWrite(section, 'update', label);
+  if (label === 'kyc_start_rate_limits') {
+    const writes = [...section.matchAll(/tx\.write\(ref, kycRecord,\s*\{([^}]+)\}/g)];
+    assert.equal(writes.length, 2, 'KYC limiter must keep separate creation and increment paths');
+    for (const write of writes) assert(writeWithDate.test(write[1]), 'KYC limiter create/increment must write expiresAt as Date');
+  } else {
+    findDocumentWrite(section, 'set', label);
+    findDocumentWrite(section, 'update', label);
+  }
 }
 const limiter = read('src/server/distributedRateLimiter.ts');
 findDocumentWrite(limiter, 'set', 'shared_chat_distributed_rate_limit');
 findDocumentWrite(limiter, 'update', 'shared_chat_distributed_rate_limit');
 const kyc = read('src/server/verification/diditKyc.ts');
-const reconciliation = kyc.match(/tx\.set\(db\.doc\(`kyc_reconciliation_events\/\$\{claimed\}`\),\s*\{([^}]+)\}/);
+const reconciliation = kyc.match(/tx\.write\(`kyc_reconciliation_events\/\$\{sessionId\}`, kycRecord,\s*\{([^}]+)\}/);
 assert(reconciliation, 'KYC reconciliation write missing');
 assert(writeWithDate.test(reconciliation[1]), 'KYC reconciliation must write expiresAt as Date');
 console.log('PASS: 7 previously untracked expiry-writing Firestore collection groups are covered by 20-group TTL plan (source-only).');

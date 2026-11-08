@@ -1,3 +1,4 @@
+import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
 import { TenantAwareFirestoreRepository } from './src/server/TenantAwareFirestoreRepository';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
 import { logSafeFailure } from './src/server/safeErrorLog';
@@ -482,7 +483,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Stripe signatures require the untouched request bytes (Phase 1b — see routes/webhooks.ts).
   mountStripeRawBody(app);
   app.use('/api/webhooks', createWebhooksRouter());
-  const kycDependencies = { db: getFirestore, config: diditConfig };
+  const kycDependencies = { repository: () => getServiceRepository('auth'), config: diditConfig };
   app.use('/vertraege', createPublicContractsRouter());
   app.use('/internal/compliance', createComplianceJobsRouter());
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));

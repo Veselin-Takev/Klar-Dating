@@ -1,0 +1,117 @@
+{
+  "scanner": "Semgrep 1.184.0",
+  "configuration": "auto (registry-selected, not pinned)",
+  "scope": [
+    "src/server",
+    "server.ts",
+    "functions/src"
+  ],
+  "exitCode": 1,
+  "findings": 17,
+  "errors": 0,
+  "stage": "before Wave 2 changes were completed",
+  "results": [
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "src/server/analytics.ts",
+      "line": 21,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 178,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 179,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 181,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 181,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 182,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 183,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 188,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 194,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+      "path": "src/server/contracts.ts",
+      "line": 196,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "src/server/distributedRateLimiter.ts",
+      "line": 55,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket",
+      "path": "src/server/emulatorCsp.ts",
+      "line": 53,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.express-data-exfiltration.express-data-exfiltration",
+      "path": "src/server/middleware/requestDiagnostics.ts",
+      "line": 36,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "src/server/platform/riskEngine.ts",
+      "line": 79,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection",
+      "path": "src/server/routes/aiPassgenauigkeit.ts",
+      "line": 109,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "src/server/verification/VerificationManager.ts",
+      "line": 15,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "src/server/verification/VerificationManager.ts",
+      "line": 24,
+      "triage": "OPEN"
+    }
+  ]
+}

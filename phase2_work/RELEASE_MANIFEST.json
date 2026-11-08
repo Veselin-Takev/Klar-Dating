@@ -5,10 +5,10 @@
   "node": "22.23.3",
   "productionData": "no bundled sample profiles",
   "localLaunchCities": [
-    "München",
+    "M\u00fcnchen",
     "Berlin",
     "Hamburg",
-    "Köln",
+    "K\u00f6ln",
     "Frankfurt am Main"
   ],
   "foundingMembers": 500,
@@ -233,7 +233,7 @@
     "adminRepository": {
       "implementation": "TenantAwareFirestoreRepository",
       "adoption": "MIGRATION_BLOCKED",
-      "legacyConsumerFiles": 45,
+      "legacyConsumerFiles": 40,
       "iamEvidence": "DOCUMENTED_SOURCE_ONLY_LIVE_UNVERIFIED",
       "report": "docs/security/IAM_AND_ADMIN_BOUNDARIES.md",
       "certification": "FAIL_LEGACY_UNSCOPED_ACCESS_REMAINS",
@@ -264,9 +264,9 @@
       "iamCertification": "IMPLEMENTED_NOT_PROVISIONED"
     },
     "batchMigration": {
-      "migrated": 5,
+      "migrated": 10,
       "total": 50,
-      "remaining": 45,
+      "remaining": 40,
       "register": "phase2_work/docs/security/MIGRATION_BATCHES.json",
       "iam": "IMPLEMENTED_STATIC_VALIDATION_PASS_NOT_PROVISIONED",
       "terraformValidation": "PASS_LOCAL_1.13.5",
@@ -280,7 +280,7 @@
       "distinctAcrossTheseSuites": 1552,
       "additionalIamChecks": 6,
       "dedicatedRulesRepeated": 92,
-      "status": "BATCHES_A_B_VERIFIED_REVIEW_PENDING",
+      "status": "WAVE2_PARTIAL_SOURCE_VERIFICATION_PENDING",
       "wave1": {
         "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
         "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
@@ -295,7 +295,19 @@
         "baselineFixed": false
       },
       "batchC": "IN_PROGRESS",
-      "batchD": "IN_PROGRESS"
+      "batchD": "IN_PROGRESS",
+      "batchE": "IN_PROGRESS",
+      "wave2": {
+        "status": "PENDING_FULL_CI",
+        "autoSemgrep": {
+          "result": "FAILED",
+          "findings": 17,
+          "scope": "src/server server.ts functions/src",
+          "version": "1.184.0",
+          "note": "Registry auto rules are independent from pinned check-auth-boundary; metrics required by auto. Findings not suppressed."
+        },
+        "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+      }
     }
   }
 }

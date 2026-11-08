@@ -1,8 +1,8 @@
 import { readBoundedResponse } from '../boundedResponse';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { Router, text, type Request } from 'express';
+import { Router, text, raw, type Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { z } from 'zod';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
@@ -83,7 +83,15 @@ const envelope = z.object({
     id_verifications: z.array(step).max(16).optional(), liveness_checks: z.array(step).max(16).optional(), face_matches: z.array(step).max(16).optional(),
   }).optional(),
 });
-export type KycDependencies = { db: () => Firestore; config: () => DiditConfig; fetch?: typeof fetch; now?: () => number };
+const kycRecord = z.object({
+  uid: z.string().min(1).optional(), sessionId: z.string().uuid().optional(),
+  workflowVersion: z.number().int().positive().optional(), eventTime: z.number().nonnegative().optional(),
+  revision: z.number().int().nonnegative().optional(), status: z.string().optional(), reconcileLease: z.string().uuid().optional(),
+  reconcileLeaseUntil: z.number().nonnegative().optional(), isAdult: z.boolean().optional(), isVerified: z.boolean().optional(),
+  lease: z.string().uuid().optional(), leaseUntil: z.number().nonnegative().optional(),
+  day: z.string().optional(), count: z.number().int().nonnegative().optional(), windowStartedAt: z.number().optional(),
+}).passthrough();
+export type KycDependencies = { repository: () => TenantAwareFirestoreRepository; config: () => DiditConfig; fetch?: typeof fetch; now?: () => number };
 export type KycAccountStatus = 'pending' | 'review' | 'approved';
 const RECENT_AUTH_MAX_AGE_SECONDS = 300;
 const approvedSteps = (steps: z.infer<typeof step>[] | undefined) => !!steps?.length && steps.every(result => result.status === 'Approved');
@@ -146,35 +154,35 @@ export async function processDiditWebhook(deps: KycDependencies, body: unknown, 
   const decision = event.decision;
   const approved = event.status === 'Approved' && decision?.status === 'Approved' && decision.session_id === event.session_id
     && approvedSteps(decision.id_verifications) && approvedSteps(decision.liveness_checks) && approvedSteps(decision.face_matches);
-  const db = deps.db();
-  return db.runTransaction(async tx => {
-    const eventRef = db.doc(`kyc_events/${event.event_id}`);
-    const sessionRef = db.doc(`kyc_sessions/${event.session_id}`);
-    const accountRef = db.doc(`kyc_accounts/${event.vendor_data}`);
-    const userRef = db.doc(`users/${event.vendor_data}`);
+  const db = deps.repository();
+  return db.transaction(async tx => {
+    const eventRef = `kyc_events/${event.event_id}`;
+    const sessionRef = `kyc_sessions/${event.session_id}`;
+    const accountRef = `kyc_accounts/${event.vendor_data}`;
+    const userRef = `users/${event.vendor_data}`;
     const [receipt, session, account, user, deletion, publicProfile] = await Promise.all([
-      tx.get(eventRef), tx.get(sessionRef), tx.get(accountRef), tx.get(userRef),
-      tx.get(db.doc(`account_deletions/${event.vendor_data}`)), tx.get(db.doc(`public_profiles/${event.vendor_data}`)),
+      tx.read(eventRef, kycRecord), tx.read(sessionRef, kycRecord), tx.read(accountRef, kycRecord), tx.read(userRef, kycRecord),
+      tx.read(`account_deletions/${event.vendor_data}`, kycRecord), tx.read(`public_profiles/${event.vendor_data}`, kycRecord),
     ]);
-    if (receipt.exists) return { duplicate: true };
-    if (deletion.exists) return { duplicate: false, applied: false };
+    if (receipt !== null) return { duplicate: true };
+    if (deletion !== null) return { duplicate: false, applied: false };
     // A provider may deliver before the session-create transaction commits. Do not ACK a lost event.
-    if (!session.exists && !deletion.exists) throw new KycError(503, 'session_pending');
-    const bound = session.data();
+    if (session === null && deletion === null) throw new KycError(503, 'session_pending');
+    const bound = session;
     if (bound && (bound.uid !== event.vendor_data || bound.workflowVersion !== event.workflow_version)) throw new KycError(400, 'session_mismatch');
     const previousTime = bound?.eventTime ?? 0;
     // Conflicting decisions at the same second are resolved toward NOT granting trust.
     const newer = event.created_at > previousTime || (event.created_at === previousTime && !approved);
-    const applicable = user.exists && !deletion.exists && account.data()?.sessionId === event.session_id && newer;
-    const currentStatus = account.data()?.status as KycAccountStatus | undefined;
+    const applicable = user !== null && deletion === null && account?.sessionId === event.session_id && newer;
+    const currentStatus = z.enum(['pending', 'review', 'approved']).optional().parse(account?.status);
     const targetStatus = applicable ? transitionKycAccountStatus(currentStatus, event.status, approved) : currentStatus ?? 'pending';
-    if (bound && newer) tx.update(sessionRef, { status: event.status, eventTime: event.created_at, approved, url: null });
+    if (bound && newer) tx.write(sessionRef, kycRecord, { status: event.status, eventTime: event.created_at, approved, url: null }, { merge: true });
     if (applicable) {
-      tx.update(accountRef, { status: targetStatus, updatedAt: new Date(now) });
-      tx.update(userRef, { isVerified: approved, verificationProvider: 'didit', identityVerificationStatus: approved ? 'approved' : 'pending' });
-      if (publicProfile.exists) tx.update(publicProfile.ref, { isVerified: approved });
+      tx.write(accountRef, kycRecord, { status: targetStatus, revision: (account?.revision ?? 0) + 1, updatedAt: new Date(now) }, { merge: true });
+      tx.write(userRef, kycRecord, { isVerified: approved, verificationProvider: 'didit', identityVerificationStatus: approved ? 'approved' : 'pending' }, { merge: true });
+      if (publicProfile !== null) tx.write(`public_profiles/${event.vendor_data}`, kycRecord, { isVerified: approved }, { merge: true });
     }
-    tx.create(eventRef, { sessionId: event.session_id, uid: event.vendor_data, applied: applicable,
+    tx.create(eventRef, kycRecord, { sessionId: event.session_id, uid: event.vendor_data, applied: applicable,
       receivedAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000) });
     return { duplicate: false, applied: applicable };
   });
@@ -192,61 +200,60 @@ export function validKycReconciliationJobSignature(body: Buffer, signature: stri
 
 export async function reconcileDiditSessions(deps: KycDependencies, maxSessions = 10) {
   const config = deps.config();
-  const db = deps.db();
+  const db = deps.repository();
   const now = (deps.now ?? Date.now)();
-  const candidates = await db.collection('kyc_accounts')
-    .where('status', 'in', ['pending', 'review'])
-    .limit(Math.max(1, Math.min(25, maxSessions)))
-    .get();
+  const candidates = await db.list('kyc_accounts', kycRecord, {where: ['status', 'in', ['pending', 'review']], limit: Math.max(1, Math.min(25, maxSessions))});
   let checked = 0; let changed = 0; let failed = 0;
-  for (const account of candidates.docs) {
+  for (const account of candidates) {
     const uid = account.id;
     const lease = randomUUID();
-    const claimed = await db.runTransaction(async tx => {
-      const current = await tx.get(account.ref);
-      const data = current.data();
+    const claimed = await db.transaction(async tx => {
+      const [current, owner, deletion] = await Promise.all([tx.read(`kyc_accounts/${uid}`, kycRecord), tx.read(`users/${uid}`, kycRecord), tx.read(`account_deletions/${uid}`, kycRecord)]);
+      if (!owner || deletion) return null;
+      const data = current;
       const sessionId = typeof data?.sessionId === 'string' ? data.sessionId : '';
-      if (!sessionId || !['pending', 'review'].includes(data?.status) || (data?.reconcileLeaseUntil ?? 0) > now) return null;
-      tx.update(account.ref, { reconcileLease: lease, reconcileLeaseUntil: now + 60_000 });
-      return sessionId;
+      if (!sessionId || !['pending', 'review'].includes(data?.status ?? '') || (data?.reconcileLeaseUntil ?? 0) > now) return null;
+      tx.write(`kyc_accounts/${uid}`, kycRecord, { reconcileLease: lease, reconcileLeaseUntil: now + 60_000 }, { merge: true });
+      return {sessionId, revision: data?.revision ?? 0};
     });
     if (!claimed) continue;
+    const sessionId = claimed.sessionId;
     checked += 1;
     try {
-      const response = await (deps.fetch ?? fetch)(`https://verification.didit.me/v3/session/${encodeURIComponent(claimed)}/decision/`, {
+      const response = await (deps.fetch ?? fetch)(`https://verification.didit.me/v3/session/${encodeURIComponent(sessionId)}/decision/`, {
         method: 'GET', headers: { 'x-api-key': config.apiKey }, redirect: 'error', signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) throw new Error(`didit_${response.status}`);
       const result = z.object({
         session_id: z.string().uuid(), status: z.string().min(1).max(64),
-        id_verifications: z.array(step).optional(), liveness_checks: z.array(step).optional(), face_matches: z.array(step).optional(),
+        id_verifications: z.array(step).max(16).optional(), liveness_checks: z.array(step).max(16).optional(), face_matches: z.array(step).max(16).optional(),
       }).safeParse(await readDiditJson(response));
-      if (!result.success || result.data.session_id !== claimed) throw new Error('invalid_provider_response');
+      if (!result.success || result.data.session_id !== sessionId) throw new Error('invalid_provider_response');
       const approved = result.data.status === 'Approved' && approvedSteps(result.data.id_verifications)
         && approvedSteps(result.data.liveness_checks) && approvedSteps(result.data.face_matches);
-      const applied = await db.runTransaction(async tx => {
+      const applied = await db.transaction(async tx => {
         const [currentAccount, user, deletion, publicProfile] = await Promise.all([
-          tx.get(account.ref), tx.get(db.doc(`users/${uid}`)), tx.get(db.doc(`account_deletions/${uid}`)), tx.get(db.doc(`public_profiles/${uid}`)),
+          tx.read(`kyc_accounts/${uid}`, kycRecord), tx.read(`users/${uid}`, kycRecord), tx.read(`account_deletions/${uid}`, kycRecord), tx.read(`public_profiles/${uid}`, kycRecord),
         ]);
-        if (deletion.exists || currentAccount.data()?.sessionId !== claimed || currentAccount.data()?.reconcileLease !== lease) return false;
-        const currentStatus = currentAccount.data()?.status as KycAccountStatus | undefined;
+        if (!user || deletion !== null || currentAccount?.sessionId !== sessionId || currentAccount?.reconcileLease !== lease || (currentAccount?.revision ?? 0) !== claimed.revision) return false;
+        const currentStatus = z.enum(['pending', 'review', 'approved']).optional().parse(currentAccount?.status);
         const targetStatus = transitionKycAccountStatus(currentStatus, result.data.status, approved);
-        if (currentStatus === targetStatus && (targetStatus !== 'approved' || user.data()?.isVerified === true)) {
-          tx.update(account.ref, { reconcileLeaseUntil: 0, lastReconciledAt: new Date(now) });
+        if (currentStatus === targetStatus && (targetStatus !== 'approved' || user?.isVerified === true)) {
+          tx.write(`kyc_accounts/${uid}`, kycRecord, { reconcileLeaseUntil: 0, lastReconciledAt: new Date(now) }, { merge: true });
           return false;
         }
-        tx.update(account.ref, { status: targetStatus, updatedAt: new Date(now), lastReconciledAt: new Date(now), reconcileLeaseUntil: 0 });
-        if (user.exists) tx.update(user.ref, { isVerified: approved, verificationProvider: 'didit', identityVerificationStatus: approved ? 'approved' : 'pending' });
-        if (publicProfile.exists) tx.update(publicProfile.ref, { isVerified: approved });
-        tx.set(db.doc(`kyc_reconciliation_events/${claimed}`), { uid, sessionId: claimed, status: result.data.status, approved, reconciledAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000) }, { merge: true });
+        tx.write(`kyc_accounts/${uid}`, kycRecord, { status: targetStatus, revision: claimed.revision + 1, updatedAt: new Date(now), lastReconciledAt: new Date(now), reconcileLeaseUntil: 0 }, { merge: true });
+        if (user !== null) tx.write(`users/${uid}`, kycRecord, { isVerified: approved, verificationProvider: 'didit', identityVerificationStatus: approved ? 'approved' : 'pending' }, { merge: true });
+        if (publicProfile !== null) tx.write(`public_profiles/${uid}`, kycRecord, { isVerified: approved }, { merge: true });
+        tx.write(`kyc_reconciliation_events/${sessionId}`, kycRecord, { uid, sessionId, status: result.data.status, approved, reconciledAt: new Date(now), expiresAt: new Date(now + 30 * 86400_000) }, { merge: true });
         return true;
       });
       if (applied) changed += 1;
     } catch {
       failed += 1;
-      await db.runTransaction(async tx => {
-        const current = await tx.get(account.ref);
-        if (current.data()?.reconcileLease === lease) tx.update(account.ref, { reconcileLeaseUntil: 0, lastReconciledAt: new Date(now) });
+      await db.transaction(async tx => {
+        const current = await tx.read(`kyc_accounts/${uid}`, kycRecord);
+        if (current?.reconcileLease === lease) tx.write(`kyc_accounts/${uid}`, kycRecord, { reconcileLeaseUntil: 0, lastReconciledAt: new Date(now) }, { merge: true });
       }).catch(() => undefined);
     }
   }
@@ -254,18 +261,18 @@ export async function reconcileDiditSessions(deps: KycDependencies, maxSessions 
 }
 
 export async function startDiditSession(deps: KycDependencies, uid: string, language: string) {
-  const config = deps.config(); const db = deps.db(); const now = (deps.now ?? Date.now)();
-  const accountRef = db.doc(`kyc_accounts/${uid}`); const lease = randomUUID();
+  const config = deps.config(); const db = deps.repository(); const now = (deps.now ?? Date.now)();
+  const accountRef = `kyc_accounts/${uid}`; const lease = randomUUID();
   const day = new Date(now).toISOString().slice(0, 10);
-  await db.runTransaction(async tx => {
-    const [user, account, deletion] = await Promise.all([tx.get(db.doc(`users/${uid}`)), tx.get(accountRef), tx.get(db.doc(`account_deletions/${uid}`))]);
-    if (!user.exists || user.data()?.isAdult !== true || deletion.exists) throw new KycError(409, 'account_unavailable');
-    if (account.data()?.status === 'approved') throw new KycError(409, 'already_verified');
-    const data = account.data();
+  await db.transaction(async tx => {
+    const [user, account, deletion] = await Promise.all([tx.read(`users/${uid}`, kycRecord), tx.read(accountRef, kycRecord), tx.read(`account_deletions/${uid}`, kycRecord)]);
+    if (user === null || user?.isAdult !== true || deletion !== null) throw new KycError(409, 'account_unavailable');
+    if (account?.status === 'approved') throw new KycError(409, 'already_verified');
+    const data = account;
     if ((data?.leaseUntil ?? 0) > now) throw new KycError(409, 'kyc_in_progress');
-    const count = data?.day === day ? data.count : 0;
+    const count = data?.day === day ? data.count ?? 0 : 0;
     if (count >= 3) throw new KycError(429, 'kyc_daily_limit');
-    tx.set(accountRef, { day, count: count + 1, lease, leaseUntil: now + 60_000,
+    tx.write(accountRef, kycRecord, { day, count: count + 1, lease, leaseUntil: now + 60_000,
       consentVersion: config.privacyVersion, consentAt: new Date(now) }, { merge: true });
   });
   try {
@@ -280,17 +287,17 @@ export async function startDiditSession(deps: KycDependencies, uid: string, lang
     }).safeParse(await readDiditJson(response));
     if (!result.success) throw new KycError(502, 'invalid_provider_response');
     const session = result.data;
-    await db.runTransaction(async tx => {
-      const [account, deletion] = await Promise.all([tx.get(accountRef), tx.get(db.doc(`account_deletions/${uid}`))]);
-      if (deletion.exists || account.data()?.lease !== lease) throw new KycError(409, 'account_unavailable');
-      tx.set(db.doc(`kyc_sessions/${session.session_id}`), { uid, workflowVersion: session.workflow_version, createdAt: new Date(now) }, { merge: true });
-      tx.update(accountRef, { sessionId: session.session_id, status: 'pending', leaseUntil: 0 });
+    await db.transaction(async tx => {
+      const [account, deletion] = await Promise.all([tx.read(accountRef, kycRecord), tx.read(`account_deletions/${uid}`, kycRecord)]);
+      if (deletion !== null || account?.lease !== lease) throw new KycError(409, 'account_unavailable');
+      tx.write(`kyc_sessions/${session.session_id}`, kycRecord, { uid, workflowVersion: session.workflow_version, createdAt: new Date(now) }, { merge: true });
+      tx.write(accountRef, kycRecord, { sessionId: session.session_id, revision: (account?.revision ?? 0) + 1, status: 'pending', leaseUntil: 0 }, { merge: true });
     });
     return { sessionId: session.session_id, url: session.url };
   } finally {
-    await db.runTransaction(async tx => {
-      const account = await tx.get(accountRef);
-      if (account.data()?.lease === lease) tx.update(accountRef, { leaseUntil: 0 });
+    await db.transaction(async tx => {
+      const account = await tx.read(accountRef, kycRecord);
+      if (account?.lease === lease) tx.write(accountRef, kycRecord, { leaseUntil: 0 }, { merge: true });
     });
   }
 }
@@ -314,9 +321,12 @@ export function createDiditWebhookRouter(deps: KycDependencies) {
 
 export function createKycReconciliationRouter(deps: KycDependencies, secret = process.env.KYC_RECONCILIATION_JOB_SECRET ?? '') {
   const router = Router();
-  router.post('/reconcile', text({ inflate: false, type: 'application/json', limit: '1kb' }), async (req, res) => {
+  router.post('/reconcile', raw({ inflate: false, type: 'application/json', limit: '1kb' }), async (req, res) => {
     if (!Buffer.isBuffer(req.body) || !validKycReconciliationJobSignature(req.body, req.get('X-Klar-Job-Signature'), secret)) return res.sendStatus(401);
-    try { return res.json({ ok: true, ...(await reconcileDiditSessions(deps, 10)) }); }
+    try {
+      if (JSON.parse(req.body.toString('utf8')).tenantId !== 'default') return res.sendStatus(403);
+      return res.json({ ok: true, ...(await reconcileDiditSessions(deps, 10)) });
+    }
     catch { return res.status(503).json({ code: 'kyc_reconciliation_unavailable' }); }
   });
   return router;
@@ -331,37 +341,31 @@ export function kycStartRateLimitKey(uid: string): string {
   return createHash('sha256').update(`klar-kyc-start:${uid}`).digest('hex');
 }
 
+export async function consumeKycStartAllowance(repository: TenantAwareFirestoreRepository, uid: string, now: number) {
+  const ref = `${KYC_START_RATE_LIMIT_COLLECTION}/${kycStartRateLimitKey(uid)}`;
+  return repository.transaction(async tx => {
+    const data = await tx.read(ref, kycRecord);
+    const windowStartedAt = data?.windowStartedAt ?? now;
+    const count = data?.count ?? 0;
+    if (!data || now - windowStartedAt >= KYC_START_RATE_LIMIT_WINDOW_MS) {
+      tx.write(ref, kycRecord, {count: 1, windowStartedAt: now,
+        expiresAt: new Date(now + KYC_START_RATE_LIMIT_WINDOW_MS)});
+      return true;
+    }
+    if (count >= KYC_START_RATE_LIMIT_MAX) return false;
+    tx.write(ref, kycRecord, {count: count + 1,
+      expiresAt: new Date(windowStartedAt + KYC_START_RATE_LIMIT_WINDOW_MS)}, {merge: true});
+    return true;
+  });
+}
+
 async function distributedKycStartRateLimit(deps: KycDependencies, req: Request, res: import('express').Response, next: () => void) {
   const user = actor(req);
   if (!user?.uid) return next();
-  const now = (deps.now ?? Date.now)();
-  const ref = deps.db().collection(KYC_START_RATE_LIMIT_COLLECTION).doc(kycStartRateLimitKey(user.uid));
   try {
-    const allowed = await deps.db().runTransaction(async tx => {
-      const snap = await tx.get(ref);
-      const data = snap.exists ? snap.data() : undefined;
-      const windowStartedAt = Number(data?.windowStartedAt) || now;
-      const count = Number(data?.count) || 0;
-      if (now - windowStartedAt >= KYC_START_RATE_LIMIT_WINDOW_MS) {
-        tx.set(ref, {
-          count: 1,
-          windowStartedAt: now,
-          expiresAt: new Date(now + KYC_START_RATE_LIMIT_WINDOW_MS),
-        });
-        return true;
-      }
-      if (count >= KYC_START_RATE_LIMIT_MAX) return false;
-      tx.update(ref, {
-        count: count + 1,
-        expiresAt: new Date(windowStartedAt + KYC_START_RATE_LIMIT_WINDOW_MS),
-      });
-      return true;
-    });
-    if (!allowed) return res.status(429).json({ error: 'Zu viele KYC-Starts. Bitte später erneut versuchen.' });
+    if (!(await consumeKycStartAllowance(deps.repository(), user.uid, (deps.now ?? Date.now)()))) return res.status(429).json({ error: 'Zu viele KYC-Starts. Bitte später erneut versuchen.' });
     return next();
-  } catch {
-    return res.status(503).json({ error: 'KYC-Limit derzeit nicht verfügbar.' });
-  }
+  } catch { return res.status(503).json({ error: 'KYC-Limit derzeit nicht verfügbar.' }); }
 }
 
 export function createKycRouter(deps: KycDependencies) {
@@ -405,8 +409,8 @@ export function createKycRouter(deps: KycDependencies) {
         throw err;
       }
       try {
-        const account = await deps.db().doc(`kyc_accounts/${user.uid}`).get();
-        return res.json({ status: account.data()?.status ?? 'not_started', privacyUrl: config.privacyUrl, consentVersion: config.privacyVersion });
+        const account = await deps.repository().read(`kyc_accounts/${user.uid}`, kycRecord);
+        return res.json({ status: account?.status ?? 'not_started', privacyUrl: config.privacyUrl, consentVersion: config.privacyVersion });
       } catch {
         return res.status(503).json({ status: 'unavailable', code: 'kyc_status_unavailable', privacyUrl: config.privacyUrl, consentVersion: config.privacyVersion });
       }

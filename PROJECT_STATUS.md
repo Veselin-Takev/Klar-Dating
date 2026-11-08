@@ -24,3 +24,10 @@ Verified batch checkpoint: 2/50 migrated, 48 open; 1,552 main-suite PASS plus 6 
 Wave 1 C/D: source progress 5/50, 45 open; C and D IN PROGRESS. Auth/Payments cutovers remain OFF outside synthetic CI. Current-wave tests pending; baselineFixed=false.
 
 Wave 1 verified on bd3c9f70: 1,561 PASS, Semgrep 0 findings; 5/50 source files migrated, 45 open. C/D overall IN PROGRESS. baselineFixed=false; stopped for Wave 2 instruction.
+
+Wave 2 source checkpoint: **10/50 migrated, 40 open**. KYC, contracts/refund
+ledger, subscription reads and two Functions plus compliance processing are scoped.
+C/D/E remain IN_PROGRESS; coordinated readers/writers and account erasure/mail still
+block closure. Current full CI pending. Auto Semgrep has 17 open findings independent
+of the pinned anti-bypass rule (0). baselineFixed=false; productionApproved=false.
+See [Wave 2 evidence](phase2_work/docs/security/MIGRATION_WAVE2.md).
