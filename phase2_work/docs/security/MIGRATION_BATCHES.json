@@ -127,7 +127,7 @@
     {
       "id": "F",
       "scope": "Final utility, local stores and private SDK factory capability migration",
-      "status": "SOURCE_MIGRATED_PENDING_FULL_CI",
+      "status": "COMPLETED",
       "files": [
         "phase2_work/functions/src/firestoreRepository/nativeDatabase.ts",
         "phase2_work/server.ts",
@@ -146,54 +146,96 @@
         "explicit local-only empty stores; no automatic provider-error fallback",
         "dry-run tenant-bound maintenance seeds/exports"
       ],
-      "liveDataMigration": "NOT_EXECUTED"
+      "liveDataMigration": "NOT_EXECUTED",
+      "verifiedAtCodeSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895"
     }
   ],
-  "baselineFixed": false,
+  "baselineFixed": true,
   "productionApproved": false,
   "verification": {
-    "codeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
-    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+    "version": "v0.1.1-rc1",
+    "codeSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895",
     "result": "SUCCESS",
-    "vitest": 1505,
-    "vitestFiles": 204,
+    "allRequiredGatesPassed": true,
+    "requiredGates": {
+      "Enterprise static gates": "PASS",
+      "Repository Semgrep (findings and parser errors block)": "PASS",
+      "Typecheck": "PASS",
+      "Functions build": "PASS",
+      "Tests": "PASS",
+      "Dedicated Firestore rules": "PASS",
+      "Enterprise Node tests": "PASS",
+      "Build": "PASS",
+      "Production smoke": "PASS",
+      "Browser acceptance": "PASS"
+    },
+    "vitest": 1524,
+    "vitestFiles": 206,
     "enterpriseNode": 86,
     "playwright": 26,
-    "mainSuites": 1617,
+    "mainSuites": 1636,
     "dedicatedRulesRepeated": 118,
     "launchPlatformTestsRepeatedNotAdded": 6,
+    "additionalAdminBoundaryChecks": 12,
+    "additionalCoverageChecks": 4,
     "additionalIamChecks": 6,
     "additionalCollectionInventoryChecks": 4,
-    "semgrepFindings": 0,
     "autoSemgrep": {
       "result": "PASSED",
       "findings": 0,
       "diagnosticWarnings": 0,
       "parserErrors": 0,
-      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
-      "targetsScanned": 1148,
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS_WITH_COMPLETE_FIRST_PARTY_RUNTIME_COVERAGE",
+      "targetsScanned": 1152,
       "rulesRun": 616,
       "version": "1.184.0",
-      "sourceSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
-      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+      "sourceSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895",
       "artifact": {
-        "id": 13624619822,
-        "name": "semgrep-auto-42500036161-1",
-        "archiveDigest": "sha256:70504d0dae689133cf054b246cb7577c06f67436c3cdf658480d3f55ca76d0be"
-      },
-      "diagnosticEvidence": "Strict scan exit 0 and no scan diagnostics in Actions logs; artifact archive digest from GitHub metadata."
+        "id": 13626009410,
+        "name": "semgrep-auto-42504754895-1",
+        "archiveDigest": "sha256:892dac9ddce299b2cc73f5456c584e521e88c3095125e3da225d0fbf71297781",
+        "archiveDigestVerified": true,
+        "jsonContentInspected": true
+      }
+    },
+    "runtimeCoverage": {
+      "expected": 681,
+      "scanned": 681,
+      "missing": 0,
+      "denominatorExcludes": [
+        "test/spec suites",
+        "type declarations",
+        "vendored third-party and generated code"
+      ]
+    },
+    "serverRuntimeTypeSafety": {
+      "files": 128,
+      "explicitAnyNodes": 0,
+      "method": "TypeScript AST AnyKeyword count on clean source SHA"
     },
     "typecheck": "PASS",
     "functionsBuild": "PASS",
     "applicationBuild": "PASS",
     "productionSmoke": "PASS_LOOPBACK_EMULATORS",
     "enterpriseStaticGates": "PASS",
-    "localBrowserCorroboration": "26/26 PASS; not added again",
-    "previewDeployment": "RATE_LIMITED_24H_AT_LATEST_HEAD",
+    "previewDeployment": {
+      "result": "READY",
+      "id": "dpl_Dwwbe3Cz68C9W3CGKgjFFw9U7e8T",
+      "url": "https://klar-dating-np087l1od-ves3.vercel.app",
+      "apiTarget": null,
+      "environment": "preview",
+      "gitRef": "docs/rc1-isolation-evidence-20261108",
+      "codeSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+      "project": "klar-dating"
+    },
     "liveDataMigration": "NOT_EXECUTED",
-    "baselineFixed": false,
+    "iamApply": "NOT_EXECUTED",
+    "baselineFixed": true,
     "productionApproved": false,
-    "report": "phase2_work/docs/security/MIGRATION_WAVE2_CLOSURE.md"
+    "report": "phase2_work/docs/security/MIGRATION_WAVE3_CERTIFICATION.md"
   },
   "previousWaveVerification": {
     "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
@@ -209,7 +251,7 @@
     "baselineFixed": false
   },
   "remainingFiles": [],
-  "closureStatus": "WAVE3_SOURCE_COMPLETE_VERIFICATION_PENDING",
+  "closureStatus": "WAVE3_SOURCE_BASELINE_CERTIFIED_PENDING_HUMAN_SIGNOFF",
   "previousVerifiedWave2": {
     "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
     "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
@@ -346,5 +388,89 @@
     "phase2_work/scripts/evaluateMatchingMetrics.ts",
     "phase2_work/scripts/calculateFunnelDropoff.ts",
     "phase2_work/scripts/seed-legal-updates.mjs"
-  ]
+  ],
+  "wave3": {
+    "version": "v0.1.1-rc1",
+    "codeSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895",
+    "result": "SUCCESS",
+    "allRequiredGatesPassed": true,
+    "requiredGates": {
+      "Enterprise static gates": "PASS",
+      "Repository Semgrep (findings and parser errors block)": "PASS",
+      "Typecheck": "PASS",
+      "Functions build": "PASS",
+      "Tests": "PASS",
+      "Dedicated Firestore rules": "PASS",
+      "Enterprise Node tests": "PASS",
+      "Build": "PASS",
+      "Production smoke": "PASS",
+      "Browser acceptance": "PASS"
+    },
+    "vitest": 1524,
+    "vitestFiles": 206,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1636,
+    "dedicatedRulesRepeated": 118,
+    "launchPlatformTestsRepeatedNotAdded": 6,
+    "additionalAdminBoundaryChecks": 12,
+    "additionalCoverageChecks": 4,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 4,
+    "autoSemgrep": {
+      "result": "PASSED",
+      "findings": 0,
+      "diagnosticWarnings": 0,
+      "parserErrors": 0,
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS_WITH_COMPLETE_FIRST_PARTY_RUNTIME_COVERAGE",
+      "targetsScanned": 1152,
+      "rulesRun": 616,
+      "version": "1.184.0",
+      "sourceSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895",
+      "artifact": {
+        "id": 13626009410,
+        "name": "semgrep-auto-42504754895-1",
+        "archiveDigest": "sha256:892dac9ddce299b2cc73f5456c584e521e88c3095125e3da225d0fbf71297781",
+        "archiveDigestVerified": true,
+        "jsonContentInspected": true
+      }
+    },
+    "runtimeCoverage": {
+      "expected": 681,
+      "scanned": 681,
+      "missing": 0,
+      "denominatorExcludes": [
+        "test/spec suites",
+        "type declarations",
+        "vendored third-party and generated code"
+      ]
+    },
+    "serverRuntimeTypeSafety": {
+      "files": 128,
+      "explicitAnyNodes": 0,
+      "method": "TypeScript AST AnyKeyword count on clean source SHA"
+    },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS_LOOPBACK_EMULATORS",
+    "enterpriseStaticGates": "PASS",
+    "previewDeployment": {
+      "result": "READY",
+      "id": "dpl_Dwwbe3Cz68C9W3CGKgjFFw9U7e8T",
+      "url": "https://klar-dating-np087l1od-ves3.vercel.app",
+      "apiTarget": null,
+      "environment": "preview",
+      "gitRef": "docs/rc1-isolation-evidence-20261108",
+      "codeSha": "951b16b243354321ca9c2c31bde8deab9e00060a",
+      "project": "klar-dating"
+    },
+    "liveDataMigration": "NOT_EXECUTED",
+    "iamApply": "NOT_EXECUTED",
+    "baselineFixed": true,
+    "productionApproved": false,
+    "report": "phase2_work/docs/security/MIGRATION_WAVE3_CERTIFICATION.md"
+  }
 }

@@ -1,40 +1,19 @@
 # IAM and Admin SDK boundaries — v0.1.1-rc1
 
-Status: WAVE 2 SOURCE VERIFIED / WAVE 3 AND OPERATIONAL CERTIFICATION OPEN.
-`baselineFixed=false`; `productionApproved=false`. This is source evidence, not a live IAM attestation.
+Status: **WAVE 3 SOURCE BASELINE CERTIFIED; PRODUCTION OPERATIONAL GATES OPEN.**
+`baselineFixed=true`; `productionApproved=false`. Full source CI: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895, commit `951b16b243354321ca9c2c31bde8deab9e00060a`.
 
 ## Current application and deployment boundaries
 
-Firebase client Security Rules do not restrict privileged Admin SDK calls. The closed repository is an application control; a path prefix is not an IAM sandbox. Static Cloud Run/Terraform/IAM manifests declare dedicated runtime identities and explicit bindings. No IAM apply, deployment, live data migration, inherited-policy export or effective-permissions attestation was performed.
+All 50 registered source candidates are migrated/hardened. API and Functions factories return closed tenant repositories; native clients/refs remain private reviewed infrastructure, with exact-file source hashes and mandatory anti-bypass checks. The emulator fixture alias is denied in production/cloud and statically banned from application imports. Native transactions remain authoritative. Local repositories are explicit local-only empty stores, never cloud-error fallback or fabricated auth state. AI-cache/budget owner/erasure fences and four tenant-bound maintenance scripts are verified.
 
-| Principal / process | Current source boundary | Remaining evidence |
-| --- | --- | --- |
-| Express runtime | Protected native factory; staged default-tenant repositories for migrated Auth, billing and async consumers | Seven inventoried infrastructure/utility candidates; effective runtime IAM |
-| Maintenance Functions | Closed repository and deployer-selected maintenance tenant; explicit service-account manifests | Reviewed live identity and project/database/bucket binding |
-| Reminder scheduler | Bounded tenant-local scans and transaction claims; no global collectionGroup scan | Coordinated cutover and external dispatch/erasure fencing |
-| Client profile/chat | Staged `tenants/default` readers; owner/claim/erasure rules; chat membership, adult gate and bidirectional blocks; message writes stay server-only | 26 browser acceptance tests PASS; deployment approval remains open |
-| CI | Loopback demo-klar emulators, metadata discovery disabled, no production credentials | Full candidate CI SUCCESS: 7e61fadb2614593f2a725a8c3072043e2b0e3305 |
-| Release deployer / operators | Separate protected release workflow; source-only proposed privilege model | Workload identity, effective IAM exports, key inventory and human sign-off |
+Client Rules do not restrict Admin SDK. The repository is an application control, not an IAM sandbox. API tenant authority comes from verified default-tenant claims; named tenant and request-context collisions fail closed. Maintenance tenants come from explicit trusted deployment configuration. Resource-level authorization remains mandatory inside the namespace.
 
-`roles/datastore.user` is database-wide; it does not enforce document-path isolation. Hard IAM tenant boundaries may require separate databases/projects and identities. Auth administration, Storage access and Scheduler invocation need independent grants and evidence. Owner/Editor, key creation and token-creator grants are not justified by application data access.
+Static Cloud Run/Terraform/IAM manifests declare dedicated runtime identities and explicit least-privilege bindings and pass source matching. `roles/datastore.user` is database-wide; hard IAM tenant boundaries may require separate databases/projects/identities. No effective IAM export, inherited-policy attestation, IAM apply, production deployment or data migration was performed. Auth administration, Stripe, FCM and Storage require separate external-service evidence. Owner/Editor, key creation and token-creator grants are not justified by application access.
 
-## Closed tenant repository and supported identity
+Production flags remain off pending reviewed root-data migration/cutover, workload identity/effective IAM, ACTIVE-TTL evidence, external dispatch/erasure fencing and human production approval. Physical verification-photo purge remains hard-disabled. AI database caps are tenant-global; provider-wide aggregate spend limits remain a separate operational control.
 
-The canonical `phase2_work/functions/src/firestoreRepository/TenantAwareFirestoreRepository.ts` retains the native database in private fields and validates every relative path. The API adapter resolves only the supported default namespace from verified Firebase claims; named-tenant claims and request-context overrides do not select another namespace. Maintenance namespaces come from trusted deployment configuration.
-
-Read/write schemas execute at runtime. Closed read/list/create/write/delete transactions and bounded pagination are exposed; raw references, native transactions and global collectionGroup queries are not. Recursive deletion also validates the tenant-relative document path. Namespace isolation does not replace per-resource user authorization.
-
-The original register contains 50 candidates: **43 source migrations, seven remaining**. `phase2_work/docs/security/LEGACY_ADMIN_ACCESS.json` pins the remaining source hashes. Two entries are native infrastructure factories, one is the server composition root, and four are utility/local-store candidates. Their final classification/migration is a Wave 3 task. The lexical drift guard is not complete alias/dataflow analysis, and `--certify` intentionally refuses certification while the inventory is nonempty.
-
-## Cutover and certification conditions
-
-1. Complete the remaining candidate review/migration and retain static anti-bypass enforcement.
-2. Review the client/server/Rules/index mapping, including existing root data, blocks, consent, payment/customer mappings and legal holds.
-3. Produce a dry-run migration manifest with counts/hashes, rollback and write-fencing guarantees. Do not enable migration flags merely because source tests pass.
-4. Verify deployed service accounts, effective IAM and external Auth/Stripe/FCM/Storage boundaries. Verification-photo erasure stays hard-disabled until cross-service fencing is proven.
-5. Require complete candidate CI and manual production approval. Source changes and a successful preview build are not production sign-off.
-
-Current source evidence includes 118 native Rules tests and native root/foreign contrast tests for profile, consent, mail, archival and reminders. The [full candidate CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161) verified 1617 main-suite tests; the repeated Rules run is excluded from addition. No universal zero-cross-tenant or production-readiness certification is claimed while these gates remain open.
+Current evidence: 1636 comparable main-suite PASS; 118 repeated Rules; strict repository SAST 0 findings / 0 diagnostics; 681/681 first-party runtime source coverage; typecheck/build/smoke PASS. [Source certification](../../phase2_work/docs/security/MIGRATION_WAVE3_CERTIFICATION.md) and [machine evidence](../../phase2_work/docs/security/WAVE3_VERIFICATION.json). No universal or deployed-IAM isolation claim is made.
 
 ## Historical checkpoints
 
@@ -179,7 +158,7 @@ baselineFixed=false; productionApproved=false; stop for Wave 3 review.
 
 ## Wave 3: closed native capabilities and explicit local stores
 
-The 50-file register is source-migrated, pending full CI certification. API and Functions factories now return `TenantAwareFirestoreRepository`; native client construction remains private to two exact factory files, and native refs are confined to the canonical repository. `ADMIN_INFRASTRUCTURE.json` pins the reviewed contents of those files, the canonical wrapper and the compatibility fixture facade. The source guard walks untracked source too, covers server/core, Functions, scripts and native imports across application source, and rejects constructor aliases, namespace/dynamic imports, raw fixture imports and computed raw methods. The Semgrep constructor rule exempts only the two factory paths, not arbitrary files in their directories. These source hashes are review evidence, not proof of deployed IAM.
+The 50-file source register is certified at `951b16b243354321ca9c2c31bde8deab9e00060a` by full CI https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895; production approval remains false. API and Functions factories now return `TenantAwareFirestoreRepository`; native client construction remains private to two exact factory files, and native refs are confined to the canonical repository. `ADMIN_INFRASTRUCTURE.json` pins the reviewed contents of those files, the canonical wrapper and the compatibility fixture facade. The source guard walks untracked source too, covers server/core, Functions, scripts and native imports across application source, and rejects constructor aliases, namespace/dynamic imports, raw fixture imports and computed raw methods. The Semgrep constructor rule exempts only the two factory paths, not arbitrary files in their directories. These source hashes are review evidence, not proof of deployed IAM.
 
 `getDb` is now an emulator-fixture compatibility alias, blocked in production/managed cloud and outside loopback `demo-` emulators. Application imports are statically forbidden. Production factories return closed repositories; shutdown/startup expose no raw SDK. Local repositories are explicitly instantiated, empty by default, development/test-only and never activated by a cloud failure. They cannot synthesize verified identity, age or consent. Durable JSON snapshots are tenant-separated, schema validated, atomically replaced and protected from stale overwrite. Native SDK semantics and transactions remain authoritative for application production operations.
 
