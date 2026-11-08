@@ -1,5 +1,5 @@
 // Minimal structural port keeps the app and Functions SDK installations independent.
-type Metadata = { generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null };
+type Metadata = { generation?: unknown; temporaryHold?: unknown; eventBasedHold?: unknown };
 type Photo = { getMetadata(): Promise<[Metadata, ...unknown[]]>; delete(options: { ifGenerationMatch: string | number }): Promise<unknown> };
 type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
@@ -26,8 +26,20 @@ export async function deleteAccountPhotos(
   if (mode !== 'profile-only' && mode !== 'unsafe-emulator-test-only') {
     throw new Error('invalid_account_photo_erasure_mode');
   }
-  if (mode === 'unsafe-emulator-test-only' && process.env.NODE_ENV === 'production') {
-    throw new Error('verification_photo_p0_fencing_unverified');
+  if (mode === 'unsafe-emulator-test-only') {
+    // A test-only destructive override is never a production capability.
+    // NODE_ENV may be unset on deployed runtimes: allowlist a local emulator
+    // and an explicit test opt-in instead of merely rejecting "production".
+    const emulatorHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '';
+    const isolatedLocalTest = process.env.NODE_ENV === 'test'
+      && process.env.KLAR_TEST_VERIFICATION_DELETE === 'allow'
+      && /^(127\.0\.0\.1|localhost|\[::1\]):[1-9][0-9]{1,4}$/.test(emulatorHost)
+      && !process.env.K_SERVICE
+      && !process.env.FUNCTION_TARGET
+      && !process.env.VERCEL_ENV;
+    if (!isolatedLocalTest) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
   }
   const verificationPrefix = `verification/${uid}/`;
   const assertNoUnfencedVerificationPhotos = async () => {
@@ -54,9 +66,20 @@ export async function deleteAccountPhotos(
     for (const file of files) {
       try {
         const [metadata] = await file.getMetadata();
-        if (metadata.temporaryHold || metadata.eventBasedHold) throw new Error('storage_object_held');
-        if (!metadata.generation) throw new Error('Photo generation missing');
-        await file.delete({ ifGenerationMatch: metadata.generation });
+        // A legal/preservation hold field is trusted only when absent or
+        // literally false. Malformed Storage metadata is not deletion consent.
+        if (!metadata
+          || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+          || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
+          throw new Error('storage_object_held_or_invalid');
+        }
+        const generation = metadata.generation;
+        if ((typeof generation !== 'string' && typeof generation !== 'number')
+          || !/^[1-9][0-9]*$/.test(String(generation))
+          || (typeof generation === 'number' && !Number.isSafeInteger(generation))) {
+          throw new Error('Photo generation missing or invalid');
+        }
+        await file.delete({ ifGenerationMatch: generation });
         deleted++;
       } catch (error) {
         // Concurrent deletion is harmless, but is not evidence of our progress.

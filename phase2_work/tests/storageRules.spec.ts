@@ -65,7 +65,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const result = await executeVerificationRetentionBatch(
       [{ uid: prefix, challengeId: 'pending-test', storagePath: path,
         status: 'pending', decidedAt: oldDecisionTime }],
-      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      // Synthetic Storage Emulator fixture only: the no-op authorizer is NOT a
+      // real Firestore decision/lease proof and must never be used in production.
+      async target => { await deleteVerificationStorageFile(bucket.file(target), undefined, async () => {}); },
       async () => { throw new Error('pending verification may not create a purge audit'); },
       now,
     );
@@ -85,7 +87,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const result = await executeVerificationRetentionBatch(
       [{ uid: prefix, challengeId: 'decided-test', storagePath: path,
         status: 'approved', decidedAt: now - 31 * MS_PER_DAY }],
-      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      // Synthetic Storage Emulator fixture only: the no-op authorizer is NOT a
+      // real Firestore decision/lease proof and must never be used in production.
+      async target => { await deleteVerificationStorageFile(bucket.file(target), undefined, async () => {}); },
       audit,
       now,
     );
@@ -97,7 +101,15 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const bucket = getAppBucket();
     const paths = [`profiles/${prefix}/a.jpg`, `verification/${prefix}/a.jpg`, `profiles/${prefix}-other/a.jpg`];
     for (const path of paths) await bucket.file(path).save(image);
-    await deleteAccountPhotos(bucket, prefix, 'unsafe-emulator-test-only');
+    // This fixture runs only against the Storage emulator; explicitly grant
+    // the local test-only mode and restore the original environment afterward.
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('KLAR_TEST_VERIFICATION_DELETE', 'allow');
+    try {
+      await deleteAccountPhotos(bucket, prefix, 'unsafe-emulator-test-only');
+    } finally {
+      vi.unstubAllEnvs();
+    }
     expect((await bucket.file(paths[0]!).exists())[0]).toBe(false);
     expect((await bucket.file(paths[1]!).exists())[0]).toBe(false);
     expect((await bucket.file(paths[2]!).exists())[0]).toBe(true);

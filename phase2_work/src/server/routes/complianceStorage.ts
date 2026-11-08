@@ -14,13 +14,17 @@ const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 // The Google Cloud Storage generation is an opaque decimal identifier.
 // Replacements must never be deleted using an unchecked or stale generation.
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null }, ...unknown[]]>;
+  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: unknown; eventBasedHold?: unknown }, ...unknown[]]>;
   delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
 };
 
 export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
   const [metadata] = await file.getMetadata();
-  if (!metadata || metadata.temporaryHold === true || metadata.eventBasedHold === true) {
+  // Provider metadata is a trust boundary. Unexpected present values are not
+  // permission to destroy sensitive verification media.
+  if (!metadata
+    || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+    || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
   }
   const generation = metadata.generation;
@@ -33,16 +37,22 @@ export async function inspectVerificationStorageGeneration(file: VerificationSto
 }
 
 export async function deleteVerificationStorageFile(
-  file: VerificationStorageFile, expectedGeneration?: string | number,
-  beforeDelete?: () => Promise<void>,
+  file: VerificationStorageFile, expectedGeneration: string | number | undefined,
+  beforeDelete: () => Promise<void>,
 ): Promise<void> {
+  // Destructive helper is exported: deny accidental direct callers bypassing
+  // the final authorization hook, even from untyped JavaScript consumers.
+  // This does NOT close the cross-service hold race after authorization.
+  if (typeof beforeDelete !== 'function') {
+    throw new Error('verification_photo_final_authorization_missing');
+  }
   const generation = await inspectVerificationStorageGeneration(file);
   if (expectedGeneration !== undefined && String(generation) !== String(expectedGeneration)) {
     throw new Error('verification_photo_generation_changed');
   }
   // Revalidate Firestore authorization after the last Storage metadata read.
   // A cross-service update after this callback still needs operational fencing.
-  if (beforeDelete) await beforeDelete();
+  await beforeDelete();
   await file.delete({ ifGenerationMatch: generation });
 }
 
@@ -116,9 +126,23 @@ export function readConsistentVerificationDecision(
   return canonical ?? legacy ?? 'pending';
 }
 
+/** Record-level preservation holds deny even otherwise-expired artifacts.
+ * Legacy absent flags retain their previous behavior. Fail closed when a
+ * present value is malformed. This is not a cross-service writer fence.
+ */
+export function assertVerificationPurgeRecordNotHeld(data: Record<string, unknown>): void {
+  for (const field of ['photoPurgeHold', 'legalHold'] as const) {
+    const value = data[field];
+    if (value !== undefined && value !== false) {
+      throw new Error('verification_photo_record_hold_or_invalid');
+    }
+  }
+}
+
 function assertStillEligibleForPurge(
   data: Record<string, unknown> | undefined, artifact: VerificationArtifactRecord, now: number,
 ): void {
+  if (data) assertVerificationPurgeRecordNotHeld(data);
   const status = data ? readConsistentVerificationDecision(data) : 'pending';
   const due = normalizeTimestamp(data?.fotoLoeschenAb);
   if (!data || data.uid !== artifact.uid || data.storagePath !== artifact.storagePath

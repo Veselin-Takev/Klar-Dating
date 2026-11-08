@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import type { Server } from 'node:http';
-import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, assertVerificationPurgeRecordNotHeld, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
   it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
@@ -232,6 +232,26 @@ describe('verification storage compliance job authentication', () => {
   });
 });
 
+describe('Firestore verification-photo legal and preservation hold contract', () => {
+  it.each([
+    [{}, 'legacy absent hold'],
+    [{ legalHold: false }, 'released legal hold'],
+    [{ photoPurgeHold: false }, 'released photo hold'],
+    [{ legalHold: false, photoPurgeHold: false }, 'both explicit false'],
+  ] as const)('allows unheld record %#', (data, _label) => {
+    expect(() => assertVerificationPurgeRecordNotHeld({ ...data })).not.toThrow();
+  });
+  it.each([
+    { legalHold: true }, { photoPurgeHold: true },
+    { legalHold: null }, { photoPurgeHold: 0 },
+    { legalHold: 'false' }, { photoPurgeHold: 'true' },
+    { legalHold: { active: false } }, { legalHold: true, photoPurgeHold: false },
+  ])('blocks active or malformed record-level holds %#', data => {
+    expect(() => assertVerificationPurgeRecordNotHeld(data))
+      .toThrow('verification_photo_record_hold_or_invalid');
+  });
+});
+
 describe('fail-closed verification decision reconciliation', () => {
   it.each([
     [{ entscheidung: 'bestaetigt' }, 'approved'],
@@ -256,18 +276,37 @@ describe('fail-closed verification decision reconciliation', () => {
 });
 
 describe('decision-based verification object deletion safety', () => {
+  it('rejects any direct caller that omits the final authorization callback before GCS access', async () => {
+    const calls: string[] = [];
+    const file = {
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '77' }]; },
+      delete: async () => { calls.push('delete'); },
+    };
+    // Reflect.apply deliberately simulates untyped JS callers bypassing
+    // TypeScript's newly mandatory callback parameter.
+    await expect(Reflect.apply(deleteVerificationStorageFile, undefined, [file, '77']))
+      .rejects.toThrow('verification_photo_final_authorization_missing');
+    expect(calls).toEqual([]);
+  });
+
   it('deletes only the inspected Storage generation', async () => {
     const deletes: Array<{ ifGenerationMatch: string | number }> = [];
     await deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '1234567890', temporaryHold: false, eventBasedHold: false }],
       delete: async options => { deletes.push(options); },
-    });
+    }, undefined, async () => {});
     expect(deletes).toEqual([{ ifGenerationMatch: '1234567890' }]);
   });
 
   it.each([
     { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
     { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
+    { label: 'string temporary hold', metadata: { generation: '12', temporaryHold: 'true' } },
+    { label: 'string event hold', metadata: { generation: '12', eventBasedHold: 'false' } },
+    { label: 'null temporary hold', metadata: { generation: '12', temporaryHold: null } },
+    { label: 'null event hold', metadata: { generation: '12', eventBasedHold: null } },
+    { label: 'numeric temporary hold', metadata: { generation: '12', temporaryHold: 0 } },
+    { label: 'object event hold', metadata: { generation: '12', eventBasedHold: { active: false } } },
     { label: 'missing generation', metadata: { temporaryHold: false } },
     { label: 'non-decimal generation', metadata: { generation: 'other' } },
     { label: 'invalid numeric generation', metadata: { generation: -1 } },
@@ -277,7 +316,7 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [metadata],
       delete: async () => { deleted = true; },
-    })).rejects.toThrow();
+    }, undefined, async () => {})).rejects.toThrow();
     expect(deleted).toBe(false);
   });
 
@@ -285,14 +324,14 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '100' }],
       delete: async () => { throw Object.assign(new Error('generation conflict'), { code: 412 }); },
-    })).rejects.toMatchObject({ code: 412 });
+    }, undefined, async () => {})).rejects.toMatchObject({ code: 412 });
   });
 
   it('does not consider a missing object a verified successful deletion', async () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
       delete: async () => { throw new Error('must not execute'); },
-    })).rejects.toMatchObject({ code: 404 });
+    }, undefined, async () => {})).rejects.toMatchObject({ code: 404 });
   });
   it('rechecks Storage generation before applying the conditional delete', async () => {
     const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
@@ -300,7 +339,7 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '9001' }],
       delete: async opts => { deletes.push(opts); },
-    }, '9000')).rejects.toThrow('verification_photo_generation_changed');
+    }, '9000', async () => {})).rejects.toThrow('verification_photo_generation_changed');
     expect(deletes).toHaveLength(0);
   });
 
