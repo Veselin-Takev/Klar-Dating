@@ -111,4 +111,15 @@ describe('Didit sessions and signed decisions in Firestore', { timeout: 60_000 }
     expect((await scoped(path).get()).data()?.count).toBe(1);
   });
 
+  it('recovers an approved session using only tenant-local account, profile and receipt paths', async () => {
+    const {uid, sessionId} = await setup(); const path = `kyc_reconciliation_events/${sessionId}`; paths.add(path);
+    const call: typeof fetch = async () => new Response(JSON.stringify({session_id: sessionId, status: 'Approved', id_verifications: [{node_id: 'id', status: 'Approved'}], liveness_checks: [{node_id: 'l', status: 'Approved'}], face_matches: [{node_id: 'f', status: 'Approved'}]}));
+    expect(await reconcileDiditSessions({...deps, fetch: call})).toMatchObject({checked: 1, changed: 1, failed: 0});
+    expect((await scoped(`users/${uid}`).get()).data()?.isVerified).toBe(true);
+    expect((await scoped(`public_profiles/${uid}`).get()).data()?.isVerified).toBe(true);
+    expect((await scoped(path).get()).data()).toMatchObject({uid, sessionId, approved: true});
+    expect((await getDb().doc(path).get()).exists).toBe(false);
+    expect((await getDb().doc('tenants/foreign/' + path).get()).exists).toBe(false);
+  });
+
 });

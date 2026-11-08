@@ -33,7 +33,7 @@
     "check:meilensteine": "node scripts/meilensteine-erreichbar.mjs src",
     "check:erfundene-diagramme": "node scripts/erfundene-diagrammdaten.mjs src 0",
     "check:erfundene-zahlen": "node scripts/erfundene-zahlen.mjs src 7",
-    "check:loeschkaskade": "node scripts/loeschkaskade.mjs",
+    "check:loeschkaskade": "node --test scripts/tenant-collection-inventory.test.mjs && node scripts/loeschkaskade.mjs",
     "check:oauth": "node scripts/oauth-berechtigungen.mjs src 0",
     "check:startlast": "node scripts/startlast.mjs 46",
     "check:skripte": "node scripts/skripte-vollstaendig.mjs 0",

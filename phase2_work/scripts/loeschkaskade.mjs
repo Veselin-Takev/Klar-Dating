@@ -33,6 +33,7 @@
 //
 // Aufruf:  node scripts/loeschkaskade.mjs [Obergrenze]
 // ═══════════════════════════════════════════════════════════════════════════
+import { tenantCollectionNames } from './tenant-collection-inventory.mjs';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -153,6 +154,7 @@ function merkeSammlung(name, datei) {
 }
 for (const datei of [...dateien('server.ts'), ...dateien('src/server'), ...dateien('functions/src'), ...dateien('app/routes')]) {
   const text = ohneKommentare(readFileSync(datei, 'utf8'));
+  for (const name of tenantCollectionNames(text)) merkeSammlung(name, datei);
   // Resolve named collection constants used as db.collection(CAMPAIGNS), not
   // only inline string literals. This keeps the inventory robust after refactors.
   const sammlungsKonstanten = new Map(
