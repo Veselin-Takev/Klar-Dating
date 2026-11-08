@@ -115,7 +115,13 @@
       "semgrepRule": "check-auth-boundary",
       "semgrepVersion": "1.184.0",
       "staticIamConformity": "BLOCKED_NO_EXPLICIT_IDENTITIES_OR_BINDINGS",
-      "baselineFixed": false
+      "baselineFixed": false,
+      "verifiedCodeSha": "9a93f02ab8ca500f8aa0459fcbdd84ce48bf4f2a",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42482088663",
+      "semgrep": "PASS_119_FILES_ZERO_FINDINGS_AND_RULE_FIXTURES",
+      "fullTestCount": 1549,
+      "migrationCertification": "FAIL_50_LEGACY_CANDIDATES_REMAIN",
+      "iamCertification": "BLOCKED_MISSING_STATIC_IDENTITIES_AND_BINDINGS"
     }
   }
 }

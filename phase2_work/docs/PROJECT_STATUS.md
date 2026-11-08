@@ -1742,3 +1742,25 @@ least-privilege conformity is BLOCKED, not VERIFIED. Full candidate CI pending.
 
 baselineFixed=false; productionApproved=false. PR remains DRAFT until all
 consumer migrations, data/client/Rules/job cutover and IAM evidence are complete.
+
+## Verified factory/guardrail refactoring — 2026-11-08
+
+[Full CI 42482088663](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42482088663)
+SUCCESS on code `9a93f02ab8ca500f8aa0459fcbdd84ce48bf4f2a`.
+1,437 Vitest + 86 Enterprise Node + 26 Playwright = **1,549 PASS**.
+Dedicated Rules: 92 repeated PASS, not double-counted. Semgrep 1.184.0 rule
+fixtures PASS; production scan: 119 files, zero findings. Typecheck, native
+Functions/App builds, smoke, fallback policy and static gates PASS.
+
+This verifies native factory confinement and the configured anti-bypass rule.
+It DOES NOT mean the 50 candidate legacy consumers have adopted tenant paths.
+The registry is a lexical candidate inventory, not proof that every listed
+file directly creates an Admin SDK instance. db.ts and maintenance adapters
+remain legacy capabilities; global queries and root paths still need migration.
+Static IAM matching is consistent with documentation but reports absent runtime
+serviceAccountName and IAM binding manifests. --certify still fails.
+
+**baselineFixed=false; productionApproved=false; PR #358 DRAFT.**
+The requested 50/50 migration and verified static IAM conformity are unfinished;
+no CERTIFIED_PROCEED. This metadata update records immutable tested code; its
+own automatic CI is distinct from the completed code run.

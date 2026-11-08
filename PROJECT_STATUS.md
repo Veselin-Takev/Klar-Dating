@@ -14,3 +14,5 @@ Admin repository: implemented and under verification; 50 legacy consumer files s
 Verified Admin wrapper checkpoint: 1,549 PASS on b0dca22c plus 1 static negative test. Fifty legacy consumer files and unverified effective IAM prevent certification; baselineFixed=false.
 
 Legacy migration: 50/50 not complete. SDK factory confinement and Semgrep implemented; missing IAM identities/bindings prevent conformity verification. baselineFixed=false.
+
+Latest verification: 1,549 PASS and Semgrep 119 files / zero findings on 9a93f02a. Tenant migration remains incomplete; static IAM conformity blocked. baselineFixed=false; PR #358 DRAFT.
