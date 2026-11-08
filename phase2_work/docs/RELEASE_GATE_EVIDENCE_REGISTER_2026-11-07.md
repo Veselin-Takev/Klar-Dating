@@ -130,6 +130,23 @@
 - [Klar Enterprise CI #1890 / run 42453815302](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42453815302) was **in progress at first review**. No PASS claim for #351 until exact-HEAD CI is complete and the job logs are verified.
 - **P0 VES-11 is still OPEN:** No approved independent Cloud Run staging URL/verified Auth and named Firestore database, protected Vercel preview, authenticated DOB/underage E2E or AppSec acceptance was established. [VES-5](https://linear.app/takev/issue/VES-5) late-hold post-auth race and [VES-12](https://linear.app/takev/issue/VES-12) cloud budget/IAM remain blockers; `productionApproved=false`, **NO-GO**. No repo main merge, Vercel/Cloud deployment, cloud IAM/billing or live user modifications.
 
+## Verified Draft-PR dependency and exact-head CI inventory — 2026-11-08
+
+All listed PRs were **Draft and unmerged** at verification. Branch CI passing proves tests for an individual exact commit only; it is **not** an integrated combined release, independent approval or the live/staging acceptance that remains required.
+
+| Dependency order | Review PR and base | Exact reviewed HEAD | Latest Enterprise CI |
+| --- | --- | --- | --- |
+| Purge base | [#317](https://github.com/Veselin-Takev/Klar-Dating/pull/317), based on main | `37c7487246303c5af1543ca1e5afe31e2cf2e0f4` | [#1747](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42078741460) **SUCCESS** |
+| GCS bucket gate | [#345](https://github.com/Veselin-Takev/Klar-Dating/pull/345), based on #317 | `e1db047498a797220869ad88243de958c9e17f22` | [#1833](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42416021972) **SUCCESS** |
+| Firestore record hold | [#350](https://github.com/Veselin-Takev/Klar-Dating/pull/350), based on #345 | `4c55668d0f34ecc1428ceef713724a0e99707ba4` | [#1888](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42452650186) **SUCCESS** |
+| Vercel API baseline | [#337](https://github.com/Veselin-Takev/Klar-Dating/pull/337), based on main | `e66283fe6635b757d4fd3236ddd54041a56813e6` | [#1801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42241971969) **SUCCESS** |
+| Safe bounded body buffering | [#346](https://github.com/Veselin-Takev/Klar-Dating/pull/346), based on #337 | `3863d0c8212a385075a96c60189a2ceaac6cdcd1` | [#1841](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42418392708) **SUCCESS** |
+| Incoming body deadline | [#351](https://github.com/Veselin-Takev/Klar-Dating/pull/351), based on #346 | `1255dd1782f4bbc839838598aac1d6ef91cce6d7` | [#1890](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42453815302) **in progress** at last inspection |
+| Firebase project identity | [#343](https://github.com/Veselin-Takev/Klar-Dating/pull/343), based on main | `601c316c4b875242989f488473bba61b4c22322c` | [#1820](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42413071403) **SUCCESS** |
+| Admin app & GCS identity | [#344](https://github.com/Veselin-Takev/Klar-Dating/pull/344), based on #343 | `6e3a10a7dee58f3b55d9e2bc52986d686e189844` | [#1831](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42414827630) **SUCCESS** |
+
+**Integration rule:** Reconcile overlapping changes and source dependencies through one reviewed integration branch, establish the **final combined commit SHA**, rerun the full CI, real Firebase emulators and documented staging tests, and request independent AppSec/DPO/SRE/Release Owner approvals. Do **not** merge these Drafts in bulk or treat eight separate green workflows as a released integrated system. A tagged release or production identity is not established by this register. VES-5 cross-service post-authorization race, VES-11 backend Auth/age E2E, VES-12 project budget/IAM and VES-14 protected live approval remain **OPEN**. `productionApproved=false`, **NO-GO**.
+
 ## Ordered execution plan
 
 1. **Retain fail-closed state.** Do not enable `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED`, `VERIFICATION_PHOTO_PURGE_P0_LIVE_RELEASE_APPROVED` or `productionApproved`; no production merge or promotion.
