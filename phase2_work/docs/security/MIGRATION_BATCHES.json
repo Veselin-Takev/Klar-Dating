@@ -36,7 +36,7 @@
     },
     {
       "id": "C",
-      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+      "status": "COMPLETED",
       "scope": "Risk/audit and Didit KYC session, webhook and recovery source migration",
       "files": [
         "phase2_work/src/server/platform/riskEngine.ts",
@@ -66,12 +66,12 @@
       "liveDataMigration": "NOT_EXECUTED",
       "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
-      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
+      "wave2VerifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "wave2ClosureNote": "Source migration and coupled client/Rules readers verified; production cutover disabled."
     },
     {
       "id": "D",
-      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+      "status": "COMPLETED",
       "scope": "Stripe checkout/fulfillment plus cancellation/withdrawal/refund review ledger and subscription reader",
       "files": [
         "phase2_work/src/server/stripeService.ts",
@@ -93,12 +93,12 @@
         "phase2_work/src/server/klarCore.ts: subscription status, authenticated cancellation/withdrawal (mixed file remains legacy)"
       ],
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
-      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
+      "wave2VerifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "wave2ClosureNote": "Source migration and coupled client/Rules readers verified; production cutover disabled."
     },
     {
       "id": "E",
-      "status": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+      "status": "COMPLETED",
       "scope": "Tenant reminders, expired funnel cleanup and signed compliance worker",
       "files": [
         "phase2_work/functions/src/dateReminders.ts",
@@ -121,48 +121,55 @@
       "remainingScope": [],
       "liveDataMigration": "NOT_EXECUTED",
       "wave2SourceStatus": "VERIFIED_SCOPED",
-      "wave2VerifiedAtCodeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
-      "wave2ClosureNote": "Code migration staged; full-suite and final repository SAST verification pending. Production cutover remains disabled."
+      "wave2VerifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "wave2ClosureNote": "Source migration and coupled client/Rules readers verified; production cutover disabled."
     }
   ],
   "baselineFixed": false,
   "productionApproved": false,
   "verification": {
-    "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
-    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
+    "codeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
     "result": "SUCCESS",
-    "vitest": 1462,
-    "vitestFiles": 201,
+    "vitest": 1505,
+    "vitestFiles": 204,
     "enterpriseNode": 86,
     "playwright": 26,
-    "mainSuites": 1574,
-    "dedicatedRulesRepeated": 92,
+    "mainSuites": 1617,
+    "dedicatedRulesRepeated": 118,
+    "launchPlatformTestsRepeatedNotAdded": 6,
     "additionalIamChecks": 6,
-    "additionalCollectionInventoryChecks": 2,
+    "additionalCollectionInventoryChecks": 4,
     "semgrepFindings": 0,
     "autoSemgrep": {
-      "result": "FAILED",
-      "findings": 35,
-      "diagnosticWarnings": 41,
-      "warningTypes": {
-        "Syntax error": 2,
-        "PartialParsing": 39
-      },
+      "result": "PASSED",
+      "findings": 0,
+      "diagnosticWarnings": 0,
+      "parserErrors": 0,
       "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
-      "targetsScanned": 1144,
-      "rulesRun": 615,
+      "targetsScanned": 1148,
+      "rulesRun": 616,
       "version": "1.184.0",
-      "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
-      "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
+      "sourceSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+      "artifact": {
+        "id": 13624619822,
+        "name": "semgrep-auto-42500036161-1",
+        "archiveDigest": "sha256:70504d0dae689133cf054b246cb7577c06f67436c3cdf658480d3f55ca76d0be"
+      },
+      "diagnosticEvidence": "Strict scan exit 0 and no scan diagnostics in Actions logs; artifact archive digest from GitHub metadata."
     },
     "typecheck": "PASS",
     "functionsBuild": "PASS",
     "applicationBuild": "PASS",
-    "productionSmoke": "PASS",
+    "productionSmoke": "PASS_LOOPBACK_EMULATORS",
+    "enterpriseStaticGates": "PASS",
+    "localBrowserCorroboration": "26/26 PASS; not added again",
+    "previewDeployment": "RATE_LIMITED_24H_AT_LATEST_HEAD",
     "liveDataMigration": "NOT_EXECUTED",
     "baselineFixed": false,
     "productionApproved": false,
-    "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
+    "report": "phase2_work/docs/security/MIGRATION_WAVE2_CLOSURE.md"
   },
   "previousWaveVerification": {
     "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
@@ -186,7 +193,7 @@
     "phase2_work/src/server/inMemoryStore.ts",
     "phase2_work/src/server/zwischenspeicher.ts"
   ],
-  "closureStatus": "SOURCE_COMPLETE_PENDING_VERIFICATION",
+  "closureStatus": "WAVE2_COMPLETED_WAITING_WAVE3",
   "previousVerifiedWave2": {
     "codeSha": "fff55a978c6184e46b687ba80cefd184cd341900",
     "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690",
@@ -225,10 +232,99 @@
     "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
   },
   "wave2Closure": {
-    "result": "IN_VERIFICATION",
+    "codeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+    "result": "SUCCESS",
+    "vitest": 1505,
+    "vitestFiles": 204,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1617,
+    "dedicatedRulesRepeated": 118,
+    "launchPlatformTestsRepeatedNotAdded": 6,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 4,
+    "semgrepFindings": 0,
+    "autoSemgrep": {
+      "result": "PASSED",
+      "findings": 0,
+      "diagnosticWarnings": 0,
+      "parserErrors": 0,
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+      "targetsScanned": 1148,
+      "rulesRun": 616,
+      "version": "1.184.0",
+      "sourceSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+      "artifact": {
+        "id": 13624619822,
+        "name": "semgrep-auto-42500036161-1",
+        "archiveDigest": "sha256:70504d0dae689133cf054b246cb7577c06f67436c3cdf658480d3f55ca76d0be"
+      },
+      "diagnosticEvidence": "Strict scan exit 0 and no scan diagnostics in Actions logs; artifact archive digest from GitHub metadata."
+    },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS_LOOPBACK_EMULATORS",
+    "enterpriseStaticGates": "PASS",
+    "localBrowserCorroboration": "26/26 PASS; not added again",
+    "previewDeployment": "RATE_LIMITED_24H_AT_LATEST_HEAD",
+    "liveDataMigration": "NOT_EXECUTED",
     "baselineFixed": false,
     "productionApproved": false,
+    "report": "phase2_work/docs/security/MIGRATION_WAVE2_CLOSURE.md"
+  },
+  "wave2Verification": {
+    "codeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+    "result": "SUCCESS",
+    "vitest": 1505,
+    "vitestFiles": 204,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1617,
+    "dedicatedRulesRepeated": 118,
+    "launchPlatformTestsRepeatedNotAdded": 6,
+    "additionalIamChecks": 6,
+    "additionalCollectionInventoryChecks": 4,
+    "semgrepFindings": 0,
+    "autoSemgrep": {
+      "result": "PASSED",
+      "findings": 0,
+      "diagnosticWarnings": 0,
+      "parserErrors": 0,
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+      "targetsScanned": 1148,
+      "rulesRun": 616,
+      "version": "1.184.0",
+      "sourceSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+      "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+      "artifact": {
+        "id": 13624619822,
+        "name": "semgrep-auto-42500036161-1",
+        "archiveDigest": "sha256:70504d0dae689133cf054b246cb7577c06f67436c3cdf658480d3f55ca76d0be"
+      },
+      "diagnosticEvidence": "Strict scan exit 0 and no scan diagnostics in Actions logs; artifact archive digest from GitHub metadata."
+    },
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS_LOOPBACK_EMULATORS",
+    "enterpriseStaticGates": "PASS",
+    "localBrowserCorroboration": "26/26 PASS; not added again",
+    "previewDeployment": "RATE_LIMITED_24H_AT_LATEST_HEAD",
     "liveDataMigration": "NOT_EXECUTED",
-    "semgrepCheckpoint": "0 findings / 0 diagnostics in two intermediate scans; final source scan pending"
-  }
+    "baselineFixed": false,
+    "productionApproved": false,
+    "report": "phase2_work/docs/security/MIGRATION_WAVE2_CLOSURE.md"
+  },
+  "coupledIntegrations": [
+    "phase2_work/src/server/routes/billing.ts",
+    "phase2_work/src/server/partnerReferralDeletion.ts",
+    "phase2_work/src/lib/AuthContext.tsx",
+    "phase2_work/src/screens/ChatView.tsx",
+    "phase2_work/firestore.rules",
+    "phase2_work/src/server/contractPages.ts"
+  ]
 }

@@ -1,79 +1,44 @@
 # IAM and Admin SDK boundaries — v0.1.1-rc1
 
-Status: IMPLEMENTATION REVIEW / MIGRATION BLOCKED. baselineFixed=false;
-productionApproved=false. This document is not a live IAM attestation.
+Status: WAVE 2 SOURCE VERIFIED / WAVE 3 AND OPERATIONAL CERTIFICATION OPEN.
+`baselineFixed=false`; `productionApproved=false`. This is source evidence, not a live IAM attestation.
 
-## Security model and privilege inventory
+## Current application and deployment boundaries
 
-Firebase client Security Rules do not restrict service-account Admin SDK calls.
-The repository wrapper is an application control, not a replacement for IAM.
-No deployed service-account email, effective IAM binding export, inherited
-organization/folder policy or credential inventory was available in this audit.
-Actual permissions are therefore UNVERIFIED; no least-privilege claim is made.
+Firebase client Security Rules do not restrict privileged Admin SDK calls. The closed repository is an application control; a path prefix is not an IAM sandbox. Static Cloud Run/Terraform/IAM manifests declare dedicated runtime identities and explicit bindings. No IAM apply, deployment, live data migration, inherited-policy export or effective-permissions attestation was performed.
 
-| Principal / process | Observed source access | Required boundary / evidence |
+| Principal / process | Current source boundary | Remaining evidence |
 | --- | --- | --- |
-| Express runtime | ADC via server/db.ts; native Firestore collection/document/transactions | Dedicated runtime identity; verified tenant context; scoped repository adoption; effective IAM export |
-| Functions maintenance | functions/src/runtime.ts selects configured database/bucket | Separate maintenance identity and explicit project/database/bucket; job-specific roles and deployed service-account evidence |
-| Reminder scheduler | dateReminders.ts uses direct SDK and global collectionGroup(datePlans) | Explicit tenant enumeration and scoped query strategy; no unreviewed global scan |
-| CI | Synthetic loopback demo-klar emulator data | No production credential or cloud write dependency; repository-local source gates |
-| Release deployer | Protected release workflow; actual cloud roles not verified | Distinct workload identity, deploy permissions separate from runtime data permissions; reviewed binding export |
-| External tools/operators | Not enumerated by repository source scan | Signed owner inventory, key/token rotation evidence, IAM conditions and access logs |
+| Express runtime | Protected native factory; staged default-tenant repositories for migrated Auth, billing and async consumers | Seven inventoried infrastructure/utility candidates; effective runtime IAM |
+| Maintenance Functions | Closed repository and deployer-selected maintenance tenant; explicit service-account manifests | Reviewed live identity and project/database/bucket binding |
+| Reminder scheduler | Bounded tenant-local scans and transaction claims; no global collectionGroup scan | Coordinated cutover and external dispatch/erasure fencing |
+| Client profile/chat | Staged `tenants/default` readers; owner/claim/erasure rules; chat membership, adult gate and bidirectional blocks; message writes stay server-only | 26 browser acceptance tests PASS; deployment approval remains open |
+| CI | Loopback demo-klar emulators, metadata discovery disabled, no production credentials | Full candidate CI SUCCESS: 7e61fadb2614593f2a725a8c3072043e2b0e3305 |
+| Release deployer / operators | Separate protected release workflow; source-only proposed privilege model | Workload identity, effective IAM exports, key inventory and human sign-off |
 
-Proposed permissions must be verified against actual workload needs: runtime
-Firestore data access is typically covered by roles/datastore.user; this role
-is database-wide and does NOT enforce arbitrary document-path tenant isolation.
-Do not describe a tenants/{id} path prefix as an IAM sandbox. Hard IAM tenant
-boundaries may require separate databases/projects and identities. Storage
-object permissions, Auth administration and scheduler invocation require their
-own reviewed grants. Owner/Editor, service-account key creation and token-creator
-roles are not justified merely by application data access.
+`roles/datastore.user` is database-wide; it does not enforce document-path isolation. Hard IAM tenant boundaries may require separate databases/projects and identities. Auth administration, Storage access and Scheduler invocation need independent grants and evidence. Owner/Editor, key creation and token-creator grants are not justified by application data access.
 
-## TenantAwareFirestoreRepository
+## Closed tenant repository and supported identity
 
-src/server/TenantAwareFirestoreRepository.ts keeps its native db private and
-resolves the supported default namespace from server-verified claims. Every
-operation uses tenants/default/{relativeDocumentPath}; explicit tenant paths,
-traversal, empty segments and ambiguous encodings are rejected. Read/write data
-must pass the supplied Zod schema. There are no raw refs, global collectionGroup,
-transactions or arbitrary query escape hatches. Named-tenant provisioning is
-unsupported by the current resolver. Tenant isolation does not replace
-per-resource user authorization inside a tenant.
+The canonical `phase2_work/functions/src/firestoreRepository/TenantAwareFirestoreRepository.ts` retains the native database in private fields and validates every relative path. The API adapter resolves only the supported default namespace from verified Firebase claims; named-tenant claims and request-context overrides do not select another namespace. Maintenance namespaces come from trusted deployment configuration.
 
-The wrapper is currently a migration target, NOT the access path for the whole
-legacy application. docs/security/LEGACY_ADMIN_ACCESS.json under phase2_work
-pins the source hashes of 50 legacy consumer files. The CI drift guard detects
-added or changed matched access sites and demands review. It is a bounded
-lexical inventory, not complete dataflow analysis: aliases, dynamic access,
-reflection, other source trees and external writers need independent review.
-`node scripts/check-admin-sdk-boundaries.mjs --certify` deliberately FAILS while
-those files remain. An inventory refresh is not a certification or remediation.
+Read/write schemas execute at runtime. Closed read/list/create/write/delete transactions and bounded pagination are exposed; raw references, native transactions and global collectionGroup queries are not. Recursive deletion also validates the tenant-relative document path. Namespace isolation does not replace per-resource user authorization.
 
-## Mandatory migration before adoption / certification
+The original register contains 50 candidates: **43 source migrations, seven remaining**. `phase2_work/docs/security/LEGACY_ADMIN_ACCESS.json` pins the remaining source hashes. Two entries are native infrastructure factories, one is the server composition root, and four are utility/local-store candidates. Their final classification/migration is a Wave 3 task. The lexical drift guard is not complete alias/dataflow analysis, and `--certify` intentionally refuses certification while the inventory is nonempty.
 
-1. Define the complete tenant lifecycle, claims mapping and job execution context.
-2. Map each root collection and subcollection to tenant ownership, including
-   global/system data, payment/customer mapping, Art.17, audit and legal holds.
-3. Migrate references, transactions, queries, indexes, Functions triggers,
-   Scheduler jobs, clients and client Rules together. Current Rules do not
-   authorize client access to tenants/{tenant}/...; a wrapper-only path switch
-   would silently split server and client state.
-4. Create a reviewed dry-run manifest with counts/hashes, consistent cutover,
-   rollback and deletion/hold invariants. Never run this migration against real
-   data as part of a source-code audit.
-5. Remove legacy consumers, deny unscoped factories/imports, test native
-   transaction/reference escape attempts and obtain independent IAM evidence.
-6. Run full candidate CI plus deployed negative access tests and human review.
+## Cutover and certification conditions
 
-## Evidence and limitation
+1. Complete the remaining candidate review/migration and retain static anti-bypass enforcement.
+2. Review the client/server/Rules/index mapping, including existing root data, blocks, consent, payment/customer mappings and legal holds.
+3. Produce a dry-run migration manifest with counts/hashes, rollback and write-fencing guarantees. Do not enable migration flags merely because source tests pass.
+4. Verify deployed service accounts, effective IAM and external Auth/Stripe/FCM/Storage boundaries. Verification-photo erasure stays hard-disabled until cross-service fencing is proven.
+5. Require complete candidate CI and manual production approval. Source changes and a successful preview build are not production sign-off.
 
-Tests exercise the wrapper with typed doubles and native emulator data, confirm
-root records are unchanged, and reject foreign tenant paths. The source-gate
-negative test adds an unscoped consumer in a temporary Git fixture and verifies
-rejection; the certification test verifies refusal while legacy access exists.
-Prior CI counts are historical until the new candidate completes CI. No claim
-of zero cross-tenant access, universal wrapper adoption or production readiness
-is supported while the legacy list is nonempty.
+Current source evidence includes 118 native Rules tests and native root/foreign contrast tests for profile, consent, mail, archival and reminders. The [full candidate CI](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161) verified 1617 main-suite tests; the repeated Rules run is excluded from addition. No universal zero-cross-tenant or production-readiness certification is claimed while these gates remain open.
+
+## Historical checkpoints
+
+The checkpoints below describe earlier immutable commits. Their migration counts and unresolved paths are historical and superseded by the current inventory above.
 
 ## Verified Admin wrapper checkpoint — 2026-11-08
 

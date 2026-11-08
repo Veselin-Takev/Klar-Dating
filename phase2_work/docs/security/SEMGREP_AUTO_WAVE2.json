@@ -1,228 +1,544 @@
 {
   "scanner": "Semgrep 1.184.0",
-  "configuration": "auto (registry-selected, not pinned)",
-  "scope": "Entire Git repository; default Semgrep exclusions apply",
-  "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
-  "command": "semgrep scan --config auto --error --metrics=on --disable-version-check",
-  "exitCode": 1,
-  "findings": 35,
-  "targetsScanned": 1144,
-  "rulesRun": 615,
-  "diagnosticWarnings": 41,
-  "warningTypes": {
-    "Syntax error": 2,
-    "PartialParsing": 39
+  "configuration": "auto (registry-selected, mutable)",
+  "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+  "sourceSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305",
+  "command": "semgrep scan --config auto --error --strict --timeout=60 --jobs=2 --metrics=on --disable-version-check ..",
+  "exitCode": 0,
+  "result": "PASSED",
+  "findings": 0,
+  "diagnosticWarnings": 0,
+  "parserErrors": 0,
+  "targetsScanned": 1148,
+  "rulesRun": 616,
+  "version": "1.184.0",
+  "ci": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161",
+  "artifact": {
+    "id": 13624619822,
+    "name": "semgrep-auto-42500036161-1",
+    "archiveDigest": "sha256:70504d0dae689133cf054b246cb7577c06f67436c3cdf658480d3f55ca76d0be"
   },
-  "results": [
+  "diagnosticEvidence": "Strict scan exit 0 and no scan diagnostics in Actions logs; artifact archive digest from GitHub metadata.",
+  "results": [],
+  "warningTypes": {},
+  "initialFailure": {
+    "scanner": "Semgrep 1.184.0",
+    "configuration": "auto (registry-selected, not pinned)",
+    "scope": "Entire Git repository; default Semgrep exclusions apply",
+    "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
+    "command": "semgrep scan --config auto --error --metrics=on --disable-version-check",
+    "exitCode": 1,
+    "findings": 35,
+    "targetsScanned": 1144,
+    "rulesRun": 615,
+    "diagnosticWarnings": 41,
+    "warningTypes": {
+      "Syntax error": 2,
+      "PartialParsing": 39
+    },
+    "results": [
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": ".github/dependabot.yml",
+        "line": 4,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": ".github/dependabot.yml",
+        "line": 15,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": ".github/dependabot.yml",
+        "line": 26,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": ".github/dependabot.yml",
+        "line": 37,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+        "path": ".npmrc",
+        "line": 1,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": "phase2_work/.github/dependabot.yml",
+        "line": 3,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+        "path": "phase2_work/.github/dependabot.yml",
+        "line": 22,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+        "path": "phase2_work/.npmrc",
+        "line": 1,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+        "path": "phase2_work/scripts/check-hooks.mjs",
+        "line": 96,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+        "path": "phase2_work/scripts/check-retention-expiry-writers.mjs",
+        "line": 39,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+        "path": "phase2_work/scripts/evaluate-llm-security.mjs",
+        "line": 26,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+        "path": "phase2_work/scripts/evaluate-llm-security.mjs",
+        "line": 26,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
+        "path": "phase2_work/scripts/run-with-emulator.mjs",
+        "line": 36,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
+        "path": "phase2_work/scripts/run-with-emulator.mjs",
+        "line": 64,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "typescript.react.security.react-insecure-request.react-insecure-request",
+        "path": "phase2_work/scripts/smoke-production.mjs",
+        "line": 9,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/components/GlobalErrorOverlay.tsx",
+        "line": 29,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/lib/fehler.ts",
+        "line": 24,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/lib/resilienceService.ts",
+        "line": 41,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/server/analytics.ts",
+        "line": 21,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 197,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 198,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 200,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 200,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 201,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 202,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 207,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 213,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
+        "path": "phase2_work/src/server/contracts.ts",
+        "line": 215,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/server/distributedRateLimiter.ts",
+        "line": 55,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket",
+        "path": "phase2_work/src/server/emulatorCsp.ts",
+        "line": 53,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.express-data-exfiltration.express-data-exfiltration",
+        "path": "phase2_work/src/server/middleware/requestDiagnostics.ts",
+        "line": 36,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/server/platform/riskEngine.ts",
+        "line": 79,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection",
+        "path": "phase2_work/src/server/routes/aiPassgenauigkeit.ts",
+        "line": 109,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/server/verification/VerificationManager.ts",
+        "line": 15,
+        "triage": "OPEN"
+      },
+      {
+        "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+        "path": "phase2_work/src/server/verification/VerificationManager.ts",
+        "line": 24,
+        "triage": "OPEN"
+      }
+    ]
+  },
+  "resolvedFindings": [
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": ".github/dependabot.yml",
       "line": 4,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": ".github/dependabot.yml",
       "line": 15,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": ".github/dependabot.yml",
       "line": 26,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": ".github/dependabot.yml",
       "line": 37,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
       "path": ".npmrc",
       "line": 1,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Publication-age policy in npm configuration; supported seven-day Bun install policy and frozen locks remain authoritative in pinned CI.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": "phase2_work/.github/dependabot.yml",
       "line": 3,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
       "path": "phase2_work/.github/dependabot.yml",
       "line": 22,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Seven-day update cooldowns in both Dependabot configurations.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
       "path": "phase2_work/.npmrc",
       "line": 1,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Publication-age policy in npm configuration; supported seven-day Bun install policy and frozen locks remain authoritative in pinned CI.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
       "path": "phase2_work/scripts/check-hooks.mjs",
       "line": 96,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static regular expressions plus explicit operation/name validation.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
       "path": "phase2_work/scripts/check-retention-expiry-writers.mjs",
       "line": 39,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static regular expressions plus explicit operation/name validation.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
       "path": "phase2_work/scripts/evaluate-llm-security.mjs",
       "line": 26,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React HTML serialization or a JSON envelope for untrusted evaluator input.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
       "path": "phase2_work/scripts/evaluate-llm-security.mjs",
       "line": 26,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React HTML serialization or a JSON envelope for untrusted evaluator input.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
       "path": "phase2_work/scripts/run-with-emulator.mjs",
       "line": 36,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Argument-vector child processes with shell disabled; workflow contexts read through environment variables.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
       "path": "phase2_work/scripts/run-with-emulator.mjs",
       "line": 64,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Argument-vector child processes with shell disabled; workflow contexts read through environment variables.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "typescript.react.security.react-insecure-request.react-insecure-request",
       "path": "phase2_work/scripts/smoke-production.mjs",
       "line": 9,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Validated loopback-only local emulator origin construction.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/components/GlobalErrorOverlay.tsx",
       "line": 29,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/lib/fehler.ts",
       "line": 24,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/lib/resilienceService.ts",
       "line": 41,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/server/analytics.ts",
       "line": 21,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 197,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 198,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 200,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 200,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 201,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 202,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 207,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 213,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
       "path": "phase2_work/src/server/contracts.ts",
       "line": 215,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "React server serialization, escaping text and attributes without a raw HTML sink.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/server/distributedRateLimiter.ts",
       "line": 55,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket",
       "path": "phase2_work/src/server/emulatorCsp.ts",
       "line": 53,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Validated loopback-only emulator WebSocket origins.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.express-data-exfiltration.express-data-exfiltration",
       "path": "phase2_work/src/server/middleware/requestDiagnostics.ts",
       "line": 36,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Explicit typed request correlation-field assignment instead of request mass assignment.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/server/platform/riskEngine.ts",
       "line": 79,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection",
       "path": "phase2_work/src/server/routes/aiPassgenauigkeit.ts",
       "line": 109,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Named typed callback invocation; no HTML/PDF process or user-selected renderer.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/server/verification/VerificationManager.ts",
       "line": 15,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
       "path": "phase2_work/src/server/verification/VerificationManager.ts",
       "line": 24,
-      "triage": "OPEN"
+      "triage": "FIXED",
+      "resolution": "Static log format/event names and bounded typed values.",
+      "verifiedAtCodeSha": "7e61fadb2614593f2a725a8c3072043e2b0e3305"
     }
-  ]
+  ],
+  "parserRemediation": [
+    "Two preserved patch artifacts renamed from .ts to .patch.",
+    "JSX ampersands encoded without changing rendered text or query values.",
+    "Ambiguous generic importOriginal syntax replaced with explicit type assertions."
+  ],
+  "intermediateTimeouts": {
+    "count": 2,
+    "path": "phase2_work/src/screens/Dashboard.tsx",
+    "resolution": "Full rescan with 60-second per-rule budget and two workers; strict diagnostics fail CI."
+  }
 }

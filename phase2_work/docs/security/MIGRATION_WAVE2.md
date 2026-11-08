@@ -1,3 +1,13 @@
+# Wave 2 migration — closure verified
+
+Current source progress: **43/50**, seven remaining. C/D/E source migration **COMPLETED** on `7e61fadb2614593f2a725a8c3072043e2b0e3305`; [full CI SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161). Strict repository Semgrep **0 findings / 0 diagnostics**. **1617 main-suite PASS** (1505 Vitest + 86 Enterprise Node + 26 Playwright), 118 dedicated Rules repeated, not added.
+
+`baselineFixed=false`, `productionApproved=false`; PR #358 DRAFT. No live cutover. See [current closure evidence](MIGRATION_WAVE2_CLOSURE.md) and [batch register](MIGRATION_BATCHES.json).
+
+## Historical partial checkpoint (superseded)
+
+The following 10/50 checkpoint is retained for provenance. Its open code paths and 35/41 SAST results were addressed by the current closure; operational gates remain open.
+
 # Wave 2 migration evidence — v0.1.1-rc1
 
 Source progress: **10/50 migrated candidates, 40 remaining**. `baselineFixed=false`,
