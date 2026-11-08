@@ -18,12 +18,13 @@ const notBeforeMs = Date.parse(String(evidenceNotBefore ?? ''));
 const notAfterMs = Date.parse(String(evidenceNotAfter ?? ''));
 if (!Number.isFinite(notBeforeMs)) errors.push('KLAR_EVIDENCE_NOT_BEFORE must be a valid ISO date/time');
 if (!Number.isFinite(notAfterMs)) errors.push('KLAR_EVIDENCE_NOT_AFTER must be a valid ISO date/time');
+if (Number.isFinite(notBeforeMs) && Number.isFinite(notAfterMs) && notBeforeMs > notAfterMs) errors.push('trusted evidence window must be chronologically ordered');
 if (approvedHosts.size === 0) errors.push('KLAR_EVIDENCE_HOSTS must contain at least one approved host');
 if (!/^[0-9a-f]{40}$/.test(expectedBuildSha)) errors.push('expected build SHA must be a full 40-character lowercase Git SHA');
 if (evidence?.buildSha !== expectedBuildSha) errors.push('evidence buildSha must match the exact release build');
 if (evidence?.candidateRevision !== expectedRevision) errors.push('candidateRevision does not match the promotion target');
 if (evidence?.candidateImage !== expectedImage) errors.push('candidateImage does not match the immutable promotion image');
-if (Number(evidence?.trafficPercent) !== 10) errors.push('candidate traffic must have been exactly 10%');
+if (evidence?.trafficPercent !== 10) errors.push('candidate traffic must have been exactly 10% as a numeric value');
 if (evidence?.health !== 'passed') errors.push('health check must have passed');
 if (evidence?.readiness !== 'passed') errors.push('readiness check must have passed');
 const started = Date.parse(String(evidence?.observedFrom ?? ''));
@@ -31,13 +32,19 @@ const ended = Date.parse(String(evidence?.observedUntil ?? ''));
 if (Number.isFinite(started) && Number.isFinite(notBeforeMs) && started < notBeforeMs) errors.push('observedFrom must not predate the trusted evidence window');
 if (Number.isFinite(ended) && Number.isFinite(notAfterMs) && ended > notAfterMs) errors.push('observedUntil must not exceed the trusted evidence window');
 if (!Number.isFinite(started) || !Number.isFinite(ended) || ended < started) errors.push('observedFrom/observedUntil must be ordered ISO timestamps');
-const durationSeconds = Number(evidence?.observationSeconds);
-if (!Number.isInteger(durationSeconds) || durationSeconds < 300) errors.push('observationSeconds must be at least 300 seconds');
+// A future interval is a forecast, not completed production canary evidence.
+// Permit one minute of clock skew between the runner and the observation source.
+if (Number.isFinite(ended) && ended > Date.now() + 60_000) errors.push('observedUntil must not be in the future');
+const durationSeconds = evidence?.observationSeconds;
+if (typeof durationSeconds !== 'number' || !Number.isInteger(durationSeconds) || durationSeconds < 300) errors.push('observationSeconds must be at least 300 seconds as a numeric value');
 if (Number.isFinite(started) && Number.isFinite(ended) && Number.isInteger(durationSeconds) && Math.abs((ended - started) / 1000 - durationSeconds) > 5) errors.push('observationSeconds must match observedFrom/observedUntil within 5 seconds');
 const metrics = evidence?.metrics;
-if (!Number.isFinite(Number(metrics?.availability)) || Number(metrics.availability) < 0.9995) errors.push('availability must meet the production SLO');
-if (!Number.isFinite(Number(metrics?.p95LatencyMs)) || Number(metrics.p95LatencyMs) > 300) errors.push('p95 latency must meet the production SLO');
-if (!Number.isFinite(Number(metrics?.errorRate5xx)) || Number(metrics.errorRate5xx) > 0.001) errors.push('5xx error rate must be at or below 0.1%');
+// Metrics are fractions or non-negative milliseconds, never percentages,
+// numeric strings, negative counters, Infinity, or values above 100%.
+const unitFraction = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+if (!unitFraction(metrics?.availability) || metrics.availability < 0.9995) errors.push('availability must be a numeric fraction within [0,1] and meet the production SLO');
+if (typeof metrics?.p95LatencyMs !== 'number' || !Number.isFinite(metrics.p95LatencyMs) || metrics.p95LatencyMs < 0 || metrics.p95LatencyMs > 300) errors.push('p95 latency must be a non-negative numeric millisecond value meeting the production SLO');
+if (!unitFraction(metrics?.errorRate5xx) || metrics.errorRate5xx > 0.001) errors.push('5xx error rate must be a numeric fraction within [0,1] and at or below 0.1%');
 if (!Array.isArray(evidence?.evidenceLinks) || evidence.evidenceLinks.length === 0) errors.push('at least one observation evidence link is required');
 for (const link of evidence?.evidenceLinks ?? []) {
   try {
