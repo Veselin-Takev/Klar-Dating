@@ -8,6 +8,10 @@
  */
 const MAX_BODY_BYTES = 900 * 1024;
 const TIMEOUT_MS = 15_000;
+// Applies before fetch(). The upstream fetch timeout cannot protect against
+// a client who never completes an incoming chunked request body.
+const BODY_READ_TIMEOUT_MS = 10_000;
+class BodyReadDeadlineExceeded extends Error {}
 const ROUTE_PARAM = '__klar_api_path';
 
 function unavailable(code: string, status = 503): Response {
@@ -62,23 +66,38 @@ function validatedRoute(url: URL): string | null {
  * before checking the size buffers an arbitrary-size request in memory.
  * Do not forward any part of an oversized or unreadable request upstream.
  */
-async function readBoundedRequestBody(request: Request): Promise<ArrayBuffer | null> {
+async function readBoundedRequestBody(
+  request: Request, timeoutMs: number,
+): Promise<ArrayBuffer | null> {
   if (!request.body) return new ArrayBuffer(0);
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    deadlineTimer = setTimeout(() => reject(new BodyReadDeadlineExceeded()), timeoutMs);
+  });
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      // One absolute deadline for the *entire* body, not a resettable
+      // per-chunk timeout: slow trickling must not pin a Vercel invocation.
+      const { done, value } = await Promise.race([reader.read(), deadline]);
       if (done) break;
       byteLength += value.byteLength;
       if (byteLength > MAX_BODY_BYTES) {
-        await reader.cancel();
+        // Never await a potentially nonterminating user-controlled cancel.
+        void reader.cancel().catch(() => {});
         return null;
       }
       chunks.push(value);
     }
+  } catch (error) {
+    // Cancel the pending read on timeout or stream failure. Do not await
+    // cancellation because an uncooperative source can also stall cancel().
+    void reader.cancel().catch(() => {});
+    throw error;
   } finally {
+    if (deadlineTimer !== undefined) clearTimeout(deadlineTimer);
     reader.releaseLock();
   }
   const body = new Uint8Array(byteLength);
@@ -94,6 +113,8 @@ export async function proxyKlarApi(
   request: Request,
   env: NodeJS.ProcessEnv = process.env,
   send: typeof fetch = fetch,
+  // Internal deterministic test seam; never sourced from request headers.
+  bodyReadTimeoutMs = BODY_READ_TIMEOUT_MS,
 ): Promise<Response> {
   const origin = validatedBackendOrigin(env);
   if (!origin) return unavailable('api_upstream_not_configured');
@@ -129,8 +150,11 @@ export async function proxyKlarApi(
   if (hasBody) {
     let bounded: ArrayBuffer | null;
     try {
-      bounded = await readBoundedRequestBody(request);
-    } catch {
+      bounded = await readBoundedRequestBody(request, bodyReadTimeoutMs);
+    } catch (error) {
+      if (error instanceof BodyReadDeadlineExceeded) {
+        return unavailable('api_payload_read_timeout', 408);
+      }
       return unavailable('api_payload_unreadable', 400);
     }
     if (bounded === null) return unavailable('api_payload_too_large', 413);
