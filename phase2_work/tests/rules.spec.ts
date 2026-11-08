@@ -776,7 +776,8 @@ describe('Klar & Partner server-only collections', () => {
 
 describe('UID collisions from unsupported tenants', () => {
   it.each(['tenant-a', 'tenant-b'])('denies private reads/writes for same UID from %s', async tenant => {
-    const db = env.authenticatedContext(ANNA, { firebase: {tenant, sign_in_provider: 'password'} }).firestore();
+    const tenantClaims = {tenant, sign_in_provider: 'password' as const};
+    const db = env.authenticatedContext(ANNA, { firebase: tenantClaims }).firestore();
     await assertFails(getDoc(doc(db, 'users/anna')));
     await assertFails(updateDoc(doc(db, 'users/anna'), {name: 'foreign'}));
     await assertFails(getDoc(doc(db, 'subscriptions/anna')));

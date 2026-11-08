@@ -17,9 +17,10 @@ const user = (uid: string, provider: 'password' | 'anonymous' = 'password') => e
 const image = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and automatic photo retention', () => {
   it.each(['tenant-a', 'tenant-b'])('denies tenant-scoped UID collisions in Storage (%s)', async tenant => {
+    const tenantClaims = {tenant, sign_in_provider: 'password' as const};
     const path = `profiles/${prefix}/tenant-check.jpg`;
     await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, {contentType: 'image/jpeg'})));
-    const foreign = env.authenticatedContext(prefix, {firebase: {tenant, sign_in_provider: 'password'}}).storage('gs://demo-klar.appspot.com');
+    const foreign = env.authenticatedContext(prefix, {firebase: tenantClaims}).storage('gs://demo-klar.appspot.com');
     await assertFails(foreign.ref(path).getDownloadURL());
     await assertFails(Promise.resolve(foreign.ref(path).put(image, {contentType: 'image/jpeg'})));
     await assertFails(foreign.ref(path).delete());
