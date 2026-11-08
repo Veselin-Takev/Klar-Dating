@@ -203,6 +203,12 @@
     "explicitAnyNodes": 202,
     "testFilesInventoried": 248,
     "validatedUniqueTests": null,
-    "reason": "Full candidate CI and complete schema/tenant/zero-any/reachability evidence outstanding"
+    "reason": "Full candidate CI and complete schema/tenant/zero-any/reachability evidence outstanding",
+    "isolationClosure": {
+      "status": "PENDING_CI_AND_REVIEW",
+      "report": "phase2_work/docs/releases/v0.1.1-rc1/ISOLATION_CLOSURE.md",
+      "policy": "reject unsupported tenant markers at UID boundaries",
+      "baselineFixed": false
+    }
   }
 }

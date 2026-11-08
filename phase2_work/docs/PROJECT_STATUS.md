@@ -1648,3 +1648,7 @@ verbindlichen Gesamtausführung. Der Dateikatalog ist eine vollständige
 strukturelle Bestandsaufnahme, keine abgeschlossene semantische Codeprüfung.
 Die historische Testzahl ist damit aktualisiert, die Baseline nicht fixiert.
 Keine Feature-Entwicklung, kein Merge/Tag und keine Produktionsfreigabe.
+
+## Isolation closure — 2026-11-08
+
+Unsupported tenant tokens now fail closed at protected API, Firestore and Storage boundaries. Native rules, real emulator-token API and Storage cases added; dedicated test:rules mandatory in CI. [Scope and limits](releases/v0.1.1-rc1/ISOLATION_CLOSURE.md). #356/#357 included linearly. baselineFixed=false pending complete evidence and review.
