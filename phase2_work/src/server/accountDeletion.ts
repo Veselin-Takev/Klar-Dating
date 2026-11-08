@@ -57,6 +57,9 @@ export async function requestAccountDeletion(uid: string, database: Firestore | 
   const ref = `account_deletions/${uid}`;
   const result = await db.transaction(async tx => {
     const [existing, user, kyc] = await Promise.all([tx.read(ref, deletionRecord), tx.read(`users/${uid}`, deletionRecord), tx.read(`kyc_accounts/${uid}`, deletionRecord)]);
+    // The Rules-visible fence and durable deletion job share one Firestore
+    // commit. Repeated requests also repair the fence for legacy pending jobs.
+    if (user !== null) tx.write(`users/${uid}`, deletionRecord, { isVerified: false, mediaAccessState: 'erasing' }, { merge: true });
     if (existing !== null) return { requestId: existing.requestId! };
     const requestId = randomUUID();
     tx.create(ref, deletionRecord, { requestId, status: 'pending', phase: 'purge', createdAt: new Date(), nextAttemptAt: new Date(),
@@ -64,7 +67,6 @@ export async function requestAccountDeletion(uid: string, database: Firestore | 
       subscriptionId: user?.subscriptionId ?? null, customerId: user?.stripeCustomerId ?? null });
     // Remove discoverability at the same instant the durable write barrier appears.
     tx.delete(`public_profiles/${uid}`);
-    if (user !== null) tx.write(`users/${uid}`, deletionRecord, { isVerified: false }, { merge: true });
     return { requestId };
   });
   await ignoreMissing(() => getAuth().updateUser(uid, { disabled: true }));

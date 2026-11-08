@@ -17,19 +17,21 @@ const path=`profiles/${owner}/synthetic.jpg`;
 const store=(uid,provider='password',extra={})=>env.authenticatedContext(uid,{firebase:{sign_in_provider:provider,...extra}}).storage('gs://demo-klar.appspot.com');
 const image=new Uint8Array([0xff,0xd8,0xff,0xe0]);
 try {
+  await env.withSecurityRulesDisabled(context=>context.firestore().doc(`tenants/default/users/${owner}`).set({isAdult:true,mediaAccessState:'active'}));
   await assertSucceeds(store(owner).ref(path).put(image,{contentType:'image/jpeg'}));
+  await assertSucceeds(store(owner).ref(path).getDownloadURL());
   await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getDownloadURL());
   await assertFails(store('foreign','password',{tenant:'tenant-a'}).ref(path).getDownloadURL());
-  await assertSucceeds(store('audit-guest','anonymous').ref(path).getDownloadURL());
+  await assertFails(store('audit-guest','anonymous').ref(path).getDownloadURL());
   await env.withSecurityRulesDisabled(async context=>{
-    await context.firestore().doc('tenants/default/users/audit-minor').set({isAdult:false});
+    await context.firestore().doc('tenants/default/users/audit-minor').set({isAdult:false,mediaAccessState:'active'});
     await context.firestore().doc(`tenants/default/account_deletions/${owner}`).set({status:'pending'});
   });
-  await assertSucceeds(store('audit-minor').ref(path).getDownloadURL());
-  await assertSucceeds(store(owner).ref(`verification/${owner}/after-deletion-request.jpg`).put(image,{contentType:'image/jpeg'}));
-  console.log(JSON.stringify({result:'SECURITY_GAPS_REPRODUCED',project:'demo-klar',
-    anonymousProfileRead:'ALLOWED',underageProfileRead:'ALLOWED',
-    verificationUploadAfterDeletionTombstone:'ALLOWED',
+  await assertFails(store('audit-minor').ref(path).getDownloadURL());
+  await assertFails(store(owner).ref(`verification/${owner}/after-deletion-request.jpg`).put(image,{contentType:'image/jpeg'}));
+  console.log(JSON.stringify({result:'CONTAINMENT_GUARDS_VERIFIED',project:'demo-klar',
+    anonymousProfileRead:'DENIED',underageProfileRead:'DENIED',
+    verificationUploadAfterDeletionTombstone:'DENIED',
     unauthenticatedRead:'DENIED',foreignTenantRead:'DENIED',
     productionAccessed:false},null,2));
 } finally { await env.cleanup(); }

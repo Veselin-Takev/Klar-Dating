@@ -24,18 +24,33 @@ service firebase.storage {
     }
     function istBild() { return request.resource != null && request.resource.contentType != null && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
 
+    // Authorization uses server-owned Firestore state, never an isAdult claim.
+    // Cross-service lookup failure/missing data denies access. Only the supported
+    // default database/tenant namespace is eligible; no legacy-data fallback.
+    function activeAdult(uid) {
+      // At most two Firestore documents per Storage request. The server writes
+      // this fence atomically with the deletion job; missing legacy fences deny.
+      let user = firestore.get(/databases/(default)/documents/tenants/default/users/$(uid)).data;
+      return user.isAdult == true && user.mediaAccessState == 'active';
+    }
+    function eligibleReader() {
+      return signedIn() && !istGast() && activeAdult(request.auth.uid);
+    }
+
     match /verification/{uid}/{datei} {
       allow read: if false;
-      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+      allow create, update: if eligibleReader() && request.auth.uid == uid
+                   && !firestore.exists(/databases/(default)/documents/tenants/default/account_deletions/$(uid))
                    && istBild() && request.resource.size < 8 * 1024 * 1024;
       allow delete: if false;   // nur serverseitig, nach der Entscheidung
     }
 
     match /profiles/{uid}/{datei} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+      allow read: if eligibleReader() && activeAdult(uid);
+      allow create, update: if eligibleReader() && request.auth.uid == uid
+                   && !firestore.exists(/databases/(default)/documents/tenants/default/account_deletions/$(uid))
                    && istBild() && request.resource.size < 8 * 1024 * 1024;
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow delete: if eligibleReader() && request.auth.uid == uid;
     }
   }
 }

@@ -66,6 +66,9 @@ jobs:
           bun ci
           git diff --exit-code -- package.json bun.lock
 
+      - name: Production dependency advisory gate
+        run: bun audit --production --audit-level=high
+
       - name: Install Functions dependencies
         run: npm ci --prefix functions --ignore-scripts --no-audit --no-fund
 

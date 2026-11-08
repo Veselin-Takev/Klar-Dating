@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
+import { createMediaAccessGuard } from './src/server/mediaAccess';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
@@ -822,6 +823,8 @@ const adminHealthCheckLimiter = rateLimit({
       }
       return next();
   });
+
+  app.use('/api', createMediaAccessGuard(() => getServiceRepository('auth')));
 
   // Scope every downstream provider call to verified identity and cancellation.
   app.use('/api', (req, res, next) => {

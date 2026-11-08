@@ -2,6 +2,8 @@
 
 **Decision: BLOCKED / production NO-GO. `productionApproved=false`.**
 
+Remediation follow-up: see [P0 remediation evidence](RC1_REMEDIATION_2026-11-08.md). The findings and test counts below are the historical audit of the explicitly pinned original source, not claims about the subsequent remediation head.
+
 ## Immutable scope and method
 
 Audited source: [04e80e803ff64b4d7d51f599e5e54ad79c4033e2](https://github.com/Veselin-Takev/Klar-Dating/tree/04e80e803ff64b4d7d51f599e5e54ad79c4033e2), canonical PR [#358](https://github.com/Veselin-Takev/Klar-Dating/pull/358), targeting `release/v0.1.1-rc1`.
@@ -98,10 +100,10 @@ See [machine-readable results](RC1_AUDIT_2026-11-08.json) for commands, counts a
 
 Existing [CI 42505817983](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42505817983) is bound to the exact audited head. Run metadata, job steps and decoded log were inspected: 1,524 Vitest, 86 Enterprise Node, 26 browser; all relevant steps completed/success. Its strict repository Semgrep output reports 616 rules / 1,154 targets / 0 findings. The Semgrep artifact contents were not downloaded again in this audit; no new full Semgrep execution or full-history gitleaks scan is claimed. The fresh current-source secret pattern check passed over 1,305 files.
 
-The [Storage reproduction](audit-2026-11-08/storage-access-repro.mjs) asserts the observed vulnerable behavior. Exit 0 means the gap was reproduced, **not** a passed security acceptance gate. Run only in an isolated checkout from `phase2_work/` with Node 22 and locked dependencies:
+The original vulnerable reproduction is preserved at audit commit `1b91951d1a217bc9cbeaaaec54f8959426cb5658`. The [current Storage proof](audit-2026-11-08/storage-access-repro.mjs) now asserts the repaired denials plus a positive owner-read control; its historical results above still refer to the original audit source. Run only in an isolated checkout from `phase2_work/` with Node 22 and locked dependencies:
 
 ```bash
-node_modules/.bin/firebase emulators:exec --project demo-klar --only firestore,storage \
+node --require ./scripts/firebase-emulator-proxy.cjs ./node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --project demo-klar --only firestore,storage \
   'node docs/security/audit-2026-11-08/storage-access-repro.mjs'
 ```
 
