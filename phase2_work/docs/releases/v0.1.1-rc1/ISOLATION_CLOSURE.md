@@ -46,3 +46,23 @@ code requires fresh build/emulator evidence; READY alone is not API proof.
 A finite negative suite cannot establish 100% impossibility of BOLA/IDOR.
 Full application tenant migration, deployed Rules/IAM and external writer
 inventory remain certification blockers. baselineFixed must remain false.
+
+## Verified isolation containment — 2026-11-08
+
+Code SHA `4dc39cd5c760ae15459836e541aa3c139ad4323a`; full
+[CI 42478659998](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42478659998): SUCCESS.
+1,415 Vitest + 86 Enterprise Node + 26 Playwright = **1,527 PASS** across these
+nonoverlapping suites. Dedicated npm run test:rules: 92 PASS, repeated cases
+already included in Vitest, not added again. Typecheck, Functions/App build,
+production smoke and static Enterprise gates PASS. Tenant claim validation,
+real-token API refusal and native Firestore/Storage tenant-collision cases executed.
+
+#356 and #357 are conflict-free and included in #358; they remain unmerged.
+Vercel preview for prior code 7c63dfc0 is READY; the new preview is rate-limited.
+The current code's successful CI production build provides independent build proof.
+
+**Full tenant certification NOT GRANTED; baselineFixed=false, productionApproved=false.**
+Named tenants are denied rather than resolved. External Admin SDK/deployed
+Rules/IAM, complete tenant migration, universal schema/reachability and remaining
+Zero-any requirements are not certified. Finite negative tests cannot prove
+100% impossibility of BOLA/IDOR. No CERTIFIED_PROCEED and no feature release.

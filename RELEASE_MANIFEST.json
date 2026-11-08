@@ -62,13 +62,26 @@
     "inventory": "phase2_work/docs/releases/v0.1.1-rc1/BASELINE_INVENTORY.json",
     "explicitAnyNodes": 202,
     "testFilesInventoried": 248,
-    "validatedUniqueTests": null,
-    "reason": "Full candidate CI and complete schema/tenant/zero-any/reachability evidence outstanding",
+    "validatedUniqueTests": 1527,
+    "reason": "Scoped containment and CI PASS; full tenant/schema/reachability certification remains open",
     "isolationClosure": {
-      "status": "PENDING_CI_AND_REVIEW",
-      "report": "phase2_work/docs/releases/v0.1.1-rc1/ISOLATION_CLOSURE.md",
-      "policy": "reject unsupported tenant markers at UID boundaries",
-      "baselineFixed": false
+      "status": "PASS_SCOPED_CONTAINMENT",
+      "sourceCommit": "4dc39cd5c760ae15459836e541aa3c139ad4323a",
+      "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42478659998",
+      "vitest": 1415,
+      "enterpriseNode": 86,
+      "playwright": 26,
+      "distinctAcrossTheseSuites": 1527,
+      "dedicatedRulesRepeatedNotAdded": 92,
+      "typecheck": "PASS",
+      "build": "PASS",
+      "tenantCertification": "NOT_CERTIFIED",
+      "baselineFixed": false,
+      "remaining": [
+        "No complete tenant-aware data model/resolver",
+        "External Admin SDK and deployed Rules/IAM not independently verified",
+        "Repositorywide schema/reachability and Zero-any criteria still open"
+      ]
     }
   }
 }
