@@ -11,7 +11,7 @@ This stacked review patch introduces an explicit, conservative record-level fiel
 - `legalHold`: boolean, normally absent on legacy records; `true` blocks deletion.
 - For either field, a present value other than the literal boolean `false` (including `null`, strings, numbers and objects) **fails closed** as an invalid/held record. An absent value preserves legacy behavior; it does *not* prove that there is no other legal hold outside this document.
 - The check executes inside the existing `assertStillEligibleForPurge` precondition, reused by initial intent creation, 404 reconciliation, final pre-delete Firestore transaction and audit transaction.
-- Unit tests cover no hold, explicit release, active hold and malformed values; a signed HTTP test on the actual Firestore Emulator checks four active/malformed combinations: 503 response, no Storage delete, no `photoPurgeIntent`, no `photoPurgeProof`, `photoPurged=false`.
+- Unit tests cover no hold, explicit release, active hold and malformed values; signed HTTP tests on the actual Firestore Emulator check four active/malformed *initial-record* combinations: 503 response, no Storage delete, no `photoPurgeIntent`, no `photoPurgeProof`, `photoPurged=false`. Additional adversarial emulator cases insert each hold field **after the durable purge intent but before the final Firestore authorization**; they require 503, zero physical deletion and no audit proof, while the existing intent remains for reconciliation.
 - The existing `check:compliance-storage-purge` enterprise gate now guards the hold-check function's presence.
 
 ## Limits — never interpret this as a VES-5 P0 fix
