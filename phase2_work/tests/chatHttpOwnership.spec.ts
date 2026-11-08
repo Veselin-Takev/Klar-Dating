@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { z } from 'zod';
+import { TenantAwareFirestoreRepository } from '../src/server/TenantAwareFirestoreRepository';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { getAuth } from 'firebase-admin/auth';
@@ -66,6 +68,22 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
       const snap = await db().doc(`users/${identity(index).uid}`).get();
       expect(snap.exists).toBe(true);
     }
+  });
+  it('isolates repository writes from legacy root data and rejects foreign tenant paths', async () => {
+    const owner = identity(0).uid;
+    const schema = z.object({marker: z.string()}).strict();
+    const repo = new TenantAwareFirestoreRepository(db(), await getAuth(getServerFirebaseApp()).verifyIdToken(identity(0).token, true));
+    const path = `users/${owner}`;
+    const scoped = db().doc(`tenants/default/${path}`);
+    try {
+      await repo.write(path, schema, {marker});
+      expect(await repo.read(path, schema)).toEqual({marker});
+      expect((await db().doc(path).get()).data()?.marker).toBeUndefined();
+      await expect(repo.read(`tenants/foreign/${path}`, schema)).rejects.toThrow('tenant_document_path_invalid');
+      await repo.delete(path);
+      expect((await scoped.get()).exists).toBe(false);
+      expect((await db().doc(path).get()).exists).toBe(true);
+    } finally { await scoped.delete(); }
   });
   it('allows both participants and returns only the counterpart profile', async () => {
     for (const index of [0, 1]) {

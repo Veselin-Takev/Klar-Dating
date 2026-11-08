@@ -229,6 +229,15 @@
     "supersededPrs": [
       356,
       357
-    ]
+    ],
+    "adminRepository": {
+      "implementation": "TenantAwareFirestoreRepository",
+      "adoption": "MIGRATION_BLOCKED",
+      "legacyConsumerFiles": 50,
+      "iamEvidence": "DOCUMENTED_SOURCE_ONLY_LIVE_UNVERIFIED",
+      "report": "docs/security/IAM_AND_ADMIN_BOUNDARIES.md",
+      "certification": "FAIL_LEGACY_UNSCOPED_ACCESS_REMAINS",
+      "baselineFixed": false
+    }
   }
 }

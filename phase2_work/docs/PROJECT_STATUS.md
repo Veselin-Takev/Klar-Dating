@@ -1697,3 +1697,7 @@ unsupported; rejecting their tokens is containment, not tenant provisioning.
 **baselineFixed=false; productionApproved=false. No CERTIFIED_PROCEED.**
 This final metadata update refers explicitly to the immutable tested code SHA;
 its own automatic CI is separate from the completed code run above.
+
+## Admin repository hardening — 2026-11-08
+
+TenantAwareFirestoreRepository enforces tenants/default document paths and Zod input/output schemas without raw SDK references. A mandatory legacy source drift guard and negative test were added. **50 legacy consumers remain; --certify FAILS**, so baselineFixed=false and productionApproved=false. IAM boundaries and coordinated migration prerequisites are recorded in [IAM_AND_ADMIN_BOUNDARIES](../../docs/security/IAM_AND_ADMIN_BOUNDARIES.md). Full new-candidate CI pending; prior 1,536 PASS is not inherited.
