@@ -186,6 +186,33 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
   }, 90_000);
 
 
+  it.each([
+    ['photoPurgeHold', true],
+    ['legalHold', true],
+    ['photoPurgeHold', 'true'],
+    ['legalHold', null],
+  ] as const)('prevents signed test-bucket purge for Firestore %s=%s', async (field, state) => {
+    await withEvent(async ({ db, event }) => {
+      await event.update({ [field]: state });
+      const deleted: string[] = [];
+      const api = await startApi(db, async path => { deleted.push(path); });
+      try {
+        const response = await api.request();
+        expect(response.status).toBe(503);
+        expect(response.data).toMatchObject({
+          ok: false, processed: 1, purgedCount: 0, failedCount: 1,
+        });
+        expect(deleted).toEqual([]);
+        const stored = (await event.get()).data();
+        expect(stored?.photoPurged).toBe(false);
+        expect(stored?.photoPurgeIntent).toBeUndefined();
+        expect(stored?.photoPurgeProof).toBeUndefined();
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('isolates a contradictory due row while processing the valid row in the same page', async () => {
     await withEvent(async ({ db, event, path }) => {
       await event.update({ entscheidung: 'abgelehnt', status: 'approved' });
@@ -491,6 +518,40 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       } finally { await api.close(); }
     });
   }, 90_000);
+
+  it.each(['legalHold', 'photoPurgeHold'] as const)(
+    'rejects %s inserted after durable intent and before the final Firestore authorization',
+    async field => {
+      await withEvent(async ({ db, event }) => {
+        let metadataReads = 0;
+        let deletes = 0;
+        const api = await startApi(db, async () => { deletes++; }, async () => {
+          metadataReads++;
+          if (metadataReads === 2) {
+            expect((await event.get()).data()?.photoPurgeIntent)
+              .toMatchObject({ generation: '773' });
+            await event.update({ [field]: true });
+          }
+          return [{ generation: '773', temporaryHold: false }];
+        });
+        try {
+          const response = await api.request();
+          expect(response).toMatchObject({
+            status: 503, data: { ok: false, purgedCount: 0, failedCount: 1 },
+          });
+          expect(metadataReads).toBe(2);
+          expect(deletes).toBe(0);
+          const stored = (await event.get()).data();
+          expect(stored?.photoPurged).toBe(false);
+          expect(stored?.photoPurgeIntent).toMatchObject({ generation: '773' });
+          expect(stored?.photoPurgeProof).toBeUndefined();
+        } finally {
+          await api.close();
+        }
+      });
+    },
+    90_000,
+  );
 
   it('blocks physical deletion if the Firestore lease expires before the final check', async () => {
     await withEvent(async ({ db, event }) => {
