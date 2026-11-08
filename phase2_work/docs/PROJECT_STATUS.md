@@ -1848,3 +1848,30 @@ certify its client storage or complete server-session/KYC migration.
 
 Full current-wave CI pending; the prior 1,552 PASS count is historical.
 baselineFixed=false; productionApproved=false. Stop for Wave 2 after verification.
+
+## Wave 1 C/D verified checkpoint — 2026-11-08
+
+[Full CI 42486611334](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334)
+SUCCESS on `bd3c9f7095b4b76b48daf29fb44192e077f9bc74`:
+**1,561 PASS** = 1,449 Vitest in 199 files + 86 Enterprise Node + 26 Playwright.
+Dedicated Rules: 92 repeated PASS, not added again. Semgrep rule fixtures PASS;
+119 production files / zero findings. Typecheck, Functions/App builds, production
+smoke, audit append-only, risk fail-closed and Stripe ordering/idempotency gates PASS.
+
+Nine new native cases verify risk/profile write isolation and pending-erasure
+denial, pseudonymous tenant audit, blocked Auth/Payments cutovers, foreign Stripe
+metadata, concurrent checkout leases, ambiguous subscription ownership and stale
+payment-failure projection. Failed-commit retry and cancellation-before-completion
+regressions continue to pass. Some existing test doubles were replaced with typed
+repository/SDK ports; those replacements are not counted as additional tests.
+
+Progress **5/50 migrated source files, 45 remaining**. Batch C: IN PROGRESS
+(two user/security consumers done; primary profiles/Auth gates, recovery/mail,
+KYC/session and readers remain). Batch D: IN PROGRESS (Stripe transaction core
+done; entitlement readers, cancellation/withdrawal and related integrations remain).
+Do not enable either domain cutover until its dependent data, readers and deletion
+markers are migrated and reviewed. No live data or payment operation was performed.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT.
+STOP for the Wave 2 review instruction; no CERTIFIED_PROCEED. This final metadata
+checkpoint references the immutable tested code SHA; its automatic CI is separate.

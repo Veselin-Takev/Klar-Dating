@@ -51,7 +51,8 @@
         "KYC sessions",
         "Audit/profile readers and related legacy consumers"
       ],
-      "liveDataMigration": "NOT_EXECUTED"
+      "liveDataMigration": "NOT_EXECUTED",
+      "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74"
     },
     {
       "id": "D",
@@ -68,14 +69,23 @@
         "Cancellation/withdrawal handlers",
         "Billing rate limits and deletion/consent integrations"
       ],
-      "liveDataMigration": "NOT_EXECUTED"
+      "liveDataMigration": "NOT_EXECUTED",
+      "verifiedAtCodeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74"
     }
   ],
   "baselineFixed": false,
   "productionApproved": false,
   "verification": {
-    "result": "PENDING_CURRENT_WAVE_CI",
-    "priorMainSuites": 1552,
+    "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
+    "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
+    "result": "SUCCESS",
+    "vitest": 1449,
+    "enterpriseNode": 86,
+    "playwright": 26,
+    "mainSuites": 1561,
+    "dedicatedRulesRepeated": 92,
+    "semgrepFindings": 0,
+    "liveDataMigration": "NOT_EXECUTED",
     "baselineFixed": false
   }
 }

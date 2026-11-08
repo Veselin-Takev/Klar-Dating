@@ -22,3 +22,5 @@ Batches A/B: 2/50 consumers migrated in source; 48 remain. IAM module and render
 Verified batch checkpoint: 2/50 migrated, 48 open; 1,552 main-suite PASS plus 6 IAM checks on 84575f87. IAM render enforcement implemented, no provisioning/cutover. baselineFixed=false. Stopped for batch review.
 
 Wave 1 C/D: source progress 5/50, 45 open; C and D IN PROGRESS. Auth/Payments cutovers remain OFF outside synthetic CI. Current-wave tests pending; baselineFixed=false.
+
+Wave 1 verified on bd3c9f70: 1,561 PASS, Semgrep 0 findings; 5/50 source files migrated, 45 open. C/D overall IN PROGRESS. baselineFixed=false; stopped for Wave 2 instruction.

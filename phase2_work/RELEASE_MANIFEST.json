@@ -202,7 +202,7 @@
     "inventory": "phase2_work/docs/releases/v0.1.1-rc1/BASELINE_INVENTORY.json",
     "explicitAnyNodes": 202,
     "testFilesInventoried": 248,
-    "validatedUniqueTests": 1552,
+    "validatedUniqueTests": 1561,
     "reason": "Scoped containment and CI PASS; full tenant/schema/reachability certification remains open",
     "isolationClosure": {
       "status": "PASS_SCOPED_CONTAINMENT",
@@ -281,7 +281,19 @@
       "additionalIamChecks": 6,
       "dedicatedRulesRepeated": 92,
       "status": "BATCHES_A_B_VERIFIED_REVIEW_PENDING",
-      "wave1": "PENDING_CI",
+      "wave1": {
+        "codeSha": "bd3c9f7095b4b76b48daf29fb44192e077f9bc74",
+        "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334",
+        "result": "SUCCESS",
+        "vitest": 1449,
+        "enterpriseNode": 86,
+        "playwright": 26,
+        "mainSuites": 1561,
+        "dedicatedRulesRepeated": 92,
+        "semgrepFindings": 0,
+        "liveDataMigration": "NOT_EXECUTED",
+        "baselineFixed": false
+      },
       "batchC": "IN_PROGRESS",
       "batchD": "IN_PROGRESS"
     }
