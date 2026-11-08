@@ -117,10 +117,18 @@
     "status": "PENDING_FULL_CI",
     "autoSemgrep": {
       "result": "FAILED",
-      "findings": 17,
-      "scope": "src/server server.ts functions/src",
+      "findings": 35,
+      "diagnosticWarnings": 41,
+      "warningTypes": {
+        "Syntax error": 2,
+        "PartialParsing": 39
+      },
+      "scope": "ENTIRE_REPOSITORY_DEFAULT_EXCLUSIONS",
+      "targetsScanned": 1144,
+      "rulesRun": 615,
       "version": "1.184.0",
-      "note": "Registry auto rules are independent from pinned check-auth-boundary; metrics required by auto. Findings not suppressed."
+      "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
+      "note": "35 open registry-rule findings, 2 syntax and 39 partial-parsing warnings. Independent pinned check-auth-boundary remains 0; auto findings were not suppressed."
     },
     "report": "phase2_work/docs/security/MIGRATION_WAVE2.md"
   }

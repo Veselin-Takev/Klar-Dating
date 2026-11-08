@@ -50,6 +50,11 @@ No test suite can prove that all cross-tenant access is mathematically impossibl
 
 ## Verification
 
+A TypeScript AST inspection found zero explicit `any` nodes in the migrated KYC,
+contract/compliance, reminder/expiry and canonical repository modules on the tested
+source. This is a scoped result; repository-wide Zero-any/runtime-schema certification
+remains open.
+
 Full changed-candidate verification is pending. The last complete baseline before
 this wave is **1,561 PASS** on `bd3c9f7095b4b76b48daf29fb44192e077f9bc74`,
 [CI 42486611334](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334).
@@ -62,10 +67,18 @@ Native concurrent transaction tests retain concurrency and allow 60s for emulato
 pessimistic-lock retry cycles; they do not replace native transactions with mocks.
 
 Pinned Semgrep `check-auth-boundary` fixtures and production scan: PASS, zero findings
-in the local run. The additional official Semgrep 1.184.0 `scan --config auto --error`
-run completed with **17 blocking findings**, exit 1, no parser errors. Auto requires
-metrics enabled; the npm package name is not substituted for the official Python CLI.
-The independent registry findings concern HTML interpolation (9), logging format
-strings (5), emulator WebSocket configuration (1) Express diagnostics (1), and an Express response rule on the AI route (1). They
-have not been suppressed or certified as false positives (see the retained finding
-register for exact classification). The pinned boundary result does not make the auto scan green.
+on 119 production targets. The additional official Semgrep 1.184.0 repository-wide
+`scan --config auto --error` completed on `6dd7f87e5f178db7e11c7fddf13bd5985c5dc897`
+with **35 blocking findings**, exit 1, 615 rules / 1,144 targets. It also reports
+**41 diagnostic warnings** (2 syntax errors on retained patch artifacts and 39
+partial-parsing diagnostics, including embedded languages). This prevents a claim
+of complete SAST coverage. Auto requires metrics enabled; the npm package name was
+not substituted for the official Python CLI. The original server-only scan found
+17 findings; the broader scan is the authoritative Wave 2 auto result.
+
+The 35 findings are retained without code/payload snippets in
+[SEMGREP_AUTO_WAVE2.json](SEMGREP_AUTO_WAVE2.json). They include HTML interpolation,
+logging, dependency cooldown policy, dynamic regex, sanitization, shell execution,
+HTTP/WebSocket use and Express diagnostics/response rules. They are OPEN, not
+suppressed or certified false positives. The green pinned constructor-boundary
+rule does not make the auto scan green.

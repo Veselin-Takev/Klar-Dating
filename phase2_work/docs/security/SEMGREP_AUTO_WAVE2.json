@@ -1,115 +1,226 @@
 {
   "scanner": "Semgrep 1.184.0",
   "configuration": "auto (registry-selected, not pinned)",
-  "scope": [
-    "src/server",
-    "server.ts",
-    "functions/src"
-  ],
+  "scope": "Entire Git repository; default Semgrep exclusions apply",
+  "sourceSha": "6dd7f87e5f178db7e11c7fddf13bd5985c5dc897",
+  "command": "semgrep scan --config auto --error --metrics=on --disable-version-check",
   "exitCode": 1,
-  "findings": 17,
-  "errors": 0,
-  "stage": "before Wave 2 changes were completed",
+  "findings": 35,
+  "targetsScanned": 1144,
+  "rulesRun": 615,
+  "diagnosticWarnings": 41,
+  "warningTypes": {
+    "Syntax error": 2,
+    "PartialParsing": 39
+  },
   "results": [
     {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": ".github/dependabot.yml",
+      "line": 4,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": ".github/dependabot.yml",
+      "line": 15,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": ".github/dependabot.yml",
+      "line": 26,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": ".github/dependabot.yml",
+      "line": 37,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+      "path": ".npmrc",
+      "line": 1,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": "phase2_work/.github/dependabot.yml",
+      "line": 3,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown",
+      "path": "phase2_work/.github/dependabot.yml",
+      "line": 22,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age",
+      "path": "phase2_work/.npmrc",
+      "line": 1,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+      "path": "phase2_work/scripts/check-hooks.mjs",
+      "line": 96,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp",
+      "path": "phase2_work/scripts/check-retention-expiry-writers.mjs",
+      "line": 39,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+      "path": "phase2_work/scripts/evaluate-llm-security.mjs",
+      "line": 26,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization",
+      "path": "phase2_work/scripts/evaluate-llm-security.mjs",
+      "line": 26,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
+      "path": "phase2_work/scripts/run-with-emulator.mjs",
+      "line": 36,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.spawn-shell-true.spawn-shell-true",
+      "path": "phase2_work/scripts/run-with-emulator.mjs",
+      "line": 64,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "typescript.react.security.react-insecure-request.react-insecure-request",
+      "path": "phase2_work/scripts/smoke-production.mjs",
+      "line": 9,
+      "triage": "OPEN"
+    },
+    {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
-      "path": "src/server/analytics.ts",
+      "path": "phase2_work/src/components/GlobalErrorOverlay.tsx",
+      "line": 29,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "phase2_work/src/lib/fehler.ts",
+      "line": 24,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "phase2_work/src/lib/resilienceService.ts",
+      "line": 41,
+      "triage": "OPEN"
+    },
+    {
+      "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
+      "path": "phase2_work/src/server/analytics.ts",
       "line": 21,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 178,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 197,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 179,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 198,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 181,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 200,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 181,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 200,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 182,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 201,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 183,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 202,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 188,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 207,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 194,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 213,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.injection.raw-html-format.raw-html-format",
-      "path": "src/server/contracts.ts",
-      "line": 196,
+      "path": "phase2_work/src/server/contracts.ts",
+      "line": 215,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
-      "path": "src/server/distributedRateLimiter.ts",
+      "path": "phase2_work/src/server/distributedRateLimiter.ts",
       "line": 55,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket",
-      "path": "src/server/emulatorCsp.ts",
+      "path": "phase2_work/src/server/emulatorCsp.ts",
       "line": 53,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.express-data-exfiltration.express-data-exfiltration",
-      "path": "src/server/middleware/requestDiagnostics.ts",
+      "path": "phase2_work/src/server/middleware/requestDiagnostics.ts",
       "line": 36,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
-      "path": "src/server/platform/riskEngine.ts",
+      "path": "phase2_work/src/server/platform/riskEngine.ts",
       "line": 79,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection",
-      "path": "src/server/routes/aiPassgenauigkeit.ts",
+      "path": "phase2_work/src/server/routes/aiPassgenauigkeit.ts",
       "line": 109,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
-      "path": "src/server/verification/VerificationManager.ts",
+      "path": "phase2_work/src/server/verification/VerificationManager.ts",
       "line": 15,
       "triage": "OPEN"
     },
     {
       "rule": "javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring",
-      "path": "src/server/verification/VerificationManager.ts",
+      "path": "phase2_work/src/server/verification/VerificationManager.ts",
       "line": 24,
       "triage": "OPEN"
     }

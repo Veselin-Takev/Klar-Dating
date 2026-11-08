@@ -28,6 +28,6 @@ Wave 1 verified on bd3c9f70: 1,561 PASS, Semgrep 0 findings; 5/50 source files m
 Wave 2 source checkpoint: **10/50 migrated, 40 open**. KYC, contracts/refund
 ledger, subscription reads and two Functions plus compliance processing are scoped.
 C/D/E remain IN_PROGRESS; coordinated readers/writers and account erasure/mail still
-block closure. Current full CI pending. Auto Semgrep has 17 open findings independent
+block closure. Current full CI pending. Repository-wide auto Semgrep has 35 open findings plus 41 diagnostic warnings independent
 of the pinned anti-bypass rule (0). baselineFixed=false; productionApproved=false.
 See [Wave 2 evidence](phase2_work/docs/security/MIGRATION_WAVE2.md).

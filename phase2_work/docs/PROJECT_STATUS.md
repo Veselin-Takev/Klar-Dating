@@ -1886,5 +1886,5 @@ audit/export and deletion integrations still require coordinated migration.
 Scoped deletion jobs fail closed rather than entering the root-based legacy worker.
 No live cutover or cloud changes were executed. Full changed-candidate CI pending;
 the previous 1,561 PASS remains historical until a new complete result is recorded.
-Pinned anti-bypass Semgrep: 0 local findings. Additional auto scan: 17 open findings.
+Pinned anti-bypass Semgrep: 0 local findings. Repository-wide auto scan: 35 open findings plus 41 diagnostic warnings.
 baselineFixed=false; productionApproved=false; PR #358 DRAFT.
