@@ -66,3 +66,27 @@ Named tenants are denied rather than resolved. External Admin SDK/deployed
 Rules/IAM, complete tenant migration, universal schema/reachability and remaining
 Zero-any requirements are not certified. Finite negative tests cannot prove
 100% impossibility of BOLA/IDOR. No CERTIFIED_PROCEED and no feature release.
+
+## Claims / request-context and Admin boundary completion attempt
+
+resolveVerifiedTenantContext uses Zod for UID shape, rejects unsupported tenant
+claims and creates an immutable default-namespace principal. requireAuth calls
+it only AFTER revocation-aware Firebase token verification, before DB access;
+request body/query/header tenant identifiers are never passed to this resolver.
+currentUserId rejects a mismatch between verified context and req.user UID.
+A real-token HTTP test forges header/query/body owner and tenant identifiers
+and verifies that the native Admin-SDK checklist write modifies only the owner.
+
+A separate real-emulator characterization shows that raw Admin SDK CAN read
+both synthetic owners. This is expected privilege behavior and demonstrates
+why Rules PASS cannot certify external Admin SDK access. Signed internal jobs,
+Functions and external privileged writers are outside the authenticated Express
+request context; they require scoped IAM and an independently reviewed writer
+inventory. These are remaining blockers, not evidence to relabel as PASS.
+
+## PR consolidation
+
+PR #358 is the single lead PR targeting release/v0.1.1-rc1. #356 and #357 are
+superseded/consolidated by #358; their complete commit histories are preserved.
+No merge, branch deletion or force push is performed. Documentation evidence
+branch is synchronized forward alongside the lead branch.

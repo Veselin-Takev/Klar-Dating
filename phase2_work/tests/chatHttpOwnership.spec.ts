@@ -61,6 +61,12 @@ afterAll(async () => {
 }, 30_000);
 
 describe.runIf(enabled)('actual HTTP chat ownership with verified emulator tokens', () => {
+  it('characterizes Admin SDK bypass: privileged DB can read both synthetic owners', async () => {
+    for (const index of [0, 2]) {
+      const snap = await db().doc(`users/${identity(index).uid}`).get();
+      expect(snap.exists).toBe(true);
+    }
+  });
   it('allows both participants and returns only the counterpart profile', async () => {
     for (const index of [0, 1]) {
       const response = await request(index); expect(response.status).toBe(200);
@@ -82,6 +88,20 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
       expect(res.status).toBe(401);
       expect(await res.text()).not.toContain(marker);
     }
+  });
+  it('keeps Admin-SDK checklist reads/writes bound to verified owner despite forged request context', async () => {
+    const owner = identity(0).uid, outsider = identity(2).uid;
+    const ownRef = db().doc(`users/${owner}/checklists/date_prep`);
+    const foreignRef = db().doc(`users/${outsider}/checklists/date_prep`);
+    await ownRef.set({checklist: {location: false}});
+    await foreignRef.set({checklist: {location: false}});
+    const res = await fetch(`http://127.0.0.1:3000/api/checklists/date_prep?uid=${outsider}&tenantId=foreign`, {
+      method: 'PUT', headers: {authorization: 'Bearer ' + identity(0).token, 'content-type': 'application/json', 'x-tenant-id': 'foreign', 'x-user-id': outsider},
+      body: JSON.stringify({uid: outsider, tenantId: 'foreign', checklist: {location: true}}),
+    });
+    expect(res.status).toBe(200);
+    expect((await ownRef.get()).data()?.checklist.location).toBe(true);
+    expect((await foreignRef.get()).data()?.checklist.location).toBe(false);
   });
   it('denies an authenticated adult outsider and does not disclose profile data', async () => {
     const status = await request(2, '/api/account/status'); expect(status.status).toBe(200);

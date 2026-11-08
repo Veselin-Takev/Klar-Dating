@@ -4,6 +4,9 @@ export type KlarRole = 'user' | 'moderator' | 'support' | 'trust_safety' | 'fina
 
 export function currentUserId(req: Request): string | null {
   const uid = (req as { user?: { uid?: unknown } }).user?.uid;
+  if (req.tenantContext) {
+    return req.tenantContext.tenant === 'default' && req.tenantContext.uid === uid ? req.tenantContext.uid : null;
+  }
   return typeof uid === 'string' && uid.length > 0 ? uid : null;
 }
 
