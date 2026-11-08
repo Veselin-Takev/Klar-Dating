@@ -16,6 +16,14 @@ It was deliberately based on #349 to **preserve** the stronger safety invariant 
 - Static retention and compliance gates now require strict GCS hold predicates **without removing** #349's mandatory `verification_storage_purge_p0_fencing_unverified` 503 gate. The legacy scanner test was updated to the stronger hold predicate.
 - Unit and signed Firestore Emulator regressions check the Firestore hold fields before intent creation and **after persisted intent but before final pre-delete authorization**. Real account-erasure helper tests check profile-only default and no false completion for existing/late verification photos; extra negatives reject malformed profile-object holds/generations without calling delete.
 
+## Additional boundary: mandatory pre-delete authorizer
+
+A targeted review found that `deleteVerificationStorageFile` was exported with an **optional** `beforeDelete` callback. A future direct caller could therefore reach generation-conditional GCS deletion without invoking the final Firestore/lease eligibility check, even though the current signed route supplies that callback. This allowed accidental bypass of the route's pre-delete check by other imports.
+
+This review requires the callback in the **TypeScript function signature**, rejects absent/non-function callbacks **at runtime before Storage metadata access**, and always calls it immediately before `file.delete({ifGenerationMatch})`. A negative unit test uses an untyped `Reflect.apply` call to omit the callback and verifies that neither `getMetadata` nor `delete` runs. Existing unit tests now supply explicit synthetic authorizers; the signed production route continues supplying its real Firestore transaction. Mandatory static checks protect the contract against regressions.
+
+**Strict limitation:** A callback's existence does not establish the callback's authority. A synthetic no-op callback is used *only* in isolated unit tests. An external writer could still bypass the helper entirely, and a Legal Hold arriving **after** a successfully executed authorization callback can race the GCS operation. This patch is a defense against a direct-helper omission, **not** a solution to VES-5 all-writer fencing or a production GO.
+
 ## Explicitly not proven
 
 1. **Post-authorization cross-service race:** If a moderator/legal authority revokes consent or sets a hold in Firestore *after* the last Firestore transaction, an in-flight GCS delete can still occur in isolated test-only paths. A GCS generation match is not a Firestore write fence. Fix requires a reviewed monotonic all-writer protocol, including external console/Admin SDK and bucket writers, and adversarial real staging tests that prove the late hold prevents irreversible deletion.
