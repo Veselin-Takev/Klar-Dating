@@ -37,16 +37,22 @@ export async function inspectVerificationStorageGeneration(file: VerificationSto
 }
 
 export async function deleteVerificationStorageFile(
-  file: VerificationStorageFile, expectedGeneration?: string | number,
-  beforeDelete?: () => Promise<void>,
+  file: VerificationStorageFile, expectedGeneration: string | number | undefined,
+  beforeDelete: () => Promise<void>,
 ): Promise<void> {
+  // Destructive helper is exported: deny accidental direct callers bypassing
+  // the final authorization hook, even from untyped JavaScript consumers.
+  // This does NOT close the cross-service hold race after authorization.
+  if (typeof beforeDelete !== 'function') {
+    throw new Error('verification_photo_final_authorization_missing');
+  }
   const generation = await inspectVerificationStorageGeneration(file);
   if (expectedGeneration !== undefined && String(generation) !== String(expectedGeneration)) {
     throw new Error('verification_photo_generation_changed');
   }
   // Revalidate Firestore authorization after the last Storage metadata read.
   // A cross-service update after this callback still needs operational fencing.
-  if (beforeDelete) await beforeDelete();
+  await beforeDelete();
   await file.delete({ ifGenerationMatch: generation });
 }
 
