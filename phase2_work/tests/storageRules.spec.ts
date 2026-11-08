@@ -65,7 +65,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const result = await executeVerificationRetentionBatch(
       [{ uid: prefix, challengeId: 'pending-test', storagePath: path,
         status: 'pending', decidedAt: oldDecisionTime }],
-      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      // Synthetic Storage Emulator fixture only: the no-op authorizer is NOT a
+      // real Firestore decision/lease proof and must never be used in production.
+      async target => { await deleteVerificationStorageFile(bucket.file(target), undefined, async () => {}); },
       async () => { throw new Error('pending verification may not create a purge audit'); },
       now,
     );
@@ -85,7 +87,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     const result = await executeVerificationRetentionBatch(
       [{ uid: prefix, challengeId: 'decided-test', storagePath: path,
         status: 'approved', decidedAt: now - 31 * MS_PER_DAY }],
-      async target => { await deleteVerificationStorageFile(bucket.file(target)); },
+      // Synthetic Storage Emulator fixture only: the no-op authorizer is NOT a
+      // real Firestore decision/lease proof and must never be used in production.
+      async target => { await deleteVerificationStorageFile(bucket.file(target), undefined, async () => {}); },
       audit,
       now,
     );
