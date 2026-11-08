@@ -90,3 +90,28 @@ PR #358 is the single lead PR targeting release/v0.1.1-rc1. #356 and #357 are
 superseded/consolidated by #358; their complete commit histories are preserved.
 No merge, branch deletion or force push is performed. Documentation evidence
 branch is synchronized forward alongside the lead branch.
+
+## Finalizing evidence — 2026-11-08
+
+Lead PR #358 targets release/v0.1.1-rc1 directly and consolidates/supersedes
+#356 and #357, including all code and evidence commits without deletion or reset.
+
+Full [CI 42479679094](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42479679094)
+SUCCESS on code SHA `f8f6fa59f2129e7f174204449b6b9f384939a3f6`:
+1,424 Vitest + 86 Enterprise Node + 26 Playwright = **1,536 PASS**.
+Dedicated Firestore Rules: 92 PASS, repeated cases not added. Typecheck,
+Functions build, App build and production smoke PASS. Nine new tests relative
+to the preceding 1,527 baseline verify immutable context/UID validation, actual
+owner-bound Admin-SDK API writes despite forged request fields, and raw Admin
+SDK privilege characterization.
+
+Scoped claims-to-context resolution: PASS. Native Rules and protected API
+owner-bound checks: PASS. Full system tenant certification: NOT GRANTED.
+The raw Admin SDK can read both synthetic owners and bypasses Security Rules.
+External service accounts, Functions/internal jobs and deployed IAM/Rules
+have not been independently inventoried and verified. Named tenants remain
+unsupported; rejecting their tokens is containment, not tenant provisioning.
+
+**baselineFixed=false; productionApproved=false. No CERTIFIED_PROCEED.**
+This final metadata update refers explicitly to the immutable tested code SHA;
+its own automatic CI is separate from the completed code run above.

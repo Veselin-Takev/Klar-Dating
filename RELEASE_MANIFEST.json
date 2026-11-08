@@ -62,16 +62,16 @@
     "inventory": "phase2_work/docs/releases/v0.1.1-rc1/BASELINE_INVENTORY.json",
     "explicitAnyNodes": 202,
     "testFilesInventoried": 248,
-    "validatedUniqueTests": 1527,
+    "validatedUniqueTests": 1536,
     "reason": "Scoped containment and CI PASS; full tenant/schema/reachability certification remains open",
     "isolationClosure": {
       "status": "PASS_SCOPED_CONTAINMENT",
-      "sourceCommit": "4dc39cd5c760ae15459836e541aa3c139ad4323a",
-      "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42478659998",
-      "vitest": 1415,
+      "sourceCommit": "f8f6fa59f2129e7f174204449b6b9f384939a3f6",
+      "run": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42479679094",
+      "vitest": 1424,
       "enterpriseNode": 86,
       "playwright": 26,
-      "distinctAcrossTheseSuites": 1527,
+      "distinctAcrossTheseSuites": 1536,
       "dedicatedRulesRepeatedNotAdded": 92,
       "typecheck": "PASS",
       "build": "PASS",
@@ -81,7 +81,14 @@
         "No complete tenant-aware data model/resolver",
         "External Admin SDK and deployed Rules/IAM not independently verified",
         "Repositorywide schema/reachability and Zero-any criteria still open"
-      ]
-    }
+      ],
+      "requestContext": "PASS_VERIFIED_DEFAULT_NAMESPACE_ONLY",
+      "adminSdkBoundary": "SCOPED_API_PASS_RAW_ADMIN_BYPASS_CONFIRMED"
+    },
+    "leadPr": 358,
+    "supersededPrs": [
+      356,
+      357
+    ]
   }
 }
