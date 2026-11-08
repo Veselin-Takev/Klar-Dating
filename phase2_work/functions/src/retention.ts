@@ -1,63 +1,100 @@
 // Minimal structural port keeps the app and Functions SDK installations independent.
-type Metadata = { timeCreated?: string; generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null };
-type Photo = { getMetadata(): Promise<[Metadata, ...unknown[]]>; delete(options: { ifGenerationMatch: string | number }): Promise<unknown> };
+type Metadata = {
+  timeCreated?: string;
+  generation?: string | number;
+  temporaryHold?: boolean | null;
+  eventBasedHold?: boolean | null;
+};
+type Photo = {
+  getMetadata(): Promise<[Metadata, ...unknown[]]>;
+  delete(options: { ifGenerationMatch: string | number }): Promise<unknown>;
+};
 type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
 };
 
 export const PHOTO_RETENTION_MS = 30 * 86_400_000;
+const UINT64_MAX = (1n << 64n) - 1n;
 
-/** One bounded page. Generation preconditions protect a concurrently replaced photo. */
-export async function deleteExpiredPhotoPage(bucket: Bucket, now: Date, pageToken?: string) {
-  const [files, next] = await bucket.getFiles({ prefix: 'verification/', maxResults: 200, autoPaginate: false, ...(pageToken ? { pageToken } : {}) });
-  let deleted = 0;
-  for (const file of files) {
-    const [metadata] = await file.getMetadata();
-    const created = Date.parse(metadata.timeCreated ?? '');
-    if (!Number.isFinite(created)) throw new Error('Photo creation timestamp missing');
-    if (created > now.getTime() - PHOTO_RETENTION_MS || metadata.temporaryHold || metadata.eventBasedHold) continue;
-    if (!metadata.generation) throw new Error('Photo generation missing');
-    try {
-      await file.delete({ ifGenerationMatch: metadata.generation });
-      deleted++;
-    } catch (error) {
-      const code = (error as { code?: number }).code;
-      if (code !== 404 && code !== 412) throw error;
-    }
-  }
-  return { deleted, scanned: files.length, nextPageToken: next?.pageToken };
+/**
+ * VES-5 P0: age-only verification deletion is unsafe, because object creation
+ * age does not prove a final moderation decision, no hold or an all-writer fence.
+ * Retired entrypoint deliberately rejects before any Storage call, including
+ * in tests. Funnel TTL cleanup is independently handled by its scheduler.
+ */
+export async function deleteExpiredPhotoPage(_bucket: Bucket, _now: Date, _pageToken?: string): Promise<never> {
+  throw new Error('verification_photo_p0_fencing_unverified');
 }
 
-/** One bounded page per prefix; false means acknowledged progress, not completion.
- * Re-list from the beginning because deleted objects disappear. Never skip a hold
- * or generation conflict and then declare the account's storage empty.
+function assertSafeGeneration(metadata: Metadata): string | number {
+  const generation = metadata.generation;
+  if (typeof generation === 'number') {
+    if (Number.isSafeInteger(generation) && generation > 0) return generation;
+  } else if (typeof generation === 'string' && /^[1-9]\d*$/.test(generation)) {
+    if (BigInt(generation) <= UINT64_MAX) return generation;
+  }
+  throw new Error('storage_object_metadata_invalid');
+}
+
+function assertNotHeld(metadata: Metadata): void {
+  // Missing flags are normal for some Storage versions; any *present* flag
+  // except literal false is ambiguous or held and therefore blocks deletion.
+  for (const key of ['temporaryHold', 'eventBasedHold'] as const) {
+    if (Object.prototype.hasOwnProperty.call(metadata, key) && metadata[key] !== false) {
+      throw new Error('storage_object_held');
+    }
+  }
+}
+
+/**
+ * VES-15 P0 containment for Art.17 account deletion.
+ *
+ * Never delete verification/{uid} without real cross-service Firestore/GCS
+ * all-writer fencing. Existing verification photos force explicit pending
+ * status rather than a silently successful account erasure. Only ordinary
+ * profiles/{uid} photos may be removed under a GCS generation precondition.
+ *
+ * This is *temporary* containment, not a proof of global linearizability:
+ * external writers may create a photo after the second inventory. Full
+ * production approval requires independently verified all-writer fencing.
  */
 export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<boolean> {
   if (!uid || uid.includes('/') || uid === '.' || uid === '..') throw new Error('Invalid storage owner');
+
+  const verificationPrefix = `verification/${uid}/`;
+  const assertNoVerificationPhotos = async (): Promise<void> => {
+    const [files, next] = await bucket.getFiles({ prefix: verificationPrefix, maxResults: 1, autoPaginate: false });
+    if (!Array.isArray(files) || files.length > 0 || next?.pageToken) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
+  };
+
+  // First check must precede even a normal profile photo deletion.
+  await assertNoVerificationPhotos();
+
+  const [files, next] = await bucket.getFiles({ prefix: `profiles/${uid}/`, maxResults: 100, autoPaginate: false });
+  if (!Array.isArray(files) || files.length > 100) throw new Error('storage_page_limit_exceeded');
   let deleted = 0;
-  let listed = 0;
-  let more = false;
-  for (const prefix of [`verification/${uid}/`, `profiles/${uid}/`]) {
-    const [files, next] = await bucket.getFiles({ prefix, maxResults: 100, autoPaginate: false });
-    if (files.length > 100) throw new Error('storage_page_limit_exceeded');
-    listed += files.length;
-    more ||= Boolean(next?.pageToken);
-    for (const file of files) {
-      try {
-        const [metadata] = await file.getMetadata();
-        if (metadata.temporaryHold || metadata.eventBasedHold) throw new Error('storage_object_held');
-        if (!metadata.generation) throw new Error('Photo generation missing');
-        await file.delete({ ifGenerationMatch: metadata.generation });
-        deleted++;
-      } catch (error) {
-        // Concurrent deletion is harmless, but is not evidence of our progress.
-        // Conflicts (412), holds and service failures retain the failure budget.
-        if ((error as { code?: number }).code !== 404) throw error;
-      }
+
+  for (const file of files) {
+    try {
+      const [metadata] = await file.getMetadata();
+      if (!metadata || typeof metadata !== 'object') throw new Error('storage_object_metadata_invalid');
+      assertNotHeld(metadata);
+      const generation = assertSafeGeneration(metadata);
+      await file.delete({ ifGenerationMatch: generation });
+      deleted++;
+    } catch (error) {
+      // Only a genuinely already-missing object can be ignored; do not treat
+      // an aborted update, hold, conflict (412) or service failure as progress.
+      if ((error as { code?: number }).code !== 404) throw error;
     }
   }
-  if (!listed && !more) return true;
+
+  // Detect verification objects that appeared during profile-photo cleanup.
+  await assertNoVerificationPhotos();
+
+  if (!files.length && !next?.pageToken) return true;
   if (!deleted) throw new Error('storage_erasure_no_progress');
   return false;
 }
-
