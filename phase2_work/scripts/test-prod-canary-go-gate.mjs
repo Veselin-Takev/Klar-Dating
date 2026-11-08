@@ -323,3 +323,75 @@ test('emergency rollback is not blocked by the deploy/promotion GO preflight', (
   assert.equal(rollback.includes('check-production-release-approval.mjs'), false,
     'do not make emergency recovery dependent on a new release GO');
 });
+
+test('promotion metrics reject malformed values and future observation windows', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'klar-promotion-metric-gate-'));
+  try {
+    const now = Date.now();
+    const image = 'ghcr.io/example/klar-app@sha256:' + 'a'.repeat(64);
+    const sha = 'b'.repeat(40);
+    const revision = 'klar-service-candidate-12345';
+    const before = new Date(now - 10 * 60_000).toISOString();
+    const after = new Date(now - 5 * 60_000).toISOString();
+    const evidence = {
+      schemaVersion: 2,
+      environment: 'production',
+      buildSha: sha,
+      candidateRevision: revision,
+      candidateImage: image,
+      trafficPercent: 10,
+      health: 'passed',
+      readiness: 'passed',
+      observedFrom: before,
+      observedUntil: after,
+      observationSeconds: 300,
+      metrics: { availability: 0.9999, p95LatencyMs: 250, errorRate5xx: 0.0001 },
+      evidenceLinks: ['https://metrics.example.com/observations/1'],
+    };
+    const env = {
+      ...process.env,
+      KLAR_EVIDENCE_ENVIRONMENT: 'production',
+      KLAR_EVIDENCE_NOT_BEFORE: new Date(now - 60 * 60_000).toISOString(),
+      KLAR_EVIDENCE_NOT_AFTER: new Date(now + 60 * 60_000).toISOString(),
+      KLAR_EVIDENCE_HOSTS: 'metrics.example.com',
+    };
+    const file = join(tmp, 'canary-evidence.json');
+    const validator = resolve(root, 'scripts/validate-promotion-evidence.mjs');
+    const run = (candidate, envOverride = {}) => {
+      writeFileSync(file, JSON.stringify(candidate));
+      return spawnSync(process.execPath, [validator, file, image, revision, sha], {
+        cwd: tmp, env: { ...env, ...envOverride }, encoding: 'utf8', timeout: 15000,
+      });
+    };
+    const accepted = run(evidence);
+    assert.equal(accepted.status, 0, 'valid numeric canary evidence should pass: ' + accepted.stderr);
+    const failures = [
+      ['negative 5xx', { metrics: { ...evidence.metrics, errorRate5xx: -0.1 } }, /5xx error rate/],
+      ['more than 100% 5xx', { metrics: { ...evidence.metrics, errorRate5xx: 1.1 } }, /5xx error rate/],
+      ['string 5xx', { metrics: { ...evidence.metrics, errorRate5xx: '0.0001' } }, /5xx error rate/],
+      ['availability greater than 100%', { metrics: { ...evidence.metrics, availability: 1.25 } }, /availability/],
+      ['string availability', { metrics: { ...evidence.metrics, availability: '0.9999' } }, /availability/],
+      ['negative p95', { metrics: { ...evidence.metrics, p95LatencyMs: -20 } }, /p95 latency/],
+      ['string p95', { metrics: { ...evidence.metrics, p95LatencyMs: '250' } }, /p95 latency/],
+      ['string percentage', { trafficPercent: '10' }, /candidate traffic/],
+      ['string duration', { observationSeconds: '300' }, /observationSeconds/],
+      ['future observation', {
+        observedFrom: new Date(now + 2 * 60_000).toISOString(),
+        observedUntil: new Date(now + 7 * 60_000).toISOString(),
+      }, /must not be in the future/],
+    ];
+    for (const [name, changed, expected] of failures) {
+      const rejected = run({ ...evidence, ...changed });
+      assert.equal(rejected.status, 1, name + ' must fail closed: ' + rejected.stderr);
+      assert.match(rejected.stderr, expected, name + ' must identify the rejected boundary');
+    }
+    const reversedWindow = run(evidence, {
+      KLAR_EVIDENCE_NOT_BEFORE: new Date(now + 20 * 60_000).toISOString(),
+      KLAR_EVIDENCE_NOT_AFTER: new Date(now - 20 * 60_000).toISOString(),
+    });
+    assert.equal(reversedWindow.status, 1, 'reversed trust window must fail closed');
+    assert.match(reversedWindow.stderr, /trusted evidence window must be chronologically ordered/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
