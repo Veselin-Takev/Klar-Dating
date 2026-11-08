@@ -276,12 +276,25 @@ describe('fail-closed verification decision reconciliation', () => {
 });
 
 describe('decision-based verification object deletion safety', () => {
+  it('rejects any direct caller that omits the final authorization callback before GCS access', async () => {
+    const calls: string[] = [];
+    const file = {
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '77' }]; },
+      delete: async () => { calls.push('delete'); },
+    };
+    // Reflect.apply deliberately simulates untyped JS callers bypassing
+    // TypeScript's newly mandatory callback parameter.
+    await expect(Reflect.apply(deleteVerificationStorageFile, undefined, [file, '77']))
+      .rejects.toThrow('verification_photo_final_authorization_missing');
+    expect(calls).toEqual([]);
+  });
+
   it('deletes only the inspected Storage generation', async () => {
     const deletes: Array<{ ifGenerationMatch: string | number }> = [];
     await deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '1234567890', temporaryHold: false, eventBasedHold: false }],
       delete: async options => { deletes.push(options); },
-    });
+    }, undefined, async () => {});
     expect(deletes).toEqual([{ ifGenerationMatch: '1234567890' }]);
   });
 
@@ -303,7 +316,7 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [metadata],
       delete: async () => { deleted = true; },
-    })).rejects.toThrow();
+    }, undefined, async () => {})).rejects.toThrow();
     expect(deleted).toBe(false);
   });
 
@@ -311,14 +324,14 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '100' }],
       delete: async () => { throw Object.assign(new Error('generation conflict'), { code: 412 }); },
-    })).rejects.toMatchObject({ code: 412 });
+    }, undefined, async () => {})).rejects.toMatchObject({ code: 412 });
   });
 
   it('does not consider a missing object a verified successful deletion', async () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
       delete: async () => { throw new Error('must not execute'); },
-    })).rejects.toMatchObject({ code: 404 });
+    }, undefined, async () => {})).rejects.toMatchObject({ code: 404 });
   });
   it('rechecks Storage generation before applying the conditional delete', async () => {
     const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
@@ -326,7 +339,7 @@ describe('decision-based verification object deletion safety', () => {
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '9001' }],
       delete: async opts => { deletes.push(opts); },
-    }, '9000')).rejects.toThrow('verification_photo_generation_changed');
+    }, '9000', async () => {})).rejects.toThrow('verification_photo_generation_changed');
     expect(deletes).toHaveLength(0);
   });
 
