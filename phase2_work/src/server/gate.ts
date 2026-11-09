@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getServiceRepository } from './firestoreRepository/nativeDatabase';
@@ -22,7 +23,7 @@ function gateResponse(data: GateData, actor: string) {
   };
 }
 
-function gateError(res: Response, error: unknown, path: string) {
+function gateError(res: Response, error: unknown, _path: string) {
   if (error instanceof ChatAccessError) {
     res.status(error.status).json({ error: error.message, code: error.code });
     return;
@@ -31,7 +32,7 @@ function gateError(res: Response, error: unknown, path: string) {
     res.status(400).json({ error: error.message });
     return;
   }
-  console.error(path, error);
+  logSafeFailure('unclassified_failure');
   res.status(500).json({ error: 'Das hat gerade nicht geklappt. Bitte erneut versuchen.' });
 }
 

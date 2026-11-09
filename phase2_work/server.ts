@@ -1,6 +1,10 @@
+import './src/server/installPrivacyLogging';
 import { z } from 'zod';
 import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
 import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
+import { createMediaAccessGuard } from './src/server/mediaAccess';
+import { createMediaRouter } from './src/server/routes/media';
+import { containLegacySuspension } from './src/server/accountSecurity';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
@@ -90,7 +94,9 @@ import { beantworte, ausfall, ohneSchluessel, schluesselFehlt } from "./src/serv
 // welche vier Pflichten mit dieser neuen Ablage entstanden sind.
 
 import { NOGO_VORSCHLAEGE, BIO_WERTE_HINWEISE, kuratierteCoachAntwort } from "./src/server/kuratiert";
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from './src/server/sharedRateLimit';
+import { trustedProxyPolicy } from './src/server/proxyTrust';
 import {
   istGast, gastDarf, GAST_KI_GRENZE,
   CODE_KONTO_ERFORDERLICH, TEXT_KONTO_ERFORDERLICH,
@@ -176,6 +182,12 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     const decodedToken = await authInstance.verifyIdToken(idToken, true);
     const tenantContext = resolveVerifiedTenantContext(decodedToken);
 
+    const repository = getServiceRepository('auth');
+    const [lock, profile] = await Promise.all([repository.read(`account_locks/${decodedToken.uid}`, z.record(z.string(), z.unknown())),repository.read(`users/${decodedToken.uid}`,z.record(z.string(),z.unknown()))]);
+    if (lock || profile?.active === false) {
+      if (!lock) await containLegacySuspension(decodedToken.uid,repository).catch(()=>undefined);
+      return res.status(401).json({ code: 'account_locked' });
+    }
     if (decodedToken.uid && await getServiceRepository('auth').read(`account_deletions/${decodedToken.uid}`, z.record(z.string(), z.unknown()))) {
       return res.status(409).json({ code: 'account_deletion_pending' });
     }
@@ -426,6 +438,7 @@ const nurModeration: express.RequestHandler = requireRole("moderator", "trust_sa
 // Keep this operation bounded even for authorized operators; build-info and
 // failed-API snapshots remain unthrottled because they are in-memory/constant-cost reads.
 const adminHealthCheckLimiter = rateLimit({
+    namespace: 'admin-health-check-limiter',
   windowMs: 5 * 60 * 1000,
   limit: 6,
   keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -478,7 +491,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Die Zahl haengt an der Infrastruktur (Cloud Run: 1, Cloud Run hinter
   // Load Balancer: 2, lokal: 0) und gehoert deshalb in die Umgebung. Der
   // Standard 0 ist der sichere: Dann zaehlt die unmittelbare Verbindung.
-  app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS ?? 0));
+  app.set("trust proxy", trustedProxyPolicy());
   // Stripe signatures require the untouched request bytes (Phase 1b — see routes/webhooks.ts).
   mountStripeRawBody(app);
   app.use('/api/webhooks', createWebhooksRouter());
@@ -488,10 +501,10 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
   app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, repository: () => getServiceRepository('auth'), enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
-  app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
 
   // Setup basic rate limiting
    const apiLimiter = rateLimit({
+    namespace: 'api-limiter',
     windowMs: 15 * 60 * 1000,
     max: 5000,
     keyGenerator: (req) => {
@@ -505,6 +518,7 @@ const adminHealthCheckLimiter = rateLimit({
 
   // Apply rate limiter to all /api routes
   app.use("/api/", apiLimiter); // Security: Befund 1 - Globale Rate-Limiting für /api (P0)
+  app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
   // Retired endpoints are inert contracts. Keep the global API limiter first,
   // then return the stable 410 before auth, age, consent, or AI middleware.
   // These handlers cannot read or mutate user state; all requests remain rate-limited.
@@ -662,6 +676,7 @@ const adminHealthCheckLimiter = rateLimit({
   // eine Bremse, keine Sperre — und das steht hier, damit es nicht fuer
   // mehr gehalten wird.
   const kiLimiter = rateLimit({
+    namespace: 'ki-limiter',
     windowMs: 60 * 60 * 1000,
     max: 60,
     // GEGENPRUEFUNG 10.08.2026: Hier stand `?? req.ip ?? "unbekannt"`.
@@ -693,6 +708,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Firestore-Transaktion wie das Kontaktkontingent. Bis dahin ist dies eine
   // Bremse, keine Sperre.
   const gastKiLimiter = rateLimit({
+    namespace: 'gast-ki-limiter',
     windowMs: 60 * 60 * 1000,
     max: GAST_KI_GRENZE,
     keyGenerator: (req) => {
@@ -719,6 +735,7 @@ const adminHealthCheckLimiter = rateLimit({
   // verbraucht, bevor der Coach ein Wort gesagt hat. Bei einem Gast war nach
   // 15 Nachrichten Schluss — beim LESEN.
   const uebersetzungLimiter = rateLimit({
+    namespace: 'uebersetzung-limiter',
     windowMs: 60 * 60 * 1000,
     max: UEBERSETZUNG_GRENZE,
     keyGenerator: (req) => {
@@ -733,6 +750,7 @@ const adminHealthCheckLimiter = rateLimit({
   });
 
   const gastUebersetzungLimiter = rateLimit({
+    namespace: 'gast-uebersetzung-limiter',
     windowMs: 60 * 60 * 1000,
     max: UEBERSETZUNG_GRENZE_GAST,
     keyGenerator: (req) => {
@@ -822,6 +840,9 @@ const adminHealthCheckLimiter = rateLimit({
       }
       return next();
   });
+
+  app.use('/api', createMediaAccessGuard(() => getServiceRepository('auth')));
+  app.use('/api', createMediaRouter(() => getServiceRepository('auth')));
 
   // Scope every downstream provider call to verified identity and cancellation.
   app.use('/api', (req, res, next) => {
@@ -936,6 +957,7 @@ const adminHealthCheckLimiter = rateLimit({
   // ═══════════════════════════════════════════════════════════════════════
 
   const contactWriteLimiter = rateLimit({
+    namespace: 'contact-write-limiter',
     windowMs: 60 * 1000,
     limit: 10,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -943,6 +965,7 @@ const adminHealthCheckLimiter = rateLimit({
     message: { error: 'Zu viele Kontaktanfragen. Bitte kurz warten.' },
   });
   const contactUndoLimiter = rateLimit({
+    namespace: 'contact-undo-limiter',
     windowMs: 60 * 1000,
     limit: 20,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -950,6 +973,7 @@ const adminHealthCheckLimiter = rateLimit({
     message: { error: 'Zu viele Rücknahmeversuche. Bitte kurz warten.' },
   });
   const contractMutationLimiter = rateLimit({
+    namespace: 'contract-mutation-limiter',
     windowMs: 60 * 60 * 1000,
     limit: 3,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -2095,6 +2119,8 @@ export async function startServer() {
     });
 
     let shuttingDown = false;
+    server.requestTimeout = 60_000;
+    server.headersTimeout = 15_000;
     const shutdown = async (signal: string) => {
       if (shuttingDown) return;
       shuttingDown = true;

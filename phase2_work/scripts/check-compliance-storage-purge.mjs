@@ -7,7 +7,12 @@ const retention = fs.readFileSync('functions/src/retention.ts', 'utf8');
 const legacyCron = fs.readFileSync('functions/src/deleteExpiredPhotos.ts', 'utf8');
 const accounting = fs.readFileSync('src/server/trustAndSafety.ts', 'utf8');
 
+const authorization = fs.readFileSync('src/server/verificationPurgeAuthorization.ts', 'utf8');
+const holds = fs.readFileSync('src/server/deletionHolds.ts', 'utf8');
 const checks = [
+  ['account-specific plan binds request, bucket and expiry', ['plan.requestId !== requestId','plan.bucket !== bucket','timestampMillis(plan.expiresAt) <= now'].every(token => authorization.includes(token))],
+  ['missing provenance/hold flags deny verification purge', ['event.legalHold !== false','event.photoPurgeHold !== false','event.generation','assertDeletionNotHeld(tx, uid)'].every(token => authorization.includes(token))],
+  ['hold protection is transaction-local and fails closed', /class DeletionHold/.test(holds) && /data\[key\] !== false/.test(holds)],
   ['protected purge endpoint registered', /purge-verification-storage/.test(server + route)],
   ['environment HMAC secret', /COMPLIANCE_JOB_SECRET/.test(route)],
   ['HMAC timing-safe validation', /timingSafeEqual/.test(route)],
@@ -22,7 +27,7 @@ const checks = [
   ['account deletion rechecks verification objects', (retention.match(/await assertNoVerificationPhotos\(\)/g) ?? []).length >= 2],
   ['account deletion rejects held GCS metadata', /assertNotHeld\(metadata\)/.test(retention)],
   ['account deletion generation preconditions', /ifGenerationMatch: generation/.test(retention)],
-  ['real account-erasure orchestrator retains Storage gate', /await deleteAccountPhotos\(getAppBucket\(\), meineUid\)/.test(accounting)],
+  ['real account-erasure orchestrator retains Storage gate', /await deleteAccountPhotos\(photoBucket, meineUid, verificationPurgeAuthorization\(/.test(accounting)],
 ];
 
 for (const [label, ok] of checks) {

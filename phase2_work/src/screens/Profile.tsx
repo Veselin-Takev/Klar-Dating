@@ -1,3 +1,4 @@
+import { ProtectedImage } from '../components/ProtectedImage';
 import { resolveProfileDisplayName } from '../lib/profileDisplayName';
 import { ConsentSettings } from '../components/ConsentSettings';
 import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
@@ -875,7 +876,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <label className="cursor-pointer block group">
             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             <div className="w-14 h-[70px] bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden border-2 border-white dark:border-stone-900 shadow-sm relative">
-              <img
+              <ProtectedImage
                 src={(profileData?.photoURL && !profileData.photoURL.includes('/_/upload/')) ? profileData.photoURL : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
                 alt="Avatar"
                 onError={(e) => {
@@ -1436,7 +1437,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               {showPreview ? (
                 <div className="mb-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl overflow-hidden shadow-sm">
                   <div className="h-32 bg-stone-200 dark:bg-stone-800 w-full relative">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&amp;fit=crop&amp;q=80&amp;w=400&amp;h=300" alt="Cover" className="w-full h-full object-cover" />
+                    <ProtectedImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&amp;fit=crop&amp;q=80&amp;w=400&amp;h=300" alt="Cover" className="w-full h-full object-cover" />
                     <div className="absolute inset-0  from-black/60 to-transparent"></div>
                     <div className="absolute bottom-3 left-4 text-white">
                       <h4 className="font-semibold text-lg drop-shadow-md">Du, 29</h4>

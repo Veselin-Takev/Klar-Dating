@@ -67,18 +67,11 @@ export async function nimmKontaktZurueck(targetUid: string): Promise<void> {
 
 export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
   if (!auth.currentUser) throw new Error('Nicht angemeldet.');
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-
-  const ext = datei.type === 'image/png' ? 'png' : datei.type === 'image/webp' ? 'webp' : 'jpg';
-  const fileName = `profiles/${auth.currentUser.uid}/avatar_${Date.now()}.${ext}`;
-  const storageRef = ref(getStorage(), fileName);
-
-  await uploadBytes(storageRef, datei, { contentType: datei.type || 'image/jpeg' });
-  const url = await getDownloadURL(storageRef);
-
-  // Setze die URL im Profil
-  const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(getFirestore(), 'users', auth.currentUser.uid), { photoURL: url }, { merge: true });
+  const response = await fetch('/api/media/profile', { method: 'POST', headers: { 'Content-Type': datei.type || 'image/jpeg' }, body: datei });
+  if (!response.ok) throw new Error('Profilfoto konnte nicht gespeichert werden.');
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== 'object' || !('url' in payload) || typeof payload.url !== 'string' || !payload.url.startsWith('/api/media/profiles/')) throw new Error('Ungültige Medienantwort.');
+  const url = payload.url;
 
   return url;
 }

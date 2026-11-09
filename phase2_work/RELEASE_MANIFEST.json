@@ -707,5 +707,134 @@
     "humanSignoff": "PENDING"
   },
   "baselineFixed": true,
-  "productionApproved": false
+  "productionApproved": false,
+  "systemWideRemediation": {
+    "pr": 360,
+    "date": "2026-11-08",
+    "auditedParentSha": "0e2c7e89fad3008f6d165c2b45ac1e936506043a",
+    "status": "SOURCE_VERIFIED_PENDING_OPERATIONAL_EVIDENCE",
+    "releaseDecision": "NO-GO",
+    "productionApproved": false,
+    "technicalSignOff": "BLOCKED_OPERATIONAL_EVIDENCE",
+    "legalSignOff": "BLOCKED",
+    "report": "phase2_work/docs/security/SYSTEM_REMEDIATION_2026-11-08.md",
+    "implementedControls": [
+      "authenticated non-bearer media API and private client blobs",
+      "direct Storage reads/uploads closed; token revocation with confirmed postcondition",
+      "durable DSA locks and independently retried disable/revocation jobs",
+      "transaction-local Legal Hold containment and per-account purge authorization",
+      "persistent erasure retries with capped backoff and attention flag",
+      "fixed-field logging and atomic Firestore-backed rate limits"
+    ],
+    "liveEvidence": {
+      "legacyCapabilityMigration": "NOT_EXECUTED",
+      "allWriterHoldProtocol": "NOT_ATTESTED",
+      "effectiveCloudRunIamAndEdge": "NOT_RETRIEVED",
+      "loggingAndRetentionPolicies": "NOT_RETRIEVED"
+    },
+    "validation": {
+      "vitest": 1577,
+      "vitestFiles": 211,
+      "enterpriseNode": 86,
+      "browserE2E": 29,
+      "uniqueMainSuiteTests": 1692,
+      "originalAuditSubsetIncluded": 79,
+      "latestNativeTargetedSubset": 116,
+      "latestNativeTargetedFiles": 12,
+      "overlappingSubsetsAdded": false,
+      "dedicatedRulesRepeatedNotAdded": 118,
+      "launchTestsRepeatedNotAdded": 6,
+      "enterpriseStaticGates": "PASS",
+      "typecheck": "PASS",
+      "functionsBuild": "PASS",
+      "applicationBuild": "PASS",
+      "productionSmoke": "PASS",
+      "productionHighCriticalAdvisories": 0,
+      "re2js": "2.8.7",
+      "semgrep": {
+        "rules": 616,
+        "targets": 1176,
+        "findings": 0,
+        "parserErrors": 0,
+        "runtimeExpected": 698,
+        "runtimeScanned": 698,
+        "runtimeMissing": 0
+      }
+    },
+    "runtimeCodeCommit": "f13c736781daaa333040df5a67c1b0ff7b002c6d",
+    "ci": {
+      "ciRun": 42532259296,
+      "ciJob": 128888879979,
+      "ciUrl": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42532259296",
+      "conclusion": "success"
+    },
+    "remainingReleaseBlockers": [
+      "Production legacy-capability and suspension inventory/migration not executed or independently attested.",
+      "All-writer and Hold-race protocol, approved per-account purge provenance and DSAR/appeal operations need independent Legal/SRE evidence.",
+      "Effective Cloud Run identities/IAM/ingress/WAF/proxy settings, log sinks and retention/TTL policies are not live verified.",
+      "Operational queue monitoring, attention escalation and human Legal/Tech sign-off remain open."
+    ],
+    "evidence": "phase2_work/docs/security/SYSTEM_REMEDIATION_EVIDENCE.json",
+    "codeTreeSha256": "1e0e6f142f6b93a646cd46f48c4dd021dab30d5c33e709ed87d19e2d333bbf91"
+  },
+  "operationalHardening": {
+    "asOf": "2026-11-09",
+    "pr": 360,
+    "bundleStatus": "PREPARED",
+    "releaseStatus": "BLOCKED_MISSING_PRODUCTION_EVIDENCE",
+    "targetStatus": "READY FOR LEGAL & TECH SIGN-OFF",
+    "productionApproved": false,
+    "keepPrDraft": true,
+    "legacyAuthMigrationScript": "phase2_work/scripts/migrate-revoke-legacy-tokens.ts",
+    "legacyAuthProductionDryRun": "NOT_RUN_NO_GCP_IDENTITY",
+    "legacyAuthProductionApply": "NOT_EXECUTED",
+    "liveIamEvidence": "docs/security/live-iam-evidence.json",
+    "liveIamStatus": "UNVERIFIED_NO_LIVE_ACCESS",
+    "bundle": "docs/security/DUAL_SIGN_OFF_READY.md",
+    "newValidation": {
+      "vitest": 1599,
+      "vitestFiles": 213,
+      "enterpriseNode": 86,
+      "newOperationalSubsetIncluded": 22,
+      "browserE2E": 29,
+      "overlappingSubsetsAdded": false,
+      "enterpriseGates": "PASS",
+      "typecheck": "PASS",
+      "functionsBuild": "PASS",
+      "applicationBuild": "PASS",
+      "semgrep": {
+        "rules": 616,
+        "targets": 1183,
+        "findings": 0,
+        "parserErrors": 0,
+        "runtimeExpected": 700,
+        "runtimeScanned": 700
+      },
+      "uniqueMainSuiteTests": 1714
+    },
+    "baselineVerified": {
+      "head": "7666ba45b16eaf7b640dfa22d4761390e2276411",
+      "ciRun": 42533662057,
+      "uniqueMainSuiteTests": 1692
+    },
+    "blockers": [
+      "Production Auth inventory/migration and legacy media capability evidence remain missing.",
+      "Live Cloud Run/project/ancestor/Storage IAM capture and human least-privilege review are missing.",
+      "Prior operational/privacy gates and Legal/Tech signatures remain open."
+    ],
+    "confirmedProjectId": "klar-admin",
+    "verificationEvidence": "docs/security/OPERATIONAL_VERIFICATION.json"
+  },
+  "infrastructureHandover": {
+    "releaseGatingStatus": "WAITING FOR IAM CREDENTIAL BINDING",
+    "collectorReadiness": "TEMPLATED_READY_FOR_CREDENTIALS",
+    "confirmedProjectId": "klar-admin",
+    "infrastructureVerification": "PENDING_FINAL_GCP_CREDENTIAL_BINDING",
+    "specification": "docs/security/GCP_LIVE_IAM_REQUIREMENTS.md",
+    "manifest": "docs/security/GCP_HANDOVER_MANIFEST.json",
+    "entrypoint": "scripts/collect-live-iam-evidence.sh",
+    "liveRunExecuted": false,
+    "productionApproved": false,
+    "keepPrDraft": true
+  }
 }

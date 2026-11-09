@@ -1,3 +1,4 @@
+import { ProtectedImage } from './ProtectedImage';
 import { useState } from 'react';
 import { ImageOff } from 'lucide-react';
 
@@ -33,7 +34,7 @@ export function LazyImage({
           aria-hidden="true"
         />
       )}
-      <img
+      <ProtectedImage
         src={src}
         alt={alt}
         loading="lazy"

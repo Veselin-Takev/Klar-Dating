@@ -1,0 +1,62 @@
+{
+  "dateUtc": "2026-11-08T23:07:03.343737+00:00",
+  "pr": 360,
+  "runtimeCodeCommit": "f13c736781daaa333040df5a67c1b0ff7b002c6d",
+  "validatedBy": {
+    "ciRun": 42532259296,
+    "ciJob": 128888879979,
+    "ciUrl": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42532259296",
+    "conclusion": "success"
+  },
+  "validation": {
+    "vitest": 1577,
+    "vitestFiles": 211,
+    "enterpriseNode": 86,
+    "browserE2E": 29,
+    "uniqueMainSuiteTests": 1692,
+    "originalAuditSubsetIncluded": 79,
+    "latestNativeTargetedSubset": 116,
+    "latestNativeTargetedFiles": 12,
+    "overlappingSubsetsAdded": false,
+    "dedicatedRulesRepeatedNotAdded": 118,
+    "launchTestsRepeatedNotAdded": 6,
+    "enterpriseStaticGates": "PASS",
+    "typecheck": "PASS",
+    "functionsBuild": "PASS",
+    "applicationBuild": "PASS",
+    "productionSmoke": "PASS",
+    "productionHighCriticalAdvisories": 0,
+    "re2js": "2.8.7",
+    "semgrep": {
+      "rules": 616,
+      "targets": 1176,
+      "findings": 0,
+      "parserErrors": 0,
+      "runtimeExpected": 698,
+      "runtimeScanned": 698,
+      "runtimeMissing": 0
+    }
+  },
+  "productionApproved": false,
+  "auditReleaseStatus": "NO-GO",
+  "technicalSignOff": "BLOCKED_OPERATIONAL_EVIDENCE",
+  "legalSignOff": "BLOCKED",
+  "liveCloudPoliciesRetrieved": false,
+  "productionAccessed": false,
+  "remainingReleaseBlockers": [
+    "Production legacy-capability and suspension inventory/migration not executed or independently attested.",
+    "All-writer and Hold-race protocol, approved per-account purge provenance and DSAR/appeal operations need independent Legal/SRE evidence.",
+    "Effective Cloud Run identities/IAM/ingress/WAF/proxy settings, log sinks and retention/TTL policies are not live verified.",
+    "Operational queue monitoring, attention escalation and human Legal/Tech sign-off remain open."
+  ],
+  "codeTree": {
+    "sha256": "1e0e6f142f6b93a646cd46f48c4dd021dab30d5c33e709ed87d19e2d333bbf91",
+    "files": 1143,
+    "definition": "Sorted tracked paths plus SHA-256(file bytes), excluding Markdown, both RELEASE_MANIFEST.json files and this evidence JSON; includes Rules, tests, configs and IaC."
+  },
+  "logSha256": {
+    "exactCommitCi": "f1cabbdcb571af8202b013cc5575cace6058fefc675917ce12f5a626218abcb7",
+    "nativeTargeted": "e791db57e393e2f89e7bd13980b209d57013cbc4da3ba46f8b5e51a1e09c89fe"
+  },
+  "claimScope": "Source and synthetic native-emulator/browser verification. No legal, deployed-IAM, completed production-erasure or global legacy-token migration attestation."
+}

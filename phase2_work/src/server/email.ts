@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import sgMail from '@sendgrid/mail';
 import { getServiceRepository } from './firestoreRepository/nativeDatabase';
@@ -128,7 +129,7 @@ export async function handleSendVerification(req: Request, res: Response) {
 
     res.json({ ok: true });
   } catch (e: unknown) {
-    console.error('/api/auth/send-verification', e instanceof Error ? e.message : e);
+    logSafeFailure('unclassified_failure');
     res.status(500).json({ error: 'Konnte Verifizierungs-Mail nicht vorbereiten.' });
   }
 }
@@ -326,11 +327,11 @@ export function startEmailWorker() {
         return;
       }
       if (consecutiveErrors >= 3) {
-        console.warn('Mail Worker: Mehrere aufeinanderfolgende Fehler, Worker pausiert.', errMsg);
+        logSafeFailure('unclassified_failure');
         clearInterval(interval);
         return;
       }
-      console.error('Mail Worker Error:', err);
+      logSafeFailure('unclassified_failure');
     }
   };
   let active: Promise<void> | undefined;

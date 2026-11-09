@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { currentUserId } from './authorization';
 import type { Request, Response } from 'express';
@@ -79,7 +80,7 @@ export async function handleAlter(req: Request, res: Response, repository?: Tena
 
     res.json({ ok: true, alter: outcome.age, isAdult: true, evidenceDigest: outcome.evidenceDigest });
   } catch (e) {
-    console.error('/api/account/alter', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 500, 'Die Angabe konnte nicht gespeichert werden. Bitte erneut versuchen.');
   }
 }
@@ -115,7 +116,7 @@ export async function handleEinwilligung(req: Request, res: Response): Promise<v
     }));
     res.json({ ok: true, ...result });
   } catch (e) {
-    console.error('/api/einwilligung', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 503, 'Die Einwilligung konnte nicht gespeichert werden. Bitte erneut versuchen.');
   }
 }
@@ -160,7 +161,7 @@ export async function handleEinwilligungWiderruf(req: Request, res: Response): P
 
     res.json({ ok: true, ...result });
   } catch (e) {
-    console.error('/api/einwilligung/widerruf', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 503, 'Der Widerruf konnte nicht gespeichert werden. Bitte erneut versuchen.');
   }
 }
@@ -203,7 +204,7 @@ export async function handleEinwilligungZweck(req: Request, res: Response): Prom
     }
     res.json({ ok: true, ...result });
   } catch (e) {
-    console.error('/api/einwilligung/zweck', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 503, 'Die Einwilligungsänderung konnte nicht gespeichert werden.');
   }
 }
@@ -218,7 +219,7 @@ export async function handleEinwilligungLesen(req: Request, res: Response): Prom
       zwecke: ZWECKE,
     });
   } catch (e) {
-    console.error('/api/einwilligung (lesen)', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 503, 'Der Stand konnte nicht geladen werden.');
   }
 }
@@ -265,7 +266,7 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
         letzteAnmeldung: a.metadata.lastSignInTime,
       };
     } catch (e) {
-      console.error('Export: Auth-Daten nicht ladbar', e);
+      logSafeFailure('unclassified_failure');
       fehler(res, 503, 'Die Auskunft konnte wegen nicht verfügbarer Kontodaten nicht vollständig erstellt werden. Bitte erneut versuchen.');
       return;
     }
@@ -360,7 +361,7 @@ export async function handleExport(req: Request, res: Response): Promise<void> {
       ].filter(Boolean),
     });
   } catch (e) {
-    console.error('/api/account/export', e);
+    logSafeFailure('unclassified_failure');
     fehler(res, 500, 'Die Auskunft konnte nicht vollständig erstellt werden. Bitte erneut versuchen.');
   }
 }

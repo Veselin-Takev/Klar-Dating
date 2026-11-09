@@ -204,6 +204,7 @@ export async function processAgeVerification(
         // LOCK ACCOUNT & PURGE MINOR DATA (Zero Data Retention)
         tx.write(userRef, record, {
             isAdult: false,
+            mediaAccessState: 'blocked',
             isUnderage: true,
             accountStatus: 'locked_underage',
             lockedAt: timestampStr,
@@ -267,6 +268,7 @@ export async function processAgeVerification(
     tx.write(userRef, record, {
         geburtsdatum: validation.birthdateClean,
         isAdult: true,
+        mediaAccessState: 'active',
         isUnderage: false,
         alterGeprueftAm: timestampStr,
         accountStatus: userData.accountStatus === 'pending_age' ? 'active' : (userData.accountStatus || 'active'),

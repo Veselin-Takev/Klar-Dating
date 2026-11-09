@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import type { Request, Response } from 'express';
 import { currentUserId } from '../authorization';
 import { InputError, requireString, optionalString } from '../pure';
@@ -84,7 +85,7 @@ export async function processTranslation(
       };
     }
   } catch (err) {
-    console.warn('[TranslationEngine] Primary translation service error:', err);
+    logSafeFailure('unclassified_failure');
   }
 
   // 3. No paid-provider fallback by design. Live translation stays cost-free
@@ -120,7 +121,7 @@ export async function handleTranslation(req: Request, res: Response): Promise<vo
       res.status(400).json({ error: error.message });
       return;
     }
-    console.error('[TranslationEngine] Internal error:', error);
+    logSafeFailure('unclassified_failure');
     res.status(500).json({ error: 'Die Übersetzung ist derzeit nicht verfügbar.' });
   }
 }

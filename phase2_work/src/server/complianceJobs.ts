@@ -9,6 +9,8 @@ const RECEIPT_RETRY_MAX_MS = 60 * 60_000;
 import express from 'express';
 import { getServiceRepository } from './firestoreRepository/nativeDatabase';
 import { runAccountDeletion } from './accountDeletion';
+import { retryAccountSecurityJobs } from './accountSecurity';
+import { cleanupExpiredApiLimits } from './sharedRateLimit';
 import { processContractCancellation, contractRecord, type ContractRepository } from './contracts';
 
 
@@ -87,6 +89,8 @@ export function createComplianceJobsRouter(db: () => ContractRepository = () => 
       });
       if (!acquired) return res.status(202).json({ busy: true });
       try {
+        await retryAccountSecurityJobs(firestore);
+        await cleanupExpiredApiLimits(firestore);
         const cancellations = await firestore.list('contract_requests', contractRecord, {where: ['processingNextAttemptAt', '<=', new Date(now)], limit: 2});
         for (const job of cancellations) {
           try { await processContractCancellation(job.id, firestore); }

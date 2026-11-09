@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
@@ -69,7 +70,7 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
       });
       return res.json({ ok: true, city: publicProfile.location });
     } catch (error) {
-      console.error('Public profile publish failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(500).json({ error: 'Profil konnte nicht veröffentlicht werden.' });
     }
   });
@@ -114,7 +115,7 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
 
       return res.json({ recommendations: result });
     } catch (error) {
-      console.error('Recommendations failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Vorschläge derzeit nicht verfügbar.', recommendations: [] });
     }
   });

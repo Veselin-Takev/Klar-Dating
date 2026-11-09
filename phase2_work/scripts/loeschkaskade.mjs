@@ -47,7 +47,11 @@ const obergrenze = Number(process.argv[2] ?? 0);
  *   offen     — Entscheidung steht aus; wird gezaehlt
  */
 const ENTSCHEIDEN = {
-  account_deletions: { art: 'bleibt', grund: 'Durable Sperre und Job; nach Abschluss 30 Tage, TTL muss aktiviert werden. Fehlgeschlagene Jobs werden mit Backoff wiederholt und nach 50 Versuchen auf manual_review gesetzt.' },
+  account_locks: { art: 'geloescht', grund: 'Durable Kontosperre; bei Art.-17-Abschluss unter der weiterbestehenden Deletion-Fence entfernt.' },
+  account_security_jobs: { art: 'geloescht', grund: 'Disable/Revocation-Retry; nach Erfolg oder Account-Purge gelöscht, keine Fehlertexte.' },
+  account_photo_purge_plans: { art: 'geloescht', grund: 'Kontobezogene Purge-Autorisierung; nach nachgewiesenem Bild-Purge gelöscht. Holds blockieren vorher.' },
+  api_rate_limits: { art: 'bleibt', grund: 'Kontobezogene Schlüssel werden über accountRateLimitPaths beim Account-Purge entfernt. Nicht individuell zuordenbare gehashte IP-Zähler bleiben bis Fensterende; expiresAt plus transaktionaler Janitor. Separate produktive TTL-/Legal-Evidenz erforderlich.' },
+  account_deletions: { art: 'bleibt', grund: 'Durable Sperre und Job; nach Abschluss 30 Tage, TTL muss aktiviert werden. Fehlgeschlagene Jobs bleiben mit gedeckeltem Backoff automatisch wiederholbar; ab 50 Fehlern requiresAttention. Ungültiges Accounting bleibt in manueller Migration.' },
   kyc_start_rate_limits: { art: 'bleibt', grund: 'KYC-Start-Limiter; SHA-256-Identität statt Roh-IP/UID, expiresAt-Fenster und Firestore-TTL. Eine aktive TTL-Policy und Löschlatenz sind vor Freigabe zu verifizieren.' },
   password_reset_rate_limits: { art: 'bleibt', grund: 'Passwort-Reset-Abuse-Limiter; gehashte Identität, expiresAt. Kurzfristige Sicherheitsaufbewahrung; Firestore-TTL und Löschlatenz sind Betriebs-Gates.' },
   rate_limit_account_alter: { art: 'bleibt', grund: 'Altersprüfungs-Limiter; pseudonymer kurzlebiger Sicherheitszähler mit expiresAt und Firestore-TTL; keine dauerhafte Kontohistorie.' },

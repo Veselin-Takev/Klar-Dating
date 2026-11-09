@@ -1,3 +1,4 @@
+import './installPrivacyLogging';
 import { getMaintenanceTenantId } from './runtime';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { setGlobalOptions } from 'firebase-functions/v2';

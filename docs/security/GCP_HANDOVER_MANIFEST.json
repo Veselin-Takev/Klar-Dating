@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "pr": 360,
+  "release": "v0.1.1-rc1",
+  "releaseGatingStatus": "WAITING FOR IAM CREDENTIAL BINDING",
+  "overallProductionDecision": "NO-GO",
+  "productionApproved": false,
+  "prDraft": true,
+  "codeAndTestBaseline": {
+    "commit": "8910cb64be3a287459680a66a9742be896b72560",
+    "ciRun": 42540209271,
+    "ciUrl": "https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42540209271",
+    "status": "VERIFIED",
+    "uniqueMainSuiteTests": 1714,
+    "vitest": 1599,
+    "enterpriseNode": 86,
+    "browserE2E": 29,
+    "semgrepFindings": 0,
+    "semgrepParserErrors": 0,
+    "tokenRevocationScript": "TESTED_AND_IDEMPOTENT"
+  },
+  "collector": {
+    "readiness": "TEMPLATED_READY_FOR_CREDENTIALS",
+    "entrypoint": "scripts/collect-live-iam-evidence.sh",
+    "specification": "docs/security/GCP_LIVE_IAM_REQUIREMENTS.md",
+    "liveRunExecuted": false,
+    "infrastructureVerification": "PENDING_FINAL_GCP_CREDENTIAL_BINDING"
+  },
+  "binding": {
+    "GCP_PROJECT_ID": "klar-admin",
+    "GCP_REGION": null,
+    "STORAGE_BUCKET_NAME": null,
+    "CLOUD_RUN_SERVICE": null,
+    "GCP_COLLECTOR_SERVICE_ACCOUNT": null,
+    "GCP_EXPECTED_BUILD_SHA": null,
+    "GCP_EVIDENCE_DIRECTORY": null
+  },
+  "requiredGrants": [
+    {
+      "role": "roles/iam.securityReviewer",
+      "scope": "approved project; separately approved ancestor policy reads"
+    },
+    {
+      "role": "roles/run.viewer",
+      "scope": "target Cloud Run service/project"
+    },
+    {
+      "role": "approved bucket-scoped metadata-reader custom role",
+      "permissions": [
+        "storage.buckets.get"
+      ],
+      "scope": "target bucket; role definition/binding pending"
+    }
+  ],
+  "pendingProvisioningRequirements": [
+    "Confirm region/service/bucket ownership and any cross-project mapping.",
+    "Bind a dedicated read-only collector identity to the gcloud profile, including parent-policy access.",
+    "Provide reviewed clean-checkout SHA and private external evidence directory."
+  ],
+  "expectedArtifacts": [
+    "iam-private.json",
+    "live-iam-evidence.json",
+    "toolchain.json",
+    "HANDOVER_MANIFEST.json"
+  ],
+  "nextActionAfterBinding": "Run collector, independently review live evidence, then close existing release gates before dual sign-off.",
+  "technicalSignOff": "PENDING",
+  "legalSignOff": "PENDING",
+  "templateValidation": {
+    "scope": "Synthetic/local only; not a live capture. Final PR-head CI remains authoritative.",
+    "bashSyntax": "PASS",
+    "syntheticWrapperTests": 13,
+    "existingEvidenceReleaseRegressions": 50,
+    "enterpriseGates": "PASS",
+    "semgrepFindings": 0,
+    "semgrepParserErrors": 0,
+    "sourceSha256": {
+      "scripts/collect-live-iam-evidence.sh": "f1a1f205a9e724d7feae28f827d3f1503f91f995b3101d85c2702131905e8c96",
+      "phase2_work/scripts/finalize-iam-bundle.mjs": "81f44585f78ff935280de0945999d3db9d86958318b016c09b096f28b730dd42",
+      "phase2_work/scripts/collect-live-iam-evidence.test.mjs": "6700e14d3b42c226778dfe4cbee0cb7f038de01f6c2eefd0923b2a630666162a"
+    }
+  }
+}

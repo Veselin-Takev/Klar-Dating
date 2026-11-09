@@ -5,7 +5,7 @@ const preflight = readFileSync('scripts/check-rules-prerequisites.mjs', 'utf8');
 test('every Firestore rules task triggers the same fail-fast preflight', () => {
   for (const suffix of ['rules', 'rules-diagnose', 'rules-sprache']) {
     expect(pkg.scripts['pretest:' + suffix]).toBe('node scripts/check-rules-prerequisites.mjs');
-    expect(pkg.scripts['test:' + suffix]).toMatch(/firebase emulators:exec/);
+    expect(pkg.scripts['test:' + suffix]).toContain('node --require ./scripts/firebase-emulator-proxy.cjs ./node_modules/firebase-tools/lib/bin/firebase.js emulators:exec');
   }
 });
 test('preflight requires pinned Node family, installed local CLI and Java 21+', () => {

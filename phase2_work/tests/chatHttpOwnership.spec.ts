@@ -36,7 +36,7 @@ beforeAll(async () => {
     if (typeof data.localId !== 'string' || typeof data.idToken !== 'string') throw new Error('Invalid emulator signup response');
     accounts.push({ uid: data.localId, token: data.idToken });
     expect((await getAuth(getServerFirebaseApp()).verifyIdToken(data.idToken, true)).uid).toBe(data.localId);
-    await db().doc(`users/${data.localId}`).set({ isAdult: index !== 3 });
+    await db().doc(`users/${data.localId}`).set({ isAdult: index !== 3, mediaAccessState: index === 3 ? 'blocked' : 'active' });
   }
   for (const index of [0, 1]) await db().doc(`public_profiles/${identity(index).uid}`).set({ name: `Synthetic ${index}`, age: 25, location: 'Berlin', bio: marker });
 }, 30_000);
@@ -89,7 +89,7 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
   });
   it('allows both participants and returns only the counterpart profile', async () => {
     for (const index of [0, 1]) {
-      const response = await request(index); expect(response.status).toBe(200);
+      const response = await request(index); expect(response.status, await response.clone().text()).toBe(200);
       const body = await response.json();
       expect(body.profile.id).toBe(identity(1 - index).uid); expect(body.profile.bio).toBe(marker);
     }
@@ -100,7 +100,7 @@ describe.runIf(enabled)('actual HTTP chat ownership with verified emulator token
     const exchange = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=emulator`, {
       method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({token: customToken, returnSecureToken: true}),
     });
-    expect(exchange.status).toBe(200);
+    expect(exchange.status, await exchange.clone().text()).toBe(200);
     const data = await exchange.json() as {idToken: string};
     expect((await auth.verifyIdToken(data.idToken)).tenantId).toBe(tenantId);
     for (const path of ['/api/account/status', `/api/chats/${chatId}`, '/api/subscription/status']) {

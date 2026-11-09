@@ -1,9 +1,12 @@
+import { logSafeFailure } from './safeErrorLog';
 import { deletionAccounting, type DeletionCounter, type TenantSelection } from './deletionAccounting';
 import { DeletionPageComplete, DeletionStoragePageComplete, runDeletionSlice, checkDeletionSlice, recordDeletionProgress } from './deletionProgress';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
+import { verificationPurgeAuthorization } from './verificationPurgeAuthorization';
+import { accountRateLimitPaths } from './sharedRateLimit';
 import { deleteAccountPhotos } from '../../functions/src/retention';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
@@ -141,7 +144,7 @@ export async function handleReport(req: Request, res: Response): Promise<void> {
           };
         }
       } catch (msgErr) {
-        console.warn('Failed to retrieve message for report snapshot:', msgErr);
+        logSafeFailure('unclassified_failure');
         if (messageText) {
           reportedMessageSnapshot = {
             messageId,
@@ -198,7 +201,7 @@ export async function handleReport(req: Request, res: Response): Promise<void> {
         }
       }
     } catch (riskErr) {
-      console.warn('Risk evaluation after report failed:', riskErr);
+      logSafeFailure('unclassified_failure');
     }
 
     res.json({
@@ -209,7 +212,7 @@ export async function handleReport(req: Request, res: Response): Promise<void> {
     });
   } catch (e) {
     const nachricht = e instanceof Error ? e.message : 'Unbekannter Fehler';
-    console.error('/api/report', nachricht);
+    logSafeFailure('unclassified_failure');
     res.status(400).json({ error: nachricht });
   }
 }
@@ -353,13 +356,13 @@ export async function handleBlock(req: Request, res: Response): Promise<void> {
     try {
       await evaluateAccountRisk(db, zielUid);
     } catch (riskErr) {
-      console.warn('Risk evaluation after block failed:', riskErr);
+      logSafeFailure('unclassified_failure');
     }
 
     res.json({ ok: true });
   } catch (e) {
     const nachricht = e instanceof Error ? e.message : 'Unbekannter Fehler';
-    console.error('/api/block', nachricht);
+    logSafeFailure('unclassified_failure');
     res.status(400).json({ error: nachricht });
   }
 }
@@ -482,10 +485,15 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     for (const field of ['inviterUid', 'inviteeUid']) await loescheAbfrage(select('referral_events', field, meineUid));
     for (const field of ['userA', 'userB']) await loescheAbfrage(select('matches', field, meineUid));
     checkDeletionSlice();
-    if (!await deleteAccountPhotos(getAppBucket(), meineUid)) throw new DeletionStoragePageComplete();
+    const photoBucket = getAppBucket();
+    if (!await deleteAccountPhotos(photoBucket, meineUid, verificationPurgeAuthorization(db, meineUid, deletionRequestId, lease, photoBucket.name))) throw new DeletionStoragePageComplete();
     await loescheAbfrage(select('mail_queue', 'uid', meineUid));
     await loescheAbfrage(select('verification_requests', 'uid', meineUid));
     await loescheAbfrage(select('verification_events', 'uid', meineUid));
+    await accounting.deleteDocument(`account_photo_purge_plans/${meineUid}`);
+    await accounting.deleteDocument(`account_security_jobs/${meineUid}`);
+    await accounting.deleteDocument(`account_locks/${meineUid}`);
+    await accounting.deleteDocuments(accountRateLimitPaths(meineUid));
     await loescheAbfrage(select('audit_logs', 'userId', meineUid));
     await loescheAbfrage(select('activation_events', 'actorUid', meineUid));
     await loescheAbfrage(select('referral_events', 'inviterUid', meineUid));

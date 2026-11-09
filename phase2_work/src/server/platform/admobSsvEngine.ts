@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { getServiceRepository, scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 import { z } from 'zod';
@@ -121,7 +122,7 @@ export async function getGoogleAdMobPublicKeys(): Promise<Map<string, string>> {
     cacheExpiresAt = now + 24 * 60 * 60 * 1000;
     return cachedKeys;
   } catch (err) {
-    console.warn('Could not fetch AdMob verifier keys from Google:', err);
+    logSafeFailure('unclassified_failure');
     return cachedKeys; // Return stale cache if available
   }
 }
@@ -204,7 +205,7 @@ export function verifyAdMobSignature(
 
     return false;
   } catch (err) {
-    console.error('Signature verification error:', err);
+    logSafeFailure('unclassified_failure');
     return false;
   }
 }
@@ -343,7 +344,7 @@ export async function handleAdMobCallback(req: Request, res: Response): Promise<
       rewardAmount: result.rewardAmount,
     });
   } catch (err: unknown) {
-    console.error('AdMob callback handler error:', err);
+    logSafeFailure('unclassified_failure');
     res.status(500).json({ error: 'Internal server error processing AdMob reward.' });
   }
 }

@@ -27,6 +27,6 @@ test('recommended installation preserves the Bun-only application lockfile', () 
   assert.match(source, /npm ci is forbidden by the root lockfile policy/);
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   for (const key of ['test:rules', 'test:rules-diagnose', 'test:rules-sprache', 'test:art17-partner-emulator']) {
-    assert.match(pkg.scripts[key], /^node scripts\/check-emulator-ports\.mjs --config firebase\.pruefung\.json && firebase emulators:exec/);
+    assert.match(pkg.scripts[key], /^node scripts\/check-emulator-ports\.mjs --config firebase\.pruefung\.json && node --require \.\/scripts\/firebase-emulator-proxy\.cjs \.\/node_modules\/firebase-tools\/lib\/bin\/firebase\.js emulators:exec/);
   }
 });

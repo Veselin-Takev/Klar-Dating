@@ -182,16 +182,16 @@ describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
     expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 1, completedPages: 1 });
   });
 
-  it('stops at 50 actual failures and never automatically acquires manual-review jobs', async () => {
+  it('continues automatic retry beyond 50 failures and escalates operational attention', async () => {
     const { uid, ref, deps, advance } = await setup();
     await ref.update({ attempts: 49 });
     vi.mocked(deps.purge).mockRejectedValue(new Error('database unavailable'));
     await runAccountDeletion(uid, deps);
-    expect((await ref.get()).data()).toMatchObject({ status: 'manual_review', attempts: 50 });
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 50, requiresAttention: true });
     await ref.update({ nextAttemptAt: new Date(0) });
     advance(3_600_000);
     await runAccountDeletion(uid, deps);
-    expect(deps.purge).toHaveBeenCalledTimes(1);
+    expect(deps.purge).toHaveBeenCalledTimes(2);
     expect(deps.removeAuth).not.toHaveBeenCalled();
   });
 

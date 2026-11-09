@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import express, { Router, type Request } from 'express';
 import { distributedRateLimit } from '../distributedRateLimiter';
 import { resolveActivationEventId } from './activationEventId';
@@ -114,7 +115,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
             : 'In deiner Stadt ist bereits eine aktive Klar-Community.',
       });
     } catch (error) {
-      console.error('Launch summary failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Launch-Information derzeit nicht verfügbar.' });
     }
   });
@@ -141,7 +142,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
 
       return res.json({ code, shareUrl: `${publicUrl.replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}` });
     } catch (error) {
-      console.error('Referral generation failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Einladungslink derzeit nicht verfügbar.' });
     }
   });
@@ -175,7 +176,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
 
       return res.json({ ok: true });
     } catch (error) {
-      console.error('Referral claim failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(500).json({ error: 'Einladung konnte nicht übernommen werden.' });
     }
   });
@@ -227,7 +228,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       }
       return res.json(result);
     } catch (error) {
-      console.error('Founding 500 claim failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Founding-500-Status derzeit nicht verfügbar.' });
     }
   });
@@ -241,7 +242,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const unique = Array.from(new Set(events));
       return res.json({ ...deps.activationScore(unique), events: unique });
     } catch (error) {
-      console.error('Activation summary failed', error);
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ error: 'Aktivierungsstatus derzeit nicht verfügbar.' });
     }
   });

@@ -10,6 +10,9 @@ import { timestampMillis } from '../../functions/src/firestoreRepository/runtime
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
 import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionProviderPageComplete, DeletionStoragePageComplete } from './deletionProgress';
+import { disableAndRevoke } from './accountSecurity';
+import { assertDeletionNotHeld, DeletionHold } from './deletionHolds';
+import { revokeAccountMediaCapabilities } from './mediaCapabilities';
 
 const deletionRecord = z.object({requestId:z.string().optional(), status:z.string().optional(), lease:z.string().optional(), leaseUntil:z.number().optional(), attempts:z.number().int().nonnegative().optional(), phase:z.string().optional(), hasDidit:z.boolean().optional(), subscriptionId:z.string().nullable().optional(), customerId:z.string().nullable().optional(), stripeCustomerId:z.string().nullable().optional(), completedPages:z.number().optional(), completedProviderPages:z.number().optional(), completedStoragePages:z.number().optional(), completedSlices:z.number().optional()}).passthrough();
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
@@ -17,10 +20,6 @@ const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 async function readDiditJson(response: Response): Promise<unknown> {
   const body = await readBoundedResponse(response, DIDIT_RESPONSE_MAX_BYTES, 'didit_response_too_large');
   return JSON.parse(Buffer.from(body).toString('utf8'));
-}
-
-async function ignoreMissing(action: () => Promise<unknown>) {
-  try { await action(); } catch (error) { if ((error as { code?: string }).code !== 'auth/user-not-found') throw error; }
 }
 
 /**
@@ -57,6 +56,9 @@ export async function requestAccountDeletion(uid: string, database: Firestore | 
   const ref = `account_deletions/${uid}`;
   const result = await db.transaction(async tx => {
     const [existing, user, kyc] = await Promise.all([tx.read(ref, deletionRecord), tx.read(`users/${uid}`, deletionRecord), tx.read(`kyc_accounts/${uid}`, deletionRecord)]);
+    // The Rules-visible fence and durable deletion job share one Firestore
+    // commit. Repeated requests also repair the fence for legacy pending jobs.
+    if (user !== null) tx.write(`users/${uid}`, deletionRecord, { isVerified: false, mediaAccessState: 'erasing' }, { merge: true });
     if (existing !== null) return { requestId: existing.requestId! };
     const requestId = randomUUID();
     tx.create(ref, deletionRecord, { requestId, status: 'pending', phase: 'purge', createdAt: new Date(), nextAttemptAt: new Date(),
@@ -64,11 +66,10 @@ export async function requestAccountDeletion(uid: string, database: Firestore | 
       subscriptionId: user?.subscriptionId ?? null, customerId: user?.stripeCustomerId ?? null });
     // Remove discoverability at the same instant the durable write barrier appears.
     tx.delete(`public_profiles/${uid}`);
-    if (user !== null) tx.write(`users/${uid}`, deletionRecord, { isVerified: false }, { merge: true });
     return { requestId };
   });
-  await ignoreMissing(() => getAuth().updateUser(uid, { disabled: true }));
-  await ignoreMissing(() => getAuth().revokeRefreshTokens(uid));
+  const outcomes = await Promise.allSettled([disableAndRevoke(uid), revokeAccountMediaCapabilities(uid)]);
+  if (outcomes.some(outcome => outcome.status === 'rejected')) throw new Error('account_security_retry_required');
   return result;
 }
 
@@ -105,7 +106,10 @@ export type DeletionDependencies = {
 };
 export function deletionDependencies(): DeletionDependencies {
   return { repository: getServiceRepository('auth'), now: Date.now, purge: purgeAccountData,
-    disable: async uid => { await ignoreMissing(() => getAuth().updateUser(uid, { disabled: true })); await ignoreMissing(() => getAuth().revokeRefreshTokens(uid)); },
+    disable: async uid => {
+      const outcomes = await Promise.allSettled([disableAndRevoke(uid), revokeAccountMediaCapabilities(uid)]);
+      if (outcomes.some(outcome => outcome.status === 'rejected')) throw new Error('account_security_retry_required');
+    },
     removeAuth: removeAuthAndVerify,
     eraseProvider: (uid, id) => eraseDiditPage(uid, id, process.env.DIDIT_API_KEY ?? ''),
     cancelSubscription: async (id, customerId) => {
@@ -133,6 +137,7 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
   if (!job) return;
   try {
     await deps.disable(uid);
+    await deps.repository.transaction(tx => assertDeletionNotHeld(tx, uid));
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId ?? null);
     if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId!)) throw new DeletionProviderPageComplete();
     await deps.purge(uid, job.requestId!, lease);
@@ -198,12 +203,9 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     }
     // No provider error bodies, email addresses, photos or raw identity data in logs/receipts.
     const attempts = (typeof job.attempts === 'number' ? job.attempts : 0) + 1;
-    const maxAttempts = 50;
-    if (attempts >= maxAttempts) {
-      await deps.repository.transaction(async tx => { const current = await tx.read(ref, deletionRecord); if (current?.lease !== lease) return; tx.write(ref, deletionRecord, { status: 'manual_review', lastError: 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }, { merge: true }); });
-    } else {
+    {
       const backoffMs = Math.min(60 * 60_000, 60_000 * 2 ** Math.min(attempts, 6));
-      await deps.repository.transaction(async tx => { const current = await tx.read(ref, deletionRecord); if (current?.lease !== lease) return; tx.write(ref, deletionRecord, { lastError: 'retry_required', nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }, { merge: true }); });
+      await deps.repository.transaction(async tx => { const current = await tx.read(ref, deletionRecord); if (current?.lease !== lease) return; tx.write(ref, deletionRecord, { status: 'pending', attempts: Math.min(attempts, 1_000_000), requiresAttention: attempts >= 50 || error instanceof DeletionHold, lastError: error instanceof DeletionHold ? 'legal_hold_review_required' : 'retry_required', nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }, { merge: true }); });
     }
   }
 }

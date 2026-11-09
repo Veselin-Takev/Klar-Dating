@@ -200,3 +200,10 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+
+## PR #360 — API-Limiter und Hold-Containment (08.11.2026)
+
+`api_rate_limits` besitzt gehashte Schlüssel und `expiresAt`. Ein begrenzter, transaktional nachprüfender Compliance-Janitor entfernt abgelaufene Zähler; UID-basierte Schlüssel werden bei Kontolöschung explizit gelöscht. Unter hoher Last ist eine separat freizugebende TTL-Ergänzung samt ACTIVE-/Latenz-Nachweis erforderlich. Diese neue Gruppe wird nicht automatisch durch die historische 20-Gruppen-Provisionierung aktiviert.
+
+`account_locks`, `account_security_jobs` und `account_photo_purge_plans` werden bei bestätigtem Account-Purge entfernt; Sicherheitsjobs zusätzlich nach erfolgreicher Quittierung. Pending Aufträge und gehaltene Nachweise dürfen nicht durch eine pauschale TTL verschwinden. Hold-Felder blockieren destruktive Accounting-Transaktionen. Der neue kontobezogene Verifikations-Purge verlangt explizite Legal-/Writer-/Objektprovenienz; globale altersbasierte Purges bleiben gesperrt. Betriebsfristen, Rechtsgrundlagen, Hold-Races und produktive Konfiguration benötigen weiterhin DPO-/SRE-Nachweise.
