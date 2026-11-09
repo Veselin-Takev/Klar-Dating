@@ -30,7 +30,10 @@ builds pass. Strict Semgrep: 616 rules, 1,183 targets, zero findings/parser erro
 The isolated native CLI run passed on 2026-11-09: dry-run reported one eligible
 synthetic user, zero revocations and a complete inventory; provider validity stayed
 unchanged. Apply revoked once; a completed rerun inspected/revoked zero accounts.
-A checkpoint tenant mismatch failed without changing provider state. This is
+A checkpoint tenant mismatch failed without changing provider state. The final
+isolated Auth-tenant test also verifies an actual pre-migration JWT is rejected
+with `auth/id-token-revoked` after apply, and a fresh session remains valid after
+the completed rerun. This is
 **emulator-only evidence**, not a production dry-run.
 
 [Machine-readable verification and log/source hashes](OPERATIONAL_VERIFICATION.json)

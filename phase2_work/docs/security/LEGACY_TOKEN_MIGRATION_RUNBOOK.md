@@ -78,9 +78,11 @@ instant JWT expiry.
 ## Synthetic dry-run evidence
 
 `tests/legacyTokenMigrationNative.spec.ts` invokes the actual CLI against a loopback
-Firebase Auth emulator in the isolated `demo-klar-legacy` project. It compares the
+Firebase Auth emulator in the isolated `migration-native` Auth tenant of `demo-klar`. It compares the
 provider's validity timestamp before and after dry-run, then verifies apply,
-completed rerun and a rejected checkpoint scope change. Unit regressions exercise
+completed rerun and a rejected checkpoint scope change. A real synthetic sign-in
+also proves the old JWT is rejected by revocation-aware verification after apply;
+a new session remains valid across the completed rerun. Unit regressions exercise
 provider failures, lost checkpoints, postcondition failures and bounded pagination.
 The final run and exact source evidence are recorded in
 [`DUAL_SIGN_OFF_READY.md`](../../../docs/security/DUAL_SIGN_OFF_READY.md).

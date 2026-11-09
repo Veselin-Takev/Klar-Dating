@@ -9,7 +9,7 @@
     "phase2_work/scripts/export-live-iam-evidence.ts": "759a01350e7392e0f9a9f9fea23da13feb93a10aec4a9011b84ec0525a8fde11",
     "phase2_work/scripts/report-path.d.mts": "6c44039fcb2ee1406df034e267707c64917b6ec2520f3f0ec33e33625c7c7333",
     "phase2_work/tests/operationalHardening.spec.ts": "4bf9f9fa4e91b4b4acd5c80d1ffc5d81c76448999fae145513e14b230255ee4a",
-    "phase2_work/tests/legacyTokenMigrationNative.spec.ts": "1728766f316d8df16401a3db5b2600d73f96e595414017f6c6a0c589abf4a145"
+    "phase2_work/tests/legacyTokenMigrationNative.spec.ts": "ba938ebf829b852d004f6a31f7a70e1c26a335bb4d1d39140cfcc18c94d1964a"
   },
   "validation": {
     "vitest": 1599,
@@ -35,8 +35,8 @@
   "nativeCliDryRun": {
     "status": "PASS",
     "provider": "Firebase Auth emulator",
-    "project": "demo-klar-legacy",
-    "tenant": "default",
+    "project": "demo-klar",
+    "tenant": "migration-native",
     "assertedReceipt": {
       "mode": "dry-run",
       "eligible": 1,
@@ -48,13 +48,15 @@
       "Auth tokensValidAfterTime is unchanged by dry-run.",
       "Apply confirms tokensValidAfterTime strictly after cutoff.",
       "Completed rerun inspects zero accounts and revokes zero sessions.",
-      "Reusing checkpoint for another tenant fails without changing provider validity."
+      "Reusing checkpoint for another tenant fails without changing provider validity.",
+      "A signed-in old JWT remains valid after dry-run, then verifyIdToken(token, true) rejects it with auth/id-token-revoked after apply.",
+      "A fresh post-apply session stays valid after the completed migration rerun."
     ],
     "productionDryRun": false
   },
   "logSha256": {
     "vitest": "54a539817beb9ecba6ed797160d54e602bc4e7760c372475ec4d8da7d5362339",
-    "nativeOperational": "4cf04dc154b86220f7e93af091de638cbab5d541f3420d41e01bfd8e310bd82a",
+    "nativeOperational": "1fb0b505e6f12d1cfd424dd2399c930ff120f3b9469777f3a211b3a0a4fe2139",
     "enterpriseNode": "46cfd87ab4e6efb9a7022ee41eb35694d512afa08d66784ebc8915b1db57ced8",
     "enterpriseGates": "b6d120123dcf5bd3e2881afe51f7191b2f8f4a0b094b67d76a7c5dcdedd96b85",
     "typecheck": "e188f80ef96f6cb2a278d8a6b10059e48f3f87d3f4d7f084700b7a73b6070f2f",
