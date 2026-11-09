@@ -7,25 +7,16 @@ type Bucket = {
 
 export const PHOTO_RETENTION_MS = 30 * 86_400_000;
 
-/** One bounded page. Generation preconditions protect a concurrently replaced photo. */
-export async function deleteExpiredPhotoPage(bucket: Bucket, now: Date, pageToken?: string) {
-  const [files, next] = await bucket.getFiles({ prefix: 'verification/', maxResults: 200, autoPaginate: false, ...(pageToken ? { pageToken } : {}) });
-  let deleted = 0;
-  for (const file of files) {
-    const [metadata] = await file.getMetadata();
-    const created = Date.parse(metadata.timeCreated ?? '');
-    if (!Number.isFinite(created)) throw new Error('Photo creation timestamp missing');
-    if (created > now.getTime() - PHOTO_RETENTION_MS || metadata.temporaryHold || metadata.eventBasedHold) continue;
-    if (!metadata.generation) throw new Error('Photo generation missing');
-    try {
-      await file.delete({ ifGenerationMatch: metadata.generation });
-      deleted++;
-    } catch (error) {
-      const code = (error as { code?: number }).code;
-      if (code !== 404 && code !== 412) throw error;
-    }
-  }
-  return { deleted, scanned: files.length, nextPageToken: next?.pageToken };
+/**
+ * P0 #202: Fail-closed compatibility shim. Upload age is not the authoritative
+ * retention clock: an unreviewed photo must not be deleted solely for being old.
+ * This API remains as a deliberate tripwire for any previously untracked caller.
+ * It neither lists objects nor performs Storage/Firestore mutations.
+ */
+export async function deleteExpiredPhotoPage(
+  _bucket: Bucket, _now: Date, _pageToken?: string,
+): Promise<never> {
+  throw new Error('legacy_age_only_photo_purge_disabled');
 }
 
 /** One bounded page per prefix; false means acknowledged progress, not completion.

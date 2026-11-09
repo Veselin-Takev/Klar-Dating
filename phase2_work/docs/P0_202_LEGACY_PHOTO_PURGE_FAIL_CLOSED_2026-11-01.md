@@ -1,0 +1,79 @@
+# P0 #202 — Legacy upload-age photo purge disabled (source-only remediation)
+
+**Date:** 2026-11-01  
+**Branch:** `fix/p0-202-disable-legacy-photo-purge-20261101` (based on `main`)  
+**Release status:** **BLOCKED / PRODUCTION NO-GO**. This change is **not deployed** and is not proof of current Cloud Scheduler state.
+
+## Verified source finding
+
+In the original `functions/src/deleteExpiredPhotos.ts`, the scheduled `deleteExpiredPhotosCron` invokes `deleteExpiredPhotoPage(getMaintenanceBucket(), now, pageToken)`, which scans every object under `verification/` and decides to delete based on its GCS `timeCreated` plus 30 days, irrespective of `verification_events.status` and the authoritative moderation decision timestamp. The independent signed `purgeVerificationStorageCron` already exists but does not make that legacy deletion safe. [P0 #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202).
+
+## Implemented fail-closed remediation (unmerged)
+
+1. Preserve `deleteExpiredPhotosCron` export and schedule for **deployment compatibility**. Its callback no longer lists, reads or deletes GCS photo objects; it emits `legacy_verification_photo_purge_disabled`. Bounded `funnel_events` cleanup is retained, with its own metric.
+2. Leave `deleteAccountPhotos` (Art.-17 subject erasure) separate. Replace the obsolete `deleteExpiredPhotoPage` helper with an unconditional `legacy_age_only_photo_purge_disabled` error **before any Storage access**; even an overlooked old caller fails closed.
+3. `photoRetention.spec.ts`: assert old/undecided verification photos cannot be scanned or deleted, even when the caller supplies a date beyond 30 days or an old page cursor. `storageRules.spec.ts`: the real isolated Storage emulator case now verifies a photo survives the deprecated age-only worker invocation, and explicitly removes its test fixture afterward.
+4. `scripts/check-legacy-photo-purge.mjs` plus **mutation regression tests** verify disabled worker, no age-only calls, no object reads, retention helper tripwire, still-deployed function export, continued `funnel_events` cleanup, and an independent signed decision-aware scheduler. Mandatory `check:legacy-photo-purge` is inserted into `check:enterprise`. The historical `check-retention-config.mjs` is aligned with the maintained retention policy gates.
+5. `docs/DATA_RETENTION.md` now correctly identifies `purgeVerificationStorageCron` + the API route/retention engine as the intended decision-aware path, rather than incorrectly attributing it to `deleteExpiredPhotosCron`.
+
+## Not fixed or approved by this patch
+
+- **Live deployment:** An already deployed `deleteExpiredPhotosCron` continues executing its **previous deployed code** until the approved fix is actually deployed or a Cloud Scheduler job is separately disabled. This branch performs neither action; SRE must inventory deployed function revisions, scheduler/job execution, service account permissions, retry configuration, backlog and safe rollback.
+- **Modern purge races:** The source of `src/server/routes/complianceStorage.ts` currently invokes GCS `.delete({ignoreNotFound:true})` without a visible `ifGenerationMatch`, and checks Firestore decision history separately from the physical delete. Separate generation fencing, changed-decision/hold, 404/412 and reconciliation fixes remain P0 work under #202 before enabling live purging.
+- **Privacy/legal:** Independent DPO/Legal signoff for Art. 5(1)(e), Art. 9, Art. 17; evidence retention, legal holds and actual storage provenance remain absent.
+- **Release:** Real CI on this branch's exact SHA, Storage Emulator tests, deployed IAM/Cloud Scheduler evidence, 14 mandatory gates where applicable, and independent Security/SRE/DPO/Release Owner signoffs are not automatically conferred by source changes. `main` remains unchanged; no GO.
+- **Integration sequencing:** Draft PR #268 also edits the long `check:enterprise` command in `package.json` on a separate main-based branch. Before any approved sequential merge, reconcile and retest both mandatory gates; do not silently lose either security check.
+
+## Staging-only proof required before deployment
+
+Confirm an authorized staging snapshot of Cloud Functions and Scheduler, with SHA/revision provenance. In a non-production Firebase emulator/storage test, supply a 31-day-old *pending* photo and show zero object deletion; supply approved/rejected photos with decisions older than 30 days and show correct deletion and immutable evidence; simulate a replaced generation and a hold; inject failed network/storage/audit writes and verify retries/receipts do not falsely claim completion. Separately prove `funnel_events` TTL cleanup still runs. Attach logs with exit code, run ID, exact source/rules SHA, job identities and reviewer approvals. Only then may the release owner consider a controlled deployment plan.
+
+**No production mutation or claimed official release approval. P0 #202 remains OPEN / NO-GO.**
+
+## Regression-Gate-Erweiterung (2026-11-02, weiterhin Draft)
+
+Der quelltextbasierte Fail-closed-Guard in `scripts/check-legacy-photo-purge.mjs` wurde auf zusätzliche direkte Storage-SDK-/Bucket-/Metadaten-Zugriffsmuster sowie ein Alias-Import des alten Retention-Helpers erweitert. Vier neue Mutationsprüfungen in `scripts/check-legacy-photo-purge.test.mjs` verhindern Regressionen, die den bisherigen Pattern-Guard umgehen konnten. **Das bleibt ein Source-Regression-Gate (E1/E2), keine AST-basierte Vollständigkeitsgarantie und kein Beleg über aktiven Cloud-Scheduler-/Firestore-/GCS-Laufzeitstatus (E4).**
+
+Der PR-Head hat sich nach der Änderung geändert; die zuvor erfolgreiche GitHub-CI für SHA `54ef22b87d40c90711e575d7e133b9311417f2f1` gilt **nicht** als Testnachweis für diesen neuen SHA. Vor Merge aktuelle Checks, unabhängige Reviews und einen gegen den aktuellen `main` integrierten Teststand nachweisen. Es gab keine Cloud-, `main`- oder produktive Datenänderung. `productionApproved=false`, **NO-GO**.
+
+## Review-Abgleich 05.11.2026
+
+Erneuter Read-only-Abgleich mit `main`: `functions/src/deleteExpiredPhotos.ts` ruft weiterhin `deleteExpiredPhotoPage()` auf; `functions/src/retention.ts` selektiert nach `timeCreated + 30 Tage` ohne autoritative Moderationsentscheidung. PR #269 ersetzt den alten Scan durch einen fail-closed Tripwire und erhält den exportierten Scheduler-Namen sowie die separate `funnel_events`-Bereinigung. Exakter bisheriger PR-Head `895aaa3da2056d7799f887596b89c09207699925` hatte CI-Run [41527555204](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41527555204) mit `completed/success`. Der hierdurch entstehende neue Head muss erneut validiert werden. PR #203 überlappt beim Retention-Code: keine parallelen Blind-Merges. Keine Cloud-Deaktivierung oder Live-Wirksamkeit nachgewiesen; Security-, SRE- und DPO-Freigaben fehlen. **productionApproved=false / NO-GO**.
+
+## CI- und Integrationsnachtrag 05.11.2026
+
+Der exakte PR-#269-Head `b25374275ba28515f907e624e54d94ad595bd5e3` hat GitHub Actions [42001269676](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42001269676) mit `completed/success` abgeschlossen. PR #251 Head `7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f` hat ebenfalls [41999970921](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41999970921) mit `completed/success` abgeschlossen. Beide sind unabhängige CI-Belege, **keine** menschliche Abnahme oder Cloud-Bestätigung.
+
+Vollständiger Dateinamen-Abgleich der PR-Patches #269 und #203 zeigt **sechs gemeinsame Dateien**: `docs/DATA_RETENTION.md`, `functions/src/deleteExpiredPhotos.ts`, `functions/src/retention.ts`, `package.json`, `tests/photoRetention.spec.ts`, `tests/storageRules.spec.ts` (jeweils unter `phase2_work/`). Die vier #269-exklusiven Dateien sind `docs/P0_202_LEGACY_PHOTO_PURGE_FAIL_CLOSED_2026-11-01.md`, `scripts/check-legacy-photo-purge.mjs`, `scripts/check-legacy-photo-purge.test.mjs`, `scripts/check-retention-config.mjs`. Dies ist eine Dateischnittmenge, **kein** Nachweis tatsächlicher Git-Merge-Konflikte. Integration ausschließlich sequenziell nach Rebase, semantischem Review der Sicherheitsinvarianten, vollständigen Negativtests und neuer exact-SHA-CI. Dieser Dokumentations-Commit selbst benötigt neue CI. `productionApproved=false` / **NO-GO**.
+
+## Semantische Integrationsentscheidung 05.11.2026
+
+Die Patchprüfung zeigt eine konkrete API-Divergenz: PR #269 erhält `deleteExpiredPhotoPage()` als absichtlich fehlschlagenden Kompatibilitäts-Tripwire (`legacy_age_only_photo_purge_disabled`); PR #203 entfernt die exportierte Funktion vollständig. Beide entfernen den Legacy-Scheduler-Aufruf. Eine Integration darf weder den veralteten age-only Scan wiederherstellen noch Tests stillschweigend verlieren. Empfehlung für die Integrationsprüfung: existierende Import-/Callsites inventarisieren; ohne Aufrufer kann vollständige Entfernung zulässig sein, andernfalls fail-closed Shim und Negativtests behalten; `deleteExpiredPhotosCron`-Export und nichtbiometrische `funnel_events`-Bereinigung erhalten, bis SRE die Cloud-Migration bestätigt. Dies ist eine Review-Empfehlung, **keine** bereits ausgeführte Code-Migration.
+
+Für den vorherigen #269-Head `a7cc3913c2c7185164d6d80689ed61bfc2495427` lief bei Prüfung [CI 42005258823](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42005258823) noch; keine unabhängigen Reviews für #269/#251/#203. Dieser Nachtrag erzeugt erneut einen neuen HEAD, dessen CI gesondert nachzuweisen ist. **productionApproved=false / NO-GO**.
+
+## Exakter CI-Abschluss und Testabgleich 05.11.2026
+
+Der exakte #269-Head `06d3a0d7ae3a9137abbabe02de560ccfa74d7899` bestand GitHub Actions [42006197322](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42006197322) (`completed/success`). Auch die getrennten Heads #203 `52824889b5bcb4a7505d3c701ec59a1d78c40708` (Run 41616797457) und #251 `7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f` (Run 41999970921) waren erfolgreich. Dies belegt weder die kombinierte Integrationsvariante noch die Cloud-Ausführung.
+
+Die Tests `tests/photoRetention.spec.ts` sind in #269 und #203 semantisch verschieden: #269 testet den fail-closed Shim für alte/unentschiedene Fotos und alte Cursor; #203 ersetzt diese Tests durch UID-scoped Art.-17-Löschung, Generation-Preconditions, Holds, 404-Fortschritt und ungültige UIDs. **Integrationsakzeptanz:** beide Testfamilien behalten, oder bei bewusst entfernter Shim-API äquivalente negative Static-/Runtime-Gates implementieren; `check:enterprise` darf keinen Security-Gate verlieren. Integration auf frischem main-Stand, neues exact-SHA-CI und unabhängige Reviews vor Merge. Dieser reine Dokumentations-Commit braucht ebenfalls neuen CI-Nachweis. **NO-GO / productionApproved=false**.
+
+## Bulk-Deletion-Regression 05.11.2026
+
+Die statische Fail-Closed-Prüfung in `scripts/check-legacy-photo-purge.mjs` verbietet nun zusätzlich `bucket.deleteFiles(...)` sowohl im Legacy-Scheduler als auch im deaktivierten Retention-Helper. Zwei neue Mutationstests in `scripts/check-legacy-photo-purge.test.mjs` injizieren Bulk-Löschaufrufe in beide Pfade und verlangen eine Ablehnung. Commits `4ef2471631ae3ca1f66c883543dbc62f3a98c154` und `744818d6b3b0b5c9f53146245c8d788d0a4fe608`. Dies ist ein Quellcode-Regressionsschutz, keine umfassende semantische Analyse aller indirekten Storage-Zugriffe. Exakte neue CI und unabhängige Reviews sind erforderlich. Keine produktive Cloud-Änderung; **productionApproved=false / NO-GO**.
+
+## Direkte Objektlöschung: weiterer Negativtest
+
+Exact-SHA-CI für `18c6f8c0a87dd134e93c783c50fedcb31569a105` war [42010027839](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42010027839) `completed/success`. Zusätzliche Code-Review identifizierte eine verbleibende Lücke im Scheduler-RegEx: ein direkter `photo.delete(...)`-Aufruf ohne `.file(...)` war nicht ausdrücklich verboten. Die Guard-Regel erkennt nun auch `.delete(...)` im Legacy-Scheduler (Commit `aca2348efad4398fbb56da0904eb2da16a37b28e`); ein Mutationstest injiziert den Aufruf (Commit `9b6cbd02483882b8c453512427e43f42ee904307`). Dies ist bewusst ein konservativer Source-Gate und ersetzt keine Laufzeit-/Cloud-Nachweise. Neuer CI-Nachweis für den finalen Head ist erforderlich; **productionApproved=false / NO-GO**.
+
+## CI-Fehlerbehebung: erlaubte Firestore-Löschung (05.11.2026)
+
+Der exakte Head `8d812c6d4f6595d4d0f3b52ce280d48a22537dbc` scheiterte in [GitHub Actions 42011440052](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42011440052), Job `validate`, Schritt `Enterprise static gates`, mit `legacy scheduled worker can reach photo-list or photo-purge logic`. Root Cause aus Job-Log und Quellcode: die neue pauschale `\.delete(...)`-Regel schlug fälschlich auch auf die legitime Firestore-Batch-Bereinigung `batch.delete(doc.ref)` für `funnel_events` an. Fix `6bd39b2bacb89bfd3e29dbb440103f8c8f1a3432`: ausschließlich den bekannten Funnel-Batch-Aufruf vor der direkten Löschprüfung ausnehmen; alle übrigen `.delete(...)`-Aufrufe im Legacy-Scheduler weiter verbieten. Der separate Storage-Helper-Check bleibt unverändert. Die bestehende Mutation `photo.delete(...)` muss weiter fehlschlagen. Neue exact-SHA-CI abwarten; kein produktiver Eingriff und keine Freigabe. **NO-GO**.
+
+## Integrationsvorbereitung PR #203 + #269 (05.11.2026)
+
+Die letzten separat geprüften Heads sind #203 `1850e0a78b22e600e5add99273b84c081ffc3892` ([CI 42017264009 PASS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009)) und #269 `e5f2b16334a24fa8fb04e4c7c5fc9b9f824099fb` ([CI 42012287508 PASS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42012287508)). Die PRs überschneiden sich in sechs Dateien: `docs/DATA_RETENTION.md`, `functions/src/deleteExpiredPhotos.ts`, `functions/src/retention.ts`, `package.json`, `tests/photoRetention.spec.ts`, `tests/storageRules.spec.ts`. Insbesondere entfernt #203 den alten `deleteExpiredPhotoPage`-Helper vollständig, während #269 eine Throw-Shim enthält. Die Source-Regression erkennt nun **beide sicheren Zustände** (Helper entfernt oder fail-closed), fordert aber weiterhin den `deleteAccountPhotos`-Boundary und verbietet Storage-Löschzugriffe im Legacy-Scheduler. Ein Negativtest prüft die Entfernung des Account-Erasure-Boundary. Dies ist Vorbereitung, **kein Merge-Test**; für den neuen Head sind CI, gemeinsamer Emulator-Test, Code Review, Entscheidung über Konfliktauflösung und Cloud-Belege erforderlich. Beide PRs bleiben Draft und ohne unabhängige Reviews. `productionApproved=false`.
+
+## CI-Korrektur des Integrations-Guards (05.11.2026)
+
+[CI 42018684953](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42018684953) für Head `f1fe1f0038ff2bc88f8e4c85d3b5c55b0d112cbd` schlug im Schritt `Enterprise static gates` durch einen **JavaScript-Syntaxfehler** fehl: `SyntaxError: Invalid regular expression ... Unterminated group`. Ursache: Bei der Anpassung des Helper-Checks wurden Regex-Escapes doppelt geschrieben (`\\\\.` statt `\\.`). Commit `951ab21770467e52fc6eb2b0ab3fa4f7384dd43c` stellt die gültige Regex-Syntax wieder her; der inhaltliche Fail-Closed-Check bleibt bestehen. Neuer exact-SHA-CI-Nachweis ist erforderlich. Kein Merge/Deploy; `productionApproved=false`.
