@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-09T16:25:23Z",
+  "observedAt": "2026-11-09T18:10:43Z",
   "repository": "Veselin-Takev/Klar-Dating",
-  "source": "GitHub REST API read-only: main branch, open PR pages 1-3, active repository ruleset, PR metadata, exact-head check-runs/jobs, PR reviews, issues; Vercel read-only project lookup.",
+  "source": "Fresh read-only GitHub REST snapshot (open PR pages 1-2), exact selected PR heads/check-runs/jobs/reviews, active Ruleset #25756841, current issues and read-only Vercel project lookup.",
   "main": {
     "sha": "96c3857c53f5ced31fe1394895185f42c75bc716",
     "commitDate": "2026-11-02T19:03:59Z",
@@ -11,9 +11,10 @@
   },
   "auditBranch": {
     "name": "audit-enterprise-e2e-20261102",
-    "headSha": "a4a9bb488eb2cc862cbadd1d9bf8df4695ba4c5b",
+    "headSha": "fac8e526ffc4e9294611e97366c32f3485147eaf",
     "protected": false,
-    "pr": 313
+    "pr": 313,
+    "snapshotParentOfThisInventoryCommit": true
   },
   "openPullRequests": {
     "total": 196,
@@ -104,10 +105,10 @@
       "security/p0-202-typed-retention-cas-commands-20261101": 1,
       "security/p0-202-cas-lease-field-integrity-20261101": 1,
       "security/p0-202-native-emulator-lease-cas-20261101": 1,
-      "security/p0-202-write-ahead-delete-intent-20261101": 1,
       "security/p0-202-retention-lease-state-machine-20261101": 1,
       "audit/p0-202-readonly-backlog-census-20261101": 1,
       "security/p0-202-bounded-purge-pagination-20261101": 1,
+      "security/p0-202-write-ahead-delete-intent-20261101": 1,
       "security/p0-202-gcs-generation-fence-20261101": 1,
       "fix/p0-202-disable-legacy-photo-purge-20261101": 1,
       "security/254-strict-tenant-host-ingress-20261031": 1,
@@ -863,11 +864,11 @@
         "baseRef": "main",
         "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
         "headRef": "audit-enterprise-e2e-20261102",
-        "headSha": "a4a9bb488eb2cc862cbadd1d9bf8df4695ba4c5b",
+        "headSha": "fac8e526ffc4e9294611e97366c32f3485147eaf",
         "parentOpenPr": null,
         "depthFromMain": 0,
         "createdAt": "2026-11-02T16:14:11Z",
-        "updatedAt": "2026-11-03T10:09:24Z",
+        "updatedAt": "2026-11-09T16:28:48Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
       },
       {
@@ -1411,21 +1412,6 @@
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/277"
       },
       {
-        "number": 276,
-        "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
-        "state": "open",
-        "draft": true,
-        "baseRef": "security/p0-202-write-ahead-delete-intent-20261101",
-        "baseSha": "7b30adf79e8020101b081ec80e5f4edb0e7d0460",
-        "headRef": "security/p0-202-native-emulator-lease-cas-20261101",
-        "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
-        "parentOpenPr": 275,
-        "depthFromMain": 6,
-        "createdAt": "2026-11-01T09:02:50Z",
-        "updatedAt": "2026-11-02T18:22:51Z",
-        "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276"
-      },
-      {
         "number": 275,
         "title": "security(P0 #202): write-ahead generation-fenced delete intent; no auto-retry after crash",
         "state": "open",
@@ -1469,6 +1455,21 @@
         "createdAt": "2026-11-01T09:19:33Z",
         "updatedAt": "2026-11-02T18:22:44Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/273"
+      },
+      {
+        "number": 276,
+        "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
+        "state": "open",
+        "draft": true,
+        "baseRef": "security/p0-202-write-ahead-delete-intent-20261101",
+        "baseSha": "7b30adf79e8020101b081ec80e5f4edb0e7d0460",
+        "headRef": "security/p0-202-native-emulator-lease-cas-20261101",
+        "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
+        "parentOpenPr": 275,
+        "depthFromMain": 6,
+        "createdAt": "2026-11-01T09:02:50Z",
+        "updatedAt": "2026-11-02T18:22:51Z",
+        "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276"
       },
       {
         "number": 272,
@@ -2110,7 +2111,7 @@
         "headRef": "test/48-member-referral-art17-process-crash-20261030",
         "headSha": "0d3531655771657ccd8d8b9a002df562360cc8e6",
         "parentOpenPr": 227,
-        "depthFromMain": null,
+        "depthFromMain": 9,
         "createdAt": "2026-10-30T22:21:28Z",
         "updatedAt": "2026-11-02T18:21:19Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/228"
@@ -2125,7 +2126,7 @@
         "headRef": "test/48-member-registry-art17-worker-lease-handoff-20261030",
         "headSha": "a771e6082ec41254d98f40a219d45660d1fccf94",
         "parentOpenPr": 226,
-        "depthFromMain": null,
+        "depthFromMain": 8,
         "createdAt": "2026-10-30T22:06:06Z",
         "updatedAt": "2026-11-02T18:21:17Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/227"
@@ -2140,7 +2141,7 @@
         "headRef": "test/48-member-referral-art17-slice-resume-20261030",
         "headSha": "b480fdc855d263dd59a6f9da412568be352b5846",
         "parentOpenPr": 225,
-        "depthFromMain": null,
+        "depthFromMain": 7,
         "createdAt": "2026-10-30T21:51:06Z",
         "updatedAt": "2026-11-02T18:21:15Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/226"
@@ -2155,7 +2156,7 @@
         "headRef": "test/48-member-registry-art17-multibatch-20261030",
         "headSha": "24eb91841a6dc35f07821c02eab1fa6b17e9642e",
         "parentOpenPr": 224,
-        "depthFromMain": null,
+        "depthFromMain": 6,
         "createdAt": "2026-10-30T21:38:58Z",
         "updatedAt": "2026-11-02T18:21:13Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/225"
@@ -2170,7 +2171,7 @@
         "headRef": "test/48-member-referral-registry-erasure-emulator-20261030",
         "headSha": "d7879388c132791af36a881442423eca761f2d4b",
         "parentOpenPr": 223,
-        "depthFromMain": null,
+        "depthFromMain": 5,
         "createdAt": "2026-10-30T21:28:10Z",
         "updatedAt": "2026-11-02T18:21:11Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/224"
@@ -2185,7 +2186,7 @@
         "headRef": "fix/48-member-referral-runtime-diagnostic-codes-20261030",
         "headSha": "ae3d5a7a82732a366b1ff17808ff788c17db4425",
         "parentOpenPr": 222,
-        "depthFromMain": null,
+        "depthFromMain": 4,
         "createdAt": "2026-10-30T21:21:20Z",
         "updatedAt": "2026-11-02T18:21:08Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/223"
@@ -2200,7 +2201,7 @@
         "headRef": "fix/48-member-referral-inventory-source-errors-20261030",
         "headSha": "06fe8509cfda12eed1abc080efa17c9e17b2b8e2",
         "parentOpenPr": 221,
-        "depthFromMain": null,
+        "depthFromMain": 3,
         "createdAt": "2026-10-30T20:58:54Z",
         "updatedAt": "2026-11-02T18:21:06Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/222"
@@ -2215,7 +2216,7 @@
         "headRef": "feat/48-member-referral-page-integrity-20261030",
         "headSha": "74e06385e453dd4d2bc8aff6f9d810233b8a778c",
         "parentOpenPr": 220,
-        "depthFromMain": null,
+        "depthFromMain": 2,
         "createdAt": "2026-10-30T20:39:16Z",
         "updatedAt": "2026-11-02T18:21:04Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/221"
@@ -2230,7 +2231,7 @@
         "headRef": "feat/48-member-referral-offline-inventory-20261030",
         "headSha": "8091cd6811e2c9ab8713a8c771468dfa22ba4c6a",
         "parentOpenPr": 219,
-        "depthFromMain": null,
+        "depthFromMain": 1,
         "createdAt": "2026-10-30T20:29:54Z",
         "updatedAt": "2026-11-02T18:21:02Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/220"
@@ -2245,7 +2246,7 @@
         "headRef": "feat/48-member-referral-reservation-emulator-20261030",
         "headSha": "6314431111115da5b62b7d42d0eb18d32eceb7a9",
         "parentOpenPr": null,
-        "depthFromMain": null,
+        "depthFromMain": 0,
         "createdAt": "2026-10-30T20:12:18Z",
         "updatedAt": "2026-11-02T18:21:00Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/219"
@@ -2260,7 +2261,7 @@
         "headRef": "fix/48-member-referral-identity-claims-20261030",
         "headSha": "263ea6c0111eeeb496d8dfc6acd95b8c9d305d7c",
         "parentOpenPr": 217,
-        "depthFromMain": null,
+        "depthFromMain": 4,
         "createdAt": "2026-10-30T19:52:25Z",
         "updatedAt": "2026-11-02T18:20:58Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/218"
@@ -2275,7 +2276,7 @@
         "headRef": "fix/48-member-referral-issuance-collision-20261030",
         "headSha": "2172b8f6f9a1c439719539957bcb1dd6c0f44627",
         "parentOpenPr": 216,
-        "depthFromMain": null,
+        "depthFromMain": 3,
         "createdAt": "2026-10-30T19:43:31Z",
         "updatedAt": "2026-11-02T18:20:56Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/217"
@@ -2290,7 +2291,7 @@
         "headRef": "fix/48-member-referral-ambiguous-code-20261030",
         "headSha": "3f945950ecff5b8c077997315b7b54de941de24f",
         "parentOpenPr": 215,
-        "depthFromMain": null,
+        "depthFromMain": 2,
         "createdAt": "2026-10-30T19:33:39Z",
         "updatedAt": "2026-11-02T18:20:54Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/216"
@@ -2305,7 +2306,7 @@
         "headRef": "fix/48-member-referral-attribution-conflict-20261030",
         "headSha": "755414e2d439c56425a601fe27df8007c6ef9fb1",
         "parentOpenPr": 214,
-        "depthFromMain": null,
+        "depthFromMain": 1,
         "createdAt": "2026-10-30T19:13:09Z",
         "updatedAt": "2026-11-02T18:20:52Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/215"
@@ -2320,7 +2321,7 @@
         "headRef": "fix/48-member-referral-anonymous-guard-20261030",
         "headSha": "59f0231e1eed83d543b7070c98622b309eb3acd8",
         "parentOpenPr": null,
-        "depthFromMain": null,
+        "depthFromMain": 0,
         "createdAt": "2026-10-30T18:48:15Z",
         "updatedAt": "2026-11-02T18:20:51Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/214"
@@ -2335,7 +2336,7 @@
         "headRef": "test/55-partner-conversion-replay-emulator-20261030",
         "headSha": "2b668632a9a5b2167400c10d9c3978c347c69067",
         "parentOpenPr": null,
-        "depthFromMain": null,
+        "depthFromMain": 0,
         "createdAt": "2026-10-30T14:08:10Z",
         "updatedAt": "2026-11-02T18:20:49Z",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/213"
@@ -3153,8 +3154,11 @@
   "priorityPullRequests": [
     {
       "number": 251,
+      "title": "security(P1 #73): fail-close production release on live main review policy",
       "draft": true,
+      "headRef": "security/73-live-ruleset-release-gate-20261031",
       "headSha": "7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 41999970921,
@@ -3162,13 +3166,17 @@
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "success",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/251"
     },
     {
       "number": 269,
+      "title": "security(P0 #202): fail-close legacy upload-age photo deletion worker",
       "draft": true,
+      "headRef": "fix/p0-202-disable-legacy-photo-purge-20261101",
       "headSha": "fd68656957c01618c3a085e887ece504624d18b3",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 42020003801,
@@ -3176,13 +3184,17 @@
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "success",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/269"
     },
     {
       "number": 203,
+      "title": "fix(privacy): P0 #202 decision-gated photo retention and resumable purge scanner",
       "draft": true,
+      "headRef": "fix/202-verification-photo-decision-retention-20261029",
       "headSha": "1850e0a78b22e600e5add99273b84c081ffc3892",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 42017264009,
@@ -3190,13 +3202,17 @@
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "success",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/203"
     },
     {
       "number": 253,
+      "title": "feat(multitenant): isolate Firebase tenant auth, Zod config and scoped read model",
       "draft": true,
+      "headRef": "feature/multitenant-zero-trust-foundation-20261031",
       "headSha": "036ee313747a7beb2ab926e721e3bef958304447",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 41539994863,
@@ -3204,27 +3220,35 @@
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "success",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/253"
     },
     {
       "number": 313,
+      "title": "audit(enterprise): 2026-11-02 end-to-end source/evidence review – Production NO-GO",
       "draft": true,
-      "headSha": "a4a9bb488eb2cc862cbadd1d9bf8df4695ba4c5b",
+      "headRef": "audit-enterprise-e2e-20261102",
+      "headSha": "fac8e526ffc4e9294611e97366c32f3485147eaf",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
-        "run": 41616857388,
-        "job": 125852343513,
+        "run": 42655158572,
+        "job": 129291577628,
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "success",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
       "number": 314,
+      "title": "docs(platform): Vercel-Setup-Evidenz, Preview-Gates und Produktions-NO-GO",
       "draft": true,
+      "headRef": "docs/vercel-setup-evidence-20261102",
       "headSha": "e5deab1dfd629065f3dfce3a5577eb21ac966a68",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 41619572341,
@@ -3232,21 +3256,28 @@
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": "failure",
+      "vercelDetail": "Vercel target returned upgradeToPro=build-rate-limit",
       "reviews": [],
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/314"
     },
     {
       "number": 315,
+      "title": "build(deps): bump actions/attest from b60c2628ab941b449db82e38ba8d500980ce8a54 to 4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f in the github-actions group",
       "draft": false,
+      "headRef": "dependabot/github_actions/github-actions-51d4804faf",
       "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
+      "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "validate": {
         "run": 41531498018,
         "job": 125572558770,
         "status": "completed",
         "conclusion": "failure",
-        "failedStep": "Enterprise static gates"
+        "failedStep": "Enterprise static gates",
+        "failureDetail": "check:release-workflow: Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest."
       },
+      "vercelStatus": "success",
       "reviews": [
         {
           "user": "Veselin-Takev",
@@ -3260,30 +3291,38 @@
     },
     {
       "number": 358,
+      "title": "Gate 0: RC1 tenant migration complete (50/50; 1636 PASS)",
       "draft": false,
+      "headRef": "audit/rc1-isolation-closure-20261108",
       "headSha": "04e80e803ff64b4d7d51f599e5e54ad79c4033e2",
       "baseRef": "release/v0.1.1-rc1",
+      "baseSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
       "validate": {
         "run": 42505817983,
         "job": 128808097657,
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": null,
       "reviews": [],
       "productionApprovedClaim": false,
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/358"
     },
     {
       "number": 360,
+      "title": "fix(security): harden media, erasure and sessions; prepare release evidence",
       "draft": true,
+      "headRef": "audit/rc1-security-compliance-e2e-20261108",
       "headSha": "239c240becfd9993d58a3c039684504934101d4a",
       "baseRef": "audit/rc1-isolation-closure-20261108",
+      "baseSha": "04e80e803ff64b4d7d51f599e5e54ad79c4033e2",
       "validate": {
         "run": 42543090236,
         "job": 128922149467,
         "status": "completed",
         "conclusion": "success"
       },
+      "vercelStatus": null,
       "reviews": [],
       "releaseGate": "WAITING FOR IAM CREDENTIAL BINDING",
       "productionApprovedClaim": false,
@@ -3299,7 +3338,8 @@
     {
       "number": 70,
       "title": "P0 Compliance: TTL-Provisionierung deckt dokumentierte Collection-Groups nicht vollständig ab",
-      "state": "open"
+      "state": "open",
+      "sourceStatus": "main configure-retention.sh enumerates 20 groups; validator requires 20 and rejects unknown groups; live 20/20 ACTIVE staging evidence still absent; DATA_RETENTION.md contains older 13-group statements alongside 20-group addenda"
     },
     {
       "number": 254,
@@ -3338,38 +3378,81 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-09T16:25:23Z",
+    "checkedAt": "2026-11-09T18:10:43Z",
     "teamSlug": "ves3",
+    "teamId": "team_EiPWvm6QxGGw5oOV39HiSjaw",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
     "exists": true,
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_6eHnhKuWmNgwN4cCi8Fgyc1SNvgy",
+      "id": "dpl_EWn2bAqL6p6SE3CCJhGq66sndDB8",
       "readyState": "READY",
       "target": null
-    }
+    },
+    "ssoProtectionEnabled": true,
+    "teamProjectCount": 1,
+    "teamProjects": [
+      {
+        "id": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
+        "name": "klar-dating"
+      }
+    ]
   },
   "productionDecision": {
     "productionApproved": false,
     "status": "BLOCKED / NO-GO",
     "blockers": [
-      "No exact integrated release SHA with all required gates.",
-      "No independent Security, DPO/Legal, SRE, Finance where applicable, and Release Owner approvals.",
-      "No read-only live GCP IAM/service identity and effective-permissions evidence.",
-      "No target-environment ACTIVE TTL proof for all approved collection groups and Legal Hold behavior.",
-      "No real scheduler/worker/GCS generation-bound purge, crash/race, 404/412, or audit-receipt evidence.",
-      "No reviewed tenant legacy mapping, live cutover, cross-tenant BOLA/IDOR and Art.17 production evidence.",
-      "No production operational controls, alert delivery, SLO, backup/restore and RTO/RPO evidence."
+      "No exact integrated production release SHA with every critical gate passing.",
+      "No independent Security, DPO/Legal, SRE, Finance where applicable, and Release Owner approvals; selected PRs #251/#269/#203/#253/#313/#314/#358/#360 have no submitted independent review.",
+      "Active main Ruleset #25756841 requires zero approvals and no CODEOWNERS review; the strict validate check alone is insufficient.",
+      "Main still contains the scheduled age-based verification-photo cron; live Scheduler/IAM deployment state is not established.",
+      "No independent Firestore/GCS post-authorization race, legal-hold, crash/retry, 404/412 and purge-receipt evidence in real staging/live services.",
+      "No approved 20/20 ACTIVE TTL capture for the target project/database and no independent legal-hold/data-lifecycle acceptance.",
+      "No reviewed authoritative tenant mapping, production cutover, cross-tenant BOLA/IDOR and Art.17 production evidence.",
+      "No production operational controls, alert delivery, SLO, backup/restore and RTO/RPO evidence.",
+      "PR #360 remains blocked at WAITING FOR IAM CREDENTIAL BINDING; no read-only live IAM capture or credentials connected."
     ]
   },
   "notes": [
-    "The 2026-11-02 audit documents remain historical baseline evidence; this file is a new read-only snapshot.",
-    "PR #358 describes a certified code/test baseline and 1,636 main-suite PASS, but itself records productionApproved=false; its current exact-head validate job is SUCCESS and it has no review.",
-    "PR #360 is Draft, its current exact-head validate job is SUCCESS, but its own release gate says WAITING FOR IAM CREDENTIAL BINDING; no live IAM capture, IAM apply, migration, merge or deployment is claimed.",
-    "PR #315's self/owner APPROVED review is not independent; validate fails at Enterprise static gates.",
-    "The old Vercel demo deletion was previously confirmed in PR #313 documentation; no delete was attempted in this run. Provider credential revocation is not inferred.",
-    "No code, cloud, secrets, deployment, IAM, scheduler, Firebase, GCS, or database mutation was performed."
+    "This is a read-only snapshot captured before the inventory-refresh commit; the audit branch head at capture was fac8e526ffc4e9294611e97366c32f3485147eaf. The commit created by this refresh will require its own exact-head CI.",
+    "Open PR count rose from the prior 153 snapshot to 196: 194 Drafts and two non-Draft PRs (#315 and #358); 51 target main, 145 target other branches, 142 have an open-PR parent and 3 are unparented; maximum observed stack depth 35.",
+    "PR #203 and #269 currently overlap in six paths; both are ahead of main and behind by zero. Do not merge them independently without an integration reconciliation.",
+    "PR #358 has exact-head CI success but is based on release/v0.1.1-rc1, has no submitted review and states productionApproved=false; PR #360 is a Draft child with exact-head CI success but waits for IAM credential binding.",
+    "PR #315 has only an owner/self APPROVED review; its exact-head validate fails at check:release-workflow because production container provenance attestation bound to immutable image digest is not accepted. Later tests/builds were skipped.",
+    "PR #314 GitHub validate passes, but its Vercel context is failure with build-rate-limit; the current Klar Vercel project exists, live=false, and latest deployment is READY with target=null.",
+    "The old Vercel demo deletion was previously confirmed in PR #313 documentation. This run did not attempt deletion; external Neon/Postgres/Better-Auth credential revocation is not inferred.",
+    "No main commit, merge, deployment, secrets, IAM, scheduler, Firebase, GCS, or database mutation was performed."
+  ],
+  "sourceFindings": [
+    {
+      "issue": 202,
+      "severity": "P0",
+      "source": "main phase2_work/functions/src/deleteExpiredPhotos.ts",
+      "sourceSha": "69c0ad42be40ac51f8aebd62741ae97bf5120f2a",
+      "detail": "deleteExpiredPhotosCron is scheduled every 24 hours and calls deleteExpiredPhotoPage; main phase2_work/functions/src/retention.ts at 5f9014b... filters by timeCreated older than 30 days and generation-matched deletion, not moderation decision. Live Scheduler deployment not proven."
+    },
+    {
+      "issue": 70,
+      "severity": "P0 release evidence",
+      "source": "main phase2_work/scripts/configure-retention.sh",
+      "sourceSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
+      "detail": "Current script enumerates 20 groups; check-retention-active-evidence.mjs at 8f9ca915... requires 20 exact expiresAt ACTIVE entries and rejects unknown groups. No live staging 20/20 capture is present; DATA_RETENTION.md at 09784569... retains older 13-group statements plus 20-group addenda."
+    },
+    {
+      "issue": 204,
+      "severity": "P1",
+      "source": "main phase2_work/storage.rules",
+      "sourceSha": "b3d1e216ab9c0226ca14813799df4adb63bf7558",
+      "detail": "/profiles/{uid}/{datei} currently allows read when signedIn(); policy model at storageRulesEngine.ts SHA 2eceecc... requires requester isAdult and targetUserIsAdult. Source mismatch; no live unauthorized read is proven."
+    },
+    {
+      "issue": 206,
+      "severity": "P1",
+      "source": "main phase2_work/src/lib/klar.ts",
+      "sourceSha": "4c960dac7a552948df9b3ac7ea9601238d788492",
+      "detail": "ladeProfilfotoHoch obtains getDownloadURL and persists it as users/{uid}.photoURL; long-lived bearer URL revocation remains a separate source-level design concern, not proof of live misuse."
+    }
   ]
 }
