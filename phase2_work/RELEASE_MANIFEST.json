@@ -776,5 +776,53 @@
     ],
     "evidence": "phase2_work/docs/security/SYSTEM_REMEDIATION_EVIDENCE.json",
     "codeTreeSha256": "1e0e6f142f6b93a646cd46f48c4dd021dab30d5c33e709ed87d19e2d333bbf91"
+  },
+  "operationalHardening": {
+    "asOf": "2026-11-09",
+    "pr": 360,
+    "bundleStatus": "PREPARED",
+    "releaseStatus": "BLOCKED_MISSING_PRODUCTION_EVIDENCE",
+    "targetStatus": "READY FOR LEGAL & TECH SIGN-OFF",
+    "productionApproved": false,
+    "keepPrDraft": true,
+    "legacyAuthMigrationScript": "phase2_work/scripts/migrate-revoke-legacy-tokens.ts",
+    "legacyAuthProductionDryRun": "NOT_RUN_NO_GCP_IDENTITY",
+    "legacyAuthProductionApply": "NOT_EXECUTED",
+    "liveIamEvidence": "docs/security/live-iam-evidence.json",
+    "liveIamStatus": "UNVERIFIED_NO_LIVE_ACCESS",
+    "bundle": "docs/security/DUAL_SIGN_OFF_READY.md",
+    "newValidation": {
+      "vitest": 1599,
+      "vitestFiles": 213,
+      "enterpriseNode": 86,
+      "newOperationalSubsetIncluded": 22,
+      "browserE2E": 29,
+      "overlappingSubsetsAdded": false,
+      "enterpriseGates": "PASS",
+      "typecheck": "PASS",
+      "functionsBuild": "PASS",
+      "applicationBuild": "PASS",
+      "semgrep": {
+        "rules": 616,
+        "targets": 1183,
+        "findings": 0,
+        "parserErrors": 0,
+        "runtimeExpected": 700,
+        "runtimeScanned": 700
+      },
+      "uniqueMainSuiteTests": 1714
+    },
+    "baselineVerified": {
+      "head": "7666ba45b16eaf7b640dfa22d4761390e2276411",
+      "ciRun": 42533662057,
+      "uniqueMainSuiteTests": 1692
+    },
+    "blockers": [
+      "Production Auth inventory/migration and legacy media capability evidence remain missing.",
+      "Live Cloud Run/project/ancestor/Storage IAM capture and human least-privilege review are missing.",
+      "Prior operational/privacy gates and Legal/Tech signatures remain open."
+    ],
+    "confirmedProjectId": "klar-admin",
+    "verificationEvidence": "docs/security/OPERATIONAL_VERIFICATION.json"
   }
 }
