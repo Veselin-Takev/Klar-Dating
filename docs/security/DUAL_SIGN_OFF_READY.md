@@ -1,6 +1,6 @@
 # Dual Sign-Off Review Bundle — PR #360 / v0.1.1-rc1
 
-**Bundle prepared. Release status: BLOCKED — WAITING FOR PRODUCTION EVIDENCE.**
+**Bundle prepared. Release gate: WAITING FOR IAM CREDENTIAL BINDING; production NO-GO.**
 PR #360 remains Draft; `productionApproved=false`. The requested target status
 **READY FOR LEGAL & TECH SIGN-OFF** may be set only after the open evidence gates
 below have been satisfied. This document records review readiness and outstanding
@@ -10,7 +10,7 @@ work; it is not a compliance certificate or a human signature.
 
 | Evidence | Source / scope | Status |
 |:---|:---|:---|
-| Existing code hardening | [Exact-head CI 42533662057](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42533662057), commit `7666ba45b16eaf7b640dfa22d4761390e2276411` | 1,692 PASS: 1,577 Vitest + 86 Enterprise Node + 29 browser E2E |
+| Historical code hardening | [Exact-head CI 42533662057](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42533662057), commit `7666ba45b16eaf7b640dfa22d4761390e2276411` | 1,692 PASS: 1,577 Vitest + 86 Enterprise Node + 29 browser E2E |
 | Auth migration implementation | [Admin script](../../phase2_work/scripts/migrate-revoke-legacy-tokens.ts), [runbook](../../phase2_work/docs/security/LEGACY_TOKEN_MIGRATION_RUNBOOK.md) | Dry-run default, explicit scope, resumable apply, aggregate receipts |
 | New migration/collector regressions | [Unit suite](../../phase2_work/tests/operationalHardening.spec.ts), [native CLI suite](../../phase2_work/tests/legacyTokenMigrationNative.spec.ts) | 22 PASS, included in the 1,714 main-suite total |
 | Production Auth inventory/dry-run | Operator ADC and approved project/Auth tenant inventory | NOT RUN — no GCP identity available |
@@ -21,10 +21,12 @@ work; it is not a compliance certificate or a human signature.
 
 ## Current verification
 
-Local validation: **1,599 Vitest / 213 files + 86 Enterprise Node + 29 Chromium
+**Verified code/test baseline:** commit `8910cb64be3a287459680a66a9742be896b72560`,
+[full Enterprise CI 42540209271: SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42540209271).
+The baseline verifies: **1,599 Vitest / 213 files + 86 Enterprise Node + 29 Chromium
 E2E = 1,714 PASS**. The 22 operational regressions and original audit subsets are
 included, not added twice. Typecheck, Enterprise gates, Functions and application
-builds pass. Strict Semgrep: 616 rules, 1,183 targets, zero findings/parser errors,
+builds pass. Strict Semgrep: 616 rules, 1,184 targets, zero findings/parser errors,
 700/700 first-party runtime files covered.
 
 The isolated native CLI run passed on 2026-11-09: dry-run reported one eligible
@@ -37,33 +39,44 @@ the completed rerun. This is
 **emulator-only evidence**, not a production dry-run.
 
 [Machine-readable verification and log/source hashes](OPERATIONAL_VERIFICATION.json)
-record the claim scope. The full CI on the final exact PR head remains required;
-consult the PR checks and final PR description for the authoritative run.
+record the claim scope. The baseline above includes the verified token script and
+actual synthetic JWT rejection/survival checks. The new shell handover wrapper adds
+13 separately counted synthetic regression tests for atomic publication, denied
+reads, identity/scope mismatches, private outputs and preserved prior captures.
+These tests do not produce production IAM evidence. Consult final PR-head CI for
+the new wrapper and handover changes; the fixed baseline above remains traceable.
 
-## Collect the missing IAM evidence
+## Infrastruktur-Verifikation — AUSSTEHEND
 
-With an approved read-only GCP identity, a clean checkout and the pinned Node
-toolchain, run from `phase2_work`:
+**Pending: final GCP credential binding and live capture.** Project `klar-admin` is
+confirmed; approved region, Cloud Run service, bucket and read-only gcloud service
+account are not bound. The current IAM status remains UNVERIFIED.
+
+The [access/variable specification](GCP_LIVE_IAM_REQUIREMENTS.md) defines
+`roles/iam.securityReviewer`, supplemental `roles/run.viewer` and the bucket
+metadata read permission, parent-policy scope, credential selectors and the exact
+`GCP_PROJECT_ID`, `GCP_REGION`, `STORAGE_BUCKET_NAME` mapping.
+The [static handover manifest](GCP_HANDOVER_MANIFEST.json) records all pending
+inputs and the verified code baseline.
+
+After binding the approved environment variables and credentials, run from the
+clean repository root:
 
 ```sh
-KLAR_IAM_PRIVATE_OUTPUT="$KLAR_EVIDENCE_VAULT/iam-private.json" \
-KLAR_IAM_SUMMARY_OUTPUT="$KLAR_EVIDENCE_VAULT/iam-summary.json" \
-node --import=tsx scripts/export-live-iam-evidence.ts
+bash scripts/collect-live-iam-evidence.sh
 ```
 
-Required scope variables: `KLAR_PROJECT_ID`, `KLAR_REGION`, `KLAR_SERVICE`,
-`KLAR_STORAGE_BUCKET`. The user confirmed `klar-admin` as the project ID; service,
-region, bucket and GCP identity remain outstanding. Existing output files are
-rejected. The private raw capture
-includes Cloud Run service and invoker policy, every serving/tagged revision's
-identity, project and ancestor policies, bucket IAM/configuration, Firestore
-database inventory, runtime service-account policy and the custom runtime Auth
-role. Failure of any required read stops publication of a success receipt. Raw
-Cloud Run configuration can contain personal data or secrets: keep it outside Git
-in the approved restricted vault. The minimized summary contains runtime role
-bindings and revision identities with SHA-256 references to the private capture.
-After review, replace `live-iam-evidence.json` with that summary and record the
-controlled raw-export link, reviewer, captured time and exact release/build SHA.
+The [wrapper](../../scripts/collect-live-iam-evidence.sh) stages all reads and
+validates hashes/scope/identity before atomically publishing a complete private
+external directory with `live-iam-evidence.json`, raw policies, toolchain evidence
+and `HANDOVER_MANIFEST.json`. Failed or partial reads publish no bundle. It never
+modifies the repository IAM status or grants a release approval.
+
+Raw Cloud Run configuration may contain secrets/PII: keep it in the restricted
+vault. After independent infrastructure review, copy only the approved minimized
+summary into `docs/security/live-iam-evidence.json` and record its controlled
+raw-export link, reviewer, capture time and exact SHA. A live capture still requires
+human least-privilege review and closure of the existing release gates.
 
 Firestore grants are captured from project/ancestor IAM; database-scoped
 conditional grants require explicit review. Captured allow policies alone do not

@@ -95,6 +95,9 @@ jobs:
         run: |
           bun ci
           npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+      - name: Live IAM wrapper regressions
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/collect-live-iam-evidence.test.mjs
       - name: Production dependency advisory gate
         if: steps.scope.outputs.full == 'true'
         run: bun audit --production --audit-level=high

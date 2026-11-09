@@ -824,5 +824,17 @@
     ],
     "confirmedProjectId": "klar-admin",
     "verificationEvidence": "docs/security/OPERATIONAL_VERIFICATION.json"
+  },
+  "infrastructureHandover": {
+    "releaseGatingStatus": "WAITING FOR IAM CREDENTIAL BINDING",
+    "collectorReadiness": "TEMPLATED_READY_FOR_CREDENTIALS",
+    "confirmedProjectId": "klar-admin",
+    "infrastructureVerification": "PENDING_FINAL_GCP_CREDENTIAL_BINDING",
+    "specification": "docs/security/GCP_LIVE_IAM_REQUIREMENTS.md",
+    "manifest": "docs/security/GCP_HANDOVER_MANIFEST.json",
+    "entrypoint": "scripts/collect-live-iam-evidence.sh",
+    "liveRunExecuted": false,
+    "productionApproved": false,
+    "keepPrDraft": true
   }
 }
