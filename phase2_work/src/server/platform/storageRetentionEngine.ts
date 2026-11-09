@@ -94,7 +94,7 @@ export function generatePurgeAuditDigest(
  */
 export async function purgeSingleVerificationArtifact(
   artifact: VerificationArtifactRecord,
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
@@ -131,7 +131,7 @@ export async function purgeSingleVerificationArtifact(
 
   try {
     // 1. Physische Löschung im Storage
-    await deleteStorageFileFn(artifact.storagePath);
+    await deleteStorageFileFn(artifact.storagePath, artifact);
 
     // 2. Audit-Digest generieren
     const auditDigest = generatePurgeAuditDigest(
@@ -174,7 +174,7 @@ export async function purgeSingleVerificationArtifact(
  */
 export async function executeVerificationRetentionBatch(
   artifacts: VerificationArtifactRecord[],
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
