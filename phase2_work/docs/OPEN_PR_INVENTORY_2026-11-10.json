@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T08:51:30Z",
+  "observedAt": "2026-11-10T09:32:28Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -405,16 +405,16 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
+      "headSha": "e7918eb4a952bdceaf55a0f489eefd4e21949d04",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 74,
+        "ahead": 75,
         "behind": 2
       },
       "validate": {
-        "run": 42781427404,
-        "job": 129712139040,
+        "run": 42786974334,
+        "job": 129730563221,
         "conclusion": "success",
         "stepCount": 33
       },
@@ -434,11 +434,11 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS on cf3f6026c6a7921ca1c648e5ddbe4556003d7e96; run 42781427404/job 129712139040 completed with 33/33 steps at 2026-11-10T08:24:30Z.",
-        "74 commits ahead and 2 behind fresh main. No submitted code reviews.",
-        "READY Vercel preview dpl_Fi21YY7sPcuDFfTFxpnD4aBimoBe is bound to this exact SHA; target is preview (null), not production."
+        "Exact-head validate SUCCESS on e7918eb4a952bdceaf55a0f489eefd4e21949d04; run 42786974334/job 129730563221 completed with 33/33 steps at 2026-11-10T09:08:38Z.",
+        "75 commits ahead and 2 behind fresh main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b. No submitted code reviews.",
+        "Latest Vercel preview dpl_DGtK316K9tuqPYWG1vMotgaREt3a is READY and bound to this exact SHA; target=null (preview), not production."
       ],
-      "updatedAt": "2026-11-10T08:17:16Z"
+      "updatedAt": "2026-11-10T08:59:50Z"
     },
     {
       "number": 314,
@@ -649,7 +649,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T08:51:30Z",
+    "checkedAt": "2026-11-10T09:32:28Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -657,11 +657,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_Fi21YY7sPcuDFfTFxpnD4aBimoBe",
+      "id": "dpl_DGtK316K9tuqPYWG1vMotgaREt3a",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-499v7d7k5-ves3.vercel.app",
-      "commitSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
+      "url": "klar-dating-jkwdvxx8m-ves3.vercel.app",
+      "commitSha": "e7918eb4a952bdceaf55a0f489eefd4e21949d04",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -822,7 +822,12 @@
     "Vercel project Node version is 26.x while RELEASE_MANIFEST.json pins Node 22.23.3; this configuration drift requires owner confirmation and no settings were changed.",
     "No source code, tests, main branch, deployments, secrets, IAM, Scheduler, Firebase, GCS or database were changed in this refresh; documentation only.",
     "2026-11-10 08:51 UTC refresh: all 194 open PRs were re-read from both GitHub API pages. The only PR metadata delta since 08:12 was #313 advancing from e6d15a5... to cf3f602...; all other 193 open PR entries remained unchanged.",
-    "PR #313 exact-head CI 42781427404/job 129712139040 is completed/success (33/33); compare against fresh main is 74 ahead / 2 behind. Its Vercel READY deployment is Preview target=null, not production."
+    "PR #313 exact-head CI 42781427404/job 129712139040 is completed/success (33/33); compare against fresh main is 74 ahead / 2 behind. Its Vercel READY deployment is Preview target=null, not production.",
+    "2026-11-10 09:32 UTC exact-head refresh: main remains 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b with validate run 42710429488/job 129478192916 completed success (33/33). Audit PR #313 advanced from cf3f6026c6a7921ca1c648e5ddbe4556003d7e96 to e7918eb4a952bdceaf55a0f489eefd4e21949d04; exact-head validate 42786974334/job 129730563221 completed success (33/33), compare 75 ahead/2 behind, 0 reviews. Latest audit preview dpl_DGtK316K9tuqPYWG1vMotgaREt3a is READY, target=null, exact #313 SHA.",
+    "2026-11-10 09:32 UTC fresh open-PR pagination: 194 total / 192 Draft / 2 non-Draft (#358 and #361); 50 target main / 144 target other branches; 141 base refs match another open PR head; 3 unmatched base refs; maximum observed stack depth 36 PRs. #315 is closed unmerged; #361 is the current non-Draft Dependabot proposal.",
+    "2026-11-10 09:32 UTC read-only Vercel check: team ves3 lists exactly one project, klar-dating (prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre); the old login-page-prototype project ID still returns 404 not_found and was not subjected to another deletion attempt. Klar project metadata reports live=false and Node 26.x. A READY production-target deployment dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w is bound to current main SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; the latest audit deployment dpl_DGtK316K9tuqPYWG1vMotgaREt3a is a READY preview (target=null) bound to #313 exact SHA. Node 26.x differs from RELEASE_MANIFEST Node 22.23.3 and requires owner reconciliation; this is not a GO attestation.",
+    "2026-11-10 09:32 UTC source recheck on main: deleteExpiredPhotos.ts blob 69c0ad42be40ac51f8aebd62741ae97bf5120f2a still schedules the legacy cron every 24h; retention.ts blob 5f9014b9090042b1f501c70cb87c4a1fdeb51f0a still deletes verification objects based on timeCreated >30 days with hold/generation checks but no moderation-decision binding. configure-retention.sh blob b82be26bae598bc5acc907c91a8d31d4585392e8 enumerates 20 TTL groups and defaults to dry-run/staging-only apply; live 20/20 ACTIVE state remains unverified. Main server.ts blob 808492df32ff4aa26958079895efae9a7c64a2b7 has no tenant middleware mount; storage.rules blob b3d1e216ab9c0226ca14813799df4adb63bf7558 permits profile reads for signedIn(); src/lib/klar.ts blob 4c960dac7a552948df9b3ac7ea9601238d788492 persists getDownloadURL() as photoURL. Root CODEOWNERS blob fcaacd9acc8007fa637720fb98fe50c23de7f07c assigns all paths to @Veselin-Takev only.",
+    "2026-11-10 09:32 UTC decision remains productionApproved=false / BLOCKED / NO-GO. No independent reviews on open priority PRs; issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain open. No Cloud live evidence or independent Security/DPO/Legal/SRE/Finance/Release Owner attestations were obtained. No main, code, deployment, secret, IAM, Scheduler, Firebase, GCS or database mutation occurred."
   ],
   "entries": [
     {
@@ -1349,8 +1354,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
-      "updatedAt": "2026-11-10T08:17:16Z",
+      "headSha": "e7918eb4a952bdceaf55a0f489eefd4e21949d04",
+      "updatedAt": "2026-11-10T08:59:50Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
