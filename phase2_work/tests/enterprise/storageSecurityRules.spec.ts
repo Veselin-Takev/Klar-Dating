@@ -29,6 +29,7 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
     operation: 'read',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
   });
   assert.equal(ownerRead.allowed, false);
   assert.equal(ownerRead.code, 'PERMISSION_DENIED');
@@ -38,6 +39,7 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
     operation: 'read',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_BOB,
+    requesterUserIsAdult: true,
   });
   assert.equal(strangerRead.allowed, false);
 
@@ -58,6 +60,7 @@ test('Storage Rules: /verification/{uid}/{datei} validates upload constraints an
     operation: 'write',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
     resource: validResource,
   });
   assert.equal(ownerUpload.allowed, true);
@@ -68,6 +71,7 @@ test('Storage Rules: /verification/{uid}/{datei} validates upload constraints an
     operation: 'write',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_BOB,
+    requesterUserIsAdult: true,
     resource: validResource,
   });
   assert.equal(strangerUpload.allowed, false);
@@ -88,6 +92,7 @@ test('Storage Rules: /verification/{uid}/{datei} validates upload constraints an
     operation: 'write',
     path: '/verification/usr_alice/script.sh',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
     resource: { size: 1000, contentType: 'application/x-sh' },
   });
   assert.equal(badMimeUpload.allowed, false);
@@ -98,6 +103,7 @@ test('Storage Rules: /verification/{uid}/{datei} validates upload constraints an
     operation: 'write',
     path: '/verification/usr_alice/large.jpg',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
     resource: { size: 10 * 1024 * 1024, contentType: 'image/jpeg' },
   });
   assert.equal(oversizedUpload.allowed, false);
@@ -109,6 +115,7 @@ test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-si
     operation: 'delete',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
   });
   assert.equal(ownerDelete.allowed, false);
   assert.equal(ownerDelete.code, 'PERMISSION_DENIED');
@@ -122,6 +129,8 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     operation: 'read',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
+    requesterUserIsAdult: true,
+    targetUserIsAdult: true,
   });
   assert.equal(bobReadsAlice.allowed, true);
 
@@ -139,6 +148,7 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     operation: 'write',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
     resource: validResource,
   });
   assert.equal(aliceWrites.allowed, true);
@@ -148,6 +158,7 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     operation: 'write',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
+    requesterUserIsAdult: true,
     resource: validResource,
   });
   assert.equal(bobWritesAlice.allowed, false);
@@ -158,6 +169,7 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     operation: 'delete',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
   });
   assert.equal(aliceDeletes.allowed, true);
 
@@ -166,9 +178,36 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     operation: 'delete',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
+    requesterUserIsAdult: true,
   });
   assert.equal(bobDeletesAlice.allowed, false);
   assert.equal(bobDeletesAlice.code, 'PERMISSION_DENIED');
+});
+
+test('Storage Rules: profile authorization requires both server-owned adult states', () => {
+  const base = {
+    operation: 'read' as const,
+    path: '/profiles/usr_alice/avatar.png',
+    auth: USER_BOB,
+  };
+  assert.equal(evaluateStorageSecurityRule({ ...base,
+    requesterUserIsAdult: true, targetUserIsAdult: true,
+  }).allowed, true);
+  for (const missing of [
+    { requesterUserIsAdult: false, targetUserIsAdult: true },
+    { requesterUserIsAdult: true, targetUserIsAdult: false },
+    { requesterUserIsAdult: undefined, targetUserIsAdult: true },
+    { requesterUserIsAdult: true, targetUserIsAdult: undefined },
+  ]) {
+    assert.equal(evaluateStorageSecurityRule({ ...base, ...missing }).allowed, false);
+  }
+  assert.equal(evaluateStorageSecurityRule({
+    operation: 'write', path: base.path, auth: USER_ALICE,
+    resource: { size: 100, contentType: 'image/jpeg' },
+  }).allowed, false);
+  assert.equal(evaluateStorageSecurityRule({
+    operation: 'delete', path: base.path, auth: USER_ALICE,
+  }).allowed, false);
 });
 
 test('Storage Rules: Default deny-all on unregistered collections or incomplete paths', () => {
@@ -176,6 +215,7 @@ test('Storage Rules: Default deny-all on unregistered collections or incomplete 
     operation: 'read',
     path: '/system/config/keys.json',
     auth: USER_ALICE,
+    requesterUserIsAdult: true,
   });
   assert.equal(unknownPath.allowed, false);
   assert.equal(unknownPath.code, 'PERMISSION_DENIED');

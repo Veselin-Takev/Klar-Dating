@@ -23,19 +23,33 @@ service firebase.storage {
              && request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
     function istBild() { return request.resource != null && request.resource.contentType != null && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
+    // Storage Rules may read at most TWO Firestore documents per evaluation.
+    // Use server-owned users/{uid}.isAdult in the default Firestore database.
+    // Do not trust an age field supplied by the client or a stale ID token.
+    function volljaehrigesProfil(uid) {
+      return firestore.get(/databases/(default)/documents/users/$(uid)).data.isAdult == true;
+    }
+    function istVolljaehrig() {
+      return signedIn() && !istGast() && volljaehrigesProfil(request.auth.uid);
+    }
+
 
     match /verification/{uid}/{datei} {
       allow read: if false;
-      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+      allow create, update: if istVolljaehrig() && request.auth.uid == uid
                    && istBild() && request.resource.size < 8 * 1024 * 1024;
       allow delete: if false;   // nur serverseitig, nach der Entscheidung
     }
 
     match /profiles/{uid}/{datei} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
+      // Both reader and profile owner must pass the server-authoritative age gate.
+      // Cross-user block/deletion checks cannot fit alongside the two user
+      // document reads (Storage Rules Firestore lookup budget = 2); separate
+      // authenticated image delivery is required before final privacy GO.
+      allow read: if istVolljaehrig() && volljaehrigesProfil(uid);
+      allow create, update: if istVolljaehrig() && request.auth.uid == uid
                    && istBild() && request.resource.size < 8 * 1024 * 1024;
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow delete: if istVolljaehrig() && request.auth.uid == uid;
     }
   }
 }
