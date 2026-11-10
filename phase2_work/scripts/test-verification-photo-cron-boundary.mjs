@@ -33,7 +33,13 @@ test('legacy age-based scanner reintroduction is detected', () => {
   }
 });
 
-test('signed decision-aware purge path remains registered and validates pending state', () => {
+function assertExplicitFinalDecisionGuard(engine) {
+  assert.match(engine,
+    /artifact\.status !== 'approved'\s*&&\s*artifact\.status !== 'rejected'/,
+    'Retention must block EVERY state other than approved/rejected, not only pending');
+}
+
+test('signed decision-aware purge path remains registered and requires explicit final moderation', () => {
   const functionsIndex = read('functions/src/index.ts');
   const signedCron = read('functions/src/purgeVerificationStorage.ts');
   const route = read('src/server/routes/complianceStorage.ts');
@@ -56,6 +62,18 @@ test('signed decision-aware purge path remains registered and validates pending 
   assert.match(route, /eventBasedHold === true/, 'Purge route must respect event-based holds');
   assert.match(route, /res\.status\(incomplete \? 503 : 200\)/, 'Partial failures and unfinished pages must be retryable HTTP errors');
   assert.doesNotMatch(route, /res\.json\(\{ ok: true, \.\.\.summary \}\)/, 'Do not disclose per-user purge paths');
-  assert.match(engine, /artifact\.status === 'pending'/);
+  assertExplicitFinalDecisionGuard(engine);
   assert.match(engine, /isVerificationArtifactExpired\(artifact\.decidedAt/);
+});
+
+test('a pending-only moderation guard cannot pass the retention policy gate', () => {
+  const engine = read('src/server/platform/storageRetentionEngine.ts');
+  assertExplicitFinalDecisionGuard(engine);
+  const reverted = engine.replace(
+    "artifact.status !== 'approved' && artifact.status !== 'rejected'",
+    "artifact.status === 'pending'",
+  );
+  assert.notEqual(reverted, engine, 'test mutation must replace the current final-decision guard');
+  assert.throws(() => assertExplicitFinalDecisionGuard(reverted),
+    /Retention must block EVERY state/);
 });

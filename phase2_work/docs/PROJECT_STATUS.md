@@ -1607,3 +1607,11 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## 2026-10-30 – P0 #202: Laufzeit-Fail-Closed der Foto-Retention ergänzt
+
+[Draft #203](https://github.com/Veselin-Takev/Klar-Dating/pull/203) auf Quell-HEAD `09baf8910c812d664457a908f9f2d991b87aa664` hat [CI #41009288244](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41009288244) **bestanden**. Das ist ein Quellcode-/Testnachweis und keine Bestätigung aktiver Cloud-Scheduler/TTL-Policies.
+
+Ein isolierter Folge-Branch `fix/202-photo-retention-status-error-boundary-20261030` ergänzt eine zweite Sicherheitsgrenze direkt in `storageRetentionEngine.ts`: **Nur explizit `approved`/`rejected`** dürfen nach 30 Tagen ab Entscheidung gelöscht werden. Unbekannte, fehlende und unvollständige Statuswerte verbleiben strikt außerhalb der Storage-Delete-Route. Zusätzlich werden externe Error-Objekte nicht mehr als roher Fehlertext an Helfer-Aufrufer weitergegeben, sondern über einen festen Diagnosecode. Ein synthetischer Vitest-Regressionssatz prüft verweigerte Löschungen, erfolgreiche Finalentscheidungen, nicht veröffentlichte Provider-/Firestore-Fehlertexte und die Batch-Zählung. [Prüfvertrag](VERIFICATION_RETENTION_RUNTIME_STATUS_ERROR_BOUNDARY_2026-10-30.md).
+
+**Neue eigene CI ist ausstehend**, keine Produktionsfreigabe aus dem grünen Parent-PR abgeleitet. Die eigentliche Cloud-Deployment-/Scheduler-Provenienz, 20-Group-ALLOWLIST TTL #70, Legal-Hold-Freigaben, Stage-Nachweise und unabhängigen Datenschutz-/Security-/Ops-/Release-Signaturen stehen noch aus. P0 #202/#70/#48 und Go-live #8 bleiben **BLOCKED / NO-GO**. `main`, PR #119 und RC R2 unverändert, keine Merges oder Deployments.
