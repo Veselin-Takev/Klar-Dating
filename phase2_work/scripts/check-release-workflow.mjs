@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateAttestActionPin } from "./release-attest-pin.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../..");
@@ -23,7 +24,7 @@ if (!releaseApprovalText.includes('collectReleaseApprovalFailures') ||
 }
 
 const releaseImage = 'ghcr.io/${{ github.repository_owner }}/klar-app';
-if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !text.includes("uses: actions/attest@4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f") || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
+if (!text.includes("id-token: write") || !text.includes("attestations: write") || !text.includes("artifact-metadata: write") || !validateAttestActionPin(text) || !text.includes(`subject-name: ${releaseImage}`) || !text.includes("subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}") || !text.includes("push-to-registry: true")) {
   failures.push("Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.");
 }
 const workflowFiles = fs.readdirSync(workflowDir).filter(name => /\.ya?ml$/.test(name));

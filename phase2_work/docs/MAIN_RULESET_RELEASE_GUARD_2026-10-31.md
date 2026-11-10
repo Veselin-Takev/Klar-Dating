@@ -55,3 +55,14 @@ PR #316 und dieser Branch ändern beide den Release-Workflow-Pin von actions/att
 ## CI-Abschlussnachweis 05.11.2026
 
 GitHub Actions [Run 41998467601](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41998467601) für den exakt geprüften PR-Head `e08694c8ec04a07a2a5326c0910d437f39982d61` wurde als `completed/success` zurückgegeben; Job `validate` ebenfalls `completed/success`, keine fehlgeschlagenen Schritte. Dieser E2-Nachweis gilt **ausschließlich für den genannten Commit**. Durch diesen Dokumentationsnachtrag entsteht ein neuer Head, für den der alte CI-Erfolg nicht automatisch gilt. Die live erzwungene Ruleset-Härtung, unabhängige Reviews und P0-/Cloud-Nachweise bleiben offen. `productionApproved=false`, **NO-GO**.
+
+
+## Supply-Chain-Nachtrag 10.11.2026 – aktualisierter actions/attest-Pin
+
+Der neue Dependabot-PR [#361](https://github.com/Veselin-Takev/Klar-Dating/pull/361) aktualisiert `actions/attest` auf `badbb428b0055a04f53d6ce00bda98cf1c04e56e` und `actions/setup-java` auf `77dd5b2ce225ea11469928ac317850245a74ae78`. Die exakte CI auf #361-Head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff` ist **FAIL**: `check-release-workflow.mjs` erwartet noch den vorherigen attest-Pin. Der Job stoppte bei „Enterprise static gates“; nachgelagerte Typecheck-/Build-/Testschritte wurden übersprungen.
+
+**Upstream-Prüfung:** GitHub REST für das offizielle Repository `actions/attest` bestätigt Commit `badbb428b0055a04f53d6ce00bda98cf1c04e56e` mit `verification.verified=true` und gültiger Signatur. Der Commit behebt die Prüfung, dass ein literal `subject-path`-Eintrag tatsächlich Dateien referenziert. Das ist eine Herkunfts-/Signaturprüfung, keine unabhängige Prüfung der gesamten Action.
+
+**Kontrollierte Branch-Änderung:** In diesem bestehenden Draft-Branch wird ausschließlich der Release-Workflow-Pin zusammen mit seinem Validator aktualisiert. Ein neuer kleiner Validator prüft genau einen unveränderlichen, freigegebenen Commit-Pin; sechs positive/negative Node-Testfälle decken alten Pin, mutable Tag, fehlenden Eintrag, Duplikat und unerwartete SHA ab. CI führt diese Regressionen vor den Enterprise-Static-Gates aus. Keine Änderung an `main`, GitHub-Ruleset, Secrets, Cloud, Deployment oder Produktionsdaten.
+
+Die Änderung benötigt einen **neuen vollständigen Exact-Head-CI-Lauf** und ein unabhängiges Supply-Chain-/Security-Review. #361 bleibt bis zur kontrollierten Integration bzw. einer bestätigten Supersession offen; kein automatisches Mergen oder Schließen. `productionApproved=false`, **BLOCKED / NO-GO**.
