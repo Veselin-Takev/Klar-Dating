@@ -81,3 +81,11 @@ Der Projektverantwortliche hat ausdrücklich erklärt: **`login-page-prototype` 
 **Wichtig:** Der erfolgreiche Projekt-Delete beweist **keine** Revocation/Rotation von Neon-/PostgreSQL-/Better-Auth-Provider-Credentials, keine Unversehrtheit historischer Logs und keine Abwesenheit von Datenkopien außerhalb des Vercel-Projekts. Der verantwortliche Provider-Owner prüft separat, ob alte Zugangsdaten aktiv und exklusiv der Demo zugeordnet waren, und widerruft sie kontrolliert, falls noch gültig; gemeinsam genutzte Credentials nur nach Impact-Analyse. Keine automatische Datenbanklöschung oder -rotation.
 
 **Vercel-Demo-Gate:** Projektstilllegung **abgeschlossen und API-verifiziert**. **Klar-Release-Gate:** weiterhin `productionApproved=false`, **BLOCKED / NO-GO** wegen offener Security-Reviews, P0 #202/#254, TTL-/Cloud-/DPO-/SRE-Nachweisen. Die vorherigen Abschnitte dokumentieren den *historischen Zustand vor dem Delete* und dürfen nicht als aktueller Projektstatus gelesen werden.
+
+ 
+## Read-only Klar project re-check — 2026-11-10 22:53 CET
+
+- Authenticated Vercel team listing for ves3 returns exactly one project: klar-dating, ID prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre. Authenticated get_project returns 200 for that ID. Project metadata reports nodeVersion=26.x, live=false, and the known Klar domains.
+- A separate read-only production-deployment query returns dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w, state READY, target production, with Git source main at 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b. A READY deployment record is not proof of actual user traffic, health, or release approval.
+- The current audit-branch preview dpl_CeRHFRsJuhN2xKigTfaA7DJbnVmh is READY with target=null on audit head 82e413983a9d99fcc20be7c93fa54493116ed7ba; #314 has no deployment for its exact head and its Vercel status is build-rate-limit.
+- The previously confirmed login-page-prototype deletion remains the recorded result. No further delete was attempted; no Neon/Postgres/Better-Auth credential was read, rotated, or revoked.

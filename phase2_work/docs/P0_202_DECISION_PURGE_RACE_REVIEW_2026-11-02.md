@@ -63,3 +63,10 @@ Ein eigenständiger Read-only-GitHub-Compare von `main=96c3857c53f5ced31fe139489
 **Verifikation danach:** GitHub-Compare `main...ee790351` ergab `ahead=14`, `behind=0`, unverändert 20 PR-Dateien; PR bleibt Draft und nicht zum Merge freigegeben. Die neue vollständige [Enterprise CI #41536146230](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41536146230) war beim Dokumentationsupdate **in progress**; die frühere grüne CI auf `09baf891...` ist **historisch** und für den neuen SHA kein Beleg.
 
 **Achtung:** Die vorstehend benannten sechs gemeinsam von #269 und #203 geänderten Dateien bleiben ein **separates** Integrations-/Supersession-Problem. Die erfolgte Synchronisierung mit `main` löst diese PR-übergreifenden Risiken ausdrücklich **nicht**. Ein Code-Merge von #269 in #203 wurde nicht vorgenommen. Die Testmatrix und unabhängigen Reviews stehen weiterhin aus. `productionApproved=false`, **BLOCKED / NO-GO**.
+
+ 
+## Live exact-head checkpoint — 2026-11-10 22:53 CET
+
+- Draft #203 currently points to 1850e0a78b22e600e5add99273b84c081ffc3892; exact GitHub Actions run [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009), job 127211414732 validate=success. The PR remains Draft, has zero submitted reviews, and is 57 commits ahead / 2 behind current main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b.
+- The current-main source still contains the legacy upload-age worker; #203 is not integrated. Its generation-bound intent/CAS/receipt behavior remains a branch-level implementation claim pending independent code review and the E3/E4/E5 evidence in this document.
+- The successful CI run does not establish live GCS generation/hold behavior, Firestore-to-GCS race safety, scheduler inventory, real deletion receipts, or staging reconciliation. No cross-service production mutation or deployment was performed. **productionApproved=false; BLOCKED / NO-GO.**
