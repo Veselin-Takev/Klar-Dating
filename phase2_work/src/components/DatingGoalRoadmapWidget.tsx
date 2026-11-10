@@ -50,7 +50,7 @@ export function DatingGoalRoadmapWidget() {
                  if (nextStep) {
                     new Notification("Klar Dating Coach", {
                       body: `Zeit für den nächsten Schritt: ${nextStep.title}. Bleib dran!`,
-                      icon: "/favicon.ico"
+                      icon: "/logo.svg"
                     });
                  }
                }

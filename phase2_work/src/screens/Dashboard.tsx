@@ -833,7 +833,7 @@ export default function Dashboard() {
             ) {
               new Notification("Smart-Verbindung gefunden!", {
                 body: message,
-                icon: "/favicon.ico",
+                icon: "/logo.svg",
               });
             }
           }
@@ -847,7 +847,7 @@ export default function Dashboard() {
           ) {
             new Notification("Neue Smart-Verbindunges!", {
               body: message,
-              icon: "/favicon.ico",
+              icon: "/logo.svg",
             });
           }
         }
@@ -895,7 +895,7 @@ export default function Dashboard() {
         ) {
           new Notification("Neues Top Verbindung!", {
             body: message,
-            icon: "/favicon.ico",
+            icon: "/logo.svg",
           });
         }
 
@@ -1000,7 +1000,7 @@ export default function Dashboard() {
         ) {
           new Notification("Neue Tiefe Verbindung!", {
             body: "Dein Profil-Update hat ein neues Deep-Verbindung generiert.",
-            icon: "/icon.png",
+            icon: "/logo.svg",
           });
         }
         setDeepKontaktCount(count);
