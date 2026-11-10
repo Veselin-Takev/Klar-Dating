@@ -1,5 +1,37 @@
 # Klar Dating App - Go-Live Checkliste & Status-Report
 
+## Retention-Stack-Ancestry-Pflichtabgleich (31.10.2026)
+
+- [ ] [P0 #202 – SHA-/Inhaltsaudit](phase2_work/docs/RETENTION_STACK_ANCESTRY_RECONCILIATION_2026-10-31.md) ergibt: PR #250 enthält Commit-Historien von #231/#233/#235/#236 nicht; diese abweichenden Sicherheits-PRs nicht ohne Code-/Test-/Blob-Gleichwertigkeitsprüfung und unabhängige Fachreviews schließen. Gegenüber `main` bleiben alte Mutator-Exporte in #250 bestehen.
+- [ ] [Draft #252](https://github.com/Veselin-Takev/Klar-Dating/pull/252) integriert die Legacy-Handler-Stilllegung aus #236 als exakten identischen Blob sowie Regressionen aus #235/#236, aber **nicht** die gesamte divergende Commit-Historie. Exakte CI #41210125788, unabhängige AppSec/DPO/SRE-Abnahme, Integrationsbasis und echte Staging-/Cloud-Nachweise sind Pflicht.
+## P1 #73 – Release-Token / Ruleset-Bypass-Evidenz (31.10.2026)
+
+- [ ] [PR #251](https://github.com/Veselin-Takev/Klar-Dating/pull/251) hat [Enterprise-CI #41208342316](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41208342316) erfolgreich abgeschlossen, bleibt aber Draft. Noch fehlen Live-Ruleset-Härtung, unabhängige echte Reviews, Negativ-Mergeversuche und vollständige Produktionsnachweise.
+- [ ] **GitHub-API-Sichtbarkeit:** `GET /repos/{owner}/{repo}/rulesets/{ruleset_id}` liefert `bypass_actors` laut GitHub nur mit Ruleset-Schreibrechten. Der fail-closed Release-Gate prüft explizit `bypass_actors=[]`; der bisherige `GITHUB_TOKEN` besitzt keine belegten Ruleset-Schreibrechte. Vor GO sichere, separat abgenommene Bypass-Evidenz und einen getesteten least-privilege Zugriffspfad definieren. Keine automatische Eskalation des Release-Tokens. [Prüfbericht](phase2_work/docs/GITHUB_RULESET_BYPASS_VISIBILITY_2026-10-31.md).
+## GitHub-Ruleset-Live-Nachtrag — 31.10.2026
+
+- [ ] [Aktive `main`-Ruleset #25756841](https://github.com/Veselin-Takev/Klar-Dating/rules/25756841) hat zwar `pull_request` und striktes Pflicht-`validate`, erfordert aber aktuell **0 genehmigende Reviews**; `require_code_owner_review=false`, `require_last_push_approval=false` und `required_review_thread_resolution=false`. Der zusätzliche Schalter `require_extra_approval_for_unattributed_changes=true` ist ohne Durchsetzungstest kein unabhängiger Security-/DPO-Abnahmenachweis.
+- [ ] [Issue #73](https://github.com/Veselin-Takev/Klar-Dating/issues/73) erst nach tatsächlicher Governance-Konfiguration (unabhängige berechtigte Reviewer, mindestens eine zwingende Genehmigung, Code-Owner-/sensitive Pfade, Stale-/Thread-Review-Schutz), negativen Merge-Gates und Freigabe durch Release Owner abschließen. **Keine GitHub-Admin- oder Ruleset-Änderung im Zuge dieser Dokumentationsprüfung.**
+
+## Freigabe-Nachtrag vom 31.10.2026 — BLOCKED / NO-GO
+
+Dieser Abschnitt ergänzt den historischen Status vom 10.10.2026. **Die frühere RC-/Branch-Angabe bleibt Historie**, keine Behauptung über den aktuellen Freigabe-Branch. Aktueller überprüfter PR-Basestand: `main` SHA `2808dc1cbb485f70b403681c108cea5a3361d950`; danach erfolgte hier keine unabhängige Produktionsevidenzprüfung. Verbindliche Issue-/PR-Abhängigkeiten: [Release-Blocker-Karte](phase2_work/docs/RELEASE_BLOCKER_DEPENDENCY_MAP_2026-10-31.md) in [Draft #249](https://github.com/Veselin-Takev/Klar-Dating/pull/249), **noch nicht in `main` integriert**.
+
+**P0-/P1-Release-Blocker (keine Freigabe):**
+- [ ] [#202](https://github.com/Veselin-Takev/Klar-Dating/issues/202) biometrische Entscheidungs-Retention, vollständiger Admin-/Scheduler-/All-Writer-Audit, Storage Holds, Reconciliation und echtes Staging; P0-Änderungen u. a. in [gestapeltem Draft #243](https://github.com/Veselin-Takev/Klar-Dating/pull/243).
+- [ ] [#55](https://github.com/Veselin-Takev/Klar-Dating/issues/55) B2B-Webhooks: authentische Käufer-/Bestellzuordnung und Fraud/Refund statt bloßer HMAC-Behauptung; Drafts [#246](https://github.com/Veselin-Takev/Klar-Dating/pull/246) → [#247](https://github.com/Veselin-Takev/Klar-Dating/pull/247).
+- [ ] [#56](https://github.com/Veselin-Takev/Klar-Dating/issues/56) B2B-Tracking/Datenschutz: Consent, DPA/Vertragsgrundlage, Datenverzeichnis, TTL, Art. 17 und Freigabe durch Datenschutz/Legal.
+- [ ] [#48](https://github.com/Veselin-Takev/Klar-Dating/issues/48) Member Referral: Anti-Abuse, DIDIT-KYC/UID-Bindung, zulässige Klar+-Zeiträume und idempotente/rückabwickelbare Rewards, getrennt vom B2B-Flow.
+- [ ] [#70](https://github.com/Veselin-Takev/Klar-Dating/issues/70) echte Firestore-TTL-ACTIVE-Provisionierungsbelege je Umgebung, genehmigte Legal-Hold-Retention-Matrix und Art.-17-Verhalten. Das aktuelle `phase2_work/scripts/configure-retention.sh` plant **20** Collection-Groups und beschränkt Mutationen auf bestätigtes Staging; der ursprünglich gemeldete Vier-Gruppen-Codebefund ist in dieser `main`-Quelle bereits überholt, die **Produktionsbelege fehlen weiterhin**.
+- [ ] [#204](https://github.com/Veselin-Takev/Klar-Dating/issues/204)/[#206](https://github.com/Veselin-Takev/Klar-Dating/issues/206) profilbildbezogene Zugriffe: Storage-Alters-Gate, Block-/Erasure-Policy und **Widerruf alter Bearer-Downloadlinks**; CI allein beweist keinen Cloud-Regel- oder Token-Rollout.
+- [ ] [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8) formale Produktionskontrollen: Cloud Run/Secret Manager/IAM, Alarmzustellung/On-Call, OTLP/P95, Backup/Restore, Canary/Rollback, unveränderliche Herkunfts-/Log-Evidenz, unabhängige AppSec/DPO/SRE/Finance-/Release-Owner-Zustimmung.
+
+**Beobachtete GitHub-Workflow-Metadaten** (nur PR-Head, kein integrativer Production-GO-Nachweis): Enterprise CI [#243](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41191871749), [#247](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41195934570) und [#248](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41204001572) waren `completed/success`; [#249](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41205869303) wurde bei Abfrage noch als `in_progress` ausgewiesen. Artefakte/Job-Logs, Staging und externes Approval wurden nicht vollständig geprüft; dieser Dokumentationsnachtrag verändert den Head-SHA und benötigt eigene erneute CI-Prüfung.
+
+**Freigabeentscheidung:** `BLOCKED / NO-GO`. Kein direktes `main`-Update, kein Merge/Deployment, keine Cloud-/Datenmutation; Referenzen zu gestapelten Drafts sind **keine** Integrationsfreigabe.
+
+---
+
 ## Aktueller Release-Status (10.10.2026) – NO-GO
 
 **Entwicklungsbranch:** `ci/optimize-llm-evaluation-frozen-install-2026-10-10`. Der eingefrorene Release-Kandidat `release/candidate-preflight-2026-10-10-r2` darf nicht verändert, automatisch veröffentlicht oder ohne ausdrückliche technische und operative Freigabe gemergt werden. Die historische Statusbeschreibung vom 08.09.2026 weiter unten ersetzt **keinen** aktuellen Go-Live-Nachweis.
