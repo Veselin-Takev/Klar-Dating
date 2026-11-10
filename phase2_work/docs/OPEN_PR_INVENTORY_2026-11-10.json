@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T04:04:27Z",
+  "observedAt": "2026-11-10T05:24:16Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -31,24 +31,24 @@
     "nonDraft": 2,
     "nonDraftItems": [
       {
-        "number": 361,
-        "title": "build(deps): bump the github-actions group across 1 directory with 2 updates",
-        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
-        "baseRef": "main",
-        "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/361"
-      },
-      {
         "number": 358,
         "title": "Gate 0: RC1 tenant migration complete (50/50; 1636 PASS)",
         "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
         "baseRef": "release/v0.1.1-rc1",
         "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/358"
+      },
+      {
+        "number": 361,
+        "title": "build(deps): bump the github-actions group across 1 directory with 2 updates",
+        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
+        "baseRef": "main",
+        "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/361"
       }
     ],
     "targetsMain": 50,
     "targetsOtherBranches": 144,
     "baseMatchesAnotherOpenPrHead": 141,
-    "baseNotRepresentedByOpenPrHead": 3,
+    "baseNotRepresentedByOpenPrHead": 4,
     "unmatchedBases": [
       {
         "base": "docs/213-partner-concurrency-evidence-20261030"
@@ -58,158 +58,161 @@
       },
       {
         "base": "docs/55-56-partner-trust-audit-20261030"
+      },
+      {
+        "base": "main"
       }
     ],
     "maxObservedOpenPrChainDepth": 36,
     "baseDistribution": {
       "main": 50,
-      "release/v0.1.1-rc1": 1,
-      "fix/release-prod-canary-approval-gate-20261107": 1,
-      "fix/ves5-account-deletion-photo-fence-20261108": 1,
-      "fix/ves5-firestore-record-hold-guard-20261108": 1,
-      "fix/ves11-api-proxy-stream-limit-20261107": 1,
-      "fix/ves5-explicit-purge-bucket-20261107": 2,
-      "fix/ves5-production-purge-p0-hard-stop-20261108": 1,
-      "fix/vercel-age-api-and-assets-20261106": 2,
-      "integration/p0-202-photo-purge-20261105": 2,
-      "fix/ves12-firebase-project-isolation-20261107": 1,
-      "security/ves5-review-next-20261107": 2,
-      "security/ves5-root-event-owner-boundary-20261106": 1,
-      "security/ves5-strict-persisted-fence-schema-20261106": 1,
-      "security/ves5-writer-reconciliation-guard-20261106": 1,
-      "security/ves5-replay-safe-intent-binding-20261106": 1,
-      "security/ves5-atomic-retention-purge-intent-20261106": 1,
-      "security/ves5-transactional-firestore-fence-20261106": 1,
-      "security/ves5-coordinated-fence-protocol-20261106": 1,
-      "audit/ves5-verification-storage-writer-inventory-20261106": 1,
-      "fix/ves7-page-failure-receipt-id-binding-20261106": 1,
-      "fix/ves7-ves8-purge-health-telemetry-20261105": 1,
-      "audit/full-git-history-retention-20261105": 1,
-      "fix/ves-8-response-stream-early-cancel-20261105": 1,
-      "fix/ves-8-bounded-scheduler-receipts-20261105": 1,
-      "security/ves-5-emulator-injected-bucket-gate-20261105": 1,
-      "security/ves-5-p0-live-purge-hard-stop-20261105": 1,
-      "fix/ves-7-cron-receipt-guard-20261105": 1,
-      "fix/ves-7-durable-poison-pill-progress-20261105": 1,
-      "fix/p0-202-purge-nonce-replay-20261105": 1,
-      "security/p0-202-authoritative-boolean-preflight-20261102": 2,
-      "security/p0-202-gcs-expiration-null-failclosed-20261102": 1,
-      "security/p0-202-gcs-object-retention-hold-preflight-20261102": 1,
-      "security/p0-202-authoritative-gcs-generation-uint64-fence-20261102": 1,
-      "security/p0-202-authoritative-hold-types-failclosed-20261102": 1,
-      "security/p0-202-retention-census-hold-type-anomalies-20261102": 1,
-      "security/p0-202-retention-census-owner-path-canonical-20261102": 1,
-      "test/p0-202-native-census-over300-readonly-20261102": 1,
-      "security/p0-202-retention-census-dual-project-failclosed-20261102": 1,
-      "security/p0-202-predelete-terminal-marker-fence-20261102": 1,
-      "security/p0-202-gcs-receipt-observation-fence-20261101": 1,
-      "security/p0-202-gcs-generation-canonical-fence-20261101": 1,
-      "fix/p1-71-observability-slo-metric-parity-20261101": 1,
-      "integration/p0-go-gates-didit-profile-refresh-20261101": 1,
-      "security/p0-live-evidence-release-gates-20261101": 1,
-      "integration/p0-chain-release-owner-attestation-20261101": 1,
-      "test/p0-254-guest-profile-storage-evidence-20261101": 1,
-      "test/p0-native-emulator-real-negative-ci-20261101": 1,
-      "fix/p0-native-emulator-ci-failclosed-20261101": 1,
-      "integration/p0-254-storage-policy-evidence-convergence-20261101": 1,
-      "security/p0-254-native-tenant-storage-negative-evidence-20261101": 1,
-      "security/p0-254-storage-rules-review-gate-20261101": 2,
-      "security/p0-254-firebase-rules-source-evidence-20261101": 2,
-      "security/p0-254-native-tenant-rules-negative-evidence-20261101": 1,
-      "integration/p0-202-254-gate-convergence-20261101": 1,
-      "security/p0-202-cas-command-data-descriptors-20261101": 1,
-      "security/p0-202-server-clock-retention-commands-20261101": 1,
-      "security/p0-202-typed-retention-cas-commands-20261101": 1,
-      "security/p0-202-cas-lease-field-integrity-20261101": 1,
-      "security/p0-202-native-emulator-lease-cas-20261101": 1,
-      "security/p0-202-retention-lease-state-machine-20261101": 1,
-      "audit/p0-202-readonly-backlog-census-20261101": 1,
-      "security/p0-202-bounded-purge-pagination-20261101": 1,
-      "security/p0-202-write-ahead-delete-intent-20261101": 1,
-      "security/p0-202-gcs-generation-fence-20261101": 1,
-      "fix/p0-202-disable-legacy-photo-purge-20261101": 1,
-      "security/254-strict-tenant-host-ingress-20261031": 1,
-      "security/254-audit-invalid-tenant-flags-20261031": 1,
-      "security/254-server-issued-tenant-audit-trace-20261031": 1,
-      "security/254-deterministic-tenant-mapping-digest-20261031": 1,
-      "security/254-minimal-own-profile-projection-20261031": 1,
-      "security/254-canonical-signed-envelope-cli-20261031": 1,
-      "security/254-cli-canonical-symlink-fence-20261031": 1,
-      "security/254-external-snapshot-pins-20261031": 1,
-      "security/254-deterministic-signed-json-boundary-20261031": 1,
-      "security/254-approver-inventory-digest-binding-20261031": 1,
-      "security/254-signed-profile-mapping-preflight-20261031": 1,
-      "feature/254-profile-mapping-readonly-preflight-20261031": 1,
-      "feature/multitenant-zero-trust-foundation-20261031": 1,
-      "fix/202-purge-page-count-receipt-invariants-20261031": 1,
-      "fix/202-scheduler-purge-response-contract-20261031": 1,
-      "test/55-partner-webhook-http-authentication-20261031": 1,
-      "fix/202-conflicting-moderation-status-fence-20261031": 1,
-      "fix/202-retention-config-source-gate-20261031": 1,
-      "fix/202-retention-scan-cross-run-fail-closed-20261031": 1,
-      "fix/202-purge-receipt-clock-boundary-20261031": 1,
+      "fix/retention-hmac-a01-a08-a14-20261028": 1,
+      "fix/verification-purge-generation-a06-20261028": 1,
+      "fix/verification-purge-pagination-a15-20261028": 3,
+      "feat/ci-dependency-scan-2026-10-26": 1,
+      "security/dependency-findings-evidence-20261028": 1,
+      "security/sharp-remediation-lockfile-candidate-20261028": 1,
+      "fix/referral-claim-immutable-attribution-p0-20261028": 1,
+      "fix/referral-adult-eligibility-p0-20261028": 1,
+      "fix/referral-sensitive-response-no-store-20261028": 1,
+      "fix/founding-claim-deletion-boundary-20261028": 1,
+      "fix/founding-cohort-counter-integrity-20261028": 1,
+      "integration/referral-and-launch-privacy-20261029": 1,
+      "integration/launch-partner-privacy-20261029": 1,
+      "fix/partner-webhook-slug-preflight-20261029": 1,
+      "fix/partner-webhook-bounded-limiter-key-20261029": 1,
+      "test/partner-webhook-valid-slug-fail-closed-20261029": 1,
+      "test/partner-webhook-invalid-payload-http-20261029": 1,
+      "test/partner-webhook-valid-hmac-timestamp-20261029": 1,
+      "test/partner-webhook-valid-signature-service-boundary-20261029": 1,
+      "test/partner-webhook-http-idempotency-20261029": 1,
+      "test/partner-conversion-emulator-concurrency-20261029": 1,
+      "fix/202-verification-photo-decision-retention-20261029": 2,
+      "fix/204-profile-storage-adult-firestore-gate-20261030": 1,
+      "fix/206-profile-token-diagnostic-referrer-20261030": 1,
+      "fix/206-authorized-profile-media-source-20261030": 1,
+      "fix/storage-rules-missing-user-guard-20261030": 1,
+      "test/storage-missing-user-emulator-20261030": 1,
+      "docs/206-token-revocation-runbook-20261030": 1,
+      "docs/55-56-partner-trust-audit-20261030": 1,
+      "docs/213-partner-concurrency-evidence-20261030": 1,
+      "fix/48-member-referral-anonymous-guard-20261030": 1,
+      "fix/48-member-referral-attribution-conflict-20261030": 1,
+      "fix/48-member-referral-ambiguous-code-20261030": 1,
+      "fix/48-member-referral-issuance-collision-20261030": 1,
+      "docs/48-atomic-referral-code-registry-adr-20261030": 1,
+      "feat/48-member-referral-reservation-emulator-20261030": 1,
+      "feat/48-member-referral-offline-inventory-20261030": 1,
+      "feat/48-member-referral-page-integrity-20261030": 1,
+      "fix/48-member-referral-inventory-source-errors-20261030": 1,
+      "fix/48-member-referral-runtime-diagnostic-codes-20261030": 1,
+      "test/48-member-referral-registry-erasure-emulator-20261030": 1,
+      "test/48-member-registry-art17-multibatch-20261030": 1,
+      "test/48-member-referral-art17-slice-resume-20261030": 1,
+      "test/48-member-registry-art17-worker-lease-handoff-20261030": 1,
+      "fix/202-photo-retention-status-error-boundary-20261030": 1,
+      "integration/202-retention-holds-review-20261031": 1,
       "fix/202-audited-purge-receipts-20261031": 2,
       "fix/202-retired-legacy-writer-fence-20261031": 1,
-      "integration/202-retention-holds-review-20261031": 1,
-      "fix/202-photo-retention-status-error-boundary-20261030": 1,
-      "fix/202-verification-photo-decision-retention-20261029": 2,
-      "test/48-member-registry-art17-worker-lease-handoff-20261030": 1,
-      "test/48-member-referral-art17-slice-resume-20261030": 1,
-      "test/48-member-registry-art17-multibatch-20261030": 1,
-      "test/48-member-referral-registry-erasure-emulator-20261030": 1,
-      "fix/48-member-referral-runtime-diagnostic-codes-20261030": 1,
-      "fix/48-member-referral-inventory-source-errors-20261030": 1,
-      "feat/48-member-referral-page-integrity-20261030": 1,
-      "feat/48-member-referral-offline-inventory-20261030": 1,
-      "feat/48-member-referral-reservation-emulator-20261030": 1,
-      "docs/48-atomic-referral-code-registry-adr-20261030": 1,
-      "fix/48-member-referral-issuance-collision-20261030": 1,
-      "fix/48-member-referral-ambiguous-code-20261030": 1,
-      "fix/48-member-referral-attribution-conflict-20261030": 1,
-      "fix/48-member-referral-anonymous-guard-20261030": 1,
-      "docs/213-partner-concurrency-evidence-20261030": 1,
-      "docs/55-56-partner-trust-audit-20261030": 1,
-      "docs/206-token-revocation-runbook-20261030": 1,
-      "test/storage-missing-user-emulator-20261030": 1,
-      "fix/storage-rules-missing-user-guard-20261030": 1,
-      "fix/206-authorized-profile-media-source-20261030": 1,
-      "fix/206-profile-token-diagnostic-referrer-20261030": 1,
-      "fix/204-profile-storage-adult-firestore-gate-20261030": 1,
-      "test/partner-conversion-emulator-concurrency-20261029": 1,
-      "test/partner-webhook-http-idempotency-20261029": 1,
-      "test/partner-webhook-valid-signature-service-boundary-20261029": 1,
-      "test/partner-webhook-valid-hmac-timestamp-20261029": 1,
-      "test/partner-webhook-invalid-payload-http-20261029": 1,
-      "test/partner-webhook-valid-slug-fail-closed-20261029": 1,
-      "fix/partner-webhook-bounded-limiter-key-20261029": 1,
-      "fix/partner-webhook-slug-preflight-20261029": 1,
-      "integration/launch-partner-privacy-20261029": 1,
-      "integration/referral-and-launch-privacy-20261029": 1,
-      "fix/founding-cohort-counter-integrity-20261028": 1,
-      "fix/founding-claim-deletion-boundary-20261028": 1,
-      "fix/referral-sensitive-response-no-store-20261028": 1,
-      "fix/referral-adult-eligibility-p0-20261028": 1,
-      "fix/referral-claim-immutable-attribution-p0-20261028": 1,
-      "security/sharp-remediation-lockfile-candidate-20261028": 1,
-      "security/dependency-findings-evidence-20261028": 1,
-      "feat/ci-dependency-scan-2026-10-26": 1,
-      "fix/verification-purge-pagination-a15-20261028": 3,
-      "fix/verification-purge-generation-a06-20261028": 1,
-      "fix/retention-hmac-a01-a08-a14-20261028": 1
+      "fix/202-purge-receipt-clock-boundary-20261031": 1,
+      "fix/202-retention-scan-cross-run-fail-closed-20261031": 1,
+      "fix/202-retention-config-source-gate-20261031": 1,
+      "fix/202-conflicting-moderation-status-fence-20261031": 1,
+      "test/55-partner-webhook-http-authentication-20261031": 1,
+      "fix/202-scheduler-purge-response-contract-20261031": 1,
+      "fix/202-purge-page-count-receipt-invariants-20261031": 1,
+      "feature/multitenant-zero-trust-foundation-20261031": 1,
+      "feature/254-profile-mapping-readonly-preflight-20261031": 1,
+      "security/254-signed-profile-mapping-preflight-20261031": 1,
+      "security/254-approver-inventory-digest-binding-20261031": 1,
+      "security/254-deterministic-signed-json-boundary-20261031": 1,
+      "security/254-external-snapshot-pins-20261031": 1,
+      "security/254-cli-canonical-symlink-fence-20261031": 1,
+      "security/254-canonical-signed-envelope-cli-20261031": 1,
+      "security/254-minimal-own-profile-projection-20261031": 1,
+      "security/254-deterministic-tenant-mapping-digest-20261031": 1,
+      "security/254-server-issued-tenant-audit-trace-20261031": 1,
+      "security/254-audit-invalid-tenant-flags-20261031": 1,
+      "security/254-strict-tenant-host-ingress-20261031": 1,
+      "fix/p0-202-disable-legacy-photo-purge-20261101": 1,
+      "security/p0-202-gcs-generation-fence-20261101": 1,
+      "security/p0-202-bounded-purge-pagination-20261101": 1,
+      "audit/p0-202-readonly-backlog-census-20261101": 1,
+      "security/p0-202-retention-lease-state-machine-20261101": 1,
+      "security/p0-202-write-ahead-delete-intent-20261101": 1,
+      "security/p0-202-native-emulator-lease-cas-20261101": 1,
+      "security/p0-202-cas-lease-field-integrity-20261101": 1,
+      "security/p0-202-typed-retention-cas-commands-20261101": 1,
+      "security/p0-202-server-clock-retention-commands-20261101": 1,
+      "security/p0-202-cas-command-data-descriptors-20261101": 1,
+      "integration/p0-202-254-gate-convergence-20261101": 1,
+      "security/p0-254-firebase-rules-source-evidence-20261101": 2,
+      "security/p0-254-native-tenant-rules-negative-evidence-20261101": 1,
+      "security/p0-254-storage-rules-review-gate-20261101": 2,
+      "security/p0-254-native-tenant-storage-negative-evidence-20261101": 1,
+      "integration/p0-254-storage-policy-evidence-convergence-20261101": 1,
+      "fix/p0-native-emulator-ci-failclosed-20261101": 1,
+      "test/p0-native-emulator-real-negative-ci-20261101": 1,
+      "test/p0-254-guest-profile-storage-evidence-20261101": 1,
+      "integration/p0-chain-release-owner-attestation-20261101": 1,
+      "security/p0-live-evidence-release-gates-20261101": 1,
+      "integration/p0-go-gates-didit-profile-refresh-20261101": 1,
+      "fix/p1-71-observability-slo-metric-parity-20261101": 1,
+      "security/p0-202-gcs-generation-canonical-fence-20261101": 1,
+      "security/p0-202-gcs-receipt-observation-fence-20261101": 1,
+      "security/p0-202-predelete-terminal-marker-fence-20261102": 1,
+      "security/p0-202-retention-census-dual-project-failclosed-20261102": 1,
+      "test/p0-202-native-census-over300-readonly-20261102": 1,
+      "security/p0-202-retention-census-owner-path-canonical-20261102": 1,
+      "security/p0-202-retention-census-hold-type-anomalies-20261102": 1,
+      "security/p0-202-authoritative-hold-types-failclosed-20261102": 1,
+      "security/p0-202-authoritative-gcs-generation-uint64-fence-20261102": 1,
+      "security/p0-202-gcs-object-retention-hold-preflight-20261102": 1,
+      "security/p0-202-gcs-expiration-null-failclosed-20261102": 1,
+      "security/p0-202-authoritative-boolean-preflight-20261102": 2,
+      "integration/p0-202-photo-purge-20261105": 2,
+      "fix/p0-202-purge-nonce-replay-20261105": 1,
+      "fix/ves-7-durable-poison-pill-progress-20261105": 1,
+      "fix/ves-7-cron-receipt-guard-20261105": 1,
+      "security/ves-5-p0-live-purge-hard-stop-20261105": 1,
+      "security/ves-5-emulator-injected-bucket-gate-20261105": 1,
+      "fix/ves-8-bounded-scheduler-receipts-20261105": 1,
+      "fix/ves-8-response-stream-early-cancel-20261105": 1,
+      "audit/full-git-history-retention-20261105": 1,
+      "fix/ves7-ves8-purge-health-telemetry-20261105": 1,
+      "fix/ves7-page-failure-receipt-id-binding-20261106": 1,
+      "audit/ves5-verification-storage-writer-inventory-20261106": 1,
+      "security/ves5-coordinated-fence-protocol-20261106": 1,
+      "security/ves5-transactional-firestore-fence-20261106": 1,
+      "security/ves5-atomic-retention-purge-intent-20261106": 1,
+      "security/ves5-replay-safe-intent-binding-20261106": 1,
+      "security/ves5-writer-reconciliation-guard-20261106": 1,
+      "security/ves5-strict-persisted-fence-schema-20261106": 1,
+      "fix/vercel-age-api-and-assets-20261106": 2,
+      "security/ves5-root-event-owner-boundary-20261106": 1,
+      "security/ves5-review-next-20261107": 2,
+      "fix/ves12-firebase-project-isolation-20261107": 1,
+      "fix/ves5-explicit-purge-bucket-20261107": 2,
+      "fix/ves5-production-purge-p0-hard-stop-20261108": 1,
+      "fix/ves11-api-proxy-stream-limit-20261107": 1,
+      "fix/ves5-firestore-record-hold-guard-20261108": 1,
+      "fix/ves5-account-deletion-photo-fence-20261108": 1,
+      "fix/release-prod-canary-approval-gate-20261107": 1,
+      "release/v0.1.1-rc1": 1
     },
     "headPrefixCounts": {
-      "dependabot": 1,
-      "audit": 7,
-      "release": 1,
-      "fix": 81,
-      "integration": 10,
-      "docs": 11,
-      "security": 55,
-      "audit-enterprise-e2e-20261102": 1,
-      "test": 19,
-      "feature": 2,
       "feat": 5,
-      "Veselin-Takev-patch-1": 1
+      "Veselin-Takev-patch-1": 1,
+      "fix": 81,
+      "test": 19,
+      "security": 55,
+      "docs": 11,
+      "integration": 10,
+      "audit": 7,
+      "feature": 2,
+      "audit-enterprise-e2e-20261102": 1,
+      "release": 1,
+      "dependabot": 1
     }
   },
   "ruleset": {
@@ -256,7 +259,7 @@
         "run": 41999970921,
         "job": 127152420908,
         "conclusion": "success",
-        "stepCount": 33
+        "stepCount": 34
       },
       "checkRuns": [
         {
@@ -274,9 +277,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate is green; branch is two commits behind current main.",
-        "No submitted code reviews; active Ruleset #25756841 still requires zero approvals and no CODEOWNERS review.",
-        "Branch pins actions/attest to 4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f; not merged."
+        "Exact-head validate SUCCESS; 9 commits ahead and 2 behind fresh main.",
+        "No submitted code reviews. Active Ruleset #25756841 still requires zero approvals and no CODEOWNERS review.",
+        "Contains verified actions/attest pin 4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f; remains an unmerged Draft."
       ]
     },
     {
@@ -314,9 +317,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head source change fail-closes the age-only legacy worker; no live Scheduler/GCS deployment proof.",
-        "No submitted code reviews; two commits behind current main.",
-        "Do not merge independently with #203: six overlapping files."
+        "Exact-head validate SUCCESS; 33 commits ahead and 2 behind fresh main.",
+        "No live Scheduler/GCS deployment evidence and no independent review.",
+        "Do not merge independently with #203: exactly six overlapping paths."
       ]
     },
     {
@@ -354,9 +357,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate is green; branch is two commits behind current main.",
-        "No submitted code reviews; emulator/real GCS staging proof and independent Security/DPO/SRE review remain absent.",
-        "Six changed paths overlap with #269; no blind or independent merge."
+        "Exact-head validate SUCCESS; 57 commits ahead and 2 behind fresh main.",
+        "No independent Security/DPO review or real GCS/emulator staging proof for race, hold, retry and durable receipts.",
+        "Exactly six overlapping paths with #269; no blind or independent merge."
       ]
     },
     {
@@ -394,9 +397,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate is green; branch is two commits behind current main.",
-        "FQDN root-dot mismatch fail-closed tests are present, but tenant foundation remains unmerged and not globally mounted.",
-        "Complete legacy mapping, flat-path/rules migration, BOLA/IDOR and Art.17 cutover proof remain open; no independent review."
+        "Exact-head validate SUCCESS; 11 commits ahead and 2 behind fresh main.",
+        "Tenant foundation remains unmerged and not globally mounted; complete legacy mapping, flat-path/rules migration, BOLA/IDOR and Art.17 cutover evidence remain open.",
+        "No independent review."
       ]
     },
     {
@@ -405,16 +408,16 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "20748fe18f1ee797873f6eede92f9cfb9121e22a",
+      "headSha": "f0e57a237f86941ee830c3a21ae3e949125b5e91",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 68,
+        "ahead": 70,
         "behind": 2
       },
       "validate": {
-        "run": 42747348689,
-        "job": 129602505231,
+        "run": 42757616033,
+        "job": 129635543306,
         "conclusion": "success",
         "stepCount": 33
       },
@@ -434,9 +437,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Current exact head 20748fe18f1ee797873f6eede92f9cfb9121e22a; validate run 42747348689 completed successfully on that SHA.",
-        "The inventory snapshot is refreshed by this commit; no independent review submitted.",
-        "Audit remains E1/E2 repository evidence, not E3 emulator/staging, E4 live Cloud, or E5 independent approval."
+        "Exact-head validate SUCCESS on f0e57a237f86941ee830c3a21ae3e949125b5e91; run 42757616033/job 129635543306 completed 33 steps.",
+        "70 commits ahead and 2 behind fresh main; 12 changed paths in compare.",
+        "No submitted code reviews. Audit evidence remains source/CI plus Vercel metadata, not live Cloud or independent approval."
       ]
     },
     {
@@ -468,9 +471,8 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate is green; branch is two commits behind current main.",
-        "Vercel setup eligibility was not met (public repo/no Turborepo); evidence is documentation only.",
-        "No independent review."
+        "Exact-head validate SUCCESS; 3 commits ahead and 2 behind fresh main.",
+        "Documentation only; no independent review or Vercel production approval."
       ]
     },
     {
@@ -482,11 +484,12 @@
       "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
+      "compare": null,
       "validate": {
         "run": 41531498018,
         "job": 125572558770,
         "conclusion": "failure",
-        "stepCount": 33
+        "stepCount": 32
       },
       "checkRuns": [
         {
@@ -502,18 +505,12 @@
           "app": "GitHub Actions"
         }
       ],
-      "reviews": [
-        {
-          "user": "Veselin-Takev",
-          "state": "APPROVED",
-          "independent": false
-        }
-      ],
+      "reviews": 1,
+      "reviewDetail": "Owner self-approval by Veselin-Takev; not independent.",
       "notes": [
-        "Closed unmerged on 2026-11-09; exact-head failure is the release provenance/immutable-image-digest gate.",
-        "Recorded APPROVED review is by repository owner, not an independent approval."
-      ],
-      "merged": false
+        "Closed unmerged; exact-head failure at Enterprise static gates / release attestation pin.",
+        "The recorded APPROVED review is by the repository owner, not an independent approval."
+      ]
     },
     {
       "number": 358,
@@ -532,7 +529,7 @@
         "run": 42710380877,
         "job": 129478019942,
         "conclusion": "failure",
-        "stepCount": 33
+        "stepCount": 40
       },
       "checkRuns": [
         {
@@ -550,9 +547,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Non-Draft RC1 PR targets release/v0.1.1-rc1, not main; compare is ahead 50 / behind 0.",
-        "Current exact-head Browser acceptance fails: tests/e2e/privacy-settings.spec.ts product-analytics consent assertion timed out after 5s.",
-        "The 1,636 PASS claim in the PR body refers to source SHA 951b16b243354321ca9c2c31bde8deab9e00060a, not this current head.",
+        "Non-Draft RC1 PR targets release/v0.1.1-rc1, not main; 50 commits ahead / 0 behind its base.",
+        "Exact-head Browser acceptance fails in tests/e2e/privacy-settings.spec.ts: expected 'Einwilligung wurde widerrufen.'; received 'Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.' after 5 seconds.",
+        "The 1,636 PASS claim refers to older SHA 951b16b243354321ca9c2c31bde8deab9e00060a, not this current head.",
         "No independent review."
       ]
     },
@@ -573,7 +570,7 @@
         "run": 42705724751,
         "job": 129461862107,
         "conclusion": "failure",
-        "stepCount": 33
+        "stepCount": 32
       },
       "checkRuns": [
         {
@@ -591,9 +588,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Current non-Draft Dependabot PR; two commits behind current main; no independent review.",
-        "Exact-head validate fails Enterprise static gates: check:release-workflow requires GitHub-signed provenance bound to immutable image digest.",
-        "Related governance/workflow changes remain unmerged in Draft #251."
+        "Current non-Draft Dependabot PR; 1 commit ahead and 2 behind fresh main; no independent review.",
+        "Exact-head validate fails Enterprise static gates: production release workflow must generate a GitHub-signed provenance attestation bound to the immutable image digest.",
+        "Related governance/workflow changes remain in unmerged Draft #251."
       ]
     }
   ],
@@ -654,7 +651,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T04:04:27Z",
+    "checkedAt": "2026-11-10T05:24:16Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -662,11 +659,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_6H5W1kmA2PJXmEnn2AjzdsLCevPB",
+      "id": "dpl_JAuoSjp9szUoMxN4vpE9isCuPLPq",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-9mo4vturr-ves3.vercel.app",
-      "commitSha": "20748fe18f1ee797873f6eede92f9cfb9121e22a",
+      "url": "klar-dating-jmoy566qv-ves3.vercel.app",
+      "commitSha": "f0e57a237f86941ee830c3a21ae3e949125b5e91",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -703,14 +700,14 @@
       "severity": "P0",
       "source": "phase2_work/functions/src/deleteExpiredPhotos.ts",
       "sourceSha": "69c0ad42be40ac51f8aebd62741ae97bf5120f2a",
-      "detail": "main still schedules deleteExpiredPhotosCron every 24 hours; it calls deleteExpiredPhotoPage."
+      "detail": "main schedules deleteExpiredPhotosCron every 24 hours; it calls deleteExpiredPhotoPage."
     },
     {
       "issue": 202,
       "severity": "P0",
       "source": "phase2_work/functions/src/retention.ts",
       "sourceSha": "5f9014b9090042b1f501c70cb87c4a1fdeb51f0a",
-      "detail": "main lists verification/ objects and deletes when timeCreated is older than 30 days; it checks holds and GCS generation but not moderation decision/fotoLoeschenAb. Live Scheduler deployment remains unverified."
+      "detail": "main lists verification/ objects and deletes when timeCreated is older than 30 days; checks holds and GCS generation but not moderation decision/fotoLoeschenAb. Live Scheduler deployment remains unverified."
     },
     {
       "issue": 70,
@@ -722,23 +719,23 @@
     {
       "issue": 254,
       "severity": "P0",
-      "source": "PR #253",
-      "sourceSha": "036ee313747a7beb2ab926e721e3bef958304447",
-      "detail": "Tenant foundation is scoped and not globally mounted; complete legacy mapping, flat-path/rules migration, BOLA/IDOR and Art.17 cutover evidence remain open."
+      "source": "phase2_work/server.ts",
+      "sourceSha": "808492df32ff4aa26958079895efae9a7c64a2b7",
+      "detail": "Current main server.ts has no tenantAuth/TenantRequestContext/tenantContext/multitenant mount/reference; PR #253 remains unmerged. Complete legacy mapping, BOLA/IDOR and Art.17 cutover proof remain open."
     },
     {
       "issue": 204,
       "severity": "P1",
       "source": "phase2_work/storage.rules",
       "sourceSha": "b3d1e216ab9c0226ca14813799df4adb63bf7558",
-      "detail": "/profiles/{uid}/{datei} currently allows read when signedIn(); this disagrees with the platform model."
+      "detail": "/profiles/{uid}/{datei} currently allows read when signedIn(); this disagrees with the platform policy model."
     },
     {
       "issue": 204,
       "severity": "P1",
       "source": "phase2_work/src/server/platform/storageRulesEngine.ts",
       "sourceSha": "2eceecccf19bfb7a361c4c5e0f0932f36c8c31b6",
-      "detail": "Policy model requires requester isAdult and targetUserIsAdult for profile reads; this is a source-policy mismatch, not proof of live unauthorized access."
+      "detail": "Policy model requires adult requester and adult target for profile reads; this is a source-policy mismatch, not proof of live unauthorized access."
     },
     {
       "issue": 206,
@@ -766,22 +763,22 @@
     ]
   },
   "notes": [
-    "Snapshot captured at 2026-11-10T04:04:27Z from live GitHub and Vercel reads. Current main is 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; its signature is verified, exact-head validate run 42710429488/job 129478192916 is completed/success (33 steps; only optional browser-diagnostics upload skipped), and combined Vercel status is success.",
-    "Current open PR inventory: 194 total, 192 Draft, 2 non-Draft; 50 target main and 144 target other branches. Head-ref prefix counts are recorded in headPrefixCounts; maximum observed stack depth is 36.",
-    "Selected Draft PRs #251/#269/#203/#253/#313/#314 each have a completed successful validate check on their current exact head and zero submitted code reviews; each compares as two commits behind current main. This is CI evidence only, not an independent approval or release integration.",
-    "PR #313 current head is 20748fe18f1ee797873f6eede92f9cfb9121e22a; exact validate run 42747348689/job 129602505231 is completed/success. The audit inventory is refreshed on its existing dedicated branch by this commit; its new head will require a new exact-head CI run.",
+    "Snapshot captured at 2026-11-10T05:24:16Z from live GitHub and Vercel reads. Main is 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; commit signature verified; exact-head validate run 42710429488/job 129478192916 is completed/success (33 steps).",
+    "Current open PR inventory: 194 total, 192 Draft, 2 non-Draft; 50 target main and 144 target other branches. Maximum observed stack depth 36.",
+    "Selected Draft PRs #251/#269/#203/#253/#313/#314 each have completed successful validate on their current exact head and zero submitted code reviews. Their comparisons against fresh main show 2 commits behind; these are CI facts, not independent approvals.",
+    "PR #313 current exact head f0e57a237f86941ee830c3a21ae3e949125b5e91; validate run 42757616033/job 129635543306 completed successfully with 33 steps. The branch is 70 commits ahead and 2 behind fresh main; zero reviews.",
+    "PR #315 is closed unmerged. Its exact-head validate failed at Enterprise static gates; its only APPROVED review was by repository owner. Current non-Draft Dependabot PR #361 fails exact-head validate because check:release-workflow requires GitHub-signed provenance bound to immutable image digest.",
+    "PR #358 is a non-Draft RC1 PR against release/v0.1.1-rc1, not main. Its current exact-head Browser acceptance fails in tests/e2e/privacy-settings.spec.ts: expected consent-revocation success status, received generic failure after 5 seconds. Its 1,636 PASS claim refers to older SHA 951b16b243354321ca9c2c31bde8deab9e00060a.",
     "PR #203 and #269 overlap in exactly six paths: phase2_work/docs/DATA_RETENTION.md, phase2_work/functions/src/deleteExpiredPhotos.ts, phase2_work/functions/src/retention.ts, phase2_work/package.json, phase2_work/tests/photoRetention.spec.ts, phase2_work/tests/storageRules.spec.ts. Do not blind-merge or merge independently.",
-    "PR #315 is closed unmerged. Current non-Draft Dependabot PR #361 fails exact-head validate at Enterprise static gates because check:release-workflow requires GitHub-signed provenance bound to the immutable image digest; #251 remains an unmerged Draft.",
-    "PR #358 is a non-Draft PR against release/v0.1.1-rc1, not main. Its current head 1321c42ffe1c5919c1baccaada66a650ab811f93 fails Browser acceptance at tests/e2e/privacy-settings.spec.ts product-analytics consent assertion (5s timeout); no independent review. Its 1,636 PASS claim refers to older source SHA 951b16b243354321ca9c2c31bde8deab9e00060a.",
-    "Main source P0 #202: deleteExpiredPhotos.ts blob 69c0ad42be40ac51f8aebd62741ae97bf5120f2a schedules deleteExpiredPhotosCron and calls deleteExpiredPhotoPage; retention.ts blob 5f9014b9090042b1f501c70cb87c4a1fdeb51f0a deletes verification/ objects based on timeCreated >30 days, with hold/generation checks but no moderation decision/fotoLoeschenAb binding. This is source evidence, not proof the scheduler is deployed/enabled.",
-    "Main TTL script blob b82be26bae598bc5acc907c91a8d31d4585392e8 enumerates 20 groups, defaults to dry-run, and refuses non-staging apply. No target-project 20/20 ACTIVE evidence or approved live legal-hold matrix is available in this run.",
-    "Main server.ts blob 808492df32ff4aa26958079895efae9a7c64a2b7 has no tenantAuth/TenantRequestContext/tenantContext/multitenant references; PR #253 remains unmerged. Complete mapping, BOLA/IDOR and Art.17 cutover proof remain absent.",
-    "Main storage.rules blob b3d1e216ab9c0226ca14813799df4adb63bf7558 allows /profiles/{uid}/{datei} read when signedIn(); storageRulesEngine.ts blob 2eceecccf19bfb7a361c4c5e0f0932f36c8c31b6 requires adult requester and adult target. Main src/lib/klar.ts blob 4c960dac7a552948df9b3ac7ea9601238d788492 persists getDownloadURL() as users/{uid}.photoURL. These are source-level P1 policy/access risks, not proof of live unauthorized access.",
+    "Main source P0 #202: deleteExpiredPhotos.ts blob 69c0ad42be40ac51f8aebd62741ae97bf5120f2a schedules deleteExpiredPhotosCron every 24h; retention.ts blob 5f9014b9090042b1f501c70cb87c4a1fdeb51f0a deletes verification/ objects based on timeCreated >30 days with hold/generation checks but no moderation decision/fotoLoeschenAb binding. This is source evidence, not proof the scheduler is deployed/enabled.",
+    "Main TTL script blob b82be26bae598bc5acc907c91a8d31d4585392e8 enumerates 20 groups, defaults to dry-run and refuses non-staging apply. No target-project 20/20 ACTIVE evidence or approved live legal-hold matrix is available.",
+    "Main server.ts blob 808492df32ff4aa26958079895efae9a7c64a2b7 has no tenantAuth/TenantRequestContext/tenantContext/multitenant mount/reference; PR #253 remains unmerged. Complete mapping, BOLA/IDOR and Art.17 cutover proof remain absent.",
+    "Main storage.rules blob b3d1e216ab9c0226ca14813799df4adb63bf7558 allows /profiles/{uid}/{datei} read when signedIn(); storageRulesEngine.ts blob 2eceecccf19bfb7a361c4c5e0f0932f36c8c31b6 requires adult requester and adult target. Main src/lib/klar.ts blob 4c960dac7a552948df9b3ac7ea9601238d788492 persists getDownloadURL() as users/{uid}.photoURL. These are source-level risks, not proof of live unauthorized access.",
     "All requested issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain open.",
-    "Vercel read-only: team ves3 lists one project, klar-dating (prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre); project object reports live=false, Node 26.x. A READY production-target deployment exists for current main SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; the latest preview is READY for PR #313 head 20748fe... . READY deployment metadata does not establish real traffic or release approval.",
-    "The old login-page-prototype deletion remains confirmed and was not retried. Neon/Postgres/Better-Auth credential rotation is not proven.",
-    "No Google Cloud/Firebase/GCS/IAM/Scheduler read-only evidence or independent Security/DPO/Legal/SRE/Finance/Release Owner attestations were obtained in this run.",
-    "No main commit, merge, deployment, secret access, IAM/Scheduler/Firebase/GCS/database mutation, or code change was performed."
+    "Vercel read-only: team ves3 lists exactly one project, klar-dating (prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre); project reports live=false, Node 26.x. Latest audit preview is READY for PR #313 head f0e57... (target null). Separate READY production-target deployment is bound to current main SHA 2fa3ba... . READY metadata does not establish actual traffic or release approval.",
+    "Old login-page-prototype deletion remains confirmed and was not retried. Neon/Postgres/Better-Auth credential rotation is not proven.",
+    "No fresh Google Cloud/Firebase/GCS/IAM/Scheduler read-only evidence or independent Security/DPO/Legal/SRE/Finance/Release Owner attestations were obtained in this run.",
+    "This snapshot is updated only on the existing dedicated audit branch. No main commit, merge, deployment, secret access, IAM/Scheduler/Firebase/GCS/database mutation, or code change was performed."
   ],
   "entries": [
     {
@@ -2592,8 +2589,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "20748fe18f1ee797873f6eede92f9cfb9121e22a",
-      "updatedAt": "2026-11-10T03:07:35Z",
+      "headSha": "f0e57a237f86941ee830c3a21ae3e949125b5e91",
+      "updatedAt": "2026-11-10T04:43:12Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
