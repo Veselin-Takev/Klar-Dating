@@ -453,8 +453,21 @@ export async function listPartnerReferralLinks(
   uid: string,
 ): Promise<{ consent: { allowed: true }; referrals: Array<{ campaign: PartnerCampaignRecord; url: string; clickCount: number; qualifiedConversions: number }> }> {
   const db = deps.getFirestore();
-  const userSnap = await db.collection('users').doc(uid).get();
-  const data = userSnap.data();
+  // Resolve the private owner state and Art.17 deletion marker in one
+  // read-only transaction, including when no active campaigns exist.
+  const data = await db.runTransaction(async tx => {
+    const [user, deletion] = await tx.getAll(
+      db.collection('users').doc(uid),
+      db.collection('account_deletions').doc(uid),
+    );
+    if (!user || !deletion) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
+    if (deletion.exists) {
+      throw new PartnerReferralError(409, 'partner_account_deleting', 'Das Konto wird gelöscht.');
+    }
+    return user.data();
+  });
   const userState = requirePartnerUserData(data);
   if (data?.partnerReferralConsent === true && (!Number.isSafeInteger(data?.partnerReferralVersion) || data?.partnerReferralVersion < 1)) throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
   if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
