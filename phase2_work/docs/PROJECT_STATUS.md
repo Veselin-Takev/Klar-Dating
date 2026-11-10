@@ -1,3 +1,30 @@
+## Production-Freigabe-Watch – 10.11.2026, 01:31 UTC – BLOCKED / NO-GO
+
+**Aktuelle Main-Baseline:** `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (Merge PR #359, 09.11.2026 22:16:46 UTC). Der exakte Main-`validate`-Run [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488) und Job `129478192916` sind `completed/success`; alle 33 Job-Schritte sind erfolgreich. Dies ist Repository-CI, keine Cloud-/Produktionsabnahme.
+
+**PR-Inventar:** 194 offen, 192 Drafts, 2 Nicht-Drafts (#358 RC1, #361 Dependabot); 50 gegen `main`, 144 gegen andere Branches, 141 Parent-Basen durch offene PR-Heads abgedeckt, 3 nicht zugeordnet, maximale beobachtete Stacktiefe 35. Vollständige SHA-/Stackliste: [OPEN_PR_INVENTORY_2026-11-10.json](OPEN_PR_INVENTORY_2026-11-10.json).
+
+| PR | Exakter Head | Exact-head validate | Reviews |
+|---|---|---|---:|
+| #251 Governance | `7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f` | [41999970921](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41999970921) SUCCESS | 0 |
+| #269 Legacy-Purge | `fd68656957c01618c3a085e887ece504624d18b3` | [42020003801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42020003801) SUCCESS | 0 |
+| #203 Generation-Purge | `1850e0a78b22e600e5add99273b84c081ffc3892` | [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009) SUCCESS | 0 |
+| #253 Multi-Tenant | `036ee313747a7beb2ab926e721e3bef958304447` | [41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863) SUCCESS | 0 |
+| #313 Audit | `2e12a55ff0e47fd5e7a80b191e47d41a7d8f66cc` | [42727804324](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42727804324) SUCCESS | 0 |
+| #314 Vercel | `e5deab1dfd629065f3dfce3a5577eb21ac966a68` | [41619572341](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41619572341) SUCCESS | 0 |
+
+Alle sechs Heads liegen gegenüber aktuellem `main` zwei Commits zurück. Der hier dokumentierte atomare Snapshot-Commit wird PR #313 erneut bewegen; dessen neuer Head benötigt frische CI. #315 ist geschlossen/unmerged (ein Owner-Approval, nicht unabhängig; Run 41531498018 scheiterte an `Enterprise static gates`). Neuer Nicht-Draft #361 scheitert auf Head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff`, Run [42705724751](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42705724751): `check:release-workflow` verlangt eine GitHub-signierte Provenance-Attestation am unveränderlichen Image-Digest. #358 ist ein RC1-PR (nicht main) und scheitert auf Run [42710380877](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710380877) bei Browser Acceptance: Consent-Status-Assertion in `privacy-settings.spec.ts` Timeout nach 5 Sekunden.
+
+**Ruleset #25756841:** active, Pflichtcheck `validate` strict, aber 0 erforderliche Approvals, keine CODEOWNERS-Pflicht, keine Verwerfung veralteter Reviews und keine Thread-Auflösungspflicht.
+
+**Belegte Blocker:** #202: Main `deleteExpiredPhotosCron` läuft täglich und ruft weiter den 30-Tage-`timeCreated`-Purge auf; kein Moderationsentscheid als Löschvoraussetzung. #269 deaktiviert dies nur auf einem ungemergten Branch; #203 ist separate Entscheidung-/Generation-Implementierung, sechs Dateiüberschneidungen mit #269. #70: 20 TTL-Gruppen im Skript, aber keine 20/20 ACTIVE-Live-Evidenz/Legal-Hold-Freigabe. #254: #253 nicht integriert, keine vollständige Legacy-Zuordnung/Art.-17-/BOLA-/IDOR-Cutover-Evidenz. #204: `storage.rules` erlaubt Profilbild-Lesen bei `signedIn()`, während das Policy-Modell erwachsene Leser und Zielinhaber verlangt. #206: `getDownloadURL()` wird weiter als `users/{uid}.photoURL` gespeichert. #55/#56 Partner-Identität/Datenschutz und #8 Betriebsnachweise bleiben offen.
+
+**Vercel read-only:** Projekt `klar-dating` existiert; API meldet `live=false`, Node `26.x`, neuestes Audit-Preview `READY` (target null). Separat existiert ein `READY`-Deployment mit target `production` für Main-SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`. Kein Beweis für aktiven Traffic oder Produktionsfreigabe. Teamliste enthält nur Klar. Altprojekt-Löschung bleibt bestätigt, keine erneute Löschung; Neon/Postgres/Better-Auth-Rotation ist nicht belegt.
+
+**Entscheidung:** `productionApproved=false`, **BLOCKED / NO-GO**. Es fehlen integrierter Release-SHA, kritische Emulator-/Staging-/Live-Lösch-/TTL-/Tenant-/Betriebsbelege und unabhängige Security-, DPO/Legal-, SRE-, Finance (falls relevant) und Release-Owner-Freigaben. Keine Main-Änderung, kein Merge, kein Deployment und keine produktive Cloud-/Datenmutation.
+
+---
+
 ## Release- und Vercel-Stilllegungsupdate (02.11.2026) – weiterhin NO-GO
 
 Nach ausdrücklicher Eigentümerbestätigung hat die Vercel-API den Delete des alten Projekts `login-page-prototype` (`prj_kfJ06pJHn3neZAkrtasYKezxuprF`) als `404 not_found` bestätigt; auch die Demo-Deployment-Abfrage liefert `404`. `list_projects` für `ves3` zeigt nur `klar-dating` (`prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`), dessen letztes Preview weiterhin `READY` ist. Vollständige Abgrenzung: [Vercel-Altprojekt-Stilllegung](VERCEL_LEGACY_PROTOTYPE_RISK_2026-11-02.md). Externe Neon-/Postgres-/Auth-Credentials sind **nicht** nachweislich rotiert. Separater GitHub-Governance-PR #251 (Head `89f0e744fa31d4f6dfb487acce8a9f4c2e4f8d8e`) [CI erfolgreich](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41533779126), aber ohne unabhängige Review-Freigabe; P0-#202-Kill-Switch #269 ebenfalls CI-grün, aber ungemergt. `main=96c3857c53f5ced31fe1394895185f42c75bc716` bleibt unverändert. **`productionApproved=false` – BLOCKED / NO-GO**.
