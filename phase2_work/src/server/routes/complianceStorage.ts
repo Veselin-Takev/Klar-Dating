@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
 import type { Firestore } from 'firebase-admin/firestore';
 import { executeVerificationRetentionBatch, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
+import { deleteVerificationPhotoIfUnchanged, matchesActiveRetentionDecision, retentionTimestamp, type VerificationPhotoBucket } from '../platform/verificationPhotoDelete';
 
 const MAX_BATCH = 100;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
@@ -21,22 +22,9 @@ export function validComplianceRequest(body: Buffer, timestampHeader: string | u
   return supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
 }
 
-function normalizeTimestamp(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (value && typeof (value as { toMillis?: unknown }).toMillis === 'function') {
-    const result = (value as { toMillis: () => number }).toMillis();
-    return Number.isFinite(result) ? result : null;
-  }
-  if (typeof value === 'string') {
-    const result = Date.parse(value);
-    return Number.isFinite(result) ? result : null;
-  }
-  return null;
-}
-
 export function createVerificationStoragePurgeRouter(deps: {
   getDb: () => Firestore;
-  getBucket?: () => { file: (path: string) => { delete: (options?: unknown) => Promise<unknown> } };
+  getBucket?: () => VerificationPhotoBucket;
 }): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
@@ -54,31 +42,54 @@ export function createVerificationStoragePurgeRouter(deps: {
         const data = doc.data();
         const uid = typeof data.uid === 'string' ? data.uid : '';
         const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
-        const decidedAt = normalizeTimestamp(data.decidedAt);
+        const decidedAt = retentionTimestamp(data.decidedAt);
         const statusRaw = data.entscheidung ?? data.status;
         const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
         if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
-        return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
+        return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: retentionTimestamp(data.photoPurgedAt) ?? undefined }];
       });
 
-      const bucket = deps.getBucket?.() ?? getStorage().bucket();
+      // The vendor bucket offers the same runtime methods; this narrow adapter
+      // intentionally sends an exact decimal generation string to GCS.
+      const bucket = (deps.getBucket?.() ?? getStorage().bucket()) as unknown as VerificationPhotoBucket;
       const summary = await executeVerificationRetentionBatch(
         artifacts,
-        async path => {
-          try { await bucket.file(path).delete({ ignoreNotFound: true }); }
-          catch (error) { throw error; }
+        async (path, artifact) => {
+          const ref = db.collection('verification_events').doc(artifact.challengeId);
+          const fresh = await ref.get();
+          if (!fresh.exists || !matchesActiveRetentionDecision(fresh.data(), artifact, now)) {
+            throw new Error('verification_photo_decision_changed');
+          }
+          await deleteVerificationPhotoIfUnchanged(bucket, path, now);
         },
-        async (uid, challengeId, auditData) => {
+        async (uid, challengeId, auditData, artifact) => {
           const ref = db.collection('verification_events').doc(challengeId);
           await db.runTransaction(async tx => {
             const current = await tx.get(ref);
-            if (!current.exists || current.data()?.uid !== uid) return;
+            if (uid !== artifact.uid || !current.exists ||
+                !matchesActiveRetentionDecision(current.data(), artifact, now)) {
+              // Never claim success for a missing, changed or newly held record.
+              throw new Error('verification_photo_audit_conflict');
+            }
             tx.update(ref, auditData);
           });
         },
         now,
       );
-      return res.json({ ok: true, ...summary });
+      // Per-artifact failures must make the scheduler retry/reconcile. Do not
+      // return PII-bearing object paths or upstream GCS errors in the response.
+      if (summary.results.some(result => result.reason === 'error')) {
+        return res.status(503).json({
+          code: 'verification_storage_purge_incomplete',
+          processed: summary.processed,
+          purgedCount: summary.purgedCount,
+          skippedCount: summary.skippedCount,
+        });
+      }
+      return res.json({
+        ok: true, processed: summary.processed,
+        purgedCount: summary.purgedCount, skippedCount: summary.skippedCount,
+      });
     } catch {
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
     }

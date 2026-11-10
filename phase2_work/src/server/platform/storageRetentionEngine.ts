@@ -94,8 +94,8 @@ export function generatePurgeAuditDigest(
  */
 export async function purgeSingleVerificationArtifact(
   artifact: VerificationArtifactRecord,
-  deleteStorageFileFn: (path: string) => Promise<void>,
-  updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
+  updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }, artifact: VerificationArtifactRecord) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
 ): Promise<PurgeArtifactResult> {
@@ -131,7 +131,7 @@ export async function purgeSingleVerificationArtifact(
 
   try {
     // 1. Physische Löschung im Storage
-    await deleteStorageFileFn(artifact.storagePath);
+    await deleteStorageFileFn(artifact.storagePath, artifact);
 
     // 2. Audit-Digest generieren
     const auditDigest = generatePurgeAuditDigest(
@@ -146,7 +146,7 @@ export async function purgeSingleVerificationArtifact(
       photoPurged: true,
       photoPurgedAt: now,
       auditDigest,
-    });
+    }, artifact);
 
     return {
       uid: artifact.uid,
@@ -156,15 +156,14 @@ export async function purgeSingleVerificationArtifact(
       reason: 'expired',
       auditDigest,
     };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+  } catch {
     return {
       uid: artifact.uid,
       challengeId: artifact.challengeId,
       storagePath: artifact.storagePath,
       purged: false,
       reason: 'error',
-      error: errorMsg,
+      error: 'verification_photo_purge_failed',
     };
   }
 }
@@ -174,8 +173,8 @@ export async function purgeSingleVerificationArtifact(
  */
 export async function executeVerificationRetentionBatch(
   artifacts: VerificationArtifactRecord[],
-  deleteStorageFileFn: (path: string) => Promise<void>,
-  updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
+  updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }, artifact: VerificationArtifactRecord) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
 ): Promise<BatchPurgeSummary> {

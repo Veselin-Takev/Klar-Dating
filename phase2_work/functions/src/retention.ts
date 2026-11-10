@@ -5,27 +5,17 @@ type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
 };
 
+/** @deprecated Historical threshold, not authorization to delete verification photos. */
 export const PHOTO_RETENTION_MS = 30 * 86_400_000;
 
-/** One bounded page. Generation preconditions protect a concurrently replaced photo. */
-export async function deleteExpiredPhotoPage(bucket: Bucket, now: Date, pageToken?: string) {
-  const [files, next] = await bucket.getFiles({ prefix: 'verification/', maxResults: 200, autoPaginate: false, ...(pageToken ? { pageToken } : {}) });
-  let deleted = 0;
-  for (const file of files) {
-    const [metadata] = await file.getMetadata();
-    const created = Date.parse(metadata.timeCreated ?? '');
-    if (!Number.isFinite(created)) throw new Error('Photo creation timestamp missing');
-    if (created > now.getTime() - PHOTO_RETENTION_MS || metadata.temporaryHold || metadata.eventBasedHold) continue;
-    if (!metadata.generation) throw new Error('Photo generation missing');
-    try {
-      await file.delete({ ifGenerationMatch: metadata.generation });
-      deleted++;
-    } catch (error) {
-      const code = (error as { code?: number }).code;
-      if (code !== 404 && code !== 412) throw error;
-    }
-  }
-  return { deleted, scanned: files.length, nextPageToken: next?.pageToken };
+/**
+ * @deprecated Deliberately fail closed for all callers, including legacy tests
+ * and accidental re-imports. Photo purging must be driven by the server-side
+ * verification_events decision, fotoLoeschenAb, and audited retention engine.
+ * Do not restore object-age deletion or silently return a successful page.
+ */
+export async function deleteExpiredPhotoPage(_bucket: Bucket, _now: Date, _pageToken?: string): Promise<never> {
+  throw new Error('legacy_photo_age_retention_disabled');
 }
 
 /** One bounded page per prefix; false means acknowledged progress, not completion.
