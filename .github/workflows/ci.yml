@@ -27,6 +27,13 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source HEAD
+        env:
+          CI_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/verify-ci-source-head.mjs
+      - name: Exact-head checkout regression
+        run: node --test scripts/verify-ci-source-head.test.mjs
       - name: Determine validation scope
         id: scope
         env:
