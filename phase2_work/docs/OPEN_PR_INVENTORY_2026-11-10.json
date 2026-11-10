@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T11:37:41Z",
+  "observedAt": "2026-11-10T12:43:33Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -311,38 +311,41 @@
       "state": "open",
       "draft": true,
       "headRef": "security/73-live-ruleset-release-gate-20261031",
-      "headSha": "7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f",
+      "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 9,
+        "ahead": 10,
         "behind": 2
       },
       "validate": {
-        "run": 41999970921,
-        "job": 127152420908,
-        "conclusion": "success",
-        "stepCount": 34
+        "run": 42818199684,
+        "job": 129836618469,
+        "status": "in_progress",
+        "conclusion": null,
+        "stepCount": null
       },
       "checkRuns": [
         {
           "name": "Vercel",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "app": "Vercel"
         },
         {
           "name": "validate",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "in_progress",
+          "conclusion": null,
           "app": "GitHub Actions"
         }
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS; 9 ahead / 2 behind fresh main.",
-        "No submitted code reviews. Ruleset still requires zero approvals and no CODEOWNERS review."
-      ]
+        "Controlled six-file update in this existing review branch: attest pin + validator + six-case positive/negative regression suite + CI invocation + dated documentation.",
+        "Official actions/attest commit badbb428b0055a04f53d6ce00bda98cf1c04e56e has GitHub verified signature; exact-head CI run 42818199684 is in progress; Vercel check pending.",
+        "Still Draft, 10 ahead / 2 behind current main, zero submitted code reviews. No merge or production approval."
+      ],
+      "updatedAt": "2026-11-10T12:43:32Z"
     },
     {
       "number": 269,
@@ -360,6 +363,7 @@
       "validate": {
         "run": 42020003801,
         "job": 127220743813,
+        "status": "completed",
         "conclusion": "success",
         "stepCount": 33
       },
@@ -379,9 +383,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS; 33 ahead / 2 behind fresh main.",
-        "No live Scheduler/GCS deployment evidence or independent review.",
-        "Exactly six changed-file overlaps with #203; do not merge blindly or independently."
+        "Exact-head CI SUCCESS; 33 ahead / 2 behind current main.",
+        "No live Scheduler/GCS deployment evidence or independent Security/DPO review.",
+        "Six changed-file overlaps with #203; do not merge independently or blindly."
       ]
     },
     {
@@ -400,6 +404,7 @@
       "validate": {
         "run": 42017264009,
         "job": 127211414732,
+        "status": "completed",
         "conclusion": "success",
         "stepCount": 33
       },
@@ -419,9 +424,9 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS; 57 ahead / 2 behind fresh main.",
-        "No independent Security/DPO review or real GCS/Emulator/Staging proof for race, hold, retry and durable receipts.",
-        "Exactly six changed-file overlaps with #269; do not merge blindly or independently."
+        "Exact-head CI SUCCESS; 57 ahead / 2 behind current main.",
+        "No independent Security/DPO review or live GCS/Emulator/Staging proof for decision/generation races, holds, retries and durable receipts.",
+        "Six changed-file overlaps with #269; do not merge independently or blindly."
       ]
     },
     {
@@ -440,6 +445,7 @@
       "validate": {
         "run": 41539994863,
         "job": 125601704190,
+        "status": "completed",
         "conclusion": "success",
         "stepCount": 33
       },
@@ -459,7 +465,7 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS; 11 ahead / 2 behind fresh main.",
+        "Exact-head CI SUCCESS; 11 ahead / 2 behind current main.",
         "Tenant foundation remains unmerged and not globally mounted; legacy mapping, flat-path/rules migration, BOLA/IDOR and Art.17 cutover proof remain open.",
         "No independent review."
       ]
@@ -470,16 +476,17 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "495199fa81f1a66e5e7a073e95a08e9049c3c8a9",
+      "headSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 76,
+        "ahead": 77,
         "behind": 2
       },
       "validate": {
-        "run": 42792372181,
-        "job": 129748762440,
+        "run": 42810140008,
+        "job": 129809201630,
+        "status": "completed",
         "conclusion": "success",
         "stepCount": 33
       },
@@ -489,7 +496,7 @@
           "status": "completed",
           "conclusion": "success",
           "app": "Vercel",
-          "deployment": "dpl_Hjo4UGrv3AWYyXefNpwxCRKqzD2S",
+          "deployment": "dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW",
           "target": null
         },
         {
@@ -500,10 +507,11 @@
         }
       ],
       "reviews": 0,
-      "updatedAt": "2026-11-10T09:38:22Z",
+      "updatedAt": "2026-11-10T11:46:12Z",
       "notes": [
-        "Exact-head validate SUCCESS on 495199fa81f1a66e5e7a073e95a08e9049c3c8a9; 76 ahead / 2 behind fresh main; zero submitted reviews.",
-        "Vercel preview dpl_Hjo4UGrv3AWYyXefNpwxCRKqzD2S is READY on this exact SHA, target=null; not production."
+        "Exact-head validate SUCCESS on 8ac4b6970f1b961da980dc3f291307392dd6a313; 77 ahead / 2 behind current main; zero submitted reviews.",
+        "Vercel preview dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW is READY on the same SHA, target=null; not production.",
+        "This inventory snapshot predates the documentation-only refresh commit being created on this audit branch; that new head requires its own exact-head CI."
       ]
     },
     {
@@ -522,6 +530,7 @@
       "validate": {
         "run": 41619572341,
         "job": 125861548924,
+        "status": "completed",
         "conclusion": "success",
         "stepCount": 33
       },
@@ -542,7 +551,7 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS; 3 ahead / 2 behind fresh main; zero reviews.",
+        "Exact-head validate SUCCESS; 3 ahead / 2 behind current main; zero reviews.",
         "Vercel status is FAILURE with target URL indicating upgradeToPro=build-rate-limit."
       ]
     },
@@ -559,6 +568,7 @@
       "validate": {
         "run": 41531498018,
         "job": 125572558770,
+        "status": "completed",
         "conclusion": "failure",
         "stepCount": 32
       },
@@ -580,7 +590,7 @@
       "reviewDetail": "Owner self-approval by Veselin-Takev; not independent.",
       "notes": [
         "Closed unmerged; exact-head failure at Enterprise static gates / release attestation pin.",
-        "Only APPROVED review is repository-owner self-approval, not independent."
+        "Its only APPROVED review was by the repository owner, not an independent approval."
       ]
     },
     {
@@ -599,6 +609,7 @@
       "validate": {
         "run": 42710380877,
         "job": 129478019942,
+        "status": "completed",
         "conclusion": "failure",
         "stepCount": 40
       },
@@ -619,8 +630,8 @@
       "reviews": 0,
       "notes": [
         "Current non-Draft RC1 PR targets release/v0.1.1-rc1, not main.",
-        "Exact-head Browser acceptance fails: consent withdrawal expected 'Einwilligung wurde widerrufen.' but received 'Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.'; 28 passed, 1 failed.",
-        "The 1,636 PASS claim refers to older SHA 951b16b243354321ca9c2c31bde8deab9e00060a, not current head."
+        "Exact-head Browser acceptance fails: privacy-settings.spec.ts expects consent-withdrawal success text but receives generic confirmation error; 28 passed / 1 failed.",
+        "The 1,636 PASS claim refers to older source SHA 951b16b243354321ca9c2c31bde8deab9e00060a, not current head."
       ]
     },
     {
@@ -639,6 +650,7 @@
       "validate": {
         "run": 42705724751,
         "job": 129461862107,
+        "status": "completed",
         "conclusion": "failure",
         "stepCount": 32
       },
@@ -658,9 +670,49 @@
       ],
       "reviews": 0,
       "notes": [
-        "Current non-Draft Dependabot PR; exact-head validate fails Enterprise static gates.",
-        "Failure: check-release-workflow requires GitHub-signed provenance attestation bound to immutable image digest.",
+        "Current non-Draft Dependabot PR; exact-head validate fails at Enterprise static gates.",
+        "Failure: check-release-workflow requires GitHub-signed provenance attestation bound to immutable image digest; the validator pin was behind the new official action SHA.",
         "Updates actions/setup-java to 6.2.0 and actions/attest to badbb428b0055a04f53d6ce00bda98cf1c04e56e; no independent review."
+      ]
+    },
+    {
+      "number": 317,
+      "title": "draft(security): integrate P0 #202 decision-aware purge and legacy disable guards",
+      "state": "open",
+      "draft": true,
+      "headRef": "integration/p0-202-photo-purge-20261105",
+      "headSha": "37c7487246303c5af1543ca1e5afe31e2cf2e0f4",
+      "baseRef": "main",
+      "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
+      "validate": {
+        "run": 42078741460,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "reviews": 0,
+      "notes": [
+        "Exact-head CI SUCCESS for the integration branch; no submitted review.",
+        "Combines #203 and #269 source changes, but no verified live GCS/Scheduler/TTL or independent Security/DPO/SRE/ReleaseOwner evidence."
+      ]
+    },
+    {
+      "number": 348,
+      "title": "fix(p0): hard-stop production verification-photo purge until Firestore/GCS fencing",
+      "state": "open",
+      "draft": true,
+      "headRef": "fix/ves5-production-purge-p0-hard-stop-20261108",
+      "headSha": "a7b6e574086d02fd9ea28868b061c7072ed84f5c",
+      "baseRef": "fix/ves5-explicit-purge-bucket-20261107",
+      "baseSha": "e1db047498a797220869ad88243de958c9e17f22",
+      "validate": {
+        "run": 42424069834,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "reviews": 0,
+      "notes": [
+        "Exact-head CI SUCCESS; hard stop exists only on this unmerged branch, not main.",
+        "Signed purge route is blocked in production, but independent account-erasure writers and late legal-hold races remain open; independent AppSec/DPO/SRE review missing."
       ]
     }
   ],
@@ -721,7 +773,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T11:37:41Z",
+    "checkedAt": "2026-11-10T12:43:33Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -729,11 +781,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_Hjo4UGrv3AWYyXefNpwxCRKqzD2S",
+      "id": "dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-flxoennyb-ves3.vercel.app",
-      "commitSha": "495199fa81f1a66e5e7a073e95a08e9049c3c8a9",
+      "url": "klar-dating-fot9qiin6-ves3.vercel.app",
+      "commitSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -1439,8 +1491,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "495199fa81f1a66e5e7a073e95a08e9049c3c8a9",
-      "updatedAt": "2026-11-10T09:38:22Z",
+      "headSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
+      "updatedAt": "2026-11-10T11:46:12Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
@@ -2171,8 +2223,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "security/73-live-ruleset-release-gate-20261031",
-      "headSha": "7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f",
-      "updatedAt": "2026-11-05T09:08:59Z",
+      "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
+      "updatedAt": "2026-11-10T12:43:32Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/251"
     },
     {
@@ -3243,5 +3295,31 @@
       "updatedAt": "2026-10-27T22:42:34Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/127"
     }
-  ]
+  ],
+  "watchRun": {
+    "observedAt": "2026-11-10T12:43:33Z",
+    "mainHead": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
+    "mainValidateRun": 42710429488,
+    "openPullRequests": {
+      "total": 194,
+      "draft": 192,
+      "nonDraft": 2,
+      "mainTargets": 50,
+      "otherBaseTargets": 144,
+      "stackRoots": 53,
+      "maxObservedChainDepth": 36
+    },
+    "auditSnapshotHead": "8ac4b6970f1b961da980dc3f291307392dd6a313",
+    "auditSnapshotValidateRun": 42810140008,
+    "governancePr251": {
+      "head": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
+      "ciRun": 42818199684,
+      "ciStatus": "in_progress",
+      "reviews": 0
+    },
+    "productionApproved": false,
+    "status": "BLOCKED / NO-GO",
+    "noMainMutation": true,
+    "noDeploymentOrCloudMutation": true
+  }
 }
