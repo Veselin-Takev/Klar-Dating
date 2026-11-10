@@ -268,7 +268,14 @@ export async function recordActivation(db: Firestore, uid: string, eventName: st
     ? eventId
     : crypto.randomUUID();
   const ref = db.collection('activation_events').doc(safeId);
-  await ref.create({ uid, eventName, metadata: safeActivationMetadata(metadata), createdAt: FieldValue.serverTimestamp() });
+  const deletionRef = db.collection('account_deletions').doc(uid);
+  // Make the account-deletion guard and event creation one atomic decision.
+  // A concurrent deletion-marker write forces Firestore transaction retry.
+  await db.runTransaction(async tx => {
+    const deletion = await tx.get(deletionRef);
+    if (deletion.exists) throw new Error('Account deletion pending');
+    tx.create(ref, { uid, eventName, metadata: safeActivationMetadata(metadata), createdAt: FieldValue.serverTimestamp() });
+  });
   return { eventId: safeId, weight: ACTIVATION_WEIGHTS[eventName] ?? 0 };
 }
 
