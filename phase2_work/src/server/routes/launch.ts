@@ -206,11 +206,14 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const db = deps.getFirestore();
       const userRef = db.collection('users').doc(uid);
+      const deletionRef = db.collection('account_deletions').doc(uid);
       const cohortRef = db.collection('system').doc('founding_500');
       const result = await db.runTransaction(async (tx: Transaction) => {
-        const userSnap = await tx.get(userRef);
-        const cohortSnap = await tx.get(cohortRef);
-        if (!userSnap.exists) throw new Error('User not found');
+        // Read all three documents in the same transaction. A deletion request
+        // prevents both new membership and stale "already a member" success.
+        const [userSnap, deletionSnap, cohortSnap] = await tx.getAll(userRef, deletionRef, cohortRef);
+        if (!userSnap || !deletionSnap || !cohortSnap || !userSnap.exists) throw new Error('User not found');
+        if (deletionSnap.exists) return { member: false, rank: null, reason: 'account_deleting' };
         const user = userSnap.data() ?? {};
         if (user.founding500Member === true) return { member: true, rank: user.founding500Rank ?? null, already: true };
         if (user.isAdult !== true || typeof user.location !== 'string' || !deps.normalizeLaunchCity(user.location)) {
@@ -226,6 +229,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       if (result.member && !result.already) {
         await deps.recordActivation(db, uid, 'founding_500_claimed', `founding_500_claimed_${uid}`, { step: 'launch' });
       }
+      if (result.reason === 'account_deleting') return res.status(409).json(result);
       return res.json(result);
     } catch (error) {
       console.error('Founding 500 claim failed', error);
