@@ -15,11 +15,17 @@ export function BiometricsVerificationModal({ isOpen, onSuccess, onCancel }: Pro
   const check = async () => {
     setBusy(true); setMessage('');
     try {
-      const response = await authFetch('/api/verification/status');
+      // The old /api/verification/status endpoint is permanently retired (410).
+      // Only the authenticated Didit status endpoint can confirm approval.
+      const response = await authFetch('/api/kyc/status');
       if (!response.ok) throw new Error('status unavailable');
-      const result = await response.json();
-      if (result.isVerified === true) onSuccess();
-      else setMessage(t('kyc.photoPending'));
+      const payload: unknown = await response.json();
+      const status = payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? (payload as { status?: unknown }).status : undefined;
+      if (status === 'approved') onSuccess();
+      else if (status === 'pending' || status === 'review' || status === 'not_started')
+        setMessage(t('kyc.photoPending'));
+      else setMessage(t('kyc.statusUnavailable'));
     } catch { setMessage(t('kyc.statusUnavailable')); }
     finally { setBusy(false); }
   };

@@ -1,3 +1,11 @@
+## P1 #237 – Profilstatus-Aktualisierung gegen aktive Didit-Verifizierung (31.10.2026)
+
+Das aktive Profil rendert einen Verifizierungsstatus-Dialog, dessen Refresh bisher den bewusst deaktivierten `/api/verification/status`-Endpunkt (HTTP 410) aufrief. In einem eigenständigen Feature-Branch auf `main` wurde der Dialog auf das authentifizierte `GET /api/kyc/status` umgestellt. Ausschließlich `status === 'approved'` löst die Profilaktualisierung aus; Zwischenzustände, unbekannte Antworten und Fehler bleiben fail-closed. Negative Komponententests und ein Enterprise-Pflicht-Source-Gate wurden ergänzt. [Sicherheits- und UI-Nachweis](KYC_PROFILE_REFRESH_PROVIDER_BOUNDARY_2026-10-31.md) · [Issue #237](https://github.com/Veselin-Takev/Klar-Dating/issues/237).
+
+**Nicht als produktionsreif freigegeben:** exakter CI-PASS und unabhängige Review stehen für diesen neuen Branch noch aus. Die separate P0-Retention-/Admin-IAM-/All-Writer-Fencing-/Legacy-Erasure-Kette #202 bleibt blockiert. Kein Deploy/Merge, **BLOCKED / NO-GO**.
+
+---
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
