@@ -27,13 +27,17 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
     await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
   });
-  it('executes the retention worker against real emulator objects after 30 days', async () => {
+  it('refuses unsafe creation-age deletion even for old emulator objects', async () => {
     const bucket = getAppBucket();
     const photo = bucket.file(`verification/${prefix}/photo.jpg`);
     await photo.save(image);
     expect((await photo.exists())[0]).toBe(true);
-    await deleteExpiredPhotoPage(bucket, new Date(Date.now() + PHOTO_RETENTION_MS + 1000));
-    expect((await photo.exists())[0]).toBe(false);
+    await expect(deleteExpiredPhotoPage(bucket, new Date(Date.now() + PHOTO_RETENTION_MS + 1000)))
+      .rejects.toThrow('AGE_ONLY_PHOTO_PURGE_DISABLED');
+    expect((await photo.exists())[0]).toBe(true);
+    // This is an emulator-only regression: the signed, decision-bound worker is
+    // reviewed separately and must not rely on GCS creation age.
+    await photo.delete();
   });
   it('account erasure deletes both photo prefixes without crossing account boundaries', async () => {
     const bucket = getAppBucket();

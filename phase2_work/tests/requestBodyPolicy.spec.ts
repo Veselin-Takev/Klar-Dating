@@ -65,6 +65,7 @@ describe('request entity encoding boundary', () => {
     for (const file of files) for (const match of readFileSync(file, 'utf8').matchAll(/\b(?:express\.(?:json|raw)|urlencoded|text)\(\{([^}]+)\}/g)) {
       expect(match[1], file).toMatch(/\binflate:\s*false\b/); count++;
     }
-    expect(count).toBe(14);
+    // Includes the A-14 path-scoped 2 KiB compliance HMAC raw parser.
+    expect(count).toBe(15);
   });
 });

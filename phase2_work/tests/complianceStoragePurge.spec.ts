@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { complianceSignature, validComplianceRequest } from '../src/server/routes/complianceStorage';
 
@@ -10,6 +11,13 @@ describe('verification storage compliance job authentication', () => {
   it('accepts only a fresh HMAC proof', () => {
     const signature = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
     expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(true);
+  });
+
+  it('authenticates the original binary octets instead of lossy UTF-8 text', () => {
+    const bytes = Buffer.from([0xff, 0xfe, 0x7b, 0x7d]);
+    const proof = createHmac('sha256', secret).update(timestamp + '.').update(bytes).digest('hex');
+    expect(validComplianceRequest(bytes, timestamp, proof, secret, Number(timestamp))).toBe(true);
+    expect(validComplianceRequest(Buffer.from(bytes.toString('utf8'), 'utf8'), timestamp, proof, secret, Number(timestamp))).toBe(false);
   });
 
   it('rejects replay, wrong secret and malformed signatures', () => {
