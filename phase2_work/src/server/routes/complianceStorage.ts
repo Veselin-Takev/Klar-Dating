@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStorage } from 'firebase-admin/storage';
 import type { Firestore } from 'firebase-admin/firestore';
 import { executeVerificationRetentionBatch, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
+import { assertCurrentVerificationPurgeCandidate, verifiedDeletionGeneration } from '../platform/verificationPurgeBoundary';
 
 const MAX_BATCH = 100;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
@@ -36,7 +37,10 @@ function normalizeTimestamp(value: unknown): number | null {
 
 export function createVerificationStoragePurgeRouter(deps: {
   getDb: () => Firestore;
-  getBucket?: () => { file: (path: string) => { delete: (options?: unknown) => Promise<unknown> } };
+  getBucket?: () => { file: (path: string) => {
+    getMetadata: () => Promise<[Record<string, unknown>, ...unknown[]]>;
+    delete: (options: { ifGenerationMatch: string }) => Promise<unknown>;
+  } };
 }): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
@@ -64,21 +68,45 @@ export function createVerificationStoragePurgeRouter(deps: {
       const bucket = deps.getBucket?.() ?? getStorage().bucket();
       const summary = await executeVerificationRetentionBatch(
         artifacts,
-        async path => {
-          try { await bucket.file(path).delete({ ignoreNotFound: true }); }
-          catch (error) { throw error; }
+        async (path, artifact) => {
+          // Re-read the authoritative decision before any destructive GCS operation.
+          const current = await db.collection('verification_events').doc(artifact.challengeId).get();
+          assertCurrentVerificationPurgeCandidate(current.data(), artifact, now);
+          const file = bucket.file(path);
+          const [metadata] = await file.getMetadata();
+          const generation = verifiedDeletionGeneration(metadata, now);
+          // A replaced object must be preserved; a 404 is not a verified purge receipt.
+          await file.delete({ ifGenerationMatch: generation });
         },
         async (uid, challengeId, auditData) => {
           const ref = db.collection('verification_events').doc(challengeId);
           await db.runTransaction(async tx => {
             const current = await tx.get(ref);
-            if (!current.exists || current.data()?.uid !== uid) return;
+            const original = artifacts.find(item => item.challengeId === challengeId && item.uid === uid);
+            if (!current.exists || !original) throw new Error('verification_purge_receipt_candidate_missing');
+            assertCurrentVerificationPurgeCandidate(current.data(), original, now);
             tx.update(ref, auditData);
           });
         },
         now,
       );
-      return res.json({ ok: true, ...summary });
+      // A scheduled caller checks only HTTP status. Never acknowledge a partial
+      // failure as success or echo GCS errors, user IDs or photo paths.
+      const failedCount = summary.results.filter(result => result.reason === 'error').length;
+      const malformedCount = snapshot.docs.length - artifacts.length;
+      const safeSummary = {
+        processed: summary.processed,
+        purgedCount: summary.purgedCount,
+        skippedCount: summary.skippedCount,
+        failedCount,
+        malformedCount,
+      };
+      if (failedCount > 0 || malformedCount > 0 ||
+          summary.results.length !== summary.processed ||
+          summary.purgedCount + summary.skippedCount !== summary.processed) {
+        return res.status(503).json({ ok: false, code: 'verification_storage_purge_incomplete', ...safeSummary });
+      }
+      return res.json({ ok: true, ...safeSummary });
     } catch {
       return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
     }
