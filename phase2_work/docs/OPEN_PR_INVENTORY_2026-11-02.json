@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-10",
-  "observedAt": "2026-11-10T21:53:35Z",
-  "source": "Fresh GitHub REST pulls pages 1-2 (per_page=100), main branch ref, exact PR heads/bases; read-only snapshot.",
+  "observedAt": "2026-11-10T22:21:36Z",
+  "source": "Fresh GitHub REST pulls pages 1-2 (per_page=100), exact main commit and all open PR head/base refs; read-only snapshot.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -699,13 +699,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "82e413983a9d99fcc20be7c93fa54493116ed7ba",
-      "mergeSha": "fe0ce6c0f9c627dd6d6b25ed433a03b30e312a9a",
+      "headSha": "96cf28cf01a34dfc4a70a6a3932a2b7d79e2eab8",
+      "mergeSha": "96172b57ce6bddeb64daf685c11ec8ebb7a28fb9",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-10T18:39:19Z"
+      "updatedAt": "2026-11-10T21:59:04Z"
     },
     {
       "number": 312,
@@ -1248,6 +1248,21 @@
       "updatedAt": "2026-11-02T18:22:53Z"
     },
     {
+      "number": 276,
+      "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
+      "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276",
+      "draft": true,
+      "base": "security/p0-202-write-ahead-delete-intent-20261101",
+      "head": "security/p0-202-native-emulator-lease-cas-20261101",
+      "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
+      "mergeSha": "4ead7334f75ae5f7bbaf329b83718c9f6f8ff5b0",
+      "dependencyPr": 275,
+      "depthFromMain": 6,
+      "titleArea": "retention-202",
+      "createdAt": "2026-11-01T09:02:50Z",
+      "updatedAt": "2026-11-02T18:22:51Z"
+    },
+    {
       "number": 275,
       "title": "security(P0 #202): write-ahead generation-fenced delete intent; no auto-retry after crash",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/275",
@@ -1291,21 +1306,6 @@
       "titleArea": "retention-202",
       "createdAt": "2026-11-01T09:19:33Z",
       "updatedAt": "2026-11-02T18:22:44Z"
-    },
-    {
-      "number": 276,
-      "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
-      "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276",
-      "draft": true,
-      "base": "security/p0-202-write-ahead-delete-intent-20261101",
-      "head": "security/p0-202-native-emulator-lease-cas-20261101",
-      "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
-      "mergeSha": "4ead7334f75ae5f7bbaf329b83718c9f6f8ff5b0",
-      "dependencyPr": 275,
-      "depthFromMain": 6,
-      "titleArea": "retention-202",
-      "createdAt": "2026-11-01T09:02:50Z",
-      "updatedAt": "2026-11-02T18:22:51Z"
     },
     {
       "number": 272,
