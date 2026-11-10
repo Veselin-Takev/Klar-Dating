@@ -2,7 +2,7 @@
 
 **Fresh Main-Baseline:** `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`, Merge PR #359. GitHub commit signature: `verified=true`, reason `valid`. Exact Main workflow [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), job `129478192916`: `completed/success`, 33 Schritte. Das ist Repository-CI, keine Produktionsabnahme.
 
-**Offene PRs:** 194 gesamt, 192 Drafts, 2 Nicht-Drafts; 50 gegen `main`, 144 gegen andere Branches; 141 Parent-Basen durch offene PR-Heads abgedeckt, 4 nicht zugeordnet; maximale beobachtete Stacktiefe 36. Vollständiger SHA-/Stack-Snapshot: [OPEN_PR_INVENTORY_2026-11-10.json](OPEN_PR_INVENTORY_2026-11-10.json).
+**Offene PRs:** 194 gesamt, 192 Drafts, 2 Nicht-Drafts; 50 gegen `main`, 144 gegen andere Branches; 141 Parent-Basen durch offene PR-Heads abgedeckt, 3 nicht zugeordnet; maximale beobachtete Stacktiefe 36. Vollständiger SHA-/Stack-Snapshot: [OPEN_PR_INVENTORY_2026-11-10.json](OPEN_PR_INVENTORY_2026-11-10.json).
 
 | PR | Aktueller exakter Head-SHA | Exact-head validate | Job | Reviews |
 |---|---|---|---|---:|

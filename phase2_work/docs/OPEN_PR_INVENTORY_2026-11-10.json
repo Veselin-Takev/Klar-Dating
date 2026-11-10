@@ -48,7 +48,7 @@
     "targetsMain": 50,
     "targetsOtherBranches": 144,
     "baseMatchesAnotherOpenPrHead": 141,
-    "baseNotRepresentedByOpenPrHead": 4,
+    "baseNotRepresentedByOpenPrHead": 3,
     "unmatchedBases": [
       {
         "base": "docs/213-partner-concurrency-evidence-20261030"
@@ -58,9 +58,6 @@
       },
       {
         "base": "docs/55-56-partner-trust-audit-20261030"
-      },
-      {
-        "base": "main"
       }
     ],
     "maxObservedOpenPrChainDepth": 36,
