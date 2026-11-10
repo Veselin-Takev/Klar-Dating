@@ -174,6 +174,32 @@ describe('launch/referral/activation HTTP boundary', () => {
     },
   );
 
+  it('rejects competing referral attribution without changing the original inviter or reward state', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, isVerified: false, referredBy: 'first-inviter', referralQualified: false });
+    fixture.store.set('users/first-inviter', { referralCode: 'FIRSTCODE1', isVerified: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
+    expect(fixture.store.get('users/user-a')).toMatchObject({ referredBy: 'first-inviter', referralQualified: false, isVerified: false });
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
+  it('keeps a retry for the existing inviter idempotent without creating a second event', async () => {
+    const fixture = referralDb();
+    fixture.store.set('users/user-a', { isAdult: true, isVerified: false, referredBy: 'inviter', referralQualified: false });
+    const ctx = await api({ getFirestore: () => fixture.db });
+    const response = await fetch(ctx.base + '/referral/claim', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(fixture.writes.filter(write => write.path.startsWith('users/') || write.path.startsWith('referral_events/'))).toHaveLength(0);
+  });
+
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();
     const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
