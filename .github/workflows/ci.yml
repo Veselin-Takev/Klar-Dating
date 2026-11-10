@@ -72,6 +72,9 @@ jobs:
       - name: Chat retry idempotency regression
         if: steps.scope.outputs.full == 'true'
         run: node --test scripts/chat-replay-idempotency.test.mjs
+      - name: Dependency lock verifier regression
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/test-lock-refresh-verifier.mjs
       - name: Dependency lock preflight
         if: steps.scope.outputs.full == 'true'
         run: node scripts/check-dependency-locks.mjs
