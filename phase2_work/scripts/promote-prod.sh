@@ -19,10 +19,15 @@ set -euo pipefail
 [[ "${KLAR_PROMOTE_IMAGE}" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*/klar-app@sha256:[0-9a-f]{64}$ ]] || { echo "Promotion image must be an immutable GHCR klar-app digest" >&2; exit 2; }
 [[ "${KLAR_PROMOTE_IMAGE}" == "${KLAR_IMAGE_REPOSITORY}@sha256:"* ]] || { echo "Promotion image is outside the approved repository" >&2; exit 2; }
 
-command -v gcloud >/dev/null
+# Canary observation evidence alone does not authorize full production
+# promotion. Preserve the same immutable exact-SHA GO gate used at deploy.
 command -v node >/dev/null
+node "$(dirname "${BASH_SOURCE[0]}")/check-production-release-approval.mjs"
+# The approved SHA must be the real, clean checked-out source (not just an env claim).
+node "$(dirname "${BASH_SOURCE[0]}")/check-production-checkout-identity.mjs"
+command -v gcloud >/dev/null
 
-node scripts/validate-promotion-evidence.mjs "${KLAR_PROMOTION_EVIDENCE}" "${KLAR_PROMOTE_IMAGE}" "${KLAR_PROMOTE_REVISION}" "${GITHUB_SHA:-${KLAR_BUILD_SHA:-}}"
+node "$(dirname "${BASH_SOURCE[0]}")/validate-promotion-evidence.mjs" "${KLAR_PROMOTION_EVIDENCE}" "${KLAR_PROMOTE_IMAGE}" "${KLAR_PROMOTE_REVISION}" "${GITHUB_SHA:-${KLAR_BUILD_SHA:-}}"
 
 revision_image="$(gcloud run revisions describe "${KLAR_PROMOTE_REVISION}" --project "${KLAR_PROJECT_ID}" --region "${KLAR_REGION}" --format='value(spec.containers[0].image)')"
 [[ "${revision_image}" == "${KLAR_PROMOTE_IMAGE}" ]] || { echo "Candidate revision image does not match approved immutable image" >&2; exit 2; }
