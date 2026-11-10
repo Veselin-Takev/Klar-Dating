@@ -27,5 +27,5 @@
     //   vorher nicht gab -- verursacht von dieser Datei, nicht vom Code.
     "types": ["node", "vite/client", "@testing-library/jest-dom"]
   },
-  "include": ["tests/**/*.ts", "tests/**/*.tsx", "src/**/*.ts"]
+  "include": ["tests/**/*.ts", "tests/**/*.tsx", "src/**/*.ts", "scripts/tenant-migration-preflight.ts"]
 }
