@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T13:28:37Z",
+  "observedAt": "2026-11-10T18:31:03Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -65,8 +65,8 @@
     ],
     "maxObservedOpenPrChainDepth": 36,
     "baseDistribution": {
-      "main": 50,
       "release/v0.1.1-rc1": 1,
+      "main": 50,
       "fix/release-prod-canary-approval-gate-20261107": 1,
       "fix/ves5-account-deletion-photo-fence-20261108": 1,
       "fix/ves5-firestore-record-hold-guard-20261108": 1,
@@ -201,7 +201,6 @@
       "fix/retention-hmac-a01-a08-a14-20261028": 1
     },
     "headPrefixCounts": {
-      "dependabot": 1,
       "audit": 7,
       "release": 1,
       "fix": 81,
@@ -212,7 +211,8 @@
       "test": 19,
       "feature": 2,
       "feat": 5,
-      "Veselin-Takev-patch-1": 1
+      "Veselin-Takev-patch-1": 1,
+      "dependabot": 1
     },
     "stackRoots": 53,
     "largestStacks": [
@@ -241,6 +241,12 @@
         "depth": 14
       },
       {
+        "rootPr": 219,
+        "title": "feat(security): stage atomic member referral code registry primitive and Art17 guards (#48)",
+        "count": 10,
+        "depth": 10
+      },
+      {
         "rootPr": 192,
         "title": "integration(privacy): consolidate referral, launch and partner guards (#8 #56)",
         "count": 10,
@@ -253,10 +259,10 @@
         "depth": 4
       },
       {
-        "rootPr": 140,
-        "title": "feat(security): automate fail-closed dependency scanning",
-        "count": 4,
-        "depth": 4
+        "rootPr": 214,
+        "title": "fix(security): deny anonymous Firebase guest member-referrals (#48)",
+        "count": 5,
+        "depth": 5
       },
       {
         "rootPr": 172,
@@ -265,16 +271,10 @@
         "depth": 4
       },
       {
-        "rootPr": 337,
-        "title": "draft(fix): Vercel age-gate API routing, missing Klar assets and fail-closed backend checks",
+        "rootPr": 140,
+        "title": "feat(security): automate fail-closed dependency scanning",
         "count": 4,
-        "depth": 3
-      },
-      {
-        "rootPr": 177,
-        "title": "fix(launch): deny founding claims for deletion-pending accounts (#8 #48)",
-        "count": 3,
-        "depth": 3
+        "depth": 4
       }
     ]
   },
@@ -476,16 +476,16 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
+      "headSha": "465bc6944db062aa7e8a4787f2c0ed8821aa68c3",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 78,
+        "ahead": 81,
         "behind": 2
       },
       "validate": {
-        "run": 42818827306,
-        "job": 129838770426,
+        "run": 42864926184,
+        "job": 130000587479,
         "status": "completed",
         "conclusion": "success",
         "stepCount": 33
@@ -496,7 +496,7 @@
           "status": "completed",
           "conclusion": "success",
           "app": "Vercel",
-          "deployment": "dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT",
+          "deployment": "dpl_6i482qDtsxUMwZU7KqxwtdvnyW9C",
           "target": null
         },
         {
@@ -507,11 +507,11 @@
         }
       ],
       "reviews": 0,
-      "updatedAt": "2026-11-10T12:48:09Z",
+      "updatedAt": "2026-11-10T17:26:17Z",
       "notes": [
-        "Exact observed head a14d70d2b4e76c703be06cb9f4e61456301d92d6: validate run 42818827306/job 129838770426 completed SUCCESS (33 steps); Vercel preview READY, target=null.",
-        "Still Draft, 78 ahead / 2 behind fresh main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b, zero submitted code reviews.",
-        "This inventory is the pre-documentation-commit snapshot; any subsequent commit on this branch requires new exact-head CI."
+        "Exact current head 465bc6944db062aa7e8a4787f2c0ed8821aa68c3: validate run 42864926184/job 130000587479 completed SUCCESS (33 steps); Vercel preview READY, target=null.",
+        "Still Draft, 81 ahead / 2 behind fresh main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b, zero submitted code reviews.",
+        "The prior inventory head a14d70d2b4e76c703be06cb9f4e61456301d92d6 is superseded; only exact-head checks on 465bc694... apply."
       ]
     },
     {
@@ -773,7 +773,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T13:28:37Z",
+    "checkedAt": "2026-11-10T18:31:03Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -781,11 +781,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT",
+      "id": "dpl_6i482qDtsxUMwZU7KqxwtdvnyW9C",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-5p24gynhq-ves3.vercel.app",
-      "commitSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
+      "url": "klar-dating-i3np3mtol-ves3.vercel.app",
+      "commitSha": "465bc6944db062aa7e8a4787f2c0ed8821aa68c3",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -836,7 +836,7 @@
       "severity": "P0 release evidence",
       "source": "phase2_work/scripts/configure-retention.sh",
       "sourceSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
-      "detail": "Current main enumerates 20 TTL groups, defaults to dry-run and restricts apply to an exactly approved staging project/database; no 20/20 ACTIVE live TTL capture or approved legal-hold matrix."
+      "detail": "configure-retention.sh now enumerates 20 groups and applies only under explicit staging/legal/inventory gates; DATA_RETENTION.md still contains a verification sentence saying 13 documented groups. No live 20/20 ACTIVE readback or independent legal-hold/Art.-17 evidence was obtained."
     },
     {
       "issue": 254,
@@ -970,7 +970,18 @@
     "The other four priority Drafts #269/#203/#253/#314 retain their exact observed heads and completed validate SUCCESS; #314 Vercel combined status remains FAILURE with build-rate-limit.",
     "Current non-Draft #358 fails exact-head Browser acceptance (28 passed/1 failed; consent-withdrawal confirmation mismatch); current non-Draft Dependabot #361 fails Enterprise static gates because the release workflow lacks signed provenance bound to immutable image digest. Neither has an independent review. #315 is closed unmerged.",
     "Read-only Vercel: klar-dating exists; production-target deployment dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w is READY on main SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; audit preview dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT is READY on #313 head a14d70d2b4e76c703be06cb9f4e61456301d92d6 with target=null. Project reports live=false and Node 26.x; no application-health inference is made.",
-    "No source code, tests, main, merge, deployment, secrets, Firebase/GCS/IAM/Scheduler or database mutation was performed. This documentation-only commit creates a new #313 head; the previous exact-head CI does not apply to the new commit."
+    "No source code, tests, main, merge, deployment, secrets, Firebase/GCS/IAM/Scheduler or database mutation was performed. This documentation-only commit creates a new #313 head; the previous exact-head CI does not apply to the new commit.",
+    "2026-11-10 18:31 UTC exact-head refresh: main remains 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; validate run 42710429488/job 129478192916 is completed SUCCESS (33 steps).",
+    "Fresh PR reconciliation: 193 current repository-owner PRs plus bot-authored #361 = 194 open / 192 Draft / 2 non-Draft (#358, #361); 50 target main / 144 stacked; 141 bases map to another open PR head, 3 unmatched (#219/#214/#213), 53 roots, max chain depth 36. All 193 owner-authored PR entries match the prior full inventory except #313's head; #361 was independently re-read through Vercel Git metadata at 2f90d9fef013f7a7f070a3624cadd5fd62e914ff.",
+    "PR #313 advanced to exact head 465bc6944db062aa7e8a4787f2c0ed8821aa68c3; exact validate run 42864926184/job 130000587479 completed SUCCESS (33 steps), Vercel preview READY target=null, 81 ahead/2 behind, zero reviews. Previous #313 head a14d70d2... is stale.",
+    "Priority PRs #251/#269/#203/#253/#314 retain the exact heads/runs listed above; each exact validate is SUCCESS, each has zero reviews, and each is two commits behind current main. #314 Vercel remains FAILURE due build-rate-limit.",
+    "PR #315 is closed unmerged, last head 71743b14c66d9c5f2fdca2ed73a0fda3c137d48d, exact-head CI failed the release attestation gate; its only approval was by the repository owner. Current replacement Dependabot #361 head 2f90d9fef013f7a7f070a3624cadd5fd62e914ff has zero reviews and fails check:release-workflow for missing GitHub-signed provenance bound to immutable image digest.",
+    "Non-Draft RC1 #358 remains at 1321c42ffe1c5919c1baccaada66a650ab811f93; run 42710380877/job 129478019942 fails Browser acceptance at privacy-settings consent withdrawal (28 passed/1 failed); its 1,636 PASS claim is tied to older SHA 951b16b243354321ca9c2c31bde8deab9e00060a.",
+    "Main source recheck: legacy deleteExpiredPhotosCron remains scheduled every 24h and deletes by Storage timeCreated older than 30 days, not moderation decision. #269 PR branch disables that worker but is not integrated. #269/#203 still overlap in six exact files; do not merge blindly.",
+    "Issue #70 source: configure-retention.sh enumerates 20 groups with dry-run default and staging-only gated apply, while DATA_RETENTION.md still says 13 in its verification sentence; no live 20/20 ACTIVE readback or independent legal-hold/Art.-17 proof. Main server.ts has zero tenant mentions; storage.rules allows signed-in profile reads; klar.ts persists getDownloadURL as photoURL.",
+    "Vercel read-only: Klar project exists; team list contains only Klar; production-target deployment dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w READY on main SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b with aliases attached. Project metadata still says live=false and Node 26.x. Current #313 preview dpl_6i482qDtsxUMwZU7KqxwtdvnyW9C is READY, target=null, bound to exact head 465bc694.... Old demo project ID remains 404 not_found; no deletion retried; provider credential rotation remains unproven.",
+    "Ruleset #25756841: last live snapshot in this inventory is 13:28 UTC (active, zero required approvals, no CODEOWNERS review, strict validate). No fresh live read was possible through the connected GitHub action surface this run; #251's current PR body repeats the zero-approval/no-CODEOWNERS state. The release-tag live preflight remains distinct from PR synthetic tests; bypass visibility requires a token with additional Ruleset permissions per issue #73.",
+    "All requested issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain open. productionApproved=false / BLOCKED / NO-GO. No code, tests, main, merges, deployment promotion, secrets, Firebase/GCS/IAM/Scheduler or database mutation was performed."
   ],
   "entries": [
     {
@@ -1497,8 +1508,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
-      "updatedAt": "2026-11-10T12:48:09Z",
+      "headSha": "465bc6944db062aa7e8a4787f2c0ed8821aa68c3",
+      "updatedAt": "2026-11-10T17:26:17Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
@@ -3303,7 +3314,7 @@
     }
   ],
   "watchRun": {
-    "observedAt": "2026-11-10T13:28:37Z",
+    "observedAt": "2026-11-10T18:31:03Z",
     "mainHead": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidateRun": 42710429488,
     "openPullRequests": {
@@ -3315,8 +3326,8 @@
       "stackRoots": 53,
       "maxObservedChainDepth": 36
     },
-    "auditSnapshotHead": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
-    "auditSnapshotValidateRun": 42818827306,
+    "auditSnapshotHead": "465bc6944db062aa7e8a4787f2c0ed8821aa68c3",
+    "auditSnapshotValidateRun": 42864926184,
     "auditSnapshotStatus": "completed/success",
     "governancePr251": {
       "head": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
@@ -3327,6 +3338,9 @@
     "productionApproved": false,
     "status": "BLOCKED / NO-GO",
     "noMainMutation": true,
-    "noDeploymentOrCloudMutation": true
+    "noDeploymentOrCloudMutation": true,
+    "rulesetFreshRead": false,
+    "rulesetLastLiveReadAt": "2026-11-10T13:28:37Z",
+    "rulesetReadLimitation": "No read-only Ruleset endpoint is exposed by the connected GitHub actions in this run; retain last live snapshot and do not claim a fresh API attestation."
   }
 }
