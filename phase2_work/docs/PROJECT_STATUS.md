@@ -1,3 +1,34 @@
+## Production-Freigabe-Watch – 10.11.2026, 06:53 UTC – BLOCKED / NO-GO
+
+**Aktualisierung gegenüber dem 05:24-Snapshot:** PR #313 hat nach dem Dokumentations-Head-Wechsel jetzt eine eigene, abgeschlossene Exact-head-CI. Aktueller Head `11a31b99e912773d7db93ff312c60e3586c6322b`; [Run 42762463927](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42762463927), Job `129651190778`: `completed/success`, 33/33 Schritte. Das frühere `IN PROGRESS` ist überholt. PR #313 hat weiterhin **0 Code-Reviews** und liegt 72 Commits vor / 2 hinter frischem Main. Die CI ist kein unabhängiges Audit- oder Produktions-Approval.
+
+**Main:** `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`, Signatur verifiziert; [Main-Run 42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), Job `129478192916`: SUCCESS. Keine Main-Änderung in diesem Lauf.
+
+**PR-Bestand:** 194 offen, 192 Drafts, 2 Nicht-Drafts; 50 gegen `main`, 144 gegen andere Branches; maximale Stacktiefe 36. Die vollständigen 194 Einträge und Branch-Verteilungen wurden aus zwei frischen GitHub-API-Seiten neu aufgebaut. Nicht-Drafts: [#358](https://github.com/Veselin-Takev/Klar-Dating/pull/358) und [#361](https://github.com/Veselin-Takev/Klar-Dating/pull/361).
+
+**Ausgewählte Drafts:** #251 `7ff8b6d7350d336d2e1b4eb054f65d5f058ef91f`, #269 `fd68656957c01618c3a085e887ece504624d18b3`, #203 `1850e0a78b22e600e5add99273b84c081ffc3892`, #253 `036ee313747a7beb2ab926e721e3bef958304447`, #313 `11a31b99e912773d7db93ff312c60e3586c6322b`, #314 `e5deab1dfd629065f3dfce3a5577eb21ac966a68`: alle sechs haben SUCCESS auf ihren jeweils exakten Heads, aber 0 eingereichte Reviews und jeweils 2 Commits Rückstand auf Main. #315 ist geschlossen und ungemergt; sein Owner-Self-Approval ist nicht unabhängig.
+
+**Aktuelle Nicht-Draft-Blocker:** #358 bleibt auf seinem exakten Head `1321c42ffe1c5919c1baccaada66a650ab811f93` bei Browser Acceptance rot: `tests/e2e/privacy-settings.spec.ts` erwartet `Einwilligung wurde widerrufen.`, erhält aber `Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.` (5s Timeout). #361 Head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff` scheitert an `Enterprise static gates`: Production-Release muss eine GitHub-signierte Provenance-Attestation an den unveränderlichen Image-Digest binden. Beide haben 0 Reviews.
+
+**Ruleset #25756841:** active auf `refs/heads/main`; `validate` strict; 0 erforderliche Approvals, keine CODEOWNERS-Pflicht, keine Stale-Review-Entwertung, keine Last-Push-Approval- oder Thread-Resolution-Pflicht; keine Bypass Actors.
+
+**P0/P1-Quell- und Betriebsbefunde:**
+- #202: Main exportiert weiterhin den 24h-Worker `deleteExpiredPhotosCron`; `retention.ts` löscht Objekte unter `verification/` allein nach `timeCreated > 30 Tage`, mit Hold-/Generation-Prüfungen, aber ohne Moderationsentscheidung/`fotoLoeschenAb`. Das ist Quellbeleg; ob der Scheduler in Produktion aktiv ist, bleibt ungeprüft. #203/#269 teilen exakt sechs geänderte Pfade; nicht blind zusammenführen.
+- #70: Main-Skript enumeriert inzwischen 20 TTL-Gruppen und erlaubt Apply ausschließlich in exakt genehmigtem Staging. Die alte Issue-Beschreibung mit vier Gruppen ist für den aktuellen Quellstand überholt. Es fehlen aber 20/20 `ACTIVE`-Nachweise für Zielprojekt/-datenbank und die neue genehmigte Legal-Hold-/Retention-Matrix.
+- #254: Main-`server.ts` enthält keine Tenant-Middleware-Montage; #253 ist ungemergt. Vollständige Legacy-Mapping-, Cross-Tenant-BOLA/IDOR- und Art.-17-Cutover-Belege fehlen.
+- #204: Main-`storage.rules` erlaubt Profilbild-Lesen mit `signedIn()`; das Plattformmodell fordert erwachsenen Leser und erwachsenes Zielprofil.
+- #206: Main-`klar.ts` persistiert `getDownloadURL()` als `users/{uid}.photoURL`; Migration und Widerruf bereits verteilter Bearer-Links fehlen.
+- #73: Aktuelle Main-CODEOWNERS-Datei weist Repository und aktive `phase2_work`-Pfade nur `@Veselin-Takev` zu. Keine unabhängigen Security-/Finance-Team-Owner; Ruleset erzwingt ebenfalls keine Approvals.
+- #8/#55/#56: reale Alertzustellung/Restore/RTO/RPO sowie Partner-Buyer-Bindung, Tracking-Rechtsgrundlage, Token-Widerruf und Art.-17-Retention bleiben unbelegt.
+
+**Vercel read-only:** Team `ves3` listet weiterhin genau ein Projekt `klar-dating` / `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`; Projektmetadaten `live=false`. Neuester READY-Preview `dpl_5cgXBcd9PL1jKrYF5zJckJyG71wU` ist exakt an den aktuellen #313-Head `11a31b99e912773d7db93ff312c60e3586c6322b` gebunden. Separates READY-Deployment mit `target=production` bleibt an Main-SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` gebunden. READY-Metadaten beweisen weder Nutzerverkehr noch Freigabe. Die bestätigte Löschung von `login-page-prototype` wurde nicht erneut versucht; Neon/Postgres/Better-Auth-Credential-Rotation ist nicht nachgewiesen.
+
+**Entscheidung:** `productionApproved=false`, **BLOCKED / NO-GO**. Es fehlen exakter integrierter Release-SHA, kritische Live-/Lösch-/TTL-/Tenant-/Betriebsbelege sowie unabhängige Security-, DPO/Legal-, SRE-, Finance- (falls relevant) und Release-Owner-Freigaben. Keine Main-Commits, Merges, Deployments, Secret-Zugriffe oder produktiven Cloud-/Datenbankmutationen in diesem Lauf.
+
+Vollständiger aktualisierter PR-/SHA-/CI-/Stack-Snapshot: [OPEN_PR_INVENTORY_2026-11-10.json](OPEN_PR_INVENTORY_2026-11-10.json).
+
+---
+
 ## Production-Freigabe-Watch – 10.11.2026, 05:24 UTC – BLOCKED / NO-GO
 
 **Fresh Main-Baseline:** `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`, Merge PR #359. GitHub commit signature: `verified=true`, reason `valid`. Exact Main workflow [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), job `129478192916`: `completed/success`, 33 Schritte. Das ist Repository-CI, keine Produktionsabnahme.
