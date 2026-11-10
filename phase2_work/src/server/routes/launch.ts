@@ -98,11 +98,20 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      const userData = userSnap.data() ?? {};
+      // Account deletion and profile hydration must share an atomic read boundary.
+      // Refuse to derive or disclose community context for deletion-pending users.
+      const db = deps.getFirestore();
+      const userRef = db.collection('users').doc(uid);
+      const deletionRef = db.collection('account_deletions').doc(uid);
+      const userData = await db.runTransaction(async tx => {
+        const [userSnap, deletionSnap] = await tx.getAll(userRef, deletionRef);
+        if (!userSnap?.exists || deletionSnap?.exists) return null;
+        return userSnap.data() ?? {};
+      });
+      if (!userData) return res.status(409).json({ error: 'Launch-Information für dieses Konto derzeit nicht verfügbar.' });
       const city = deps.normalizeLaunchCity(req.query.city ?? userData.location);
       if (!city) return res.status(400).json({ error: 'Bitte wähle eine unterstützte Stadt.' });
-      const density = await deps.getLocalDensity(deps.getFirestore(), city);
+      const density = await deps.getLocalDensity(db, city);
       return res.json({
         ...density,
         message: density.activeUsers < 5
