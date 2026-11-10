@@ -1,3 +1,25 @@
+## Production-Freigabe-Watch – 10.11.2026, 08:51 UTC – BLOCKED / NO-GO
+
+**Delta seit 08:12 UTC:** PR #313 steht jetzt auf cf3f6026c6a7921ca1c648e5ddbe4556003d7e96; [Exact-Head-Run 42781427404](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42781427404), Job 129712139040, ist completed/success mit 33/33 Schritten. Vercel-Preview-Check SUCCESS; Deployment dpl_Fi21YY7sPcuDFfTFxpnD4aBimoBe READY auf genau dieser SHA, aber Target null (Preview). Der alte Inventory-Eintrag auf e6d15a5... wurde korrigiert. Der Compare gegen Main ergibt 74 ahead / 2 behind.
+
+**Main:** 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; Run 42710429488 / Job 129478192916 SUCCESS (33 Schritte), Combined Status Vercel SUCCESS. Seit 96c3857... wurden durch #359 ausschließlich PR-Template-/Dokumentationsdateien geändert, kein Produktivcode.
+
+**PR-Inventar:** 194 offen, 192 Drafts, 2 Nicht-Drafts (#358, #361); 50 gegen main, 144 gegen andere Branches; 141 gestapelte PRs, 53 Stack-Wurzeln, maximale Tiefe 36. Größte Stacks: #269 (40 / Tiefe 36), #317 (27 / 20), #203 (20 / 11), #253 (14 / 14). Alle 194 Einträge stammen aus den beiden frischen GitHub-API-Seiten.
+
+**Keine Änderung an der Freigabeentscheidung:** Alle sechs offenen Ziel-Drafts (#251/#269/#203/#253/#313/#314) haben weiterhin 0 eingereichte Reviews. Ihre validate-Runs sind auf den oben im vorherigen Snapshot und Inventar dokumentierten exakten Heads SUCCESS; #313 ist jetzt zusätzlich exakt bestätigt. #315 ist CLOSED / unmerged, seine Enterprise-static-gates-CI bleibt FAILURE und die einzige Review ist Owner-Self-Approval. #358 scheitert im Browser-Acceptance-Test beim Consent-Widerruf; #361 scheitert an der GitHub-signierten Provenance-Attestation für den unveränderlichen Image-Digest.
+
+**Governance:** Ruleset #25756841 bleibt active; validate strict, erforderliche Approvals 0, CODEOWNERS-Review false, keine Stale-Review-Entwertung/Last-Push-Approval/Thread-Resolution, keine Bypass Actors. Root CODEOWNERS weist /phase2_work/ @Veselin-Takev zu; unabhängige Spezialreviews sind nicht erzwungen.
+
+**Vercel read-only:** Team ves3 listet nur klar-dating (prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre); Projektmetadaten live=false, Node 26.x gegenüber Manifest Node 22.23.3. Production-Target dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w ist READY auf Main-SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; das ist keine Freigabe. Die bestätigte Demo-Löschung wurde nicht erneut versucht; Credential-Rotation ist nicht belegt.
+
+**Offene Issues:** #202, #70, #254, #8, #73, #55, #56, #204 und #206 bleiben offen. Die im nachfolgenden 08:12-Snapshot dokumentierten Main-Quellbefunde bestehen fort: altersbasierter 24h-Foto-Purge, fehlende 20/20-Live-TTL-/Legal-Hold-Evidenz, keine globale Tenant-Middleware in Main, fehlende Betriebsnachweise, keine unabhängige CODEOWNERS-Spezialreview, Partner-Kauf-/Retention-Rechtsgrundlage offen, zu weite Profilbild-Leseregel und persistente Firebase-Download-Bearer-URLs. #203/#269 haben exakt sechs kollidierende Dateien.
+
+**Entscheidung:** productionApproved=false, BLOCKED / NO-GO. Kein integrierter Release-SHA mit vollständigen kritischen Tests, keine vollständigen Live-/Lösch-/TTL-/Tenant-/Betriebsnachweise und keine unabhängigen Security-, DPO/Legal-, SRE-, Finance- (wo relevant) und Release-Owner-Freigaben.
+
+Nur Dokumentation wird atomar auf dem bestehenden Review-Branch aktualisiert. Keine Codeänderung, kein Main-Commit, Merge, Deployment, Secret-Zugriff oder produktive Firebase/GCS/IAM/Scheduler-/Datenbankmutation.
+
+---
+
 ## Production-Freigabe-Watch – 10.11.2026, 08:12 UTC – BLOCKED / NO-GO
 
 **Aktualisierung gegenüber dem 06:53-Stand:** Der neue exakte Head von PR #313 ist jetzt vollständig geprüft. Die vorherige CI-Meldung `IN PROGRESS` ist überholt; die neue SHA hat eine eigene erfolgreiche CI. Der Snapshot und diese Statusnotiz wurden gemeinsam auf dem bestehenden Audit-Branch aktualisiert.

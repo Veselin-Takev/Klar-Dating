@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T08:12:55Z",
+  "observedAt": "2026-11-10T08:51:30Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -405,16 +405,16 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "e6d15a5adfc08ec61bec1fbb22dd868e4e2bc3f1",
+      "headSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 73,
+        "ahead": 74,
         "behind": 2
       },
       "validate": {
-        "run": 42772093020,
-        "job": 129682033251,
+        "run": 42781427404,
+        "job": 129712139040,
         "conclusion": "success",
         "stepCount": 33
       },
@@ -434,11 +434,11 @@
       ],
       "reviews": 0,
       "notes": [
-        "Exact-head validate SUCCESS on e6d15a5adfc08ec61bec1fbb22dd868e4e2bc3f1; run 42772093020/job 129682033251 completed with 33/33 steps at 2026-11-10T07:06:09Z.",
-        "73 commits ahead and 2 behind fresh main. No submitted code reviews.",
-        "READY Vercel preview dpl_9VVgbT3L3BhrAGCt94QFdZoRnHpn is bound to this exact SHA; target is preview (null), not production."
+        "Exact-head validate SUCCESS on cf3f6026c6a7921ca1c648e5ddbe4556003d7e96; run 42781427404/job 129712139040 completed with 33/33 steps at 2026-11-10T08:24:30Z.",
+        "74 commits ahead and 2 behind fresh main. No submitted code reviews.",
+        "READY Vercel preview dpl_Fi21YY7sPcuDFfTFxpnD4aBimoBe is bound to this exact SHA; target is preview (null), not production."
       ],
-      "updatedAt": "2026-11-10T06:58:55Z"
+      "updatedAt": "2026-11-10T08:17:16Z"
     },
     {
       "number": 314,
@@ -649,7 +649,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T08:12:55Z",
+    "checkedAt": "2026-11-10T08:51:30Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -657,11 +657,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_9VVgbT3L3BhrAGCt94QFdZoRnHpn",
+      "id": "dpl_Fi21YY7sPcuDFfTFxpnD4aBimoBe",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-cspdt6luo-ves3.vercel.app",
-      "commitSha": "e6d15a5adfc08ec61bec1fbb22dd868e4e2bc3f1",
+      "url": "klar-dating-499v7d7k5-ves3.vercel.app",
+      "commitSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -820,7 +820,9 @@
     "Fresh current open PR pagination remains 194 total / 192 Draft / 2 non-Draft (#358 and #361); 50 target main / 144 stacked; maximum observed stack depth 36.",
     "PR #315 is CLOSED and unmerged; its exact head 71743b14c66d9c5f2fdca2ed73a0fda3c137d48d failed run 41531498018/job 125572558770 at Enterprise static gates. Its sole APPROVED review was authored by repository owner Veselin-Takev, not independent.",
     "Vercel project Node version is 26.x while RELEASE_MANIFEST.json pins Node 22.23.3; this configuration drift requires owner confirmation and no settings were changed.",
-    "No source code, tests, main branch, deployments, secrets, IAM, Scheduler, Firebase, GCS or database were changed in this refresh; documentation only."
+    "No source code, tests, main branch, deployments, secrets, IAM, Scheduler, Firebase, GCS or database were changed in this refresh; documentation only.",
+    "2026-11-10 08:51 UTC refresh: all 194 open PRs were re-read from both GitHub API pages. The only PR metadata delta since 08:12 was #313 advancing from e6d15a5... to cf3f602...; all other 193 open PR entries remained unchanged.",
+    "PR #313 exact-head CI 42781427404/job 129712139040 is completed/success (33/33); compare against fresh main is 74 ahead / 2 behind. Its Vercel READY deployment is Preview target=null, not production."
   ],
   "entries": [
     {
@@ -1347,8 +1349,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "e6d15a5adfc08ec61bec1fbb22dd868e4e2bc3f1",
-      "updatedAt": "2026-11-10T06:58:55Z",
+      "headSha": "cf3f6026c6a7921ca1c648e5ddbe4556003d7e96",
+      "updatedAt": "2026-11-10T08:17:16Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
