@@ -220,7 +220,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
     catch (error) { return handleError(res, error, 'Die Partnerlinks konnten nicht geladen werden.'); }
   });
 
-  router.post('/partner/interaction', accountGate, userMutationLimiter, async (req, res) => {
+  router.post('/partner/interaction', noStorePartnerPrivateData, accountGate, userMutationLimiter, async (req, res) => {
     const body = req.body as { campaignId?: unknown; action?: unknown } | undefined;
     const actions = new Set(['copy', 'share', 'qr_view']);
     if (!body || typeof body.campaignId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(body.campaignId)
