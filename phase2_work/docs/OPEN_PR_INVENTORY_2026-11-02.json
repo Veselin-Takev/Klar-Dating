@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-10",
-  "observedAt": "2026-11-10T16:08:06Z",
+  "observedAt": "2026-11-10T17:20:44Z",
   "source": "GitHub REST GET /repos/Veselin-Takev/Klar-Dating/pulls?state=open (pages 1–2, per_page=100), exact main ref and PR head refs read-only",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -699,7 +699,7 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "334e401ad6e3bf1d5a7971944ad17bf3880771e9",
+      "headSha": "76f0157eb5c51974d2f6eb8ebb58143866107642",
       "mergeSha": "0358891f6b23299a0a0d15704f5ca49374030cef",
       "dependencyPr": null,
       "depthFromMain": 0,
