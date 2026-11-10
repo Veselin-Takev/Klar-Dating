@@ -463,6 +463,71 @@ describe('Klar & Partner transactional service boundary', () => {
     }
   });
 
+  it('rejects malformed partner conversions at the service boundary before Firestore access', async () => {
+    const invalid = [
+      { event: 'credited_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'short', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'UNSAFE', buyerUid: 'buyer-1' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: 'buyer-1', rewardStatus: 'earned' },
+      { event: 'qualified_conversion', eventId: 'provider-order-00001', referralToken: 'a'.repeat(64), buyerUid: '../other' },
+    ];
+    const service = {
+      ...deps(makeFirestore()),
+      getFirestore: () => { throw new Error('Firestore must not be accessed for malformed event'); },
+    };
+    for (const item of invalid) {
+      await expect(recordPartnerConversion(service, 'example-partner', item as any, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ status: 400, code: 'invalid_partner_event' });
+    }
+  });
+
+  it('rejects malformed campaign slugs before accessing Firestore', async () => {
+    const service = {
+      ...deps(makeFirestore()),
+      getFirestore: () => { throw new Error('Firestore must not be accessed for malformed slug'); },
+    };
+    const payload = { event: 'qualified_conversion' as const,
+      eventId: 'provider-order-00001',
+      referralToken: 'a'.repeat(64),
+      buyerUid: 'buyer-1' };
+    for (const slug of ['', 'A-Partner', '../partner', 'partner/path', 'partner_', 'partner..x', '-partner', 'partner-', 'a'.repeat(49)]) {
+      await expect(recordPartnerConversion(service, slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+        .rejects.toMatchObject({ status: 404, code: 'partner_webhook_not_found' });
+    }
+  });
+
+  it('rejects a referral campaign slug changed between preflight and conversion transaction', async () => {
+    const ownerUid = 'owner-slug-race';
+    const buyerUid = 'buyer-slug-race';
+    const campaignId = 'campaign-slug-race';
+    const slug = 'example-partner';
+    const token = derivePartnerReferralToken(ownerUid, campaignId, 1, tokenSecret);
+    const referralId = partnerReferralDocumentId(token);
+    const db = makeFirestore([
+      { collection: 'users', id: ownerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'users', id: buyerUid, data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'partner_campaigns', id: campaignId, data: { ...campaignInput, status: 'active', brandVerified: true, qualifiedConversions: 0 } },
+      { collection: 'partner_referrals', id: referralId, data: { ownerUid, campaignId, campaignSlug: slug, version: 1, status: 'active', qualifiedConversions: 0 } },
+    ]);
+    const originalTransaction = db.runTransaction.bind(db);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async (callback: Parameters<typeof db.runTransaction>[0]) => {
+        const original = db._store.get('partner_referrals/' + referralId)!;
+        db._store.set('partner_referrals/' + referralId, { ...original, campaignSlug: 'different-partner' });
+        return originalTransaction(callback);
+      },
+    });
+    await expect(recordPartnerConversion(deps(db), slug, {
+      event: 'qualified_conversion', eventId: 'provider-slug-race-0001', referralToken: token, buyerUid,
+    }, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'conversion_not_eligible' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_buyer_claims/'))).toHaveLength(0);
+    expect(db._store.get('partner_campaigns/' + campaignId)?.qualifiedConversions).toBe(0);
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_ledger/'))).toHaveLength(0);
+  });
+
   it('quarantines signed but independently unverified partner claims without crediting conversions', async () => {
     const uid = 'owner-1';
     const buyer = 'buyer-1';
@@ -515,6 +580,9 @@ describe('Klar & Partner transactional service boundary', () => {
       await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
         .rejects.toMatchObject({ code: 'partner_link_not_found' });
     }
+    db._store.set('partner_referrals/' + referralId, { ...originalReferral, campaignSlug: 'wrong-partner' });
+    await expect(recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough'))
+      .rejects.toMatchObject({ code: 'partner_campaign_binding_conflict' });
     db._store.set('partner_referrals/' + referralId, originalReferral);
     expect([...db._store.keys()].filter(key => key.startsWith('partner_referral_conversions/'))).toHaveLength(0);
     const result = await recordPartnerConversion(deps(db), slug, payload, 'partner-provider-signing-secret-is-long-enough');

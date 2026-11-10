@@ -4,6 +4,7 @@ import { FieldValue } from './db';
 import { consentAuditSecret, signHmacAuditPayload } from './consentAudit';
 import {
   PartnerReferralError,
+  PartnerConversionPayloadSchema,
   isAutomatedPartnerClick,
   parsePartnerCampaignInput,
   validatePartnerDestinationUrl,
@@ -643,6 +644,15 @@ export async function recordPartnerConversion(
   payload: PartnerConversionPayload,
   partnerSecret: string,
 ): Promise<{ ok: true; duplicate: boolean; rewardStatus: 'pending_verification' | 'already_recorded' }> {
+  // Validate again at the service boundary: callers other than the HTTP route
+  // must never bypass the strict partner-event schema.
+  if (!PartnerConversionPayloadSchema.safeParse(payload).success) {
+    throw new PartnerReferralError(400, 'invalid_partner_event', 'Die Partner-Rückmeldung ist ungültig.');
+  }
+  // Defense in depth: internal callers must not bypass the route slug boundary.
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(slug)) {
+    throw new PartnerReferralError(404, 'partner_webhook_not_found', 'Der Partner-Rückkanal ist nicht verfügbar.');
+  }
   if (partnerSecret.length < 32) throw new PartnerReferralError(503, 'partner_webhook_unconfigured', 'Der Partner-Rückkanal ist nicht konfiguriert.');
   const db = deps.getFirestore();
   const referralId = partnerReferralDocumentId(payload.referralToken);
@@ -653,6 +663,11 @@ export async function recordPartnerConversion(
   const ownerUid = typeof initial.ownerUid === 'string' ? initial.ownerUid : '';
   if (!ownerUid || ownerUid === payload.buyerUid) throw new PartnerReferralError(409, 'self_referral_rejected', 'Selbst-Empfehlungen sind nicht prämienberechtigt.');
   const campaignId = typeof initial.campaignId === 'string' ? initial.campaignId : '';
+  // When the referral's recorded campaign slug exists, it must not be
+  // reassigned independently of the signed provider campaign identity.
+  if (typeof initial.campaignSlug === 'string' && initial.campaignSlug !== slug) {
+    throw new PartnerReferralError(409, 'partner_campaign_binding_conflict', 'Die Partnerkampagne muss unabhängig überprüft werden.');
+  }
   const initialVersion = initial.version;
   // A referral document ID does not prove mutable owner/campaign/version fields
   // still belong to the signed token; verify the HMAC binding before processing
@@ -701,6 +716,7 @@ export async function recordPartnerConversion(
     if (ownerDeletion.exists || buyerDeletion.exists || !campaignIsActive(campaign)
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
+      || (typeof referral?.campaignSlug === 'string' && referral.campaignSlug !== slug)
       || referral?.version !== initialVersion
       || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
       || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
