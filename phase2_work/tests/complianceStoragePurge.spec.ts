@@ -1,6 +1,18 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { complianceSignature, validComplianceRequest } from '../src/server/routes/complianceStorage';
+import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled } from '../src/server/routes/complianceStorage';
+
+describe('verification photo purge deployment interlock', () => {
+  it.each([undefined, '', '0', 'false', 'TRUE', '1', ' true '])(
+    'fails closed without the exact enabled flag: %s',
+    setting => {
+      expect(isVerificationPhotoPurgeEnabled(setting)).toBe(false);
+    },
+  );
+  it('allows explicit opt-in only with exact lowercase true', () => {
+    expect(isVerificationPhotoPurgeEnabled('true')).toBe(true);
+  });
+});
 
 describe('verification storage compliance job authentication', () => {
   const secret = 'x'.repeat(64);
@@ -12,6 +24,13 @@ describe('verification storage compliance job authentication', () => {
     expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(true);
   });
 
+  it.each([NaN, Infinity, -Infinity, 0, -1, 1.5])(
+    'rejects an invalid verifier clock even with a correct HMAC: %s', now => {
+      const valid = complianceSignature(`${timestamp}.${body.toString('utf8')}`, secret);
+      expect(validComplianceRequest(body, timestamp, valid, secret, now)).toBe(false);
+    },
+  );
+
   it('rejects replay, wrong secret and malformed signatures', () => {
     const signature = complianceSignature(`${timestamp}.{} `, secret);
     expect(validComplianceRequest(body, timestamp, signature, secret, Number(timestamp))).toBe(false);
@@ -19,4 +38,170 @@ describe('verification storage compliance job authentication', () => {
     expect(validComplianceRequest(body, timestamp, valid, 'short', Number(timestamp))).toBe(false);
     expect(validComplianceRequest(body, String(Number(timestamp) - 301_000), valid, secret, Number(timestamp))).toBe(false);
   });
+});
+
+describe('fail-closed verification decision reconciliation', () => {
+  it.each([
+    [{ entscheidung: 'bestaetigt' }, 'approved'],
+    [{ status: 'approved' }, 'approved'],
+    [{ entscheidung: 'abgelehnt', status: 'rejected' }, 'rejected'],
+    [{ entscheidung: 'bestaetigt', status: 'approved' }, 'approved'],
+    [{ status: 'in_pruefung' }, 'pending'],
+    [{ entscheidung: null, status: 'approved' }, 'approved'],
+    [{}, 'pending'],
+  ] as const)('accepts consistent or unambiguous decision data %#', (record, expected) => {
+    expect(readConsistentVerificationDecision({ ...record })).toBe(expected);
+  });
+
+  it.each([
+    { entscheidung: 'bestaetigt', status: 'in_pruefung' },
+    { entscheidung: 'abgelehnt', status: 'approved' },
+    { entscheidung: 'bestaetigt', status: 'rejected' },
+    { entscheidung: 'approved', status: 'unexpected' },
+  ])('blocks contradictory or unknown concurrent decision state %#', record => {
+    expect(() => readConsistentVerificationDecision(record)).toThrow('verification_photo_decision_conflict');
+  });
+});
+
+describe('decision-based verification object deletion safety', () => {
+  it('deletes only the inspected Storage generation', async () => {
+    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '1234567890', temporaryHold: false, eventBasedHold: false }],
+      delete: async options => { deletes.push(options); },
+    });
+    expect(deletes).toEqual([{ ifGenerationMatch: '1234567890' }]);
+  });
+
+  it.each([
+    { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
+    { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
+    { label: 'missing generation', metadata: { temporaryHold: false } },
+    { label: 'non-decimal generation', metadata: { generation: 'other' } },
+    { label: 'invalid numeric generation', metadata: { generation: -1 } },
+    { label: 'unsafe integer generation', metadata: { generation: Number.MAX_SAFE_INTEGER + 1 } },
+  ])('does not delete on $label', async ({ metadata }) => {
+    let deleted = false;
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [metadata],
+      delete: async () => { deleted = true; },
+    })).rejects.toThrow();
+    expect(deleted).toBe(false);
+  });
+
+  it('does not convert generation-precondition conflict into success', async () => {
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '100' }],
+      delete: async () => { throw Object.assign(new Error('generation conflict'), { code: 412 }); },
+    })).rejects.toMatchObject({ code: 412 });
+  });
+
+  it('does not consider a missing object a verified successful deletion', async () => {
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
+      delete: async () => { throw new Error('must not execute'); },
+    })).rejects.toMatchObject({ code: 404 });
+  });
+  it('rechecks Storage generation before applying the conditional delete', async () => {
+    const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
+    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '9001' }],
+      delete: async opts => { deletes.push(opts); },
+    }, '9000')).rejects.toThrow('verification_photo_generation_changed');
+    expect(deletes).toHaveLength(0);
+  });
+
+  it('never calls Storage delete if the final authorization callback fails', async () => {
+    const calls: string[] = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '55' }]; },
+      delete: async () => { calls.push('deleted'); },
+    }, '55', async () => {
+      calls.push('authorization');
+      throw new Error('decision_revoked');
+    })).rejects.toThrow('decision_revoked');
+    expect(calls).toEqual(['metadata', 'authorization']);
+  });
+
+  it('checks final authorization immediately before generation-conditional delete', async () => {
+    const calls: string[] = [];
+    await deleteVerificationStorageFile({
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '99' }]; },
+      delete: async options => {
+        calls.push('delete');
+        expect(options).toEqual({ ifGenerationMatch: '99' });
+      },
+    }, '99', async () => { calls.push('authorization'); });
+    expect(calls).toEqual(['metadata', 'authorization', 'delete']);
+  });
+
+  it('reconciles only when Storage confirms object absence', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => { throw Object.assign(new Error('not found'), { code: 404 }); },
+    })).resolves.toBeUndefined();
+  });
+
+  it('never treats an object that reappeared as absent', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => [{ generation: '774' }],
+    })).rejects.toThrow('verification_photo_absence_no_longer_confirmed');
+  });
+
+  it('does not turn metadata service failures into absence proofs', async () => {
+    const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
+    await expect(confirmVerificationStorageAbsence({
+      getMetadata: async () => { throw Object.assign(new Error('service unavailable'), { code: 503 }); },
+    })).rejects.toMatchObject({ code: 503 });
+  });
+
+  // P0 #202: adversarial TOCTOU characterization. This test deliberately demonstrates
+  // a residual cross-service race; it is not a claim that the safety gate passes.
+  it('exposes the cross-service authorization-to-delete race for review', async () => {
+    let authorizeChecked!: () => void;
+    const checked = new Promise<void>(resolve => { authorizeChecked = resolve; });
+    let releaseDelete!: () => void;
+    const release = new Promise<void>(resolve => { releaseDelete = resolve; });
+    let decision: 'approved' | 'pending' = 'approved';
+    let deleted = false;
+    const operation = deleteVerificationStorageFile({
+      getMetadata: async () => [{ generation: '77', temporaryHold: false, eventBasedHold: false }],
+      delete: async ({ ifGenerationMatch }) => {
+        await release;
+        expect(ifGenerationMatch).toBe('77');
+        deleted = true;
+      },
+    }, '77', async () => {
+      expect(decision).toBe('approved');
+      authorizeChecked();
+    });
+    await checked;
+    decision = 'pending'; // concurrent Firestore state update; GCS generation unchanged
+    releaseDelete();
+    await operation;
+    // Existing implementation deletes despite a revoked decision. This test
+    // documents the gap; a future fenced implementation must invert this assertion.
+    expect(decision).toBe('pending');
+    expect(deleted).toBe(true);
+  });
+
+  it('prevents deletion when authorization is revoked before the delete call', async () => {
+    let decision: 'approved' | 'pending' = 'approved';
+    const calls: string[] = [];
+    await expect(deleteVerificationStorageFile({
+      getMetadata: async () => {
+        calls.push('metadata');
+        decision = 'pending'; // concurrent revocation before the final authorization callback
+        return [{ generation: '81', temporaryHold: false, eventBasedHold: false }];
+      },
+      delete: async () => { calls.push('delete'); },
+    }, '81', async () => {
+      calls.push('authorization');
+      if (decision !== 'approved') throw new Error('decision_revoked');
+    })).rejects.toThrow('decision_revoked');
+    expect(calls).toEqual(['metadata', 'authorization']);
+  });
+
 });
