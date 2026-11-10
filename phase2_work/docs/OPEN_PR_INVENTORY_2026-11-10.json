@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-11-10T12:43:33Z",
+  "observedAt": "2026-11-10T13:28:37Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "main": {
     "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
@@ -321,31 +321,31 @@
       "validate": {
         "run": 42818199684,
         "job": 129836618469,
-        "status": "in_progress",
-        "conclusion": null,
-        "stepCount": null
+        "status": "completed",
+        "conclusion": "success",
+        "stepCount": 33
       },
       "checkRuns": [
         {
           "name": "Vercel",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "app": "Vercel"
         },
         {
           "name": "validate",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "app": "GitHub Actions"
         }
       ],
       "reviews": 0,
       "notes": [
-        "Controlled six-file update in this existing review branch: attest pin + validator + six-case positive/negative regression suite + CI invocation + dated documentation.",
-        "Official actions/attest commit badbb428b0055a04f53d6ce00bda98cf1c04e56e has GitHub verified signature; exact-head CI run 42818199684 is in progress; Vercel check pending.",
-        "Still Draft, 10 ahead / 2 behind current main, zero submitted code reviews. No merge or production approval."
+        "Exact current head fc03f33996ccffc73e54e6b7a6fb05914cdcbc53: validate run 42818199684/job 129836618469 completed SUCCESS (33 steps); Vercel status success.",
+        "Still Draft, 10 ahead / 2 behind fresh main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b, zero submitted code reviews.",
+        "Live Ruleset #25756841 still requires zero approvals and no CODEOWNERS review; the branch guard is not an admin Ruleset change."
       ],
-      "updatedAt": "2026-11-10T12:43:32Z"
+      "updatedAt": "2026-11-10T12:43:46Z"
     },
     {
       "number": 269,
@@ -476,16 +476,16 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
+      "headSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "compare": {
-        "ahead": 77,
+        "ahead": 78,
         "behind": 2
       },
       "validate": {
-        "run": 42810140008,
-        "job": 129809201630,
+        "run": 42818827306,
+        "job": 129838770426,
         "status": "completed",
         "conclusion": "success",
         "stepCount": 33
@@ -496,7 +496,7 @@
           "status": "completed",
           "conclusion": "success",
           "app": "Vercel",
-          "deployment": "dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW",
+          "deployment": "dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT",
           "target": null
         },
         {
@@ -507,11 +507,11 @@
         }
       ],
       "reviews": 0,
-      "updatedAt": "2026-11-10T11:46:12Z",
+      "updatedAt": "2026-11-10T12:48:09Z",
       "notes": [
-        "Exact-head validate SUCCESS on 8ac4b6970f1b961da980dc3f291307392dd6a313; 77 ahead / 2 behind current main; zero submitted reviews.",
-        "Vercel preview dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW is READY on the same SHA, target=null; not production.",
-        "This inventory snapshot predates the documentation-only refresh commit being created on this audit branch; that new head requires its own exact-head CI."
+        "Exact observed head a14d70d2b4e76c703be06cb9f4e61456301d92d6: validate run 42818827306/job 129838770426 completed SUCCESS (33 steps); Vercel preview READY, target=null.",
+        "Still Draft, 78 ahead / 2 behind fresh main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b, zero submitted code reviews.",
+        "This inventory is the pre-documentation-commit snapshot; any subsequent commit on this branch requires new exact-head CI."
       ]
     },
     {
@@ -773,7 +773,7 @@
     }
   ],
   "vercel": {
-    "checkedAt": "2026-11-10T12:43:33Z",
+    "checkedAt": "2026-11-10T13:28:37Z",
     "teamSlug": "ves3",
     "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
     "projectName": "klar-dating",
@@ -781,11 +781,11 @@
     "live": false,
     "nodeVersion": "26.x",
     "latestDeployment": {
-      "id": "dpl_3Rey2FabgTK5qhqrcS23HhTyq1CW",
+      "id": "dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT",
       "readyState": "READY",
       "target": null,
-      "url": "klar-dating-fot9qiin6-ves3.vercel.app",
-      "commitSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
+      "url": "klar-dating-5p24gynhq-ves3.vercel.app",
+      "commitSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
       "branch": "audit-enterprise-e2e-20261102"
     },
     "domains": [
@@ -964,7 +964,13 @@
     "P0 #70: main configure-retention.sh enumerates 20 groups and has dry-run/staging/legal-matrix guards, but no 20/20 ACTIVE target-project TTL evidence exists. P0 #254: main has no global tenant middleware mount and tenantAuth.ts is absent. #55: partner HMAC proves assertion origin, not purchase; service does not reward assertion alone. #56 retention period remains open. P1 #204/#206 source findings persist.",
     "Vercel read-only: team ves3 lists only Klar project prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre. Production target dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w is READY on current main; audit preview dpl_Hjo4UGrv3AWYyXefNpwxCRKqzD2S is READY on current #313 head with target=null. Project reports live=false and Node 26.x; CI/manifest pins Node 22.23.3. Old demo deletion was not retried; provider credential rotation remains unproven.",
     "Issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain open. No independent Security/DPO/Legal/SRE/Finance/Release Owner attestations or full live/Emulator/Staging evidence were obtained. productionApproved=false, BLOCKED / NO-GO.",
-    "This refresh is documentation-only on the existing audit review branch. No code, tests, main, merge, deployment, secret, Firebase/GCS/IAM/Scheduler/database mutation was performed."
+    "This refresh is documentation-only on the existing audit review branch. No code, tests, main, merge, deployment, secret, Firebase/GCS/IAM/Scheduler/database mutation was performed.",
+    "2026-11-10 13:28 UTC exact-head refresh: main remains 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; main validate 42710429488/job 129478192916 completed SUCCESS (33 steps).",
+    "Current #251 head fc03f33996ccffc73e54e6b7a6fb05914cdcbc53 completed validate 42818199684/job 129836618469 SUCCESS (33 steps); current #313 head a14d70d2b4e76c703be06cb9f4e61456301d92d6 completed validate 42818827306/job 129838770426 SUCCESS (33 steps). Both remain Draft with zero reviews and 2 commits behind main.",
+    "The other four priority Drafts #269/#203/#253/#314 retain their exact observed heads and completed validate SUCCESS; #314 Vercel combined status remains FAILURE with build-rate-limit.",
+    "Current non-Draft #358 fails exact-head Browser acceptance (28 passed/1 failed; consent-withdrawal confirmation mismatch); current non-Draft Dependabot #361 fails Enterprise static gates because the release workflow lacks signed provenance bound to immutable image digest. Neither has an independent review. #315 is closed unmerged.",
+    "Read-only Vercel: klar-dating exists; production-target deployment dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w is READY on main SHA 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; audit preview dpl_9xMYPNDg4jzHC6v2T1bY2RwRQ2QT is READY on #313 head a14d70d2b4e76c703be06cb9f4e61456301d92d6 with target=null. Project reports live=false and Node 26.x; no application-health inference is made.",
+    "No source code, tests, main, merge, deployment, secrets, Firebase/GCS/IAM/Scheduler or database mutation was performed. This documentation-only commit creates a new #313 head; the previous exact-head CI does not apply to the new commit."
   ],
   "entries": [
     {
@@ -1491,8 +1497,8 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "8ac4b6970f1b961da980dc3f291307392dd6a313",
-      "updatedAt": "2026-11-10T11:46:12Z",
+      "headSha": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
+      "updatedAt": "2026-11-10T12:48:09Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/313"
     },
     {
@@ -2224,7 +2230,7 @@
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "headRef": "security/73-live-ruleset-release-gate-20261031",
       "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
-      "updatedAt": "2026-11-10T12:43:32Z",
+      "updatedAt": "2026-11-10T12:43:46Z",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/251"
     },
     {
@@ -3297,7 +3303,7 @@
     }
   ],
   "watchRun": {
-    "observedAt": "2026-11-10T12:43:33Z",
+    "observedAt": "2026-11-10T13:28:37Z",
     "mainHead": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidateRun": 42710429488,
     "openPullRequests": {
@@ -3309,12 +3315,13 @@
       "stackRoots": 53,
       "maxObservedChainDepth": 36
     },
-    "auditSnapshotHead": "8ac4b6970f1b961da980dc3f291307392dd6a313",
-    "auditSnapshotValidateRun": 42810140008,
+    "auditSnapshotHead": "a14d70d2b4e76c703be06cb9f4e61456301d92d6",
+    "auditSnapshotValidateRun": 42818827306,
+    "auditSnapshotStatus": "completed/success",
     "governancePr251": {
       "head": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
       "ciRun": 42818199684,
-      "ciStatus": "in_progress",
+      "ciStatus": "completed/success",
       "reviews": 0
     },
     "productionApproved": false,
