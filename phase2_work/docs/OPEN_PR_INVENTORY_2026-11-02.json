@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-11",
-  "observedAt": "2026-11-11T01:13:23Z",
-  "source": "Fresh GitHub REST pulls pages 1-2 (per_page=100), exact main commit and all open PR head/base refs; read-only snapshot.",
+  "observedAt": "2026-11-11T03:08:19Z",
+  "source": "Fresh GitHub REST pulls pages 1-2 (per_page=100) at 2026-11-11T03:08:19Z, exact main commit and all open PR head/base refs; PR #313 exact metadata refreshed after its 2026-11-11 01:18 UTC documentation commit; read-only snapshot.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -717,13 +717,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "3567d74faa2b5e11f19586ef85dfb8f6d5279f62",
-      "mergeSha": "4c208b85db93ad69b8fc177587812b79321d9dd5",
+      "headSha": "424fa0202f1715c7e0292adfba16f9b74e1d0638",
+      "mergeSha": "e4c8a4245b23398397e3a7303cc719775ca2080a",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-10T22:26:05Z"
+      "updatedAt": "2026-11-11T01:18:49Z"
     },
     {
       "number": 312,
