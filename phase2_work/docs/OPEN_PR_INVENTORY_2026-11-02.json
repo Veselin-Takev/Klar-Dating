@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-11",
-  "observedAt": "2026-11-11T03:39:40Z",
-  "source": "Fresh GitHub REST pulls pages 1–2 (per_page=100) and exact main/Ruleset/priority PR metadata, exact-head Actions runs/jobs and submitted reviews at 2026-11-11T03:39:40Z; Vercel project and deployment metadata read-only. All 194 open PR refs refreshed. Exact #313 head refreshed from 424fa0202f1715c7e0292adfba16f9b74e1d0638 to 00586288d86d68177d54fa17db185d69d3bdbc41; all open PR entries refreshed from both current REST pages.",
+  "observedAt": "2026-11-11T04:40:31Z",
+  "source": "Fresh GitHub REST pull inventory and exact-head PR/check-run/review reads at 2026-11-11T04:40:31Z; current main, active Ruleset #25756841, current issues and read-only Vercel project/deployment records refreshed. Exact PR #313 head advanced from 00586288d86d68177d54fa17db185d69d3bdbc41 to c61ac48987f1ac60d0fe008cb657d39b550d58ef after the 04:39 CET snapshot. Counts and stack graph were re-read from both open-PR REST pages.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -717,13 +717,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "00586288d86d68177d54fa17db185d69d3bdbc41",
+      "headSha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef",
       "mergeSha": "16b1ef86ccba968ded624816ebab2ef345cebd88",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-11T03:14:40Z"
+      "updatedAt": "2026-11-11T03:43:40Z"
     },
     {
       "number": 312,
@@ -2975,5 +2975,323 @@
       "createdAt": "2026-10-25T22:45:20Z",
       "updatedAt": "2026-10-27T22:42:34Z"
     }
-  ]
+  ],
+  "latestWatch": {
+    "observedAt": "2026-11-11T04:40:31Z",
+    "main": {
+      "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
+      "validate": {
+        "run": 42710429488,
+        "job": 129478192916,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "vercelCommitStatus": "success"
+    },
+    "counts": {
+      "open": 194,
+      "draft": 192,
+      "nonDraft": 2,
+      "targetsMain": 50,
+      "targetsOtherBranches": 144,
+      "baseMatchesOpenPrHead": 141,
+      "baseNotAmongOpenPrHeads": 3,
+      "maxOpenPrChainDepth": 36
+    },
+    "pullRequests": [
+      {
+        "number": 251,
+        "state": "open",
+        "draft": true,
+        "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
+        "ahead": 10,
+        "behind": 2,
+        "validate": {
+          "run": 42818199684,
+          "job": 129836618469,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "deployment": "dpl_52k22yPE82ru6CLMai4ZskiWvXvt",
+          "state": "READY",
+          "target": null
+        }
+      },
+      {
+        "number": 269,
+        "state": "open",
+        "draft": true,
+        "headSha": "fd68656957c01618c3a085e887ece504624d18b3",
+        "ahead": 33,
+        "behind": 2,
+        "validate": {
+          "run": 42020003801,
+          "job": 127220743813,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "deployment": "dpl_62LYkFToqomaKLWH6U84BE9ztsSn",
+          "state": "READY",
+          "target": null
+        }
+      },
+      {
+        "number": 203,
+        "state": "open",
+        "draft": true,
+        "headSha": "1850e0a78b22e600e5add99273b84c081ffc3892",
+        "ahead": 57,
+        "behind": 2,
+        "validate": {
+          "run": 42017264009,
+          "job": 127211414732,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "deployment": "dpl_3nLEmJjr2KZ9XGVVrDKTrrJErRxC",
+          "state": "READY",
+          "target": null
+        }
+      },
+      {
+        "number": 253,
+        "state": "open",
+        "draft": true,
+        "headSha": "036ee313747a7beb2ab926e721e3bef958304447",
+        "ahead": 11,
+        "behind": 2,
+        "validate": {
+          "run": 41539994863,
+          "job": 125601704190,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "deployment": "dpl_Eu9p9pmP9t4n5tRzuX14eb9XBCup",
+          "state": "READY",
+          "target": null
+        }
+      },
+      {
+        "number": 313,
+        "state": "open",
+        "draft": true,
+        "headSha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef",
+        "ahead": 87,
+        "behind": 2,
+        "validate": {
+          "run": 42954618943,
+          "job": 130306664764,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "deployment": "dpl_Fcy6oqh553yyLknNt8ByJk1KrDZg",
+          "state": "READY",
+          "target": null
+        }
+      },
+      {
+        "number": 314,
+        "state": "open",
+        "draft": true,
+        "headSha": "e5deab1dfd629065f3dfce3a5577eb21ac966a68",
+        "ahead": 3,
+        "behind": 2,
+        "validate": {
+          "run": 41619572341,
+          "job": 125861548924,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "vercel": {
+          "exactHeadDeploymentCount": 0
+        }
+      },
+      {
+        "number": 315,
+        "state": "closed",
+        "draft": false,
+        "merged": false,
+        "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
+        "validate": {
+          "run": 41531498018,
+          "job": 125572558770,
+          "conclusion": "failure",
+          "failedStep": "Enterprise static gates",
+          "reason": "Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest"
+        },
+        "reviews": [
+          {
+            "user": "Veselin-Takev",
+            "state": "APPROVED",
+            "independent": false
+          }
+        ]
+      },
+      {
+        "number": 361,
+        "state": "open",
+        "draft": false,
+        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
+        "validate": {
+          "run": 42705724751,
+          "job": 129461862107,
+          "conclusion": "failure",
+          "failedStep": "Enterprise static gates",
+          "reason": "Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest"
+        },
+        "reviews": 0
+      },
+      {
+        "number": 358,
+        "state": "open",
+        "draft": false,
+        "base": "release/v0.1.1-rc1",
+        "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
+        "validate": {
+          "run": 42710380877,
+          "job": 129478019942,
+          "conclusion": "failure",
+          "failedStep": "Browser acceptance",
+          "tests": "28 passed / 1 failed",
+          "reason": "Consent withdrawal expected success message; generic confirmation failure returned with Firestore PERMISSION_DENIED"
+        },
+        "reviews": 0
+      }
+    ],
+    "ruleset": {
+      "id": 25756841,
+      "enforcement": "active",
+      "branch": "refs/heads/main",
+      "requiredStatusChecks": [
+        {
+          "context": "validate",
+          "strict": true,
+          "integrationId": 15368
+        }
+      ],
+      "requiredApprovingReviewCount": 0,
+      "requireCodeOwnerReview": false,
+      "dismissStaleReviewsOnPush": false,
+      "requireLastPushApproval": false,
+      "requiredReviewThreadResolution": false,
+      "preventDeletion": true,
+      "preventNonFastForward": true,
+      "bypassActors": []
+    },
+    "issues": [
+      {
+        "number": 202,
+        "state": "open"
+      },
+      {
+        "number": 70,
+        "state": "open"
+      },
+      {
+        "number": 254,
+        "state": "open"
+      },
+      {
+        "number": 8,
+        "state": "open"
+      },
+      {
+        "number": 73,
+        "state": "open"
+      },
+      {
+        "number": 55,
+        "state": "open"
+      },
+      {
+        "number": 56,
+        "state": "open"
+      },
+      {
+        "number": 204,
+        "state": "open"
+      },
+      {
+        "number": 206,
+        "state": "open"
+      }
+    ],
+    "sourceEvidence": {
+      "legacyPhotoCron": {
+        "path": "phase2_work/functions/src/deleteExpiredPhotos.ts",
+        "blobSha": "69c0ad42be40ac51f8aebd62741ae97bf5120f2a",
+        "finding": "main still schedules the 24-hour legacy worker and calls deleteExpiredPhotoPage"
+      },
+      "legacyPhotoRetention": {
+        "path": "phase2_work/functions/src/retention.ts",
+        "blobSha": "5f9014b9090042b1f501c70cb87c4a1fdeb51f0a",
+        "finding": "verification/ objects are filtered by Storage timeCreated >30 days; not moderation decision/fotoLoeschenAb"
+      },
+      "ttlProvisioning": {
+        "path": "phase2_work/scripts/configure-retention.sh",
+        "blobSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
+        "finding": "20-group policy gate exists; no target-environment 20/20 ACTIVE readback"
+      },
+      "storageRules": {
+        "path": "phase2_work/storage.rules",
+        "blobSha": "b3d1e216ab9c0226ca14813799df4adb63bf7558",
+        "finding": "profile reads still allow signedIn() only"
+      },
+      "profilePhotoUrl": {
+        "path": "phase2_work/src/lib/klar.ts",
+        "blobSha": "4c960dac7a552948df9b3ac7ea9601238d788492",
+        "finding": "getDownloadURL() is persisted as photoURL"
+      },
+      "apiDiagnostics": {
+        "path": "phase2_work/src/lib/api.ts",
+        "blobSha": "f4db29b69aa454cd4f9d55118965556739ef9e4f",
+        "finding": "full request URL remains in debug/failure diagnostics"
+      },
+      "releaseManifest": {
+        "path": "phase2_work/RELEASE_MANIFEST.json",
+        "blobSha": "31d8199009a0ddc48a6bc9d9b910d5ef939b33e9",
+        "finding": "decision=NO-GO and productionApproved=false"
+      }
+    },
+    "vercel": {
+      "teamId": "team_EiPWvm6QxGGw5oOV39HiSjaw",
+      "project": {
+        "id": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
+        "name": "klar-dating",
+        "live": false,
+        "nodeVersion": "26.x"
+      },
+      "mainProductionDeployment": {
+        "id": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
+        "state": "READY",
+        "target": "production",
+        "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
+      },
+      "auditPreview": {
+        "id": "dpl_Fcy6oqh553yyLknNt8ByJk1KrDZg",
+        "state": "READY",
+        "target": null,
+        "sha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef"
+      },
+      "pr314ExactHeadDeploymentCount": 0,
+      "oldDemoProject": {
+        "id": "prj_kfJ06pJHn3neZAkrtasYKezxuprF",
+        "getProject": "404 not_found",
+        "teamProjectList": "absent"
+      },
+      "providerCredentials": {
+        "neonPostgresBetterAuth": "not accessed, rotated or revoked"
+      }
+    },
+    "decision": {
+      "productionApproved": false,
+      "status": "BLOCKED / NO-GO",
+      "reason": "No exact integrated release SHA with complete E3/E4 purge/TTL/tenant/operations evidence and independent Security, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals."
+    }
+  }
 }
