@@ -1989,3 +1989,15 @@ Die sechs offenen Ziel-Drafts basieren noch auf `96c3857c53f5ced31fe1394895185f4
 **Release-Entscheidung:** Main `phase2_work/RELEASE_MANIFEST.json` hält `productionApproved=false` und `decision=NO-GO`; sein letzter Verifikationszeitpunkt ist 10.10.2026 und daher keine aktuelle unabhängige Attestation. Die neun Issues #202/#70/#254/#8/#73/#55/#56/#204/#206 bleiben OPEN. Es fehlt weiterhin ein exakt integrierter Release-SHA mit vollständigen kritischen Live-/Lösch-/TTL-/Tenant-/Betriebsbelegen sowie unabhängigen Security-, DPO/Legal-, SRE-, Finance- (falls relevant) und Release-Owner-Freigaben. Keine aktuelle Google-Cloud/Firebase/GCS/IAM/Scheduler-Live-Evidenz und keine unabhängigen E5-Freigaben wurden erlangt.
 
 **Ausführung:** Dieser Nachtrag ist eine reine Dokumentationsänderung im bestehenden Audit-Review-Branch. Kein Main-Commit, kein Merge, kein Deployment, kein Secret-Zugriff und keine produktive Cloud-/Datenbankmutation. Der durch diesen Commit entstehende neue #313-Head benötigt seinen eigenen exakten CI-Nachweis.
+
+
+## Live release-watch checkpoint — 2026-11-11 11:42 CET
+
+- Fresh main: 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b; exact validate run [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), job 129478192916, completed/success. This is not a production approval.
+- Current inventory: **194 open PRs, 192 Drafts, 2 non-Drafts** (#358 RC1 and #361 Dependabot); 50 base on main, 144 stacked; 3 bases have no open parent; max stack depth 35. Full snapshot: [OPEN_PR_INVENTORY_2026-11-11.json](OPEN_PR_INVENTORY_2026-11-11.json).
+- Six monitored Draft PRs #251/#269/#203/#253/#313/#314 have current exact-head validate SUCCESS, but zero submitted reviews and are each 2 commits behind main. Exact heads, run/job IDs, and compare counts are recorded in OPEN_PR_TRIAGE_2026-11-02.md.
+- #315 is closed/unmerged; #361 fails the signed immutable-image provenance gate. #358 fails the exact-head consent-withdrawal browser test (28/29, Firestore PERMISSION_DENIED). #269/#203 overlap six files; no blind integration.
+- Active Ruleset #25756841 still requires 0 approvals and no CODEOWNERS review. All nine watched issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain OPEN.
+- Main-source blockers persist: upload-age verification-photo cron, no live 20/20 ACTIVE TTL proof, no integrated tenant middleware, signed-in-only profile-image reads and persisted Firebase bearer download URLs. No live Cloud/production test or independent sign-off was fabricated.
+- Vercel read-only: Klar is the sole team project; current-main production deployment is READY, but project metadata reports live=false and Node 26.x; exact #313 preview READY (target=null); #314 has no exact-head deployment. Legacy demo remains 404/absent; no further deletion or credential rotation attempted.
+- **Status: productionApproved=false, BLOCKED / NO-GO.** No code, production, Cloud, secret or main-branch changes; this is a documentation-only checkpoint in the existing #313 review branch. New exact-head CI remains required.
