@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "observedDate": "2026-11-11",
   "observedAt": "2026-11-11T04:40:31Z",
-  "source": "Fresh GitHub REST pull inventory and exact-head PR/check-run/review reads at 2026-11-11T04:40:31Z; current main, active Ruleset #25756841, current issues and read-only Vercel project/deployment records refreshed. Exact PR #313 head advanced from 00586288d86d68177d54fa17db185d69d3bdbc41 to c61ac48987f1ac60d0fe008cb657d39b550d58ef after the 04:39 CET snapshot. Counts and stack graph were re-read from both open-PR REST pages.",
+  "source": "Fresh GitHub REST pull inventory and exact-head PR/check-run/review reads at 2026-11-11T04:40:31Z; current main, active Ruleset #25756841, current issues and read-only Vercel project/deployment records refreshed. Exact PR #313 head advanced from 00586288d86d68177d54fa17db185d69d3bdbc41 to c61ac48987f1ac60d0fe008cb657d39b550d58ef after the 04:39 CET snapshot. Counts and stack graph were re-read from both open-PR REST pages. Stack depth was recomputed from the fresh 194-PR base/head graph and is 35 (not 36).",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -2996,7 +2996,7 @@
       "targetsOtherBranches": 144,
       "baseMatchesOpenPrHead": 141,
       "baseNotAmongOpenPrHeads": 3,
-      "maxOpenPrChainDepth": 36
+      "maxOpenPrChainDepth": 35
     },
     "pullRequests": [
       {
