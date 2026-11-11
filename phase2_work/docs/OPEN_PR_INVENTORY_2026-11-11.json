@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-11T11:29:54Z",
+  "generatedAt": "2026-11-11T21:00:54Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -75,6 +75,20 @@
       "33": 1,
       "34": 1,
       "35": 2
+    },
+    "headRefPrefixes": {
+      "dependabot": 1,
+      "audit": 7,
+      "release": 1,
+      "fix": 81,
+      "integration": 10,
+      "docs": 11,
+      "security": 55,
+      "audit-enterprise-e2e-20261102": 1,
+      "test": 19,
+      "feature": 2,
+      "feat": 5,
+      "Veselin-Takev-patch-1": 1
     }
   },
   "pullRequests": [
@@ -1884,10 +1898,10 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "8ff7f42e765468189c68cd9cd0ba29f715226e58",
+      "headSha": "bd5f5421f6a9f61338955a70510843e120c3f1de",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-11T10:48:14Z",
+      "updatedAt": "2026-11-11T18:44:45Z",
       "stackDepth": 0
     },
     {
