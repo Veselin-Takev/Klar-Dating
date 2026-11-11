@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-11T10:42:30Z",
+  "generatedAt": "2026-11-11T11:29:54Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -8,16 +8,16 @@
     "drafts": 192,
     "nonDrafts": [
       {
-        "number": 361,
-        "title": "build(deps): bump the github-actions group across 1 directory with 2 updates",
-        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
-        "baseRef": "main"
-      },
-      {
         "number": 358,
         "title": "Gate 0: RC1 tenant migration complete (50/50; 1636 PASS)",
         "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
         "baseRef": "release/v0.1.1-rc1"
+      },
+      {
+        "number": 361,
+        "title": "build(deps): bump the github-actions group across 1 directory with 2 updates",
+        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
+        "baseRef": "main"
       }
     ],
     "targetMain": 50,
@@ -25,16 +25,16 @@
     "baseRefsMatchingOpenPrHead": 141,
     "baseRefsWithoutOpenPrParent": [
       {
-        "number": 219,
-        "baseRef": "docs/48-atomic-referral-code-registry-adr-20261030"
+        "number": 213,
+        "baseRef": "docs/55-56-partner-trust-audit-20261030"
       },
       {
         "number": 214,
         "baseRef": "docs/213-partner-concurrency-evidence-20261030"
       },
       {
-        "number": 213,
-        "baseRef": "docs/55-56-partner-trust-audit-20261030"
+        "number": 219,
+        "baseRef": "docs/48-atomic-referral-code-registry-adr-20261030"
       }
     ],
     "maxStackDepth": 35,
@@ -1884,10 +1884,10 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "64f7184ebc1b05d8b2519a58b5d16ace97eeaa03",
+      "headSha": "8ff7f42e765468189c68cd9cd0ba29f715226e58",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-11T07:18:32Z",
+      "updatedAt": "2026-11-11T10:48:14Z",
       "stackDepth": 0
     },
     {
