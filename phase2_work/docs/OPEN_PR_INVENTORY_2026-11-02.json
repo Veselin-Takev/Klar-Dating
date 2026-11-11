@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-11",
-  "observedAt": "2026-11-11T04:40:31Z",
-  "source": "Fresh GitHub REST pull inventory and exact-head PR/check-run/review reads at 2026-11-11T04:40:31Z; current main, active Ruleset #25756841, current issues and read-only Vercel project/deployment records refreshed. Exact PR #313 head advanced from 00586288d86d68177d54fa17db185d69d3bdbc41 to c61ac48987f1ac60d0fe008cb657d39b550d58ef after the 04:39 CET snapshot. Counts and stack graph were re-read from both open-PR REST pages. Stack depth was recomputed from the fresh 194-PR base/head graph and is 35 (not 36).",
+  "observedAt": "2026-11-11T07:12:45Z",
+  "source": "Fresh GitHub REST open-PR pages, exact target-PR heads/check-runs/reviews, main ref/check/status, active Ruleset #25756841, source blobs and read-only Vercel project/deployment reads at 2026-11-11 08:12 CET. This snapshot is based on audit branch parent ebff2580566372e6c10dcc3f994baa332d455959; the documentation-only commit advances PR #313 and therefore requires its own exact-head CI recheck.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -44,11 +44,7 @@
       "feature": 2,
       "feat": 5,
       "Veselin-Takev-patch-1": 1
-    },
-    "nonDraftNumbers": [
-      361,
-      358
-    ]
+    }
   },
   "baseNotAmongOpenPrHeads": [
     {
@@ -717,13 +713,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef",
-      "mergeSha": "16b1ef86ccba968ded624816ebab2ef345cebd88",
+      "headSha": "ebff2580566372e6c10dcc3f994baa332d455959",
+      "mergeSha": "177f12f2ef1f7b6580d6f925b4e8173240358d09",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-11T03:43:40Z"
+      "updatedAt": "2026-11-11T04:46:29Z"
     },
     {
       "number": 312,
@@ -2977,7 +2973,7 @@
     }
   ],
   "latestWatch": {
-    "observedAt": "2026-11-11T04:40:31Z",
+    "observedAt": "2026-11-11T07:12:45Z",
     "main": {
       "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
       "validate": {
@@ -2986,7 +2982,10 @@
         "status": "completed",
         "conclusion": "success"
       },
-      "vercelCommitStatus": "success"
+      "vercelCommitStatus": "success",
+      "vercelDeployment": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
+      "vercelTarget": "production",
+      "vercelDeploymentState": "READY"
     },
     "counts": {
       "open": 194,
@@ -2996,7 +2995,31 @@
       "targetsOtherBranches": 144,
       "baseMatchesOpenPrHead": 141,
       "baseNotAmongOpenPrHeads": 3,
-      "maxOpenPrChainDepth": 35
+      "maxOpenPrChainDepth": 35,
+      "titleAreas": {
+        "governance-audit": 17,
+        "tenant-254": 26,
+        "retention-202": 79,
+        "other": 29,
+        "ttl-70": 1,
+        "profile-media-204-206": 8,
+        "partner-webhook-55": 13,
+        "partner-referral-56-48": 21
+      },
+      "headRefPrefixes": {
+        "dependabot": 1,
+        "audit": 7,
+        "release": 1,
+        "fix": 81,
+        "integration": 10,
+        "docs": 11,
+        "security": 55,
+        "audit-enterprise-e2e-20261102": 1,
+        "test": 19,
+        "feature": 2,
+        "feat": 5,
+        "Veselin-Takev-patch-1": 1
+      }
     },
     "pullRequests": [
       {
@@ -3011,12 +3034,7 @@
           "job": 129836618469,
           "conclusion": "success"
         },
-        "reviews": 0,
-        "vercel": {
-          "deployment": "dpl_52k22yPE82ru6CLMai4ZskiWvXvt",
-          "state": "READY",
-          "target": null
-        }
+        "reviews": 0
       },
       {
         "number": 269,
@@ -3031,11 +3049,14 @@
           "conclusion": "success"
         },
         "reviews": 0,
-        "vercel": {
-          "deployment": "dpl_62LYkFToqomaKLWH6U84BE9ztsSn",
-          "state": "READY",
-          "target": null
-        }
+        "overlapWith203": [
+          "DATA_RETENTION.md",
+          "deleteExpiredPhotos.ts",
+          "retention.ts",
+          "package.json",
+          "photoRetention.spec.ts",
+          "storageRules.spec.ts"
+        ]
       },
       {
         "number": 203,
@@ -3050,11 +3071,14 @@
           "conclusion": "success"
         },
         "reviews": 0,
-        "vercel": {
-          "deployment": "dpl_3nLEmJjr2KZ9XGVVrDKTrrJErRxC",
-          "state": "READY",
-          "target": null
-        }
+        "overlapWith269": [
+          "DATA_RETENTION.md",
+          "deleteExpiredPhotos.ts",
+          "retention.ts",
+          "package.json",
+          "photoRetention.spec.ts",
+          "storageRules.spec.ts"
+        ]
       },
       {
         "number": 253,
@@ -3068,28 +3092,23 @@
           "job": 125601704190,
           "conclusion": "success"
         },
-        "reviews": 0,
-        "vercel": {
-          "deployment": "dpl_Eu9p9pmP9t4n5tRzuX14eb9XBCup",
-          "state": "READY",
-          "target": null
-        }
+        "reviews": 0
       },
       {
         "number": 313,
         "state": "open",
         "draft": true,
-        "headSha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef",
-        "ahead": 87,
+        "headSha": "ebff2580566372e6c10dcc3f994baa332d455959",
+        "ahead": 89,
         "behind": 2,
         "validate": {
-          "run": 42954618943,
-          "job": 130306664764,
+          "run": 42961392549,
+          "job": 130328510627,
           "conclusion": "success"
         },
         "reviews": 0,
         "vercel": {
-          "deployment": "dpl_Fcy6oqh553yyLknNt8ByJk1KrDZg",
+          "deployment": "dpl_7JmA58ZA8GRQemadcuC9pjCRJSxi",
           "state": "READY",
           "target": null
         }
@@ -3122,7 +3141,7 @@
           "job": 125572558770,
           "conclusion": "failure",
           "failedStep": "Enterprise static gates",
-          "reason": "Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest"
+          "reason": "GitHub-signed provenance attestation bound to immutable image digest required"
         },
         "reviews": [
           {
@@ -3131,6 +3150,82 @@
             "independent": false
           }
         ]
+      },
+      {
+        "number": 316,
+        "state": "open",
+        "draft": true,
+        "headSha": "b1b669ed5e80a6572dc60bdbbbc08e02650283be",
+        "validate": {
+          "run": 41596122104,
+          "job": 125783766115,
+          "conclusion": "success"
+        },
+        "note": "replacement attest-pin/validator draft; independent review not assessed in this snapshot"
+      },
+      {
+        "number": 317,
+        "state": "open",
+        "draft": true,
+        "headSha": "37c7487246303c5af1543ca1e5afe31e2cf2e0f4",
+        "validate": {
+          "run": 42078741460,
+          "job": 127426427605,
+          "conclusion": "success"
+        }
+      },
+      {
+        "number": 348,
+        "state": "open",
+        "draft": true,
+        "headSha": "a7b6e574086d02fd9ea28868b061c7072ed84f5c",
+        "validate": {
+          "run": 42424069834,
+          "job": 128558460382,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "note": "P0 production hard-stop interlock; review-only stacked branch"
+      },
+      {
+        "number": 353,
+        "state": "open",
+        "draft": true,
+        "headSha": "c653efd6984f573ab0443bdd3723ca37f63fa320",
+        "validate": {
+          "run": 42460900607,
+          "job": 128669779420,
+          "conclusion": "success"
+        },
+        "reviews": 0,
+        "note": "integrates account-erasure hard-stop and Firestore/GCS hold guards; all-writer late-hold race remains"
+      },
+      {
+        "number": 355,
+        "state": "open",
+        "draft": true,
+        "headSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
+        "validate": {
+          "run": 42475508667,
+          "job": 128715833344,
+          "conclusion": "success"
+        },
+        "note": "RC1 scope proposal; draft"
+      },
+      {
+        "number": 358,
+        "state": "open",
+        "draft": false,
+        "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
+        "validate": {
+          "run": 42710380877,
+          "job": 129478019942,
+          "conclusion": "failure",
+          "failedStep": "Browser acceptance",
+          "tests": "28 passed / 1 failed",
+          "reason": "Consent-withdrawal confirmation returned generic failure; Firestore PERMISSION_DENIED"
+        },
+        "reviews": 0
       },
       {
         "number": 361,
@@ -3142,23 +3237,7 @@
           "job": 129461862107,
           "conclusion": "failure",
           "failedStep": "Enterprise static gates",
-          "reason": "Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest"
-        },
-        "reviews": 0
-      },
-      {
-        "number": 358,
-        "state": "open",
-        "draft": false,
-        "base": "release/v0.1.1-rc1",
-        "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
-        "validate": {
-          "run": 42710380877,
-          "job": 129478019942,
-          "conclusion": "failure",
-          "failedStep": "Browser acceptance",
-          "tests": "28 passed / 1 failed",
-          "reason": "Consent withdrawal expected success message; generic confirmation failure returned with Firestore PERMISSION_DENIED"
+          "reason": "GitHub-signed provenance attestation bound to immutable image digest required"
         },
         "reviews": 0
       }
@@ -3179,6 +3258,7 @@
       "dismissStaleReviewsOnPush": false,
       "requireLastPushApproval": false,
       "requiredReviewThreadResolution": false,
+      "requireExtraApprovalForUnattributedChanges": true,
       "preventDeletion": true,
       "preventNonFastForward": true,
       "bypassActors": []
@@ -3230,12 +3310,22 @@
       "legacyPhotoRetention": {
         "path": "phase2_work/functions/src/retention.ts",
         "blobSha": "5f9014b9090042b1f501c70cb87c4a1fdeb51f0a",
-        "finding": "verification/ objects are filtered by Storage timeCreated >30 days; not moderation decision/fotoLoeschenAb"
+        "finding": "verification/ objects are filtered by Storage timeCreated older than 30 days; no moderation decision/fotoLoeschenAb predicate"
+      },
+      "legacyAndNewSchedulers": {
+        "path": "phase2_work/functions/src/index.ts",
+        "blobSha": "1f6a239ab6332140a84207f8ee29b52568f71682",
+        "finding": "main exports both deleteExpiredPhotosCron and purgeVerificationStorageCron"
+      },
+      "purgeWorker": {
+        "path": "phase2_work/functions/src/purgeVerificationStorage.ts",
+        "blobSha": "71fae5af61c4547f1d2e21afb92e301878ca8479",
+        "finding": "main contains a separate daily 03:00 UTC signed HTTP purge scheduler"
       },
       "ttlProvisioning": {
         "path": "phase2_work/scripts/configure-retention.sh",
         "blobSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
-        "finding": "20-group policy gate exists; no target-environment 20/20 ACTIVE readback"
+        "finding": "20-group staging/project/matrix preflight and dry-run exist; no real 20/20 ACTIVE readback"
       },
       "storageRules": {
         "path": "phase2_work/storage.rules",
@@ -3245,17 +3335,17 @@
       "profilePhotoUrl": {
         "path": "phase2_work/src/lib/klar.ts",
         "blobSha": "4c960dac7a552948df9b3ac7ea9601238d788492",
-        "finding": "getDownloadURL() is persisted as photoURL"
+        "finding": "getDownloadURL() is persisted as users/{uid}.photoURL"
       },
-      "apiDiagnostics": {
-        "path": "phase2_work/src/lib/api.ts",
-        "blobSha": "f4db29b69aa454cd4f9d55118965556739ef9e4f",
-        "finding": "full request URL remains in debug/failure diagnostics"
+      "codeowners": {
+        "path": "CODEOWNERS",
+        "blobSha": "fcaacd9acc8007fa637720fb98fe50c23de7f07c",
+        "finding": "active phase2_work ownership is assigned to the repository owner; file disclaims independent Security/Finance approval"
       },
       "releaseManifest": {
         "path": "phase2_work/RELEASE_MANIFEST.json",
         "blobSha": "31d8199009a0ddc48a6bc9d9b910d5ef939b33e9",
-        "finding": "decision=NO-GO and productionApproved=false"
+        "finding": "node 22.23.3; decision NO-GO; productionApproved=false; release evidence pending"
       }
     },
     "vercel": {
@@ -3273,16 +3363,20 @@
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
       "auditPreview": {
-        "id": "dpl_Fcy6oqh553yyLknNt8ByJk1KrDZg",
+        "id": "dpl_7JmA58ZA8GRQemadcuC9pjCRJSxi",
         "state": "READY",
         "target": null,
-        "sha": "c61ac48987f1ac60d0fe008cb657d39b550d58ef"
+        "sha": "ebff2580566372e6c10dcc3f994baa332d455959"
       },
       "pr314ExactHeadDeploymentCount": 0,
+      "nodeVersionMismatch": {
+        "project": "26.x",
+        "releaseManifest": "22.23.3"
+      },
       "oldDemoProject": {
         "id": "prj_kfJ06pJHn3neZAkrtasYKezxuprF",
-        "getProject": "404 not_found",
-        "teamProjectList": "absent"
+        "priorReadOnlyEvidence": "404 not_found and absent from team list; not re-queried this run",
+        "deletionConfirmed": true
       },
       "providerCredentials": {
         "neonPostgresBetterAuth": "not accessed, rotated or revoked"
