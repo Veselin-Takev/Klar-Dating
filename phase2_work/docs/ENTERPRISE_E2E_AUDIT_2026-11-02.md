@@ -110,3 +110,14 @@ Dies ist eine **breite E2E-Kontrollprüfung von Repository-Evidenz**, aber kein 
 Die durch diesen Audit-Branch vorgenommenen Änderungen sind **dokumentarisch**; weder Fixes der P0-Bugs noch Cloud-Konfiguration, aktiver Sicherheitsregeln, `main`, Deployments oder Kunden-Daten. Die Dokumentation ist ein **Review-Kandidat** und benötigt selbst exakte CI und unabhängige Annahme.
 
 **Finale Audit-Entscheidung vom 2026-11-02: PRODUCTION READINESS NO-GO / BLOCKED.** Nächste Abnahme nur über nachweisbasierte, unabhängige Freigaben des finalen integrierten Release-SHA.
+
+
+## Live exact-head checkpoint — 2026-11-11 02:13 CET
+
+- Current `main` HEAD is `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`; exact `validate` run [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), job `129478192916`, is completed/success.
+- Fresh open-PR inventory: 194 open (192 Draft, 2 non-Draft); the six requested Drafts #251/#269/#203/#253/#313/#314 each have 0 reviews and are 2 commits behind main. Exact current heads, per-SHA CI/job results, ahead/behind counts, Vercel statuses, stack counts and issue state are recorded in `OPEN_PR_TRIAGE_2026-11-02.md` and `OPEN_PR_INVENTORY_2026-11-02.json` on this review branch.
+- #315 is closed/unmerged; its replacement open Dependabot PR #361 fails the exact-head provenance gate. Non-Draft RC1 #358 fails the exact-head browser consent-withdrawal test (28 pass / 1 fail). #314's `validate` is green but its Vercel status remains `failure/build-rate-limit`.
+- Main still contains the upload-age verification-photo worker; TTL code enumerates 20 groups but live 20/20 ACTIVE evidence is absent; tenant middleware is not mounted; profile-image rules remain signed-in-only and `getDownloadURL()` remains persisted. Issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain open.
+- Active Ruleset #25756841 still requires 0 approvals and no CODEOWNERS review. Klar Vercel project exists and a production-target READY deployment is bound to this main SHA, but project metadata says `live=false`; neither is a release attestation.
+
+**Decision remains `productionApproved=false`, BLOCKED / NO-GO.** No independent Security/AppSec, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals or complete E3/E4 operational evidence were found. No production changes or merges were made. This documentation-only checkpoint itself must pass CI on its new exact commit before being treated as technically validated.
