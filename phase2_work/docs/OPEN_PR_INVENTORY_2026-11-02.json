@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "observedDate": "2026-11-11",
-  "observedAt": "2026-11-11T03:08:19Z",
-  "source": "Fresh GitHub REST pulls pages 1-2 (per_page=100) at 2026-11-11T03:08:19Z, exact main commit and all open PR head/base refs; PR #313 exact metadata refreshed after its 2026-11-11 01:18 UTC documentation commit; read-only snapshot.",
+  "observedAt": "2026-11-11T03:39:40Z",
+  "source": "Fresh GitHub REST pulls pages 1–2 (per_page=100) and exact main/Ruleset/priority PR metadata, exact-head Actions runs/jobs and submitted reviews at 2026-11-11T03:39:40Z; Vercel project and deployment metadata read-only. All 194 open PR refs refreshed. Exact #313 head refreshed from 424fa0202f1715c7e0292adfba16f9b74e1d0638 to 00586288d86d68177d54fa17db185d69d3bdbc41; all open PR entries refreshed from both current REST pages.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -717,13 +717,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "424fa0202f1715c7e0292adfba16f9b74e1d0638",
-      "mergeSha": "e4c8a4245b23398397e3a7303cc719775ca2080a",
+      "headSha": "00586288d86d68177d54fa17db185d69d3bdbc41",
+      "mergeSha": "16b1ef86ccba968ded624816ebab2ef345cebd88",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-11T01:18:49Z"
+      "updatedAt": "2026-11-11T03:14:40Z"
     },
     {
       "number": 312,
