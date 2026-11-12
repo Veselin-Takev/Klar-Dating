@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T17:06:08Z",
+  "generatedAt": "2026-11-12T22:24:24Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -173,7 +173,7 @@
         "conclusion": "failure",
         "reviewCount": 0,
         "failedStep": "Enterprise static gates",
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -195,7 +195,7 @@
         "conclusion": "failure",
         "reviewCount": 0,
         "failedStep": "Browser acceptance",
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -699,7 +699,7 @@
         "aheadBy": 3,
         "behindBy": 2,
         "vercelExactHeadDeploymentCount": 0,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -708,21 +708,21 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "46f61f171d4d4040df7f09a683a5bd4421dd31d2",
+      "headSha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-12T13:46:19Z",
+      "updatedAt": "2026-11-12T17:28:44Z",
       "stackDepth": 0,
       "exactHeadCheck": {
-        "runId": 43230464057,
-        "jobId": 131224097112,
+        "runId": 43269824227,
+        "jobId": 131363065161,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 108,
+        "aheadBy": 110,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T17:06:08Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -1261,7 +1261,7 @@
         "reviewCount": 0,
         "aheadBy": 33,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -1452,7 +1452,7 @@
         "reviewCount": 0,
         "aheadBy": 11,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -1487,7 +1487,7 @@
         "reviewCount": 0,
         "aheadBy": 10,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -2038,7 +2038,7 @@
         "reviewCount": 0,
         "aheadBy": 57,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T22:24:24Z"
       }
     },
     {
@@ -2586,7 +2586,8 @@
         "name": "validate",
         "status": "completed",
         "conclusion": "failure",
-        "failedStep": "Enterprise static gates"
+        "failedStep": "Enterprise static gates",
+        "checkedAt": "2026-11-12T22:24:24Z"
       },
       "reviewsSubmitted": 1,
       "independentApprovals": 0,
@@ -2594,16 +2595,20 @@
     }
   ],
   "watchSnapshot": {
-    "capturedAt": "2026-11-12T17:06:08Z",
+    "capturedAt": "2026-11-12T22:24:24Z",
     "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidate": {
       "runId": 42710429488,
       "jobId": 129478192916,
-      "conclusion": "success"
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "successfulSteps": 33
     },
     "currentMainDiffFromCommonBase": {
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "aheadBy": 2,
+      "behindBy": 0,
       "changedPaths": [
         ".github/pull_request_template.md",
         "CONTRIBUTING.md",
@@ -2615,6 +2620,7 @@
     },
     "exactHeadComparisons": {
       "203": {
+        "headSha": "1850e0a78b22e600e5add99273b84c081ffc3892",
         "runId": 42017264009,
         "jobId": 127211414732,
         "name": "validate",
@@ -2625,6 +2631,7 @@
         "behindBy": 2
       },
       "251": {
+        "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
         "runId": 42818199684,
         "jobId": 129836618469,
         "name": "validate",
@@ -2635,6 +2642,7 @@
         "behindBy": 2
       },
       "253": {
+        "headSha": "036ee313747a7beb2ab926e721e3bef958304447",
         "runId": 41539994863,
         "jobId": 125601704190,
         "name": "validate",
@@ -2645,6 +2653,7 @@
         "behindBy": 2
       },
       "269": {
+        "headSha": "fd68656957c01618c3a085e887ece504624d18b3",
         "runId": 42020003801,
         "jobId": 127220743813,
         "name": "validate",
@@ -2655,17 +2664,18 @@
         "behindBy": 2
       },
       "313": {
-        "runId": 43230464057,
-        "jobId": 131224097112,
+        "headSha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4",
+        "runId": 43269824227,
+        "jobId": 131363065161,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 108,
-        "behindBy": 2,
-        "checkedAt": "2026-11-12T17:06:08Z"
+        "aheadBy": 110,
+        "behindBy": 2
       },
       "314": {
+        "headSha": "e5deab1dfd629065f3dfce3a5577eb21ac966a68",
         "runId": 41619572341,
         "jobId": 125861548924,
         "name": "validate",
@@ -2677,6 +2687,7 @@
         "vercelExactHeadDeploymentCount": 0
       },
       "358": {
+        "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
         "runId": 42710380877,
         "jobId": 129478019942,
         "name": "validate",
@@ -2686,6 +2697,7 @@
         "failedStep": "Browser acceptance"
       },
       "361": {
+        "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
         "runId": 42705724751,
         "jobId": 129461862107,
         "name": "validate",
@@ -2695,18 +2707,32 @@
         "failedStep": "Enterprise static gates"
       }
     },
+    "closedMonitoredPR": {
+      "number": 315,
+      "state": "closed",
+      "merged": false,
+      "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
+      "runId": 41531498018,
+      "jobId": 125572558770,
+      "conclusion": "failure",
+      "failedStep": "Enterprise static gates",
+      "reviewCount": 1,
+      "independentApprovals": 0
+    },
     "ruleset": {
       "id": 25756841,
       "enforcement": "active",
-      "requiredCheck": "validate",
-      "strict": true,
+      "target": "refs/heads/main",
+      "strictRequiredCheck": "validate",
       "requiredApprovingReviewCount": 0,
       "requireCodeOwnerReview": false,
       "dismissStaleReviewsOnPush": false,
       "requireLastPushApproval": false,
       "requiredReviewThreadResolution": false,
       "requireExtraApprovalForUnattributedChanges": true,
-      "bypassActors": []
+      "bypassActors": [],
+      "deletionProtected": true,
+      "nonFastForwardProtected": true
     },
     "issues": [
       {
@@ -2746,24 +2772,90 @@
         "state": "open"
       }
     ],
+    "sourceEvidence": [
+      {
+        "path": "phase2_work/functions/src/deleteExpiredPhotos.ts",
+        "blobSha": "69c0ad42be40ac51f8aebd62741ae97bf5120f2a",
+        "lines": "7-19",
+        "finding": "24-hour scheduled deleteExpiredPhotosCron calls deleteExpiredPhotoPage"
+      },
+      {
+        "path": "phase2_work/functions/src/retention.ts",
+        "blobSha": "5f9014b9090042b1f501c70cb87c4a1fdeb51f0a",
+        "lines": "8-21",
+        "finding": "30-day timeCreated threshold on verification/ objects; hold and GCS generation guards but no moderation decision/fotoLoeschenAb predicate"
+      },
+      {
+        "path": "phase2_work/scripts/configure-retention.sh",
+        "blobSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
+        "lines": "24-53",
+        "finding": "20-group TTL setup defaults to dry-run and requires exact approved staging project/database plus Legal/inventory/matrix approvals; no live ACTIVE readback obtained"
+      },
+      {
+        "path": "phase2_work/server.ts",
+        "blobSha": "808492df32ff4aa26958079895efae9a7c64a2b7",
+        "finding": "no tenant/multitenant reference in current main"
+      },
+      {
+        "path": "phase2_work/src/server/multitenant/tenantAuth.ts",
+        "finding": "NOT_FOUND on current main"
+      },
+      {
+        "path": "phase2_work/storage.rules",
+        "blobSha": "b3d1e216ab9c0226ca14813799df4adb63bf7558",
+        "lines": "34-38",
+        "finding": "profile image read allows signedIn() only"
+      },
+      {
+        "path": "phase2_work/src/server/platform/storageRulesEngine.ts",
+        "blobSha": "2eceecccf19bfb7a361c4c5e0f0932f36c8c31b6",
+        "lines": "149-152",
+        "finding": "policy engine requires adult reader and adult target"
+      },
+      {
+        "path": "phase2_work/src/lib/klar.ts",
+        "blobSha": "4c960dac7a552948df9b3ac7ea9601238d788492",
+        "lines": "68-81",
+        "finding": "getDownloadURL persisted as users/{uid}.photoURL"
+      }
+    ],
     "vercel": {
       "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
       "name": "klar-dating",
       "live": false,
       "nodeVersion": "26.x",
+      "repositoryNodeVersion": "22.23.3",
+      "latestDeployment": {
+        "id": "dpl_HqhU4LdoPqNiS4cUYNhb9ueTrxHn",
+        "state": "READY",
+        "target": null,
+        "sha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4"
+      },
       "mainProductionDeployment": {
         "id": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
         "state": "READY",
         "target": "production",
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
-      "pr313Preview": {
-        "id": "dpl_Hq9x3kEcMGNaFCMG4EbabxASSAqa",
-        "state": "READY",
-        "target": null,
-        "sha": "46f61f171d4d4040df7f09a683a5bd4421dd31d2"
-      },
-      "pr314ExactHeadDeploymentCount": 0
+      "pr314ExactHeadDeploymentCount": 0,
+      "note": "Deployment metadata only; no traffic/runtime-health proof. Project metadata live=false."
+    },
+    "releaseManifest": {
+      "decision": "NO-GO",
+      "productionApproved": false,
+      "lastVerificationDate": "2026-10-10",
+      "fullPreflight": "BLOCKED",
+      "releaseEvidenceStatus": "pending-dynamic-ci-and-remote-sync",
+      "firebaseTests": "NOT_RUN",
+      "playwrightTests": "NOT_RUN",
+      "productionSecurityPreflight": "NOT_RUN"
+    },
+    "demoDeletion": {
+      "project": "login-page-prototype",
+      "previouslyConfirmedDeleted": true,
+      "retryPerformed": false,
+      "providerCredentialsAccessed": false,
+      "providerCredentialsRotated": false
     },
     "decision": {
       "productionApproved": false,
