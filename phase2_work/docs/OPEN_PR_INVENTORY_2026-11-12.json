@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T12:03:35Z",
+  "generatedAt": "2026-11-12T17:06:08Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -204,10 +204,10 @@
       "state": "open",
       "draft": true,
       "headRef": "release/v0.1.1-rc1",
-      "headSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
+      "headSha": "f8f0cbd6838b93ff065517a7880b7c8ed0d48b47",
       "baseRef": "main",
-      "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-08T11:23:13Z",
+      "baseSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
+      "updatedAt": "2026-11-12T13:06:06Z",
       "stackDepth": 0
     },
     {
@@ -708,21 +708,21 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "6ab5684701f8b557c8b1887020f05602bb6fefa4",
+      "headSha": "46f61f171d4d4040df7f09a683a5bd4421dd31d2",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-12T10:42:15Z",
+      "updatedAt": "2026-11-12T13:46:19Z",
       "stackDepth": 0,
       "exactHeadCheck": {
-        "runId": 43202673075,
-        "jobId": 131129829527,
+        "runId": 43230464057,
+        "jobId": 131224097112,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 105,
+        "aheadBy": 108,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T12:03:35Z"
+        "checkedAt": "2026-11-12T17:06:08Z"
       }
     },
     {
@@ -2594,7 +2594,7 @@
     }
   ],
   "watchSnapshot": {
-    "capturedAt": "2026-11-12T12:03:35Z",
+    "capturedAt": "2026-11-12T17:06:08Z",
     "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidate": {
       "runId": 42710429488,
@@ -2655,14 +2655,15 @@
         "behindBy": 2
       },
       "313": {
-        "runId": 43202673075,
-        "jobId": 131129829527,
+        "runId": 43230464057,
+        "jobId": 131224097112,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 105,
-        "behindBy": 2
+        "aheadBy": 108,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T17:06:08Z"
       },
       "314": {
         "runId": 41619572341,
@@ -2704,6 +2705,7 @@
       "dismissStaleReviewsOnPush": false,
       "requireLastPushApproval": false,
       "requiredReviewThreadResolution": false,
+      "requireExtraApprovalForUnattributedChanges": true,
       "bypassActors": []
     },
     "issues": [
@@ -2756,10 +2758,10 @@
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
       "pr313Preview": {
-        "id": "dpl_2u8YGkFbHRABYVKHxFECVVMpbVGw",
+        "id": "dpl_Hq9x3kEcMGNaFCMG4EbabxASSAqa",
         "state": "READY",
         "target": null,
-        "sha": "6ab5684701f8b557c8b1887020f05602bb6fefa4"
+        "sha": "46f61f171d4d4040df7f09a683a5bd4421dd31d2"
       },
       "pr314ExactHeadDeploymentCount": 0
     },
