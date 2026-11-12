@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T10:35:35Z",
+  "generatedAt": "2026-11-12T12:03:35Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -164,7 +164,17 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-09T21:47:00Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 42705724751,
+        "jobId": 129461862107,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "failure",
+        "reviewCount": 0,
+        "failedStep": "Enterprise static gates",
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 358,
@@ -176,7 +186,17 @@
       "baseRef": "release/v0.1.1-rc1",
       "baseSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
       "updatedAt": "2026-11-09T22:16:38Z",
-      "stackDepth": 1
+      "stackDepth": 1,
+      "exactHeadCheck": {
+        "runId": 42710380877,
+        "jobId": 129478019942,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "failure",
+        "reviewCount": 0,
+        "failedStep": "Browser acceptance",
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 355,
@@ -668,7 +688,19 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-03T10:42:16Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 41619572341,
+        "jobId": 125861548924,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 3,
+        "behindBy": 2,
+        "vercelExactHeadDeploymentCount": 0,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 313,
@@ -676,11 +708,22 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "2976a19d77337a0f4a523410fe62f1924889aa69",
+      "headSha": "6ab5684701f8b557c8b1887020f05602bb6fefa4",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-12T09:49:27Z",
-      "stackDepth": 0
+      "updatedAt": "2026-11-12T10:42:15Z",
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 43202673075,
+        "jobId": 131129829527,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 105,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 312,
@@ -1208,7 +1251,18 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-05T11:34:16Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 42020003801,
+        "jobId": 127220743813,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 33,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 268,
@@ -1388,7 +1442,18 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-02T22:46:41Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 41539994863,
+        "jobId": 125601704190,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 11,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 252,
@@ -1412,7 +1477,18 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-10T12:43:46Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 42818199684,
+        "jobId": 129836618469,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 10,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 250,
@@ -1952,7 +2028,18 @@
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
       "updatedAt": "2026-11-05T11:14:03Z",
-      "stackDepth": 0
+      "stackDepth": 0,
+      "exactHeadCheck": {
+        "runId": 42017264009,
+        "jobId": 127211414732,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 57,
+        "behindBy": 2,
+        "checkedAt": "2026-11-12T12:03:35Z"
+      }
     },
     {
       "number": 201,
@@ -2482,5 +2569,203 @@
       "updatedAt": "2026-10-27T22:42:34Z",
       "stackDepth": 0
     }
-  ]
+  ],
+  "monitoredClosedPullRequests": [
+    {
+      "number": 315,
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headRef": "dependabot/github_actions/github-actions-51d4804faf",
+      "headSha": "71743b14c66d9c5f2fdca2ed73a0fda3c137d48d",
+      "baseRef": "main",
+      "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
+      "exactHeadCheck": {
+        "runId": 41531498018,
+        "jobId": 125572558770,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "failure",
+        "failedStep": "Enterprise static gates"
+      },
+      "reviewsSubmitted": 1,
+      "independentApprovals": 0,
+      "reviewer": "Veselin-Takev"
+    }
+  ],
+  "watchSnapshot": {
+    "capturedAt": "2026-11-12T12:03:35Z",
+    "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
+    "mainValidate": {
+      "runId": 42710429488,
+      "jobId": 129478192916,
+      "conclusion": "success"
+    },
+    "currentMainDiffFromCommonBase": {
+      "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
+      "aheadBy": 2,
+      "changedPaths": [
+        ".github/pull_request_template.md",
+        "CONTRIBUTING.md",
+        "README.md",
+        "phase2_work/.github/pull_request_template.md",
+        "phase2_work/docs/PR_HYGIENE_2026-11-08.md"
+      ],
+      "applicationSourceChanged": false
+    },
+    "exactHeadComparisons": {
+      "203": {
+        "runId": 42017264009,
+        "jobId": 127211414732,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 57,
+        "behindBy": 2
+      },
+      "251": {
+        "runId": 42818199684,
+        "jobId": 129836618469,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 10,
+        "behindBy": 2
+      },
+      "253": {
+        "runId": 41539994863,
+        "jobId": 125601704190,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 11,
+        "behindBy": 2
+      },
+      "269": {
+        "runId": 42020003801,
+        "jobId": 127220743813,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 33,
+        "behindBy": 2
+      },
+      "313": {
+        "runId": 43202673075,
+        "jobId": 131129829527,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 105,
+        "behindBy": 2
+      },
+      "314": {
+        "runId": 41619572341,
+        "jobId": 125861548924,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "success",
+        "reviewCount": 0,
+        "aheadBy": 3,
+        "behindBy": 2,
+        "vercelExactHeadDeploymentCount": 0
+      },
+      "358": {
+        "runId": 42710380877,
+        "jobId": 129478019942,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "failure",
+        "reviewCount": 0,
+        "failedStep": "Browser acceptance"
+      },
+      "361": {
+        "runId": 42705724751,
+        "jobId": 129461862107,
+        "name": "validate",
+        "status": "completed",
+        "conclusion": "failure",
+        "reviewCount": 0,
+        "failedStep": "Enterprise static gates"
+      }
+    },
+    "ruleset": {
+      "id": 25756841,
+      "enforcement": "active",
+      "requiredCheck": "validate",
+      "strict": true,
+      "requiredApprovingReviewCount": 0,
+      "requireCodeOwnerReview": false,
+      "dismissStaleReviewsOnPush": false,
+      "requireLastPushApproval": false,
+      "requiredReviewThreadResolution": false,
+      "bypassActors": []
+    },
+    "issues": [
+      {
+        "number": 202,
+        "state": "open"
+      },
+      {
+        "number": 70,
+        "state": "open"
+      },
+      {
+        "number": 254,
+        "state": "open"
+      },
+      {
+        "number": 8,
+        "state": "open"
+      },
+      {
+        "number": 73,
+        "state": "open"
+      },
+      {
+        "number": 55,
+        "state": "open"
+      },
+      {
+        "number": 56,
+        "state": "open"
+      },
+      {
+        "number": 204,
+        "state": "open"
+      },
+      {
+        "number": 206,
+        "state": "open"
+      }
+    ],
+    "vercel": {
+      "projectId": "prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre",
+      "name": "klar-dating",
+      "live": false,
+      "nodeVersion": "26.x",
+      "mainProductionDeployment": {
+        "id": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
+        "state": "READY",
+        "target": "production",
+        "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
+      },
+      "pr313Preview": {
+        "id": "dpl_2u8YGkFbHRABYVKHxFECVVMpbVGw",
+        "state": "READY",
+        "target": null,
+        "sha": "6ab5684701f8b557c8b1887020f05602bb6fefa4"
+      },
+      "pr314ExactHeadDeploymentCount": 0
+    },
+    "decision": {
+      "productionApproved": false,
+      "status": "BLOCKED / NO-GO"
+    }
+  }
 }

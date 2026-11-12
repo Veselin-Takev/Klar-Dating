@@ -733,3 +733,56 @@ Current main source was re-read:
 - #314 exact head has no Vercel deployment. The previously confirmed login-page-prototype deletion was not retried. Neon/Postgres/Better-Auth credentials were not read, rotated or revoked.
 
 **Decision remains productionApproved=false, BLOCKED / NO-GO.** No integrated release SHA has complete critical purge/race/receipt, live TTL/Legal-Hold, tenant/BOLA/Art.-17 and operational evidence plus independent Security/AppSec, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals. No code, Ruleset, production data, Firebase/GCS/IAM/Scheduler, secret or deployment change was made in this checkpoint.
+
+
+## Produktionsfreigabe-Watch – 12.11.2026, 13:03 CET – BLOCKED / NO-GO
+
+Read-only-Erfassung: 12.11.2026 12:03:35 UTC. Dieser Checkpoint dokumentiert den Zustand vor dem nachfolgenden Dokumentationscommit. Er ist keine menschliche Attestation.
+
+### Main und PR-Inventar
+
+- Frischer Main-HEAD: `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`. Exakter Main-Run [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), Job `129478192916`, `validate=completed/success` (33 Schritte).
+- Seit dem gemeinsamen Merge-Base `96c3857c53f5ced31fe1394895185f42c75bc716` liegen genau zwei Main-Commits vor. Der Vergleich zeigt nur PR-Template-/Contribution-/README-/PR-Hygiene-Dokumentation; keine phase2_work-Anwendungsdatei wurde seit diesem Merge-Base in Main geändert.
+- Aktuelle REST-Inventur: **194 offene PRs = 192 Drafts + 2 Nicht-Drafts** (#358, #361); 50 zielen auf Main, 144 auf andere Branches; 141 Nicht-Main-Bases zeigen auf offene PR-Heads; 53 Stack-Wurzeln, maximale Tiefe 35. Größte Stacks: #269 (40), #317 (27), #203 (20), #253 (14), #219 und #192 (je 10). #315 ist geschlossen/unmerged und nicht mitgezählt.
+
+### Überwachte PRs – exakter Head, exakte CI, Review-Status
+
+Alle sechs offenen überwachten Drafts haben **0 eingereichte Code-Reviews**. Alle sechs sind gegenüber dem aktuellen Main um zwei Commits zurück; kein Branch wird automatisch synchronisiert oder gemergt.
+
+| PR | Exakter Head-SHA | Vergleich zu Main | Exakter validate-Run / Job | Ergebnis |
+|---|---|---:|---|---|
+| [#251 Governance](https://github.com/Veselin-Takev/Klar-Dating/pull/251) | `fc03f33996ccffc73e54e6b7a6fb05914cdcbc53` | 10 ahead / 2 behind | [42818199684](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42818199684) / `129836618469` | SUCCESS |
+| [#269 Legacy-Purge](https://github.com/Veselin-Takev/Klar-Dating/pull/269) | `fd68656957c01618c3a085e887ece504624d18b3` | 33 / 2 | [42020003801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42020003801) / `127220743813` | SUCCESS |
+| [#203 Generation-Purge](https://github.com/Veselin-Takev/Klar-Dating/pull/203) | `1850e0a78b22e600e5add99273b84c081ffc3892` | 57 / 2 | [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009) / `127211414732` | SUCCESS |
+| [#253 Multi-Tenant](https://github.com/Veselin-Takev/Klar-Dating/pull/253) | `036ee313747a7beb2ab926e721e3bef958304447` | 11 / 2 | [41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863) / `125601704190` | SUCCESS |
+| [#313 Enterprise-Audit](https://github.com/Veselin-Takev/Klar-Dating/pull/313) | `6ab5684701f8b557c8b1887020f05602bb6fefa4` | 105 / 2 | [43202673075](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43202673075) / `131129829527` | SUCCESS; required validation, typecheck, build, test, smoke and browser-acceptance steps passed; diagnostic upload skipped |
+| [#314 Vercel](https://github.com/Veselin-Takev/Klar-Dating/pull/314) | `e5deab1dfd629065f3dfce3a5577eb21ac966a68` | 3 / 2 | [41619572341](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41619572341) / `125861548924` | GitHub validate SUCCESS; no Vercel deployment for this exact SHA |
+
+### Nicht-Drafts und geschlossenes #315
+
+- [#358 RC1](https://github.com/Veselin-Takev/Klar-Dating/pull/358): open, non-draft, head `1321c42ffe1c5919c1baccaada66a650ab811f93`, base `release/v0.1.1-rc1`, 0 Reviews. Run [42710380877](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710380877), Job `129478019942`: **FAILURE** at Browser acceptance; all preceding gates passed. The PR-title claim of 1,636 PASS is not evidence for this exact head.
+- [#361 Dependabot](https://github.com/Veselin-Takev/Klar-Dating/pull/361): open, non-draft, head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff`, 0 Reviews. Run [42705724751](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42705724751), Job `129461862107`: **FAILURE** at Enterprise static gates; subsequent build/test/browser steps skipped.
+- [#315](https://github.com/Veselin-Takev/Klar-Dating/pull/315): closed/unmerged, head `71743b14c66d9c5f2fdca2ed73a0fda3c137d48d`; run [41531498018](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41531498018), Job `125572558770`: FAILURE at Enterprise static gates. Its only APPROVED review is by repository owner `Veselin-Takev`, not an independent approval.
+
+### Live Ruleset #25756841
+
+GitHub API confirms `enforcement=active` on `refs/heads/main`, strict required status check `validate`, deletion and non-fast-forward protection, and no bypass actors. It still requires **0 approvals**, `require_code_owner_review=false`, does not dismiss stale approvals, does not require last-push approval, and does not require review-thread resolution. #251 tests do not change this live policy.
+
+### Issues und source-verified risk state
+
+Issues **#202, #70, #254, #8, #73, #55, #56, #204 and #206 remain OPEN**. Current Main is only two documentation/PR-hygiene commits ahead of their shared source merge-base, so the prior source findings remain applicable:
+
+- **P0 #202:** legacy `deleteExpiredPhotosCron` / `deleteExpiredPhotoPage` path still uses Storage `timeCreated` (>30 days) rather than moderation decision / `fotoLoeschenAb`. This is a source-path finding, not proof that the production scheduler is enabled or a customer object was deleted. #269 and #203 remain unmerged, diverged Drafts with six overlapping files; do not blind-merge.
+- **P0 #70:** policy matrix/script coverage is not equivalent to a project-bound 20/20 Firestore TTL `ACTIVE` readback, Legal-Hold evidence or Art.-17 proof. No such live readback was supplied in this run.
+- **P0 #254:** tenant foundation #253 remains branch-only; no integrated full legacy mapping, BOLA/IDOR, Storage/Firestore isolation or live cutover proof.
+- **P0 #8/#73:** operational IAM/secrets, alert delivery/on-call acknowledgement, backup/restore, RTO/RPO, canary/rollback and independent reviewer enforcement remain unverified.
+- **P0 #55/#56 conditional on B2B monetization in release scope:** partner assertion does not independently prove purchase/buyer; tracking legal basis, revocation, retention and DPO/Legal approval remain open.
+- **P1 #204/#206:** source-policy mismatch between `storage.rules` and adult-gated policy model; persisted Firebase `getDownloadURL()` bearer URLs still lack demonstrated viewer revocation. No live exploitation is claimed.
+
+### Vercel read-only
+
+Project `klar-dating` still exists (`prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`); metadata reports `live=false` and Node `26.x` (repository .nvmrc pins `22.23.3`). A separate Vercel deployment is `READY` with `target=production` on exact Main SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (deployment `dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w`). PR #313 exact-head preview is `READY` with `target=null`; #314 has zero deployments for its exact head. `login-page-prototype` deletion was not retried; Neon/Postgres/Better-Auth credentials were not read, rotated or revoked.
+
+**Decision:** `productionApproved=false`, **BLOCKED / NO-GO**. No exact integrated release SHA has complete critical purge/receipt/race, TTL/Legal-Hold/Art.-17, tenant/BOLA and operations evidence plus independent Security/AppSec, DPO/Legal, SRE, Finance (where relevant) and Release Owner approvals.
+
+**Important head transition:** CI SUCCESS above belongs only to the pre-update #313 head `6ab5684701f8b557c8b1887020f05602bb6fefa4`. This atomic documentation commit will become a new #313 head; its own exact-head CI and preview must be checked again. No prior SUCCESS is carried forward.
