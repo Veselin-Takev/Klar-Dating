@@ -2055,3 +2055,53 @@ The team list contains only Klar project `klar-dating` (`prj_9dEo2EJIDfmkx6JCS0B
 Main `phase2_work/RELEASE_MANIFEST.json` still says `productionApproved=false` / `NO-GO`, but its `lastVerificationDate` is 2026-10-10 and is not fresh operational evidence. **Decision remains `productionApproved=false`, BLOCKED / NO-GO.** Required exact integrated release SHA, critical live deletion/TTL/tenant/operations evidence and independent Security, DPO/Legal, SRE, Finance (where relevant) and Release Owner sign-offs are absent.
 
 This checkpoint is documentation-only on the existing #313 review branch. No main commit, merge, deployment, secret access, production Firebase/GCS/IAM/Scheduler/database mutation or human attestation was performed. The new #313 head must receive its own exact-head CI and independent review.
+
+---
+
+## Production-Freigabe-Watch – 12.11.2026, 05:29 UTC – BLOCKED / NO-GO
+
+**Frischer Main-HEAD:** `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`. Der exakte Main-Commit hat [`validate` Run 42710429488 / Job 129478192916](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488/job/129478192916) mit `completed/success`. Das ist E2-CI, keine unabhängige Release-Freigabe.
+
+**Frischer PR-Bestand (GitHub REST, beide Seiten):** **194 offen, 192 Drafts, 2 Nicht-Drafts** (#358 und #361); 50 zielen auf `main`, 144 auf andere Branches; 141 Basen entsprechen einem offenen PR-Head, drei Basen bleiben ohne passenden offenen PR-Head (#213/#214/#219). Maximale offene Stacktiefe: 35. Größte Stacks: #269 (40 PRs), #317 (27), #203 (20), #253 (14). Die Titelbereiche und Stackzuordnung bleiben heuristische Inventarkategorien, keine Severity- oder Reviewbewertung.
+
+### Exakte Ziel-PR-Heads, CI und Reviews
+
+| PR | Zustand / exakter Head-SHA | Compare zu Main (ahead/behind) | Exakte `validate`-Run-/Job-Evidenz | Reviews / zusätzliche Checks |
+|---|---|---:|---|---|
+| [#251 Governance](https://github.com/Veselin-Takev/Klar-Dating/pull/251) | Draft · `fc03f33996ccffc73e54e6b7a6fb05914cdcbc53` | 10 / 2 | [42818199684](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42818199684/job/129836618469) · `completed/success` | 0 Reviews; Vercel Preview Comments success |
+| [#269 Legacy-Foto-Purge](https://github.com/Veselin-Takev/Klar-Dating/pull/269) | Draft · `fd68656957c01618c3a085e887ece504624d18b3` | 33 / 2 | [42020003801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42020003801/job/127220743813) · `completed/success` | 0 Reviews; Vercel Preview Comments success |
+| [#203 Generation-Purge](https://github.com/Veselin-Takev/Klar-Dating/pull/203) | Draft · `1850e0a78b22e600e5add99273b84c081ffc3892` | 57 / 2 | [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009/job/127211414732) · `completed/success` | 0 Reviews; Vercel Preview Comments success |
+| [#253 Multi-Tenant](https://github.com/Veselin-Takev/Klar-Dating/pull/253) | Draft · `036ee313747a7beb2ab926e721e3bef958304447` | 11 / 2 | [41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863/job/125601704190) · `completed/success` | 0 Reviews; Vercel Preview Comments success |
+| [#313 Enterprise-Audit](https://github.com/Veselin-Takev/Klar-Dating/pull/313) | Draft · `f213bc7754b182e0716b0e255e16e386677156b9` | 101 / 2 | [43158178737](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43158178737/job/130982902008) · `completed/success` | 0 Reviews; Vercel Preview READY, `target=null` |
+| [#314 Vercel](https://github.com/Veselin-Takev/Klar-Dating/pull/314) | Draft · `e5deab1dfd629065f3dfce3a5577eb21ac966a68` | 3 / 2 | [41619572341](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41619572341/job/125861548924) · `completed/success` | 0 Reviews; kein Vercel-Preview-Check und 0 Deployments auf diesem exakten Head |
+| [#315 Dependabot attest](https://github.com/Veselin-Takev/Klar-Dating/pull/315) | CLOSED / unmerged · `71743b14c66d9c5f2fdca2ed73a0fda3c137d48d` | – | [41531498018](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41531498018/job/125572558770) · `failure`, Job `Enterprise static gates` | 1 Owner-Self-Approval, nicht unabhängig |
+
+Alle sechs offenen Ziel-Drafts haben auf ihrem **jeweils aktuellen Head** einen grünen `validate`-Job, aber keine eingereichten Reviews. Alle sechs sind zwei Commits hinter dem frischen Main; ihre CI ist kein Nachweis auf einem integrierten Release-SHA.
+
+### Zusätzlich offene Nicht-Draft-PRs
+
+- [#358 RC1](https://github.com/Veselin-Takev/Klar-Dating/pull/358), Head `1321c42ffe1c5919c1baccaada66a650ab811f93`, Base `release/v0.1.1-rc1`: [Run 42710380877 / Job 129478019942](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710380877/job/129478019942) **FAILURE** in `Browser acceptance`. Der Test `tests/e2e/privacy-settings.spec.ts` erwartet beim Consent-Widerruf „Einwilligung wurde widerrufen.“, erhält aber „Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.“; 0 Reviews. Die Titelbehauptung „50/50; 1636 PASS“ ersetzt dieses Ergebnis auf dem aktuellen Head nicht.
+- [#361 Dependabot](https://github.com/Veselin-Takev/Klar-Dating/pull/361), Head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff`, Base `main`: [Run 42705724751 / Job 129461862107](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42705724751/job/129461862107) **FAILURE** in `Enterprise static gates`: `check:release-workflow` verlangt eine GitHub-signierte Provenance-Attestation, gebunden an den unveränderlichen Image-Digest; 0 Reviews. #315 bleibt geschlossen und ungemergt.
+
+### Live Ruleset #25756841
+
+GitHub API bestätigt `enforcement=active` für `refs/heads/main`, strikten Pflichtcheck `validate`, aber **0 erforderliche Approvals**, `require_code_owner_review=false`, `dismiss_stale_reviews_on_push=false` und `required_review_thread_resolution=false`; keine Bypass-Actors. `CODEOWNERS` weist die aktiven `phase2_work`-Pfade ausschließlich `@Veselin-Takev` zu. Das ersetzt keine unabhängigen Security-/DPO-/Legal-/SRE-/Release-Owner-Reviews.
+
+### Quell- und Issue-Befunde (read-only)
+
+- **P0 #202 – quellbestätigt, Live-Status offen:** Main exportiert weiterhin `deleteExpiredPhotosCron` (24-Stunden-Schedule). `retention.ts` löscht im Prefix `verification/` anhand `timeCreated < now - 30 Tage`; Hold- und Generation-Checks ersetzen keine Moderationsentscheidung/`fotoLoeschenAb`. Das belegt einen P0-Release-Blocker im Quellpfad, aber nicht, dass der Scheduler aktuell in Produktion aktiv ist. #269 und #203 bleiben getrennte Drafts und teilen sechs Dateien: `DATA_RETENTION.md`, `deleteExpiredPhotos.ts`, `retention.ts`, `package.json`, `photoRetention.spec.ts`, `storageRules.spec.ts`. Nicht blind gemeinsam mergen.
+- **P0 #70:** `configure-retention.sh` enthält inzwischen 20 Collection-Groups sowie Dry-Run-, Staging-, Projekt-/Datenbank-, Legal-Matrix- und Preflight-Gates. Issue bleibt offen, da kein unabhängiger 20/20-`ACTIVE`-Nachweis für ein konkretes Staging-Projekt/eine Datenbank und keine freigegebene Legal-Hold-Matrix vorliegen.
+- **P0 #254:** Main `server.ts` hat keinen globalen Tenant-Middleware-Mount; #253 ist nicht integriert. Legacy-Migration, vollständige BOLA/IDOR-Isolation und Art.-17-Cutover bleiben unbelegt.
+- **P0 #8 / #73:** Live-Betriebsnachweise (Alarmzustellung, SLO, Backup/Restore, RTO/RPO) fehlen; das aktive Ruleset erzwingt keine unabhängigen Approvals.
+- **P0 #55 / #56 (sofern B2B im Release-Scope):** Main legt Partner-Events ausdrücklich als `proofStatus=partner_assertion_only` und `rewardStatus=pending_verification` ab; aus der HMAC-Assertion allein wird keine Prämie gutgeschrieben. Unabhängiger Kauf-/Käufernachweis und die juristisch freigegebene Partner-Retention/Art.-17-Semantik bleiben offen.
+- **P1 #204:** Main `storage.rules` erlaubt Profilbild-Lesen mit `signedIn()`; das Plattform-Policy-Modell verlangt zusätzlich Erwachsenenstatus des Lesers und Profileigentümers. Quelltext-Mismatch, kein Nachweis eines Live-Zugriffs.
+- **P1 #206:** Main ruft `getDownloadURL()` auf und persistiert die URL als `users/{uid}.photoURL`; Widerruf/Migration langlebiger Bearer-URLs bleibt offen.
+- Issues [#202](https://github.com/Veselin-Takev/Klar-Dating/issues/202), [#70](https://github.com/Veselin-Takev/Klar-Dating/issues/70), [#254](https://github.com/Veselin-Takev/Klar-Dating/issues/254), [#8](https://github.com/Veselin-Takev/Klar-Dating/issues/8), [#73](https://github.com/Veselin-Takev/Klar-Dating/issues/73), [#55](https://github.com/Veselin-Takev/Klar-Dating/issues/55), [#56](https://github.com/Veselin-Takev/Klar-Dating/issues/56), [#204](https://github.com/Veselin-Takev/Klar-Dating/issues/204) und [#206](https://github.com/Veselin-Takev/Klar-Dating/issues/206) sind weiterhin OPEN.
+
+### Vercel read-only
+
+Das Klar-Projekt existiert als `klar-dating` / `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`. Vercel meldet Projekt-`nodeVersion=26.x`, während Main `.nvmrc` und `phase2_work/.nvmrc` `22.23.3` pinnen – vor Freigabe auflösen. Projektmetadaten melden `live=false`; die jüngste Preview ist READY mit `target=null`. Separat ist Production-Deployment [dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w](https://vercel.com/ves3/klar-dating/AJRgtKhyoF4B8ypLkXBF8vMzw32w) READY, `target=production`, exakt an Main-SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` gebunden. Das beweist Deployment-Metadaten, nicht Traffic, Runtime-Health oder Release-Freigabe. #313 hat eine READY-Preview auf `f213bc7...` (`target=null`); #314 hat kein Deployment auf seinem exakten Head. Die bestätigte Löschung von `login-page-prototype` wurde nicht erneut versucht; Neon/Postgres/Better-Auth-Zugangsdaten wurden nicht gelesen, rotiert oder widerrufen.
+
+**Entscheidung:** `productionApproved=false`, **BLOCKED / NO-GO**. Es fehlt ein freigegebener integrierter Release-SHA mit vollständigen kritischen Tests, belastbaren Live-/Lösch-/TTL-/Tenant-/Betriebsnachweisen und unabhängigen Security-, DPO-/Legal-, SRE-, Finance- (wo relevant) und Release-Owner-Freigaben.
+
+**Änderungsumfang dieses Laufs:** ausschließlich atomare Dokumentationsaktualisierung auf dem bestehenden Audit-Review-Branch; kein Produktivcode, keine direkte Main-Änderung, kein Merge/Deployment, kein Secret-Zugriff und keine produktive Firebase/GCS/IAM/Scheduler-/Datenbankmutation.
