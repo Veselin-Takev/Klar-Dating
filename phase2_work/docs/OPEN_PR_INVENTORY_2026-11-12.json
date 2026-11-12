@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T22:24:24Z",
+  "generatedAt": "2026-11-12T23:25:13Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "summary": {
@@ -708,21 +708,25 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4",
+      "headSha": "3eebf7ddc3f44101a2824688663b6328ba9a3d81",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-12T17:28:44Z",
+      "updatedAt": "2026-11-12T22:29:32Z",
       "stackDepth": 0,
       "exactHeadCheck": {
-        "runId": 43269824227,
-        "jobId": 131363065161,
+        "runId": 43320355951,
+        "jobId": 131539108027,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 110,
+        "aheadBy": 111,
         "behindBy": 2,
-        "checkedAt": "2026-11-12T22:24:24Z"
+        "checkedAt": "2026-11-12T23:25:13Z",
+        "vercelState": "success",
+        "vercelDeploymentId": "dpl_AbpsyLYqZEtHBFq1jBq9DjkcPKAX",
+        "vercelDeploymentState": "READY",
+        "vercelTarget": null
       }
     },
     {
@@ -2595,7 +2599,7 @@
     }
   ],
   "watchSnapshot": {
-    "capturedAt": "2026-11-12T22:24:24Z",
+    "capturedAt": "2026-11-12T23:25:13Z",
     "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidate": {
       "runId": 42710429488,
@@ -2664,15 +2668,19 @@
         "behindBy": 2
       },
       "313": {
-        "headSha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4",
-        "runId": 43269824227,
-        "jobId": 131363065161,
+        "headSha": "3eebf7ddc3f44101a2824688663b6328ba9a3d81",
+        "runId": 43320355951,
+        "jobId": 131539108027,
         "name": "validate",
         "status": "completed",
         "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 110,
-        "behindBy": 2
+        "aheadBy": 111,
+        "behindBy": 2,
+        "vercelStatus": "success",
+        "vercelDeploymentId": "dpl_AbpsyLYqZEtHBFq1jBq9DjkcPKAX",
+        "vercelDeploymentState": "READY",
+        "vercelTarget": null
       },
       "314": {
         "headSha": "e5deab1dfd629065f3dfce3a5577eb21ac966a68",
@@ -2826,10 +2834,11 @@
       "nodeVersion": "26.x",
       "repositoryNodeVersion": "22.23.3",
       "latestDeployment": {
-        "id": "dpl_HqhU4LdoPqNiS4cUYNhb9ueTrxHn",
+        "id": "dpl_AbpsyLYqZEtHBFq1jBq9DjkcPKAX",
         "state": "READY",
         "target": null,
-        "sha": "5f0fbc0a00c3bf1b50dff6f6adb3edcdbb88c1d4"
+        "sha": "3eebf7ddc3f44101a2824688663b6328ba9a3d81",
+        "url": "klar-dating-65dh9klxn-ves3.vercel.app"
       },
       "mainProductionDeployment": {
         "id": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
@@ -2838,7 +2847,13 @@
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
       "pr314ExactHeadDeploymentCount": 0,
-      "note": "Deployment metadata only; no traffic/runtime-health proof. Project metadata live=false."
+      "note": "Deployment metadata only; no traffic/runtime-health proof. Project metadata live=false.",
+      "auditPreview": {
+        "id": "dpl_AbpsyLYqZEtHBFq1jBq9DjkcPKAX",
+        "state": "READY",
+        "target": null,
+        "sha": "3eebf7ddc3f44101a2824688663b6328ba9a3d81"
+      }
     },
     "releaseManifest": {
       "decision": "NO-GO",
