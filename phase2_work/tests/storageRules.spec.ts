@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { getAppBucket } from '../src/server/storage';
-import { deleteAccountPhotos, deleteExpiredPhotoPage, PHOTO_RETENTION_MS } from '../functions/src/retention';
+import { deleteAccountPhotos, deleteExpiredPhotoPage } from '../functions/src/retention';
 
 let env: RulesTestEnvironment;
 const prefix = `storage-${crypto.randomUUID()}`;
@@ -27,22 +27,45 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
     await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
   });
-  it('executes the retention worker against real emulator objects after 30 days', async () => {
+  it('refuses legacy age-only deletion against real emulator Storage objects', async () => {
     const bucket = getAppBucket();
     const photo = bucket.file(`verification/${prefix}/photo.jpg`);
     await photo.save(image);
-    expect((await photo.exists())[0]).toBe(true);
-    await deleteExpiredPhotoPage(bucket, new Date(Date.now() + PHOTO_RETENTION_MS + 1000));
-    expect((await photo.exists())[0]).toBe(false);
+    try {
+      await expect(deleteExpiredPhotoPage(bucket, new Date('2100-01-01'))).rejects.toThrow('verification_photo_p0_fencing_unverified');
+      expect((await photo.exists())[0]).toBe(true);
+    } finally {
+      await photo.delete();
+    }
   });
-  it('account erasure deletes both photo prefixes without crossing account boundaries', async () => {
+
+  it('keeps both photo prefixes when account erasure encounters verification evidence', async () => {
     const bucket = getAppBucket();
     const paths = [`profiles/${prefix}/a.jpg`, `verification/${prefix}/a.jpg`, `profiles/${prefix}-other/a.jpg`];
     for (const path of paths) await bucket.file(path).save(image);
-    await deleteAccountPhotos(bucket, prefix);
-    expect((await bucket.file(paths[0]!).exists())[0]).toBe(false);
-    expect((await bucket.file(paths[1]!).exists())[0]).toBe(false);
-    expect((await bucket.file(paths[2]!).exists())[0]).toBe(true);
-    await bucket.file(paths[2]!).delete();
+    try {
+      await expect(deleteAccountPhotos(bucket, prefix)).rejects.toThrow('verification_photo_p0_fencing_unverified');
+      for (const path of paths) expect((await bucket.file(path).exists())[0]).toBe(true);
+    } finally {
+      for (const path of paths) await bucket.file(path).delete();
+    }
   });
+
+  it('still deletes only owned profile photos when no verification files exist', async () => {
+    const bucket = getAppBucket();
+    const owner = `${prefix}-profiles-only`;
+    const own = bucket.file(`profiles/${owner}/photo.jpg`);
+    const foreign = bucket.file(`profiles/${owner}-other/photo.jpg`);
+    await own.save(image);
+    await foreign.save(image);
+    try {
+      expect(await deleteAccountPhotos(bucket, owner)).toBe(false);
+      expect((await own.exists())[0]).toBe(false);
+      expect((await foreign.exists())[0]).toBe(true);
+      expect(await deleteAccountPhotos(bucket, owner)).toBe(true);
+    } finally {
+      await foreign.delete();
+    }
+  });
+
 });

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -13,42 +13,40 @@ import { purgeAccountData } from '../src/server/trustAndSafety';
 describe('account erasure including archived messages and photos', () => {
   beforeEach(() => vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-erasure-audit-key-not-for-production'));
   afterEach(() => vi.unstubAllEnvs());
-  it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('deletes owned data without recreating an analytics identity', async () => {
-    const uid = `erase-${crypto.randomUUID()}`;
-    const db = getDb(); const auth = getAuth();
+  it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('keeps Art.17 deletion pending when verification Storage objects cannot be safely erased', async () => {
+    const uid = `erase-${randomUUID()}`;
+    const db = getDb();
+    const auth = getAuth();
     await auth.createUser({ uid });
-    const chat = db.collection('chats').doc(uid);
-    await db.collection('users').doc(uid).set({ name: 'Test' });
-    await db.collection('users').doc(uid).collection('ai_budget').doc('2026-09-28').set({ reservedUnits: 100 });
-    await chat.set({ participants: [uid, 'partner'] });
-    await chat.collection('archived_messages').doc('one').set({ senderId: uid, text: 'private' });
-    await chat.collection('messages').doc('two').set({ senderId: uid, text: 'private' });
-    for (const name of ['analytics_events', 'funnel_events']) await db.collection(name).doc(uid).set({ userId: uid });
-    const file = getAppBucket().file(`verification/${uid}/photo.jpg`); await file.save('private-photo');
-    let status = 200; let result: any;
-    const res = { status(code: number) { status = code; return this; }, json(value: unknown) { result = value; return this; } };
-    await handleDeleteAccount({ user: { uid, auth_time: Math.floor(Date.now() / 1000) } } as unknown as Request, res as unknown as Response);
-    expect(status).toBe(202); expect(result).toMatchObject({ ok: true, status: 'pending' });
-    expect((await auth.getUser(uid)).disabled).toBe(true);
+    const user = db.collection('users').doc(uid);
     const job = db.collection('account_deletions').doc(uid);
-    expect((await job.get()).data()?.status).toBe('pending');
-    // This integration journey owns the concrete Firestore/Storage purge only.
-    // Worker leasing, provider ordering, final_sweep and completion are covered
-    // by the deterministic deletionLifecycle suite.
-    const deletionRequestId = result.requestId as string;
-    await expect(purgeAccountData(uid, deletionRequestId)).rejects.toBeInstanceOf(DeletionStoragePageComplete);
-    await purgeAccountData(uid, deletionRequestId);
-    expect((await db.collection('users').doc(uid).get()).exists).toBe(false);
-    expect((await db.collection('users').doc(uid).collection('ai_budget').get()).empty).toBe(true);
-    expect((await chat.collection('archived_messages').get()).empty).toBe(true);
-    expect((await chat.collection('messages').get()).empty).toBe(true);
-    for (const name of ['analytics_events', 'funnel_events']) expect((await db.collection(name).where('userId', '==', uid).get()).empty).toBe(true);
-    expect((await file.exists())[0]).toBe(false);
-    // The durable job remains pending because this test intentionally does not
-    // execute the worker orchestration path. That boundary is tested separately.
-    expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
-    await job.delete();
+    const photo = getAppBucket().file(`verification/${uid}/photo.jpg`);
+    await user.set({ name: 'Synthetic P0 erasure' });
+    await photo.save('private-photo');
+    let status = 200;
+    let result: any;
+    const res = {
+      status(code: number) { status = code; return this; },
+      json(value: unknown) { result = value; return this; },
+    };
+    try {
+      await handleDeleteAccount({ user: { uid, auth_time: Math.floor(Date.now() / 1000) } } as unknown as Request, res as unknown as Response);
+      expect(status).toBe(202);
+      expect(result).toMatchObject({ ok: true, status: 'pending' });
+      const requestId = result.requestId as string;
+      await expect(purgeAccountData(uid, requestId)).rejects.toThrow('verification_photo_p0_fencing_unverified');
+      expect((await photo.exists())[0]).toBe(true);
+      expect((await job.get()).data()?.status).toBe('pending');
+      // No completed deletion receipt may be created for an unresolved photo.
+      expect((await job.get()).data()?.status).not.toBe('completed');
+    } finally {
+      await photo.delete();
+      await db.recursiveDelete(user);
+      await job.delete();
+      await auth.deleteUser(uid);
+    }
   });
+
   it.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('finishes a real 51-chat purge and repeats it without orphaning nested data or double-counting cumulative totals', async () => {
     const db = getDb();
     const uid = `erase-pages-${randomUUID()}`;

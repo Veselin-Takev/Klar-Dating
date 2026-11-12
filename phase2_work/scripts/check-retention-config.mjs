@@ -15,8 +15,8 @@ const sourceViolations = [];
 if (!messageWriter.includes('expiresAt: new Date(Date.now() + 90 * 86400_000)')) sourceViolations.push('messages writer does not set the 90-day expiresAt');
 if (!archiveWorker.includes("collection('archived_messages')") || !archiveWorker.includes('...message.data()')) sourceViolations.push('archival does not preserve the message expiresAt');
 if (!kycWriter.includes("kyc_events/${event.event_id}") || !kycWriter.includes('expiresAt: new Date(now + 30 * 86400_000)')) sourceViolations.push('kyc_events writer does not set the 30-day expiresAt');
-if (!photoCron.includes("collection('verification_events')") || !photoCron.includes("where('fotoLoeschenAb', '<=', now)") || !photoCron.includes('storagePath')) sourceViolations.push('verification photo retention is not driven by decision expiry');
-if (photoCron.includes('deleteExpiredPhotoPage') || photoCron.includes("prefix: 'verification/'")) sourceViolations.push('verification photo retention still uses creation-age scanning');
+if (!photoCron.includes('verification_photo_p0_fencing_unverified')) sourceViolations.push('verification-photo P0 containment marker missing');
+if (photoCron.includes('getMaintenanceBucket') || photoCron.includes('deleteExpiredPhotoPage') || photoCron.includes("prefix: 'verification/'")) sourceViolations.push('legacy cron must not invoke physical verification-photo deletion while unfenced');
 if (missingScript.length || missingDocs.length || sourceViolations.length) {
   console.error('FAIL retention config:', { missingScript, missingDocs, sourceViolations });
   process.exit(1);

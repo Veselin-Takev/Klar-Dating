@@ -1,10 +1,7 @@
 import express, { Router } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getStorage } from 'firebase-admin/storage';
 import type { Firestore } from 'firebase-admin/firestore';
-import { executeVerificationRetentionBatch, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
 
-const MAX_BATCH = 100;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 
 export function complianceSignature(body: string, secret: string): string {
@@ -21,67 +18,25 @@ export function validComplianceRequest(body: Buffer, timestampHeader: string | u
   return supplied.length === expectedBytes.length && timingSafeEqual(supplied, expectedBytes);
 }
 
-function normalizeTimestamp(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (value && typeof (value as { toMillis?: unknown }).toMillis === 'function') {
-    const result = (value as { toMillis: () => number }).toMillis();
-    return Number.isFinite(result) ? result : null;
-  }
-  if (typeof value === 'string') {
-    const result = Date.parse(value);
-    return Number.isFinite(result) ? result : null;
-  }
-  return null;
-}
-
-export function createVerificationStoragePurgeRouter(deps: {
+/**
+ * VES-5 P0 containment: valid authentication MUST NOT authorize a physical
+ * verification-photo deletion while the cross-service Firestore/GCS fencing
+ * protocol (including *all* writers and the account-erasure path) is unproven.
+ * This denial is deliberately unconditional, even in emulators. Do not re-enable
+ * by an environment variable, feature flag, or injected Firebase dependency.
+ */
+export function createVerificationStoragePurgeRouter(_deps: {
   getDb: () => Firestore;
   getBucket?: () => { file: (path: string) => { delete: (options?: unknown) => Promise<unknown> } };
 }): Router {
   const router = Router();
-  router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
+  router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), (req, res) => {
+    res.set('Cache-Control', 'no-store');
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from('{}');
-    if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) return res.sendStatus(401);
-
-    const db = deps.getDb();
-    const now = Date.now();
-    try {
-      const snapshot = await db.collection('verification_events')
-        .where('fotoLoeschenAb', '<=', new Date(now))
-        .limit(MAX_BATCH)
-        .get();
-      const artifacts: VerificationArtifactRecord[] = snapshot.docs.flatMap(doc => {
-        const data = doc.data();
-        const uid = typeof data.uid === 'string' ? data.uid : '';
-        const storagePath = typeof data.storagePath === 'string' ? data.storagePath : '';
-        const decidedAt = normalizeTimestamp(data.decidedAt);
-        const statusRaw = data.entscheidung ?? data.status;
-        const status = statusRaw === 'bestaetigt' || statusRaw === 'approved' ? 'approved' : statusRaw === 'abgelehnt' || statusRaw === 'rejected' ? 'rejected' : 'pending';
-        if (!uid || !doc.id || !storagePath.startsWith(`verification/${uid}/`) || !decidedAt) return [];
-        return [{ uid, challengeId: doc.id, status, decidedAt, storagePath, photoPurged: data.photoPurged === true, photoPurgedAt: normalizeTimestamp(data.photoPurgedAt) ?? undefined }];
-      });
-
-      const bucket = deps.getBucket?.() ?? getStorage().bucket();
-      const summary = await executeVerificationRetentionBatch(
-        artifacts,
-        async path => {
-          try { await bucket.file(path).delete({ ignoreNotFound: true }); }
-          catch (error) { throw error; }
-        },
-        async (uid, challengeId, auditData) => {
-          const ref = db.collection('verification_events').doc(challengeId);
-          await db.runTransaction(async tx => {
-            const current = await tx.get(ref);
-            if (!current.exists || current.data()?.uid !== uid) return;
-            tx.update(ref, auditData);
-          });
-        },
-        now,
-      );
-      return res.json({ ok: true, ...summary });
-    } catch {
-      return res.status(503).json({ code: 'verification_storage_purge_unavailable' });
+    if (!validComplianceRequest(body, req.get('X-Klar-Compliance-Timestamp'), req.get('X-Klar-Compliance-Signature'), process.env.COMPLIANCE_JOB_SECRET ?? '')) {
+      return res.sendStatus(401);
     }
+    return res.status(503).json({ code: 'verification_storage_purge_p0_fencing_unverified' });
   });
   return router;
 }
