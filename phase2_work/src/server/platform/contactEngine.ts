@@ -1,3 +1,8 @@
+import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 import { DAILY_CONTACTS, InputError, contactDay, entscheideKontakt, requireString } from '../pure';
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -21,23 +26,6 @@ export interface ContactUndoResult {
   error?: string;
 }
 
-export interface MinimalDocSnapshot {
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-}
-
-export interface MinimalTransaction {
-  get: (ref: unknown) => Promise<MinimalDocSnapshot>;
-  set: (ref: unknown, data: unknown, options?: unknown) => void;
-  delete: (ref: unknown) => void;
-}
-
-export interface MinimalFirestore {
-  collection: (name: string) => {
-    doc: (id: string) => unknown;
-  };
-  runTransaction: <T>(updateFunction: (transaction: MinimalTransaction) => Promise<T>) => Promise<T>;
-}
 
 export function getContactFailureMessage(grund: ContactFailureReason): string {
   switch (grund) {
@@ -55,7 +43,7 @@ export function getContactFailureMessage(grund: ContactFailureReason): string {
 }
 
 export async function processContactRequest(
-  firestore: MinimalFirestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   fromUid: string,
   targetUidRaw: unknown,
   currentDate: Date = new Date(),
@@ -67,17 +55,19 @@ export async function processContactRequest(
   }
 
   const heute = contactDay(currentDate);
-  const nutzerRef = firestore.collection('users').doc(fromUid);
-  const kontaktRef = firestore.collection('contacts').doc(`${fromUid}_${targetUid}`);
-  const reverseKontaktRef = firestore.collection('contacts').doc(`${targetUid}_${fromUid}`);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const nutzerRef = `users/${fromUid}`;
+  const kontaktRef = `contacts/${fromUid}_${targetUid}`;
+  const reverseKontaktRef = `contacts/${targetUid}_${fromUid}`;
 
-  const ergebnis = await firestore.runTransaction(async (t: MinimalTransaction) => {
+  const ergebnis = await db.transaction(async tx => {
     const [uSnap, kSnap, rSnap] = await Promise.all([
-      t.get(nutzerRef),
-      t.get(kontaktRef),
-      t.get(reverseKontaktRef),
+      tx.read(nutzerRef, record),
+      tx.read(kontaktRef, record),
+      tx.read(reverseKontaktRef, record),
     ]);
-    const userData = uSnap.exists ? (uSnap.data() ?? {}) : {};
+    if (await tx.read(`account_deletions/${fromUid}`,record) || await tx.read(`account_deletions/${targetUid}`,record)) throw new Error('account_unavailable');
+    const userData = uSnap ?? {};
 
     // Verification is a strict prerequisite
     if (userData.isVerified !== true) {
@@ -85,7 +75,7 @@ export async function processContactRequest(
     }
 
     // Duplicate contact check
-    if (kSnap.exists) {
+    if (kSnap !== null) {
       return { ok: false as const, grund: 'bereits_kontaktiert' as const };
     }
 
@@ -108,33 +98,29 @@ export async function processContactRequest(
     }
 
     // Atomic updates
-    t.set(nutzerRef, { contactDay: heute, contactCount: e.neuVerbraucht }, { merge: true });
-    t.set(kontaktRef, {
+    tx.write(nutzerRef, record, { contactDay: heute, contactCount: e.neuVerbraucht }, { merge: true });
+    tx.write(kontaktRef, record, {
       fromUid,
       toUid: targetUid,
       at: serverTimestampVal,
       tag: heute,
     });
 
-    const isMutual = rSnap.exists;
+    const isMutual = rSnap !== null;
     let chatId: string | undefined;
 
     // Epic 2: If both sides have contacted each other, initialize mutual chat with Icebreaker Gate
     if (isMutual) {
       chatId = [fromUid, targetUid].sort().join('_');
-      const chatRef = firestore.collection('chats').doc(chatId);
-      t.set(
-        chatRef,
-        {
+      const chatRef = `chats/${chatId}`;
+      tx.write(chatRef, record, {
           participants: [fromUid, targetUid].sort(),
           gateAntwortenA: 0,
           gateAntwortenB: 0,
           gateFragen: ['Was bringt dich sofort zum Lachen?', 'Wie sieht dein perfekter Sonntag aus?'],
           createdAt: serverTimestampVal,
           isMutual: true,
-        },
-        { merge: true }
-      );
+        }, { merge: true });
     }
 
     return { ok: true as const, uebrig: e.uebrig, isMutual, chatId };
@@ -158,22 +144,23 @@ export async function processContactRequest(
 }
 
 export async function processContactUndo(
-  firestore: MinimalFirestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   fromUid: string,
   targetUidRaw: unknown,
   currentDate: Date = new Date()
 ): Promise<ContactUndoResult> {
   const targetUid = requireString(targetUidRaw, 'targetUid', 128);
-  const nutzerRef = firestore.collection('users').doc(fromUid);
-  const kontaktRef = firestore.collection('contacts').doc(`${fromUid}_${targetUid}`);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const nutzerRef = `users/${fromUid}`;
+  const kontaktRef = `contacts/${fromUid}_${targetUid}`;
 
-  const ok = await firestore.runTransaction(async (t: MinimalTransaction) => {
-    const [uSnap, kSnap] = await Promise.all([t.get(nutzerRef), t.get(kontaktRef)]);
-    if (!kSnap.exists) {
+  const ok = await db.transaction(async tx => {
+    const [uSnap, kSnap] = await Promise.all([tx.read(nutzerRef, record), tx.read(kontaktRef, record)]);
+    if (kSnap === null) {
       return false;
     }
 
-    const contactData = asRecord(kSnap.data());
+    const contactData = asRecord(kSnap);
     const rawAt = contactData.at;
     let angelegt: Date | null = null;
     if (rawAt instanceof Date) {
@@ -191,17 +178,13 @@ export async function processContactUndo(
       return false;
     }
 
-    const userData = uSnap.exists ? (uSnap.data() ?? {}) : {};
+    const userData = uSnap ?? {};
     const chatId = [fromUid, targetUid].sort().join('_');
-    const chatRef = firestore.collection('chats').doc(chatId);
+    const chatRef = `chats/${chatId}`;
 
-    t.delete(kontaktRef);
-    t.delete(chatRef);
-    t.set(
-      nutzerRef,
-      { contactCount: Math.max(0, (typeof userData.contactCount === 'number' ? userData.contactCount : 1) - 1) },
-      { merge: true }
-    );
+    tx.delete(kontaktRef);
+    tx.delete(chatRef);
+    tx.write(nutzerRef, record, { contactCount: Math.max(0, (typeof userData.contactCount === 'number' ? userData.contactCount : 1) - 1) }, { merge: true });
     return true;
   });
 

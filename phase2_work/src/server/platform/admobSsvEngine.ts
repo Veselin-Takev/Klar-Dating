@@ -1,3 +1,8 @@
+import { logSafeFailure } from '../safeErrorLog';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { getServiceRepository, scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+const record = z.object({rewardAmount:z.number().optional(), extraTag:z.string().optional(), extraContacts:z.number().optional()}).passthrough();
 /**
  * Klar Platform - Google AdMob Server-Side Verification (SSV) Engine
  * 
@@ -11,9 +16,8 @@
 
 import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
-import { getDb } from '../db';
 import { contactDay } from '../pure';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
 
 export const GOOGLE_ADMOB_KEYS_URL = 'https://gstatic.com/admob/reward/verifier-keys.json';
 export const DEFAULT_REWARD_CONTACTS = 3;
@@ -118,7 +122,7 @@ export async function getGoogleAdMobPublicKeys(): Promise<Map<string, string>> {
     cacheExpiresAt = now + 24 * 60 * 60 * 1000;
     return cachedKeys;
   } catch (err) {
-    console.warn('Could not fetch AdMob verifier keys from Google:', err);
+    logSafeFailure('unclassified_failure');
     return cachedKeys; // Return stale cache if available
   }
 }
@@ -201,7 +205,7 @@ export function verifyAdMobSignature(
 
     return false;
   } catch (err) {
-    console.error('Signature verification error:', err);
+    logSafeFailure('unclassified_failure');
     return false;
   }
 }
@@ -210,7 +214,7 @@ export function verifyAdMobSignature(
  * Core business transaction: Verifies the callback, prevents replays, and credits the user.
  */
 export async function processAdMobReward(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   params: AdMobCallbackParams,
   rawQueryString?: string,
   injectedKeys?: Map<string, string>,
@@ -247,32 +251,34 @@ export async function processAdMobReward(
   const rewardVal = Math.max(1, Number(reward_amount) || DEFAULT_REWARD_CONTACTS);
   const todayStr = contactDay(now);
 
-  const rewardRef = firestore.collection('admob_rewards').doc(transaction_id);
-  const userRef = firestore.collection('users').doc(user_id);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const rewardRef = `admob_rewards/${transaction_id}`;
+  const userRef = `users/${user_id}`;
 
-  return await firestore.runTransaction(async (tx: Transaction) => {
-    const existingReward = await tx.get(rewardRef);
-    if (existingReward.exists) {
+  return await db.transaction(async tx => {
+    const existingReward = await tx.read(rewardRef, record);
+    if (existingReward !== null) {
       return {
         ok: true,
         duplicate: true,
         transactionId: transaction_id,
-        rewardAmount: existingReward.data()?.rewardAmount || rewardVal,
+        rewardAmount: existingReward?.rewardAmount || rewardVal,
         userId: user_id,
       };
     }
 
-    const userDoc = await tx.get(userRef);
-    if (!userDoc.exists) {
+    const userDoc = await tx.read(userRef, record);
+    if(await tx.read(`account_deletions/${params.user_id}`,record))throw new Error('account_unavailable');
+    if (!userDoc) {
       return { ok: false, error: `User with ID ${user_id} does not exist.` };
     }
 
-    const userData = userDoc.data() || {};
+    const userData = userDoc || {};
     const currentExtraTag = userData.extraTag;
     const currentExtra = currentExtraTag === todayStr ? (userData.extraContacts || 0) : 0;
     const newExtra = currentExtra + rewardVal;
 
-    tx.set(rewardRef, {
+    tx.write(rewardRef, record, {
       transactionId: transaction_id,
       userId: user_id,
       rewardAmount: rewardVal,
@@ -284,16 +290,12 @@ export async function processAdMobReward(
       status: 'credited',
     });
 
-    tx.set(
-      userRef,
-      {
+    tx.write(userRef, record, {
         extraContacts: newExtra,
         extraTag: todayStr,
         lastRewardedAdAt: now.toISOString(),
         updatedAt: now.toISOString(),
-      },
-      { merge: true }
-    );
+      }, { merge: true });
 
     return {
       ok: true,
@@ -327,7 +329,7 @@ export async function handleAdMobCallback(req: Request, res: Response): Promise<
       key_id: req.query.key_id as string,
     };
 
-    const firestore = getDb();
+    const firestore = getServiceRepository('auth');
     const result = await processAdMobReward(firestore, params, rawQueryString);
 
     if (!result.ok) {
@@ -342,7 +344,7 @@ export async function handleAdMobCallback(req: Request, res: Response): Promise<
       rewardAmount: result.rewardAmount,
     });
   } catch (err: unknown) {
-    console.error('AdMob callback handler error:', err);
+    logSafeFailure('unclassified_failure');
     res.status(500).json({ error: 'Internal server error processing AdMob reward.' });
   }
 }

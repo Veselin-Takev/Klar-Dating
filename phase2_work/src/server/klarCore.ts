@@ -1,6 +1,9 @@
+import { logSafeFailure } from './safeErrorLog';
 import { getAppBucket } from './storage';
 import { toPublicProfile } from './platform/launchPlatform';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+const record = z.object({isVerified:z.boolean().optional(), verificationStatus:z.string().optional(), contactDay:z.string().optional(), contactCount:z.number().int().nonnegative().optional(), plan:z.string().optional()}).passthrough();
 /**
  * ── STRATEGISCHER ENTSCHEID (08.09.2026) ─────────────────────────────────
  * GAMIFICATION & MONETARISIERUNGS-PIVOT PAUSIERT (Ab 500 Nutzer)
@@ -14,8 +17,8 @@ import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue } from './db';
-import { getDb as getFirestore } from './db';
-import { ContractError, acceptDeclaration, declarationSchema } from './contracts';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { ContractError, acceptDeclaration, declarationSchema, contractRecord } from './contracts';
 import {
   CHALLENGE_TTL_MS,
   DAILY_CONTACTS,
@@ -44,19 +47,19 @@ import {
 // das Limit eine Anzeige, keine Grenze.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const db = () => getFirestore();
+const db = () => getServiceRepository('auth');
 const uid = (req: Request): string => {
   const value = req.user?.uid;
   if (!value) throw new Error('Unauthorized');
   return value;
 };
 
-function fehler(res: Response, e: unknown, wo: string) {
+function fehler(res: Response, e: unknown, _wo: string) {
   if (e instanceof InputError) {
     res.status(400).json({ error: e.message });
     return;
   }
-  console.error(wo, e);
+  logSafeFailure('unclassified_failure');
   res.status(500).json({ error: 'Das hat gerade nicht geklappt. Bitte erneut versuchen.' });
 }
 
@@ -72,8 +75,7 @@ function zuDatum(v: unknown): Date | null {
 
 export async function handleQuota(req: Request, res: Response): Promise<void> {
   try {
-    const snap = await db().collection('users').doc(uid(req)).get();
-    const d = snap.data() ?? {};
+    const d = await db().read(`users/${uid(req)}`, record) ?? {};
     const heute = contactDay();
     const verbraucht = d.contactDay === heute ? (d.contactCount ?? 0) : 0;
     const plan = d.plan === 'plus' ? 'plus' : 'frei';
@@ -109,19 +111,19 @@ export async function handleContact(req: Request, res: Response): Promise<void> 
 
     const firestore = db();
     const heute = contactDay();
-    const nutzer = firestore.collection('users').doc(meine);
-    const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
+    const nutzer = `users/${meine}`;
+    const kontakt = `contacts/${meine}_${ziel}`;
 
-    const ergebnis = await firestore.runTransaction(async (t: Transaction) => {
-      const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
-        t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
-      if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
-      const d = u.data() ?? {};
+    const ergebnis = await firestore.transaction(async tx => {
+      const [u, k, target, deletion] = await Promise.all([tx.read(nutzer, record), tx.read(kontakt, record),
+        tx.read(`users/${ziel}`, record), tx.read(`account_deletions/${ziel}`, record)]);
+      if (!target || deletion !== null) throw new InputError('Profil nicht verfügbar.');
+      const d = u ?? {};
 
       // Verifizierung ist Voraussetzung — dieselbe Bedingung wie in den
       // Firestore-Regeln. Zwei Stellen, eine Aussage.
       if (d.isVerified !== true) return { ok: false as const, grund: 'nicht_verifiziert' as const };
-      if (k.exists) return { ok: false as const, grund: 'bereits_kontaktiert' as const };
+      if (k !== null) return { ok: false as const, grund: 'bereits_kontaktiert' as const };
 
       const e = entscheideKontakt(
         {
@@ -135,8 +137,8 @@ export async function handleContact(req: Request, res: Response): Promise<void> 
       );
       if (!e.erlaubt) return { ok: false as const, grund: 'limit' as const };
 
-      t.set(nutzer, { contactDay: heute, contactCount: e.neuVerbraucht }, { merge: true });
-      t.set(kontakt, {
+      tx.write(nutzer, record, { contactDay: heute, contactCount: e.neuVerbraucht }, { merge: true });
+      tx.write(kontakt, record, {
         fromUid: meine,
         toUid: ziel,
         at: FieldValue.serverTimestamp(),
@@ -174,21 +176,21 @@ export async function handleContactUndo(req: Request, res: Response): Promise<vo
   try {
     const ziel = requireString(req.body?.targetUid, 'targetUid', 128);
     const firestore = db();
-    const nutzer = firestore.collection('users').doc(meine);
-    const kontakt = firestore.collection('contacts').doc(`${meine}_${ziel}`);
+    const nutzer = `users/${meine}`;
+    const kontakt = `contacts/${meine}_${ziel}`;
 
-    const ok = await firestore.runTransaction(async (t: Transaction) => {
-      const [u, k, target, deletion] = await Promise.all([t.get(nutzer), t.get(kontakt),
-        t.get(firestore.collection('users').doc(ziel)), t.get(firestore.collection('account_deletions').doc(ziel))]);
-      if (!target.exists || deletion.exists) throw new InputError('Profil nicht verfügbar.');
-      if (!k.exists) return false;
-      const angelegt = zuDatum(k.data()?.at);
+    const ok = await firestore.transaction(async tx => {
+      const [u, k, target, deletion] = await Promise.all([tx.read(nutzer, record), tx.read(kontakt, record),
+        tx.read(`users/${ziel}`, record), tx.read(`account_deletions/${ziel}`, record)]);
+      if (!target || deletion !== null) throw new InputError('Profil nicht verfügbar.');
+      if (!k) return false;
+      const angelegt = zuDatum(k?.at);
       // Frist serverseitig prüfen. Eine clientseitig gemessene Frist ist
       // keine Frist.
       if (angelegt && Date.now() - angelegt.getTime() > 5_000) return false;
-      const d = u.data() ?? {};
-      t.delete(kontakt);
-      t.set(nutzer, { contactCount: Math.max(0, (d.contactCount ?? 1) - 1) }, { merge: true });
+      const d = u ?? {};
+      tx.delete(kontakt);
+      tx.write(nutzer, record, { contactCount: Math.max(0, (d.contactCount ?? 1) - 1) }, { merge: true });
       return true;
     });
 
@@ -206,7 +208,7 @@ export async function handleContactUndo(req: Request, res: Response): Promise<vo
 
 export async function handleVerificationStatus(req: Request, res: Response): Promise<void> {
   try {
-    const d = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
+    const d = await db().read(`users/${uid(req)}`, record) ?? {};
     const status = verifizierungsStatus(d);
     res.json({
       status,
@@ -221,7 +223,7 @@ export async function handleVerificationStatus(req: Request, res: Response): Pro
 export async function handleVerificationChallenge(req: Request, res: Response): Promise<void> {
   const meine = uid(req);
   try {
-    const d = (await db().collection('users').doc(meine).get()).data() ?? {};
+    const d = await db().read(`users/${meine}`, record) ?? {};
     if (d.isVerified === true) {
       res.status(409).json({ error: 'Das Konto ist bereits verifiziert.' });
       return;
@@ -231,7 +233,7 @@ export async function handleVerificationChallenge(req: Request, res: Response): 
       return;
     }
     const geste = waehleGeste(0);
-    await db().collection('users').doc(meine).set(
+    await db().write(`users/${meine}`, record,
       {
         verificationGeste: geste,
         verificationChallengeAt: FieldValue.serverTimestamp(),
@@ -257,7 +259,7 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
     if (!pfad.startsWith(`verification/${meine}/`)) {
       throw new InputError('Der Pfad gehört nicht zu diesem Konto.');
     }
-    const d = (await db().collection('users').doc(meine).get()).data() ?? {};
+    const d = await db().read(`users/${meine}`, record) ?? {};
     if (d.isVerified === true) {
       res.status(409).json({ error: 'Das Konto ist bereits verifiziert.' });
       return;
@@ -290,7 +292,8 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
     if (!signatureValid) throw new InputError('Bildinhalt passt nicht zum Format.');
     await getAppBucket().file(pfad).save(bytes, { metadata: { contentType: mimeType }, resumable: false });
 
-    const antrag = await db().collection('verification_requests').add({
+    const requestId = randomUUID(), antrag = {id:requestId};
+    await db().create(`verification_requests/${requestId}`, record, {
       uid: meine,
       geste: d.verificationGeste ?? null,
       pfad,
@@ -299,7 +302,7 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
       entscheidung: null,
       begruendung: null,
     });
-    await db().collection('users').doc(meine).set(
+    await db().write(`users/${meine}`, record,
       {
         verificationStatus: 'in_pruefung',
         verificationRequestId: antrag.id,
@@ -356,31 +359,31 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
         : optionalString(req.body?.begruendung, 'begruendung', 1000);
 
     const bestaetigt = entscheidung === 'bestaetigt';
-    const firestore = db() as Firestore;
-    await firestore.runTransaction(async tx => {
-      const userRef = firestore.collection('users').doc(ziel);
-      const [user, deletion] = await tx.getAll(userRef, firestore.collection('account_deletions').doc(ziel));
-      if (!user?.exists || deletion?.exists) throw new InputError('Konto nicht verfügbar.');
-      const userData = user.data() ?? {};
+    const firestore = db();
+    await firestore.transaction(async tx => {
+      const userRef = `users/${ziel}`;
+      const [user, deletion] = await Promise.all([tx.read(userRef, record), tx.read(`account_deletions/${ziel}`, record)]);
+      if (!user || deletion !== null) throw new InputError('Konto nicht verfügbar.');
+      const userData = user ?? {};
       const requestId = typeof userData.verificationRequestId === 'string' ? userData.verificationRequestId : '';
       const storagePath = typeof userData.verificationPfad === 'string' ? userData.verificationPfad : '';
       if (!requestId || !storagePath) throw new InputError('Verifizierungsantrag ist unvollständig.');
-      const requestRef = firestore.collection('verification_requests').doc(requestId);
-      const request = await tx.get(requestRef);
-      if (!request.exists || request.data()?.uid !== ziel) throw new InputError('Verifizierungsantrag ist nicht verfügbar.');
-      if (request.data()?.status !== 'in_pruefung') throw new InputError('Verifizierungsantrag wurde bereits entschieden.');
+      const requestRef = `verification_requests/${requestId}`;
+      const request = await tx.read(requestRef, record);
+      if (!request || request?.uid !== ziel) throw new InputError('Verifizierungsantrag ist nicht verfügbar.');
+      if (request?.status !== 'in_pruefung') throw new InputError('Verifizierungsantrag wurde bereits entschieden.');
       const decidedAt = new Date();
       const decision = { isVerified: bestaetigt, verificationStatus: entscheidung,
         verificationBegruendung: begruendung || null, verificationEntschiedenAm: FieldValue.serverTimestamp(),
         verificationRequestId: null, verificationPfad: null };
-      tx.update(userRef, decision);
-      tx.update(requestRef, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() });
-      tx.create(firestore.collection('verification_events').doc(), { uid: ziel, moderatorUid: uid(req),
+      tx.write(userRef, record, decision, { merge: true });
+      tx.write(requestRef, record, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() }, { merge: true });
+      tx.create(`verification_events/${randomUUID()}`, record, { uid: ziel, moderatorUid: uid(req),
         entscheidung, begruendung: begruendung || null, at: FieldValue.serverTimestamp(), decidedAt,
         storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
-      const publicProfile = toPublicProfile(ziel, { ...user.data(), ...decision });
-      const publicRef = firestore.collection('public_profiles').doc(ziel);
-      if (bestaetigt && publicProfile) tx.set(publicRef, publicProfile); else tx.delete(publicRef);
+      const publicProfile = toPublicProfile(ziel, { ...user, ...decision });
+      const publicRef = `public_profiles/${ziel}`;
+      if (bestaetigt && publicProfile) tx.write(publicRef, record, publicProfile); else tx.delete(publicRef);
     });
     res.json({ ok: true, isVerified: bestaetigt });
   } catch (e) {
@@ -398,7 +401,7 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
 // jederzeit fristlos kündbar — der Anbieter verliert die Vertragsbindung.
 
 async function ladeAbo(uidStr: string) {
-  const d = (await db().collection('subscriptions').doc(uidStr).get()).data() ?? {};
+  const d = await getServiceRepository('payments').read(`subscriptions/${uidStr}`, contractRecord) ?? {};
   return {
     plan: d.plan === 'plus' ? ('plus' as const) : ('frei' as const),
     startedAt: zuDatum(d.startedAt),
@@ -437,20 +440,20 @@ async function acceptAuthenticatedContract(req: Request, res: Response, kind: 'c
       // Identity Toolkit API may be offline/disabled; fallback to token claims
     }
     if (!email) { res.status(400).json({ code: 'confirmation_email_required' }); return; }
-    const profile = (await db().collection('users').doc(uid(req)).get()).data() ?? {};
-    const subscription = await db().collection('subscriptions').doc(uid(req)).get();
-    const subscriptionData = subscription.data() ?? {};
+    const repository = getServiceRepository('payments');
+    const profile = await repository.read(`users/${uid(req)}`, contractRecord);
+    const subscriptionData = await repository.read(`subscriptions/${uid(req)}`, contractRecord) ?? {};
+    if (!profile || await repository.read(`account_deletions/${uid(req)}`, contractRecord)) { res.status(409).json({ code: 'account_unavailable' }); return; }
     if (kind === 'cancel' && subscriptionData.plan !== 'plus') { res.status(409).json({ code: 'no_active_subscription' }); return; }
-    const terminationAt = kind === 'cancel' && subscriptionData.paidUntil instanceof Date ? subscriptionData.paidUntil :
-      kind === 'cancel' && typeof subscriptionData.paidUntil?.toDate === 'function' ? subscriptionData.paidUntil.toDate() : null;
+    const terminationAt = kind === 'cancel' ? zuDatum(subscriptionData.paidUntil) : null;
     const requestedEnd = terminationAt instanceof Date && !Number.isNaN(terminationAt.getTime()) ? terminationAt.toISOString().slice(0, 10) : '';
     const input = declarationSchema.parse({ requestId: req.body?.requestId ?? randomUUID(), kind,
-      language: ['de', 'en', 'es', 'fr'].includes(profile?.language) ? profile.language : 'de',
+      language: ['de', 'en', 'es', 'fr'].includes(profile.language ?? '') ? profile.language : 'de',
       name: name, email: email,
       contract: profile?.subscriptionId || 'Klar Plus', reason: req.body?.grund ?? '', cancellationType: 'ordinary', requestedEnd });
-    const receipt = await acceptDeclaration(db(), input, uid(req), { terminationAt });
+    const receipt = await acceptDeclaration(repository, input, uid(req), { terminationAt });
     const { deliverContractReceipt } = await import('./complianceJobs');
-    try { await deliverContractReceipt(receipt.id, db()); } catch { /* The declaration remains accepted. */ }
+    try { await deliverContractReceipt(receipt.id, repository); } catch { /* The declaration remains accepted. */ }
     res.status(202).json({ ok: true, status: 'pending', receipt });
   } catch (error) {
     if (error instanceof ContractError) { res.status(error.status).json({ code: error.code }); return; }

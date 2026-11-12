@@ -1,5 +1,9 @@
+import { logSafeFailure } from './safeErrorLog';
+import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import sgMail from '@sendgrid/mail';
-import { getDb as getFirestore } from "./db";
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+import { timestampMillis } from '../../functions/src/firestoreRepository/runtimeSchemas';
 import { getAuth } from 'firebase-admin/auth';
 import type { Request, Response } from 'express';
 import crypto from 'node:crypto';
@@ -22,6 +26,12 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Initialisierung
+const mailPayload = z.object({callbackUrl: z.string().optional(), paidUntil: z.union([z.string(), z.number(), z.date()]).optional(), plan: z.string().optional(), refundStatus: z.string().optional()}).passthrough();
+const record = z.object({uid: z.string().optional(), type: z.string().optional(), template: z.string().optional(),
+  status: z.string().optional(), retryCount: z.number().int().nonnegative().optional(), mailLease: z.string().nullable().optional(),
+  count: z.number().int().nonnegative().optional(), windowStartedAt: z.number().finite().optional(),
+  payload: mailPayload.optional(), paidUntil: z.union([z.string(), z.number(), z.date()]).optional(), plan: z.string().optional(), grund: z.string().optional(), aktenzeichen: z.string().optional(), at: z.unknown().optional(),
+}).passthrough();
 const apiKey = process.env.SENDGRID_API_KEY;
 const MAIL_LEASE_MS = 5 * 60_000;
 const MAX_MAIL_ATTEMPTS = 5;
@@ -47,18 +57,18 @@ export async function verificationMailLimiter(req: Request, res: Response, next:
   if (!uid) return res.status(401).json({ error: 'Anmeldung erforderlich.' });
 
   const key = crypto.createHash('sha256').update(`klar-verification-mail:${uid}`).digest('hex');
-  const ref = getFirestore().collection(VERIFICATION_RATE_LIMIT_COLLECTION).doc(key);
+  const ref = `${VERIFICATION_RATE_LIMIT_COLLECTION}/${key}`;
   const now = Date.now();
 
-  const allowed = await getFirestore().runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const data = snap.exists ? snap.data() : undefined;
+  const allowed = await getServiceRepository('auth').transaction(async tx => {
+    const snap = await tx.read(ref, record);
+    const data = snap;
     const windowStartedAt = Number(data?.windowStartedAt) || now;
     const count = Number(data?.count) || 0;
     const withinWindow = now - windowStartedAt < VERIFICATION_RATE_LIMIT_WINDOW_MS;
 
-    if (!withinWindow) {
-      tx.set(ref, {
+    if (!data || !withinWindow) {
+      tx.write(ref, record, {
         count: 1,
         windowStartedAt: now,
         expiresAt: new Date(now + VERIFICATION_RATE_LIMIT_WINDOW_MS),
@@ -67,10 +77,10 @@ export async function verificationMailLimiter(req: Request, res: Response, next:
     }
 
     if (count >= VERIFICATION_RATE_LIMIT_MAX) return false;
-    tx.update(ref, {
+    tx.write(ref, record, {
       count: count + 1,
       expiresAt: new Date(windowStartedAt + VERIFICATION_RATE_LIMIT_WINDOW_MS),
-    });
+    }, { merge: true });
     return true;
   });
 
@@ -107,7 +117,7 @@ export async function handleSendVerification(req: Request, res: Response) {
     // Custom-Link über Admin SDK generieren
     // Firebase generates the OOB credential only immediately before provider dispatch.
     // Never persist the verification link/token in the durable mail queue.
-    await getFirestore().collection('mail_queue').add({
+    await getServiceRepository('auth').create(`mail_queue/${crypto.randomUUID()}`, record, {
       uid,
       type: 'verification',
       payload: {},
@@ -119,7 +129,7 @@ export async function handleSendVerification(req: Request, res: Response) {
 
     res.json({ ok: true });
   } catch (e: unknown) {
-    console.error('/api/auth/send-verification', e instanceof Error ? e.message : e);
+    logSafeFailure('unclassified_failure');
     res.status(500).json({ error: 'Konnte Verifizierungs-Mail nicht vorbereiten.' });
   }
 }
@@ -127,66 +137,65 @@ export async function handleSendVerification(req: Request, res: Response) {
 /**
  * Asynchroner Worker: Überwacht die Queue und verarbeitet den SendGrid-Versand
  */
-export function startEmailWorker() {
-  if (!apiKey) {
-    console.log('[EmailWorker] SendGrid nicht konfiguriert; Mail-Worker läuft im simulations- und auditierten Modus.');
-  }
-
-  let consecutiveErrors = 0;
-  const processQueue = async () => {
-    try {
-      const db = getFirestore();
+export interface MailQueueProviders {
+  available: boolean;
+  getUser(uid: string): Promise<{email?: string}>;
+  generateResetLink(email: string, settings: {url:string; handleCodeInApp:boolean}): Promise<string>;
+  generateVerificationLink(email: string): Promise<string>;
+  send(message: {to:string; from:string; subject:string; html:string; customArgs:Record<string,string>}): Promise<unknown>;
+}
+const liveMailProviders: MailQueueProviders = {
+  available: Boolean(apiKey),
+  getUser: uid => getAuth().getUser(uid),
+  generateResetLink: (email, settings) => getAuth().generatePasswordResetLink(email, settings),
+  generateVerificationLink: email => getAuth().generateEmailVerificationLink(email),
+  send: message => sgMail.send(message),
+};
+/** Durable drain is injectable for deterministic emulator/provider-boundary tests. */
+export async function drainTenantMailQueue(db: TenantAwareFirestoreRepository = getServiceRepository('auth'), providers: MailQueueProviders = liveMailProviders) {
+  if (!providers.available) return; // Preserve the outbox; there is no simulated delivery.
       const now = Date.now();
       const [ready, staleLeases] = await Promise.all([
-        db.collection('mail_queue')
-          .where('status', 'in', ['pending', 'offen'])
-          .where('nextAttemptAt', '<=', new Date(now))
-          .orderBy('nextAttemptAt', 'asc')
-          .limit(10)
-          .get(),
-        db.collection('mail_queue')
-          .where('status', 'in', ['processing', 'dispatching'])
-          .where('mailLeaseUntil', '<=', new Date(now))
-          .orderBy('mailLeaseUntil', 'asc')
-          .limit(10)
-          .get(),
+        db.list('mail_queue', record, {whereAll: [['status', 'in', ['pending', 'offen']], ['nextAttemptAt', '<=', new Date(now)]], orderBy:'nextAttemptAt', limit:10}),
+        db.list('mail_queue', record, {whereAll: [['status', 'in', ['processing', 'dispatching']], ['mailLeaseUntil', '<=', new Date(now)]], orderBy:'mailLeaseUntil', limit:10}),
       ]);
-      const docs = [...ready.docs, ...staleLeases.docs];
+      const docs = [...ready, ...staleLeases];
 
-      consecutiveErrors = 0;
       if (!docs.length) return;
 
       for (const doc of docs) {
         const lease = crypto.randomUUID();
-        const claimed = await db.runTransaction(async tx => {
-          const current = await tx.get(doc.ref);
-          const data = current.data();
-          if (!current.exists || !data || !['pending', 'offen', 'processing', 'dispatching'].includes(data.status)) return null;
-          if (typeof data.nextAttemptAt?.toMillis === 'function' && data.nextAttemptAt.toMillis() > now) return null;
-          const leaseUntil = typeof data.mailLeaseUntil?.toMillis === 'function' ? data.mailLeaseUntil.toMillis() : Number(data.mailLeaseUntil) || 0;
+        const claimed = await db.transaction(async tx => {
+          const current = await tx.read(`mail_queue/${doc.id}`, record);
+          const data = current;
+          const deletion = data?.uid ? await tx.read(`account_deletions/${data.uid}`, record) : null;
+          if (deletion) return null;
+          if (!current || !data || !data.uid || !['pending', 'offen', 'processing', 'dispatching'].includes(data.status ?? '')) return null;
+          if (timestampMillis(data.nextAttemptAt) > now) return null;
+          const leaseUntil = timestampMillis(data.mailLeaseUntil) || 0;
           if ((data.status === 'processing' || data.status === 'dispatching') && leaseUntil > now) return null;
           if (data.status === 'dispatching') {
             // A process can die after the durable dispatching marker but before
             // the provider request starts. We cannot prove whether SendGrid
             // accepted the request, so the safe recovery is to quarantine the
             // job instead of automatically sending a duplicate.
-            tx.update(doc.ref, {
+            tx.write(`mail_queue/${doc.id}`, record, {
               status: 'dispatch_unknown',
               errorLog: 'dispatch_lease_expired_unknown',
               processedAt: new Date(),
               mailLeaseUntil: 0,
               mailLease: null,
               nextAttemptAt: new Date('9999-01-01'),
-            });
+            }, { merge: true });
             return null;
           }
-          const attempts = Number.isSafeInteger(data.retryCount) ? data.retryCount : 0;
+          const attempts = Number.isSafeInteger(data.retryCount) ? data.retryCount! : 0;
           if (attempts >= MAX_MAIL_ATTEMPTS) return null;
-          tx.update(doc.ref, {
+          tx.write(`mail_queue/${doc.id}`, record, {
             mailLease: lease,
             mailLeaseUntil: new Date(now + MAIL_LEASE_MS),
             status: 'processing',
-          });
+          }, { merge: true });
           return data;
         });
         if (!claimed) continue;
@@ -194,15 +203,16 @@ export function startEmailWorker() {
         const job = claimed;
         let dispatchStarted = false;
         try {
-          const markedDispatching = await db.runTransaction(async tx => {
-            const current = await tx.get(doc.ref);
-            if (current.data()?.mailLease !== lease || current.data()?.status !== 'processing') return false;
-            tx.update(doc.ref, { status: 'dispatching', dispatchStartedAt: new Date() });
+          const markedDispatching = await db.transaction(async tx => {
+            const current = await tx.read(`mail_queue/${doc.id}`, record);
+            const deletion = current?.uid ? await tx.read(`account_deletions/${current.uid}`, record) : null;
+            if (deletion || current?.mailLease !== lease || current?.status !== 'processing') return false;
+            tx.write(`mail_queue/${doc.id}`, record, { status: 'dispatching', dispatchStartedAt: new Date() }, { merge: true });
             return true;
           });
           if (!markedDispatching) continue;
           // PII-Auflösung in-memory
-          const userRecord = await getAuth().getUser(job.uid);
+          const userRecord = await providers.getUser(job.uid!);
           const targetEmail = userRecord.email;
           if (!targetEmail) throw new Error('E-Mail nicht gefunden');
 
@@ -212,8 +222,8 @@ export function startEmailWorker() {
 
           if (templateType === 'kuendigung_bestaetigung' || templateType === 'widerruf_bestaetigung') {
             const statutoryJob: StatutoryMailJob = {
-              id: doc.id, uid: job.uid, template: templateType, status: 'pending',
-              createdAt: job.at ? (job.at.toDate ? job.at.toDate() : job.at) : new Date(),
+              id: doc.id, uid: job.uid!, template: templateType, status: 'pending',
+              createdAt: Number.isFinite(timestampMillis(job.at)) ? new Date(timestampMillis(job.at)) : new Date(),
               payload: job.payload || { paidUntil: job.paidUntil, plan: job.plan, refundStatus: job.grund === 'widerruf' ? 'offen' : undefined },
             };
             const rendered = renderStatutoryConfirmation(statutoryJob);
@@ -223,13 +233,13 @@ export function startEmailWorker() {
             if (typeof callbackUrl !== 'string') throw new Error('password_reset_callback_missing');
             const callback = new URL(callbackUrl);
             if (callback.protocol !== 'https:' || callback.username || callback.password || callback.pathname !== '/' || callback.search || callback.hash) throw new Error('password_reset_callback_invalid');
-            const resetLink = await getAuth().generatePasswordResetLink(targetEmail, { url: callback.origin, handleCodeInApp: true });
+            const resetLink = await providers.generateResetLink(targetEmail, { url: callback.origin, handleCodeInApp: true });
             msgSubject = 'Passwort für Klar zurücksetzen';
             msgHtml = `<div style="font-family: sans-serif; color: #161815;"><h2 style="color: #000;">Passwort zurücksetzen</h2><p>Du hast das Zurücksetzen deines Klar-Passworts angefordert.</p><p style="margin: 30px 0;"><a href="${resetLink}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Passwort zurücksetzen</a></p><p style="font-size: 12px; color: #666;">Wenn du diese Anfrage nicht gestellt hast, kannst du diese Nachricht ignorieren.</p></div>`;
           } else if (job.type === 'verification') {
             // Generate the short-lived Firebase OOB credential only in-memory immediately
             // before dispatch. The durable queue stores only uid + template metadata.
-            const link = await getAuth().generateEmailVerificationLink(targetEmail);
+            const link = await providers.generateVerificationLink(targetEmail);
             msgSubject = 'Bitte bestätige deine E-Mail-Adresse für Klar';
             msgHtml = `<div style="font-family: sans-serif; color: #161815;"><h2 style="color: #000;">Willkommen bei Klar!</h2><p>Wir freuen uns, dass du dabei bist. Um dein Konto zu aktivieren, klicke bitte auf den folgenden Button:</p><p style="margin: 30px 0;"><a href="${link}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">E-Mail bestätigen</a></p><p style="font-size: 12px; color: #666;">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>${link}</p></div>`;
           } else if (job.type === 'report_confirmation' || templateType === 'report_confirmation') {
@@ -239,32 +249,32 @@ export function startEmailWorker() {
             throw new Error(`Unbekannter Job-Typ: ${job.type || job.template}`);
           }
 
-          const dispatchDigest = generateDispatchDigest(doc.id, job.uid, templateType, now);
-          if (!apiKey) throw new Error('email_provider_unavailable');
+          const dispatchDigest = generateDispatchDigest(doc.id, job.uid!, templateType ?? '', now);
+          if (!providers.available) throw new Error('email_provider_unavailable');
           dispatchStarted = true;
-          await sgMail.send({
+          await providers.send({
             to: targetEmail, from: fromEmail, subject: msgSubject, html: msgHtml,
             customArgs: { klar_mail_job_id: doc.id, klar_dispatch_digest: dispatchDigest },
           });
 
-          await db.runTransaction(async tx => {
-            const current = await tx.get(doc.ref);
-            if (current.data()?.mailLease !== lease) return;
-            tx.update(doc.ref, { status: 'success', processedAt: new Date(), dispatchDigest, mailLeaseUntil: 0, mailLease: null, nextAttemptAt: new Date('9999-01-01') });
+          await db.transaction(async tx => {
+            const current = await tx.read(`mail_queue/${doc.id}`, record);
+            if (current?.mailLease !== lease) return;
+            tx.write(`mail_queue/${doc.id}`, record, { status: 'success', processedAt: new Date(), dispatchDigest, mailLeaseUntil: 0, mailLease: null, nextAttemptAt: new Date('9999-01-01') }, { merge: true });
           });
         } catch (jobErr: unknown) {
           const errorMessage = jobErr instanceof Error ? jobErr.message : String(jobErr);
-          const attempts = (Number.isSafeInteger(job.retryCount) ? job.retryCount : 0) + 1;
+          const attempts = (Number.isSafeInteger(job.retryCount) ? job.retryCount! : 0) + 1;
 
           if (dispatchStarted) {
             // SendGrid has no end-to-end idempotency key for this operation.
             // After the request started, the provider may have accepted the mail
             // even when the client received an error or the Firestore commit failed.
             // Never automatically resend an ambiguous dispatch.
-            await db.runTransaction(async tx => {
-              const current = await tx.get(doc.ref);
-              if (current.data()?.mailLease !== lease) return;
-              tx.update(doc.ref, {
+            await db.transaction(async tx => {
+              const current = await tx.read(`mail_queue/${doc.id}`, record);
+              if (current?.mailLease !== lease) return;
+              tx.write(`mail_queue/${doc.id}`, record, {
                 status: 'dispatch_unknown',
                 errorLog: errorMessage.slice(0, 500),
                 retryCount: attempts,
@@ -272,7 +282,7 @@ export function startEmailWorker() {
                 mailLeaseUntil: 0,
                 mailLease: null,
                 nextAttemptAt: new Date('9999-01-01'),
-              });
+              }, { merge: true });
             });
             continue;
           }
@@ -281,10 +291,10 @@ export function startEmailWorker() {
           const retryable = !Number.isFinite(status) || RETRYABLE_HTTP_STATUSES.has(status) || status >= 500;
           const terminal = attempts >= MAX_MAIL_ATTEMPTS || !retryable;
           const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** Math.min(attempts - 1, 6));
-          await db.runTransaction(async tx => {
-            const current = await tx.get(doc.ref);
-            if (current.data()?.mailLease !== lease) return;
-            tx.update(doc.ref, {
+          await db.transaction(async tx => {
+            const current = await tx.read(`mail_queue/${doc.id}`, record);
+            if (current?.mailLease !== lease) return;
+            tx.write(`mail_queue/${doc.id}`, record, {
               status: terminal ? 'error' : 'pending',
               errorLog: errorMessage.slice(0, 500),
               retryCount: attempts,
@@ -292,10 +302,22 @@ export function startEmailWorker() {
               mailLeaseUntil: 0,
               mailLease: null,
               nextAttemptAt: new Date(Date.now() + (terminal ? 365 * 86400_000 : delay)),
-            });
+            }, { merge: true });
           });
         }
       }
+}
+
+export function startEmailWorker() {
+  if (!apiKey) {
+    console.log('[EmailWorker] SendGrid nicht konfiguriert; die Outbox bleibt unverarbeitet.');
+  }
+
+  let consecutiveErrors = 0;
+  const processQueue = async () => {
+    try {
+      await drainTenantMailQueue();
+      consecutiveErrors = 0;
     } catch (err: unknown) {
       consecutiveErrors++;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -305,11 +327,11 @@ export function startEmailWorker() {
         return;
       }
       if (consecutiveErrors >= 3) {
-        console.warn('Mail Worker: Mehrere aufeinanderfolgende Fehler, Worker pausiert.', errMsg);
+        logSafeFailure('unclassified_failure');
         clearInterval(interval);
         return;
       }
-      console.error('Mail Worker Error:', err);
+      logSafeFailure('unclassified_failure');
     }
   };
   let active: Promise<void> | undefined;

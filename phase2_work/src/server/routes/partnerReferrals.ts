@@ -88,7 +88,7 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     limit: 90,
     keyGenerator: req => 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { code: 'partner_click_rate_limited', error: 'Zu viele Partnerlink-Aufrufe. Bitte später erneut versuchen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
   const webhookLimiter = distributedRateLimit({
     collection: 'partner_referral_webhook_rate_limits',
@@ -96,7 +96,7 @@ export function createPartnerReferralPublicRouter(deps: PartnerReferralRouteDeps
     limit: 120,
     keyGenerator: req => 'campaign:' + String(req.params.slug ?? 'unknown') + ':ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { code: 'partner_webhook_rate_limited', error: 'Zu viele Partner-Rückmeldungen.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   const protectPublicPartnerRedirect = (_req: Request, res: Response, next: NextFunction) => {
@@ -179,7 +179,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
       return uid ? 'uid:' + uid : '';
     },
     message: { code: 'partner_action_rate_limited', error: 'Zu viele Partneraktionen. Bitte kurz warten.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
   const adminLimiter = distributedRateLimit({
     collection: 'partner_referral_admin_rate_limits',
@@ -190,7 +190,7 @@ export function createPartnerReferralRouter(deps: PartnerReferralRouteDeps): Rou
       return uid ? 'uid:' + uid : '';
     },
     message: { code: 'partner_admin_rate_limited', error: 'Zu viele Verwaltungsaktionen. Bitte kurz warten.' },
-    getDb: deps.getFirestore,
+    repository: deps.repository,
   });
 
   const accountGate = requirePartnerAccount(deps);

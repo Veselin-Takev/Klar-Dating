@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -32,10 +33,10 @@ async function endpoint(failure: 'rate' | 'revoke' | 'tokens' | 'status', authen
   app.use('/api', createAccountRouter({
     currentUserId: () => authenticated ? 'synthetic-user' : null,
     getAuth: () => ({ revokeRefreshTokens: revoke } as any),
-    getFirestore: () => ({
+    repository: () => scopedSdkFixture(({
       collection: () => ({ doc: () => ({ get: read, collection: () => ({ get: read }) }) }),
       runTransaction: transaction,
-    } as any),
+    } as any)),
   }));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));

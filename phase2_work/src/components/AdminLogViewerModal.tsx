@@ -66,7 +66,7 @@ export function AdminLogViewerModal({ isOpen, onClose }: { isOpen: boolean; onCl
             </div>
             <div>
               <h2 className="font-bold text-base text-stone-900 dark:text-white flex items-center gap-2">
-                <span>Konsole & App-Fehlerprotokoll</span>
+                <span>Konsole &amp; App-Fehlerprotokoll</span>
                 <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
                   Letzte 20 Einträge
                 </span>

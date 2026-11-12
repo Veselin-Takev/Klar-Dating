@@ -303,7 +303,7 @@ export function DatingWheelWidget() {
                           className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg"
                         >
                           <CalendarPlus size={18} />
-                          Speichern & Erinnern
+                          Speichern &amp; Erinnern
                         </button>
                       </div>
                     ) : (

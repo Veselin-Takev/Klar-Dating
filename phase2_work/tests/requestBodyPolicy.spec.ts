@@ -62,7 +62,7 @@ describe('request entity encoding boundary', () => {
     for (const call of ['mountStripeRawBody(app)', 'createPublicContractsRouter()', 'createComplianceJobsRouter()', 'createDiditWebhookRouter(kycDependencies)', 'app.use(express.json(']) expect(server.indexOf(call)).toBeGreaterThan(mount);
     const files = ['server.ts', 'src/server/complianceJobs.ts', 'src/server/contracts.ts', 'src/server/routes/webhooks.ts', 'src/server/routes/complianceStorage.ts', 'src/server/routes/analytics.ts', 'src/server/routes/launch.ts', 'src/server/routes/feedback.ts', 'src/server/verification/diditKyc.ts'];
     let count = 0;
-    for (const file of files) for (const match of readFileSync(file, 'utf8').matchAll(/\b(?:express\.(?:json|raw)|urlencoded|text)\(\{([^}]+)\}/g)) {
+    for (const file of files) for (const match of readFileSync(file, 'utf8').matchAll(/\b(?:express\.(?:json|raw)|urlencoded|text|raw)\(\{([^}]+)\}/g)) {
       expect(match[1], file).toMatch(/\binflate:\s*false\b/); count++;
     }
     expect(count).toBe(14);

@@ -1,3 +1,5 @@
+// Pure domain journey: provider boundary injected; native security regressions exercise the default enforcer.
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { DsaAppeal } from '../../src/server/platform/dsaAppealEngine';
@@ -127,7 +129,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
 
   // ── PHASE 1: Hard Age-Gate & Art. 9 Consent ──────────────────────────────
   // 1. Sarah completes Hard Age-Gate
-  const ageOutcome = await processAgeVerification(firestore, userA, '2001-08-15', { now: journeyStart });
+  const ageOutcome = await processAgeVerification(scopedSdkFixture(firestore), userA, '2001-08-15', { now: journeyStart });
   assert.equal(ageOutcome.ok, true);
   assert.equal(ageOutcome.status, 'verified_adult');
   assert.equal(ageOutcome.age, 25);
@@ -135,7 +137,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
 
   // 2. Sarah provides Art. 9 explicit consent
   const consentState = await recordExplicitConsent(
-    firestore,
+    scopedSdkFixture(firestore),
     userA,
     { art9_sexual_orientation: true, ai_personality_insights: true },
     journeyStart
@@ -146,7 +148,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // ── PHASE 2: Contact Orchestration & Quota Ledger ────────────────────────
   // 3. Sarah initiates contact with Lukas (8 contacts/day ledger)
   const contactTime = new Date('2026-09-25T11:00:00Z');
-  const contactResult = await processContactRequest(firestore, userA, userB, contactTime, contactTime);
+  const contactResult = await processContactRequest(scopedSdkFixture(firestore), userA, userB, contactTime, contactTime);
   assert.equal(contactResult.ok, true);
   assert.equal(contactResult.uebrig, 7);
   assert.equal(contactResult.gesamt, 8);
@@ -172,7 +174,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // 6. Trust & Safety moderator issues suspension decision with DSA Art. 17 Statement of Reasons
   const modDecisionTime = new Date('2026-09-25T11:30:00Z');
   const modDecision = await recordModerationDecision(
-    firestore,
+    scopedSdkFixture(firestore),
     reportId,
     'mod_trust_safety_lead',
     {
@@ -180,7 +182,8 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
       legalGround: 'harassment',
       factsAndCircumstances: 'Nachricht enthält wiederholte verbale Grenzüberschreitungen.',
     },
-    modDecisionTime
+    modDecisionTime,
+    async () => undefined
   );
   assert.equal(modDecision.restrictionType, 'account_suspension');
   assert.equal(modDecision.targetUid, userA);
@@ -195,7 +198,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // 7. Sarah submits internal appeal
   const appealTime = new Date('2026-09-25T12:00:00Z');
   const appealResult: DsaAppeal = await submitDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     reportId,
     userA,
     'Missverständnis im Kontext eines Zitats; keine vorsätzliche Belästigung beabsichtigt.',
@@ -208,12 +211,13 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // 8. Moderator reviews appeal and grants pardon / overturns restriction
   const reviewTime = new Date('2026-09-25T13:00:00Z');
   const reviewOutcome = await reviewDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     reportId,
     'mod_supervisor_01',
     'overturned',
     'Kontextprüfung bestätigt Zitat-Charakter. Verwarnung ausgesprochen, Suspendierung aufgehoben.',
-    reviewTime
+    reviewTime,
+    async () => undefined
   );
   assert.equal(reviewOutcome.status, 'overturned');
 
@@ -225,7 +229,7 @@ test('Full Lifecycle Journey: Complete orchestration from Onboarding to DSA Mode
   // ── PHASE 5: GDPR Art. 9 Revocation & Cascading Data Minimization ────────
   // 9. Sarah revokes Art. 9 consent -> cascade purge removes sensitive attributes
   const revokeTime = new Date('2026-09-25T14:00:00Z');
-  const revokeOutcome = await revokeExplicitConsent(firestore, userA, 'all', revokeTime);
+  const revokeOutcome = await revokeExplicitConsent(scopedSdkFixture(firestore), userA, 'all', revokeTime);
   assert.equal(revokeOutcome.ok, true);
   assert.ok(revokeOutcome.purgedFields.includes('sexualOrientation'));
 

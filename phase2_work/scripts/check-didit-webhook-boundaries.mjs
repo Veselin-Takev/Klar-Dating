@@ -7,7 +7,7 @@ const required = [
   'id_verifications: z.array(step).max(16)',
   'liveness_checks: z.array(step).max(16)',
   'face_matches: z.array(step).max(16)',
-  'if (receipt.exists) return { duplicate: true }',
+  'if (receipt !== null) return { duplicate: true }',
   'verifyDiditSignatureText(rawBody, signature, timestamp, config.webhookSecret, now)',
 ];
 for (const marker of required) {

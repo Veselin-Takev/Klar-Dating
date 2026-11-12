@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test, beforeEach } from 'vitest';
 import assert from 'node:assert/strict';
 import {
   getQueuedActions,
@@ -8,11 +8,11 @@ import {
   syncQueuedActions,
   getSyncLogs,
   clearSyncLogs,
-} from '../../src/lib/offlineQueue.ts';
+} from '../src/lib/offlineQueue.ts';
 
 const TEST_OWNERS = ['user-alice', 'user-1', 'user-sync', 'user-bob'];
 
-test.beforeEach(async () => {
+beforeEach(async () => {
   await Promise.all(TEST_OWNERS.map((uid) => clearQueueForUser(uid)));
   await clearSyncLogs();
 });

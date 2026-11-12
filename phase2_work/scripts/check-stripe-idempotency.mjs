@@ -6,7 +6,7 @@ const checks = [
   ['transactional event create', /tx\.create\(eventRef/],
   ['checkout cancellation tombstone', /subscription_\$\{subscriptionId\}/],
   ['terminal deletion tombstone without local user', /Durable terminal tombstone/],
-  ['updated events blocked after cancellation', /if \(!cancellation\.exists\)/],
+  ['updated events blocked after cancellation', /if \(!cancellation\)/],
   ['concurrent delivery test', /Promise\.all\(\[handleStripeWebhook/],
   ['late completion test', /cancellation before completion/],
 ];

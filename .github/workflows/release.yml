@@ -66,6 +66,9 @@ jobs:
           bun ci
           git diff --exit-code -- package.json bun.lock
 
+      - name: Production dependency advisory gate
+        run: bun audit --production --audit-level=high
+
       - name: Install Functions dependencies
         run: npm ci --prefix functions --ignore-scripts --no-audit --no-fund
 
@@ -77,7 +80,7 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p release
-          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app:${GITHUB_REF_NAME}"
           docker buildx build             --file Dockerfile             --platform linux/amd64             --provenance=mode=max             --sbom=true             --tag "$image"             --push             .
           docker buildx imagetools inspect "$image" > release/container-tag-inspect.txt
@@ -120,10 +123,12 @@ jobs:
 
       - name: Render immutable deployment manifests
         env:
+          KLAR_RUNTIME_PROJECT_ID: ${{ vars.KLAR_RUNTIME_PROJECT_ID }}
+          KLAR_RUNTIME_SERVICE_ACCOUNT: ${{ vars.KLAR_RUNTIME_SERVICE_ACCOUNT }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           rm -rf release/deploy
-          node scripts/release-manifests.mjs render "ghcr.io/${{ github.repository_owner }}/klar-app@${KLAR_RELEASE_DIGEST}" release/deploy
+          node scripts/release-manifests.mjs render "ghcr.io/${GITHUB_REPOSITORY_OWNER}/klar-app@${KLAR_RELEASE_DIGEST}" release/deploy
 
       - name: Validate release artifact hygiene
         run: node scripts/check-release-artifact-hygiene.mjs

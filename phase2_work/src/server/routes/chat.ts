@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { distributedRateLimit } from '../distributedRateLimiter';
-import type { DocumentReference, Firestore, QuerySnapshot, Transaction } from 'firebase-admin/firestore';
-import { getDb } from '../db';
+import type { TenantAwareFirestoreRepository, TenantRow } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
+import { getServiceRepository } from '../firestoreRepository/nativeDatabase';
 import { currentUserId } from '../authorization';
 import { ChatAccessError, readChatAccess, validDocumentId } from '../chatAccess';
 import { handleSendMessage } from '../messages';
@@ -16,69 +18,31 @@ const CHAT_GATE_ANSWER_RATE_LIMIT_COLLECTION = 'chat_gate_answer_rate_limits';
 const CHAT_GATE_ANSWER_RATE_LIMIT_WINDOW_MS = 60_000;
 const CHAT_GATE_ANSWER_RATE_LIMIT_MAX = 10;
 
-async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: string) {
-  type Entry = { docId: string; data: Record<string, unknown>; recipientId: string };
-  const entries: Entry[] = [];
-
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    const participants = data.participants;
-    if (!Array.isArray(participants) || participants.length !== 2
-      || participants[0] === participants[1]
-      || !participants.every(validDocumentId)
-      || !participants.includes(uid)) continue;
-    const recipientId = participants.find((participant: string) => participant !== uid);
-    if (!recipientId) continue;
-    entries.push({ docId: doc.id, data, recipientId });
-  }
-
-  if (!entries.length) return [];
-  const references = new Map<string, DocumentReference>();
-  const addRef = (ref: DocumentReference) => references.set(ref.path, ref);
-  const chatRefs = new Map(snapshot.docs.map(doc => [doc.id, doc.ref] as const));
-  for (const ref of chatRefs.values()) addRef(ref);
-
-  const ownDeletionRef = db.collection('account_deletions').doc(uid);
-  addRef(ownDeletionRef);
-
-  const profileRefs = new Map<string, DocumentReference>();
-  for (const entry of entries) {
-    addRef(db.collection('blocks').doc(`${uid}_${entry.recipientId}`));
-    addRef(db.collection('blocks').doc(`${entry.recipientId}_${uid}`));
-    addRef(db.collection('account_deletions').doc(entry.recipientId));
-    const profileRef = db.collection('public_profiles').doc(entry.recipientId);
-    addRef(profileRef);
-    profileRefs.set(entry.recipientId, profileRef);
-  }
-
-  return db.runTransaction(async tx => {
-    const snapshots = await tx.getAll(...references.values());
-    const byPath = new Map(snapshots.map(item => [item.ref.path, item]));
-    if (byPath.get(ownDeletionRef.path)?.exists) return [];
-
-    return entries.map(entry => {
-      const chatSnapshot = byPath.get(chatRefs.get(entry.docId)!.path);
-      const chatData = chatSnapshot?.exists ? chatSnapshot.data() : undefined;
-      const participants = chatData?.participants;
-      const currentRecipientId = Array.isArray(participants) && participants.length === 2
-        && participants.every(validDocumentId) && participants.includes(uid)
-        ? participants.find((participant: string) => participant !== uid)
-        : undefined;
-      if (!chatSnapshot?.exists || !currentRecipientId || currentRecipientId !== entry.recipientId) return null;
-
-      const blockA = byPath.get(db.collection('blocks').doc(`${uid}_${entry.recipientId}`).path);
-      const blockB = byPath.get(db.collection('blocks').doc(`${entry.recipientId}_${uid}`).path);
-      const ownRecipientDeletion = byPath.get(db.collection('account_deletions').doc(entry.recipientId).path);
-      if (blockA?.exists || blockB?.exists || ownRecipientDeletion?.exists) return null;
-
-      const profile = byPath.get(profileRefs.get(entry.recipientId)!.path);
-      if (profile?.exists && profile.data()?.isExample === true) return null;
-      return {
-        ...chatData,
-        id: entry.docId,
-        profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!) : null,
-      };
-    }).filter((chat): chat is NonNullable<typeof chat> => chat !== null);
+async function loadChatListAccess(db: TenantAwareFirestoreRepository, snapshot: TenantRow<Record<string,unknown>>[], uid: string) {
+  // Read each distinct access document once in the same closed transaction.
+  return db.transaction(async tx => {
+    const paths = new Set<string>([`account_deletions/${uid}`]);
+    for (const row of snapshot) {
+      paths.add(`chats/${row.id}`);
+      const participants = row.data.participants;
+      if (!Array.isArray(participants) || participants.length !== 2 || !participants.every(validDocumentId) || !participants.includes(uid)) continue;
+      const other = participants.find(value => value !== uid)!;
+      for (const path of [`blocks/${uid}_${other}`, `blocks/${other}_${uid}`, `account_deletions/${other}`, `public_profiles/${other}`]) paths.add(path);
+    }
+    const entries = await Promise.all([...paths].map(async path => [path, await tx.read(path, record)] as const));
+    const data = new Map(entries);
+    if (data.get(`account_deletions/${uid}`)) return [];
+    return snapshot.flatMap(row => {
+      const chat = data.get(`chats/${row.id}`), participants = chat?.participants;
+      if (!Array.isArray(participants) || participants.length !== 2 || participants[0] === participants[1] || !participants.every(validDocumentId) || !participants.includes(uid)) return [];
+      const other = participants.find(value => value !== uid)!;
+      // A changed participant must be retried, not read outside the original access set.
+      if (!paths.has(`public_profiles/${other}`)) return [];
+      if (data.get(`blocks/${uid}_${other}`) || data.get(`blocks/${other}_${uid}`) || data.get(`account_deletions/${other}`)) return [];
+      const profile = data.get(`public_profiles/${other}`);
+      if (profile?.isExample === true) return [];
+      return [{...chat, id:row.id, profile:profile ? toPublicProfile(other,profile) : null}];
+    });
   });
 }
 
@@ -130,8 +94,8 @@ export function createChatRouter() {
     const uid = currentUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const db = getDb() as Firestore;
-      const snapshot = await db.collection('chats').where('participants', 'array-contains', uid).limit(50).get();
+      const db = getServiceRepository('auth');
+      const snapshot = await db.list('chats', record, {where:['participants','array-contains',uid], limit:50});
       const chats = await loadChatListAccess(db, snapshot, uid);
       return res.json({ chats });
     } catch { return res.status(503).json({ error: 'Gespräche konnten nicht geladen werden.' }); }
@@ -140,11 +104,11 @@ export function createChatRouter() {
     const uid = currentUserId(req);
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
     try {
-      const db = getDb() as Firestore;
-      const access = await db.runTransaction(tx => readChatAccess(db, tx, String(req.params.chatId ?? ''), uid));
-      const profile = await db.collection('public_profiles').doc(access.recipientId).get();
-      if (profile.exists && profile.data()?.isExample === true) return res.status(404).json({ error: 'Beispielprofile sind nicht erreichbar.' });
-      return res.json({ profile: profile.exists ? toPublicProfile(access.recipientId, profile.data()!) : null });
+      const db = getServiceRepository('auth');
+      const access = await db.transaction(tx => readChatAccess(db, tx, String(req.params.chatId ?? ''), uid));
+      const profile = await db.read(`public_profiles/${access.recipientId}`, record);
+      if (profile && profile.isExample === true) return res.status(404).json({ error: 'Beispielprofile sind nicht erreichbar.' });
+      return res.json({ profile: profile ? toPublicProfile(access.recipientId, profile) : null });
     } catch (error) {
       if (error instanceof ChatAccessError) return res.status(error.status).json({ error: error.message });
       return res.status(503).json({ error: 'Gespräch konnte nicht geladen werden.' });
@@ -156,12 +120,12 @@ export function createChatRouter() {
     const { chatId, messageIds } = req.body ?? {};
     if (!validDocumentId(chatId) || !Array.isArray(messageIds) || messageIds.length > 100 || !messageIds.every(validDocumentId)) return res.status(400).json({ error: 'Ungültige Lesebestätigung.' });
     try {
-      const db = getDb() as Firestore;
-      await db.runTransaction(async (tx: Transaction) => {
+      const db = getServiceRepository('auth');
+      await db.transaction(async tx => {
         const access = await readChatAccess(db, tx, chatId, uid, true);
-        const refs = [...new Set<string>(messageIds)].map(id => access.ref.collection('messages').doc(id));
-        const messages = refs.length ? await tx.getAll(...refs) : [];
-        for (const message of messages) if (message.exists && message.data()?.senderId === access.recipientId) tx.update(message.ref, { isRead: true });
+        const refs = [...new Set<string>(messageIds)].map(id => `${access.ref}/messages/${id}`);
+        const messages = await Promise.all(refs.map(path => tx.read(path, record)));
+        messages.forEach((message,index) => {if (message?.senderId === access.recipientId) tx.write(refs[index]!, record, {isRead:true}, {merge:true});});
       });
       return res.json({ success: true });
     } catch (error) {

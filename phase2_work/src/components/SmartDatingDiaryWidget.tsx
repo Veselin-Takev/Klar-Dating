@@ -140,7 +140,7 @@ export function SmartDatingDiaryWidget() {
             Dating-Tagebuch
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Erfahrungen & Stimmung festhalten
+            Erfahrungen &amp; Stimmung festhalten
           </p>
         </div>
 

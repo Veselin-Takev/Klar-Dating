@@ -30,7 +30,7 @@ export function PreDateChecklistWidget() {
         </div>
         <div>
           <h3 className="font-bold text-stone-900 dark:text-stone-100 text-sm">Vor dem Date</h3>
-          <p className="text-xs text-stone-500 dark:text-stone-400">Mentaler & praktischer Check</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400">Mentaler &amp; praktischer Check</p>
         </div>
       </div>
 

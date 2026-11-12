@@ -17,7 +17,7 @@ export async function createAccount(request: APIRequestContext) {
 
 export async function markAccountVerified(request: APIRequestContext, uid: string) {
   const patchRes = await request.patch(
-    `http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=isVerified`,
+    `http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents/tenants/default/users/${uid}?updateMask.fieldPaths=isVerified`,
     {
       headers: { Authorization: 'Bearer owner' },
       data: { fields: { isVerified: { booleanValue: true } } },

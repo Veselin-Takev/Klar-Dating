@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -167,12 +168,9 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
         },
       ];
 
-      const get = vi.fn(async () => ({ empty: false, forEach: (cb: any) => mockDocs.forEach(cb) }));
-      const limit = vi.fn(() => ({ get }));
-      const db = { collection: vi.fn(() => ({ limit })) };
-
-      const records = await getAnonymizedComplianceAuditLogs(db as any);
-      expect(db.collection).toHaveBeenCalledWith('contract_requests');
+      const {repo,queries} = tenantRepositoryHarness(Object.fromEntries(mockDocs.map(doc=>['contract_requests/'+doc.id,doc.data()])));
+      const records = await getAnonymizedComplianceAuditLogs(repo);
+      expect(queries.mock.calls[0]?.[0]).toBe('tenants/default/contract_requests');
       expect(records.length).toBe(2);
       // Neueste zuerst sortiert
       expect(records[0]?.receivedAtUTC).toBe('2026-09-02T10:00:00.000Z');
@@ -180,14 +178,14 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
     });
 
     it('returns an honest empty export when the collection has no compliance records', async () => {
-      const db = { collection: vi.fn(() => ({ limit: () => ({ get: async () => ({ empty: true }) }) })) };
-      const records = await getAnonymizedComplianceAuditLogs(db as any);
+      const {repo} = tenantRepositoryHarness();
+      const records = await getAnonymizedComplianceAuditLogs(repo);
       expect(records).toEqual([]);
     });
 
     it('exports CSV directly with timestamped filename', async () => {
-      const db = { collection: vi.fn(() => ({ limit: () => ({ get: async () => ({ empty: true }) }) })) };
-      const { csv, filename, count } = await exportComplianceLogsAsCSV(db as any);
+      const {repo} = tenantRepositoryHarness();
+      const { csv, filename, count } = await exportComplianceLogsAsCSV(repo);
       expect(count).toBe(0);
       expect(csv).toContain('Audit_ID');
       expect(filename).toMatch(/^klar_bgb_312k_compliance_audit_\d{8}_\d{6}\.csv$/);
@@ -196,26 +194,10 @@ describe('§ 312k BGB Compliance Audit Log & CSV Export', () => {
 
   describe('Administrative HTTP Endpoints', () => {
     async function startAdminServer() {
-      const get = vi.fn(async () => ({
-        empty: false,
-        forEach: (cb: any) => [
-          {
-            id: 'doc-cancel-100',
-            data: () => ({
-              requestId: 'rec-100',
-              kind: 'cancel',
-              receivedAt: '2026-10-01T10:00:00Z',
-              receipt: { id: 'r-1', text: 'bestaetigt' },
-            }),
-          },
-        ].forEach(cb),
-      }));
-      const limit = vi.fn(() => ({ get }));
-      const where = vi.fn(() => ({ limit }));
-      const db = { collection: vi.fn(() => ({ limit, where })) };
+      const {repo} = tenantRepositoryHarness({'contract_requests/doc-cancel-100': {requestId:'rec-100',kind:'cancel',receivedAt:'2026-10-01T10:00:00Z',receipt:{id:'r-1',text:'bestaetigt'}}});
 
       const app = express();
-      app.use('/api/admin', createAuditLogRouter({ getFirestore: () => db as any }));
+      app.use('/api/admin', createAuditLogRouter({ repository: () => repo}));
       const server = app.listen(0, '127.0.0.1');
       servers.push(server);
       await new Promise<void>(resolve => server.once('listening', resolve));

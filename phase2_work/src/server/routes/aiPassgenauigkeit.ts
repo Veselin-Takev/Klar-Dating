@@ -104,9 +104,10 @@ export function createAiPassgenauigkeitRouter(deps: AiPassgenauigkeitRouterDeps)
     if (!input) return res.status(400).json({ error: 'Ungültige oder zu große Passgenauigkeitsdaten.' });
 
     const allowedIds = new Set(input.profiles.map(profile => profile.id));
+    const generateModelResponse = deps.generate;
     const answer = await deps.answer(
       '/api/ai-passgenauigkeit',
-      signal => deps.generate({
+      signal => generateModelResponse({
         model: deps.modelName(),
         contents: [
           'Bewerte die Passung ausschließlich anhand der übergebenen Interessen, Bio und Profilangaben.',

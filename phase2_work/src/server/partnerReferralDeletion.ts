@@ -1,3 +1,6 @@
+import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { scopeServiceDatabase } from './firestoreRepository/nativeDatabase';
+import { z } from 'zod';
 import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 
 export type OwnerReferralQuarantineResult = 'updated' | 'already_deleting' | 'missing';
@@ -13,25 +16,20 @@ export type OwnerReferralQuarantineResult = 'updated' | 'already_deleting' | 'mi
  * It never changes ownership and never creates a missing referral.
  */
 export async function quarantineOwnedPartnerReferral(
-  db: Firestore,
-  referralRef: DocumentReference,
+  database: Firestore | TenantAwareFirestoreRepository,
+  referralRef: DocumentReference | string,
   ownerUid: string,
 ): Promise<OwnerReferralQuarantineResult> {
-  // A nested users/{uid}/partner_referrals/{id} ref has the same parent ID.
-  // Restrict erasure to the canonical root collection, not just its last segment.
-  if (!ownerUid || typeof referralRef?.path !== 'string'
-    || !/^partner_referrals\/[^/]+$/.test(referralRef.path)
-    || referralRef.parent.id !== 'partner_referrals') {
-    throw new Error('partner_referral_quarantine_invalid_target');
-  }
-  return db.runTransaction<OwnerReferralQuarantineResult>(async tx => {
-    const snapshot = await tx.get(referralRef);
-    if (!snapshot.exists) return 'missing';
-    if (snapshot.data()?.ownerUid !== ownerUid) {
-      throw new Error('partner_referral_owner_changed');
-    }
-    if (snapshot.data()?.status === 'deleting') return 'already_deleting';
-    tx.update(referralRef, { status: 'deleting' });
+  const path = typeof referralRef === 'string' ? referralRef : referralRef.path;
+  if (!ownerUid || !/^partner_referrals\/[A-Za-z0-9_-]+$/.test(path)) throw new Error('partner_referral_quarantine_invalid_target');
+  const db = scopeServiceDatabase(database, 'auth');
+  const schema = z.object({ownerUid:z.string(), status:z.string()}).passthrough();
+  return db.transaction<OwnerReferralQuarantineResult>(async tx => {
+    const current = await tx.read(path, schema);
+    if (!current) return 'missing';
+    if (current.ownerUid !== ownerUid) throw new Error('partner_referral_owner_changed');
+    if (current.status === 'deleting') return 'already_deleting';
+    tx.write(path, schema.partial(), {status:'deleting'}, {merge:true});
     return 'updated';
   });
 }

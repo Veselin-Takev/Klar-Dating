@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "status": "UNVERIFIED_NO_LIVE_ACCESS",
+  "evidenceKind": "AVAILABILITY_AND_TERRAFORM_SOURCE_RECORD",
+  "recordedAt": "2026-11-09T00:15:15.486045+00:00",
+  "liveCapturedAt": null,
+  "livePoliciesRetrieved": false,
+  "productionAccessed": false,
+  "terraformPlanGenerated": false,
+  "scope": {
+    "project": "klar-admin",
+    "region": null,
+    "service": null,
+    "bucket": null,
+    "projectSource": "User confirmed project ID on 2026-11-09"
+  },
+  "blockers": [
+    "No configured GCP identity or ADC; no GCP connector available.",
+    "Approved Cloud Run service/region, bucket and a readable production IAM export have not been supplied.",
+    "No Terraform state or authenticated, state-backed plan is available."
+  ],
+  "terraformIntent": {
+    "source": "infra/iam/main.tf",
+    "sha256": "a7422e35bdcc5a8b54ac451f583bb3f58866419fd4316c4609d6250f47c65352",
+    "deployed": false,
+    "runtimeServiceAccountTemplate": "klar-runtime@<approved-project>.iam.gserviceaccount.com",
+    "bindings": [
+      {
+        "scope": "project",
+        "role": "roles/datastore.user"
+      },
+      {
+        "scope": "project",
+        "role": "projects/<approved-project>/roles/klarRuntimeAuth"
+      },
+      {
+        "scope": "bucket",
+        "role": "roles/storage.objectUser"
+      },
+      {
+        "scope": "each configured secret",
+        "role": "roles/secretmanager.secretAccessor"
+      }
+    ],
+    "authCustomRolePermissions": [
+      "firebaseauth.users.get",
+      "firebaseauth.users.create",
+      "firebaseauth.users.update",
+      "firebaseauth.users.delete",
+      "firebaseauth.users.sendEmail"
+    ],
+    "limitations": [
+      "Source configuration is neither a Terraform plan nor a deployed IAM export.",
+      "Project-wide datastore.user is not tenant-level IAM isolation."
+    ]
+  },
+  "collector": "phase2_work/scripts/export-live-iam-evidence.ts",
+  "readyForSignOff": false,
+  "productionApproved": false
+}

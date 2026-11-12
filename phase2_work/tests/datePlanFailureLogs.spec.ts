@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -42,7 +43,7 @@ async function endpoint(error: unknown, authenticated = true, writeFailure = fal
   }) };
   const getDb = vi.fn(() => db as any);
   const app = express(); app.use(express.json());
-  app.use('/api', createDatePlansRouter({ currentUserId: () => authenticated ? 'own-user' : null, getFirestore: getDb }));
+  app.use('/api', createDatePlansRouter({ currentUserId: () => authenticated ? 'own-user' : null, repository: () => scopedSdkFixture(getDb()) }));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;

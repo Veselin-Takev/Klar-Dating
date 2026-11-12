@@ -57,7 +57,7 @@ export default function SafetyCenter() {
                 <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <ShieldCheck size={20} />
                 </div>
-                <h3 className="font-semibold text-stone-900 dark:text-stone-100">Verbindlich & Respektvoll</h3>
+                <h3 className="font-semibold text-stone-900 dark:text-stone-100">Verbindlich &amp; Respektvoll</h3>
               </div>
               <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-4">
                 Behandle andere so, wie du behandelt werden möchtest. Keine Beleidigungen, kein Bodyshaming und kein Hass.
@@ -65,8 +65,8 @@ export default function SafetyCenter() {
               <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-3">
                 <h4 className="text-xs font-semibold text-stone-900 dark:text-stone-100 mb-1">Null-Toleranz bei:</h4>
                 <ul className="text-xs text-stone-600 dark:text-stone-400 space-y-1 ml-4 list-disc">
-                  <li>Hassrede & Rassismus</li>
-                  <li>Belästigung & Stalking</li>
+                  <li>Hassrede &amp; Rassismus</li>
+                  <li>Belästigung &amp; Stalking</li>
                   <li>Ungefragte sexuelle Inhalte</li>
                 </ul>
               </div>
@@ -77,7 +77,7 @@ export default function SafetyCenter() {
                 <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <EyeOff size={20} />
                 </div>
-                <h3 className="font-semibold text-stone-900 dark:text-stone-100">Datenschutz & Privatsphäre</h3>
+                <h3 className="font-semibold text-stone-900 dark:text-stone-100">Datenschutz &amp; Privatsphäre</h3>
               </div>
               <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed mb-4">
                 Teile niemals sensible Informationen (z.B. genaue Adresse, Bankdaten) direkt im Chat. Nutze unsere In-App-Funktionen für Verabredungen.

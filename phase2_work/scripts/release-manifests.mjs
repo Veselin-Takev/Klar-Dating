@@ -15,11 +15,23 @@ export function validateImage(image) {
   return image;
 }
 
+export function validateRuntimeIdentity(identity) {
+  const projectId = identity?.projectId;
+  const serviceAccount = identity?.serviceAccount;
+  if (typeof projectId !== 'string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId)
+      || serviceAccount !== `klar-runtime@${projectId}.iam.gserviceaccount.com`) {
+    throw new Error('Approved dedicated klar-runtime service account and matching project are required.');
+  }
+  return serviceAccount;
+}
+
 function readTemplate(root, name) {
   const template = JSON.parse(readFileSync(join(root, 'deploy/templates', `${name}.json`), 'utf8'));
   const containers = template?.spec?.template?.spec?.containers;
   if (template.apiVersion !== 'serving.knative.dev/v1' || template.kind !== 'Service'
-    || !Array.isArray(containers) || containers.length !== 1 || 'image' in containers[0]) {
+    || !Array.isArray(containers) || containers.length !== 1 || 'image' in containers[0]
+    || template.spec.template.spec.serviceAccountName !== null
+    || !Object.hasOwn(template.spec.template.spec, 'serviceAccountName')) {
     throw new Error(`Invalid source template: ${name}. Images must come from the release build.`);
   }
   return template;
@@ -54,12 +66,14 @@ export function checkDeploymentSources(root = process.cwd()) {
   scan(join(root, 'deploy'));
 }
 
-export function renderReleaseManifests(image, output, root = process.cwd()) {
+export function renderReleaseManifests(image, output, root = process.cwd(), identity = {projectId: process.env.KLAR_RUNTIME_PROJECT_ID, serviceAccount: process.env.KLAR_RUNTIME_SERVICE_ACCOUNT}) {
   validateImage(image);
   checkDeploymentSources(root);
+  const serviceAccount = validateRuntimeIdentity(identity);
   const documents = names.map(name => {
     const manifest = readTemplate(root, name);
     manifest.spec.template.spec.containers[0].image = image;
+    manifest.spec.template.spec.serviceAccountName = serviceAccount;
     return { name, manifest };
   });
   mkdirSync(output, { recursive: true });

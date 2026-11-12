@@ -1,3 +1,63 @@
+# Klar — Operational Hardening, PR #360 — 2026-11-09
+
+**1.714 Hauptsuite-Tests PASS. Freigabebündel vorbereitet; Produktion NO-GO und PR Draft bis zu den fehlenden Betriebsnachweisen und manuellen Freigaben.**
+
+Neu: steuerbares Auth-Session-Migrationsskript mit Trockenlauf als Standard, festem Stichtag, Scope-gebundenem 0600-Checkpoint, wiederaufnehmbarer Pagination und bestätigtem Provider-Widerruf. Der native CLI-Trockenlauf gegen synthetische Auth-Emulator-Konten verändert keine Auth-Daten; Apply und idempotente Wiederholung wurden ebenfalls verifiziert. Ein produktiver Trockenlauf oder Widerruf wurde nicht ausgeführt.
+
+Aktuell lokal: **1.599 Vitest / 213 Dateien + 86 Enterprise Node + 29 Chromium-E2E = 1.714 PASS**. Die 22 neuen operativen Tests sind enthalten. Enterprise-Gates, Typecheck und beide Builds PASS; Semgrep 616 Regeln / 1.183 Ziele, 0 Findings/Parserfehler, 700/700 eigene Runtime-Dateien abgedeckt. Die vollständige CI am neuen exakten PR-Head bleibt die maßgebliche Abschlussprüfung.
+
+Projekt-ID vom Nutzer bestätigt: `klar-admin`. GCP-Identität, freigegebene Cloud-Run-Service-/Regions-/Bucket-Zuordnung und Live-IAM-/Terraform-State-Nachweise fehlen weiterhin. Der Collector erfasst lesend aktive Revisionen und geerbte Policies; das IAM-Statusartefakt weist **UNVERIFIED** aus und enthält ausschließlich den belegbaren Terraform-Sollzustand.
+
+Zielstatus nach Schließung aller Evidenz-Gates: **READY FOR LEGAL & TECH SIGN-OFF**. Aktuell **BLOCKED_MISSING_PRODUCTION_EVIDENCE**; `productionApproved=false`. Keine Behauptung eines Live-Exports, einer produktiven Gesamtmigration oder rechtlichen Zertifizierung. Frühere Betriebs-/Datenschutz-Gates bleiben offen.
+
+[Dual-Sign-Off-Bündel](../../docs/security/DUAL_SIGN_OFF_READY.md) · [Prüfevidenz](../../docs/security/OPERATIONAL_VERIFICATION.json) · [IAM-Evidenzstatus](../../docs/security/live-iam-evidence.json).
+
+---
+
+## Historischer Stand vor diesem Operations-Arbeitspaket
+
+# Klar — PR #360 System-Remediation, v0.1.1-rc1
+
+**Code-Remediation und Regressionen verifiziert: 1.692 PASS. Produktion NO-GO. PR #360 bleibt Draft.**
+
+Verifizierter Runtime-Commit: `f13c736781daaa333040df5a67c1b0ff7b002c6d`. [Vollständige Enterprise-CI: SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42532259296). **1.577 Vitest / 211 Dateien + 86 Enterprise Node + 29 Chromium-E2E = 1.692 Hauptsuite-Tests.** Die enthaltenen 79 Audit-Tests, der zusätzliche native 116er-Lauf, 118 wiederholte Rules-Tests und sechs wiederholte Launch-Tests werden nicht doppelt addiert.
+
+Implementiert: authentisierte Medienauslieferung mit Streaming und begrenztem Upload-Speicher; Widerruf statischer Capabilities; dauerhafte DSA-/Legacy-Fences und unabhängig wiederholter Auth-/Medien-Widerruf; transaktionale Legal-Hold-Prüfung; wiederaufnehmbare Bild-Purges mit expliziter Provenienz; zentrale Logging-Allowlist und gemeinsame Firestore-Quoten mit begrenzter Serialisierung.
+
+Semgrep: 616 Regeln, 1.176 Ziele, 0 Findings/Parserfehler; 698/698 eigene Runtime-Dateien abgedeckt. Enterprise-Gates, Typechecks, beide Builds, Produktions-Smoke und Produktions-High/Critical-Advisory-Gate PASS. `re2js` bleibt 2.8.7; vier Moderate/ein Low liegen unter der High-Schwelle.
+
+**Die Produktions-Gates bleiben offen:** Alt-Capabilities und Altsperren sind nicht produktiv inventarisiert/migriert. Effektive IAM-/Edge-/Logging-/Retention-Policies, All-Writer-/Hold-Races, freigegebene Purge-Nachweise, Queue-Eskalation und erreichbare Beschwerde-/DSAR-Kanäle gesperrter Personen sind nicht unabhängig attestiert. Verifikationsbilder ohne freigegebene kontobezogene Nachweise bleiben gesperrt. `productionApproved=false`; kein Merge, Deployment, IAM-Apply oder finales Sign-Off.
+
+[Implementierung und Betriebs-Gates](security/SYSTEM_REMEDIATION_2026-11-08.md) · [Maschinenlesbare Evidenz](security/SYSTEM_REMEDIATION_EVIDENCE.json).
+
+Die historische Wave-3-Quellcode-Baseline und ihre ursprünglichen Grenzen bleiben im [Zertifizierungsbericht](security/MIGRATION_WAVE3_CERTIFICATION.md) dokumentiert. Neue Status-/Evidenz-Metadaten ändern den genannten geprüften Runtime-Code nicht.
+
+---
+
+## Historischer Status vor PR #360
+
+# Klar — Welle 2 Abschluss, v0.1.1-rc1
+
+**43/50 registrierte Dateien migriert; C/D/E Quellcode-Migration COMPLETED.** Sieben Infrastruktur-/Utility-Kandidaten bleiben für Welle 3 offen. `baselineFixed=false`, `productionApproved=false`. PR #358 bleibt DRAFT; #356/#357 sind durch ihn konsolidiert.
+
+Verifizierter Code: `7e61fadb2614593f2a725a8c3072043e2b0e3305`. [Vollständige CI: SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42500036161). **1.617 PASS** = 1.505 Vitest + 86 Enterprise Node + 26 Playwright. 118 dedizierte Rules-Tests wurden wiederholt und nicht doppelt addiert. IAM-, Inventar- und statische Prüfungen werden separat gezählt.
+
+Repository-Semgrep: **PASS — 0 Findings, 0 Diagnosen/Parserfehler**, strikter Auto-Scan; zusätzlich gepinnte Anti-Bypass-Regel und Negativ-Fixtures PASS. Typecheck, Functions-/Produktions-Build und Produktions-Smoke mit Emulatoren PASS. Der lokale Browserlauf bestätigt zusätzlich 26/26 PASS; er wird nicht erneut addiert.
+
+Client-Profile und Live-Chat lesen denselben Default-Tenant wie die serverseitigen Repository-Pfade. Rules erzwingen Owner/Claims/Löschbarrieren und Chat-Teilnehmer/Altersprüfung/Blockrichtungen. Geschützte Profilfelder sowie Chat-/Nachrichten-Schreibzugriffe bleiben serverseitig.
+
+Keine produktive Datenmigration, IAM-Anwendung, Löschung, Zahlung oder Freigabe. Der neueste Vercel-Preview-Check ist am Account-Build-Limit blockiert (24 Stunden); Code-Build und lokale/CI-Prüfungen sind davon getrennt. Effektive IAM-Rechte und Verification-Storage-Fencing bleiben offene Produktions-Gates.
+
+Nachweise: [Batch-Register](security/MIGRATION_BATCHES.json), [Abschlussbericht](security/MIGRATION_WAVE2_CLOSURE.md), [SAST-Triage](security/SEMGREP_AUTO_WAVE2.json), [IAM-Grenzen](../../docs/security/IAM_AND_ADMIN_BOUNDARIES.md). Detaillierte Historie: [Projektstatus](PROJECT_STATUS.md).
+
+**STOPP: Freigabe für Welle 3 erforderlich. Kein CERTIFIED_PROCEED und keine Produktionsfreigabe.**
+
+---
+
+# Historische Projektstände
+
+Die folgenden Einträge beziehen sich auf ihre jeweils genannten Commits und ersetzen den aktuellen Abschluss oben nicht.
+
 ## qs integriert; fast-uri-Kandidat vorbereitet — 2026-10-27
 
 PR #157 nach voller CI 40573777933 auf `1f89ec1c7fa5cd114a7540d9961a2c0e1a8e8a6e` integriert, Main `a4bea30fa55658deb0d701dc370afe54bc64dc7d` exakt geprüft. Nächster Kandidat fast-uri 3.1.9 innerhalb AJV-Parent-Ranges; Manifest unverändert. Generator 40575140352 und beide isolierten Frozen-Installationen bestanden; Artefakt-/Hash-/Graphprüfung bestanden, beide Locks übernommen. Differenzieller OSV-Vergleich 1.439 / 14 / 29 → 1.439 / 13 / 25. Vollständige CI am übernommenen Commit steht aus. [Details](CONTROLLED_LOCK_REFRESH_2026-10-27.md). **Produktion: NO-GO.**
@@ -1607,3 +1667,320 @@ Zehn Fehlerpfade auf feste Ereigniscodes umgestellt. Lokal 35 Tests bestanden; v
 ## Bestätigter Security-Stand nach PR142 – 26.10.2026
 
 PR138/139/141/142 sind nach vollständiger exakter CI integriert. Der zentrale [Auditstatus](SECURITY_AUDIT_STATUS_2026-10-26.md) enthält geprüfte Heads, CI-Läufe und Main-Merges. Functions-Teilkorrektur und13minimierte Fehlerlog-Aufrufe sind dokumentiert; andere Logger und Root-/App-Dependencies bleiben offen. PR140 bleibt Draft mit tatsächlichen Scannerbefunden. Keine unabhängige Abnahme, kein Live-Staging-/Rollback-Nachweis; Produktion NO-GO.
+
+## Gate 0 — v0.1.1-rc1, 2026-11-08
+
+**BLOCKED / baselineFixed=false / productionApproved=false.** Complete structural inventory, shared date-history type and missing Enterprise test execution are addressed in [the Gate 0 audit](releases/v0.1.1-rc1/GATE0_AUDIT.md). 202 explicit any nodes and unproven schema/tenant/reachability coverage prevent baseline certification. Exact execution counts remain pending candidate CI.
+
+### Gate-0-Ausführungsergebnis — 2026-11-08
+
+[PR #356](https://github.com/Veselin-Takev/Klar-Dating/pull/356), Code-Commit
+`7c63dfc057394b43327b1b153817ef0fad3d5290`, vollständige
+[CI 42476528171](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42476528171): SUCCESS.
+
+- Vitest: 194 Dateien, 1.398/1.398 PASS.
+- Enterprise Node: 17 Dateien, 86/86 PASS, keine Skips.
+- Playwright: 26/26 PASS.
+- Diese drei getrennten Suiten: **1.510/1.510 PASS**. Die sechs erneut
+  ausgeführten Launch-Tests sind schon in Vitest enthalten und nicht addiert.
+- Zusätzlich: Prompt-Security 11 PASS, Functions-Kompatibilität 2 PASS und
+  weitere statische/Node-Gates erfolgreich. Deren Gesamtzahl ist hier nicht
+  als deduplizierte repositoryweite Baseline zertifiziert.
+- Typecheck, Functions-Build, App-Build und Produktions-Smoke: PASS.
+
+Der vorherige Erweiterungslauf 42475957501 deckte acht Fehler auf. Behoben:
+Consent-Testsecret ausschließlich im isolierten Testprozess; Runner-Zuordnung
+für die bereits separat geprüfte Vitest-Prompt-Suite und die browserabhängige
+Offline-Queue-Suite; veraltete Erfolgserwartungen für absichtlich deaktivierte
+Identitätsprovider; vollständige Adult-Fixtures plus Negativtest im Storage-Modell.
+Die produktiven Autorisierungsregeln wurden dafür nicht gelockert.
+
+Die Inventarzahlen beziehen sich auf den ursprünglichen RC-Commit. Nach der
+Korrektur verbleiben 199 explizite any-Knoten repositoryweit, davon keiner in
+nicht-testbezogenen Dateien unter phase2_work/src. Gemeinsamer DateHistoryEntry
+ersetzt drei identische Definitionen; nicht identische Typen bleiben getrennt.
+
+**Gate 0 bleibt ROT / BLOCKED, baselineFixed=false.** Offene Anforderungen:
+repositoryweites Zero-any, vollständige Runtime-Schema- und Tenant-Nachweise,
+semantische Prüfung sämtlicher Pfade/Mocks und lückenlose Zuordnung aller
+inventarisierten Testdateien (inklusive separater Rules-Diagnostik) zu einer
+verbindlichen Gesamtausführung. Der Dateikatalog ist eine vollständige
+strukturelle Bestandsaufnahme, keine abgeschlossene semantische Codeprüfung.
+Die historische Testzahl ist damit aktualisiert, die Baseline nicht fixiert.
+Keine Feature-Entwicklung, kein Merge/Tag und keine Produktionsfreigabe.
+
+## Isolation closure — 2026-11-08
+
+Unsupported tenant tokens now fail closed at protected API, Firestore and Storage boundaries. Native rules, real emulator-token API and Storage cases added; dedicated test:rules mandatory in CI. [Scope and limits](releases/v0.1.1-rc1/ISOLATION_CLOSURE.md). #356/#357 included linearly. baselineFixed=false pending complete evidence and review.
+
+## Verified isolation containment — 2026-11-08
+
+Code SHA `4dc39cd5c760ae15459836e541aa3c139ad4323a`; full
+[CI 42478659998](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42478659998): SUCCESS.
+1,415 Vitest + 86 Enterprise Node + 26 Playwright = **1,527 PASS** across these
+nonoverlapping suites. Dedicated npm run test:rules: 92 PASS, repeated cases
+already included in Vitest, not added again. Typecheck, Functions/App build,
+production smoke and static Enterprise gates PASS. Tenant claim validation,
+real-token API refusal and native Firestore/Storage tenant-collision cases executed.
+
+#356 and #357 are conflict-free and included in #358; they remain unmerged.
+Vercel preview for prior code 7c63dfc0 is READY; the new preview is rate-limited.
+The current code's successful CI production build provides independent build proof.
+
+**Full tenant certification NOT GRANTED; baselineFixed=false, productionApproved=false.**
+Named tenants are denied rather than resolved. External Admin SDK/deployed
+Rules/IAM, complete tenant migration, universal schema/reachability and remaining
+Zero-any requirements are not certified. Finite negative tests cannot prove
+100% impossibility of BOLA/IDOR. No CERTIFIED_PROCEED and no feature release.
+
+## Finalizing evidence — 2026-11-08
+
+Lead PR #358 targets release/v0.1.1-rc1 directly and consolidates/supersedes
+#356 and #357, including all code and evidence commits without deletion or reset.
+
+Full [CI 42479679094](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42479679094)
+SUCCESS on code SHA `f8f6fa59f2129e7f174204449b6b9f384939a3f6`:
+1,424 Vitest + 86 Enterprise Node + 26 Playwright = **1,536 PASS**.
+Dedicated Firestore Rules: 92 PASS, repeated cases not added. Typecheck,
+Functions build, App build and production smoke PASS. Nine new tests relative
+to the preceding 1,527 baseline verify immutable context/UID validation, actual
+owner-bound Admin-SDK API writes despite forged request fields, and raw Admin
+SDK privilege characterization.
+
+Scoped claims-to-context resolution: PASS. Native Rules and protected API
+owner-bound checks: PASS. Full system tenant certification: NOT GRANTED.
+The raw Admin SDK can read both synthetic owners and bypasses Security Rules.
+External service accounts, Functions/internal jobs and deployed IAM/Rules
+have not been independently inventoried and verified. Named tenants remain
+unsupported; rejecting their tokens is containment, not tenant provisioning.
+
+**baselineFixed=false; productionApproved=false. No CERTIFIED_PROCEED.**
+This final metadata update refers explicitly to the immutable tested code SHA;
+its own automatic CI is separate from the completed code run above.
+
+## Admin repository hardening — 2026-11-08
+
+TenantAwareFirestoreRepository enforces tenants/default document paths and Zod input/output schemas without raw SDK references. A mandatory legacy source drift guard and negative test were added. **50 legacy consumers remain; --certify FAILS**, so baselineFixed=false and productionApproved=false. IAM boundaries and coordinated migration prerequisites are recorded in [IAM_AND_ADMIN_BOUNDARIES](../../docs/security/IAM_AND_ADMIN_BOUNDARIES.md). Full new-candidate CI pending; prior 1,536 PASS is not inherited.
+
+## Verified Admin wrapper checkpoint — 2026-11-08
+
+[Full CI 42480731945](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42480731945)
+SUCCESS on code `b0dca22ce84b722bbdc9d6ba2ea3419c0fb47056`:
+1,437 Vitest + 86 Enterprise Node + 26 Browser = **1,549 PASS**.
+Additional mandatory Admin-source negative test: 1 PASS. Dedicated Rules: 92
+PASS repeated, not double-counted. Typecheck, Functions/App builds and smoke PASS.
+Native emulator verifies scoped repository read/write/delete without modifying
+legacy root data. This is wrapper verification, not universal adoption.
+
+**Admin SDK gate closure FAILED:** 50 legacy consumer files remain unmigrated.
+The --certify command returns failure as designed. The source scanner detects
+matched access drift, not all possible alias/reflection bypasses. Wrapper-only
+path rewriting would split existing root-based clients, Rules, transactions and
+jobs; the migration plan must be implemented and tested before adoption.
+Effective deployed IAM and external writer inventory are still UNVERIFIED.
+IAM_AND_ADMIN_BOUNDARIES.md is documentation, not privilege attestation.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT and is not
+READY FOR HUMAN MERGE SIGN-OFF. No CERTIFIED_PROCEED. This metadata checkpoint
+references the immutable tested code SHA; its own automatic CI is separate.
+
+## Legacy migration / anti-bypass checkpoint — 2026-11-08
+
+PR #358 now confines native API and Functions SDK constructors to dedicated
+firestoreRepository infrastructure modules. Reminder uses the explicitly
+configured maintenance database instead of default getFirestore(). Legacy
+db.ts remains an explicitly marked compatibility facade. This refactoring
+is not a completed tenant path migration; all 50 legacy consumer files remain
+in the audit register with reviewed hashes and --certify remains FAIL.
+
+A real Semgrep 1.184.0 gate and locked Python dependency set were added to
+check:auth-boundary and CI. Negative fixtures check direct/alias, namespace and
+constructor bypasses. Factory confinement is not a proof that callers of a
+legacy facade are tenant scoped. Static IAM source/document matching confirms
+missing serviceAccountName in both Cloud Run templates and absent IAM bindings;
+least-privilege conformity is BLOCKED, not VERIFIED. Full candidate CI pending.
+
+baselineFixed=false; productionApproved=false. PR remains DRAFT until all
+consumer migrations, data/client/Rules/job cutover and IAM evidence are complete.
+
+## Verified factory/guardrail refactoring — 2026-11-08
+
+[Full CI 42482088663](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42482088663)
+SUCCESS on code `9a93f02ab8ca500f8aa0459fcbdd84ce48bf4f2a`.
+1,437 Vitest + 86 Enterprise Node + 26 Playwright = **1,549 PASS**.
+Dedicated Rules: 92 repeated PASS, not double-counted. Semgrep 1.184.0 rule
+fixtures PASS; production scan: 119 files, zero findings. Typecheck, native
+Functions/App builds, smoke, fallback policy and static gates PASS.
+
+This verifies native factory confinement and the configured anti-bypass rule.
+It DOES NOT mean the 50 candidate legacy consumers have adopted tenant paths.
+The registry is a lexical candidate inventory, not proof that every listed
+file directly creates an Admin SDK instance. db.ts and maintenance adapters
+remain legacy capabilities; global queries and root paths still need migration.
+Static IAM matching is consistent with documentation but reports absent runtime
+serviceAccountName and IAM binding manifests. --certify still fails.
+
+**baselineFixed=false; productionApproved=false; PR #358 DRAFT.**
+The requested 50/50 migration and verified static IAM conformity are unfinished;
+no CERTIFIED_PROCEED. This metadata update records immutable tested code; its
+own automatic CI is distinct from the completed code run.
+
+## Enterprise atomic batches A/B and IAM — 2026-11-08
+
+Migration progress **2/50 source consumers**, 48 remaining (see
+[batch register](security/MIGRATION_BATCHES.json)). Batch A migrates the chat
+archival job to scoped queries/cursor and a closed transaction interface. Batch B
+migrates the Checklist API to the shared repository with Zod validation. A single
+canonical repository in functions/src/firestoreRepository is shared by both builds;
+the API adapter derives tenant authority from verified claims, while the scheduler
+requires explicit deployer-controlled tenant configuration. No raw refs escape.
+
+Both batches require explicit migration-ready cutover flags. No live data copy,
+cloud operation or flag activation has occurred. Root data is neither migrated
+automatically nor used as a fallback; API returns 503 until its cutover is approved.
+The server's root-based Auth gates and other consumers are still legacy and must
+be accounted for in the remaining coordinated migrations. Synthetic CI alone
+sets the Checklist flag to exercise the approved-test-data path.
+
+infra/iam creates a dedicated klar-runtime service account with Firestore data
+role in an explicit application project, limited Auth custom role, bucket-scoped
+object role and optional per-secret grants. The role is NOT document-path tenant
+IAM. Source Cloud Run templates now have a render-only serviceAccountName slot;
+rendered artifacts require an explicit matching klar-runtime email and approved
+project. Missing/default/cross-project identities fail before deployment. Six
+render/negative IAM tests PASS locally; Terraform 1.13.5 init/validate/fmt PASS
+locally. No provisioning, plan/apply or effective cloud-IAM verification is claimed.
+
+Full changed-candidate CI pending. baselineFixed=false; productionApproved=false.
+Stop after these bounded batches for review; no CERTIFIED_PROCEED.
+
+## Batch A/B verified checkpoint — 2026-11-08
+
+Full [CI 42484272103](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42484272103)
+SUCCESS on `84575f87f42d581e1ca071270a4b8a042e36dbad`: **1,552 PASS**
+(1,440 Vitest in 198 files + 86 Enterprise Node + 26 Playwright). Dedicated
+Rules: 92 repeated PASS, not double-counted. Six additional IAM render/negative
+checks PASS. Semgrep fixture PASS and production scan 119 files / zero findings.
+Typecheck, Functions/App builds and production smoke PASS.
+
+Batch A native tests verify tenant-local archive transactions/cursors, pending
+erasure protection and unchanged foreign-tenant/root records. Batch B verifies
+scoped API merge writes, retained root data and 503 before approved cutover.
+The shared helper uses native Date values at the API/Functions SDK boundary to
+avoid cross-package Timestamp instances. Release CLI tests now supply the
+explicit synthetic runtime identity required by rendering. The initial candidate
+CI exposed both integration issues; both pass in the completed run above.
+
+Progress: **2/50 consumer files migrated in source, 48 open**. Terraform runtime
+identity/bindings are IMPLEMENTED; local init/validate/fmt PASS. No plan/apply,
+service-account creation, deployed IAM attestation, live data migration or
+production cutover was performed. Source identity slots remain render-only;
+missing/default/cross-project service accounts are rejected by rendering.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT for review
+of these bounded batches. Work stops here for the next review step, with no
+CERTIFIED_PROCEED. This metadata checkpoint refers to the immutable tested code
+SHA; its own automatic CI is separate.
+
+## Wave 1 — C/D source migration checkpoint (2026-11-08)
+
+Progress **5/50 files, 45 remaining**: C migrates user risk evaluation and
+append-only Auth audit; D migrates Stripe checkout/fulfillment to the shared
+TenantAwareFirestoreRepository. Closed transactions now support scoped create
+and schema-validated merge writes. No native references are exposed.
+
+Risk reads only default-tenant profiles/reports/blocks and pending-erasure
+markers. High-risk writes recheck subject existence and pending erasure inside
+the same transaction. Audit uses create-only tenant paths, pseudonyms and its
+existing runtime schema. Stripe users/subscriptions, leases, event receipts and
+cancellation tombstones are scoped atomically. Completion requires the signed
+checkout's default-tenant marker, and foreign tenant metadata is ignored without
+entitlement writes. Subscription ownership ambiguity aborts before any writes;
+ordering and failed-commit retryability remain tested.
+
+Auth and Payments domain flags default OFF. Synthetic CI enables them for scoped
+fixtures. No live data move, account change, charge, refund or cutover is performed.
+Readiness flags MUST NOT be enabled for production while dependent root-based
+readers, deletion markers, KYC/session flows and cancellation/withdrawal handlers
+remain unmigrated. C/D overall remain IN PROGRESS; the batch register lists scope.
+Client sessionManager has no legacy Firestore access to migrate; this does not
+certify its client storage or complete server-session/KYC migration.
+
+Full current-wave CI pending; the prior 1,552 PASS count is historical.
+baselineFixed=false; productionApproved=false. Stop for Wave 2 after verification.
+
+## Wave 1 C/D verified checkpoint — 2026-11-08
+
+[Full CI 42486611334](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42486611334)
+SUCCESS on `bd3c9f7095b4b76b48daf29fb44192e077f9bc74`:
+**1,561 PASS** = 1,449 Vitest in 199 files + 86 Enterprise Node + 26 Playwright.
+Dedicated Rules: 92 repeated PASS, not added again. Semgrep rule fixtures PASS;
+119 production files / zero findings. Typecheck, Functions/App builds, production
+smoke, audit append-only, risk fail-closed and Stripe ordering/idempotency gates PASS.
+
+Nine new native cases verify risk/profile write isolation and pending-erasure
+denial, pseudonymous tenant audit, blocked Auth/Payments cutovers, foreign Stripe
+metadata, concurrent checkout leases, ambiguous subscription ownership and stale
+payment-failure projection. Failed-commit retry and cancellation-before-completion
+regressions continue to pass. Some existing test doubles were replaced with typed
+repository/SDK ports; those replacements are not counted as additional tests.
+
+Progress **5/50 migrated source files, 45 remaining**. Batch C: IN PROGRESS
+(two user/security consumers done; primary profiles/Auth gates, recovery/mail,
+KYC/session and readers remain). Batch D: IN PROGRESS (Stripe transaction core
+done; entitlement readers, cancellation/withdrawal and related integrations remain).
+Do not enable either domain cutover until its dependent data, readers and deletion
+markers are migrated and reviewed. No live data or payment operation was performed.
+
+baselineFixed=false; productionApproved=false. PR #358 remains DRAFT.
+STOP for the Wave 2 review instruction; no CERTIFIED_PROCEED. This final metadata
+checkpoint references the immutable tested code SHA; its automatic CI is separate.
+
+## Wave 2 source checkpoint — 2026-11-08
+
+**10/50 migrated candidate files, 40 remaining**. [Detailed scope and limitations](security/MIGRATION_WAVE2.md).
+KYC sessions/webhooks/recovery, contracts/refund-review ledger, subscription reads,
+reminder/expiry jobs and signed compliance processing now use the tenant repository.
+C/D/E remain IN_PROGRESS: primary profiles/Auth/age gates, reset/mail, consent,
+audit/export and deletion integrations still require coordinated migration.
+Scoped deletion jobs fail closed rather than entering the root-based legacy worker.
+No live cutover or cloud changes were executed. Full changed-candidate CI pending;
+the previous 1,561 PASS remains historical until a new complete result is recorded.
+Pinned anti-bypass Semgrep: 0 local findings. Repository-wide auto scan: 35 open findings plus 41 diagnostic warnings.
+baselineFixed=false; productionApproved=false; PR #358 DRAFT.
+
+## Wave 2 verified checkpoint — 2026-11-08
+
+[Full CI 42490475690](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42490475690)
+SUCCESS on `fff55a978c6184e46b687ba80cefd184cd341900`:
+**1,574 PASS** = 1,462 Vitest in 201 files + 86 Enterprise Node + 26 Playwright.
+Dedicated Rules: 92 repeated PASS, not added again. Six additional IAM and two
+collection-inventory regressions PASS. Typecheck, Functions/App builds and production
+smoke PASS. The deletion catalog and request-body parser source guards now recognize
+closed repository writes and the imported raw parser without dropping their checks.
+
+[Wave 2 evidence](security/MIGRATION_WAVE2.md): **10/50 source candidates migrated,
+40 remaining**. C/D/E remain IN_PROGRESS; primary profiles/Auth/age, reset/mail,
+consent, audit/export, billing limits and erasure still require coordinated migration.
+KYC now additionally persists the initial rate-limit window and prevents stale
+reconciliation decisions; native tests cover successful recovery and expiry reset.
+
+Pinned Semgrep anti-bypass: 0 findings / 119 production targets, fixtures PASS.
+Repository-wide official auto scan on 6dd7f87e: **35 open findings + 41 diagnostic
+warnings**, exit 1, 615 rules / 1,144 targets. This is not a clean auto-SAST result;
+no suppressions or false-positive certifications were added. Full IAM deployment
+and cross-service erasure fencing remain unverified. No live migration or cutover.
+
+baselineFixed=false; productionApproved=false; PR #358 DRAFT. Wave 2 is partially
+implemented, not the requested full C/D completion. Stop for the Wave 3 review
+instruction, with the outstanding functional dependencies explicitly retained.
+This metadata checkpoint references the immutable tested code SHA; its own automatic
+CI is separate.
+
+## 2026-11-08 — Welle 3: Quellcode-Migration vollständig, Zertifizierung läuft
+
+Alle sieben verbliebenen Kandidaten sind auf geschlossene Tenant-Repositories migriert (50/50 im Register). Native SDK-Fabriken sind private Infrastruktur mit hashgeprüften Ausnahmen; Anwendungscode darf keine raw Emulator-Fixtures importieren. Lokale Speicher sind explizit lokal, starten leer und sind kein Cloud-Fehler-Fallback. Wartungsskripte verlangen explizite Tenant-Konfiguration. AI-Cache/Budget respektieren transaktionale Löschbarrieren. Vollständige unveränderliche CI-Evidenz steht noch aus; `baselineFixed=false`, `productionApproved=false`, PR #358 DRAFT.
+
+## 2026-11-08 — Welle 3: finale Quellcode-Baseline zertifiziert
+
+50/50 registrierte Kandidaten vollständig migriert; keine ungebundenen Anwendungskonsumenten im SDK-Register. Code `951b16b243354321ca9c2c31bde8deab9e00060a`, CI https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42504754895: **1636 PASS** (1524 Vitest + 86 Enterprise Node + 26 Playwright); 118 Rules wiederholt und nicht doppelt gezählt. Strikter Semgrep-Scan: 0 Findings / 0 Diagnosen, 681/681 eigene Laufzeitdateien abgedeckt. Typecheck, beide Builds, Emulator-Smoke und Enterprise-Gates PASS. `baselineFixed=true`, `productionApproved=false`; Human-Review/Merge-Sign-Off für PR #358 ausstehend. Historische negative Gate-0-Berichte oben bleiben unverändert als frühere Checkpoints erhalten. Aktueller Bericht: [MIGRATION_WAVE3_CERTIFICATION.md](security/MIGRATION_WAVE3_CERTIFICATION.md). Release-Governance bleibt NO-GO/BLOCKED bis zu separater operativer Evidenz und Freigabe.

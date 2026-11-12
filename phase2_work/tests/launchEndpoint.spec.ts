@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { referralCodeFor } from '../src/server/platform/launchPlatform';
@@ -49,8 +50,7 @@ function referralDb() {
     runTransaction: async (callback: (tx: any) => unknown) => callback({
       get: async (r: { id: string; path: string }) => snapshot(r),
       getAll: async (...refs: Array<{ id: string; path: string }>) => {
-        beforeRead?.();
-        beforeRead = undefined;
+        if(refs.some(ref=>ref.path.startsWith('users/'))) {beforeRead?.();beforeRead=undefined;}
         return refs.map(snapshot);
       },
       update: (r: { path: string }, data: Record<string, unknown>) => {
@@ -72,7 +72,7 @@ async function api(overrides: Partial<LaunchRouterDeps> = {}) {
   const db = baseDb();
   const deps: LaunchRouterDeps = {
     currentUserId: () => 'user-a',
-    getFirestore: () => db,
+    repository: () => scopedSdkFixture(db),
     normalizeLaunchCity: value => typeof value === 'string' && value.toLowerCase().includes('münchen') ? 'München' : null,
     getLocalDensity: vi.fn(async () => ({ city: 'München', activeUsers: 4, verifiedUsers: 2, band: 'building', threshold: 5 })),
     referralCodeFor: () => 'ABCDEFGHIJ',
@@ -112,7 +112,7 @@ describe('launch/referral/activation HTTP boundary', () => {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'bad' }),
     });
     expect(response.status).toBe(400);
-    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledTimes(2);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_claim');
   });
 
@@ -149,7 +149,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     const fixture = referralDb();
     if (state === 'missing') fixture.store.delete('users/user-a');
     else fixture.beforeRead(() => { fixture.store.set('account_deletions/user-a', {}); });
-    const ctx = await api({ getFirestore: () => fixture.db });
+    const ctx = await api({ repository: () => scopedSdkFixture(fixture.db)});
     const response = await fetch(ctx.base + '/referral');
     expect(response.status).toBe(409);
     expect(fixture.writes.filter(write => write.path.startsWith('users/'))).toHaveLength(0);
@@ -165,7 +165,7 @@ describe('launch/referral/activation HTTP boundary', () => {
         if (state === 'deleting-invitee') fixture.store.set('account_deletions/user-a', {});
         if (state === 'deleting-inviter') fixture.store.set('account_deletions/inviter', {});
       });
-      const ctx = await api({ getFirestore: () => fixture.db });
+      const ctx = await api({ repository: () => scopedSdkFixture(fixture.db)});
       const response = await fetch(ctx.base + '/referral/claim', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'ABCDEFGHIJ' }),
       });
@@ -176,7 +176,7 @@ describe('launch/referral/activation HTTP boundary', () => {
 
   it('keeps eligible generation and repeated claims compatible without granting verification', async () => {
     const fixture = referralDb();
-    const ctx = await api({ getFirestore: () => fixture.db, referralCodeFor: () => 'SELFKEY123' });
+    const ctx = await api({ repository: () => scopedSdkFixture(fixture.db), referralCodeFor: () => 'SELFKEY123' });
     const issued = await fetch(ctx.base + '/referral');
     expect(issued.status).toBe(200);
     expect(await issued.json()).toEqual({ code: 'SELFKEY123', shareUrl: 'https://klar.app/?ref=SELFKEY123' });
@@ -198,7 +198,7 @@ describe('launch/referral/activation HTTP boundary', () => {
     const response = await fetch(ctx.base + '/referral');
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: 'Referral ist für diese Umgebung noch nicht konfiguriert.' });
-    expect(ctx.db.collection).toHaveBeenCalledTimes(1);
+    expect(ctx.db.collection).toHaveBeenCalledTimes(2);
     expect(ctx.db.collection).toHaveBeenCalledWith('rate_limit_launch_referral_generation');
   });
 
@@ -233,7 +233,7 @@ describe('launch/referral/activation HTTP boundary', () => {
       } as any;
       return baseDb().collection(name);
     });
-    const ctx = await api({ getFirestore: () => db });
+    const ctx = await api({ repository: () => scopedSdkFixture(db)});
     const response = await fetch(ctx.base + '/activation/summary');
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ score: 20, activated: false, events: ['first_contact', 'first_conversation'] });

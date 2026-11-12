@@ -7,7 +7,7 @@ describe('consent center contract', () => {
     const persistence = fs.readFileSync('src/server/consentPersistence.ts', 'utf8');
     const audit = fs.readFileSync('src/server/consentAudit.ts', 'utf8');
     expect(handler).toContain('persistConsentDecision');
-    expect(persistence).toContain('runObservedTransaction');
+    expect(persistence).toContain('db.transaction(async tx =>');
     expect(persistence).toContain('signConsentAuditRecord');
     expect(audit).toContain('HMAC-SHA256');
   });

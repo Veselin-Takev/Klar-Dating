@@ -148,7 +148,7 @@ export function DatingVibeCheckQuiz() {
           </div>
           <h3 className="font-serif text-xl font-medium text-stone-900 dark:text-stone-100 mb-4 flex items-center gap-2 relative z-10">
             <Sparkles size={20} className="text-brand dark:text-brand-light" />
-            Dein Dating-Vibe & Coaching
+            Dein Dating-Vibe &amp; Coaching
           </h3>
 
           <div className="prose prose-sm dark:prose-invert max-w-none text-stone-700 dark:text-stone-300 relative z-10 whitespace-pre-wrap leading-relaxed">

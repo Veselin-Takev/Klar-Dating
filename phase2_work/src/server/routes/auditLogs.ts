@@ -2,14 +2,16 @@ import { logSafeFailure } from '../safeErrorLog';
 import { Router } from 'express';
 import type { Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
 import {
   getAnonymizedComplianceAuditLogs,
   exportComplianceLogsAsCSV,
 } from '../platform/auditComplianceExport';
 
 export type AuditLogRouterDeps = {
-  getFirestore: () => Firestore;
+  repository: (domain: 'auth' | 'payments') => TenantAwareFirestoreRepository;
 };
 
 export function serializeTimestamp(value: unknown): string | null {
@@ -26,7 +28,7 @@ export function serializeTimestamp(value: unknown): string | null {
   return null;
 }
 
-export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Router {
+export function createAuditLogRouter({ repository }: AuditLogRouterDeps): Router {
   const router = Router();
   const adminAuditReadLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -55,13 +57,9 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
 
   router.get('/audit-logs', adminAuditReadLimiter, async (_req, res) => {
     try {
-      const snapshot = await getFirestore().collection('audit_logs')
-        .orderBy('timestamp', 'desc')
-        .limit(50)
-        .get();
-
-      const logs = snapshot.docs.map(doc => {
-        const data = doc.data() as Record<string, unknown>;
+      const snapshot = await repository('auth').list('audit_logs', record, {orderBy:'timestamp', orderDirection:'desc', limit:50});
+      const logs = snapshot.map(doc => {
+        const data = doc.data;
         return {
           id: doc.id,
           actorPseudonym: typeof data.actorPseudonym === 'string' ? data.actorPseudonym : null,
@@ -83,7 +81,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
       const parsedLimit = req.query.limit === undefined ? 100 : Number(req.query.limit);
       const limit = Number.isSafeInteger(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 500) : 100;
       const kind = req.query.kind as 'cancel' | 'withdraw' | 'all' | undefined;
-      const db = getFirestore();
+      const db = repository('payments');
       const records = await getAnonymizedComplianceAuditLogs(db, { limit, kind });
       return res.json({ ok: true, count: records.length, records });
     } catch (error) {
@@ -96,7 +94,7 @@ export function createAuditLogRouter({ getFirestore }: AuditLogRouterDeps): Rout
     try {
       const kind = req.query.kind as 'cancel' | 'withdraw' | 'all' | undefined;
       const delimiter = (req.query.delimiter === ',' ? ',' : ';') as ';' | ',';
-      const db = getFirestore();
+      const db = repository('payments');
       const { csv, filename } = await exportComplianceLogsAsCSV(db, { limit: 500, kind, delimiter });
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');

@@ -1,3 +1,10 @@
+import './src/server/installPrivacyLogging';
+import { z } from 'zod';
+import { getServiceRepository } from './src/server/firestoreRepository/nativeDatabase';
+import { resolveVerifiedTenantContext } from './src/server/tenantRequestContext';
+import { createMediaAccessGuard } from './src/server/mediaAccess';
+import { createMediaRouter } from './src/server/routes/media';
+import { containLegacySuspension } from './src/server/accountSecurity';
 import { logSafeFailure } from './src/server/safeErrorLog';
 import { readBoundedResponse } from './src/server/boundedResponse';
 import { rejectEncodedRequestBodies } from './src/server/middleware/requestBodyPolicy';
@@ -87,7 +94,9 @@ import { beantworte, ausfall, ohneSchluessel, schluesselFehlt } from "./src/serv
 // welche vier Pflichten mit dieser neuen Ablage entstanden sind.
 
 import { NOGO_VORSCHLAEGE, BIO_WERTE_HINWEISE, kuratierteCoachAntwort } from "./src/server/kuratiert";
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from './src/server/sharedRateLimit';
+import { trustedProxyPolicy } from './src/server/proxyTrust';
 import {
   istGast, gastDarf, GAST_KI_GRENZE,
   CODE_KONTO_ERFORDERLICH, TEXT_KONTO_ERFORDERLICH,
@@ -99,11 +108,11 @@ import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
 
-import { appendAuditLog } from './src/server/platform/auditLog';
+import { appendRepositoryAuditLog } from './src/server/platform/auditLog';
 
 
 import { FieldValue } from './src/server/db';
-import { getDb as getFirestore } from './src/server/db';
+import {createVerifiedRequestRepository,getInfrastructureRepository,closeServerDb} from './src/server/firestoreRepository/nativeDatabase';
 import { handleBlock, handleReport, trustSafetyWriteLimiter } from './src/server/trustAndSafety';
 import { requireRole, currentUserId } from './src/server/authorization';
 import { parseSmartAuditInput, parseSmartAuditOutput } from './src/server/platform/smartAuditBoundary';
@@ -171,11 +180,19 @@ const requireAuth = async (req: express.Request, res: express.Response, next: ex
     const authInstance = getAuth(adminApp);
     // Check Firebase revocation/disabled-user state on every protected request.
     const decodedToken = await authInstance.verifyIdToken(idToken, true);
+    const tenantContext = resolveVerifiedTenantContext(decodedToken);
 
-    if (decodedToken.uid && (await getFirestore().collection('account_deletions').doc(decodedToken.uid).get()).exists) {
+    const repository = getServiceRepository('auth');
+    const [lock, profile] = await Promise.all([repository.read(`account_locks/${decodedToken.uid}`, z.record(z.string(), z.unknown())),repository.read(`users/${decodedToken.uid}`,z.record(z.string(),z.unknown()))]);
+    if (lock || profile?.active === false) {
+      if (!lock) await containLegacySuspension(decodedToken.uid,repository).catch(()=>undefined);
+      return res.status(401).json({ code: 'account_locked' });
+    }
+    if (decodedToken.uid && await getServiceRepository('auth').read(`account_deletions/${decodedToken.uid}`, z.record(z.string(), z.unknown()))) {
       return res.status(409).json({ code: 'account_deletion_pending' });
     }
     const session = validateServerAuthSession(decodedToken);
+    Object.defineProperty(req, 'tenantContext', {value: tenantContext, writable: false, configurable: false});
     req.user = decodedToken;
     req.session = session;
     next();
@@ -421,6 +438,7 @@ const nurModeration: express.RequestHandler = requireRole("moderator", "trust_sa
 // Keep this operation bounded even for authorized operators; build-info and
 // failed-API snapshots remain unthrottled because they are in-memory/constant-cost reads.
 const adminHealthCheckLimiter = rateLimit({
+    namespace: 'admin-health-check-limiter',
   windowMs: 5 * 60 * 1000,
   limit: 6,
   keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -444,8 +462,7 @@ const adminHealthCheckLimiter = rateLimit({
     const start = Date.now();
     let fsOk = false, authOk = false;
     try {
-      const db = (await import("./src/server/db")).getDb();
-      await db.collection('system_health').doc('ping').get();
+      await getInfrastructureRepository().read('system_health/ping',z.record(z.string(),z.unknown()));
       fsOk = true;
     } catch (e: unknown) {
       logSafeFailure('firestore_health_failure');
@@ -474,20 +491,20 @@ const adminHealthCheckLimiter = rateLimit({
   // Die Zahl haengt an der Infrastruktur (Cloud Run: 1, Cloud Run hinter
   // Load Balancer: 2, lokal: 0) und gehoert deshalb in die Umgebung. Der
   // Standard 0 ist der sichere: Dann zaehlt die unmittelbare Verbindung.
-  app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS ?? 0));
+  app.set("trust proxy", trustedProxyPolicy());
   // Stripe signatures require the untouched request bytes (Phase 1b — see routes/webhooks.ts).
   mountStripeRawBody(app);
   app.use('/api/webhooks', createWebhooksRouter());
-  const kycDependencies = { db: getFirestore, config: diditConfig };
+  const kycDependencies = { repository: () => getServiceRepository('auth'), config: diditConfig };
   app.use('/vertraege', createPublicContractsRouter());
   app.use('/internal/compliance', createComplianceJobsRouter());
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
-  app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
-  app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
+  app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, repository: () => getServiceRepository('auth'), enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
 
   // Setup basic rate limiting
    const apiLimiter = rateLimit({
+    namespace: 'api-limiter',
     windowMs: 15 * 60 * 1000,
     max: 5000,
     keyGenerator: (req) => {
@@ -501,6 +518,7 @@ const adminHealthCheckLimiter = rateLimit({
 
   // Apply rate limiter to all /api routes
   app.use("/api/", apiLimiter); // Security: Befund 1 - Globale Rate-Limiting für /api (P0)
+  app.use(express.json({ inflate: false, limit: "900kb", strict: true }));
   // Retired endpoints are inert contracts. Keep the global API limiter first,
   // then return the stable 410 before auth, age, consent, or AI middleware.
   // These handlers cannot read or mutate user state; all requests remain rate-limited.
@@ -548,7 +566,7 @@ const adminHealthCheckLimiter = rateLimit({
   });
   // Compliance purge is public only at the routing layer; the endpoint itself requires
   // a fresh HMAC proof with COMPLIANCE_JOB_SECRET and remains behind the API rate limiter.
-  app.use('/api/admin', createVerificationStoragePurgeRouter({ getDb: getFirestore }));
+  app.use('/api/admin', createVerificationStoragePurgeRouter());
 
   // BEFUND 10.08.2026: /api/health stand in BEIDEN Ausnahmelisten
   // (OEFFENTLICH und OHNE_ALTERSPRUEFUNG) -- die Route selbst gab es
@@ -566,7 +584,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use(
     '/api',
     createHealthRouter({
-      getFirestore,
+      repository: () => getServiceRepository('auth'),
       healthStats,
       requireAuth,
       nurModeration,
@@ -658,6 +676,7 @@ const adminHealthCheckLimiter = rateLimit({
   // eine Bremse, keine Sperre — und das steht hier, damit es nicht fuer
   // mehr gehalten wird.
   const kiLimiter = rateLimit({
+    namespace: 'ki-limiter',
     windowMs: 60 * 60 * 1000,
     max: 60,
     // GEGENPRUEFUNG 10.08.2026: Hier stand `?? req.ip ?? "unbekannt"`.
@@ -689,6 +708,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Firestore-Transaktion wie das Kontaktkontingent. Bis dahin ist dies eine
   // Bremse, keine Sperre.
   const gastKiLimiter = rateLimit({
+    namespace: 'gast-ki-limiter',
     windowMs: 60 * 60 * 1000,
     max: GAST_KI_GRENZE,
     keyGenerator: (req) => {
@@ -715,6 +735,7 @@ const adminHealthCheckLimiter = rateLimit({
   // verbraucht, bevor der Coach ein Wort gesagt hat. Bei einem Gast war nach
   // 15 Nachrichten Schluss — beim LESEN.
   const uebersetzungLimiter = rateLimit({
+    namespace: 'uebersetzung-limiter',
     windowMs: 60 * 60 * 1000,
     max: UEBERSETZUNG_GRENZE,
     keyGenerator: (req) => {
@@ -729,6 +750,7 @@ const adminHealthCheckLimiter = rateLimit({
   });
 
   const gastUebersetzungLimiter = rateLimit({
+    namespace: 'gast-uebersetzung-limiter',
     windowMs: 60 * 60 * 1000,
     max: UEBERSETZUNG_GRENZE_GAST,
     keyGenerator: (req) => {
@@ -763,7 +785,7 @@ const adminHealthCheckLimiter = rateLimit({
 
     let daten: Record<string, unknown> | undefined;
     try {
-      daten = (await getFirestore().collection("users").doc(meineUid).get()).data();
+      daten = await getServiceRepository('auth').read(`users/${meineUid}`, z.record(z.string(), z.unknown())) ?? undefined;
     } catch (e: unknown) {
       logSafeFailure('adult_consent_check_failure');
       return res.status(503).json({ error: "Prüfung derzeit nicht möglich. Bitte später erneut." });
@@ -819,6 +841,9 @@ const adminHealthCheckLimiter = rateLimit({
       return next();
   });
 
+  app.use('/api', createMediaAccessGuard(() => getServiceRepository('auth')));
+  app.use('/api', createMediaRouter(() => getServiceRepository('auth')));
+
   // Scope every downstream provider call to verified identity and cancellation.
   app.use('/api', (req, res, next) => {
     const uid = currentUserId(req);
@@ -847,7 +872,7 @@ const adminHealthCheckLimiter = rateLimit({
   // ausschliesslich hier geschrieben — der Client kann beides nach den
   // Firestore-Regeln nicht setzen.
 
-  app.use('/api', createLegalUpdatesRouter({ currentUserId, getFirestore }));
+  app.use('/api', createLegalUpdatesRouter({ currentUserId, repository: () => getServiceRepository('auth') }));
   // Live chat translation: authenticated, consent-gated and Art. 9-sanitized in translationEngine.
   app.post('/api/translate', handleTranslation);
 
@@ -855,7 +880,7 @@ const adminHealthCheckLimiter = rateLimit({
   app.use(
     '/api',
     createAccountRouter({
-      getFirestore,
+      repository: () => getServiceRepository('auth'),
       currentUserId,
       getAuth: () => getAuth(),
     }),
@@ -864,7 +889,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Launch/referral/activation HTTP composition lives in a dedicated router.
   app.use('/api', createLaunchRouter({
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     normalizeLaunchCity,
     getLocalDensity: (db, city: LaunchCity) => getLocalDensity(db, city),
     referralCodeFor,
@@ -877,7 +902,7 @@ const adminHealthCheckLimiter = rateLimit({
   // layer only; callback authenticity is enforced by campaign-specific HMAC.
   const partnerReferralDeps = {
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     tokenSecret: () => process.env.PARTNER_REFERRAL_SECRET ?? '',
     auditSecret: () => consentAuditSecret(),
     publicUrl: () => process.env.KLAR_PUBLIC_URL,
@@ -894,11 +919,11 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/api', createPartnerReferralPublicRouter(partnerReferralDeps));
   app.use('/api', createPartnerReferralRouter(partnerReferralDeps));
   // Public feedback is intentionally anonymous and has its own strict payload boundary.
-  app.use('/api', createFeedbackRouter({ getFirestore }));
+  app.use('/api', createFeedbackRouter({ repository: () => getServiceRepository('auth') }));
 
   app.use('/api', createProfileRecommendationsRouter({
     currentUserId,
-    getFirestore,
+    repository: () => getServiceRepository('auth'),
     toPublicProfile,
     normalizeLaunchCity,
     getRecommendations,
@@ -922,8 +947,8 @@ const adminHealthCheckLimiter = rateLimit({
     ];
     return res.json({ items });
   });
-  app.use('/api', createChecklistRouter({ currentUserId, getFirestore }));
-  app.use('/api', createDatePlansRouter({ currentUserId, getFirestore }));
+  app.use('/api', createChecklistRouter({ currentUserId, repositoryFor: req => createVerifiedRequestRepository(req.user) }));
+  app.use('/api', createDatePlansRouter({ currentUserId, repository: () => getServiceRepository('auth') }));
 
   // ═══════════════════════════════════════════════════════════════════════
   // Klar — Kernmechanik (P1)
@@ -932,6 +957,7 @@ const adminHealthCheckLimiter = rateLimit({
   // ═══════════════════════════════════════════════════════════════════════
 
   const contactWriteLimiter = rateLimit({
+    namespace: 'contact-write-limiter',
     windowMs: 60 * 1000,
     limit: 10,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -939,6 +965,7 @@ const adminHealthCheckLimiter = rateLimit({
     message: { error: 'Zu viele Kontaktanfragen. Bitte kurz warten.' },
   });
   const contactUndoLimiter = rateLimit({
+    namespace: 'contact-undo-limiter',
     windowMs: 60 * 1000,
     limit: 20,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -946,6 +973,7 @@ const adminHealthCheckLimiter = rateLimit({
     message: { error: 'Zu viele Rücknahmeversuche. Bitte kurz warten.' },
   });
   const contractMutationLimiter = rateLimit({
+    namespace: 'contract-mutation-limiter',
     windowMs: 60 * 60 * 1000,
     limit: 3,
     keyGenerator: (req) => currentUserId(req) ?? ipKeyGenerator(req.ip ?? ''),
@@ -975,7 +1003,7 @@ const adminHealthCheckLimiter = rateLimit({
     '/api/admin',
     requireAuth,
     requireRole('admin', 'trust_safety', 'super_admin'),
-    createAuditLogRouter({ getFirestore }),
+    createAuditLogRouter({ repository: getServiceRepository }),
   );
 
 
@@ -1178,10 +1206,10 @@ const adminHealthCheckLimiter = rateLimit({
         try {
           const userId = currentUserId(req);
           if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-          const db = getFirestore();
+          const db = getServiceRepository('auth');
           const inputDigest = crypto.createHash('sha256').update(String(message), 'utf8').digest('hex');
           const outputDigest = crypto.createHash('sha256').update(serializeSafetyAuditOutput(antwort.koerper), 'utf8').digest('hex');
-          await appendAuditLog(db, {
+          await appendRepositoryAuditLog(db, {
             type: 'safety_check',
             actorUid: userId,
             metadata: { inputDigest, outputDigest },
@@ -1974,7 +2002,7 @@ Bewerte das Profil und gib konstruktives Feedback in folgendem JSON-Format zurü
 
 
   // Push-token persistence lives behind the shared /api auth/age middleware.
-  app.use('/api', createDeviceTokenRouter({ getFirestore, currentUserId }));
+  app.use('/api', createDeviceTokenRouter({ repository: () => getServiceRepository('auth'), currentUserId }));
 
   // Klar+ checkout is server-gated by the same product decision that hides the UI action.
   app.use('/api', createBillingRouter({
@@ -2091,6 +2119,8 @@ export async function startServer() {
     });
 
     let shuttingDown = false;
+    server.requestTimeout = 60_000;
+    server.headersTimeout = 15_000;
     const shutdown = async (signal: string) => {
       if (shuttingDown) return;
       shuttingDown = true;
@@ -2104,7 +2134,7 @@ export async function startServer() {
         await app.locals.closeDevServer?.();
         await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
         await workerStopped;
-        await getFirestore().terminate();
+        await closeServerDb();
         clearTimeout(deadline);
       } catch {
         console.error(JSON.stringify({ level: "ERROR", event: "server_shutdown_failed" }));

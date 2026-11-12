@@ -1,3 +1,4 @@
+import { getMaintenanceTenantId } from './runtime';
 import { createHmac } from 'node:crypto';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -11,7 +12,9 @@ export const retryComplianceJobsCron = onSchedule({ region: 'europe-west3', sche
   if (!value) throw new Error('COMPLIANCE_API_ORIGIN is required: compliance queue retry must not be silently skipped');
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.origin !== value || secret.value().length < 32) throw new Error('Invalid compliance worker configuration');
-  const body = JSON.stringify({ timestamp: Date.now() });
+  const tenantId = getMaintenanceTenantId();
+  if (tenantId !== 'default') throw new Error('api_maintenance_tenant_unsupported');
+  const body = JSON.stringify({ timestamp: Date.now(), tenantId });
   const signature = createHmac('sha256', secret.value()).update(body).digest('hex');
   const response = await fetch(`${url.origin}/internal/compliance/drain`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(150_000),
     headers: { 'content-type': 'application/json', 'X-Klar-Job-Signature': signature }, body });

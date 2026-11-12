@@ -106,7 +106,7 @@ export function DatingHealthAnalysisWidget() {
       <div className="space-y-4">
         <div>
           <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-emerald-600 dark:text-emerald-400">Positiv & Euphorisch</span>
+            <span className="font-medium text-emerald-600 dark:text-emerald-400">Positiv &amp; Euphorisch</span>
             <span className="text-stone-500">{getPercentage(healthData.positive)}%</span>
           </div>
           <div className="h-2 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
@@ -120,7 +120,7 @@ export function DatingHealthAnalysisWidget() {
         </div>
         <div>
           <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium text-indigo-600 dark:text-indigo-400">Reflektierend & Tiefgründig</span>
+            <span className="font-medium text-indigo-600 dark:text-indigo-400">Reflektierend &amp; Tiefgründig</span>
             <span className="text-stone-500">{getPercentage(healthData.reflective)}%</span>
           </div>
           <div className="h-2 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">

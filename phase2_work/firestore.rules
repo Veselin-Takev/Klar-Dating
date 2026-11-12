@@ -4,7 +4,13 @@ service cloud.firestore {
 
     function isAuthenticated() {
       return request.auth != null
-        && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid));
+        && !('tenantId' in request.auth.token)
+        && !('tenant_id' in request.auth.token)
+        && (!('firebase' in request.auth.token) || (!('tenant' in request.auth.token.firebase) && !('tenant_id' in request.auth.token.firebase)))
+        && (!exists(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)) || !('active' in get(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)).data) || get(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)).data.active != false)
+        && !exists(/databases/$(database)/documents/tenants/default/account_locks/$(request.auth.uid))
+        && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid))
+        && !exists(/databases/$(database)/documents/tenants/default/account_deletions/$(request.auth.uid));
     }
 
     function isOwner(userId) {
@@ -39,7 +45,7 @@ service cloud.firestore {
         || hasRole('finance');
     }
 
-    function validUserMutableUpdate() {
+    function validUserMutableUpdate(userId) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'uid', 'name', 'bio', 'interests', 'goal', 'location', 'age', 'birthdate',
         'gender', 'photoURL', 'photoUrl', 'photos', 'language', 'preferredLanguage',
@@ -93,10 +99,8 @@ service cloud.firestore {
     match /partner_referral_admin_rate_limits/{key} { allow read, write: if false; }
     match /partner_referral_user_rate_limits/{key} { allow read, write: if false; }
 
-    match /users/{userId} {
-      allow read: if isOwner(userId);
-      
-      allow create: if isOwner(userId)
+    function validUserCreate(userId) {
+      return isOwner(userId)
         && request.resource.data.keys().hasOnly([
           'uid', 'createdAt', 'updatedAt', 'name', 'bio', 'interests', 'goal',
           'location', 'age', 'birthdate', 'gender', 'photoURL', 'photoUrl', 'photos',
@@ -125,9 +129,15 @@ service cloud.firestore {
         && !('einwilligung' in request.resource.data)
         && !('contactCount' in request.resource.data)
         && validMusicPreferences(request.resource.data);
-      
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if validUserCreate(userId);
+
       allow update: if isOwner(userId) && !istGast()
-        && validUserMutableUpdate()
+        && validUserMutableUpdate(userId)
         && (resource != null ? (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationProvider', 'identityVerificationStatus'])
           && (!('isVerified' in request.resource.data) || (resource.data != null && 'isVerified' in resource.data && request.resource.data.isVerified == resource.data.isVerified))
@@ -140,7 +150,19 @@ service cloud.firestore {
         ) : false)
         && !('irgendwas' in request.resource.data)
         && validMusicPreferences(request.resource.data);
-      
+
+      allow delete: if false;
+    }
+
+    // Staged supported default namespace. No wildcard tenant/client escape hatch.
+    // Same owner and mutable-field policies as the legacy profile; server-owned
+    // age, consent, verification and billing fields remain immutable to clients.
+    match /tenants/default/users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if validUserCreate(userId);
+      allow update: if isOwner(userId) && !istGast()
+        && validUserMutableUpdate(userId)
+        && validMusicPreferences(request.resource.data);
       allow delete: if false;
     }
 
@@ -211,7 +233,7 @@ service cloud.firestore {
 
     match /blocks/{blockId} {
       allow read: if isAuthenticated() && resource != null && resource.data != null && ('blockerUid' in resource.data) && resource.data.blockerUid == request.auth.uid;
-      
+
       allow create: if isAuthenticated()
         && request.resource.data != null
         && request.resource.data.keys().hasOnly(['blockerUid', 'blockedUid', 'createdAt'])
@@ -265,16 +287,43 @@ service cloud.firestore {
         && data.gateAntwortenB >= 2;
     }
 
+    function canReadDefaultTenantChat(data) {
+      return isAuthenticated()
+        && validChatParticipants(data)
+        && request.auth.uid in data.participants
+        && get(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)).data.isAdult == true
+        && get(/databases/$(database)/documents/tenants/default/users/$(chatOtherParticipant(data))).data.isAdult == true
+        && !exists(/databases/$(database)/documents/tenants/default/account_deletions/$(chatOtherParticipant(data)))
+        && !exists(/databases/$(database)/documents/tenants/default/blocks/$(request.auth.uid + '_' + chatOtherParticipant(data)))
+        && !exists(/databases/$(database)/documents/tenants/default/blocks/$(chatOtherParticipant(data) + '_' + request.auth.uid));
+    }
+
+    function isOpenDefaultTenantChat(data) {
+      return canReadDefaultTenantChat(data)
+        && ('gateAntwortenA' in data) && ('gateAntwortenB' in data)
+        && data.gateAntwortenA is int && data.gateAntwortenB is int
+        && data.gateAntwortenA >= 2 && data.gateAntwortenB >= 2;
+    }
+
+    match /tenants/default/chats/{chatId} {
+      allow read: if canReadDefaultTenantChat(resource.data);
+      allow create, update, delete: if false;
+      match /messages/{messageId} {
+        allow read: if isOpenDefaultTenantChat(get(/databases/$(database)/documents/tenants/default/chats/$(chatId)).data);
+        allow write: if false;
+      }
+    }
+
     match /chats/{chatId} {
       allow read: if canReadChat(resource.data);
-      
-      allow create: if isAuthenticated() 
+
+      allow create: if isAuthenticated()
         && !istGast()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data != null
         && ('isVerified' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerified == true
-        && request.resource.data != null 
+        && request.resource.data != null
         && ('participants' in request.resource.data)
         && request.resource.data.participants is list
         && request.resource.data.participants.size() == 2
@@ -308,7 +357,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (subId == request.auth.uid || (resource != null && resource.data != null && ('userId' in resource.data) && resource.data.userId == request.auth.uid));
       allow write: if false;
     }
-    
+
     match /contacts/{contactId} {
       allow read: if isAuthenticated() && resource != null && resource.data != null && (
         (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid) ||

@@ -6,9 +6,9 @@ import {
   isGuestAuth,
 } from '../../src/server/platform/storageRulesEngine';
 
-const USER_ALICE = { uid: 'usr_alice', token: { firebase: { sign_in_provider: 'password' } } };
-const USER_BOB = { uid: 'usr_bob', token: { firebase: { sign_in_provider: 'google.com' } } };
-const GAST_USER = { uid: 'usr_guest', token: { firebase: { sign_in_provider: 'anonymous' } } };
+const USER_ALICE = { uid: 'usr_alice', token: { isAdult: true, firebase: { sign_in_provider: 'password' } } };
+const USER_BOB = { uid: 'usr_bob', token: { isAdult: true, firebase: { sign_in_provider: 'google.com' } } };
+const GAST_USER = { uid: 'usr_guest', token: { isAdult: true, firebase: { sign_in_provider: 'anonymous' } } };
 
 test('Storage Rules: Helper methods validate MIME types and guest markers', () => {
   assert.equal(isImageContentType('image/jpeg'), true);
@@ -27,6 +27,7 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
   // 1. Owner CANNOT read their own verification photo (Art. 9 biometric data isolation)
   const ownerRead = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_ALICE,
   });
@@ -36,6 +37,7 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
   // 2. Stranger cannot read
   const strangerRead = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_BOB,
   });
@@ -44,6 +46,7 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
   // 3. Unauthenticated cannot read
   const unauthRead = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/verification/usr_alice/gesture.jpg',
     auth: null,
   });
@@ -53,15 +56,15 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
 test('Storage Rules: /verification/{uid}/{datei} validates upload constraints and blocks guest/stranger uploads', () => {
   const validResource = { size: 2 * 1024 * 1024, contentType: 'image/jpeg' };
 
-  // 1. Owner upload succeeds
+  // 1. Direct uploads are denied even for the owner
   const ownerUpload = evaluateStorageSecurityRule({
     operation: 'write',
     path: '/verification/usr_alice/gesture.jpg',
     auth: USER_ALICE,
     resource: validResource,
   });
-  assert.equal(ownerUpload.allowed, true);
-  assert.equal(ownerUpload.code, 'ALLOWED');
+  assert.equal(ownerUpload.allowed, false);
+  assert.equal(ownerUpload.code, 'PERMISSION_DENIED');
 
   // 2. Stranger upload into Alice folder rejected
   const strangerUpload = evaluateStorageSecurityRule({
@@ -117,31 +120,33 @@ test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-si
 test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner write and owner delete', () => {
   const validResource = { size: 1 * 1024 * 1024, contentType: 'image/png' };
 
-  // 1. Any signed in user can read profile picture
+  // 1. Profile reads use the authenticated API, never the Storage SDK
   const bobReadsAlice = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
   });
-  assert.equal(bobReadsAlice.allowed, true);
+  assert.equal(bobReadsAlice.allowed, false);
 
   // 2. Unauthenticated cannot read profile picture
   const unauthRead = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/profiles/usr_alice/avatar.png',
     auth: null,
   });
   assert.equal(unauthRead.allowed, false);
   assert.equal(unauthRead.code, 'UNAUTHENTICATED');
 
-  // 3. Owner can write profile picture
+  // 3. Owner cannot directly write a profile picture
   const aliceWrites = evaluateStorageSecurityRule({
     operation: 'write',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_ALICE,
     resource: validResource,
   });
-  assert.equal(aliceWrites.allowed, true);
+  assert.equal(aliceWrites.allowed, false);
 
   // 4. Stranger cannot write to Alice profile folder
   const bobWritesAlice = evaluateStorageSecurityRule({
@@ -174,9 +179,14 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
 test('Storage Rules: Default deny-all on unregistered collections or incomplete paths', () => {
   const unknownPath = evaluateStorageSecurityRule({
     operation: 'read',
+    targetUserIsAdult: true,
     path: '/system/config/keys.json',
     auth: USER_ALICE,
   });
   assert.equal(unknownPath.allowed, false);
   assert.equal(unknownPath.code, 'PERMISSION_DENIED');
+});
+
+test("Storage model denies a missing adult claim", () => {
+  assert.equal(evaluateStorageSecurityRule({ operation: "write", path: "/profiles/usr_alice/photo.jpg", auth: {uid: "usr_alice", token: {firebase: {sign_in_provider: "password"}}}, resource: {size: 100, contentType: "image/jpeg"} }).allowed, false);
 });

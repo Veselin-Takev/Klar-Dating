@@ -17,6 +17,12 @@ permissions:
 
 jobs:
   validate:
+    env:
+      # Emulator tests need no metadata-server discovery or cloud identity.
+      METADATA_SERVER_DETECTION: 'none'
+      KLAR_TENANT_CHECKLIST_MIGRATION_READY: 'true'
+      KLAR_TENANT_AUTH_MIGRATION_READY: 'true'
+      KLAR_TENANT_PAYMENTS_MIGRATION_READY: 'true'
     runs-on: ${{ vars.KLAR_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 45
     defaults:
@@ -89,12 +95,38 @@ jobs:
         run: |
           bun ci
           npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+      - name: Live IAM wrapper regressions
+        if: steps.scope.outputs.full == 'true'
+        run: node --test scripts/collect-live-iam-evidence.test.mjs
+      - name: Production dependency advisory gate
+        if: steps.scope.outputs.full == 'true'
+        run: bun audit --production --audit-level=high
+      - name: Install locked Semgrep
+        if: steps.scope.outputs.full == 'true'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/klar-semgrep"
+          "$RUNNER_TEMP/klar-semgrep/bin/pip" install --disable-pip-version-check -r ../.semgrep/requirements.txt
+          echo "$RUNNER_TEMP/klar-semgrep/bin" >> "$GITHUB_PATH"
       - name: Enterprise static gates
         if: steps.scope.outputs.full == 'true'
         run: |
           bun run check:enterprise
           bun run check:release-workflow
           bun run check:release-provenance
+      - name: Repository Semgrep (findings and parser errors block)
+        if: steps.scope.outputs.full == 'true'
+        run: |
+          bun run check:semgrep:repository --json --output=semgrep-auto.json
+          node --test scripts/semgrep-coverage.test.mjs
+          node scripts/check-semgrep-coverage.mjs semgrep-auto.json
+      - name: Upload repository Semgrep evidence
+        if: always() && steps.scope.outputs.full == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: semgrep-auto-${{ github.run_id }}-${{ github.run_attempt }}
+          path: phase2_work/semgrep-auto.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Typecheck
         if: steps.scope.outputs.full == 'true'
         run: bun run typecheck
@@ -109,6 +141,12 @@ jobs:
       - name: Tests
         if: steps.scope.outputs.full == 'true'
         run: bun run test:ci
+      - name: Dedicated Firestore rules
+        if: steps.scope.outputs.full == 'true'
+        run: npm run test:rules
+      - name: Enterprise Node tests
+        if: steps.scope.outputs.full == 'true'
+        run: bun run test:enterprise
       - name: Build
         if: steps.scope.outputs.full == 'true'
         run: bun run build

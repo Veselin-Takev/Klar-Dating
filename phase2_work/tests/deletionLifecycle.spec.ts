@@ -1,8 +1,11 @@
 // @vitest-environment node
+import { getDb as nativeDatabase } from '../src/server/db';
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { emptyDeletionCounts, deletionReceiptId } from '../src/server/deletionAccounting';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { runAccountDeletion, type DeletionDependencies } from '../src/server/accountDeletion';
 import { purgeAccountData } from '../src/server/trustAndSafety';
 import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
@@ -15,7 +18,7 @@ async function setup() {
   let now = Date.now();
   const requestId = randomUUID(); paths.push('deletion_log/' + deletionReceiptId(requestId));
   await ref.set({ requestId, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), status: 'pending', phase: 'purge', nextAttemptAt: new Date(now), leaseUntil: 0, attempts: 0, hasDidit: true, subscriptionId: 'sub_test', customerId: 'cus_test' });
-  const deps: DeletionDependencies = { db: getDb(), now: () => now, disable: vi.fn(async () => {}), removeAuth: vi.fn(async () => {}),
+  const deps: DeletionDependencies = { repository: new TenantAwareFirestoreRepository(nativeDatabase(), 'default'), now: () => now, disable: vi.fn(async () => {}), removeAuth: vi.fn(async () => {}),
     purge: vi.fn(async () => {}), eraseProvider: vi.fn(async () => true), cancelSubscription: vi.fn(async () => {}) };
   return { uid, ref, deps, advance: (ms: number) => { now += ms; } };
 }
@@ -179,16 +182,16 @@ describe('deletion progress and retry budget', { timeout: 30_000 }, () => {
     expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 1, completedPages: 1 });
   });
 
-  it('stops at 50 actual failures and never automatically acquires manual-review jobs', async () => {
+  it('continues automatic retry beyond 50 failures and escalates operational attention', async () => {
     const { uid, ref, deps, advance } = await setup();
     await ref.update({ attempts: 49 });
     vi.mocked(deps.purge).mockRejectedValue(new Error('database unavailable'));
     await runAccountDeletion(uid, deps);
-    expect((await ref.get()).data()).toMatchObject({ status: 'manual_review', attempts: 50 });
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', attempts: 50, requiresAttention: true });
     await ref.update({ nextAttemptAt: new Date(0) });
     advance(3_600_000);
     await runAccountDeletion(uid, deps);
-    expect(deps.purge).toHaveBeenCalledTimes(1);
+    expect(deps.purge).toHaveBeenCalledTimes(2);
     expect(deps.removeAuth).not.toHaveBeenCalled();
   });
 

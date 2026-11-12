@@ -47,7 +47,7 @@ export const AuthClaimsSchema = z.object({
 export type AuthClaims = z.infer<typeof AuthClaimsSchema>;
 
 /**
- * Striktes Schema für das Benutzerprofil (Firestore: users/{uid})
+ * Striktes Schema für das Benutzerprofil (Firestore: tenants/default/users/{uid})
  */
 export const UserProfileDataSchema = z.object({
   uid: z.string().min(1),

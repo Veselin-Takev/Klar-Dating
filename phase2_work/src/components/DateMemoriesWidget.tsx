@@ -77,7 +77,7 @@ export function DateMemoriesWidget() {
             Dating-Erinnerungen
           </h3>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Schöne Momente & Anekdoten
+            Schöne Momente &amp; Anekdoten
           </p>
         </div>
         {!isAdding && (

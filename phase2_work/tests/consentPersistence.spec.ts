@@ -2,7 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { handleEinwilligung, handleEinwilligungWiderruf } from '../src/server/datenschutz';
 import { consentAuditSecret, verifyConsentAuditRecord } from '../src/server/consentAudit';
 

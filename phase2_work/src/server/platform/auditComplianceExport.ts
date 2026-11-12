@@ -1,7 +1,9 @@
 import { logSafeFailure } from '../safeErrorLog';
 import { createHash } from 'node:crypto';
-import type { Firestore } from 'firebase-admin/firestore';
-import { getDb } from '../db';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { getServiceRepository } from '../firestoreRepository/nativeDatabase';
+import { z } from 'zod';
+const recordSchema = z.record(z.string(), z.unknown());
 import { isRecord } from '../../types/strict';
 
 export interface AnonymizedComplianceRecord {
@@ -214,7 +216,7 @@ export function generateComplianceAuditCSV(
  * Liest Kündigungsdaten aus dem Firestore-Service und anonymisiert sie für Prüfungen.
  */
 export async function getAnonymizedComplianceAuditLogs(
-  db: Firestore = getDb(),
+  db: Pick<TenantAwareFirestoreRepository, 'list'> = getServiceRepository('payments'),
   options?: { limit?: number; kind?: 'cancel' | 'withdraw' | 'all' }
 ): Promise<AnonymizedComplianceRecord[]> {
   const records: AnonymizedComplianceRecord[] = [];
@@ -222,18 +224,15 @@ export async function getAnonymizedComplianceAuditLogs(
   const maxRecords = Number.isSafeInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 500) : 500;
 
   try {
-    const colRef = db.collection('contract_requests');
-    const snapshot = options?.kind && options.kind !== 'all'
-      ? await colRef.where('kind', '==', options.kind).limit(maxRecords).get()
-      : await colRef.limit(maxRecords).get();
-
-    if (snapshot && !snapshot.empty) {
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data) {
-          records.push(anonymizeContractRequest(data, docSnap.id));
-        }
-      });
+    const repo = db;
+    let cursor: string | undefined;
+    while (records.length < maxRecords) {
+      const limit = Math.min(200, maxRecords - records.length);
+      const page = await repo.list('contract_requests', recordSchema, {limit, orderBy:'__name__', ...(cursor ? {startAfter:cursor} : {}),
+        ...(options?.kind && options.kind !== 'all' ? {where:['kind','==',options.kind] as const} : {})});
+      for (const row of page) records.push(anonymizeContractRequest(row.data, row.id));
+      if (page.length < limit) break;
+      cursor = page[page.length - 1]!.id;
     }
   } catch (error) {
     logSafeFailure('compliance_audit_query_failure');
@@ -250,7 +249,7 @@ export async function getAnonymizedComplianceAuditLogs(
  * Exportiert die anonymisierten Konformitäts-Logs direkt als CSV.
  */
 export async function exportComplianceLogsAsCSV(
-  db: Firestore = getDb(),
+  db: Pick<TenantAwareFirestoreRepository, 'list'> = getServiceRepository('payments'),
   options?: { limit?: number; kind?: 'cancel' | 'withdraw' | 'all'; delimiter?: ';' | ',' }
 ): Promise<{ csv: string; count: number; filename: string }> {
   const records = await getAnonymizedComplianceAuditLogs(db, options);

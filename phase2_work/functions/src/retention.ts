@@ -6,6 +6,7 @@ type Metadata = {
   eventBasedHold?: boolean | null;
 };
 type Photo = {
+  name?: string;
   getMetadata(): Promise<[Metadata, ...unknown[]]>;
   delete(options: { ifGenerationMatch: string | number }): Promise<unknown>;
 };
@@ -58,19 +59,34 @@ function assertNotHeld(metadata: Metadata): void {
  * external writers may create a photo after the second inventory. Full
  * production approval requires independently verified all-writer fencing.
  */
-export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<boolean> {
+export async function deleteAccountPhotos(bucket: Bucket, uid: string, authorizeVerification?: (path: string, metadata: Metadata) => Promise<void>): Promise<boolean> {
   if (!uid || uid.includes('/') || uid === '.' || uid === '..') throw new Error('Invalid storage owner');
 
   const verificationPrefix = `verification/${uid}/`;
   const assertNoVerificationPhotos = async (): Promise<void> => {
     const [files, next] = await bucket.getFiles({ prefix: verificationPrefix, maxResults: 1, autoPaginate: false });
-    if (!Array.isArray(files) || files.length > 0 || next?.pageToken) {
+    if (!Array.isArray(files) || (!authorizeVerification && (files.length > 0 || next?.pageToken))) {
       throw new Error('verification_photo_p0_fencing_unverified');
     }
   };
 
   // First check must precede even a normal profile photo deletion.
   await assertNoVerificationPhotos();
+
+  if (authorizeVerification) {
+    const [evidence, nextEvidence] = await bucket.getFiles({ prefix: verificationPrefix, maxResults: 100, autoPaginate: false });
+    if (!Array.isArray(evidence) || evidence.length > 100) throw new Error('storage_page_limit_exceeded');
+    for (const file of evidence) {
+      if (!file.name || !file.name.startsWith(verificationPrefix)) throw new Error('verification_provenance_unverified');
+      const [metadata] = await file.getMetadata();
+      assertNotHeld(metadata);
+      const generation = assertSafeGeneration(metadata);
+      await authorizeVerification(file.name, metadata);
+      // GCS enforces holds as well as object generation at the delete boundary.
+      await file.delete({ ifGenerationMatch: generation });
+    }
+    if (evidence.length || nextEvidence?.pageToken) return false;
+  }
 
   const [files, next] = await bucket.getFiles({ prefix: `profiles/${uid}/`, maxResults: 100, autoPaginate: false });
   if (!Array.isArray(files) || files.length > 100) throw new Error('storage_page_limit_exceeded');
@@ -92,7 +108,10 @@ export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<
   }
 
   // Detect verification objects that appeared during profile-photo cleanup.
-  await assertNoVerificationPhotos();
+  if (authorizeVerification) {
+    const [remaining, nextRemaining] = await bucket.getFiles({prefix: verificationPrefix, maxResults: 1, autoPaginate: false});
+    if (remaining.length || nextRemaining?.pageToken) return false;
+  } else await assertNoVerificationPhotos();
 
   if (!files.length && !next?.pageToken) return true;
   if (!deleted) throw new Error('storage_erasure_no_progress');

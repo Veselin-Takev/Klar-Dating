@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { getDb } from '../src/server/db';
+import { getDb as nativeDatabase } from '../src/server/db';
+import { scopedFirestoreFixture as getDb } from './helpers/scopedFirestoreFixture';
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { getRecommendations, toPublicProfile } from '../src/server/platform/launchPlatform';
 import { compatibilityScore } from '../src/server/platform/compatibility';
 const ids: string[] = [];
@@ -20,7 +22,7 @@ describe('published preferences and recommendation privacy', () => {
         batch.set(getDb().collection('blocks').doc(id), reverse ? { blockerUid: other, blockedUid: viewer } : { blockerUid: viewer, blockedUid: other });
       }
       await batch.commit();
-      const recommendations = await getRecommendations(getDb(), viewer, { location: 'Berlin' });
+      const recommendations = await getRecommendations(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), viewer, { location: 'Berlin' });
       expect(recommendations.some(row => row.id === candidate)).toBe(false);
       const cleanup = getDb().batch(); for (const id of blockIds.splice(0)) cleanup.delete(getDb().collection('blocks').doc(id)); await cleanup.commit();
     }
@@ -37,7 +39,7 @@ describe('published preferences and recommendation privacy', () => {
   it('does not return legacy private fields from an existing public document', async () => {
     const id = `privacy-${crypto.randomUUID()}`; ids.push(id);
     await getDb().collection('public_profiles').doc(id).set({ name: 'Test', age: 28, location: 'Berlin', isVerified: true, active: true, lastActiveAt: new Date(), musicPreferences: music, email: 'private@example.test', einwilligung: { evidenceId: 'private' }, role: 'admin' });
-    const rows = await getRecommendations(getDb(), 'viewer', { location: 'Berlin', musicPreferences: music });
+    const rows = await getRecommendations(new TenantAwareFirestoreRepository(nativeDatabase(),'default'), 'viewer', { location: 'Berlin', musicPreferences: music });
     const profile = rows.find(row => row.id === id)?.profile;
     expect(profile).toBeDefined(); expect(profile).not.toHaveProperty('email'); expect(profile).not.toHaveProperty('einwilligung'); expect(profile).not.toHaveProperty('role');
   });

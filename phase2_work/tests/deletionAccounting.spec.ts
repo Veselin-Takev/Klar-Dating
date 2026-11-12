@@ -1,7 +1,10 @@
 // @vitest-environment node
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { getDb as nativeDatabase } from '../src/server/db';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { deletionAccounting, emptyDeletionCounts, buildDeletionAuditReceipt } from '../src/server/deletionAccounting';
 
 const cleanup: string[] = [];
@@ -16,13 +19,13 @@ async function fixture() {
   await job.set({ requestId, status: 'pending', accountingVersion: 2, deletedCounts: emptyDeletionCounts() });
   await chat.set({ participants: [uid] });
   await chat.collection('messages').doc('one').set({ text: 'synthetic' });
-  return { db, uid, requestId, job, chat, accounting: deletionAccounting(db, uid, requestId) };
+  return { db, uid, requestId, job, chat, accounting: deletionAccounting(new TenantAwareFirestoreRepository(nativeDatabase(), 'default'), uid, requestId) };
 }
 describe('atomic cumulative deletion accounting', () => {
   it('counts existing documents once across overlapping transactions and replay', async () => {
     const { accounting, chat, job } = await fixture();
-    await Promise.all([accounting.deleteQuery(chat.collection('messages'), 'nachrichten'), accounting.deleteQuery(chat.collection('messages'), 'nachrichten')]);
-    expect(await accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).toBe(0);
+    await Promise.all([accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten'), accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')]);
+    expect(await accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).toBe(0);
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(1);
     expect((await chat.collection('messages').get()).empty).toBe(true);
   }, 20_000); // Emulator transaction contention/retries may exceed Vitest's default 5s.
@@ -33,10 +36,10 @@ describe('atomic cumulative deletion accounting', () => {
     vi.spyOn(db, 'runTransaction').mockImplementationOnce(fn => original(async tx => {
       await fn(tx); throw new Error('injected before commit');
     }));
-    await expect(accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).rejects.toThrow('injected before commit');
+    await expect(accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).rejects.toThrow('injected before commit');
     expect((await chat.collection('messages').doc('one').get()).exists).toBe(true);
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(0);
-    await accounting.deleteQuery(chat.collection('messages'), 'nachrichten');
+    await accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten');
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(1);
   });
   it('does not double-count when a committed transaction response is lost', async () => {
@@ -45,29 +48,29 @@ describe('atomic cumulative deletion accounting', () => {
     vi.spyOn(db, 'runTransaction').mockImplementationOnce(async fn => {
       await original(fn); throw new Error('response lost after commit');
     });
-    await expect(accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).rejects.toThrow('response lost after commit');
+    await expect(accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).rejects.toThrow('response lost after commit');
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(1);
-    expect(await accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).toBe(0);
+    expect(await accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).toBe(0);
     expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(1);
   });
 
   it('rejects legacy or mismatched jobs before any destructive mutation', async () => {
-    const { db, uid, accounting, chat, job } = await fixture();
-    await expect(deletionAccounting(db, uid, 'other-request').deleteChat(chat)).rejects.toThrow('deletion_job_mismatch');
+    const { uid, accounting, chat, job } = await fixture();
+    await expect(deletionAccounting(new TenantAwareFirestoreRepository(nativeDatabase(), 'default'), uid, 'other-request').deleteChat(`chats/${chat.id}`)).rejects.toThrow('deletion_job_mismatch');
     await job.update({ accountingVersion: 1 });
-    await expect(accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).rejects.toThrow('deletion_accounting_migration_required');
+    await expect(accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).rejects.toThrow('deletion_accounting_migration_required');
     expect((await chat.collection('messages').doc('one').get()).exists).toBe(true);
   });
   it('rejects replaced, expired and malformed leases without deleting data', async () => {
-    const { db, uid, requestId, chat, job } = await fixture();
-    const accounting = deletionAccounting(db, uid, requestId, 'owned');
+    const { uid, requestId, chat, job } = await fixture();
+    const accounting = deletionAccounting(new TenantAwareFirestoreRepository(nativeDatabase(), 'default'), uid, requestId, 'owned');
     for (const lease of [
       { lease: 'replacement', leaseUntil: Date.now() + 60_000 },
       { lease: 'owned', leaseUntil: Date.now() - 1 },
       { lease: 'owned', leaseUntil: 'invalid' },
     ]) {
       await job.update(lease);
-      await expect(accounting.deleteQuery(chat.collection('messages'), 'nachrichten')).rejects.toThrow('deletion_lease_lost');
+      await expect(accounting.deleteQuery({ path: `chats/${chat.id}/messages` }, 'nachrichten')).rejects.toThrow('deletion_lease_lost');
       expect((await chat.collection('messages').doc('one').get()).exists).toBe(true);
       expect((await job.get()).data()?.deletedCounts.nachrichten).toBe(0);
     }

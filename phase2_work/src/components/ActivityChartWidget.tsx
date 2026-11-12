@@ -61,7 +61,7 @@ export function ActivityChartWidget() {
         </div>
         <div>
           <h3 className="font-semibold text-stone-900 dark:text-stone-100 text-sm">Deine Aktivität</h3>
-          <p className="text-xs text-stone-500">Gesendete Nachrichten & Ø Antwortzeit (letzte 7 Tage)</p>
+          <p className="text-xs text-stone-500">Gesendete Nachrichten &amp; Ø Antwortzeit (letzte 7 Tage)</p>
         </div>
       </div>
       {hasActivity ? (

@@ -2,26 +2,30 @@
 // Run with: node --import=tsx --test scripts/test-partner-referral-quarantine.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { TenantAwareFirestoreRepository } from '../functions/src/firestoreRepository/TenantAwareFirestoreRepository.ts';
+process.env.KLAR_TENANT_AUTH_MIGRATION_READY='true';
 import { quarantineOwnedPartnerReferral } from '../src/server/partnerReferralDeletion.ts';
 
 function fakeFirestore(initial) {
   let record = initial === null ? null : { ...initial };
   let writes = 0;
   const ref = { id: 'ref-test', path: 'partner_referrals/ref-test', parent: { id: 'partner_referrals' } };
-  const db = {
+  const native = {
+    doc(path) { assert.match(path,/^tenants\/default\/partner_referrals\//); return {path}; },
     async runTransaction(work) {
       const pending = [];
       const tx = {
         async get() {
           return { exists: record !== null, data: () => record ? { ...record } : undefined };
         },
-        update(_ref, patch) { pending.push(patch); },
+        set(_ref, patch) { pending.push(patch); },
       };
       const result = await work(tx);
       for (const patch of pending) { record = { ...record, ...patch }; writes++; }
       return result;
     },
   };
+  const db = new TenantAwareFirestoreRepository(native,'default');
   return { db, ref, getRecord: () => record, getWrites: () => writes };
 }
 
@@ -78,7 +82,7 @@ test('nested collection with a forged parent ID cannot be quarantined', async ()
 
 test('transaction failures propagate and cannot acknowledge a tombstone', async () => {
   const state = fakeFirestore({ ownerUid: 'owner', status: 'active' });
-  const failing = { runTransaction: async () => { throw new Error('firestore_unavailable'); } };
+  const failing = new TenantAwareFirestoreRepository({runTransaction: async () => { throw new Error('firestore_unavailable'); }},'default');
   await assert.rejects(quarantineOwnedPartnerReferral(failing, state.ref, 'owner'), /firestore_unavailable/);
   assert.equal(state.getRecord().status, 'active');
 });

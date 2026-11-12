@@ -32,7 +32,7 @@ if (!Number.isSafeInteger(requiredPort) || requiredPort < 1 || requiredPort > 65
   ], {
     cwd: process.cwd(),
     stdio: 'inherit',
-    env: { ...process.env, GCLOUD_PROJECT: project, GOOGLE_CLOUD_PROJECT: project, KLAR_REQUIRE_FIRESTORE_EMULATOR: '1' },
+    env: { ...process.env, GCLOUD_PROJECT: project, GOOGLE_CLOUD_PROJECT: project, KLAR_REQUIRE_FIRESTORE_EMULATOR: '1', KLAR_TENANT_AUTH_MIGRATION_READY: 'true' },
     timeout: 180000,
   });
   process.exitCode = result.status ?? 1;

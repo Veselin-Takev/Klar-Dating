@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -12,24 +13,11 @@ afterEach(async () => {
 
 async function endpoint(uid: string | null = 'user-a') {
   const revokeRefreshTokens = vi.fn().mockResolvedValue(undefined);
-  const deletedTokens = [
-    { ref: { path: 'users/user-a/fcmTokens/token-a' } },
-    { ref: { path: 'users/user-a/fcmTokens/token-b' } },
-  ];
-  const tokenGet = vi.fn().mockResolvedValue({ docs: deletedTokens });
-  const tokenCollection = vi.fn(() => ({ get: tokenGet }));
-  const userDoc = vi.fn(() => ({ collection: tokenCollection }));
-  const usersCollection = vi.fn(() => ({ doc: userDoc }));
-  const batchDeletes: unknown[] = [];
-  const batch = vi.fn(() => ({
-    delete: vi.fn((ref: unknown) => batchDeletes.push(ref)),
-    commit: vi.fn().mockResolvedValue(undefined),
-  }));
-  const db = { collection: usersCollection, batch };
-
+  const f = tenantRepositoryHarness({'users/user-a/fcmTokens/token-a':{}, 'users/user-a/fcmTokens/token-b':{}});
+  const tokenGet=f.queries, userDoc=f.paths, tokenCollection=f.queries, batch=vi.spyOn(f.repo,'transaction');
   const app = express();
   app.use('/api', createAccountRouter({
-    getFirestore: () => db as any,
+    repository: () => f.repo,
     currentUserId: () => uid,
     getAuth: () => ({ revokeRefreshTokens } as any),
   }));
@@ -44,7 +32,7 @@ async function endpoint(uid: string | null = 'user-a') {
     userDoc,
     tokenCollection,
     batch,
-    batchDeletes,
+    get batchDeletes() {return f.remove.mock.calls.map(args => args[0]);},
     send: () => fetch(url, { method: 'POST' }),
   };
 }
@@ -67,9 +55,8 @@ describe('POST /api/auth/logout', () => {
     expect(response.status).toBe(200);
     expect(body).toEqual({ success: true, timestamp: expect.any(String) });
     expect(api.revokeRefreshTokens).toHaveBeenCalledWith('user-a');
-    expect(api.userDoc).toHaveBeenCalledWith('user-a');
-    expect(api.tokenCollection).toHaveBeenCalledWith('fcmTokens');
-    expect(api.tokenGet).toHaveBeenCalledTimes(1);
+    expect(api.tokenGet).toHaveBeenCalledTimes(2);
+    expect(api.tokenCollection.mock.calls[0]?.[0]).toBe('tenants/default/users/user-a/fcmTokens');
     expect(api.batch).toHaveBeenCalledTimes(1);
     expect(api.batchDeletes).toHaveLength(2);
     expect(response.headers.get('set-cookie')).toMatch(/__session=;/);

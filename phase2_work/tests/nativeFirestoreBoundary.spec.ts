@@ -1,103 +1,127 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const doubles = vi.hoisted(() => {
-  const nativeDb = { collection: vi.fn(), runTransaction: vi.fn(), batch: vi.fn(), recursiveDelete: vi.fn() };
-  const durableDb = { collection: vi.fn(), runTransaction: vi.fn() };
-  return { nativeDb, durableDb, createDurableDbProxy: vi.fn(() => durableDb), sdkFailure: { enabled: false } };
-});
-
+import { z } from 'zod';
+const doubles = vi.hoisted(() => ({
+  sdk: vi.fn(),
+  doc: vi.fn(),
+  runTransaction: vi.fn(),
+  project: 'demo-klar',
+}));
 vi.mock('firebase-admin/app', () => ({
-  getApps: () => [],
-  initializeApp: () => ({ name: 'unit-test' }),
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
 }));
 vi.mock('firebase-admin/firestore', () => ({
-  getFirestore: () => { if (doubles.sdkFailure.enabled) throw new Error('Firestore SDK unavailable'); return doubles.nativeDb; },
+  getFirestore: doubles.sdk,
   FieldValue: {},
 }));
 vi.mock('../src/server/firebaseRuntime', () => ({
-  resolveFirebaseRuntime: () => ({ projectId: 'demo-klar' }),
-}));
-vi.mock('../src/server/durableStore', () => ({
-  createDurableDbProxy: doubles.createDurableDbProxy,
+  resolveFirebaseRuntime: () => ({ projectId: doubles.project }),
 }));
 vi.mock('../src/server/observability', () => ({
-  observeFirestoreTransaction: (_name: string, fn: () => unknown) => fn(),
+  observeFirestoreTransaction: (_name: string, work: () => unknown) => work(),
 }));
-
-const oldMode = process.env.NODE_ENV;
-const oldFallback = process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
-
-describe('Firestore production boundary', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    doubles.createDurableDbProxy.mockClear();
-    doubles.sdkFailure.enabled = false;
-    delete process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
+const schema = z.record(z.string(), z.unknown());
+beforeEach(() => {
+  vi.resetModules();
+  vi.clearAllMocks();
+  doubles.project = 'demo-klar';
+  doubles.sdk.mockReturnValue({
+    doc: doubles.doc,
+    runTransaction: doubles.runTransaction,
   });
-  afterEach(() => {
-    doubles.sdkFailure.enabled = false;
-    if (oldMode === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = oldMode;
-    if (oldFallback === undefined) delete process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
-    else process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = oldFallback;
+  doubles.doc.mockReturnValue({ get: async () => ({ exists: false }) });
+});
+afterEach(() => vi.unstubAllEnvs());
+describe('private native SDK capability boundary', () => {
+  it.each(['production', 'test', 'development', 'staging'])(
+    'returns only a scoped repository in %s',
+    async (mode) => {
+      vi.stubEnv('NODE_ENV', mode);
+      vi.stubEnv('KLAR_ALLOW_DURABLE_DB_FALLBACK', 'true');
+      const { getInfrastructureRepository } =
+        await import('../src/server/firestoreRepository/nativeDatabase');
+      const repo = getInfrastructureRepository();
+      expect('doc' in repo).toBe(false);
+      expect('collection' in repo).toBe(false);
+      await repo.read('users/owner', schema);
+      expect(doubles.doc).toHaveBeenCalledWith('tenants/default/users/owner');
+      await expect(
+        repo.read('tenants/foreign/users/owner', schema),
+      ).rejects.toThrow('tenant_document_path_invalid');
+    },
+  );
+  it.each(['production', 'development', 'test'])(
+    'never falls back after SDK failure in %s even with the retired flag',
+    async (mode) => {
+      vi.stubEnv('NODE_ENV', mode);
+      vi.stubEnv('KLAR_ALLOW_DURABLE_DB_FALLBACK', 'true');
+      doubles.sdk.mockImplementation(() => {
+        throw new Error('SDK failure');
+      });
+      const { getInfrastructureRepository } =
+        await import('../src/server/firestoreRepository/nativeDatabase');
+      expect(() => getInfrastructureRepository()).toThrow(
+        'automatic local fallback is disabled',
+      );
+    },
+  );
+  it.each([
+    { NODE_ENV: 'production', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' },
+    { NODE_ENV: 'test', FIRESTORE_EMULATOR_HOST: 'remote.example:8080' },
+    { NODE_ENV: 'test', FIRESTORE_EMULATOR_HOST: '', K_SERVICE: 'service' },
+  ])('denies a raw client before SDK initialization: %j', async (env) => {
+    for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    const { getEmulatorDatabase } =
+      await import('../src/server/firestoreRepository/nativeDatabase');
+    expect(() => getEmulatorDatabase()).toThrow(
+      'raw_database_requires_loopback_test_emulator',
+    );
+    expect(doubles.sdk).not.toHaveBeenCalled();
   });
-
-  it.each(['production', 'test', 'staging'])('uses native Firebase Admin in %s without the durable proxy', async mode => {
-    process.env.NODE_ENV = mode;
-    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
-    const { getDb } = await import('../src/server/db');
-    expect(getDb()).toBe(doubles.nativeDb);
-    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  it('requires a demo project even at a loopback emulator', async () => {
+    vi.stubEnv('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080');
+    doubles.project = 'real-project';
+    const { getEmulatorDatabase } =
+      await import('../src/server/firestoreRepository/nativeDatabase');
+    expect(() => getEmulatorDatabase()).toThrow(
+      'raw_database_requires_demo_project',
+    );
+    expect(doubles.sdk).not.toHaveBeenCalled();
   });
-
-  it('does not wrap Firestore in normal development without an explicit opt-in', async () => {
-    process.env.NODE_ENV = 'development';
-    const { getDb } = await import('../src/server/db');
-    expect(getDb()).toBe(doubles.nativeDb);
-    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  it('retains native SDK transactions behind the repository', async () => {
+    const set = vi.fn();
+    doubles.runTransaction.mockImplementation(async (work) => work({ set }));
+    const { getInfrastructureRepository } =
+      await import('../src/server/firestoreRepository/nativeDatabase');
+    await getInfrastructureRepository().transaction(async (tx) => {
+      tx.write('users/owner', schema, { value: 1 });
+    });
+    expect(doubles.runTransaction).toHaveBeenCalledTimes(1);
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(doubles.doc).toHaveBeenCalledWith('tenants/default/users/owner');
   });
-
-  it.each(['production', 'staging', 'test'])('fails closed on Firebase SDK initialization failure in %s', async mode => {
-    process.env.NODE_ENV = mode;
-    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
-    doubles.sdkFailure.enabled = true;
-    const { getDb } = await import('../src/server/db');
-    expect(() => getDb()).toThrow(/Firestore initialization failed/);
-    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  it('requires an explicit trusted maintenance tenant before initializing SDK', async () => {
+    vi.stubEnv('KLAR_TENANT_MIGRATION_READY', 'true');
+    vi.stubEnv('KLAR_MAINTENANCE_TENANT_ID', '../foreign');
+    const { getConfiguredMaintenanceRepository } =
+      await import('../src/server/firestoreRepository/nativeDatabase');
+    expect(() => getConfiguredMaintenanceRepository()).toThrow(
+      'explicit_maintenance_tenant_required',
+    );
+    expect(doubles.sdk).not.toHaveBeenCalled();
+    vi.stubEnv('KLAR_MAINTENANCE_TENANT_ID', 'maintenance-A');
+    await getConfiguredMaintenanceRepository().read('users/owner', schema);
+    expect(doubles.doc).toHaveBeenCalledWith(
+      'tenants/maintenance-A/users/owner',
+    );
   });
-
-  it.each(['false', 'TRUE', '1', ''])('fails closed when local opt-in is not exactly true (%s)', async flag => {
-    process.env.NODE_ENV = 'development';
-    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = flag;
-    doubles.sdkFailure.enabled = true;
-    const { getDb } = await import('../src/server/db');
-    expect(() => getDb()).toThrow(/Firestore initialization failed/);
-    expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
-  });
-
-  it('retains native transaction and batch identities without a local opt-in', async () => {
-    process.env.NODE_ENV = 'development';
-    const { getDb } = await import('../src/server/db');
-    const db = getDb();
-    expect(db.runTransaction).toBe(doubles.nativeDb.runTransaction);
-    expect(db.batch).toBe(doubles.nativeDb.batch);
-    expect(db.recursiveDelete).toBe(doubles.nativeDb.recursiveDelete);
-  });
-
-  it('permits an explicit development fallback when Firebase initialization fails', async () => {
-    process.env.NODE_ENV = 'development';
-    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
-    doubles.sdkFailure.enabled = true;
-    const { getDb } = await import('../src/server/db');
-    expect(getDb()).toBe(doubles.durableDb);
-    expect(doubles.createDurableDbProxy).toHaveBeenCalledWith(null);
-  });
-
-  it('retains explicit development-only proxy opt-in', async () => {
-    process.env.NODE_ENV = 'development';
-    process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK = 'true';
-    const { getDb } = await import('../src/server/db');
-    expect(getDb()).toBe(doubles.durableDb);
-    expect(doubles.createDurableDbProxy).toHaveBeenCalledWith(doubles.nativeDb);
+  it('rejects unverified or conflicting claims before returning a request capability', async () => {
+    const { createVerifiedRequestRepository } =
+      await import('../src/server/firestoreRepository/nativeDatabase');
+    expect(() =>
+      createVerifiedRequestRepository({ uid: 'u', tenantId: 'foreign' }),
+    ).toThrow();
+    expect(() => createVerifiedRequestRepository(undefined)).toThrow();
   });
 });

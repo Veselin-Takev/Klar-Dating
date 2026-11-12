@@ -1,3 +1,4 @@
+import { logSafeFailure } from '../safeErrorLog';
 import type { IVerificationProvider, VerificationRequest, VerificationResult } from './types.js';
 
 export class VerificationManager {
@@ -12,16 +13,16 @@ export class VerificationManager {
         return await this.primary.verifyIdentity(request);
       }
     } catch (error) {
-      console.warn(`[Verification] Primary provider (${this.primary.name}) failed.`, error);
+      console.warn('verification_primary_unavailable');
     }
 
     try {
       if (await this.secondary.isHealthy()) {
-        console.info(`[Verification] Falling back to Secondary provider (${this.secondary.name})`);
+        logSafeFailure('unclassified_failure');
         return await this.secondary.verifyIdentity(request);
       }
     } catch (error) {
-      console.error(`[Verification] Secondary provider (${this.secondary.name}) failed.`, error);
+      console.error('verification_secondary_unavailable');
     }
 
     return {

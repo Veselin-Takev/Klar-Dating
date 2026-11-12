@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import type { AddressInfo } from 'node:net';
 import { createFeedbackRouter } from '../src/server/routes/feedback';
 
@@ -11,16 +12,15 @@ afterEach(async () => {
 });
 
 async function endpoint(options: { fail?: boolean } = {}) {
-  const add = vi.fn(async () => {
+  const add = vi.fn(async (_data: unknown) => {
     if (options.fail) throw new Error('private storage detail');
   });
-  const db = {
-    collection: vi.fn(() => ({ add })),
-  } as any;
+  const {repo} = tenantRepositoryHarness();
+  vi.spyOn(repo,'create').mockImplementation(async (_path,_schema,data)=>{await add(data);});
 
   const app = express();
   app.use('/api', createFeedbackRouter({
-    getFirestore: () => db,
+    repository: () => repo,
     now: () => new Date('2026-09-30T10:00:00Z'),
   }));
   app.post('/api/contact', (_req, res) => res.status(409).json({ code: 'contact_unverified' }));

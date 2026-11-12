@@ -48,14 +48,16 @@ export function emulatorCsp(
 ): EmulatorCsp {
   const verbindung: string[] = [];
 
+  const endpoint = (host: string, protocol: 'http:' | 'ws:') => {
+    const url = new URL('http://' + host);
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || !url.port || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('emulator_csp_requires_loopback');
+    url.protocol = protocol;
+    return url.origin;
+  };
   for (const wirt of [firestoreWirt, authWirt]) {
-    if (!wirt) continue;
-    verbindung.push(`http://${wirt}`, `ws://${wirt}`);
+    if (wirt) verbindung.push(endpoint(wirt, 'http:'), endpoint(wirt, 'ws:'));
   }
-
-  // Nur der Auth-Wirt. Firestore wird nie in einen Rahmen geladen, und was
-  // nicht gebraucht wird, gehoert nicht in eine Sicherheitsregel.
-  const rahmen = authWirt ? [`http://${authWirt}`] : [];
+  const rahmen = authWirt ? [endpoint(authWirt, 'http:')] : [];
 
   return { verbindung, rahmen };
 }

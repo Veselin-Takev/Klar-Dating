@@ -773,3 +773,96 @@ describe('Klar & Partner server-only collections', () => {
     await assertFails(setDoc(target, { clientControlled: true }));
   });
 });
+
+describe('UID collisions from unsupported tenants', () => {
+  it.each(['tenant-a', 'tenant-b'])('denies private reads/writes for same UID from %s', async tenant => {
+    const tenantClaims = {tenant, sign_in_provider: 'password' as const};
+    const db = env.authenticatedContext(ANNA, { firebase: tenantClaims }).firestore();
+    await assertFails(getDoc(doc(db, 'users/anna')));
+    await assertFails(updateDoc(doc(db, 'users/anna'), {name: 'foreign'}));
+    await assertFails(getDoc(doc(db, 'subscriptions/anna')));
+    await assertFails(setDoc(doc(db, 'users/anna/datePlans/foreign'), {title: 'foreign'}));
+    await assertSucceeds(getDoc(doc(als(ANNA), 'users/anna')));
+  });
+  it.each([{tenantId: 'a'}, {tenant_id: 'b'}, {tenantId: null}])('denies custom tenant aliases %j', async claims => {
+    const db = env.authenticatedContext(ANNA, claims).firestore();
+    await assertFails(getDoc(doc(db, 'users/anna')));
+  });
+});
+
+describe('staged default-tenant client profile boundary', () => {
+  const profile = {uid: ANNA, name: 'Anna', bio: '', interests: [], goal: 'undecided'};
+  const path = 'tenants/default/users/anna';
+  async function seedScoped(extra: Record<string,unknown> = {}) {
+    await env.withSecurityRulesDisabled(async ctx => {await setDoc(doc(ctx.firestore(), path), {...profile,...extra});});
+  }
+  it('allows an owner to create, read and update only mutable profile fields', async () => {
+    const ref=doc(als(ANNA),path);
+    await assertSucceeds(setDoc(ref,profile));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(updateDoc(ref,{interests:['Musik'],theme:'dark'}));
+    await assertFails(deleteDoc(ref));
+  });
+  it('denies a different UID with no profile disclosure or mutation', async () => {
+    await seedScoped();const ref=doc(als(BEA),path);
+    await assertFails(getDoc(ref));await assertFails(updateDoc(ref,{name:'foreign'}));
+  });
+  it('denies foreign tenant paths even for an identical UID', async () => {
+    await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'tenants/foreign/users/anna'),profile);});
+    const ref=doc(als(ANNA),'tenants/foreign/users/anna');
+    await assertFails(getDoc(ref));await assertFails(setDoc(ref,profile));
+  });
+  it.each([{tenantId:'a'},{tenant_id:'a'},{firebase:{tenant:'a',sign_in_provider:'password' as const}},{firebase:{tenant_id:'a',sign_in_provider:'password' as const}},{tenantId:null}])('denies tenant-claim collisions %j', async claims => {
+    await seedScoped();const db=env.authenticatedContext(ANNA,claims).firestore();
+    await assertFails(getDoc(doc(db,path)));await assertFails(updateDoc(doc(db,path),{name:'foreign'}));
+  });
+  it.each([{isAdult:true},{isVerified:true},{einwilligung:{version:1}},{roles:['admin']},{plan:'plus'},{contactCount:0}])('denies protected field changes %j', async patch => {
+    await seedScoped();await assertFails(updateDoc(doc(als(ANNA),path),patch));
+  });
+  it('denies unauthenticated profile access', async () => {await seedScoped();await assertFails(getDoc(doc(anonym(),path)));});
+  it('enforces the same erasure tombstone for root and scoped clients', async () => {
+    await seedScoped();await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'tenants/default/account_deletions/anna'),{status:'pending'});});
+    await assertFails(getDoc(doc(als(ANNA),path)));await assertFails(updateDoc(doc(als(ANNA),path),{name:'after deletion'}));
+    await assertFails(getDoc(doc(als(ANNA),'users/anna')));
+  });
+  it('keeps guest profile mutation blocked', async () => {
+    await seedScoped();const guest=env.authenticatedContext(ANNA,{firebase:{sign_in_provider:'anonymous'}}).firestore();
+    await assertFails(updateDoc(doc(guest,path),{name:'guest'}));
+  });
+  it('does not expose server ledgers through the scoped owner profile rule', async () => {
+    const db=als(ANNA);
+    await assertFails(setDoc(doc(db,path+'/einwilligungen/forged'),{action:'granted'}));
+    await assertFails(getDoc(doc(db,'tenants/default/subscriptions/anna')));
+  });
+});
+
+describe('scoped live chat reader boundary', () => {
+  const chat='tenants/default/chats/scoped';
+  const message=chat+'/messages/one';
+  async function seed(open=true) {
+    await env.withSecurityRulesDisabled(async ctx=>{
+      const db=ctx.firestore();
+      for(const uid of [ANNA,BEA,CARL])await setDoc(doc(db,'tenants/default/users/'+uid),{uid,isAdult:true});
+      await setDoc(doc(db,chat),{participants:[ANNA,BEA],gateAntwortenA:open?2:0,gateAntwortenB:2});
+      await setDoc(doc(db,message),{text:'synthetic'});
+    });
+  }
+  it('allows both adult participants after both gate answers',async()=>{await seed();for(const uid of [ANNA,BEA])await assertSucceeds(getDoc(doc(als(uid),message)));});
+  it('denies an authenticated outsider',async()=>{await seed();await assertFails(getDoc(doc(als(CARL),message)));});
+  it('denies messages while the gate is closed',async()=>{await seed(false);await assertFails(getDoc(doc(als(ANNA),message)));});
+  it('keeps all message and membership mutations server-only',async()=>{
+    await seed();const db=als(ANNA);await assertFails(setDoc(doc(db,message),{text:'forged'}));await assertFails(updateDoc(doc(db,chat),{gateAntwortenA:99}));await assertFails(deleteDoc(doc(db,chat)));
+  });
+  it.each([false,true])('enforces either block direction (reverse=%s)',async reverse=>{
+    await seed();await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'tenants/default/blocks/'+(reverse?'bea_anna':'anna_bea')),{blocked:true});});
+    await assertFails(getDoc(doc(als(ANNA),message)));
+  });
+  it('denies a participant pending erasure',async()=>{
+    await seed();await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'tenants/default/account_deletions/bea'),{status:'pending'});});await assertFails(getDoc(doc(als(ANNA),message)));
+  });
+  it('rejects foreign namespace and named-tenant identity collisions',async()=>{
+    await seed();await assertFails(getDoc(doc(als(ANNA),'tenants/foreign/chats/scoped/messages/one')));
+    const claims={firebase:{tenant:'foreign',sign_in_provider:'password' as const}};
+    const foreign=env.authenticatedContext(ANNA,claims).firestore();await assertFails(getDoc(doc(foreign,message)));
+  });
+});

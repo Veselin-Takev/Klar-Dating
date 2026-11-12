@@ -40,13 +40,8 @@ test('Auth allein oeffnet den Rahmen', () => {
   assert.deepEqual(rahmen, ['http://127.0.0.1:9099']);
 });
 
-test('ein anderer Wirt wird uebernommen, nicht fest verdrahtet', () => {
-  const { verbindung, rahmen } = emulatorCsp('emu:9080', 'emu:9098');
-  assert.deepEqual(verbindung, [
-    'http://emu:9080', 'ws://emu:9080',
-    'http://emu:9098', 'ws://emu:9098',
-  ]);
-  assert.deepEqual(rahmen, ['http://emu:9098']);
+test('externe Emulator-Wirte werden vor Aufnahme in die CSP abgewiesen', () => {
+  assert.throws(() => emulatorCsp('emu:9080','emu:9098'), /emulator_csp_requires_loopback/);
 });
 
 test('index.html does not override the server CSP with a second policy', () => {

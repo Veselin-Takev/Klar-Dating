@@ -4,6 +4,11 @@ service cloud.firestore {
 
     function isAuthenticated() {
       return request.auth != null
+        && !('tenantId' in request.auth.token)
+        && !('tenant_id' in request.auth.token)
+        && (!('firebase' in request.auth.token) || !('tenant' in request.auth.token.firebase))
+        && (!exists(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)) || !('active' in get(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)).data) || get(/databases/$(database)/documents/tenants/default/users/$(request.auth.uid)).data.active != false)
+        && !exists(/databases/$(database)/documents/tenants/default/account_locks/$(request.auth.uid))
         && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid));
     }
 

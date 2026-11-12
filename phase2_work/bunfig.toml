@@ -1,0 +1,3 @@
+[install]
+# New resolutions must have been published for at least seven days.
+minimumReleaseAge = 604800

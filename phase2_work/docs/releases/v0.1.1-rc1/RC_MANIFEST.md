@@ -10,7 +10,11 @@
 **Risk:** HIGH / P0, destructive-data and GDPR Art. 17 boundaries  
 **Production approval:** `false`; **NO-GO**. This manifest is not a release approval.
 
-## Goal, bounded scope and source candidates
+## PR #360 authorized system-remediation amendment (2026-11-08)
+
+The user authorized system-wide remediation after the expanded NO-GO audit. This batch adds authenticated media delivery, durable DSA locks/retries, hold-aware account erasure, verified per-account photo-purge authorization, logging allowlists and shared rate-limit storage. The bulk and age-only verification purge remain disabled. Account-specific verification deletion is permitted only under the explicit request/bucket/generation/lease/hold/legal/all-writer proof contract; missing proof remains fail closed. No live proof or production approval is asserted. See [implementation and remaining gates](../../security/SYSTEM_REMEDIATION_2026-11-08.md).
+
+## Original bounded scope and source candidates
 
 Prepare ONE reviewable, test-first **fail-closed containment batch** for unproven verification-photo deletion safety across two real paths:
 1. Signed verification-photo purge scheduler/route must remain **hard-disabled in real production**, including valid HMAC, explicit bucket and feature flag. Physical deletion must not resume before independently proven Firestore/GCS all-writer fencing.

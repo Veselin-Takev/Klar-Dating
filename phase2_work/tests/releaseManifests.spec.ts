@@ -11,7 +11,7 @@ function fixture() {
   cpSync('deploy', join(root, 'deploy'), { recursive: true }); return root;
 }
 const run = (root: string, ...args: string[]) => spawnSync(process.execPath,
-  [resolve('scripts/release-manifests.mjs'), ...args], { cwd: root, encoding: 'utf8' });
+  [resolve('scripts/release-manifests.mjs'), ...args], { cwd: root, encoding: 'utf8', env: {...process.env, KLAR_RUNTIME_PROJECT_ID:'synthetic-klar-project', KLAR_RUNTIME_SERVICE_ACCOUNT:'klar-runtime@synthetic-klar-project.iam.gserviceaccount.com'} });
 afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
 
 describe('release manifest integrity', () => {
@@ -23,6 +23,7 @@ describe('release manifest integrity', () => {
     for (const name of ['cloud-run', 'service']) {
       const manifest = JSON.parse(readFileSync(join(output, name + '.json'), 'utf8'));
       expect(manifest.spec.template.spec.containers[0].image).toBe(image);
+      expect(manifest.spec.template.spec.serviceAccountName).toBe('klar-runtime@synthetic-klar-project.iam.gserviceaccount.com');
       expect(manifest.spec.template.metadata.annotations['autoscaling.knative.dev/maxScale']).toBe('10');
     }
   });

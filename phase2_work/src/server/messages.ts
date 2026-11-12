@@ -1,12 +1,14 @@
 import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import { z } from 'zod';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+const record = z.record(z.string(), z.unknown());
 import { currentUserId } from './authorization';
 import { ChatAccessError, readChatAccess, validDocumentId } from './chatAccess';
-import { getDb, FieldValue } from './db';
+import { FieldValue } from './db';
 import { recordActivation } from './platform/launchPlatform';
 import { assessSafetyMessage } from './safetyService';
-import { appendAuditLog } from './platform/auditLog';
+import { appendRepositoryAuditLog } from './platform/auditLog';
 
 /**
  * Computes an immutable SHA-256 integrity hash for a chat message (DSA Art. 16 compliance).
@@ -32,24 +34,24 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
     res.status(400).json({ error: 'Ungültige Nachricht.' }); return;
   }
   try {
-    const db = getDb() as Firestore;
-    const messages = db.collection('chats').doc(chatId).collection('messages');
-    const message = clientMessageId ? messages.doc(`${uid}_${clientMessageId}`) : messages.doc();
+    const db = getServiceRepository('auth');
+    const messageId = clientMessageId ? `${uid}_${clientMessageId}` : crypto.randomUUID();
+    const message = `chats/${chatId}/messages/${messageId}`;
 
     // Verify access *before* a retry can receive any stored message receipt.
     // When the first write succeeded but its HTTP acknowledgement was lost,
     // do not depend on an external AI provider to confirm that same write.
     // New messages still undergo the full safety gate and transaction check.
-    const prior = await db.runTransaction(async (tx: Transaction) => {
+    const prior = await db.transaction(async tx => {
       await readChatAccess(db, tx, chatId, uid, true);
-      return clientMessageId ? tx.get(message) : null;
+      return clientMessageId ? tx.read(message, record) : null;
     });
-    if (prior?.exists) {
-      if (prior.data()?.senderId !== uid || prior.data()?.text !== text) {
+    if (prior !== null) {
+      if (prior?.senderId !== uid || prior?.text !== text) {
         throw new ChatAccessError(409, 'message_conflict', 'Diese Nachrichten-ID wurde bereits verwendet.');
       }
-      const hash = prior.data()?.contentHash || computeMessageHash(uid, chatId, text, message.id);
-      res.json({ success: true, messageId: message.id, messageHash: hash, translated: false, isFallback: false });
+      const hash = prior?.contentHash || computeMessageHash(uid, chatId, text, messageId);
+      res.json({ success: true, messageId: messageId, messageHash: hash, translated: false, isFallback: false });
       return;
     }
 
@@ -59,7 +61,7 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
       return;
     }
     if (safety.flagged) {
-      void appendAuditLog(db, { type: 'safety_message_blocked', actorUid: uid }).catch(() => {});
+      void appendRepositoryAuditLog(db, { type: 'safety_message_blocked', actorUid: uid }).catch(() => {});
       res.status(422).json({
         error: 'Die Nachricht wurde aus Sicherheitsgründen nicht gesendet.',
         code: 'message_flagged',
@@ -70,20 +72,20 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
     }
     let contentHash = '';
 
-    await db.runTransaction(async (tx: Transaction) => {
+    await db.transaction(async tx => {
       await readChatAccess(db, tx, chatId, uid, true);
-      const existing = await tx.get(message);
-      if (existing.exists) {
-        if (existing.data()?.senderId !== uid || existing.data()?.text !== text) {
+      const existing = await tx.read(message, record);
+      if (existing !== null) {
+        if (existing?.senderId !== uid || existing?.text !== text) {
           throw new ChatAccessError(409, 'message_conflict', 'Diese Nachrichten-ID wurde bereits verwendet.');
         }
-        contentHash = existing.data()?.contentHash || computeMessageHash(uid, chatId, text, message.id);
+        contentHash = typeof existing?.contentHash === 'string' ? existing.contentHash : computeMessageHash(uid, chatId, text, messageId);
         return;
       }
-      contentHash = computeMessageHash(uid, chatId, text, message.id);
+      contentHash = computeMessageHash(uid, chatId, text, messageId);
       // Sending always preserves the original. Translation is an explicit reading action.
       // DSA Art. 16: Immutable content receipt with cryptographic SHA-256 digest
-      tx.create(message, {
+      tx.create(message, record, {
         senderId: uid,
         text,
         createdAt: FieldValue.serverTimestamp(),
@@ -97,7 +99,7 @@ export async function handleSendMessage(req: Request, res: Response): Promise<vo
       });
     });
     void recordActivation(db, uid, 'first_conversation', `first_conversation_${uid}_${chatId}`).catch(() => {});
-    res.json({ success: true, messageId: message.id, messageHash: contentHash, translated: false, isFallback: false });
+    res.json({ success: true, messageId: messageId, messageHash: contentHash, translated: false, isFallback: false });
   } catch (error) {
     if (error instanceof ChatAccessError) {
       res.status(error.status).json({ error: error.message, code: error.code }); return;

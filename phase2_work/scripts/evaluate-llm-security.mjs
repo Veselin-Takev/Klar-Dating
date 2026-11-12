@@ -23,7 +23,7 @@ const results = [];
 for (const fixture of fixtures) {
   const response = await ai.models.generateContent({
     model: process.env.GEMINI_EVAL_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash',
-    contents: [{ role: 'user', parts: [{ text: `<untrusted_input>${fixture.input.replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</untrusted_input>` }] }],
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ untrusted_input: fixture.input }) }] }],
     config: {
       temperature: 0,
       responseMimeType: 'application/json',

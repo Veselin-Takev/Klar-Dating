@@ -1,8 +1,10 @@
 import Stripe from 'stripe';
 import { FieldValue } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
-import { getDb } from './db';
-import type { Firestore } from 'firebase-admin/firestore';
+import { z } from 'zod';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+export type PaymentRepository = Pick<ReturnType<typeof getServiceRepository>, 'transaction'>;
+const record = z.record(z.string(), z.unknown());
 
 let stripeClient: Stripe | null = null;
 
@@ -42,232 +44,142 @@ export class CheckoutConflictError extends Error {
   }
 }
 
-export async function reserveCheckout(userId: string, db: Firestore = getDb() as Firestore, now = Date.now()) {
-  const userRef = db.collection('users').doc(userId);
-  const subscriptionRef = db.collection('subscriptions').doc(userId);
-  return db.runTransaction(async tx => {
-    const snapshots = await tx.getAll(userRef, subscriptionRef);
-    const userSnap = snapshots[0];
-    const subscriptionSnap = snapshots[1];
-    if (!userSnap || !subscriptionSnap) throw new Error('Checkout reservation state unavailable');
-    const user = userSnap.data() ?? {};
-    const subscription = subscriptionSnap.data() ?? {};
-    if (user.plan === 'plus' || subscription.plan === 'plus') {
-      throw new CheckoutConflictError('subscription_exists');
-    }
-    const leaseUntil = typeof subscription.checkoutLeaseUntil?.toMillis === 'function'
-      ? subscription.checkoutLeaseUntil.toMillis()
-      : subscription.checkoutLeaseUntil instanceof Date
-        ? subscription.checkoutLeaseUntil.getTime()
-        : typeof subscription.checkoutLeaseUntil === 'number' ? subscription.checkoutLeaseUntil : 0;
-    const checkoutExpiresAt = typeof subscription.checkoutExpiresAt?.toMillis === 'function'
-      ? subscription.checkoutExpiresAt.toMillis()
-      : subscription.checkoutExpiresAt instanceof Date
-        ? subscription.checkoutExpiresAt.getTime()
-        : typeof subscription.checkoutExpiresAt === 'number' ? subscription.checkoutExpiresAt : 0;
-    if (leaseUntil > now || (subscription.checkoutStatus === 'created' && checkoutExpiresAt > now)) {
-      throw new CheckoutConflictError('checkout_in_progress');
-    }
-    const requestId = typeof subscription.checkoutRequestId === 'string' && subscription.checkoutRequestId.length > 0
-      ? subscription.checkoutRequestId
-      : randomUUID();
-    tx.set(subscriptionRef, {
-      checkoutRequestId: requestId,
-      checkoutLeaseUntil: new Date(now + CHECKOUT_LEASE_MS),
-      checkoutExpiresAt: null,
-      checkoutStatus: 'creating',
-    }, { merge: true });
+function epochMillis(value: unknown): number {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (value && typeof value === 'object' && 'toMillis' in value && typeof value.toMillis === 'function') {
+    const millis: unknown = value.toMillis();
+    if (typeof millis === 'number' && Number.isFinite(millis)) return millis;
+  }
+  return 0;
+}
+
+export async function reserveCheckout(userId: string, repo: PaymentRepository = getServiceRepository('payments'), now = Date.now()) {
+  return repo.transaction(async tx => {
+    const [user, subscription] = await Promise.all([tx.read(`users/${userId}`, record), tx.read(`subscriptions/${userId}`, record)]);
+    if (!user) throw new Error('checkout_user_not_found');
+    const data = subscription ?? {};
+    if (user.plan === 'plus' || data.plan === 'plus') throw new CheckoutConflictError('subscription_exists');
+    if (epochMillis(data.checkoutLeaseUntil) > now || (data.checkoutStatus === 'created' && epochMillis(data.checkoutExpiresAt) > now)) throw new CheckoutConflictError('checkout_in_progress');
+    const requestId = typeof data.checkoutRequestId === 'string' && data.checkoutRequestId ? data.checkoutRequestId : randomUUID();
+    tx.write(`subscriptions/${userId}`, record, {checkoutRequestId:requestId, checkoutLeaseUntil:new Date(now + CHECKOUT_LEASE_MS), checkoutExpiresAt:null, checkoutStatus:'creating'}, {merge:true});
     return requestId;
   });
 }
 
-async function finalizeCheckoutReservation(userId: string, requestId: string, sessionId: string | null, db: Firestore = getDb() as Firestore) {
-  const ref = db.collection('subscriptions').doc(userId);
-  await db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const data = snap.data() ?? {};
-    if (data.checkoutRequestId !== requestId) return;
-    tx.set(ref, {
-      checkoutLeaseUntil: null,
-      checkoutExpiresAt: sessionId ? new Date(Date.now() + CHECKOUT_SESSION_GUARD_MS) : null,
-      checkoutStatus: sessionId ? 'created' : 'failed',
-      checkoutSessionId: sessionId,
-    }, { merge: true });
+async function finalizeCheckoutReservation(userId: string, requestId: string, sessionId: string | null, repo: PaymentRepository) {
+  await repo.transaction(async tx => {
+    const path = `subscriptions/${userId}`, data = await tx.read(path, record);
+    if (data?.checkoutRequestId !== requestId) return;
+    tx.write(path, record, {checkoutLeaseUntil:null, checkoutExpiresAt: sessionId ? new Date(Date.now()+CHECKOUT_SESSION_GUARD_MS) : null, checkoutStatus:sessionId?'created':'failed', checkoutSessionId:sessionId}, {merge:true});
   });
 }
 
-export async function createCheckoutSession(userId: string, returnUrl: string, db: Firestore = getDb() as Firestore, stripe = getStripe()) {
+export async function createCheckoutSession(userId: string, returnUrl: string, repo: PaymentRepository = getServiceRepository('payments'), stripe = getStripe()) {
   const safeReturnUrl = validateReturnUrl(returnUrl);
-  const requestId = await reserveCheckout(userId, db);
-  const success = new URL(safeReturnUrl);
-  const successHash = success.hash;
-  success.hash = '';
-  success.searchParams.delete('session_id');
-  const successUrl = success.toString() + (success.search ? '&' : '?') + 'session_id={CHECKOUT_SESSION_ID}' + successHash;
-  const cancel = new URL(safeReturnUrl);
-  cancel.searchParams.set('cancel', 'true');
+  const requestId = await reserveCheckout(userId, repo);
+  const success = new URL(safeReturnUrl), successHash = success.hash;
+  success.hash = ''; success.searchParams.delete('session_id');
+  const successUrl = success.toString()+(success.search?'&':'?')+'session_id={CHECKOUT_SESSION_ID}'+successHash;
+  const cancel = new URL(safeReturnUrl); cancel.searchParams.set('cancel','true');
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'paypal'],
-      mode: 'subscription',
-      client_reference_id: userId,
-      metadata: { klarCheckoutRequestId: requestId, klarUserId: userId },
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: { name: 'Klar+ Abonnement', description: 'Klar+ Abonnement.' },
-          unit_amount: 1199,
-          recurring: { interval: 'month' },
-        },
-        quantity: 1,
-      }],
-      success_url: successUrl,
-      cancel_url: cancel.toString(),
-    }, { idempotencyKey: `klar-checkout-${requestId}` });
-    await finalizeCheckoutReservation(userId, requestId, session.id ?? null, db);
+      payment_method_types:['card','paypal'], mode:'subscription', client_reference_id:userId,
+      metadata:{klarCheckoutRequestId:requestId,klarUserId:userId,klarTenantId:'default'},
+      subscription_data:{metadata:{klarUserId:userId,klarTenantId:'default'}},
+      line_items:[{price_data:{currency:'eur', product_data:{name:'Klar+ Abonnement',description:'Klar+ Abonnement.'}, unit_amount:1199, recurring:{interval:'month'}},quantity:1}],
+      success_url:successUrl, cancel_url:cancel.toString(),
+    }, {idempotencyKey:`klar-checkout-${requestId}`});
+    await finalizeCheckoutReservation(userId,requestId,session.id??null,repo);
     return session.url;
   } catch (error) {
-    await finalizeCheckoutReservation(userId, requestId, null, db).catch(() => {});
+    await finalizeCheckoutReservation(userId,requestId,null,repo).catch(()=>{});
     throw error;
   }
 }
 
 export async function handleStripeWebhook(body: Buffer, signature: string) {
-  const stripe = getStripe();
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!endpointSecret) throw new Error('STRIPE_WEBHOOK_SECRET is missing');
+  const stripe = getStripe(), secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) throw new Error('STRIPE_WEBHOOK_SECRET is missing');
   if (!signature) throw new Error('Missing Stripe signature');
-  const event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
-  return applyStripeEvent(event);
+  const event = stripe.webhooks.constructEvent(body,signature,secret);
+  return applyStripeEvent(event, getServiceRepository('payments'));
 }
 
-/** Verified events only: completion marker and entitlement commit together. */
-function isStripeEventNewer(data: Record<string, unknown>, event: Stripe.Event): boolean {
-  const previous = typeof data.lastStripeEventCreated === 'number' ? data.lastStripeEventCreated : 0;
-  return event.created >= previous;
+function isStripeEventNewer(data: Record<string, unknown>, event: Stripe.Event) {
+  return event.created >= (typeof data.lastStripeEventCreated==='number'? data.lastStripeEventCreated:0);
 }
 
-async function applyStripeEvent(event: Stripe.Event) {
-  const db: import('firebase-admin/firestore').Firestore = getDb();
-  const eventRef = db.collection('processed_stripe_events').doc(event.id);
-  return db.runTransaction(async (tx: import('firebase-admin/firestore').Transaction) => {
-    if ((await tx.get(eventRef)).exists) return { received: true, duplicate: true };
+async function applyStripeEvent(event: Stripe.Event, repo: PaymentRepository) {
+  const object = event.data.object as unknown as Record<string, unknown>;
+  const metadata = object.metadata;
+  const tenant = metadata && typeof metadata === 'object' ? (metadata as Record<string,unknown>).klarTenantId : undefined;
+  return repo.transaction(async tx => {
+    const eventRef = `processed_stripe_events/${event.id}`;
+    if (await tx.read(eventRef,record)) return {received:true,duplicate:true};
     let applied = false;
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+    if (tenant !== undefined && tenant !== 'default') {
+      tx.create(eventRef,record,{type:event.type,applied:false,receivedAt:FieldValue.serverTimestamp()});
+      return {received:true,duplicate:false,applied:false};
+    }
+    if (event.type==='checkout.session.completed' || event.type==='checkout.session.async_payment_succeeded') {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.klarUserId ?? session.client_reference_id;
-      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
-      // This checkout sells exactly one EUR 11.99 monthly subscription, with no trial/discount.
-      if (session.mode === 'subscription' && session.payment_status === 'paid' &&
-          session.currency === 'eur' && session.amount_total === 1199 &&
-          userId && !userId.includes('/') && subscriptionId &&
-          (!session.client_reference_id || session.client_reference_id === userId)) {
-        const userRef = db.collection('users').doc(userId);
-        const cancellationRef = db.collection('processed_stripe_events').doc(`subscription_${subscriptionId}`);
-        const [user, cancellation, deletion] = await tx.getAll(userRef, cancellationRef, db.doc(`account_deletions/${userId}`));
-        // A cancellation can arrive before checkout; its durable tombstone prevents resurrection.
-        const subscriptionRef = db.collection('subscriptions').doc(userId);
-        const localSubscription = (await tx.get(subscriptionRef)).data() ?? {};
-        if (user?.exists && !cancellation?.exists && !deletion?.exists && isStripeEventNewer(localSubscription, event)) {
-          tx.update(userRef, { plan: 'plus', subscriptionId,
-            stripeCustomerId: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null });
-          tx.set(subscriptionRef, {
-            plan: 'plus',
-            autoRenew: true,
-            startedAt: FieldValue.serverTimestamp(),
-            billingStatus: 'active',
-            lastStripeEventCreated: event.created,
-            subscriptionId,
-            stripeCustomerId: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
-            checkoutStatus: 'completed', checkoutExpiresAt: null, checkoutLeaseUntil: null, checkoutSessionId: session.id,
-          }, { merge: true });
-          applied = true;
+      const subscriptionId = typeof session.subscription==='string'?session.subscription:session.subscription?.id;
+      if (session.metadata?.klarTenantId==='default' && session.mode==='subscription' && session.payment_status==='paid' && session.currency==='eur' && session.amount_total===1199
+          && userId && !userId.includes('/') && subscriptionId && (!session.client_reference_id || session.client_reference_id===userId)) {
+        const [user,cancellation,deletion,local] = await Promise.all([
+          tx.read(`users/${userId}`,record), tx.read(`processed_stripe_events/subscription_${subscriptionId}`,record),
+          tx.read(`account_deletions/${userId}`,record), tx.read(`subscriptions/${userId}`,record),
+        ]);
+        if (user && !cancellation && !deletion && isStripeEventNewer(local??{},event)) {
+          const customerId = typeof session.customer==='string'?session.customer:session.customer?.id??null;
+          tx.write(`users/${userId}`,record,{plan:'plus',subscriptionId,stripeCustomerId:customerId},{merge:true});
+          tx.write(`subscriptions/${userId}`,record,{plan:'plus',autoRenew:true,startedAt:FieldValue.serverTimestamp(),billingStatus:'active',lastStripeEventCreated:event.created,subscriptionId,stripeCustomerId:customerId,checkoutStatus:'completed',checkoutExpiresAt:null,checkoutLeaseUntil:null,checkoutSessionId:session.id},{merge:true});
+          applied=true;
         }
       }
-    } else if (event.type === 'checkout.session.expired') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.klarUserId ?? session.client_reference_id;
-      if (userId && !userId.includes('/')) {
-        const subscriptionRef = db.collection('subscriptions').doc(userId);
-        const subscription = await tx.get(subscriptionRef);
-        const data = subscription.data() ?? {};
-        if (data.checkoutSessionId === session.id && data.checkoutStatus === 'created') {
-          tx.set(subscriptionRef, { checkoutStatus: 'expired', checkoutExpiresAt: null, checkoutLeaseUntil: null }, { merge: true });
-          applied = true;
+    } else if (event.type==='checkout.session.expired') {
+      const session = event.data.object as Stripe.Checkout.Session, userId = session.metadata?.klarUserId ?? session.client_reference_id;
+      if (session.metadata?.klarTenantId==='default' && userId && !userId.includes('/')) {
+        const path=`subscriptions/${userId}`, data=await tx.read(path,record);
+        if (data?.checkoutSessionId===session.id && data.checkoutStatus==='created') {
+          tx.write(path,record,{checkoutStatus:'expired',checkoutExpiresAt:null,checkoutLeaseUntil:null},{merge:true}); applied=true;
         }
       }
-    } else if (event.type === 'invoice.payment_failed') {
-      const invoice = event.data.object as Stripe.Invoice;
-      const invoiceWithSubscription = invoice as unknown as { subscription?: string | Stripe.Subscription | null };
-      const subscription = invoiceWithSubscription.subscription;
-      const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id;
+    } else if (event.type==='invoice.payment_failed' || event.type==='customer.subscription.updated' || event.type==='customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const invoice = event.data.object as unknown as {subscription?:string|{id:string}|null};
+      const subscriptionId = event.type==='invoice.payment_failed' ? (typeof invoice.subscription==='string'?invoice.subscription:invoice.subscription?.id) : subscription.id;
       if (subscriptionId) {
-        const cancellation = await tx.get(db.collection('processed_stripe_events').doc(`subscription_${subscriptionId}`));
-        if (!cancellation.exists) {
-          const users = await tx.get(db.collection('users').where('subscriptionId', '==', subscriptionId));
-          for (const user of users.docs) {
-            const subscriptionRef = db.collection('subscriptions').doc(user.id);
-            const local = (await tx.get(subscriptionRef)).data() ?? {};
-            if (!isStripeEventNewer(local, event)) continue;
-            tx.update(user.ref, {
-              billingStatus: 'past_due',
-              lastPaymentFailureAt: FieldValue.serverTimestamp(),
-              lastStripeEventCreated: event.created,
-            });
-            tx.set(subscriptionRef, {
-              billingStatus: 'past_due',
-              lastPaymentFailureAt: FieldValue.serverTimestamp(),
-              lastStripeEventCreated: event.created,
-            }, { merge: true });
-            applied = true;
+        const cancellationRef=`processed_stripe_events/subscription_${subscriptionId}`;
+        const cancellation=await tx.read(cancellationRef,record);
+        if (!cancellation) {
+          const users=await tx.list('users',record,{where:['subscriptionId','==',subscriptionId],limit:2});
+          if (users.length>1) throw new Error('ambiguous_subscription_owner');
+          // Every local read completes before any write, even on malformed duplicate ownership.
+          const states=await Promise.all(users.map(user=>tx.read(`subscriptions/${user.id}`,record)));
+          for (let i=0;i<users.length;i++) {
+            const user=users[i]; if (!user || !isStripeEventNewer(states[i]??{},event)) continue;
+            if (event.type==='invoice.payment_failed') {
+              const patch={billingStatus:'past_due',lastPaymentFailureAt:FieldValue.serverTimestamp(),lastStripeEventCreated:event.created};
+              tx.write(`users/${user.id}`,record,patch,{merge:true}); tx.write(`subscriptions/${user.id}`,record,patch,{merge:true});
+            } else if (event.type==='customer.subscription.updated') {
+              const billingStatus=['active','past_due','unpaid','canceled'].includes(subscription.status)?subscription.status:'incomplete';
+              tx.write(`users/${user.id}`,record,{billingStatus,lastStripeEventCreated:event.created},{merge:true});
+              tx.write(`subscriptions/${user.id}`,record,{plan:subscription.status==='canceled'?'frei':'plus',billingStatus,subscriptionId:subscription.id,autoRenew:!subscription.cancel_at_period_end,lastStripeEventCreated:event.created},{merge:true});
+            } else {
+              tx.write(`users/${user.id}`,record,{plan:'free',subscriptionId:null,billingStatus:'canceled',lastStripeEventCreated:event.created},{merge:true});
+              tx.write(`subscriptions/${user.id}`,record,{plan:'frei',autoRenew:false,subscriptionId:null,billingStatus:'canceled',lastStripeEventCreated:event.created,cancelledAt:FieldValue.serverTimestamp()},{merge:true});
+            }
+            applied=true;
           }
+          // Durable terminal tombstone even before any local user references this subscription.
+          if (event.type==='customer.subscription.deleted') tx.create(cancellationRef,record,{cancelled:true,receivedAt:FieldValue.serverTimestamp(),eventCreated:event.created});
         }
-      }
-    } else if (event.type === 'customer.subscription.updated') {
-      const subscription = event.data.object as Stripe.Subscription;
-      const cancellation = await tx.get(db.collection('processed_stripe_events').doc(`subscription_${subscription.id}`));
-      if (!cancellation.exists) {
-        const users = await tx.get(db.collection('users').where('subscriptionId', '==', subscription.id));
-        const billingStatus = subscription.status === 'active' ? 'active' :
-          subscription.status === 'past_due' ? 'past_due' :
-          subscription.status === 'unpaid' ? 'unpaid' :
-          subscription.status === 'canceled' ? 'canceled' : 'incomplete';
-        for (const user of users.docs) {
-          const subscriptionRef = db.collection('subscriptions').doc(user.id);
-          const local = (await tx.get(subscriptionRef)).data() ?? {};
-          if (!isStripeEventNewer(local, event)) continue;
-          tx.update(user.ref, { billingStatus, lastStripeEventCreated: event.created });
-          tx.set(subscriptionRef, {
-            plan: subscription.status === 'canceled' ? 'frei' : 'plus',
-            billingStatus,
-            subscriptionId: subscription.id,
-            autoRenew: subscription.cancel_at_period_end ? false : true,
-            lastStripeEventCreated: event.created,
-          }, { merge: true });
-          applied = true;
-        }
-      }
-    } else if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object as Stripe.Subscription;
-      const cancellationRef = db.collection('processed_stripe_events').doc(`subscription_${subscription.id}`);
-      const alreadyCancelled = await tx.get(cancellationRef);
-      if (!alreadyCancelled.exists) {
-        const users = await tx.get(db.collection('users').where('subscriptionId', '==', subscription.id));
-        for (const user of users.docs) {
-          const subscriptionRef = db.collection('subscriptions').doc(user.id);
-          const local = (await tx.get(subscriptionRef)).data() ?? {};
-          if (!isStripeEventNewer(local, event)) continue;
-          tx.update(user.ref, { plan: 'free', subscriptionId: null, billingStatus: 'canceled', lastStripeEventCreated: event.created });
-          tx.set(subscriptionRef, { plan: 'frei', autoRenew: false, subscriptionId: null, billingStatus: 'canceled', lastStripeEventCreated: event.created, cancelledAt: FieldValue.serverTimestamp() }, { merge: true });
-          applied = true;
-        }
-        // Durable terminal tombstone is written even when no local user currently
-        // references the Stripe subscription, closing delivery-order races.
-        tx.create(cancellationRef, { cancelled: true, receivedAt: FieldValue.serverTimestamp(), eventCreated: event.created });
       }
     }
-    // No user identifier, payload or optional product analytics retained in this ledger.
-    tx.create(eventRef, { type: event.type, applied, receivedAt: FieldValue.serverTimestamp() });
-    return { received: true, duplicate: false, applied };
+    tx.create(eventRef,record,{type:event.type,applied,receivedAt:FieldValue.serverTimestamp()});
+    return {received:true,duplicate:false,applied};
   });
 }

@@ -7,6 +7,7 @@ type Stored = { count: number; windowStartedAt: number; expiresAt: Date };
 
 function fakeDb(store: Map<string, Stored>) {
   return {
+    doc: (path: string) => { expect(path.startsWith('tenants/default/')).toBe(true); return {path}; },
     collection: () => ({
       doc: (path: string) => ({
         path,
@@ -18,7 +19,7 @@ function fakeDb(store: Map<string, Stored>) {
           const data = store.get(ref.path);
           return { exists: Boolean(data), data: () => data };
         },
-        set: (ref: { path: string }, data: Stored) => { store.set(ref.path, data); },
+        set: (ref: { path: string }, data: Stored, options?: {merge: true}) => { store.set(ref.path, options?.merge ? {...store.get(ref.path)!, ...data} : data); },
         update: (ref: { path: string }, data: Partial<Stored>) => {
           const current = store.get(ref.path);
           if (!current) throw new Error('missing counter');
@@ -52,7 +53,7 @@ describe('distributedRateLimit', () => {
       limit: 2,
       keyGenerator: () => 'uid:test-user',
       message: { error: 'limited' },
-      getDb: () => fakeDb(store),
+      nativeDatabaseFactory: () => fakeDb(store),
     };
     const first = await request(distributedRateLimit(options));
     const second = await request(distributedRateLimit(options));
@@ -72,7 +73,7 @@ describe('distributedRateLimit', () => {
       limit: 1,
       keyGenerator: () => identity,
       message: { error: 'limited' },
-      getDb: () => fakeDb(store),
+      nativeDatabaseFactory: () => fakeDb(store),
     });
     expect((await request(middleware)).status).toBe(200);
     expect((await request(middleware)).status).toBe(429);

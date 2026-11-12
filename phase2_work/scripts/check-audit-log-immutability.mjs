@@ -8,7 +8,7 @@ if (!/allow\s+read\s*:\s*if\s+isPrivilegedClaim\(\)/.test(auditRule)) throw new 
 if (!/allow\s+create,\s*update,\s*delete\s*:\s*if\s+false/.test(auditRule)) throw new Error('audit_logs is not append-only for clients');
 
 const consent = readFileSync('src/server/platform/consentEngine.ts', 'utf8');
-const consentWrites = [...consent.matchAll(/tx\.set\(auditLogRef,\s*\{([\s\S]*?)\}\);/g)].map((m) => m[1]);
+const consentWrites = [...consent.matchAll(/tx\.create\(auditLogRef, record,\s*\{([\s\S]*?)\}\);/g)].map((m) => m[1]);
 if (!consentWrites.length) throw new Error('consent audit writes missing');
 if (consentWrites.some((body) => /\buserId\b/.test(body))) throw new Error('consent audit log must never persist a raw userId');
 if (!consent.includes('subjectPseudonym')) throw new Error('consent audit pseudonym boundary missing');
@@ -20,7 +20,7 @@ for (const file of ['src/server/messages.ts', 'src/server/passwordReset.ts']) {
   }
 }
 
-if (!readFileSync('src/server/platform/auditLog.ts', 'utf8').includes('ref.create(payload)')) {
+if (!readFileSync('src/server/platform/auditLog.ts', 'utf8').includes('repo.create(`audit_logs/${id}`, auditEventSchema, payload)')) {
   throw new Error('central append-only audit writer missing');
 }
 console.log('Audit log append-only boundary: PASS');

@@ -1,5 +1,12 @@
 import crypto from 'node:crypto';
-import type { Firestore, DocumentReference, DocumentSnapshot } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository, TenantTransaction } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const recordSchema = z.record(z.string(), z.unknown());
+type StoredDocument = {id:string; exists:boolean; data:Record<string,unknown>|null};
+async function readStored(repo: Pick<TenantAwareFirestoreRepository | TenantTransaction, 'read'>, path:string):Promise<StoredDocument> {
+  const data=await repo.read(path,recordSchema);return{id:path.split('/').at(-1)!, exists:data!==null, data};
+}
+function isSafeInteger(value:unknown):value is number {return typeof value==='number'&&Number.isSafeInteger(value);}
 import { FieldValue } from './db';
 import { consentAuditSecret, signHmacAuditPayload } from './consentAudit';
 import {
@@ -25,7 +32,7 @@ const CONVERSIONS = 'partner_referral_conversions';
 const BUYER_CLAIMS = 'partner_referral_buyer_claims';
 
 export type PartnerReferralServiceDeps = {
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   tokenSecret: () => string;
   auditSecret?: () => string;
   publicUrl: () => string | undefined;
@@ -88,7 +95,6 @@ function makeLedger(
   actorUid: string | null,
   options: { ownerUid?: string | null; buyerUid?: string | null; campaignId?: string | null; referralId?: string | null } = {},
 ) {
-  const db = deps.getFirestore();
   const eventId = crypto.randomUUID();
   const secret = auditSecret(deps);
   const payload = {
@@ -102,7 +108,7 @@ function makeLedger(
     campaignId: options.campaignId ?? null,
     referralId: options.referralId ?? null,
   };
-  return { ref: db.collection(LEDGER).doc(eventId), record: signHmacAuditPayload(payload, secret) };
+  return { ref: `${LEDGER}/${eventId}`, record: signHmacAuditPayload(payload, secret) };
 }
 
 function withLedgerDetails(
@@ -114,9 +120,9 @@ function withLedgerDetails(
   return signHmacAuditPayload({ ...payload, ...details }, auditSecret(deps));
 }
 
-function campaignFrom(snapshot: DocumentSnapshot): PartnerCampaignRecord | null {
+function campaignFrom(snapshot: StoredDocument): PartnerCampaignRecord | null {
   if (!snapshot.exists) return null;
-  const data = snapshot.data() ?? {};
+  const data = snapshot.data ?? {};
   return {
     id: snapshot.id,
     name: String(data.name ?? ''),
@@ -126,19 +132,19 @@ function campaignFrom(snapshot: DocumentSnapshot): PartnerCampaignRecord | null 
     termsSummary: String(data.termsSummary ?? ''),
     brandVerified: data.brandVerified === true,
     status: data.status === 'active' || data.status === 'inactive' || data.status === 'deleted' ? data.status : 'draft',
-    clickCount: Number.isSafeInteger(data.clickCount) && data.clickCount >= 0 ? data.clickCount : 0,
-    qualifiedConversions: Number.isSafeInteger(data.qualifiedConversions) && data.qualifiedConversions >= 0 ? data.qualifiedConversions : 0,
+    clickCount: isSafeInteger(data.clickCount) && data.clickCount >= 0 ? data.clickCount : 0,
+    qualifiedConversions: isSafeInteger(data.qualifiedConversions) && data.qualifiedConversions >= 0 ? data.qualifiedConversions : 0,
     createdAt: String(data.createdAt ?? ''),
     updatedAt: String(data.updatedAt ?? ''),
     deletedAt: typeof data.deletedAt === 'string' ? data.deletedAt : null,
     createdByRef: typeof data.createdByRef === 'string' ? data.createdByRef : null,
     updatedByRef: typeof data.updatedByRef === 'string' ? data.updatedByRef : null,
     verifiedByRef: typeof data.verifiedByRef === 'string' ? data.verifiedByRef : null,
-    version: Number.isSafeInteger(data.version) && data.version > 0 ? data.version : 1,
+    version: isSafeInteger(data.version) && data.version > 0 ? data.version : 1,
   };
 }
 
-function campaignIsActive(data: Record<string, unknown> | undefined): boolean {
+function campaignIsActive(data: Record<string, unknown> | undefined | null): boolean {
   return !!data && data.status === 'active' && data.brandVerified === true && data.deletedAt == null;
 }
 
@@ -148,13 +154,9 @@ function ensureActiveStatus(status: 'draft' | 'active' | 'inactive' | 'deleted',
   }
 }
 
-function createSlugRef(db: Firestore, slug: string): DocumentReference {
-  return db.collection(SLUGS).doc(slug);
-}
-
 export async function listPartnerCampaignsForAdmin(deps: PartnerReferralServiceDeps): Promise<PartnerCampaignRecord[]> {
-  const snapshot = await deps.getFirestore().collection(CAMPAIGNS).limit(250).get();
-  return snapshot.docs
+  const snapshot = (await deps.repository().listAll(CAMPAIGNS, recordSchema)).slice(0,250).map(row=>({...row,exists:true}));
+  return snapshot
     .map(campaignFrom)
     .filter((campaign): campaign is PartnerCampaignRecord => campaign !== null)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -172,16 +174,16 @@ export async function createPartnerCampaign(
   const brandVerified = false;
   const status = parsed.status ?? 'draft';
   ensureActiveStatus(status, brandVerified);
-  const db = deps.getFirestore();
+  const db = deps.repository();
   const id = crypto.randomUUID();
   const now = nowIso(deps);
-  const campaignRef = db.collection(CAMPAIGNS).doc(id);
-  const slugRef = createSlugRef(db, parsed.slug);
+  const campaignRef = `${CAMPAIGNS}/${id}`;
+  const slugRef = `${SLUGS}/${parsed.slug}`;
   const ledger = makeLedger(deps, 'campaign_created', actorUid, { campaignId: id });
-  await db.runTransaction(async tx => {
-    const existingSlug = await tx.get(slugRef);
+  await db.transaction(async tx => {
+    const existingSlug = await readStored(tx, slugRef);
     if (existingSlug.exists) throw new PartnerReferralError(409, 'campaign_slug_exists', 'Dieser Kampagnen-Slug ist bereits reserviert.');
-    tx.create(campaignRef, {
+    tx.create(campaignRef, recordSchema, {
       name: parsed.name,
       slug: parsed.slug,
       destinationUrl: validatePartnerDestinationUrl(parsed.destinationUrl),
@@ -199,10 +201,10 @@ export async function createPartnerCampaign(
       verifiedByRef: brandVerified ? pseudonymousPartnerUid(actorUid, auditSecret(deps)) : null,
       version: 1,
     });
-    tx.create(slugRef, { campaignId: id, status, createdAt: now, updatedAt: now });
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { campaignSlug: parsed.slug }));
+    tx.create(slugRef, recordSchema, { campaignId: id, status, createdAt: now, updatedAt: now });
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { campaignSlug: parsed.slug }));
   });
-  const saved = await campaignRef.get();
+  const saved = await readStored(db, campaignRef);
   const campaign = campaignFrom(saved);
   if (!campaign) throw new PartnerReferralError(503, 'campaign_write_unconfirmed', 'Die Kampagne konnte nicht bestätigt werden.');
   return campaign;
@@ -217,20 +219,20 @@ export async function updatePartnerCampaign(
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new PartnerReferralError(400, 'invalid_campaign_id', 'Die Kampagnenkennung ist ungültig.');
   const patch = parsePartnerCampaignInput(input, true) as PartnerCampaignPatch;
   if (Object.keys(patch).length === 0) throw new PartnerReferralError(400, 'empty_patch', 'Es wurden keine Änderungen übermittelt.');
-  const db = deps.getFirestore();
-  const campaignRef = db.collection(CAMPAIGNS).doc(id);
+  const db = deps.repository();
+  const campaignRef = `${CAMPAIGNS}/${id}`;
   const ledger = makeLedger(deps, 'campaign_updated', actorUid, { campaignId: id });
   const now = nowIso(deps);
-  await db.runTransaction(async tx => {
-    const currentSnap = await tx.get(campaignRef);
+  await db.transaction(async tx => {
+    const currentSnap = await readStored(tx, campaignRef);
     if (!currentSnap.exists) throw new PartnerReferralError(404, 'campaign_not_found', 'Die Kampagne wurde nicht gefunden.');
-    const current = currentSnap.data() ?? {};
+    const current = currentSnap.data ?? {};
     if (current.status === 'deleted' || typeof current.deletedAt === 'string') {
       throw new PartnerReferralError(410, 'campaign_deleted', 'Eine gelöschte Kampagne kann nicht geändert werden.');
     }
     const nextSlug = patch.slug ?? String(current.slug ?? '');
-    const newSlugRef = createSlugRef(db, nextSlug);
-    const slugSnap = nextSlug !== current.slug ? await tx.get(newSlugRef) : null;
+    const newSlugRef = `${SLUGS}/${nextSlug}`;
+    const slugSnap = nextSlug !== current.slug ? await readStored(tx, newSlugRef) : null;
     if (slugSnap?.exists) throw new PartnerReferralError(409, 'campaign_slug_exists', 'Dieser Kampagnen-Slug ist bereits reserviert.');
     const nextBrandVerified = patch.brandVerified ?? current.brandVerified === true;
     const nextStatus = patch.status ?? (current.status as PartnerCampaignRecord['status'] ?? 'draft');
@@ -243,21 +245,21 @@ export async function updatePartnerCampaign(
       ...patch,
       updatedAt: now,
       updatedByRef: pseudonymousPartnerUid(actorUid, auditSecret(deps)),
-      version: (Number.isSafeInteger(current.version) && Number(current.version) > 0 ? Number(current.version) : 1) + 1,
+      version: (isSafeInteger(current.version) && Number(current.version) > 0 ? Number(current.version) : 1) + 1,
     };
     if (patch.destinationUrl !== undefined) update.destinationUrl = validatePartnerDestinationUrl(patch.destinationUrl);
     if (patch.brandVerified === true && current.brandVerified !== true) update.verifiedByRef = pseudonymousPartnerUid(actorUid, auditSecret(deps));
     if (patch.brandVerified === false) update.verifiedByRef = null;
-    tx.update(campaignRef, update);
+    tx.write(campaignRef, recordSchema, update, { merge: true });
     if (nextSlug !== current.slug) {
-      tx.update(createSlugRef(db, String(current.slug)), { status: 'superseded', updatedAt: now });
-      tx.create(newSlugRef, { campaignId: id, status: nextStatus, createdAt: now, updatedAt: now });
+      tx.write(`${SLUGS}/${String(current.slug)}`, recordSchema, { status: 'superseded', updatedAt: now }, { merge: true });
+      tx.create(newSlugRef, recordSchema, { campaignId: id, status: nextStatus, createdAt: now, updatedAt: now });
     } else {
-      tx.set(createSlugRef(db, nextSlug), { campaignId: id, status: nextStatus, updatedAt: now }, { merge: true });
+      tx.write(`${SLUGS}/${nextSlug}`, recordSchema, { campaignId: id, status: nextStatus, updatedAt: now }, { merge: true });
     }
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { campaignSlug: nextSlug, newStatus: nextStatus }));
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { campaignSlug: nextSlug, newStatus: nextStatus }));
   });
-  const saved = await campaignRef.get();
+  const saved = await readStored(db, campaignRef);
   const campaign = campaignFrom(saved);
   if (!campaign) throw new PartnerReferralError(503, 'campaign_write_unconfirmed', 'Die Kampagne konnte nicht bestätigt werden.');
   return campaign;
@@ -269,41 +271,41 @@ export async function softDeletePartnerCampaign(
   id: string,
 ): Promise<{ id: string; status: 'deleted' }> {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new PartnerReferralError(400, 'invalid_campaign_id', 'Die Kampagnenkennung ist ungültig.');
-  const db = deps.getFirestore();
-  const campaignRef = db.collection(CAMPAIGNS).doc(id);
+  const db = deps.repository();
+  const campaignRef = `${CAMPAIGNS}/${id}`;
   const now = nowIso(deps);
   const ledger = makeLedger(deps, 'campaign_soft_deleted', actorUid, { campaignId: id });
-  await db.runTransaction(async tx => {
-    const snap = await tx.get(campaignRef);
+  await db.transaction(async tx => {
+    const snap = await readStored(tx, campaignRef);
     if (!snap.exists) throw new PartnerReferralError(404, 'campaign_not_found', 'Die Kampagne wurde nicht gefunden.');
-    const data = snap.data() ?? {};
+    const data = snap.data ?? {};
     if (data.status === 'deleted') return;
-    const slugRef = createSlugRef(db, String(data.slug ?? ''));
+    const slugRef = `${SLUGS}/${String(data.slug ?? '')}`;
     // Finish every read before writes: transactions retry atomically on contention.
-    await tx.get(slugRef);
-    tx.update(campaignRef, {
+    await readStored(tx, slugRef);
+    tx.write(campaignRef, recordSchema, {
       status: 'deleted',
       deletedAt: now,
       updatedAt: now,
       updatedByRef: pseudonymousPartnerUid(actorUid, auditSecret(deps)),
-      version: (Number.isSafeInteger(data.version) && Number(data.version) > 0 ? Number(data.version) : 1) + 1,
-    });
-    tx.set(slugRef, { status: 'deleted', updatedAt: now }, { merge: true });
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { campaignSlug: String(data.slug ?? '') }));
+      version: (isSafeInteger(data.version) && Number(data.version) > 0 ? Number(data.version) : 1) + 1,
+    }, { merge: true });
+    tx.write(slugRef, recordSchema, { status: 'deleted', updatedAt: now }, { merge: true });
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { campaignSlug: String(data.slug ?? '') }));
   });
   return { id, status: 'deleted' };
 }
 
-function requirePartnerUserData(data: Record<string, unknown> | undefined): { version: number } {
+function requirePartnerUserData(data: Record<string, unknown> | undefined | null): { version: number } {
   if (!data) throw new PartnerReferralError(404, 'account_not_found', 'Das Konto wurde nicht gefunden.');
   if (data.isAdult !== true) throw new PartnerReferralError(403, 'age_gate_required', 'Bitte schließe zuerst die Altersprüfung ab.');
-  const version = Number.isSafeInteger(data.partnerReferralVersion) && Number(data.partnerReferralVersion) >= 1 ? Number(data.partnerReferralVersion) : 1;
+  const version = isSafeInteger(data.partnerReferralVersion) && Number(data.partnerReferralVersion) >= 1 ? Number(data.partnerReferralVersion) : 1;
   return { version };
 }
 
 export async function getPartnerConsentState(deps: PartnerReferralServiceDeps, uid: string): Promise<{ allowed: boolean }> {
-  const snapshot = await deps.getFirestore().collection('users').doc(uid).get();
-  const data = snapshot.data();
+  const snapshot = await readStored(deps.repository(), `users/${uid}`);
+  const data = snapshot.data;
   requirePartnerUserData(data);
   return { allowed: data?.partnerReferralConsent === true && data?.partnerReferralEpochQuarantined !== true };
 }
@@ -313,15 +315,15 @@ export async function setPartnerConsent(
   uid: string,
   allowed: boolean,
 ): Promise<{ allowed: boolean; version: number | null }> {
-  const db = deps.getFirestore();
-  const userRef = db.collection('users').doc(uid);
-  const deletionRef = db.collection('account_deletions').doc(uid);
+  const db = deps.repository();
+  const userRef = `users/${uid}`;
+  const deletionRef = `account_deletions/${uid}`;
   const now = nowIso(deps);
   const ledger = makeLedger(deps, allowed ? 'partner_consent_granted' : 'partner_consent_withdrawn', uid);
   let result: { allowed: boolean; version: number | null } = { allowed, version: null };
-  await db.runTransaction(async tx => {
-    const userSnap = await tx.get(userRef);
-    const deletionSnap = await tx.get(deletionRef);
+  await db.transaction(async tx => {
+    const userSnap = await readStored(tx, userRef);
+    const deletionSnap = await readStored(tx, deletionRef);
     // A deletion job must block new consent but cannot obstruct withdrawal.
     // Preserve audit and idempotency while the profile still exists.
     if (deletionSnap.exists && allowed) throw new PartnerReferralError(409, 'account_deletion_pending', 'Das Konto wird gelöscht und kann nicht für Partnerlinks genutzt werden.');
@@ -332,11 +334,11 @@ export async function setPartnerConsent(
       result = { allowed: false, version: null };
       return;
     }
-    const data = userSnap.data();
+    const data = userSnap.data;
     const current = requirePartnerUserData(data);
     const currentlyAllowed = data?.partnerReferralConsent === true;
     const validEpoch = typeof data?.partnerReferralVersion === 'number'
-      && Number.isSafeInteger(data.partnerReferralVersion)
+      && isSafeInteger(data.partnerReferralVersion)
       && data.partnerReferralVersion >= 1;
     // Withdrawing an already-denied consent must not synthesize an epoch,
     // change timestamps or create another personal audit record, regardless
@@ -356,12 +358,12 @@ export async function setPartnerConsent(
     // corrupt or has exhausted the safe integer range. Never synthesize an
     // epoch or re-enable privileges: quarantine the epoch for manual review.
     if (!allowed && currentlyAllowed && (!validEpoch || data.partnerReferralVersion === Number.MAX_SAFE_INTEGER)) {
-      tx.update(userRef, {
+      tx.write(userRef, recordSchema, {
         partnerReferralConsent: false,
         partnerReferralEpochQuarantined: true,
         partnerReferralConsentUpdatedAt: now,
-      });
-      tx.create(ledger.ref, withLedgerDetails(deps, ledger, {
+      }, { merge: true });
+      tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, {
         partnerConsent: false, tokenVersion: validEpoch ? data.partnerReferralVersion : null,
         epochQuarantined: true,
       }));
@@ -377,12 +379,12 @@ export async function setPartnerConsent(
       result = { allowed, version };
       return;
     }
-    tx.update(userRef, {
+    tx.write(userRef, recordSchema, {
       partnerReferralConsent: allowed,
       partnerReferralVersion: version,
       partnerReferralConsentUpdatedAt: now,
-    });
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { partnerConsent: allowed, tokenVersion: version }));
+    }, { merge: true });
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { partnerConsent: allowed, tokenVersion: version }));
     result = { allowed, version };
   });
   return result;
@@ -408,30 +410,30 @@ async function ensureReferralForCampaign(
   campaign: PartnerCampaignRecord,
   userVersion: number,
 ): Promise<{ referralId: string; token: string; url: string } | null> {
-  const db = deps.getFirestore();
+  const db = deps.repository();
   const secret = referralSecret(deps);
   const token = derivePartnerReferralToken(uid, campaign.id, userVersion, secret);
   const referralId = partnerReferralDocumentId(token);
-  const referralRef = db.collection(REFERRALS).doc(referralId);
-  const campaignRef = db.collection(CAMPAIGNS).doc(campaign.id);
-  const userRef = db.collection('users').doc(uid);
-  const deletionRef = db.collection('account_deletions').doc(uid);
+  const referralRef = `${REFERRALS}/${referralId}`;
+  const campaignRef = `${CAMPAIGNS}/${campaign.id}`;
+  const userRef = `users/${uid}`;
+  const deletionRef = `account_deletions/${uid}`;
   const ledger = makeLedger(deps, 'referral_link_issued', uid, { ownerUid: uid, campaignId: campaign.id, referralId });
   const now = nowIso(deps);
-  const ready = await db.runTransaction(async tx => {
-    const [referralSnap, campaignSnap, userSnap, deletionSnap] = await tx.getAll(referralRef, campaignRef, userRef, deletionRef);
+  const ready = await db.transaction(async tx => {
+    const [referralSnap, campaignSnap, userSnap, deletionSnap] = await Promise.all([readStored(tx, referralRef), readStored(tx, campaignRef), readStored(tx, userRef), readStored(tx, deletionRef)]);
     if (!referralSnap || !campaignSnap || !userSnap || !deletionSnap) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    if (deletionSnap.exists || !userSnap.exists || userSnap.data()?.isAdult !== true
-      || userSnap.data()?.partnerReferralConsent !== true || userSnap.data()?.partnerReferralEpochQuarantined === true
-      || (!Number.isSafeInteger(userSnap.data()?.partnerReferralVersion) || userSnap.data()?.partnerReferralVersion < 1 || userSnap.data()?.partnerReferralVersion !== userVersion)
-      || !campaignIsActive(campaignSnap.data())) return false;
+    if (deletionSnap.exists || !userSnap.exists || userSnap.data?.isAdult !== true
+      || userSnap.data?.partnerReferralConsent !== true || userSnap.data?.partnerReferralEpochQuarantined === true
+      || (!isSafeInteger(userSnap.data?.partnerReferralVersion) || userSnap.data?.partnerReferralVersion < 1 || userSnap.data?.partnerReferralVersion !== userVersion)
+      || !campaignIsActive(campaignSnap.data)) return false;
     if (referralSnap.exists) {
-      const existing = referralSnap.data() ?? {};
+      const existing = referralSnap.data ?? {};
       return existing.ownerUid === uid && existing.campaignId === campaign.id && existing.version === userVersion && existing.status === 'active';
     }
-    tx.create(referralRef, {
+    tx.create(referralRef, recordSchema, {
       ownerUid: uid,
       campaignId: campaign.id,
       campaignSlug: campaign.slug,
@@ -442,7 +444,7 @@ async function ensureReferralForCampaign(
       createdAt: now,
       updatedAt: now,
     });
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { campaignSlug: campaign.slug }));
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { campaignSlug: campaign.slug }));
     return true;
   });
   return ready ? { referralId, token, url: buildPartnerUrl(token, publicOrigin(deps)) } : null;
@@ -452,14 +454,14 @@ export async function listPartnerReferralLinks(
   deps: PartnerReferralServiceDeps,
   uid: string,
 ): Promise<{ consent: { allowed: true }; referrals: Array<{ campaign: PartnerCampaignRecord; url: string; clickCount: number; qualifiedConversions: number }> }> {
-  const db = deps.getFirestore();
-  const userSnap = await db.collection('users').doc(uid).get();
-  const data = userSnap.data();
+  const db = deps.repository();
+  const userSnap = await readStored(db, `users/${uid}`);
+  const data = userSnap.data;
   const userState = requirePartnerUserData(data);
-  if (data?.partnerReferralConsent === true && (!Number.isSafeInteger(data?.partnerReferralVersion) || data?.partnerReferralVersion < 1)) throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
+  if (data?.partnerReferralConsent === true && (!isSafeInteger(data?.partnerReferralVersion) || data?.partnerReferralVersion < 1)) throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
   if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Aktiviere zuerst die separate Einwilligung für Partner-Empfehlungen.');
-  const snapshot = await db.collection(CAMPAIGNS).where('status', '==', 'active').limit(100).get();
-  const activeCampaigns = snapshot.docs
+  const snapshot = (await db.list(CAMPAIGNS, recordSchema, {where:['status','==','active'],limit:100})).map(row=>({...row,exists:true}));
+  const activeCampaigns = snapshot
     .map(campaignFrom)
     .filter((campaign): campaign is PartnerCampaignRecord => campaign !== null && campaign.brandVerified && campaign.status === 'active');
   // No campaign is a valid empty state. Do not require a public origin or signing
@@ -470,13 +472,13 @@ export async function listPartnerReferralLinks(
   for (const campaign of activeCampaigns) {
     const ensured = await ensureReferralForCampaign(deps, uid, campaign, userState.version);
     if (!ensured) continue;
-    const ref = await db.collection(REFERRALS).doc(ensured.referralId).get();
-    const values = ref.data() ?? {};
+    const ref = await readStored(db, `${REFERRALS}/${ensured.referralId}`);
+    const values = ref.data ?? {};
     referrals.push({
       campaign,
       url: buildPartnerUrl(ensured.token, origin),
-      clickCount: Number.isSafeInteger(values.clickCount) && values.clickCount >= 0 ? values.clickCount : 0,
-      qualifiedConversions: Number.isSafeInteger(values.qualifiedConversions) && values.qualifiedConversions >= 0 ? values.qualifiedConversions : 0,
+      clickCount: isSafeInteger(values.clickCount) && values.clickCount >= 0 ? values.clickCount : 0,
+      qualifiedConversions: isSafeInteger(values.qualifiedConversions) && values.qualifiedConversions >= 0 ? values.qualifiedConversions : 0,
     });
   }
   return { consent: { allowed: true }, referrals };
@@ -489,33 +491,33 @@ export async function recordPartnerInteraction(
   action: 'copy' | 'share' | 'qr_view' | 'open_link',
 ): Promise<{ ok: true }> {
   if (!['copy', 'share', 'qr_view', 'open_link'].includes(action)) throw new PartnerReferralError(400, 'invalid_interaction', 'Diese Partneraktion ist nicht zulässig.');
-  const db = deps.getFirestore();
-  const userRef = db.collection('users').doc(uid);
-  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
+  const db = deps.repository();
+  const userRef = `users/${uid}`;
+  const campaignRef = `${CAMPAIGNS}/${campaignId}`;
   const ledger = makeLedger(deps, 'referral_' + action, uid, { campaignId });
-  const userSnap = await userRef.get();
-  const data = userSnap.data();
+  const userSnap = await readStored(db, userRef);
+  const data = userSnap.data;
   const state = requirePartnerUserData(data);
   if ((data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true)) throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
-  const campaign = campaignFrom(await campaignRef.get());
+  const campaign = campaignFrom(await readStored(db, campaignRef));
   if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
   const token = derivePartnerReferralToken(uid, campaign.id, state.version, referralSecret(deps));
   const referralId = partnerReferralDocumentId(token);
-  const referralRef = db.collection(REFERRALS).doc(referralId);
+  const referralRef = `${REFERRALS}/${referralId}`;
   const now = nowIso(deps);
-  await db.runTransaction(async tx => {
-    const [savedUser, savedCampaign, referral, deletion] = await tx.getAll(userRef, campaignRef, referralRef, db.collection('account_deletions').doc(uid));
+  await db.transaction(async tx => {
+    const [savedUser, savedCampaign, referral, deletion] = await Promise.all([readStored(tx, userRef), readStored(tx, campaignRef), readStored(tx, referralRef), readStored(tx, `account_deletions/${uid}`)]);
     if (!savedUser || !savedCampaign || !referral || !deletion) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    const savedData = savedUser.data();
+    const savedData = savedUser.data;
     if (deletion.exists || savedData?.partnerReferralConsent !== true || savedData?.partnerReferralEpochQuarantined === true
-      || (!Number.isSafeInteger(savedData?.partnerReferralVersion) || savedData?.partnerReferralVersion < 1 || savedData?.partnerReferralVersion !== state.version)
-      || !campaignIsActive(savedCampaign.data()) || !referral.exists || referral.data()?.ownerUid !== uid) {
+      || (!isSafeInteger(savedData?.partnerReferralVersion) || savedData?.partnerReferralVersion < 1 || savedData?.partnerReferralVersion !== state.version)
+      || !campaignIsActive(savedCampaign.data) || !referral.exists || referral.data?.ownerUid !== uid) {
       throw new PartnerReferralError(409, 'partner_interaction_stale', 'Der Partnerlink ist nicht mehr aktuell. Bitte lade die Übersicht neu.');
     }
-    tx.create(ledger.ref, ledger.record);
-    tx.update(referralRef, { updatedAt: now });
+    tx.create(ledger.ref, recordSchema, ledger.record);
+    tx.write(referralRef, recordSchema, { updatedAt: now }, { merge: true });
   });
   return { ok: true };
 }
@@ -525,25 +527,25 @@ export async function openPartnerReferral(
   uid: string,
   campaignId: string,
 ): Promise<{ url: string }> {
-  const db = deps.getFirestore();
-  const userRef = db.collection('users').doc(uid);
-  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
-  const deletionRef = db.collection('account_deletions').doc(uid);
+  const db = deps.repository();
+  const userRef = `users/${uid}`;
+  const campaignRef = `${CAMPAIGNS}/${campaignId}`;
+  const deletionRef = `account_deletions/${uid}`;
   const ledger = makeLedger(deps, 'referral_open_link', uid, { campaignId });
   // An owner's own visit is not an attributed referral. Resolve the current
   // destination and authorization together; do not issue or disclose a token.
-  return db.runTransaction(async tx => {
-    const [user, campaignSnapshot, deletion] = await tx.getAll(userRef, campaignRef, deletionRef);
+  return db.transaction(async tx => {
+    const [user, campaignSnapshot, deletion] = await Promise.all([readStored(tx, userRef), readStored(tx, campaignRef), readStored(tx, deletionRef)]);
     if (!user || !campaignSnapshot || !deletion) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    const data = user.data();
+    const data = user.data;
     requirePartnerUserData(data);
     if (deletion.exists) throw new PartnerReferralError(409, 'partner_interaction_stale', 'Das Konto wird gelöscht.');
     if (data?.partnerReferralConsent !== true || data?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(403, 'partner_consent_required', 'Die Partner-Einwilligung ist nicht aktiv.');
     }
-    if (!Number.isSafeInteger(data?.partnerReferralVersion) || Number(data?.partnerReferralVersion) < 1) {
+    if (!isSafeInteger(data?.partnerReferralVersion) || Number(data?.partnerReferralVersion) < 1) {
       throw new PartnerReferralError(403, 'partner_consent_epoch_missing', 'Die Partner-Einwilligungsversion muss geprüft werden.');
     }
     const campaign = campaignFrom(campaignSnapshot);
@@ -551,7 +553,7 @@ export async function openPartnerReferral(
       throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht verfügbar.');
     }
     const url = directDestination(campaign.destinationUrl);
-    tx.create(ledger.ref, withLedgerDetails(deps, ledger, { tokenForwarded: false }));
+    tx.create(ledger.ref, recordSchema, withLedgerDetails(deps, ledger, { tokenForwarded: false }));
     return { url };
   });
 }
@@ -563,75 +565,75 @@ export async function recordPartnerClick(
   visitorUid: string | null = null,
 ): Promise<{ url: string; tracked: boolean }> {
   if (!/^[a-f0-9]{64}$/.test(token)) throw new PartnerReferralError(404, 'partner_link_not_found', 'Dieser Partnerlink ist nicht verfügbar.');
-  const db = deps.getFirestore();
+  const db = deps.repository();
   const referralId = partnerReferralDocumentId(token);
-  const referralRef = db.collection(REFERRALS).doc(referralId);
-  const referralSnap = await referralRef.get();
+  const referralRef = `${REFERRALS}/${referralId}`;
+  const referralSnap = await readStored(db, referralRef);
   if (!referralSnap.exists) throw new PartnerReferralError(404, 'partner_link_not_found', 'Dieser Partnerlink ist nicht verfügbar.');
-  const referralData = referralSnap.data() ?? {};
+  const referralData = referralSnap.data ?? {};
   const ownerUid = typeof referralData.ownerUid === 'string' ? referralData.ownerUid : '';
   const campaignId = typeof referralData.campaignId === 'string' ? referralData.campaignId : '';
   const referralVersion = referralData.version;
   // A document ID derived from an HMAC token is not proof that its mutable
   // owner, campaign and epoch fields still correspond to that same token.
-  if (!ownerUid || !campaignId || !Number.isSafeInteger(referralVersion) || referralVersion < 1
+  if (!ownerUid || !campaignId || !isSafeInteger(referralVersion) || referralVersion < 1
     || derivePartnerReferralToken(ownerUid, campaignId, referralVersion, referralSecret(deps)) !== token) {
     throw new PartnerReferralError(404, 'partner_link_not_found', 'Dieser Partnerlink ist nicht verfügbar.');
   }
-  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
-  const ownerRef = db.collection('users').doc(ownerUid);
-  const [campaignSnap, ownerSnap] = await Promise.all([campaignRef.get(), ownerRef.get()]);
+  const campaignRef = `${CAMPAIGNS}/${campaignId}`;
+  const ownerRef = `users/${ownerUid}`;
+  const [campaignSnap, ownerSnap] = await Promise.all([readStored(db, campaignRef), readStored(db, ownerRef)]);
   const campaign = campaignFrom(campaignSnap);
   if (!campaign || campaign.status !== 'active' || !campaign.brandVerified) throw new PartnerReferralError(410, 'campaign_unavailable', 'Diese Partnerkampagne ist nicht mehr aktiv.');
   const destination = directDestination(campaign.destinationUrl);
-  const ownerData = ownerSnap.data();
+  const ownerData = ownerSnap.data;
   const activeConsent = ownerData?.partnerReferralConsent === true
     && ownerData?.partnerReferralEpochQuarantined !== true
-    && (Number.isSafeInteger(ownerData?.partnerReferralVersion) && ownerData?.partnerReferralVersion >= 1 && ownerData?.partnerReferralVersion === referralData.version)
+    && (isSafeInteger(ownerData?.partnerReferralVersion) && ownerData?.partnerReferralVersion >= 1 && ownerData?.partnerReferralVersion === referralData.version)
     && referralData.status === 'active';
   // Preview crawlers and the link owner's authenticated visit never earn clicks.
   if (!activeConsent || !visitorUid || visitorUid === ownerUid || request.method !== 'GET'
     || isAutomatedPartnerClick(request)) return { url: destination, tracked: false };
 
   // Consent for the link owner does not authorize tracking an unrelated visitor.
-  const visitorRef = db.collection('users').doc(visitorUid);
-  const visitorDeletionRef = db.collection('account_deletions').doc(visitorUid);
-  const visitorSnap = await visitorRef.get();
-  if (!visitorSnap.exists || visitorSnap.data()?.isAdult !== true
-    || visitorSnap.data()?.partnerReferralConsent !== true || visitorSnap.data()?.partnerReferralEpochQuarantined === true
-    || !Number.isSafeInteger(visitorSnap.data()?.partnerReferralVersion) || visitorSnap.data()?.partnerReferralVersion < 1) {
+  const visitorRef = `users/${visitorUid}`;
+  const visitorDeletionRef = `account_deletions/${visitorUid}`;
+  const visitorSnap = await readStored(db, visitorRef);
+  if (!visitorSnap.exists || visitorSnap.data?.isAdult !== true
+    || visitorSnap.data?.partnerReferralConsent !== true || visitorSnap.data?.partnerReferralEpochQuarantined === true
+    || !isSafeInteger(visitorSnap.data?.partnerReferralVersion) || visitorSnap.data?.partnerReferralVersion < 1) {
     return { url: destination, tracked: false };
   }
   // Pin the visitor consent epoch observed before the transactional eligibility read.
   // An epoch change between these reads is a new authorization period.
-  const visitorConsentVersion = visitorSnap.data()?.partnerReferralVersion;
+  const visitorConsentVersion = visitorSnap.data?.partnerReferralVersion;
   const ledger = makeLedger(deps, 'referral_click_counted', null, { ownerUid, campaignId, referralId });
   const now = nowIso(deps);
-  const tracked = await db.runTransaction(async tx => {
-    const deletionRef = db.collection('account_deletions').doc(ownerUid);
-    const [savedReferral, savedCampaign, savedOwner, deletion, savedVisitor, visitorDeletion] = await tx.getAll(referralRef, campaignRef, ownerRef, deletionRef, visitorRef, visitorDeletionRef);
+  const tracked = await db.transaction(async tx => {
+    const deletionRef = `account_deletions/${ownerUid}`;
+    const [savedReferral, savedCampaign, savedOwner, deletion, savedVisitor, visitorDeletion] = await Promise.all([readStored(tx, referralRef), readStored(tx, campaignRef), readStored(tx, ownerRef), readStored(tx, deletionRef), readStored(tx, visitorRef), readStored(tx, visitorDeletionRef)]);
     if (!savedReferral || !savedCampaign || !savedOwner || !deletion || !savedVisitor || !visitorDeletion) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    const owner = savedOwner.data();
-    const referral = savedReferral.data();
+    const owner = savedOwner.data;
+    const referral = savedReferral.data;
     if (visitorDeletion.exists || !savedVisitor.exists
-      || savedVisitor.data()?.isAdult !== true
-      || savedVisitor.data()?.partnerReferralConsent !== true || savedVisitor.data()?.partnerReferralEpochQuarantined === true
-      || !Number.isSafeInteger(savedVisitor.data()?.partnerReferralVersion) || savedVisitor.data()?.partnerReferralVersion < 1
-      || savedVisitor.data()?.partnerReferralVersion !== visitorConsentVersion
+      || savedVisitor.data?.isAdult !== true
+      || savedVisitor.data?.partnerReferralConsent !== true || savedVisitor.data?.partnerReferralEpochQuarantined === true
+      || !isSafeInteger(savedVisitor.data?.partnerReferralVersion) || savedVisitor.data?.partnerReferralVersion < 1
+      || savedVisitor.data?.partnerReferralVersion !== visitorConsentVersion
       // A campaign destination edit after preflight invalidates attribution.
       // Never forward a referral token to a destination that was not rechecked.
-      || savedCampaign.data()?.destinationUrl !== campaign.destinationUrl
+      || savedCampaign.data?.destinationUrl !== campaign.destinationUrl
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
       || referral?.version !== referralVersion
-      || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data())
+      || deletion.exists || !savedReferral.exists || !campaignIsActive(savedCampaign.data)
       || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
-      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
+      || (!isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || referral?.status !== 'active') return false;
-    tx.update(referralRef, { clickCount: FieldValue.increment(1), lastClickAt: now, updatedAt: now });
-    tx.update(campaignRef, { clickCount: FieldValue.increment(1), updatedAt: now });
-    tx.create(ledger.ref, { ...ledger.record });
+    tx.write(referralRef, recordSchema, { clickCount: FieldValue.increment(1), lastClickAt: now, updatedAt: now }, { merge: true });
+    tx.write(campaignRef, recordSchema, { clickCount: FieldValue.increment(1), updatedAt: now }, { merge: true });
+    tx.create(ledger.ref, recordSchema, { ...ledger.record });
     return true;
   });
   return tracked ? { url: trackedDestination(destination, token), tracked: true } : { url: destination, tracked: false };
@@ -644,12 +646,12 @@ export async function recordPartnerConversion(
   partnerSecret: string,
 ): Promise<{ ok: true; duplicate: boolean; rewardStatus: 'pending_verification' | 'already_recorded' }> {
   if (partnerSecret.length < 32) throw new PartnerReferralError(503, 'partner_webhook_unconfigured', 'Der Partner-Rückkanal ist nicht konfiguriert.');
-  const db = deps.getFirestore();
+  const db = deps.repository();
   const referralId = partnerReferralDocumentId(payload.referralToken);
-  const referralRef = db.collection(REFERRALS).doc(referralId);
-  const referralInitial = await referralRef.get();
+  const referralRef = `${REFERRALS}/${referralId}`;
+  const referralInitial = await readStored(db, referralRef);
   if (!referralInitial.exists) throw new PartnerReferralError(404, 'partner_link_not_found', 'Der verknüpfte Partnerlink wurde nicht gefunden.');
-  const initial = referralInitial.data() ?? {};
+  const initial = referralInitial.data ?? {};
   const ownerUid = typeof initial.ownerUid === 'string' ? initial.ownerUid : '';
   if (!ownerUid || ownerUid === payload.buyerUid) throw new PartnerReferralError(409, 'self_referral_rejected', 'Selbst-Empfehlungen sind nicht prämienberechtigt.');
   const campaignId = typeof initial.campaignId === 'string' ? initial.campaignId : '';
@@ -657,15 +659,15 @@ export async function recordPartnerConversion(
   // A referral document ID does not prove mutable owner/campaign/version fields
   // still belong to the signed token; verify the HMAC binding before processing
   // any provider assertion.
-  if (!campaignId || !Number.isSafeInteger(initialVersion) || initialVersion < 1
+  if (!campaignId || !isSafeInteger(initialVersion) || initialVersion < 1
     || derivePartnerReferralToken(ownerUid, campaignId, initialVersion, referralSecret(deps)) !== payload.referralToken) {
     throw new PartnerReferralError(404, 'partner_link_not_found', 'Der verknüpfte Partnerlink wurde nicht gefunden.');
   }
-  const campaignRef = db.collection(CAMPAIGNS).doc(campaignId);
-  const ownerRef = db.collection('users').doc(ownerUid);
-  const buyerRef = db.collection('users').doc(payload.buyerUid);
-  const ownerDeletionRef = db.collection('account_deletions').doc(ownerUid);
-  const buyerDeletionRef = db.collection('account_deletions').doc(payload.buyerUid);
+  const campaignRef = `${CAMPAIGNS}/${campaignId}`;
+  const ownerRef = `users/${ownerUid}`;
+  const buyerRef = `users/${payload.buyerUid}`;
+  const ownerDeletionRef = `account_deletions/${ownerUid}`;
+  const buyerDeletionRef = `account_deletions/${payload.buyerUid}`;
   // Provider signing-key rotation must not reset idempotency. Event and buyer
   // claim identifiers use the stable audit key, not the rotating campaign webhook key.
   const idempotencySecret = auditSecret(deps);
@@ -676,8 +678,8 @@ export async function recordPartnerConversion(
   const eventBinding = crypto.createHmac('sha256', idempotencySecret)
     .update(JSON.stringify(['klar-partner-event-binding:v1', slug, payload.eventId, payload.referralToken, payload.buyerUid]), 'utf8')
     .digest('hex');
-  const eventRef = db.collection(CONVERSIONS).doc(eventIdHash);
-  const buyerClaimRef = db.collection(BUYER_CLAIMS).doc(partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret));
+  const eventRef = `${CONVERSIONS}/${eventIdHash}`;
+  const buyerClaimRef = `${BUYER_CLAIMS}/${partnerBuyerClaimDocumentId(slug, payload.buyerUid, idempotencySecret)}`;
   const now = nowIso(deps);
   // A partner signature attests only the provider assertion, never the purchase.
   const audit = makeLedger(deps, 'partner_conversion_asserted', null, {
@@ -687,23 +689,21 @@ export async function recordPartnerConversion(
     referralId,
   });
 
-  const result = await db.runTransaction(async tx => {
-    const [referralSnap, campaignSnap, ownerSnap, buyerSnap, ownerDeletion, buyerDeletion, eventSnap, buyerClaimSnap] = await tx.getAll(
-      referralRef, campaignRef, ownerRef, buyerRef, ownerDeletionRef, buyerDeletionRef, eventRef, buyerClaimRef,
-    );
+  const result = await db.transaction(async tx => {
+    const [referralSnap, campaignSnap, ownerSnap, buyerSnap, ownerDeletion, buyerDeletion, eventSnap, buyerClaimSnap] = await Promise.all([readStored(tx, referralRef), readStored(tx, campaignRef), readStored(tx, ownerRef), readStored(tx, buyerRef), readStored(tx, ownerDeletionRef), readStored(tx, buyerDeletionRef), readStored(tx, eventRef), readStored(tx, buyerClaimRef)]);
     if (!referralSnap || !campaignSnap || !ownerSnap || !buyerSnap || !ownerDeletion || !buyerDeletion || !eventSnap || !buyerClaimSnap) {
       throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
     }
-    const referral = referralSnap.data();
-    const campaign = campaignSnap.data();
-    const owner = ownerSnap.data();
-    const buyer = buyerSnap.data();
+    const referral = referralSnap.data;
+    const campaign = campaignSnap.data;
+    const owner = ownerSnap.data;
+    const buyer = buyerSnap.data;
     if (ownerDeletion.exists || buyerDeletion.exists || !campaignIsActive(campaign)
       || campaign?.slug !== slug || !referralSnap.exists || referral?.status !== 'active'
       || referral?.ownerUid !== ownerUid || referral?.campaignId !== campaignId
       || referral?.version !== initialVersion
       || !ownerSnap.exists || owner?.isAdult !== true || owner?.partnerReferralConsent !== true || owner?.partnerReferralEpochQuarantined === true
-      || (!Number.isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
+      || (!isSafeInteger(owner?.partnerReferralVersion) || owner?.partnerReferralVersion < 1 || owner?.partnerReferralVersion !== referral?.version)
       || !buyerSnap.exists || buyer?.isAdult !== true || buyer?.partnerReferralConsent !== true || buyer?.partnerReferralEpochQuarantined === true) {
       throw new PartnerReferralError(403, 'conversion_not_eligible', 'Die Empfehlung erfüllt die aktuellen Alters-, Einwilligungs- oder Kampagnenbedingungen nicht.');
     }
@@ -713,14 +713,14 @@ export async function recordPartnerConversion(
     // Do not infer a consent epoch for absent, corrupt, negative or fractional
     // values. A legacy user must re-establish a recorded consent epoch.
     if (typeof buyerConsentVersion !== 'number'
-      || !Number.isSafeInteger(buyerConsentVersion) || buyerConsentVersion < 1) {
+      || !isSafeInteger(buyerConsentVersion) || buyerConsentVersion < 1) {
       throw new PartnerReferralError(403, 'buyer_consent_epoch_missing', 'Die Partner-Einwilligung muss erneut bestätigt werden.');
     }
     // A previously recorded event does not bypass fresh consent, legal hold,
     // deletion or campaign-eligibility checks on a provider retry.
     if (eventSnap.exists) {
       // Legacy records lacking a binding must be reviewed, never silently trusted.
-      if (eventSnap.data()?.eventBinding !== eventBinding) {
+      if (eventSnap.data?.eventBinding !== eventBinding) {
         throw new PartnerReferralError(409, 'partner_event_id_conflict', 'Die Partner-Ereigniskennung ist bereits einer anderen Meldung zugeordnet.');
       }
       // Both conversion and buyer-claim documents were atomically created.
@@ -728,35 +728,35 @@ export async function recordPartnerConversion(
       // do not acknowledge a corrupt replay as a successful duplicate.
       // A valid HMAC binding cannot attest that persisted event fields were
       // never changed independently. Quarantine inconsistent event records.
-      if (eventSnap.data()?.campaignId !== campaignId
-        || eventSnap.data()?.referralId !== referralId
-        || eventSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
-        || eventSnap.data()?.ownerRef !== pseudonymousPartnerUid(ownerUid, idempotencySecret)
-        || eventSnap.data()?.proofStatus !== 'partner_assertion_only'
-        || eventSnap.data()?.rewardStatus !== 'pending_verification'
-        || eventSnap.data()?.buyerConsentVersion !== buyerConsentVersion) {
+      if (eventSnap.data?.campaignId !== campaignId
+        || eventSnap.data?.referralId !== referralId
+        || eventSnap.data?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || eventSnap.data?.ownerRef !== pseudonymousPartnerUid(ownerUid, idempotencySecret)
+        || eventSnap.data?.proofStatus !== 'partner_assertion_only'
+        || eventSnap.data?.rewardStatus !== 'pending_verification'
+        || eventSnap.data?.buyerConsentVersion !== buyerConsentVersion) {
         throw new PartnerReferralError(409, 'partner_event_inconsistent', 'Der Partner-Ereignisdatensatz muss unabhängig überprüft werden.');
       }
       if (!buyerClaimSnap.exists
-        || buyerClaimSnap.data()?.conversionId !== eventIdHash
-        || buyerClaimSnap.data()?.campaignId !== campaignId
-        || buyerClaimSnap.data()?.referralId !== referralId
-        || buyerClaimSnap.data()?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
-        || buyerClaimSnap.data()?.buyerConsentVersion !== buyerConsentVersion
+        || buyerClaimSnap.data?.conversionId !== eventIdHash
+        || buyerClaimSnap.data?.campaignId !== campaignId
+        || buyerClaimSnap.data?.referralId !== referralId
+        || buyerClaimSnap.data?.buyerRef !== pseudonymousPartnerUid(payload.buyerUid, idempotencySecret)
+        || buyerClaimSnap.data?.buyerConsentVersion !== buyerConsentVersion
         // Conversion assertion and buyer claim are created together. An
         // inconsistent timestamp indicates incomplete or altered evidence.
-        || typeof eventSnap.data()?.createdAt !== 'string'
-        || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(eventSnap.data()!.createdAt)
-        || !Number.isFinite(Date.parse(eventSnap.data()!.createdAt))
-        || new Date(Date.parse(eventSnap.data()!.createdAt)).toISOString() !== eventSnap.data()!.createdAt
-        || buyerClaimSnap.data()?.createdAt !== eventSnap.data()?.createdAt) {
+        || typeof eventSnap.data?.createdAt !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(eventSnap.data!.createdAt)
+        || !Number.isFinite(Date.parse(eventSnap.data!.createdAt))
+        || new Date(Date.parse(eventSnap.data!.createdAt)).toISOString() !== eventSnap.data!.createdAt
+        || buyerClaimSnap.data?.createdAt !== eventSnap.data?.createdAt) {
         throw new PartnerReferralError(409, 'partner_claim_inconsistent', 'Die Partner-Ereignis- und Käuferzuordnung muss überprüft werden.');
       }
       return { duplicate: true as const };
     }
     if (buyerClaimSnap.exists) throw new PartnerReferralError(409, 'duplicate_conversion', 'Für dieses Klar-Konto wurde bereits eine Prämie zu dieser Kampagne berücksichtigt.');
     const buyerRefHash = pseudonymousPartnerUid(payload.buyerUid, auditSecret(deps));
-    tx.create(eventRef, {
+    tx.create(eventRef, recordSchema, {
       campaignId,
       referralId,
       ownerRef: pseudonymousPartnerUid(ownerUid, auditSecret(deps)),
@@ -768,7 +768,7 @@ export async function recordPartnerConversion(
       rewardLabel: String(campaign.rewardLabel ?? ''),
       createdAt: now,
     });
-    tx.create(buyerClaimRef, {
+    tx.create(buyerClaimRef, recordSchema, {
       campaignId,
       referralId,
       conversionId: eventIdHash,
@@ -778,7 +778,7 @@ export async function recordPartnerConversion(
     });
     // Partner HMAC proves message origin, not purchase or buyer attribution. Never credit
     // qualified conversion counters or mark rewards earned from this assertion alone.
-    tx.create(audit.ref, withLedgerDetails(deps, audit, { rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' }));
+    tx.create(audit.ref, recordSchema, withLedgerDetails(deps, audit, { rewardStatus: 'pending_verification', proofStatus: 'partner_assertion_only' }));
     return { duplicate: false as const };
   });
   return { ok: true, duplicate: result.duplicate, rewardStatus: result.duplicate ? 'already_recorded' : 'pending_verification' };

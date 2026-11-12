@@ -205,7 +205,7 @@ export function AdminComplianceAuditWidget() {
         </div>
 
         <span className="text-[11px] text-stone-400">
-          Format: RFC 4180 CSV mit UTF-8 BOM für Excel & Audit-Software
+          Format: RFC 4180 CSV mit UTF-8 BOM für Excel &amp; Audit-Software
         </span>
       </div>
 

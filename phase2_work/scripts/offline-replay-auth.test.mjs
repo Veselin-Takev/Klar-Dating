@@ -18,7 +18,7 @@ test('protected API obtains and verifies Firebase identity before mounting chat 
 test('sender claims in offline message body cannot disagree with verified token', () => {
   assert.match(send, /\[body\.uid, body\.ownerUid, body\.senderId\]\.some\(claim => claim !== undefined && claim !== uid\)/);
   assert.match(send, /code: 'sender_mismatch'/);
-  assert.match(send, /const prior = await db\.runTransaction\(async \(tx: Transaction\) => \{/);
+  assert.match(send, /const prior = await db\.transaction\(async tx => \{/);
   assert.match(send, /await readChatAccess\(db, tx, chatId, uid, true\)/);
   assert.match(send, /await readChatAccess\(db, tx, chatId, uid, true\)/);
   assert.match(send, /senderId: uid/);

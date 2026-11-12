@@ -166,7 +166,7 @@ export default function AdminDashboard() {
               <Server className="text-brand" />
               System Administration
             </h1>
-            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Enterprise Monitoring & Wartung</p>
+            <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Enterprise Monitoring &amp; Wartung</p>
           </div>
 
           <button
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
             className="self-start sm:self-auto flex items-center gap-2 px-3.5 py-2 rounded-xl bg-stone-900 dark:bg-stone-100 text-stone-100 dark:text-stone-900 text-xs font-semibold hover:opacity-90 transition-opacity shadow-xs cursor-pointer"
           >
             <Terminal size={15} />
-            <span>Console & Fehler-Log (20)</span>
+            <span>Console &amp; Fehler-Log (20)</span>
           </button>
         </div>
 
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('sync')}
             className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === 'sync' ? 'border-brand text-brand dark:border-brand-light dark:text-brand-light' : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
           >
-            Performance & Sync
+            Performance &amp; Sync
           </button>
           <button
             onClick={() => setActiveTab('system')}
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
             id="tab-compliance-audit"
             className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === 'compliance' ? 'border-brand text-brand dark:border-brand-light dark:text-brand-light' : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
           >
-            § 312k BGB Audit & CSV
+            § 312k BGB Audit &amp; CSV
           </button>
           <button
             onClick={() => setActiveTab('i18n')}
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
             id="tab-partner-campaigns"
             className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === 'partners' ? 'border-brand text-brand dark:border-brand-light dark:text-brand-light' : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
           >
-            Klar & Partner
+            Klar &amp; Partner
           </button>
         </div>
       </div>
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
             <div className="bg-white dark:bg-stone-800 p-4 rounded-2xl shadow-sm border border-stone-200 dark:border-stone-700 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold text-stone-900 dark:text-white flex items-center gap-2">
-                  <Server size={18} /> Cloud Functions & System
+                  <Server size={18} /> Cloud Functions &amp; System
                 </h2>
                 <button
                   onClick={downloadErrorLogsCSV}

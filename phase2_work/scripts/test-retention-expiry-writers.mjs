@@ -30,9 +30,9 @@ let ok = run(); assert.equal(ok.status,0,ok.stderr);
 const cases = [
   ['passwordReset group', 'src/server/passwordReset.ts', "'password_reset_rate_limits'", "'untracked_reset_limits'"],
   ['email group', 'src/server/email.ts', "'verification_mail_rate_limits'", "'untracked_mail_limits'"],
-  ['account deletion group', 'src/server/routes/account.ts', "'account_deletion_rate_limits'", "'untracked_account_limits'"],
+  ['account deletion group', 'src/server/routes/account.ts', 'account_deletion_rate_limits/', 'untracked_account_limits/'],
   ['KYC start group', 'src/server/verification/diditKyc.ts', "'kyc_start_rate_limits'", "'untracked_kyc_limits'"],
-  ['KYC reconciliation group', 'src/server/verification/diditKyc.ts', 'kyc_reconciliation_events/${claimed}', 'untracked_reconciliation/${claimed}'],
+  ['KYC reconciliation group', 'src/server/verification/diditKyc.ts', 'kyc_reconciliation_events/${sessionId}', 'untracked_reconciliation/${sessionId}'],
   ['chat message group', 'src/server/routes/chat.ts', "'chat_message_rate_limits'", "'unknown_message_limits'"],
   ['chat gate group', 'src/server/routes/chat.ts', "'chat_gate_answer_rate_limits'", "'unknown_gate_limits'"],
   ['shared expiry writer', 'src/server/distributedRateLimiter.ts', 'expiresAt: new Date(', 'obsoleteAt: new Date('],

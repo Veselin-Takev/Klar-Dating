@@ -1,3 +1,5 @@
+// Pure domain journey: provider boundary injected; native security regressions exercise the default enforcer.
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -20,6 +22,7 @@ interface MockDocSnapshot {
 interface MockTransaction {
   get: (ref: any) => Promise<MockDocSnapshot>;
   set: (ref: any, data: any, options?: any) => void;
+  delete: (ref: any) => void;
 }
 
 
@@ -41,8 +44,10 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
     }),
     runTransaction: async <T>(updateFunction: (transaction: MockTransaction) => Promise<T>): Promise<T> => {
       const stagedSets: Array<{ collection: string; id: string; data: any; merge?: boolean }> = [];
+      const stagedDeletes: Array<{collectionName: string; id: string}> = [];
 
       const transaction: MockTransaction = {
+        delete: ref => { stagedDeletes.push(ref); },
         get: async (ref: any): Promise<MockDocSnapshot> => {
           const col = db[ref.collectionName as keyof InMemoryDb];
           const item = col?.get(ref.id);
@@ -62,6 +67,8 @@ function createMockFirestore(seedData?: { reports?: Record<string, any>; users?:
       };
 
       const result = await updateFunction(transaction);
+
+      for (const ref of stagedDeletes) db[ref.collectionName as keyof InMemoryDb]?.delete(ref.id);
 
       for (const op of stagedSets) {
         const col = db[op.collection as keyof InMemoryDb];
@@ -120,14 +127,16 @@ test('DSA Engine: recordModerationDecision suspends account and updates report w
   });
 
   const statement = await recordModerationDecision(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_001',
     'mod_chief',
     {
       restrictionType: 'account_suspension',
       legalGround: 'fraud_scam',
       factsAndCircumstances: 'Kommerzielle Betrugsabsicht mit externen Zahlungslinks nachgewiesen.',
-    }
+    },
+    new Date(),
+    async () => undefined
   );
 
   assert.equal(statement.restrictionType, 'account_suspension');
@@ -173,7 +182,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        firestore,
+        scopedSdkFixture(firestore),
         'rep_002',
         'usr_unrelated_stranger',
         'Ich möchte mich für diesen Nutzer beschweren.'
@@ -185,7 +194,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   // 2. Target user appeals within window
   const nowAppeal = new Date('2026-09-10T10:00:00Z');
   const appeal = await submitDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_002',
     'usr_target',
     'Die Anschuldigung trifft nicht zu, mein Dokument war gültig.',
@@ -200,7 +209,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        firestore,
+        scopedSdkFixture(firestore),
         'rep_002',
         'usr_target',
         'Noch ein zweiter Beschwerdeversuch.'
@@ -224,7 +233,7 @@ test('DSA Engine: submitDsaAppeal enforces party legitimacy, window limits and p
   await assert.rejects(
     async () => {
       await submitDsaAppeal(
-        lateFs,
+        scopedSdkFixture(lateFs),
         'rep_late',
         'usr_late_target',
         'Sehr späte Beschwerde nach Ablauf aller Fristen.',
@@ -258,12 +267,13 @@ test('DSA Engine: reviewDsaAppeal overturns restriction and restores account sta
 
   const reviewTime = new Date('2026-09-24T15:00:00Z');
   const reviewed = await reviewDsaAppeal(
-    firestore,
+    scopedSdkFixture(firestore),
     'rep_003',
     'super_mod_anna',
     'overturned',
     'Nachmanueller Prüfung: Dokument ist vollgültig. Sperre aufgehoben.',
-    reviewTime
+    reviewTime,
+    async () => undefined
   );
 
   assert.equal(reviewed.status, 'overturned');

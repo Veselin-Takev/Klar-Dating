@@ -4,7 +4,7 @@ const modal = fs.readFileSync('src/components/LegalUpdatesModal.tsx','utf8');
 const layout = fs.readFileSync('src/components/Layout.tsx','utf8');
 const rules = fs.readFileSync('firestore.rules','utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json','utf8'));
-for (const marker of ["collection('legal_updates')", "legal_acknowledgements", 'runTransaction', 'publishedAt', 'version', 'sourceUrl']) if (!route.includes(marker)) throw new Error(`Missing legal update backend boundary: ${marker}`);
+for (const marker of ["list('legal_updates'", "legal_acknowledgements", 'db.transaction(', 'publishedAt', 'version', 'sourceUrl']) if (!route.includes(marker)) throw new Error(`Missing legal update backend boundary: ${marker}`);
 for (const marker of ['role="tablist"', 'role="tab"', 'aria-selected', 'aria-controls', 'role="tabpanel"', 'useModalAccessibility', 'sourceUrl']) if (!modal.includes(marker)) throw new Error(`Missing legal update A11y/UI boundary: ${marker}`);
 if (layout.includes('klar_ack_legal_ids') || layout.includes('localStorage')) throw new Error('Legal acknowledgement must not use browser persistence');
 if (!rules.includes('match /legal_updates/{updateId}') || !rules.includes('match /users/{userId}/legal_acknowledgements/{updateId}')) throw new Error('Missing Firestore legal update rules');

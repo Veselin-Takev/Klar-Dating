@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from '../db';
+import { scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
 import { z } from 'zod';
 
 const AUDIT_TYPE = /^[a-z][a-z0-9_.-]{2,79}$/;
@@ -34,6 +35,10 @@ export async function appendAuditLog(
   firestore: Firestore,
   input: { type: string; actorUid: string; metadata?: Record<string, string | number | boolean | null> },
 ): Promise<string> {
+  return appendRepositoryAuditLog(scopeServiceDatabase(firestore, 'auth'), input);
+}
+export async function appendRepositoryAuditLog(repo: Pick<import('../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository').TenantAwareFirestoreRepository, 'create'>,
+  input: {type: string; actorUid: string; metadata?: Record<string, string | number | boolean | null>}): Promise<string> {
   const payload = auditEventSchema.parse({
     schemaVersion: 1,
     type: input.type,
@@ -41,7 +46,7 @@ export async function appendAuditLog(
     timestamp: FieldValue.serverTimestamp(),
     metadata: input.metadata ?? {},
   });
-  const ref = firestore.collection('audit_logs').doc();
-  await ref.create(payload);
-  return ref.id;
+  const id = crypto.randomUUID();
+  await repo.create(`audit_logs/${id}`, auditEventSchema, payload);
+  return id;
 }

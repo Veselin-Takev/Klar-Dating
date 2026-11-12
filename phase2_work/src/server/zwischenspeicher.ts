@@ -1,4 +1,11 @@
-import { getDb as getFirestore } from './db.ts';
+import { getServiceRepository } from './firestoreRepository/nativeDatabase';
+import type { TenantAwareFirestoreRepository } from '../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
+const entrySchema = z.object({
+  daten: z.record(z.string(), z.unknown()),
+  zeit: z.string().datetime(),
+});
 import { ZWISCHENSPEICHER_HOECHSTALTER_STUNDEN } from './kiPolitik.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -101,28 +108,32 @@ export function pfad(uid: string): string {
  *
  * Ein zu alter Eintrag wird dabei GELÖSCHT, nicht nur übergangen.
  */
-export async function lies(uid: string, endpunkt: string): Promise<Eintrag | null> {
+export async function lies(
+  uid: string,
+  endpunkt: string,
+  repository?: TenantAwareFirestoreRepository,
+): Promise<Eintrag | null> {
   if (!uid) return null;
   try {
-    const ref = getFirestore().collection(pfad(uid)).doc(schluessel(endpunkt));
-    const schnappschuss = await ref.get();
-    if (!schnappschuss.exists) return null;
-
-    const d = schnappschuss.data() as Partial<Eintrag> | undefined;
-    if (!d || typeof d.zeit !== 'string' || d.daten === null || typeof d.daten !== 'object') {
-      // Unbrauchbarer Eintrag: weg damit, statt ihn jedes Mal neu zu prüfen.
-      await ref.delete().catch(() => {});
-      return null;
-    }
-
-    if (!istVerwertbar(d.zeit)) {
-      await ref.delete().catch(() => {});
-      return null;
-    }
-
-    return { daten: d.daten as Record<string, unknown>, zeit: d.zeit };
-  } catch (e) {
-    console.warn('Zwischenspeicher nicht lesbar:', e instanceof Error ? e.message : String(e));
+    const db = repository ?? getServiceRepository('auth'),
+      path = `${pfad(uid)}/${schluessel(endpunkt)}`;
+    return await db.transaction(async (tx) => {
+      const [data, account, deletion] = await Promise.all([
+        tx.read(path, record),
+        tx.read(`users/${uid}`, record),
+        tx.read(`account_deletions/${uid}`, record),
+      ]);
+      if (!account || deletion) return null;
+      if (!data) return null;
+      const parsed = entrySchema.safeParse(data);
+      if (!parsed.success || !istVerwertbar(parsed.data.zeit)) {
+        tx.delete(path);
+        return null;
+      }
+      return parsed.data;
+    });
+  } catch {
+    console.warn('ai_cache_read_unavailable');
     return null;
   }
 }
@@ -140,15 +151,24 @@ export async function schreibe(
   uid: string,
   endpunkt: string,
   daten: Record<string, unknown>,
+  repository?: TenantAwareFirestoreRepository,
 ): Promise<void> {
   if (!uid) return;
   try {
+    const db = repository ?? getServiceRepository('auth');
     const { herkunft: _h, hinweis: _hw, standVom: _s, ...rein } = daten;
-    await getFirestore()
-      .collection(pfad(uid))
-      .doc(schluessel(endpunkt))
-      .set({ daten: rein, zeit: new Date().toISOString() });
-  } catch (e) {
-    console.warn('Zwischenspeicher nicht schreibbar:', e instanceof Error ? e.message : String(e));
+    await db.transaction(async (tx) => {
+      const [account, deletion] = await Promise.all([
+        tx.read(`users/${uid}`, record),
+        tx.read(`account_deletions/${uid}`, record),
+      ]);
+      if (!account || deletion) throw new Error('account_unavailable');
+      tx.write(`${pfad(uid)}/${schluessel(endpunkt)}`, entrySchema, {
+        daten: rein,
+        zeit: new Date().toISOString(),
+      });
+    });
+  } catch {
+    console.warn('ai_cache_write_unavailable');
   }
 }

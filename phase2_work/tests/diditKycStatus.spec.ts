@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import { createKycRouter, hasRecentAuthentication, KycError } from '../src/server/verification/diditKyc';
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 
 describe('GET /api/kyc/status fallback behavior', () => {
   it('requires a recent interactive authentication for sensitive KYC start', () => {
@@ -19,7 +20,7 @@ describe('GET /api/kyc/status fallback behavior', () => {
       next();
     });
     app.use('/api/kyc', createKycRouter({
-      db: () => { throw new Error('DB should not be reached'); },
+      repository: () => { throw new Error('DB should not be reached'); },
       config: () => { throw new Error('Config should not be reached'); },
     } as any));
     const server = createServer(app);
@@ -36,8 +37,11 @@ describe('GET /api/kyc/status fallback behavior', () => {
   });
 
   it('returns status: unavailable with 200 OK when KYC service is disabled/unavailable', async () => {
+    const limits = tenantRepositoryHarness({}, path => {
+      if (!path.startsWith('tenants/default/api_rate_limits/')) throw new Error('KYC data must not be reached when disabled');
+    });
     const deps = {
-      db: () => { throw new Error('DB should not be reached when KYC disabled'); },
+      repository: () => limits.repo,
       config: () => { throw new KycError(503, 'kyc_unavailable'); },
     };
 
@@ -64,5 +68,16 @@ describe('GET /api/kyc/status fallback behavior', () => {
     } finally {
       server.close();
     }
+  });
+
+  it('fails closed when the shared rate-limit store is unavailable', async () => {
+    const app = express();
+    app.use((req, _res, next) => { (req as any).user = {uid:'unavailable-store'}; next(); });
+    app.use('/api/kyc',createKycRouter({repository:()=>{throw new Error('synthetic-private@example.test')},config:()=>{throw new KycError(503,'kyc_unavailable')}}));
+    const server=createServer(app);await new Promise<void>(resolve=>server.listen(0,resolve));
+    try{
+      const response=await fetch('http://127.0.0.1:'+(server.address() as any).port+'/api/kyc/status');
+      expect(response.status).toBe(503);expect(await response.text()).not.toContain('synthetic-private');
+    }finally{server.close();}
   });
 });

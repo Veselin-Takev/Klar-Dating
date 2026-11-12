@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
+import { tenantRepositoryHarness } from './helpers/tenantRepositoryHarness';
 import type { AddressInfo } from 'node:net';
 import { createAnalyticsRouter } from '../src/server/routes/analytics';
 import { EINWILLIGUNG_VERSION } from '../src/server/pure';
@@ -9,9 +10,9 @@ const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve())))); });
 async function endpoint(options: { consent?: boolean; fail?: boolean; enabled?: boolean } = {}) {
   const writes = vi.fn().mockImplementation(async () => { if (options.fail) throw new Error('private internal detail'); });
-  const db = { collection: () => ({ add: writes, doc: () => ({ get: async () => ({ data: () => ({ einwilligung: { version: EINWILLIGUNG_VERSION, zwecke: { produktanalyse: options.consent === true } } }) }) }) }) };
+  const {repo} = tenantRepositoryHarness({'users/server-user': {einwilligung:{version:EINWILLIGUNG_VERSION,zwecke:{produktanalyse:options.consent===true}}}}, (_path,action)=>{if(options.fail&&action==='write')throw new Error('private internal detail');}, (path,data)=>{if(path.includes('/funnel_events/'))void writes(data);});
   const app = express();
-  app.use('/api/analytics/track', createAnalyticsRouter({ enabled: () => options.enabled !== false, getDb: () => db as any, requireAuth: (req, res, next) => {
+  app.use('/api/analytics/track', createAnalyticsRouter({ enabled: () => options.enabled !== false, repository: () => repo, requireAuth: (req, res, next) => {
     if (req.headers.authorization !== 'Bearer test-user') { res.status(401).end(); return; }
     (req as any).user = { uid: 'server-user' }; next();
   } }));

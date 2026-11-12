@@ -1,11 +1,10 @@
+import { scopedSdkFixture } from '../helpers/scopedSdkFixture';
+import type { MinimalFirestore, MinimalTransaction, MinimalDocSnapshot } from '../helpers/legacyFirestoreFixtureTypes';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   processContactRequest,
   processContactUndo,
-  type MinimalFirestore,
-  type MinimalTransaction,
-  type MinimalDocSnapshot,
 } from '../../src/server/platform/contactEngine';
 import { DAILY_CONTACTS, contactDay } from '../../src/server/pure';
 import { VerificationManager } from '../../src/server/verification/VerificationManager.js';
@@ -86,29 +85,31 @@ function createMockFirestore(seedData?: { users?: Record<string, any>; contacts?
   return { firestore, db };
 }
 
-test('Multi-User Journey: Full identity verification pipeline with primary and fallback', async () => {
+test('Multi-User Journey: unconfigured identity providers fail closed for primary and fallback', async () => {
   const primary = new IdNowProvider();
   const secondary = new DiditProvider();
   const manager = new VerificationManager(primary, secondary);
 
-  // 1. Primary provider succeeds
+  // 1. An unconfigured primary cannot verify identity.
   const primaryResult = await manager.verifyUser({
     userId: 'user_alice',
     documentType: 'PASSPORT',
     frontImageUrl: 'https://storage.example.com/alice_id.jpg',
   });
-  assert.equal(primaryResult.success, true);
+  assert.equal(primaryResult.success, false);
+  assert.match(primaryResult.error ?? "", /Offline/);
   assert.equal(primaryResult.providerUsed, 'IDNOW');
 
-  // 2. Primary provider failure routes seamlessly to Didit
+  // 2. An unconfigured fallback must also deny verification.
   primary.isHealthy = async () => false;
   const fallbackResult = await manager.verifyUser({
     userId: 'user_bob',
     documentType: 'ID_CARD',
     frontImageUrl: 'https://storage.example.com/bob_id.jpg',
   });
-  assert.equal(fallbackResult.success, true);
-  assert.equal(fallbackResult.providerUsed, 'DIDIT');
+  assert.equal(fallbackResult.success, false);
+  assert.match(fallbackResult.error ?? "", /Offline/);
+  assert.equal(fallbackResult.verificationId, '');
 });
 
 test('Multi-User Journey: Verified contact orchestration, quota ledger enforcement, duplicate prevention & 5s undo', async () => {
@@ -124,13 +125,13 @@ test('Multi-User Journey: Verified contact orchestration, quota ledger enforceme
   });
 
   // Step 1: Unverified user cannot initiate contact
-  const unverifiedRes = await processContactRequest(firestore, 'unverified_user', 'bob', now);
+  const unverifiedRes = await processContactRequest(scopedSdkFixture(firestore), 'unverified_user', 'bob', now);
   assert.equal(unverifiedRes.ok, false);
   assert.equal(unverifiedRes.grund, 'nicht_verifiziert');
   assert.equal(db.contacts.size, 0);
 
   // Step 2: Alice contacts Bob
-  const firstContact = await processContactRequest(firestore, 'alice', 'bob', now, now);
+  const firstContact = await processContactRequest(scopedSdkFixture(firestore), 'alice', 'bob', now, now);
   assert.equal(firstContact.ok, true);
   assert.equal(firstContact.uebrig, DAILY_CONTACTS - 1);
   assert.equal(firstContact.gesamt, DAILY_CONTACTS);
@@ -141,20 +142,20 @@ test('Multi-User Journey: Verified contact orchestration, quota ledger enforceme
   assert.equal(db.contacts.has('alice_bob'), true);
 
   // Step 3: Duplicate contact attempt is rejected
-  const dupContact = await processContactRequest(firestore, 'alice', 'bob', now, now);
+  const dupContact = await processContactRequest(scopedSdkFixture(firestore), 'alice', 'bob', now, now);
   assert.equal(dupContact.ok, false);
   assert.equal(dupContact.grund, 'bereits_kontaktiert');
   assert.equal(db.users.get('alice').contactCount, 1);
 
   // Step 4: Undo within 5 seconds restores quota and removes contact
   const undoTime = new Date(now.getTime() + 3_000); // 3 seconds later
-  const undoResult = await processContactUndo(firestore, 'alice', 'bob', undoTime);
+  const undoResult = await processContactUndo(scopedSdkFixture(firestore), 'alice', 'bob', undoTime);
   assert.equal(undoResult.ok, true);
   assert.equal(db.contacts.has('alice_bob'), false);
   assert.equal(db.users.get('alice').contactCount, 0);
 
   // Step 5: After undo, Alice can initiate contact again
-  const reContact = await processContactRequest(firestore, 'alice', 'bob', undoTime, undoTime);
+  const reContact = await processContactRequest(scopedSdkFixture(firestore), 'alice', 'bob', undoTime, undoTime);
   assert.equal(reContact.ok, true);
   assert.equal(reContact.uebrig, DAILY_CONTACTS - 1);
   assert.equal(db.contacts.has('alice_bob'), true);
@@ -162,7 +163,7 @@ test('Multi-User Journey: Verified contact orchestration, quota ledger enforceme
 
   // Step 6: Expired undo (> 5000ms) is strictly rejected
   const expiredTime = new Date(undoTime.getTime() + 6_000); // 6 seconds after re-contact
-  const expiredUndo = await processContactUndo(firestore, 'alice', 'bob', expiredTime);
+  const expiredUndo = await processContactUndo(scopedSdkFixture(firestore), 'alice', 'bob', expiredTime);
   assert.equal(expiredUndo.ok, false);
   assert.equal(db.contacts.has('alice_bob'), true);
   assert.equal(db.users.get('alice').contactCount, 1);
@@ -181,20 +182,20 @@ test('Multi-User Journey: 8-contacts quota hard limit with 4am rollover', async 
   // Consume all 8 contacts
   for (let i = 1; i <= DAILY_CONTACTS; i++) {
     const target = `target_${i}`;
-    const res = await processContactRequest(firestore, 'charlie', target, day1, day1);
+    const res = await processContactRequest(scopedSdkFixture(firestore), 'charlie', target, day1, day1);
     assert.equal(res.ok, true);
     assert.equal(res.uebrig, DAILY_CONTACTS - i);
   }
 
   // 9th contact attempt is rejected
-  const limitRes = await processContactRequest(firestore, 'charlie', 'target_overflow', day1, day1);
+  const limitRes = await processContactRequest(scopedSdkFixture(firestore), 'charlie', 'target_overflow', day1, day1);
   assert.equal(limitRes.ok, false);
   assert.equal(limitRes.grund, 'limit');
   assert.equal(db.users.get('charlie').contactCount, DAILY_CONTACTS);
 
   // Next day after 4am rollover (2026-09-25T05:00:00Z)
   const day2 = new Date('2026-09-25T05:00:00Z');
-  const nextDayRes = await processContactRequest(firestore, 'charlie', 'target_day2', day2, day2);
+  const nextDayRes = await processContactRequest(scopedSdkFixture(firestore), 'charlie', 'target_day2', day2, day2);
   assert.equal(nextDayRes.ok, true);
   assert.equal(nextDayRes.uebrig, DAILY_CONTACTS - 1);
   assert.equal(db.users.get('charlie').contactCount, 1);

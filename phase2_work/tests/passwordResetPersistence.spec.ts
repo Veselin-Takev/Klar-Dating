@@ -1,13 +1,20 @@
 // @vitest-environment node
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { anonymizeIdentifier, checkAccountRateLimit } from '../src/server/passwordReset';
 
 vi.mock('../src/server/db', async importOriginal => {
-  const real = await importOriginal<typeof import('../src/server/db')>();
+  const real = await importOriginal() as typeof import('../src/server/db');
   const { getFirestore } = await import('firebase-admin/firestore');
   return { ...real, getDb: () => getFirestore(real.getServerFirebaseApp(), 'password-reset-security-tests') };
+});
+vi.mock('../src/server/firestoreRepository/nativeDatabase', async importOriginal => {
+  const real = await importOriginal() as typeof import('../src/server/firestoreRepository/nativeDatabase');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const { TenantAwareFirestoreRepository } = await import('../functions/src/firestoreRepository/TenantAwareFirestoreRepository');
+  return {...real, getServiceRepository: () => new TenantAwareFirestoreRepository(getFirestore(real.getServerFirebaseApp(), 'password-reset-security-tests'),'default')};
 });
 const emails: string[] = [];
 function address() { const email = 'reset-' + randomUUID() + '@example.test'; emails.push(email); return email; }

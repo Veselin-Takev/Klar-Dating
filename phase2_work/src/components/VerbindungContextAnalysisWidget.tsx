@@ -104,7 +104,7 @@ export function VerbindungContextAnalysisWidget() {
                 className="flex flex-col items-center justify-center py-8 text-stone-500"
               >
                 <Sparkles className=" mb-3 text-brand" size={24} />
-                <p className="text-sm font-medium ">Analysiere Themen & Stimmungen...</p>
+                <p className="text-sm font-medium ">Analysiere Themen &amp; Stimmungen...</p>
               </motion.div>
             ) : error ? (
               <div className="text-center py-6 text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-xl flex flex-col items-center">

@@ -7,7 +7,7 @@ import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
 import { distributedRateLimit } from '../distributedRateLimiter';
 import { ipKeyGenerator } from 'express-rate-limit';
-import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
 import { getAuth as getAdminAuth, type Auth } from 'firebase-admin/auth';
 import {
   handleAlter,
@@ -21,8 +21,10 @@ import { handleDeleteAccount } from '../trustAndSafety';
 import { z } from 'zod';
 import { SUPPORTED_LANGUAGES } from '../../i18n/locale';
 
+const counterSchema = z.object({count: z.number().int().nonnegative().optional(), windowStartedAt: z.number().finite().optional()}).passthrough();
+const record = z.record(z.string(), z.unknown());
 export type AccountRouterDeps = {
-  getFirestore: () => Firestore;
+  repository: () => TenantAwareFirestoreRepository;
   /** Matches src/server/authorization.ts currentUserId */
   currentUserId: (req: Request) => string | null;
   getAuth?: () => Auth;
@@ -30,28 +32,27 @@ export type AccountRouterDeps = {
 
 export function createAccountRouter(deps: AccountRouterDeps): Router {
   const router = Router();
-  const { getFirestore, currentUserId } = deps;
+  const { repository, currentUserId } = deps;
   const authProvider = deps.getAuth ?? (() => getAdminAuth());
   const preferences = z.object({ language: z.enum(SUPPORTED_LANGUAGES) }).strict();
   const accountDeleteLimiter = async (req: Request, res: Response, next: () => void) => {
     const uid = currentUserId(req);
     if (!uid) return next();
-    const db = getFirestore();
-    const ref = db.collection('account_deletion_rate_limits').doc(crypto.createHash('sha256').update(`klar-account-delete:${uid}`).digest('hex'));
+    const db = repository();
+    const ref = `account_deletion_rate_limits/${crypto.createHash('sha256').update(`klar-account-delete:${uid}`).digest('hex')}`;
     const now = Date.now();
     try {
-      const allowed = await db.runTransaction(async tx => {
-        const snap = await tx.get(ref);
-        const data = snap.exists ? snap.data() : undefined;
+      const allowed = await db.transaction(async tx => {
+        const data = await tx.read(ref, counterSchema);
         const windowStartedAt = Number(data?.windowStartedAt) || now;
         const count = Number(data?.count) || 0;
         const windowMs = 24 * 60 * 60 * 1000;
-        if (now - windowStartedAt >= windowMs) {
-          tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + windowMs) });
+        if (!data || now - windowStartedAt >= windowMs) {
+          tx.write(ref, counterSchema, { count: 1, windowStartedAt: now, expiresAt: new Date(now + windowMs) });
           return true;
         }
         if (count >= 3) return false;
-        tx.update(ref, { count: count + 1, expiresAt: new Date(windowStartedAt + windowMs) });
+        tx.write(ref, counterSchema, { count: count + 1, expiresAt: new Date(windowStartedAt + windowMs) }, {merge:true});
         return true;
       });
       if (!allowed) return res.status(429).json({ error: 'Zu viele Löschanträge. Bitte später erneut versuchen.' });
@@ -67,7 +68,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 5,
     keyGenerator: (req) => currentUserId(req) ?? '',
     message: { error: 'Zu viele Altersprüfungen. Bitte später erneut versuchen.' },
-    getDb: getFirestore,
+    repository,
   });
   const accountAlterSchema = z.object({
     geburtsdatum: z.string().trim().min(1).max(10).regex(/^\d{4}-\d{2}-\d{2}$/, 'INVALID_DATE_FORMAT'),
@@ -81,7 +82,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       return uid ? 'uid:' + uid : '';
     },
     message: { error: 'Zu viele Auskunftsanfragen. Bitte später erneut versuchen.' },
-    getDb: getFirestore,
+    repository,
   });
   const accountPreferencesLimiter = distributedRateLimit({
     collection: 'rate_limit_account_preferences',
@@ -89,7 +90,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 30,
     keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einstellungsänderungen. Bitte später erneut versuchen.' },
-    getDb: getFirestore,
+    repository,
   });
   const consentWriteLimiter = distributedRateLimit({
     collection: 'rate_limit_consent_write',
@@ -97,7 +98,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     limit: 20,
     keyGenerator: (req) => currentUserId(req) ?? 'ip:' + ipKeyGenerator(req.ip ?? ''),
     message: { error: 'Zu viele Einwilligungsänderungen. Bitte später erneut versuchen.' },
-    getDb: getFirestore,
+    repository,
   });
   router.post('/auth/logout', async (req, res) => {
     const uid = currentUserId(req);
@@ -110,16 +111,11 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
 
       // Push delivery must not survive an explicit sign-out. The canonical
       // device-token store is UID-scoped below users/{uid}/fcmTokens.
-      const tokenSnapshot = await getFirestore()
-        .collection('users')
-        .doc(uid)
-        .collection('fcmTokens')
-        .get();
-      const tokenDocs = tokenSnapshot.docs ?? [];
-      for (let offset = 0; offset < tokenDocs.length; offset += 500) {
-        const batch = getFirestore().batch();
-        for (const tokenDoc of tokenDocs.slice(offset, offset + 500)) batch.delete(tokenDoc.ref);
-        await batch.commit();
+      // Read again after each bounded delete, so >200 tokens cannot survive logout.
+      for (;;) {
+        const tokens = await repository().list(`users/${uid}/fcmTokens`, record, {limit:200});
+        if (!tokens.length) break;
+        await repository().transaction(async tx => { for (const token of tokens) tx.delete(`users/${uid}/fcmTokens/${token.id}`); });
       }
 
       res.clearCookie('__session');
@@ -136,7 +132,11 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
     const result = preferences.safeParse(req.body);
     if (!result.success) return res.status(400).json({ code: 'invalid_preferences' });
     try {
-      await getFirestore().collection('users').doc(uid).set(result.data, { merge: true });
+      await repository().transaction(async tx => {
+        const [owner, deletion] = await Promise.all([tx.read(`users/${uid}`, record), tx.read(`account_deletions/${uid}`, record)]);
+        if (!owner || deletion) throw new Error('account_unavailable');
+        tx.write(`users/${uid}`, record, result.data, {merge:true});
+      });
       return res.json({ ok: true, preferences: result.data });
     } catch { return res.status(503).json({ code: 'preferences_unavailable' }); }
   });
@@ -151,7 +151,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       });
     }
     req.body = parsed.data;
-    return handleAlter(req, res).catch(next);
+    return handleAlter(req, res, repository()).catch(next);
   });
   router.get('/account/export', accountExportLimiter, handleExport);
   router.get('/einwilligung', handleEinwilligungLesen);
@@ -165,8 +165,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
       try {
-        const userDoc = await getFirestore().collection('users').doc(uid).get();
-        const data = userDoc?.data();
+        const data = await repository().read(`users/${uid}`, record);
         return res.json({
           ok: true,
           isAdult: data?.isAdult === true,

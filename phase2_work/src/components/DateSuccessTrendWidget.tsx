@@ -1,16 +1,9 @@
+import type { DateHistoryEntry } from '../lib/dateHistoryTypes';
 import { klarStorage } from '../lib/userScopedStorage';
 import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp } from "lucide-react";
 
-interface DateHistoryEntry {
-  id: string;
-  matchName: string;
-  title: string;
-  date: string;
-  rating?: number;
-  note?: string;
-}
 
 export function DateSuccessTrendWidget() {
   const [uiError, setUiError] = useState<string | null>(null);

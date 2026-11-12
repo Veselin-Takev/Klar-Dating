@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { scopedSdkFixture } from './helpers/scopedSdkFixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
@@ -18,11 +19,12 @@ afterEach(async () => {
 async function endpoint() {
   const app = express();
   app.use(express.json());
+  app.use((req,_res,next)=>{Object.defineProperty(req,'user',{value:{uid:'user-age-contract'}});next();});
   app.use('/api', createAccountRouter({
-    getFirestore: () => ({
-      collection: () => ({ doc: () => ({}) }),
+    repository: () => scopedSdkFixture(({
+      collection: () => ({ doc: () => ({path:'counter/test'}) }),
       runTransaction: async (fn: any) => fn({ get: async () => ({ exists: false, data: () => undefined }), set: () => {}, update: () => {} }),
-    } as never),
+    } as never)),
     currentUserId: () => 'user-age-contract',
   }));
   const server = app.listen(0, '127.0.0.1');
@@ -38,7 +40,7 @@ describe('POST /api/account/alter contract', () => {
     const api = await endpoint();
     const response = await api.send({ geburtsdatum: '2000-01-10' });
     expect(response.status).toBe(200);
-    expect(processAgeVerification).toHaveBeenCalledWith(expect.anything(), undefined, '2000-01-10');
+    expect(processAgeVerification).toHaveBeenCalledWith(expect.anything(), 'user-age-contract', '2000-01-10');
   });
 
   it('returns 422 with a domain code for underage submissions', async () => {

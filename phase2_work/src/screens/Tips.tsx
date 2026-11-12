@@ -514,7 +514,7 @@ export default function Tips() {
                   {group.items.map(item => (
                     <button
                       key={item.key}
-                      onClick={() => toggleCheck(item.key as any)}
+                      onClick={() => toggleCheck(item.key)}
                       className={`w-full flex items-center justify-between p-3.5 border rounded-xl transition-all ${
                         checklist[item.key]
                           ? 'bg-brand/5 dark:bg-brand-light/5 border-brand/30 dark:border-brand-light/30 text-stone-900 dark:text-stone-100'

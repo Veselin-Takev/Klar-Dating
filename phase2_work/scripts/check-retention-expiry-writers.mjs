@@ -23,7 +23,7 @@ const writers = [
 for (const [group, file, marker] of writers) {
   assert(groups.has(group), 'Expiry-writing collection missing from TTL plan: ' + group);
   const code = read(file);
-  assert(code.includes("'" + group + "'") || code.includes(group + "/${claimed}"),
+  assert(code.includes("'" + group + "'") || code.includes(group + "/${sessionId}") || code.includes(group + "/${crypto."),
     'Actual TTL writer group missing: ' + group);
   assert(code.includes(marker), 'Expected expiry writer pattern missing: ' + group);
 }
@@ -35,16 +35,15 @@ assert(chat.includes('collection: CHAT_MESSAGE_RATE_LIMIT_COLLECTION')
 // multiple documents. Demand a Date on BOTH creation and counter-update paths
 // for every scoped limiter, and on the exact KYC reconciliation write.
 const writeWithDate = /expiresAt\s*:\s*new Date\s*\(/;
-function findDocumentWrite(moduleCode, operation, label) {
-  const match = new RegExp('\\btx\\.' + operation + '\\(ref,\\s*\\{([^}]+)\\}', 'g');
-  const bodies = [...moduleCode.matchAll(match)].map(hit => hit[1]);
-  assert.equal(bodies.length, 1, `${label}: expected one transaction ${operation} write`);
-  assert(writeWithDate.test(bodies[0]), `${label}: transaction ${operation} must write expiresAt as Date`);
+function checkScopedWrites(moduleCode, label) {
+  const bodies = [...moduleCode.matchAll(/tx\.write\(ref, (?:record|counterSchema|patchSchema|kycRecord),\s*\{([^}]+)\}/g)].map(hit => hit[1]);
+  assert.equal(bodies.length, 2, `${label}: expected separate creation and increment writes`);
+  for (const body of bodies) assert(writeWithDate.test(body), `${label}: every create/increment must write expiresAt as Date`);
 }
 for (const [label, file, begin] of [
   ['password_reset_rate_limits', 'src/server/passwordReset.ts', 'const ACCOUNT_RATE_LIMIT_COLLECTION'],
   ['verification_mail_rate_limits', 'src/server/email.ts', 'const VERIFICATION_RATE_LIMIT_COLLECTION'],
-  ['account_deletion_rate_limits', 'src/server/routes/account.ts', "collection('account_deletion_rate_limits')"],
+  ['account_deletion_rate_limits', 'src/server/routes/account.ts', 'const ref = `account_deletion_rate_limits/'],
   ['kyc_start_rate_limits', 'src/server/verification/diditKyc.ts', 'const KYC_START_RATE_LIMIT_COLLECTION'],
 ]) {
   const code = read(file);
@@ -53,14 +52,12 @@ for (const [label, file, begin] of [
   // One bounded function block avoids accepting an unrelated write elsewhere.
   let section = code.slice(start, start + 3800);
   if (label === 'account_deletion_rate_limits') section = code.slice(Math.max(0, start - 600), start + 2200);
-  findDocumentWrite(section, 'set', label);
-  findDocumentWrite(section, 'update', label);
+  checkScopedWrites(section, label);
 }
 const limiter = read('src/server/distributedRateLimiter.ts');
-findDocumentWrite(limiter, 'set', 'shared_chat_distributed_rate_limit');
-findDocumentWrite(limiter, 'update', 'shared_chat_distributed_rate_limit');
+checkScopedWrites(limiter, 'shared_chat_distributed_rate_limit');
 const kyc = read('src/server/verification/diditKyc.ts');
-const reconciliation = kyc.match(/tx\.set\(db\.doc\(`kyc_reconciliation_events\/\$\{claimed\}`\),\s*\{([^}]+)\}/);
+const reconciliation = kyc.match(/tx\.write\(`kyc_reconciliation_events\/\$\{sessionId\}`, kycRecord,\s*\{([^}]+)\}/);
 assert(reconciliation, 'KYC reconciliation write missing');
 assert(writeWithDate.test(reconciliation[1]), 'KYC reconciliation must write expiresAt as Date');
 console.log('PASS: 7 previously untracked expiry-writing Firestore collection groups are covered by 20-group TTL plan (source-only).');

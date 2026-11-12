@@ -5,14 +5,74 @@ import { DeletionPageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
-import { getDb } from '../src/server/db';
+import { scopedFirestoreFixture } from './helpers/scopedFirestoreFixture';
+const getDb = scopedFirestoreFixture;
 import { getAppBucket } from '../src/server/storage';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
 import { purgeAccountData } from '../src/server/trustAndSafety';
+import { requestAccountDeletion, runAccountDeletion, deletionDependencies } from '../src/server/accountDeletion';
+import { deletionReceiptId } from '../src/server/deletionAccounting';
+import { processAgeVerification } from '../src/server/platform/ageGateEngine';
 
 describe('account erasure including archived messages and photos', () => {
   beforeEach(() => vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-erasure-audit-key-not-for-production'));
   afterEach(() => vi.unstubAllEnvs());
+  it.runIf(!!process.env.FIREBASE_AUTH_EMULATOR_HOST)('serializes age reauthorization against a deletion request without reopening the media fence', async () => {
+    const uid=`erase-age-race-${randomUUID()}`, db=getDb(), auth=getAuth();
+    const user=db.doc(`users/${uid}`), job=db.doc(`account_deletions/${uid}`);
+    await auth.createUser({uid});
+    await user.set({isAdult:true,mediaAccessState:'active'});
+    try {
+      const [,deletion]=await Promise.allSettled([
+        processAgeVerification(deletionDependencies().repository,uid,'1990-01-01'),
+        requestAccountDeletion(uid),
+      ]);
+      expect(deletion.status).toBe('fulfilled');
+      expect((await job.get()).data()?.status).toBe('pending');
+      expect((await user.get()).data()?.mediaAccessState).toBe('erasing');
+      await expect(processAgeVerification(deletionDependencies().repository,uid,'1990-01-01')).rejects.toThrow('account_unavailable');
+      expect((await user.get()).data()?.mediaAccessState).toBe('erasing');
+    } finally {
+      await db.recursiveDelete(user);await job.delete();await auth.deleteUser(uid).catch(()=>{});
+      const events=await db.collection('age_verification_attempts').where('userId','==',uid).get();
+      for(const row of events.docs)await row.ref.delete();
+    }
+  });
+  it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('commits a media fence with the job, then proves real Firestore/Storage/Auth erasure before final receipt', async () => {
+    const uid=`erase-cycle-${randomUUID()}`, db=getDb(), auth=getAuth();
+    const user=db.doc(`users/${uid}`), job=db.doc(`account_deletions/${uid}`);
+    const photo=getAppBucket().file(`profiles/${uid}/photo.jpg`);
+    await auth.createUser({uid});
+    await user.set({isAdult:true,mediaAccessState:'active'});
+    await photo.save('synthetic profile');
+    const {requestId}=await requestAccountDeletion(uid);
+    const receipt=db.doc(`deletion_log/${deletionReceiptId(requestId)}`);
+    let now=Date.now();
+    const deps={...deletionDependencies(),now:()=>now};
+    try {
+      expect((await user.get()).data()?.mediaAccessState).toBe('erasing');
+      expect((await job.get()).data()?.status).toBe('pending');
+      // Storage deletion is paginated; every acknowledged page stays pending.
+      for(let page=0;page<5 && (await job.get()).data()?.phase==='purge';page++) {
+        await runAccountDeletion(uid,deps); now+=2_000;
+      }
+      expect((await job.get()).data()).toMatchObject({status:'pending',phase:'final_sweep'});
+      expect((await receipt.get()).exists).toBe(false);
+      expect((await user.get()).exists).toBe(false);
+      expect((await photo.exists())[0]).toBe(false);
+      await expect(auth.getUser(uid)).rejects.toMatchObject({code:'auth/user-not-found'});
+      now+=62*60_000;
+      await runAccountDeletion(uid,deps);
+      expect((await job.get()).data()?.status).toBe('completed');
+      expect((await receipt.get()).data()).toMatchObject({schemaVersion:2,status:'completed'});
+      const proof=(await receipt.get()).data();
+      await runAccountDeletion(uid,deps);
+      expect((await receipt.get()).data()).toEqual(proof);
+    } finally {
+      await photo.delete().catch(()=>{});await db.recursiveDelete(user);await job.delete();await receipt.delete();
+      await auth.deleteUser(uid).catch(()=>{});
+    }
+  },30_000);
   it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST))('keeps Art.17 deletion pending when verification Storage objects cannot be safely erased', async () => {
     const uid = `erase-${randomUUID()}`;
     const db = getDb();

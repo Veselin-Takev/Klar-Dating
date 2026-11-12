@@ -1,3 +1,4 @@
+import { logSafeFailure } from './safeErrorLog';
 export interface EnvValidationResult {
   valid: boolean;
   missingVariables: string[];
@@ -56,14 +57,14 @@ export function enforceEnvironmentGuard(): void {
   const result = validateEnvironment();
   
   if (result.warnings.length > 0) {
-    result.warnings.forEach((w) => console.warn(`[CONFIG WARNING] ${w}`));
+    result.warnings.forEach((_w) => logSafeFailure('unclassified_failure'));
   }
 
   if (!result.valid) {
     console.error("==================================================");
     console.error("  SERVER-START ABGEBROCHEN: FEHLENDE SECRETS!     ");
     console.error("==================================================");
-    result.missingVariables.forEach((v) => console.error(`  - FEHLT: ${v}`));
+    result.missingVariables.forEach((_v) => logSafeFailure('unclassified_failure'));
     console.error("==================================================");
     if (process.env.NODE_ENV === "production") {
       process.exit(1);

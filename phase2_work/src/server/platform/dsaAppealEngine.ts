@@ -1,6 +1,12 @@
 import { Timestamp } from "firebase-admin/firestore";
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
-import { getDb } from "../db";
+import type { Firestore } from 'firebase-admin/firestore';
+import type { TenantAwareFirestoreRepository } from '../../../functions/src/firestoreRepository/TenantAwareFirestoreRepository';
+import { getServiceRepository, scopeServiceDatabase } from '../firestoreRepository/nativeDatabase';
+import { randomUUID } from 'node:crypto';
+import { enforceAccountLock, securityJob } from '../accountSecurity';
+import { z } from 'zod';
+const record = z.record(z.string(), z.unknown());
+type SecurityEnforcer = (uid: string, repo: TenantAwareFirestoreRepository) => Promise<void>;
 import { InputError, requireString, optionalString } from '../pure';
 
 import type { JsonObject } from '../../types/strict';
@@ -89,14 +95,14 @@ export async function issueModerationDecision(
   reason: string,
   automated: boolean = false
 ): Promise<DsaModerationDecision> {
-  const db: Firestore = getDb();
-  const decisionRef = db.collection("dsa_decisions").doc();
+  const db = getServiceRepository('auth');
+  const decisionRef = `dsa_decisions/${randomUUID()}`;
 
   const now = new Date();
   const deadlineDate = new Date(now.getTime() + APPEAL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const decision: DsaModerationDecision = {
-    decisionId: decisionRef.id,
+    decisionId: decisionRef.split('/')[1]!,
     userId,
     actionTaken: action,
     legalGround,
@@ -106,7 +112,16 @@ export async function issueModerationDecision(
     appealDeadline: Timestamp.fromDate(deadlineDate),
   };
 
-  await decisionRef.set(decision);
+  if (action === 'account_suspended') {
+    await db.transaction(async tx => {
+      const previous = await tx.read(`account_security_jobs/${userId}`, record);
+      tx.create(decisionRef, record, decision);
+      tx.write(`users/${userId}`, record, { active: false, mediaAccessState: 'blocked' }, { merge: true });
+      tx.write(`account_locks/${userId}`, record, { lockedAt: now, reason: 'moderation' });
+      tx.write(`account_security_jobs/${userId}`, record, securityJob(previous, 'disable', now));
+    });
+    await enforceAccountLock(userId, db);
+  } else await db.create(decisionRef, record, decision);
   return decision;
 }
 
@@ -166,29 +181,30 @@ export function buildStatementOfReasons(
 }
 
 export async function recordModerationDecision(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   reportIdRaw: unknown,
   moderatorUid: string,
   decision: ModerationDecisionInput,
-  now: Date = new Date()
+  now: Date = new Date(),
+  enforceSecurity: SecurityEnforcer = enforceAccountLock
 ): Promise<DsaStatementOfReasons> {
   const reportId = requireString(reportIdRaw, 'reportId', 128);
-  const reportRef = firestore.collection('reports').doc(reportId);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const reportRef = `reports/${reportId}`;
 
-  return firestore.runTransaction(async (t: Transaction) => {
-    const snap = await t.get(reportRef);
-    if (!snap.exists) {
+  const result = await db.transaction(async tx => {
+    const snap = await tx.read(reportRef, record);
+    if (!snap) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
-    const reportData = snap.data() ?? {};
+    const reportData = snap ?? {};
     const targetUid = requireString(reportData.reportedProfileId, 'reportedProfileId', 128);
+    const previousSecurity = await tx.read(`account_security_jobs/${targetUid}`, record);
 
     const statement = buildStatementOfReasons(reportId, targetUid, moderatorUid, decision, now);
 
-    t.set(
-      reportRef,
-      {
+    tx.write(reportRef, record, {
         status: 'decided',
         entscheidung: decision.restrictionType,
         begruendung: decision.factsAndCircumstances,
@@ -196,11 +212,9 @@ export async function recordModerationDecision(
         dsaStatement: statement,
         decidedAt: now.toISOString(),
         decidedByUid: moderatorUid,
-      },
-      { merge: true }
-    );
+      }, { merge: true });
 
-    const userRef = firestore.collection('users').doc(targetUid);
+    const userRef = `users/${targetUid}`;
     const userUpdate: JsonObject = {
       lastModerationAction: decision.restrictionType,
       lastModerationGround: decision.legalGround,
@@ -209,17 +223,25 @@ export async function recordModerationDecision(
 
     if (decision.restrictionType === 'account_suspension' || decision.restrictionType === 'account_termination') {
       userUpdate.active = false;
+      userUpdate.mediaAccessState = 'blocked';
       userUpdate.suspendedReason = decision.factsAndCircumstances;
+      tx.write(`account_locks/${targetUid}`, record, { lockedAt: now, reason: 'moderation' });
+      tx.write(`account_security_jobs/${targetUid}`, record, securityJob(previousSecurity, 'disable', now));
+      tx.delete(`public_profiles/${targetUid}`);
     }
 
-    t.set(userRef, userUpdate, { merge: true });
+    tx.write(userRef, record, userUpdate, { merge: true });
 
     return statement;
   });
+  if (decision.restrictionType === 'account_suspension' || decision.restrictionType === 'account_termination') {
+    await enforceSecurity(result.targetUid, db);
+  }
+  return result;
 }
 
 export function submitDsaAppeal(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   reportId: unknown,
   appellantUid: unknown,
   appealReasonRaw: unknown,
@@ -233,7 +255,7 @@ export function submitDsaAppeal(
   now?: Date
 ): Promise<{ ok: true; message: string }>;
 export async function submitDsaAppeal(
-  firestoreOrDecisionId: Firestore | string,
+  firestoreOrDecisionId: Firestore | TenantAwareFirestoreRepository | string,
   reportIdOrUserId: unknown,
   appellantUidOrStatement?: unknown,
   appealReasonRaw?: unknown,
@@ -245,14 +267,14 @@ export async function submitDsaAppeal(
     const decisionId = firestoreOrDecisionId;
     const userId = String(reportIdOrUserId ?? '');
     const appealStatement = String(appellantUidOrStatement ?? '');
-    const db = getDb();
-    const decisionDoc = await db.collection("dsa_decisions").doc(decisionId).get();
+    const db = getServiceRepository('auth');
+    const decisionDoc = await db.read(`dsa_decisions/${decisionId}`, record);
 
-    if (!decisionDoc.exists) {
+    if (!decisionDoc) {
       throw new Error("DECISION_NOT_FOUND");
     }
 
-    const decision = decisionDoc.data() as DsaModerationDecision;
+    const decision = decisionDoc as unknown as DsaModerationDecision;
     if (decision.userId !== userId) {
       throw new Error("FORBIDDEN");
     }
@@ -261,7 +283,7 @@ export async function submitDsaAppeal(
       throw new Error("APPEAL_WINDOW_EXPIRED");
     }
 
-    const appealRef = db.collection("dsa_appeals").doc(decisionId);
+    const appealRef = `dsa_appeals/${decisionId}`;
     const appeal: DsaAppealSubmission = {
       decisionId,
       userId,
@@ -270,7 +292,7 @@ export async function submitDsaAppeal(
       status: "pending_review",
     };
 
-    await appealRef.set(appeal);
+    await db.write(appealRef, record, appeal);
     return { ok: true, message: "Beschwerde fristgerecht eingereicht. Prüfung durch menschlichen Prüfer eingeleitet." };
   }
 
@@ -283,15 +305,16 @@ export async function submitDsaAppeal(
   }
   const additionalEvidence = optionalString(additionalEvidenceRaw, 'additionalEvidence', 2000);
 
-  const reportRef = firestore.collection('reports').doc(reportId);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const reportRef = `reports/${reportId}`;
 
-  return firestore.runTransaction(async (t: Transaction) => {
-    const snap = await t.get(reportRef);
-    if (!snap.exists) {
+  return db.transaction(async tx => {
+    const snap = await tx.read(reportRef, record);
+    if (!snap) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
-    const reportData = snap.data() ?? {};
+    const reportData = snap ?? {};
     const rawStatement = reportData.dsaStatement;
     const dsaStatement = rawStatement && typeof rawStatement === 'object'
       ? rawStatement as unknown as DsaStatementOfReasons
@@ -334,26 +357,23 @@ export async function submitDsaAppeal(
       reviewedAt: null,
     };
 
-    t.set(
-      reportRef,
-      {
+    tx.write(reportRef, record, {
         dsaAppeal: appeal,
         appealStatus: 'pending',
-      },
-      { merge: true }
-    );
+      }, { merge: true });
 
     return appeal;
   });
 }
 
 export async function reviewDsaAppeal(
-  firestore: Firestore,
+  firestore: Firestore | TenantAwareFirestoreRepository,
   reportIdRaw: unknown,
   reviewerUid: string,
   outcome: 'upheld' | 'overturned',
   rationaleRaw: unknown,
-  now: Date = new Date()
+  now: Date = new Date(),
+  enforceSecurity: SecurityEnforcer = enforceAccountLock
 ): Promise<DsaAppeal> {
   const reportId = requireString(reportIdRaw, 'reportId', 128);
   if (outcome !== 'upheld' && outcome !== 'overturned') {
@@ -365,15 +385,16 @@ export async function reviewDsaAppeal(
     throw new InputError('Die Begründung der Beschwerdeprüfung muss mindestens 10 Zeichen umfassen.');
   }
 
-  const reportRef = firestore.collection('reports').doc(reportId);
+  const db = scopeServiceDatabase(firestore, 'auth');
+  const reportRef = `reports/${reportId}`;
 
-  return firestore.runTransaction(async (t: Transaction) => {
-    const snap = await t.get(reportRef);
-    if (!snap.exists) {
+  const result = await db.transaction(async tx => {
+    const snap = await tx.read(reportRef, record);
+    if (!snap) {
       throw new InputError('Der angegebene Bericht existiert nicht.');
     }
 
-    const reportData = snap.data() ?? {};
+    const reportData = snap ?? {};
     const rawAppeal = reportData.dsaAppeal;
     const appeal = rawAppeal && typeof rawAppeal === 'object'
       ? rawAppeal as unknown as DsaAppeal
@@ -386,6 +407,9 @@ export async function reviewDsaAppeal(
       throw new InputError('Diese Beschwerde wurde bereits abgeschlossen.');
     }
 
+    const target = typeof reportData.reportedProfileId === 'string' ? reportData.reportedProfileId : '';
+    const [previousSecurity, deletion] = target ? await Promise.all([tx.read(`account_security_jobs/${target}`, record), tx.read(`account_deletions/${target}`, record)]) : [null, null];
+    if (outcome === 'overturned' && deletion) throw new InputError('Konto nicht verfügbar.');
     const updatedAppeal: DsaAppeal = {
       ...appeal,
       status: outcome,
@@ -394,28 +418,23 @@ export async function reviewDsaAppeal(
       reviewedAt: now.toISOString(),
     };
 
-    t.set(
-      reportRef,
-      {
+    tx.write(reportRef, record, {
         dsaAppeal: updatedAppeal,
         appealStatus: outcome,
-      },
-      { merge: true }
-    );
+      }, { merge: true });
 
     if (outcome === 'overturned' && typeof reportData.reportedProfileId === 'string' && reportData.reportedProfileId) {
-      const userRef = firestore.collection('users').doc(reportData.reportedProfileId);
-      t.set(
-        userRef,
-        {
+      const userRef = `users/${reportData.reportedProfileId}`;
+      tx.write(`account_security_jobs/${target}`, record, securityJob(previousSecurity, 'enable', now));
+      tx.write(userRef, record, {
           active: true,
           suspendedReason: null,
           lastAppealOverturnedAt: now.toISOString(),
-        },
-        { merge: true }
-      );
+        }, { merge: true });
     }
 
-    return updatedAppeal;
+    return {appeal:updatedAppeal, target};
   });
+  if (outcome === 'overturned' && result.target) await enforceSecurity(result.target, db);
+  return result.appeal;
 }
