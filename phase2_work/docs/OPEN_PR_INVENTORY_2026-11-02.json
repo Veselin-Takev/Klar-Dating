@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "observedDate": "2026-11-11",
-  "observedAt": "2026-11-11T07:12:45Z",
-  "source": "Fresh GitHub REST open-PR pages, exact target-PR heads/check-runs/reviews, main ref/check/status, active Ruleset #25756841, source blobs and read-only Vercel project/deployment reads at 2026-11-11 08:12 CET. This snapshot is based on audit branch parent ebff2580566372e6c10dcc3f994baa332d455959; the documentation-only commit advances PR #313 and therefore requires its own exact-head CI recheck.",
+  "observedDate": "2026-11-12",
+  "observedAt": "2026-11-12T13:36:10Z",
+  "source": "Fresh GitHub REST open-PR pages, exact target-PR heads/check-runs/jobs/reviews, main ref and Actions job, active Ruleset #25756841, main source blobs and read-only Vercel project/deployment reads at 2026-11-12 14:36 CET. Documentation-only snapshot update on existing audit branch parent 193d9b88f874f9fb66a8a1f089ba090af4caa634; resulting head requires its own exact-SHA CI.",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
   "limitations": [
@@ -10,7 +10,9 @@
     "Title-based area labels are heuristic, not a severity classification",
     "A non-Draft PR is NOT reviewed or authorized for merge, and a failed check remains blocking",
     "No merge authorization; exact-head review/test requirements remain controlling",
-    "Stack depth follows base-branch references that match currently open PR head refs; it does not reconstruct closed-branch Git ancestry"
+    "Stack depth follows base-branch references that match currently open PR head refs; it does not reconstruct closed-branch Git ancestry",
+    "No authenticated GCP/Firebase/Firestore/GCS/IAM/Cloud Scheduler readback or approved staging execution was performed in this checkpoint",
+    "Exact-head CI success is scoped to the listed SHA and does not replace independent human review or production evidence"
   ],
   "counts": {
     "open": 194,
@@ -84,7 +86,7 @@
       "base": "release/v0.1.1-rc1",
       "head": "audit/rc1-isolation-closure-20261108",
       "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
-      "mergeSha": "56af30dc1a6c00fd9d71810717d0011e1e06b46d",
+      "mergeSha": "c760a5ad8a16baf33af3387d38e67a9c4f5265e4",
       "dependencyPr": 355,
       "depthFromMain": 1,
       "titleArea": "tenant-254",
@@ -98,13 +100,13 @@
       "draft": true,
       "base": "main",
       "head": "release/v0.1.1-rc1",
-      "headSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
-      "mergeSha": "8ad02cc4c276e6e42c39e485cf0aa61589b86a74",
+      "headSha": "f8f0cbd6838b93ff065517a7880b7c8ed0d48b47",
+      "mergeSha": "2c149fab8253328c4db0b768ee1e28c9c4b8e2a0",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "governance-audit",
       "createdAt": "2026-11-08T10:02:04Z",
-      "updatedAt": "2026-11-08T11:23:13Z"
+      "updatedAt": "2026-11-12T13:06:06Z"
     },
     {
       "number": 354,
@@ -713,13 +715,13 @@
       "draft": true,
       "base": "main",
       "head": "audit-enterprise-e2e-20261102",
-      "headSha": "ebff2580566372e6c10dcc3f994baa332d455959",
-      "mergeSha": "177f12f2ef1f7b6580d6f925b4e8173240358d09",
+      "headSha": "193d9b88f874f9fb66a8a1f089ba090af4caa634",
+      "mergeSha": "c5584e1eb022230065dbfeef4b9d7d1a3225acbd",
       "dependencyPr": null,
       "depthFromMain": 0,
       "titleArea": "retention-202",
       "createdAt": "2026-11-02T16:14:11Z",
-      "updatedAt": "2026-11-11T04:46:29Z"
+      "updatedAt": "2026-11-12T12:25:14Z"
     },
     {
       "number": 312,
@@ -1262,6 +1264,21 @@
       "updatedAt": "2026-11-02T18:22:53Z"
     },
     {
+      "number": 276,
+      "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
+      "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276",
+      "draft": true,
+      "base": "security/p0-202-write-ahead-delete-intent-20261101",
+      "head": "security/p0-202-native-emulator-lease-cas-20261101",
+      "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
+      "mergeSha": "4ead7334f75ae5f7bbaf329b83718c9f6f8ff5b0",
+      "dependencyPr": 275,
+      "depthFromMain": 6,
+      "titleArea": "retention-202",
+      "createdAt": "2026-11-01T09:02:50Z",
+      "updatedAt": "2026-11-02T18:22:51Z"
+    },
+    {
       "number": 275,
       "title": "security(P0 #202): write-ahead generation-fenced delete intent; no auto-retry after crash",
       "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/275",
@@ -1305,21 +1322,6 @@
       "titleArea": "retention-202",
       "createdAt": "2026-11-01T09:19:33Z",
       "updatedAt": "2026-11-02T18:22:44Z"
-    },
-    {
-      "number": 276,
-      "title": "security(P0 #202): native Firestore emulator contention and fenced CAS transitions",
-      "url": "https://github.com/Veselin-Takev/Klar-Dating/pull/276",
-      "draft": true,
-      "base": "security/p0-202-write-ahead-delete-intent-20261101",
-      "head": "security/p0-202-native-emulator-lease-cas-20261101",
-      "headSha": "a8c2830ae325ddf49d07e22508f235898df70204",
-      "mergeSha": "4ead7334f75ae5f7bbaf329b83718c9f6f8ff5b0",
-      "dependencyPr": 275,
-      "depthFromMain": 6,
-      "titleArea": "retention-202",
-      "createdAt": "2026-11-01T09:02:50Z",
-      "updatedAt": "2026-11-02T18:22:51Z"
     },
     {
       "number": 272,
@@ -1961,7 +1963,7 @@
       "headSha": "0d3531655771657ccd8d8b9a002df562360cc8e6",
       "mergeSha": "b8678e7da4307f25cba1bdabb0202c626d616b22",
       "dependencyPr": 227,
-      "depthFromMain": null,
+      "depthFromMain": 10,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T22:21:28Z",
       "updatedAt": "2026-11-02T18:21:19Z"
@@ -1976,7 +1978,7 @@
       "headSha": "a771e6082ec41254d98f40a219d45660d1fccf94",
       "mergeSha": "445af2f53cf8433631a2cf7184286198c1d0c38b",
       "dependencyPr": 226,
-      "depthFromMain": null,
+      "depthFromMain": 9,
       "titleArea": "other",
       "createdAt": "2026-10-30T22:06:06Z",
       "updatedAt": "2026-11-02T18:21:17Z"
@@ -1991,7 +1993,7 @@
       "headSha": "b480fdc855d263dd59a6f9da412568be352b5846",
       "mergeSha": "f15da9b26fcca6484f7033ad5d4a3c5cc1a481fc",
       "dependencyPr": 225,
-      "depthFromMain": null,
+      "depthFromMain": 8,
       "titleArea": "other",
       "createdAt": "2026-10-30T21:51:06Z",
       "updatedAt": "2026-11-02T18:21:15Z"
@@ -2006,7 +2008,7 @@
       "headSha": "24eb91841a6dc35f07821c02eab1fa6b17e9642e",
       "mergeSha": "46b5f5f56fb89164bc191eedea4ae29627883f7b",
       "dependencyPr": 224,
-      "depthFromMain": null,
+      "depthFromMain": 7,
       "titleArea": "retention-202",
       "createdAt": "2026-10-30T21:38:58Z",
       "updatedAt": "2026-11-02T18:21:13Z"
@@ -2021,7 +2023,7 @@
       "headSha": "d7879388c132791af36a881442423eca761f2d4b",
       "mergeSha": "38fdfe4c8cb881b68d1727f5cd8e8713a0725da7",
       "dependencyPr": 223,
-      "depthFromMain": null,
+      "depthFromMain": 6,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T21:28:10Z",
       "updatedAt": "2026-11-02T18:21:11Z"
@@ -2036,7 +2038,7 @@
       "headSha": "ae3d5a7a82732a366b1ff17808ff788c17db4425",
       "mergeSha": "154ba2f1a53799818df3a71d8f1fbb8125bb45ba",
       "dependencyPr": 222,
-      "depthFromMain": null,
+      "depthFromMain": 5,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T21:21:20Z",
       "updatedAt": "2026-11-02T18:21:08Z"
@@ -2051,7 +2053,7 @@
       "headSha": "06fe8509cfda12eed1abc080efa17c9e17b2b8e2",
       "mergeSha": "c4a4c0751121d408baea71d796d20c397bd3d65b",
       "dependencyPr": 221,
-      "depthFromMain": null,
+      "depthFromMain": 4,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T20:58:54Z",
       "updatedAt": "2026-11-02T18:21:06Z"
@@ -2066,7 +2068,7 @@
       "headSha": "74e06385e453dd4d2bc8aff6f9d810233b8a778c",
       "mergeSha": "107fcc512e92972a54a2acf7ec9f594b58a5c655",
       "dependencyPr": 220,
-      "depthFromMain": null,
+      "depthFromMain": 3,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T20:39:16Z",
       "updatedAt": "2026-11-02T18:21:04Z"
@@ -2081,7 +2083,7 @@
       "headSha": "8091cd6811e2c9ab8713a8c771468dfa22ba4c6a",
       "mergeSha": "6c2292e3a547c064088d8032f22a247de64ebf63",
       "dependencyPr": 219,
-      "depthFromMain": null,
+      "depthFromMain": 2,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T20:29:54Z",
       "updatedAt": "2026-11-02T18:21:02Z"
@@ -2096,7 +2098,7 @@
       "headSha": "6314431111115da5b62b7d42d0eb18d32eceb7a9",
       "mergeSha": "85817ce00601aec4ff15dfc26a11c9bd3c4a42c6",
       "dependencyPr": null,
-      "depthFromMain": null,
+      "depthFromMain": 1,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T20:12:18Z",
       "updatedAt": "2026-11-02T18:21:00Z"
@@ -2111,7 +2113,7 @@
       "headSha": "263ea6c0111eeeb496d8dfc6acd95b8c9d305d7c",
       "mergeSha": "04de6396ed0cc00f96effca484c6a6c3b94fa2a4",
       "dependencyPr": 217,
-      "depthFromMain": null,
+      "depthFromMain": 5,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T19:52:25Z",
       "updatedAt": "2026-11-02T18:20:58Z"
@@ -2126,7 +2128,7 @@
       "headSha": "2172b8f6f9a1c439719539957bcb1dd6c0f44627",
       "mergeSha": "5b08fca46395188c604df4a474bec146abba6aca",
       "dependencyPr": 216,
-      "depthFromMain": null,
+      "depthFromMain": 4,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T19:43:31Z",
       "updatedAt": "2026-11-02T18:20:56Z"
@@ -2141,7 +2143,7 @@
       "headSha": "3f945950ecff5b8c077997315b7b54de941de24f",
       "mergeSha": "27b1c80864800ac41297f2a6b3f3b6b7a08a5e74",
       "dependencyPr": 215,
-      "depthFromMain": null,
+      "depthFromMain": 3,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T19:33:39Z",
       "updatedAt": "2026-11-02T18:20:54Z"
@@ -2156,7 +2158,7 @@
       "headSha": "755414e2d439c56425a601fe27df8007c6ef9fb1",
       "mergeSha": "a23145427d5a3f2e76d644c92394faa0a0c46d04",
       "dependencyPr": 214,
-      "depthFromMain": null,
+      "depthFromMain": 2,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T19:13:09Z",
       "updatedAt": "2026-11-02T18:20:52Z"
@@ -2171,7 +2173,7 @@
       "headSha": "59f0231e1eed83d543b7070c98622b309eb3acd8",
       "mergeSha": "30296dfebaddc07e2ce35e44d4af41ca7c98f429",
       "dependencyPr": null,
-      "depthFromMain": null,
+      "depthFromMain": 1,
       "titleArea": "partner-referral-56-48",
       "createdAt": "2026-10-30T18:48:15Z",
       "updatedAt": "2026-11-02T18:20:51Z"
@@ -2186,7 +2188,7 @@
       "headSha": "2b668632a9a5b2167400c10d9c3978c347c69067",
       "mergeSha": "3ba9d18f1218196798c1a1222fa6dc1fd73f9e70",
       "dependencyPr": null,
-      "depthFromMain": null,
+      "depthFromMain": 1,
       "titleArea": "partner-webhook-55",
       "createdAt": "2026-10-30T14:08:10Z",
       "updatedAt": "2026-11-02T18:20:49Z"
@@ -2973,7 +2975,7 @@
     }
   ],
   "latestWatch": {
-    "observedAt": "2026-11-11T07:12:45Z",
+    "observedAt": "2026-11-12T13:36:10Z",
     "main": {
       "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
       "validate": {
@@ -2982,8 +2984,7 @@
         "status": "completed",
         "conclusion": "success"
       },
-      "vercelCommitStatus": "success",
-      "vercelDeployment": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
+      "vercelProductionDeployment": "dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w",
       "vercelTarget": "production",
       "vercelDeploymentState": "READY"
     },
@@ -3098,17 +3099,17 @@
         "number": 313,
         "state": "open",
         "draft": true,
-        "headSha": "ebff2580566372e6c10dcc3f994baa332d455959",
-        "ahead": 89,
+        "headSha": "193d9b88f874f9fb66a8a1f089ba090af4caa634",
+        "ahead": 107,
         "behind": 2,
         "validate": {
-          "run": 42961392549,
-          "job": 130328510627,
+          "run": 43217696353,
+          "job": 131181021020,
           "conclusion": "success"
         },
         "reviews": 0,
         "vercel": {
-          "deployment": "dpl_7JmA58ZA8GRQemadcuC9pjCRJSxi",
+          "deployment": "dpl_G1drgRtttHiije5e157TYiWDgfmx",
           "state": "READY",
           "target": null
         }
@@ -3127,7 +3128,9 @@
         },
         "reviews": 0,
         "vercel": {
-          "exactHeadDeploymentCount": 0
+          "exactHeadDeploymentCount": 0,
+          "status": "failure",
+          "description": "Deployment rate limited — retry in 24 hours."
         }
       },
       {
@@ -3140,8 +3143,7 @@
           "run": 41531498018,
           "job": 125572558770,
           "conclusion": "failure",
-          "failedStep": "Enterprise static gates",
-          "reason": "GitHub-signed provenance attestation bound to immutable image digest required"
+          "failedStep": "Enterprise static gates"
         },
         "reviews": [
           {
@@ -3161,18 +3163,20 @@
           "job": 125783766115,
           "conclusion": "success"
         },
-        "note": "replacement attest-pin/validator draft; independent review not assessed in this snapshot"
+        "reviews": 0
       },
       {
         "number": 317,
         "state": "open",
         "draft": true,
         "headSha": "37c7487246303c5af1543ca1e5afe31e2cf2e0f4",
+        "ahead": 123,
+        "behind": 2,
         "validate": {
           "run": 42078741460,
-          "job": 127426427605,
           "conclusion": "success"
-        }
+        },
+        "reviews": 0
       },
       {
         "number": 348,
@@ -3185,7 +3189,7 @@
           "conclusion": "success"
         },
         "reviews": 0,
-        "note": "P0 production hard-stop interlock; review-only stacked branch"
+        "note": "P0 production hard-stop before Firestore/GCS; review-only stacked branch"
       },
       {
         "number": 353,
@@ -3198,19 +3202,7 @@
           "conclusion": "success"
         },
         "reviews": 0,
-        "note": "integrates account-erasure hard-stop and Firestore/GCS hold guards; all-writer late-hold race remains"
-      },
-      {
-        "number": 355,
-        "state": "open",
-        "draft": true,
-        "headSha": "4a3acd90adfa6e781ce92990589fe01585c4b1e5",
-        "validate": {
-          "run": 42475508667,
-          "job": 128715833344,
-          "conclusion": "success"
-        },
-        "note": "RC1 scope proposal; draft"
+        "note": "Strict record/object holds and generation checks; late-hold-after-final-authorization race remains"
       },
       {
         "number": 358,
@@ -3221,9 +3213,7 @@
           "run": 42710380877,
           "job": 129478019942,
           "conclusion": "failure",
-          "failedStep": "Browser acceptance",
-          "tests": "28 passed / 1 failed",
-          "reason": "Consent-withdrawal confirmation returned generic failure; Firestore PERMISSION_DENIED"
+          "failedStep": "Browser acceptance"
         },
         "reviews": 0
       },
@@ -3236,8 +3226,7 @@
           "run": 42705724751,
           "job": 129461862107,
           "conclusion": "failure",
-          "failedStep": "Enterprise static gates",
-          "reason": "GitHub-signed provenance attestation bound to immutable image digest required"
+          "failedStep": "Enterprise static gates"
         },
         "reviews": 0
       }
@@ -3305,27 +3294,28 @@
       "legacyPhotoCron": {
         "path": "phase2_work/functions/src/deleteExpiredPhotos.ts",
         "blobSha": "69c0ad42be40ac51f8aebd62741ae97bf5120f2a",
-        "finding": "main still schedules the 24-hour legacy worker and calls deleteExpiredPhotoPage"
+        "finding": "main schedules legacy 24-hour worker and calls deleteExpiredPhotoPage"
       },
       "legacyPhotoRetention": {
         "path": "phase2_work/functions/src/retention.ts",
         "blobSha": "5f9014b9090042b1f501c70cb87c4a1fdeb51f0a",
-        "finding": "verification/ objects are filtered by Storage timeCreated older than 30 days; no moderation decision/fotoLoeschenAb predicate"
+        "finding": "verification/ objects filtered by Storage timeCreated older than 30 days; no moderation-decision/fotoLoeschenAb predicate"
       },
       "legacyAndNewSchedulers": {
         "path": "phase2_work/functions/src/index.ts",
         "blobSha": "1f6a239ab6332140a84207f8ee29b52568f71682",
         "finding": "main exports both deleteExpiredPhotosCron and purgeVerificationStorageCron"
       },
-      "purgeWorker": {
-        "path": "phase2_work/functions/src/purgeVerificationStorage.ts",
-        "blobSha": "71fae5af61c4547f1d2e21afb92e301878ca8479",
-        "finding": "main contains a separate daily 03:00 UTC signed HTTP purge scheduler"
+      "complianceStorage": {
+        "path": "phase2_work/src/server/routes/complianceStorage.ts",
+        "blobSha": "0923fb2a22513fc3ca7bd7bae2d32e1c737ee6db",
+        "finding": "main falls back to getStorage().bucket(); no production hard-stop sentinel"
       },
       "ttlProvisioning": {
         "path": "phase2_work/scripts/configure-retention.sh",
         "blobSha": "b82be26bae598bc5acc907c91a8d31d4585392e8",
-        "finding": "20-group staging/project/matrix preflight and dry-run exist; no real 20/20 ACTIVE readback"
+        "groupCount": 20,
+        "finding": "20-group staging/project/database/legal/matrix preflight and dry-run; no real 20/20 ACTIVE readback"
       },
       "storageRules": {
         "path": "phase2_work/storage.rules",
@@ -3340,12 +3330,11 @@
       "codeowners": {
         "path": "CODEOWNERS",
         "blobSha": "fcaacd9acc8007fa637720fb98fe50c23de7f07c",
-        "finding": "active phase2_work ownership is assigned to the repository owner; file disclaims independent Security/Finance approval"
+        "finding": "active phase2_work ownership assigned only to repository owner; no independent specialist owners"
       },
       "releaseManifest": {
         "path": "phase2_work/RELEASE_MANIFEST.json",
-        "blobSha": "31d8199009a0ddc48a6bc9d9b910d5ef939b33e9",
-        "finding": "node 22.23.3; decision NO-GO; productionApproved=false; release evidence pending"
+        "finding": "node 22.23.3; decision NO-GO; productionApproved=false; lastVerificationDate 2026-10-10"
       }
     },
     "vercel": {
@@ -3363,20 +3352,21 @@
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
       "auditPreview": {
-        "id": "dpl_7JmA58ZA8GRQemadcuC9pjCRJSxi",
+        "id": "dpl_G1drgRtttHiije5e157TYiWDgfmx",
         "state": "READY",
         "target": null,
-        "sha": "ebff2580566372e6c10dcc3f994baa332d455959"
+        "sha": "193d9b88f874f9fb66a8a1f089ba090af4caa634"
       },
       "pr314ExactHeadDeploymentCount": 0,
       "nodeVersionMismatch": {
         "project": "26.x",
+        "repositoryNvmrc": "22.23.3",
+        "packageEngine": ">=22.23.3",
         "releaseManifest": "22.23.3"
       },
       "oldDemoProject": {
         "id": "prj_kfJ06pJHn3neZAkrtasYKezxuprF",
-        "priorReadOnlyEvidence": "404 not_found and absent from team list; not re-queried this run",
-        "deletionConfirmed": true
+        "priorReadOnlyEvidence": "404 not_found and absent from team list; deletionConfirmed=true; no retry"
       },
       "providerCredentials": {
         "neonPostgresBetterAuth": "not accessed, rotated or revoked"
@@ -3385,7 +3375,7 @@
     "decision": {
       "productionApproved": false,
       "status": "BLOCKED / NO-GO",
-      "reason": "No exact integrated release SHA with complete E3/E4 purge/TTL/tenant/operations evidence and independent Security, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals."
+      "reason": "No exact integrated release SHA with complete purge/receipt/race, TTL/Legal-Hold/Art.-17, tenant/BOLA, production operations and independent Security/AppSec, DPO/Legal, SRE, Finance (where relevant) and Release Owner approvals."
     }
   }
 }
