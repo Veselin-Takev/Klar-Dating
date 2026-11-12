@@ -454,3 +454,64 @@ Newer containment Drafts [#348](https://github.com/Veselin-Takev/Klar-Dating/pul
 The authenticated Vercel team list still contains exactly one project: Klar `klar-dating`, ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`. Project metadata reports `live=false` and Node `26.x`. Production deployment `dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w` is READY, target `production`, bound to the exact main SHA above; the latest project deployment is a READY preview (`target=null`). #313 has a READY preview on its exact head (`target=null`); #314 has no exact-head deployment. The prior API-confirmed deletion of `login-page-prototype` remains the recorded result; no further deletion was attempted. Neon/Postgres/Better-Auth credentials were not accessed, rotated or revoked.
 
 **Decision: `productionApproved=false`, BLOCKED / NO-GO.** No exact integrated release SHA has complete purge/receipt/race, 20/20 TTL/legal-hold/Art. 17, tenant/BOLA, signed immutable-image provenance and production-operations evidence plus independent Security/AppSec, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals. No merge, deployment, secret access or production Firebase/GCS/IAM/Scheduler/database mutation was performed. This is a documentation-only update on the existing audit review branch; the resulting new #313 head must pass its own exact-head CI before it is treated as technically validated.
+
+
+## Live release-watch checkpoint — 2026-11-12 05:02 CET
+
+This checkpoint was collected from fresh GitHub and Vercel read-only API responses. It supersedes prior PR-count and exact-head snapshots, but it does not constitute an independent approval.
+
+### Fresh main and current PR topology
+
+- Repository exists, is public, is not archived, and uses `main` as its default branch.
+- Fresh `main` HEAD: `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (merge of PR #359, repository PR-hygiene documentation).
+- Exact main push run [42710429488](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710429488), job `validate` / `129478192916`: `completed/success`. Separate GitHub Vercel status: `success`.
+- Fully paginated open-PR list: **194 open PRs, 192 Drafts, 2 non-Drafts (#358 and #361)**. **50** target `main`, **144** target other branches; **141** non-main base refs match another open PR head; **3** bases have no open-PR parent; **53** stack roots; maximum observed depth **35**.
+- Head-ref prefixes: fix 81, security 55, test 19, docs 11, integration 10, audit 7, feat 5, dependabot 1, release 1, feature 2, audit-enterprise-e2e-20261102 1, Veselin-Takev-patch-1 1.
+- Largest dependency stacks: #269 = 40 PRs; #317 = 27; #203 = 20; #253 = 14; #219 = 10; #192 = 10; #160 = 6; #214 = 5; #337 = 4; #172 = 4.
+- The fresh list matches the summary in `OPEN_PR_INVENTORY_2026-11-12.json` (generated 2026-11-12 02:39:08Z); no redundant inventory rewrite was made.
+
+### Exact watched PR heads, CI, Vercel and reviews
+
+All six open target PRs remain Drafts, target `main`, and are **2 commits behind** current main. Compare counts below use the fresh main SHA above and each exact current PR head. A green branch check is not a merge or release approval.
+
+| PR | Exact current head | Ahead / behind | Exact Actions run / job | GitHub/Vercel status | Reviews / threads |
+|---|---|---:|---|---|---:|
+| #251 Governance / P1 #73 live-ruleset gate | `fc03f33996ccffc73e54e6b7a6fb05914cdcbc53` | 10 / 2 | [42818199684](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42818199684) / `validate` `129836618469` — success | Vercel success | 0 / 0 |
+| #269 Legacy-photo purge | `fd68656957c01618c3a085e887ece504624d18b3` | 33 / 2 | [42020003801](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42020003801) / `validate` `127220743813` — success | Vercel success | 0 / 0 |
+| #203 Decision/generation-bound purge | `1850e0a78b22e600e5add99273b84c081ffc3892` | 57 / 2 | [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009) / `validate` `127211414732` — success | Vercel success | 0 / 0 |
+| #253 Multi-Tenant | `036ee313747a7beb2ab926e721e3bef958304447` | 11 / 2 | [41539994863](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41539994863) / `validate` `125601704190` — success | Vercel success | 0 / 0 |
+| #313 Enterprise audit | `514cc7f0dd16a31ac130f9d525566a65a2881d60` | 99 / 2 | [43143286614](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43143286614) / `validate` `130935150221` — success | Vercel success | 0 / 0 |
+| #314 Vercel setup | `e5deab1dfd629065f3dfce3a5577eb21ac966a68` | 3 / 2 | [41619572341](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41619572341) / `validate` `125861548924` — success | **Vercel failure: `build-rate-limit`; no deployment for this exact head** | 0 / 0 |
+| #315 Dependabot attest | `71743b14c66d9c5f2fdca2ed73a0fda3c137d48d` | closed / unmerged | [41531498018](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/41531498018) / `validate` `125572558770` — failure at Enterprise static gates; downstream checks skipped | Historical Vercel success | 1 owner approval; 0 independent |
+
+PR #269 and #203 still change the same six files: `phase2_work/docs/DATA_RETENTION.md`, `phase2_work/functions/src/deleteExpiredPhotos.ts`, `phase2_work/functions/src/retention.ts`, `phase2_work/package.json`, `phase2_work/tests/photoRetention.spec.ts`, and `phase2_work/tests/storageRules.spec.ts`. Their independent green CI results do not resolve the integration conflict; do not merge either blindly or together.
+
+### Other open non-Draft PRs
+
+- [#358](https://github.com/Veselin-Takev/Klar-Dating/pull/358), head `1321c42ffe1c5919c1baccaada66a650ab811f93`, targets `release/v0.1.1-rc1`; run [42710380877](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42710380877), job `129478019942`, fails at Browser acceptance. The consent-withdrawal test is 28/29; logs show Firestore `PERMISSION_DENIED: No matching allow statements`. Zero reviews. The precise authorization root cause remains unisolated.
+- [#361](https://github.com/Veselin-Takev/Klar-Dating/pull/361), head `2f90d9fef013f7a7f070a3624cadd5fd62e914ff`, targets `main`; run [42705724751](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42705724751), job `129461862107`, fails at Enterprise static gates because the production container release lacks GitHub-signed provenance attestation bound to the immutable image digest. Zero reviews.
+- #315 remains closed and unmerged; its former approval does not transfer to #361.
+
+### Active main Ruleset #25756841
+
+Live API confirms the ruleset is `active` for `refs/heads/main`. It strictly requires status context `validate`, but `required_approving_review_count=0`, `require_code_owner_review=false`, `dismiss_stale_reviews_on_push=false`, `require_last_push_approval=false`, and `required_review_thread_resolution=false`. The six watched open Drafts have no submitted reviews and no review threads. This does not meet the required independent-review gate.
+
+### Fresh source and issue rechecks
+
+All nine issues remain OPEN: #202, #70, #254, #8, #73, #55, #56, #204 and #206.
+
+- **#202 P0:** current main still exports `deleteExpiredPhotosCron` from `phase2_work/functions/src/index.ts`; the worker schedules every 24 hours and calls `deleteExpiredPhotoPage`. Current `retention.ts` lists `verification/` objects and deletes by `timeCreated` older than 30 days, with generation and Storage-hold checks but no moderation-decision / `fotoLoeschenAb` binding. This is a source finding, not proof that a production Scheduler is active.
+- **#70 P0:** current main `configure-retention.sh` enumerates 20 collection groups and gates apply to explicitly approved staging, project/database identity, legal matrix and inventory. No project-bound 20/20 `ACTIVE` Cloud readback or independent Legal-Hold proof was found.
+- **#254 P0:** `phase2_work/src/server/multitenant/tenantAuth.ts` is absent from current main; tenant middleware, legacy mapping and full cross-tenant BOLA/IDOR/Art. 17 live-cutover evidence remain unproven. #253 is still an unmerged Draft.
+- **#8 / #73:** production IAM, alert delivery/on-call, canary, restore/RTO/RPO, sustained SLO evidence and enforceable independent review remain unproven.
+- **#55 / #56:** partner purchase/buyer authenticity, tracking legal basis, revocation and retention/Art. 17 approval remain open if partner monetization is in release scope.
+- **#204 P1:** current main `storage.rules` still permits `/profiles/{uid}/{datei}` reads with `signedIn()` alone; the policy engine requires adult-state checks for reader and target.
+- **#206 P1:** current main `klar.ts` still calls `getDownloadURL()` and persists the URL to `users/{uid}.photoURL`; the Profile screen renders that stored URL. This is a source risk, not evidence of live exploitation.
+
+### Read-only Vercel check and release decision
+
+- Authenticated Vercel team listing contains exactly one project: Klar `klar-dating`, ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`. Project metadata reports `live=false`, Node `26.x`, and the Klar domains; the repository release manifest pins Node `22.23.3`.
+- Production-target deployment `dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w` is `READY` and bound to exact main SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`. READY is not proof of user traffic, runtime health or approval.
+- The previously confirmed `login-page-prototype` deletion remains closed out: it was not queried for another deletion attempt; the team listing contains only Klar. No Neon/Postgres/Better-Auth credential was read, rotated or revoked.
+
+**Decision remains `productionApproved=false`, BLOCKED / NO-GO.** No exact integrated release SHA has complete purge/receipt/race, TTL/legal-hold/Art. 17, tenant/BOLA, production-operations and independent Security/AppSec, DPO/Legal, SRE, Finance (where applicable) and Release Owner approvals. No merge, main commit, deployment, secret access, production Firebase/GCS/IAM/Scheduler/database mutation or credential rotation was performed. This audit-branch documentation update itself must pass CI on its new exact head before being treated as technically validated.
