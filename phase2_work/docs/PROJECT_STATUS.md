@@ -2242,3 +2242,15 @@ Main `phase2_work/RELEASE_MANIFEST.json` meldet `productionApproved=false`, `NO-
 ## Exact-head production-watch follow-up — 2026-11-13 00:25 CET
 
 Fresh main `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` remains CI-green on run 42710429488/job 129478192916. The open PR inventory is 194 (192 Drafts, 2 non-Drafts). Audit PR #313 is now at exact head `3eebf7ddc3f44101a2824688663b6328ba9a3d81`; its exact run 43320355951/job 131539108027 is `validate=success`, and its Vercel preview is READY/target=null. All six monitored Drafts remain unreviewed and two commits behind main; #314 has no exact-head deployment. #358 fails Browser acceptance; #361 fails the signed-provenance static gate; #315 is closed/unmerged. P0 #202/#70/#254, governance/operations #8/#73, and P1 #204/#206 remain open; #55/#56 remain conditional blockers for partner monetization. Vercel still reports project Node 26.x vs repository 22.23.3 and `live=false`. **productionApproved=false / BLOCKED / NO-GO.** See the detailed audit checkpoint and inventory linked above; no main or production mutation was made.
+
+## Produktionsfreigabe-Watch — 2026-11-13 04:12 CET
+
+- Main: `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`; exact run 42710429488/job 129478192916 `validate=success`.
+- Queue: 194 open PRs (192 Draft, 2 non-Draft), 50 main / 144 stacked, 141 parent-linked, 3 unmatched bases, max depth 35. See [current inventory](./OPEN_PR_INVENTORY_2026-11-13.json).
+- Current monitored Draft heads: #251 `fc03f33996ccffc73e54e6b7a6fb05914cdcbc53`, #269 `fd68656957c01618c3a085e887ece504624d18b3`, #203 `1850e0a78b22e600e5add99273b84c081ffc3892`, #253 `036ee313747a7beb2ab926e721e3bef958304447`, #313 `3ed5a8c4b0e059d194af2d406f9db5cf1068e36b`, #314 `e5deab1dfd629065f3dfce3a5577eb21ac966a68`. Their exact `validate` runs are SUCCESS, but each has 0 reviews and is 2 commits behind main.
+- #361 is the open non-Draft Dependabot successor and fails Enterprise static gates because signed provenance is not bound to the immutable image digest. #358 fails Browser acceptance on consent withdrawal (28 pass / 1 fail). #315 is closed/unmerged, with no independent approval.
+- Ruleset #25756841 remains active but requires 0 approvals, no CODEOWNERS review and no stale-review dismissal. Issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain OPEN.
+- Main-source blockers: legacy upload-age photo purge; no live 20/20 TTL ACTIVE proof; tenant middleware absent from main; profile-photo Storage read policy mismatch; persisted long-lived Firebase download URLs. No live Cloud/staging or independent specialist approval evidence.
+- Vercel: `klar-dating` exists; metadata `live=false`, Node 26.x vs repository 22.23.3. Main production deployment READY; #313 preview READY/target=null; #314 exact-head deployment absent. Old demo deletion not retried; external provider credentials untouched.
+
+**Status: BLOCKED / NO-GO; `productionApproved=false`.** Documentation checkpoint only; no main/production mutation.

@@ -56,3 +56,11 @@ Dateikollisionen zwischen #160/#203/#231/#269: 6 bis 8 gemeinsame Dateien je Paa
 - Their diffs still overlap in exactly six files: phase2_work/docs/DATA_RETENTION.md, phase2_work/functions/src/deleteExpiredPhotos.ts, phase2_work/functions/src/retention.ts, phase2_work/package.json, phase2_work/tests/photoRetention.spec.ts, tests/storageRules.spec.ts. No combined integration claim; no blind merge.
 - Current main source still schedules the legacy upload-age worker every 24 hours and the worker still deletes from verification/ using timeCreated age (with hold/generation preconditions), not a moderation-decision clock. Whether the deployed Scheduler is enabled remains unverified.
 - Exact-head CI success is useful source/test evidence only. It does not supply independent AppSec/DPO/SRE approval, deployed Scheduler/IAM/GCS evidence, live 404/412/hold/receipt reconciliation, or controlled staging proof. **P0 #202 remains open; no merge or deployment authorized.**
+
+## Exact-head checkpoint — 2026-11-13 04:12 CET
+
+Fresh main remains `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`, with main `validate` run 42710429488/job 129478192916 SUCCESS. Current #269 head is `fd68656957c01618c3a085e887ece504624d18b3`, exact run 42020003801/job 127220743813 SUCCESS, 33 ahead / 2 behind main, zero reviews. Current #203 head is `1850e0a78b22e600e5add99273b84c081ffc3892`, exact run 42017264009/job 127211414732 SUCCESS, 57 ahead / 2 behind main, zero reviews.
+
+The current-main diff intersection remains exactly six files: `phase2_work/docs/DATA_RETENTION.md`, `phase2_work/functions/src/deleteExpiredPhotos.ts`, `phase2_work/functions/src/retention.ts`, `phase2_work/package.json`, `phase2_work/tests/photoRetention.spec.ts`, `phase2_work/tests/storageRules.spec.ts`. Both PRs remain Draft and separate; do not blind-merge or infer integrated behavior from either green run.
+
+Main source still exports the 24-hour age-based legacy worker. No authenticated Scheduler/GCS/Firestore live readback, approved staging run, independent Security/DPO/SRE review, or release-owner approval was obtained. **P0 #202 remains BLOCKED / NO-GO; no merge or deployment is authorized.**

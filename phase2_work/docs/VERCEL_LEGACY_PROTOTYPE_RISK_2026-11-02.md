@@ -89,3 +89,14 @@ Der Projektverantwortliche hat ausdrücklich erklärt: **`login-page-prototype` 
 - A separate read-only production-deployment query returns dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w, state READY, target production, with Git source main at 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b. A READY deployment record is not proof of actual user traffic, health, or release approval.
 - The current audit-branch preview dpl_CeRHFRsJuhN2xKigTfaA7DJbnVmh is READY with target=null on audit head 82e413983a9d99fcc20be7c93fa54493116ed7ba; #314 has no deployment for its exact head and its Vercel status is build-rate-limit.
 - The previously confirmed login-page-prototype deletion remains the recorded result. No further delete was attempted; no Neon/Postgres/Better-Auth credential was read, rotated, or revoked.
+
+## Read-only Klar project re-check — 2026-11-13 04:12 CET
+
+- Authenticated Vercel team listing for `ves3` returns exactly one project: `klar-dating`, ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`. `get_project` succeeds; metadata reports `live=false`, Node `26.x`.
+- Main production-target deployment `dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w` is READY, target `production`, bound to exact main SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`.
+- Current #313 preview `dpl_87kDhD3PXnoRNNRd5WpzS2G3tvDK` is READY, target=null, bound to exact #313 head `3ed5a8c4b0e059d194af2d406f9db5cf1068e36b`.
+- Read-only deployment listing for exact #314 head `e5deab1dfd629065f3dfce3a5577eb21ac966a68` returns **zero deployments**.
+- Repository/release Node pin remains `22.23.3`; Vercel project setting `26.x` is configuration drift. A READY deployment does not establish traffic, runtime health, or release approval.
+- The previously confirmed `login-page-prototype` deletion remains unchanged; no deletion retry was made. Neon/Postgres/Better-Auth credentials were not accessed, rotated or revoked.
+
+No Vercel setting, deployment, environment variable, project, domain or provider credential was changed. Klar exists, but metadata `live=false` means production availability/traffic is not established by this read. **Klar release remains BLOCKED / NO-GO.**

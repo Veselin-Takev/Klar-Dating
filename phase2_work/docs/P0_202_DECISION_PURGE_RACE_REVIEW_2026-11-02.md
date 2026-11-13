@@ -70,3 +70,12 @@ Ein eigenständiger Read-only-GitHub-Compare von `main=96c3857c53f5ced31fe139489
 - Draft #203 currently points to 1850e0a78b22e600e5add99273b84c081ffc3892; exact GitHub Actions run [42017264009](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42017264009), job 127211414732 validate=success. The PR remains Draft, has zero submitted reviews, and is 57 commits ahead / 2 behind current main 2fa3ba223989ff248ad1abaea67f4f454f7c9f6b.
 - The current-main source still contains the legacy upload-age worker; #203 is not integrated. Its generation-bound intent/CAS/receipt behavior remains a branch-level implementation claim pending independent code review and the E3/E4/E5 evidence in this document.
 - The successful CI run does not establish live GCS generation/hold behavior, Firestore-to-GCS race safety, scheduler inventory, real deletion receipts, or staging reconciliation. No cross-service production mutation or deployment was performed. **productionApproved=false; BLOCKED / NO-GO.**
+
+## Exact-head race-review checkpoint — 2026-11-13 04:12 CET
+
+- #203 current head `1850e0a78b22e600e5add99273b84c081ffc3892`, exact run 42017264009/job 127211414732 `validate=success`, compare to current main: 57 ahead / 2 behind, zero submitted reviews.
+- #269 current head `fd68656957c01618c3a085e887ece504624d18b3`, exact run 42020003801/job 127220743813 `validate=success`, compare to current main: 33 ahead / 2 behind, zero submitted reviews.
+- Their current diffs overlap in exactly six files: `DATA_RETENTION.md`, `deleteExpiredPhotos.ts`, `retention.ts`, `package.json`, `photoRetention.spec.ts`, `storageRules.spec.ts` (all under `phase2_work/`).
+- The exact-head successes are isolated branch CI only. They do not prove live GCS generation preconditions, late-hold Firestore-to-GCS ordering, crash/replay reconciliation, 404/412 receipt integrity, scheduler state or approved staging behavior.
+
+**Decision:** no blind merge, no combined-integration claim, no production operation. Keep `productionApproved=false` / BLOCKED / NO-GO until a reviewed integration sequence and E3/E4/E5 evidence exist.
