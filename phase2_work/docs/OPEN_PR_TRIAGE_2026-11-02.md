@@ -883,3 +883,16 @@ Ruleset #25756841 remains active but requires 0 approvals and no CODEOWNERS revi
 Vercel read-only: Klar project exists, metadata `live=false`, Node 26.x vs repository 22.23.3; main production deployment READY on current main SHA; #313 preview READY/target=null on current #313 SHA; #314 exact-head deployment count 0. Old demo deletion not retried; provider credentials untouched.
 
 **productionApproved=false / BLOCKED / NO-GO.** No live Cloud readback, approved staging execution or independent specialist approvals were obtained.
+
+
+## Exact-head watch — 2026-11-13 10:33 CET
+
+Fresh main `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`; exact `validate` run 42710429488/job 129478192916 completed/success (32 successful steps). Current inventory: **194 open PRs (192 Draft, 2 non-Draft)**, 50 target main / 144 other branches, 141 base refs match open PR heads, 53 roots, max depth 35. Largest stacks #269=40, #317=27, #203=20, #253=14, #219/#192=10.
+
+Exact current monitored heads: #251 `fc03f33996ccffc73e54e6b7a6fb05914cdcbc53` (10/2, run 42818199684/job 129836618469 success); #269 `fd68656957c01618c3a085e887ece504624d18b3` (33/2, 42020003801/127220743813 success); #203 `1850e0a78b22e600e5add99273b84c081ffc3892` (57/2, 42017264009/127211414732 success); #253 `036ee313747a7beb2ab926e721e3bef958304447` (11/2, 41539994863/125601704190 success); #313 `bdc7e8f792e0e2e287cb8997e868d64f0c9337f3` (115/2, 43381407985/131739774109 success); #314 `e5deab1dfd629065f3dfce3a5577eb21ac966a68` (3/2, 41619572341/125861548924 success). All six remain Draft and have zero reviews; #314 exact-head Vercel deployments=0. #269/#203 overlap in the same six paths listed in the enterprise audit; no blind merge.
+
+#315 is closed/unmerged; its exact old head failed Enterprise static gates and its sole approval was owner-only. Open replacement #361 fails exact-head provenance validation (GitHub-signed attestation bound to immutable image digest), zero reviews. Open non-Draft #358 targets `release/v0.1.1-rc1`; exact-head Browser acceptance fails 28/1 on consent withdrawal after Firestore `PERMISSION_DENIED`, zero reviews.
+
+Ruleset #25756841 remains active but has 0 required approvals and no CODEOWNERS review requirement. Issues #202/#70/#254/#8/#73/#55/#56/#204/#206 remain OPEN. Main-source findings remain: age-based verification-photo worker; 20 TTL groups without live 20/20 ACTIVE proof; tenant middleware absent; Storage profile-read rule/model mismatch; bearer-style Firebase download URLs persisted. Vercel still has one Klar project, metadata `live=false` / Node 26.x; main production-target deployment READY on current main SHA; #313 preview READY/target=null; #314 exact-head deployment absent. Old demo deletion was not retried; provider credentials untouched.
+
+**productionApproved=false / BLOCKED / NO-GO.** No live Cloud readback, approved staging execution or independent specialist signoffs were obtained. This checkpoint is documentation-only and does not authorize merge or production mutation.

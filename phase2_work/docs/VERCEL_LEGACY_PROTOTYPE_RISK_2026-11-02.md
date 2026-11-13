@@ -100,3 +100,14 @@ Der Projektverantwortliche hat ausdrücklich erklärt: **`login-page-prototype` 
 - The previously confirmed `login-page-prototype` deletion remains unchanged; no deletion retry was made. Neon/Postgres/Better-Auth credentials were not accessed, rotated or revoked.
 
 No Vercel setting, deployment, environment variable, project, domain or provider credential was changed. Klar exists, but metadata `live=false` means production availability/traffic is not established by this read. **Klar release remains BLOCKED / NO-GO.**
+
+
+## Read-only Klar project and deployment re-check — 2026-11-13 10:33 CET
+
+- Authenticated team `ves3` lists exactly one project: `klar-dating`, ID `prj_9dEo2EJIDfmkx6JCS0BqwtF9fXre`; `get_project` succeeds. Project metadata remains `live=false`, Node `26.x`.
+- Vercel project settings still differ from the repository/release Node pin `22.23.3`; this is configuration drift, not a change made by this watch.
+- Production-target deployment `dpl_AJRgtKhyoF4B8ypLkXBF8vMzw32w` is READY and bound to current main SHA `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`. The current pre-update #313 preview `dpl_Fp7b5sk5ikJm7rbkdVfk5BTCpFVZ` is READY with target=null on #313 head `bdc7e8f792e0e2e287cb8997e868d64f0c9337f3`. Exact-head #314 `e5deab1dfd629065f3dfce3a5577eb21ac966a68` has zero deployments.
+- A READY deployment is not proof of serving traffic, runtime health, SLOs or production approval; project metadata `live=false` remains unresolved.
+- The confirmed `login-page-prototype` deletion was not retried. No Neon/Postgres/Better-Auth credential was accessed, rotated or revoked.
+
+No Vercel project, setting, environment variable, domain or deployment was changed. Klar's Vercel project exists; production availability and release approval remain **BLOCKED / NO-GO**.
