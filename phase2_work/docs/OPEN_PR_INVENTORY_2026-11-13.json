@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-13T03:20:20Z",
+  "generatedAt": "2026-11-13T06:42:06Z",
   "repository": "Veselin-Takev/Klar-Dating",
   "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
-  "source": "Fresh GitHub REST pulls pages 1-2, exact target PR heads/check-runs/jobs/reviews, compare against current main, active Ruleset #25756841, main source blobs, and read-only Vercel project/deployment reads at 2026-11-13 04:20 CET. Snapshot records the state immediately before the commit that refreshes this inventory; the resulting audit-branch head has a new CI run and is reported separately.",
+  "source": "Fresh GitHub REST main ref, open PR pages, exact target PR heads/check-runs/jobs/reviews, compare against current main, active Ruleset #25756841, main source blobs and read-only Vercel project/deployment reads at 2026-11-13 07:42 CET. Snapshot is taken immediately before this documentation-only checkpoint commit; the resulting audit-branch head and its exact CI are reported separately.",
   "limitations": [
     "PR inventory and branch graph are metadata; not all 194 changesets were individually reviewed.",
     "Stack roots and depths are based on open base/head branch-name matching; closed ancestry is not reconstructed.",
@@ -731,25 +731,25 @@
       "state": "open",
       "draft": true,
       "headRef": "audit-enterprise-e2e-20261102",
-      "headSha": "3ed5a8c4b0e059d194af2d406f9db5cf1068e36b",
+      "headSha": "fb09d990a72867928bf4028f1c38bb3da2d4ac32",
       "baseRef": "main",
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
-      "updatedAt": "2026-11-12T23:30:03Z",
+      "updatedAt": "2026-11-13T03:24:48Z",
       "stackDepth": 0,
       "exactHeadCheck": {
-        "runId": 43358007910,
-        "jobId": 131664554461,
+        "runId": 43358776550,
+        "jobId": 131667045561,
         "name": "validate",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "reviewCount": 0,
-        "checkedAt": "2026-11-13T03:20:20Z",
-        "aheadBy": 113,
+        "checkedAt": "2026-11-13T06:42:06Z",
+        "aheadBy": 114,
         "behindBy": 2,
         "vercelState": "success",
-        "vercelDeploymentId": "dpl_7nA1n1KVtiZxxWjkB69hbHFZe8dd",
-        "vercelTarget": null,
-        "activeStep": "Install Playwright Chromium"
+        "vercelDeploymentId": "dpl_Aeq8EFuATpSsSTyYahmhnfqEY3Ah",
+        "vercelDeploymentState": "READY",
+        "vercelTarget": null
       }
     },
     {
@@ -2627,7 +2627,7 @@
     }
   ],
   "watchSnapshot": {
-    "capturedAt": "2026-11-13T03:20:20Z",
+    "capturedAt": "2026-11-13T06:42:06Z",
     "mainHeadSha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b",
     "mainValidate": {
       "runId": 42710429488,
@@ -2636,7 +2636,7 @@
       "status": "completed",
       "conclusion": "success",
       "successfulSteps": 33,
-      "checkedAt": "2026-11-13T03:20:20Z"
+      "checkedAt": "2026-11-13T06:42:06Z"
     },
     "currentMainDiffFromCommonBase": {
       "baseSha": "96c3857c53f5ced31fe1394895185f42c75bc716",
@@ -2663,7 +2663,7 @@
         "aheadBy": 57,
         "behindBy": 2,
         "vercelState": "success",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "251": {
         "headSha": "fc03f33996ccffc73e54e6b7a6fb05914cdcbc53",
@@ -2676,7 +2676,7 @@
         "aheadBy": 10,
         "behindBy": 2,
         "vercelState": "success",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "253": {
         "headSha": "036ee313747a7beb2ab926e721e3bef958304447",
@@ -2689,7 +2689,7 @@
         "aheadBy": 11,
         "behindBy": 2,
         "vercelState": "success",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "269": {
         "headSha": "fd68656957c01618c3a085e887ece504624d18b3",
@@ -2702,23 +2702,23 @@
         "aheadBy": 33,
         "behindBy": 2,
         "vercelState": "success",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "313": {
-        "headSha": "37e5ac57a8d51a95e7624b9a01412d24e0ba24c7",
-        "runId": 43358007910,
-        "jobId": 131664554461,
+        "headSha": "fb09d990a72867928bf4028f1c38bb3da2d4ac32",
+        "runId": 43358776550,
+        "jobId": 131667045561,
         "name": "validate",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "reviewCount": 0,
-        "aheadBy": 113,
+        "aheadBy": 114,
         "behindBy": 2,
         "vercelState": "success",
-        "vercelDeploymentId": "dpl_7nA1n1KVtiZxxWjkB69hbHFZe8dd",
+        "vercelDeploymentId": "dpl_Aeq8EFuATpSsSTyYahmhnfqEY3Ah",
+        "vercelDeploymentState": "READY",
         "vercelTarget": null,
-        "activeStep": "Install Playwright Chromium",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "314": {
         "headSha": "e5deab1dfd629065f3dfce3a5577eb21ac966a68",
@@ -2733,7 +2733,7 @@
         "vercelState": "failure",
         "vercelFailure": "build-rate-limit",
         "vercelExactHeadDeploymentCount": 0,
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "317": {
         "headSha": "37c7487246303c5af1543ca1e5afe31e2cf2e0f4",
@@ -2745,7 +2745,7 @@
         "reviewCount": 0,
         "aheadBy": 123,
         "behindBy": 2,
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "358": {
         "headSha": "1321c42ffe1c5919c1baccaada66a650ab811f93",
@@ -2757,7 +2757,7 @@
         "reviewCount": 0,
         "failedStep": "Browser acceptance",
         "failure": "Consent-withdrawal E2E: 28 passed, 1 failed; generic failure message instead of withdrawal confirmation.",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       },
       "361": {
         "headSha": "2f90d9fef013f7a7f070a3624cadd5fd62e914ff",
@@ -2767,11 +2767,9 @@
         "status": "completed",
         "conclusion": "failure",
         "reviewCount": 0,
-        "aheadBy": 1,
-        "behindBy": 2,
         "failedStep": "Enterprise static gates",
         "failure": "Production container release must generate a GitHub-signed provenance attestation bound to the immutable image digest.",
-        "checkedAt": "2026-11-13T03:20:20Z"
+        "checkedAt": "2026-11-13T06:42:06Z"
       }
     },
     "closedMonitoredPR": {
@@ -2921,11 +2919,11 @@
         "sha": "2fa3ba223989ff248ad1abaea67f4f454f7c9f6b"
       },
       "auditPreview": {
-        "id": "dpl_7nA1n1KVtiZxxWjkB69hbHFZe8dd",
+        "id": "dpl_Aeq8EFuATpSsSTyYahmhnfqEY3Ah",
         "state": "READY",
         "target": null,
-        "sha": "37e5ac57a8d51a95e7624b9a01412d24e0ba24c7",
-        "url": "klar-dating-igqyslae3-ves3.vercel.app"
+        "sha": "fb09d990a72867928bf4028f1c38bb3da2d4ac32",
+        "url": "klar-dating-bhun9lypv-ves3.vercel.app"
       },
       "pr314ExactHeadDeploymentCount": 0,
       "note": "Deployment metadata only; no traffic/runtime-health proof. Project metadata live=false.",
@@ -2943,6 +2941,7 @@
       "productionApproved": false,
       "status": "BLOCKED / NO-GO",
       "reason": "No exact integrated release SHA with complete purge/receipt/race, TTL/Legal-Hold/Art.-17, tenant/BOLA, production operations and independent Security/AppSec, DPO/Legal, SRE, Finance (where relevant) and Release Owner approvals."
-    }
+    },
+    "checkpointFile": "EXACT_HEAD_WATCH_2026-11-13_0742.md"
   }
 }
