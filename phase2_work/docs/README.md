@@ -1,7 +1,7 @@
 # Klar documentation
 
 
-**Aktueller Issue-/Nachweisstand:** [Register vom 25.10.2026](OPEN_ISSUE_EVIDENCE_REGISTER_2026-10-25.md). Implementierte Kontrollen, PR-Kandidaten und ausstehende Freigaben sind getrennt; Produktionsfreigabe bleibt unbestätigt.
+**Aktueller Evidenz-/Review-Stand (10.11.2026, auf diesem Draft-Branch):** [Projektstatus und Produktionsfreigabe-Watch](PROJECT_STATUS.md) ist der aktuelle Statusindex; das [PR-/Stack-Inventar vom 10.11.2026](OPEN_PR_INVENTORY_2026-11-10.json) ist ein zeitgestempelter Snapshot. Der [Enterprise-E2E-Audit vom 02.11.2026](ENTERPRISE_E2E_AUDIT_2026-11-02.md), [PR-Konsolidierungsplan](OPEN_PR_TRIAGE_2026-11-02.md), [P0 #202 Merge-Readiness](P0_202_MERGE_READINESS_2026-11-02.md), [P0 #202 Race-/Retry-Testmatrix](P0_202_DECISION_PURGE_RACE_REVIEW_2026-11-02.md), [Vercel-CI-Setup-Gates](VERCEL_CI_SETUP_GATE_2026-11-02.md) und [Vercel-Altprojekt-Risikobericht](VERCEL_LEGACY_PROTOTYPE_RISK_2026-11-02.md) sind datierte Evidenzdokumente. Produktionsfreigabe weiterhin **BLOCKED / NO-GO**.
 
 Start with the current status, then use the audit and runbooks to distinguish implemented behavior from remaining release evidence.
 
