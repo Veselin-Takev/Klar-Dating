@@ -10,22 +10,39 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function dbFor(user: { exists?: boolean; data?: Record<string, unknown> } = {}) {
+function dbFor(
+  user: { exists?: boolean; data?: Record<string, unknown> } = {},
+  deletionExists = false,
+) {
   const set = vi.fn(async () => undefined);
   const get = vi.fn(async () => ({
     exists: user.exists ?? true,
     data: () => user.data ?? { isAdult: true, location: 'München' },
   }));
-  const db = {
-    collection: vi.fn((name: string) => ({
-      doc: vi.fn(() => name === 'users' ? { get } : { set }),
-    })),
-  } as any;
-  return { db, set, get };
+  const refs = new Map<string, { collection: string; id: string }>();
+  const collection = vi.fn((name: string) => ({
+    doc: vi.fn((id: string) => {
+      const ref = { collection: name, id };
+      refs.set(name + '/' + id, ref);
+      return { ...ref, get, set };
+    }),
+  }));
+  const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => work({
+    get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
+      ? { exists: deletionExists, data: () => ({ status: 'pending' }) }
+      : { exists: user.exists ?? true, data: () => user.data ?? { isAdult: true, location: 'München' } },
+    set,
+  }));
+  const db = { collection, runTransaction } as any;
+  return { db, set, get, runTransaction };
 }
 
-async function endpoint(overrides: Partial<ProfileRecommendationsRouterDeps> = {}, user?: { exists?: boolean; data?: Record<string, unknown> }) {
-  const store = dbFor(user);
+async function endpoint(
+  overrides: Partial<ProfileRecommendationsRouterDeps> = {},
+  user?: { exists?: boolean; data?: Record<string, unknown> },
+  deletionExists = false,
+) {
+  const store = dbFor(user, deletionExists);
   const getRecommendations = vi.fn(async () => [{ id: 'candidate-1' }]);
   const deps: ProfileRecommendationsRouterDeps = {
     currentUserId: () => 'user-a',
@@ -68,8 +85,17 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint({ toPublicProfile: vi.fn(() => profile) });
     const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
     expect(response.status).toBe(200);
-    expect(ctx.store.set).toHaveBeenCalledWith(profile);
+    expect(ctx.store.runTransaction).toHaveBeenCalledOnce();
+    expect(ctx.store.set).toHaveBeenCalledWith(expect.objectContaining({ collection: 'public_profiles', id: 'user-a' }), profile);
     expect(await response.json()).toEqual({ ok: true, city: 'München' });
+  });
+
+  it('does not publish while an account-erasure barrier exists', async () => {
+    const ctx = await endpoint({}, undefined, true);
+    const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
+    expect(ctx.store.set).not.toHaveBeenCalled();
   });
 
   it('does not publish example profiles', async () => {

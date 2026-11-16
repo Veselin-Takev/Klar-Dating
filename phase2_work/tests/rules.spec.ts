@@ -276,6 +276,13 @@ describe('Öffentliches Profil', () => {
     await assertSucceeds(getDoc(doc(als(ANNA), 'public_profiles/bea')));
   });
 
+  it('Zielprofil mit laufender Kontolöschung ist auch bei vorhandenem Spiegel nicht lesbar', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'account_deletions/bea'), { uid: BEA, status: 'pending' });
+    });
+    await assertFails(getDoc(doc(als(ANNA), 'public_profiles/bea')));
+  });
+
   it('nicht angemeldet: nichts', async () => {
     await assertFails(getDoc(doc(anonym(), 'public_profiles/bea')));
   });

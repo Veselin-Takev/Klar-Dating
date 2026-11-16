@@ -41,24 +41,42 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      if (!userSnap.exists) return res.status(200).json({ ok: false, reason: 'Profil nicht gefunden' });
+      const db = deps.getFirestore();
+      const userRef = db.collection('users').doc(uid);
+      const deletionRef = db.collection('account_deletions').doc(uid);
+      const publicProfileRef = db.collection('public_profiles').doc(uid);
 
-      const userData = userSnap.data() ?? {};
-      if (userData.isExample === true) {
-        return res.status(200).json({ ok: false, reason: 'Beispielprofile dürfen nicht veröffentlicht werden.' });
-      }
-      if (userData.isAdult !== true) {
-        return res.status(200).json({ ok: false, reason: 'Profil noch nicht für Vorschläge freigegeben.' });
-      }
+      // Publication and erasure suppression share one transaction. A concurrent
+      // deletion writes the barrier and deletes the public projection atomically;
+      // Firestore retries this transaction if either document changes.
+      const publication = await db.runTransaction(async transaction => {
+        const [userSnap, deletionSnap] = await Promise.all([
+          transaction.get(userRef),
+          transaction.get(deletionRef),
+        ]);
 
-      const publicProfile = deps.toPublicProfile(uid, userData as Record<string, unknown>);
-      if (!publicProfile) {
-        return res.status(200).json({ ok: false, reason: 'Für die Veröffentlichung fehlen Profilangaben.' });
-      }
+        if (deletionSnap.exists) return { ok: false as const, reason: 'Kontolöschung läuft bereits.' };
+        if (!userSnap.exists) return { ok: false as const, reason: 'Profil nicht gefunden' };
 
-      await deps.getFirestore().collection('public_profiles').doc(uid).set(publicProfile);
-      return res.json({ ok: true, city: publicProfile.location });
+        const userData = userSnap.data() ?? {};
+        if (userData.isExample === true) {
+          return { ok: false as const, reason: 'Beispielprofile dürfen nicht veröffentlicht werden.' };
+        }
+        if (userData.isAdult !== true) {
+          return { ok: false as const, reason: 'Profil noch nicht für Vorschläge freigegeben.' };
+        }
+
+        const publicProfile = deps.toPublicProfile(uid, userData as Record<string, unknown>);
+        if (!publicProfile) {
+          return { ok: false as const, reason: 'Für die Veröffentlichung fehlen Profilangaben.' };
+        }
+
+        transaction.set(publicProfileRef, publicProfile);
+        return { ok: true as const, city: publicProfile.location };
+      });
+
+      if (!publication.ok) return res.status(200).json(publication);
+      return res.json(publication);
     } catch (error) {
       console.error('Public profile publish failed', error);
       return res.status(500).json({ error: 'Profil konnte nicht veröffentlicht werden.' });
