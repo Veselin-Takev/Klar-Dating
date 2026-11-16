@@ -57,8 +57,9 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 ## 10. Verifizierungsfotos (Storage)
 - **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
 - **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** `functions/src/deleteExpiredPhotos.ts` verarbeitet fällige `verification_events` und löscht mit Generation-Precondition. Offene Prüfungen ohne Entscheidung werden nicht vom Retention-Worker gelöscht.
-- **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
+- **Legacy-Worker:** `functions/src/deleteExpiredPhotos.ts` bleibt während einer kontrollierten Scheduler-Migration exportiert, ist aber fail-closed deaktiviert. Er darf weder `verification/`-Objekte listen noch löschen. Upload-Alter ist kein Nachweis für den Ablauf der entscheidungsbezogenen Aufbewahrungsfrist.
+- **Entscheidungsbasierter Purge:** Der separate signierte Purge-Endpunkt bleibt bis zum unabhängigen Nachweis einer Firestore/GCS-All-Writer-Fence im Produktionsbetrieb gesperrt. Eine Generation-Precondition allein verhindert keine nachträgliche Legal-Hold-Race-Condition.
+- **Audit:** Ein Löschbeleg (`photoPurged`, `photoPurgedAt`, SHA-256-Digest) darf nur nach tatsächlich erfolgreicher, autorisierter Löschung geschrieben werden. Die Deaktivierung des Legacy-Workers ist keine abgeschlossene Löschung und kein Art.-17-Abschluss.
 
 ## Security Rules Architektur (Least Privilege)
 Die `firestore.rules` (siehe Datei) sind nach dem Prinzip "Default Deny" aufgebaut.
