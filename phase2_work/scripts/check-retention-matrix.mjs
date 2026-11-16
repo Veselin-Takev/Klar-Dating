@@ -10,6 +10,12 @@ import assert from 'node:assert/strict';
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const script = readFileSync(resolve(project, 'scripts/configure-retention.sh'), 'utf8');
 const docs = readFileSync(resolve(project, 'docs/DATA_RETENTION.md'), 'utf8');
+const legacyPhotoCron = readFileSync(resolve(project, 'functions/src/deleteExpiredPhotos.ts'), 'utf8');
+assert(!legacyPhotoCron.includes('deleteExpiredPhotoPage'), 'Legacy upload-age photo deletion must remain disabled');
+assert(!legacyPhotoCron.includes('getMaintenanceBucket'), 'Legacy photo cron must not obtain a Storage bucket');
+assert(!legacyPhotoCron.includes("prefix: 'verification/'"), 'Legacy photo cron must not scan verification objects');
+assert(legacyPhotoCron.includes('legacy_upload_age_worker_not_authorized'),
+  'Legacy photo cron must retain an explicit fail-closed audit marker');
 const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
 const groups = match[1].trim().split(/\s+/);
