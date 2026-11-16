@@ -6,7 +6,7 @@
     "node": "22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node --test tests/gaxios-compatibility.test.cjs tests/legacy-photo-retention.test.cjs"
+    "build": "tsc -p tsconfig.json && node --test tests/gaxios-compatibility.test.cjs tests/legacy-photo-retention.node.cjs"
   },
   "dependencies": {
     "firebase-admin": "14.5.0",
