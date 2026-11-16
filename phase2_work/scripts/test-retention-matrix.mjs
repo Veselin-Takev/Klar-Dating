@@ -12,6 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(join(root, 'scripts/configure-retention.sh'), 'utf8');
 const docs = readFileSync(join(root, 'docs/DATA_RETENTION.md'), 'utf8');
 const guard = readFileSync(join(root, 'scripts/check-retention-matrix.mjs'), 'utf8');
+const legacyCron = readFileSync(join(root, 'functions/src/deleteExpiredPhotos.ts'), 'utf8');
 const cases = [
   ['removed collection group', s => s.replace('archived_messages ', ''), d => d],
   ['duplicate collection group', s => s.replace('messages archived_messages', 'messages messages archived_messages'), d => d],
@@ -27,14 +28,16 @@ const cases = [
   ['removed validated ACTIVE policy skip', s => s.replace('if [[ " $already_active " == *" $group "* ]]; then', 'if false; then'), d => d],
   ['removed machine-readable policy ID capture', s => s.replace('already_active="$(node', 'disregard_active="$(node'), d => d],
 ];
-const run = (script, document) => {
+const run = (script, document, cron = legacyCron) => {
   const tmp = mkdtempSync(join(tmpdir(), 'klar-ttl-regression-'));
   try {
     mkdirSync(join(tmp, 'scripts'));
     mkdirSync(join(tmp, 'docs'));
+    mkdirSync(join(tmp, 'functions', 'src'), { recursive: true });
     writeFileSync(join(tmp, 'scripts/check-retention-matrix.mjs'), guard);
     writeFileSync(join(tmp, 'scripts/configure-retention.sh'), script);
     writeFileSync(join(tmp, 'docs/DATA_RETENTION.md'), document);
+    writeFileSync(join(tmp, 'functions/src/deleteExpiredPhotos.ts'), cron);
     // The copied ESM script has no package.json; its .mjs extension suffices.
     return spawnSync(process.execPath, [join(tmp, 'scripts/check-retention-matrix.mjs')], { encoding: 'utf8', timeout: 10000 });
   } finally { rmSync(tmp, { recursive: true, force: true }); }
@@ -48,4 +51,11 @@ for (const [label, mutateScript, mutateDocs] of cases) {
   const result = run(modifiedSource, modifiedDocs);
   assert.notEqual(result.status, 0, 'Fail-open TTL matrix regression: ' + label);
 }
-console.log('PASS: canonical 20-group TTL guard and ' + cases.length + ' fail-closed mutations (no cloud writes)');
+const reenabledLegacyCron = legacyCron.replace(
+  "info('verification_photo_retention_disabled'",
+  "deleteExpiredPhotoPage(getMaintenanceBucket(), now);\\n  info('verification_photo_retention_disabled'",
+);
+assert.notEqual(reenabledLegacyCron, legacyCron, 'Legacy photo purge mutation was not applied');
+const legacyResult = run(source, docs, reenabledLegacyCron);
+assert.notEqual(legacyResult.status, 0, 'Fail-open legacy upload-age photo purge regression');
+console.log('PASS: canonical 20-group TTL guard, ' + cases.length + ' TTL mutations and legacy photo purge hard-stop mutation (no cloud writes)');
