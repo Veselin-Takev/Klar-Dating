@@ -13,6 +13,7 @@ afterEach(async () => {
 function dbFor(
   user: { exists?: boolean; data?: Record<string, unknown> } = {},
   deletionExists = false,
+  simulateDeletionRace = false,
 ) {
   const set = vi.fn(async () => undefined);
   const get = vi.fn(async () => ({
@@ -27,12 +28,29 @@ function dbFor(
       return { ...ref, get, set };
     }),
   }));
-  const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => work({
-    get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
-      ? { exists: deletionExists, data: () => ({ status: 'pending' }) }
-      : { exists: user.exists ?? true, data: () => user.data ?? { isAdult: true, location: 'München' } },
-    set,
-  }));
+  let deletionBarrierExists = deletionExists;
+  const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => {
+    let attempt = 0;
+    while (true) {
+      const stagedWrites: unknown[][] = [];
+      const result = await work({
+        get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
+          ? { exists: deletionBarrierExists, data: () => ({ status: 'pending' }) }
+          : { exists: user.exists ?? true, data: () => user.data ?? { isAdult: true, location: 'München' } },
+        set: (...args: unknown[]) => { stagedWrites.push(args); },
+      });
+      // Simulate Firestore retry after the deletion transaction wins the
+      // conflict: writes from attempt one are discarded, and attempt two
+      // observes the durable deletion barrier.
+      if (simulateDeletionRace && attempt === 0) {
+        deletionBarrierExists = true;
+        attempt += 1;
+        continue;
+      }
+      for (const args of stagedWrites) set(...args);
+      return result;
+    }
+  });
   const db = { collection, runTransaction } as any;
   return { db, set, get, runTransaction };
 }
@@ -41,8 +59,9 @@ async function endpoint(
   overrides: Partial<ProfileRecommendationsRouterDeps> = {},
   user?: { exists?: boolean; data?: Record<string, unknown> },
   deletionExists = false,
+  simulateDeletionRace = false,
 ) {
-  const store = dbFor(user, deletionExists);
+  const store = dbFor(user, deletionExists, simulateDeletionRace);
   const getRecommendations = vi.fn(async () => [{ id: 'candidate-1' }]);
   const deps: ProfileRecommendationsRouterDeps = {
     currentUserId: () => 'user-a',
@@ -94,6 +113,15 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint({}, undefined, true);
     const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
     expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
+    expect(ctx.store.set).not.toHaveBeenCalled();
+  });
+
+  it('does not resurrect a public profile when deletion wins a transaction retry race', async () => {
+    const ctx = await endpoint({}, undefined, false, true);
+    const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(ctx.store.runTransaction).toHaveBeenCalledTimes(2);
     expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
     expect(ctx.store.set).not.toHaveBeenCalled();
   });
