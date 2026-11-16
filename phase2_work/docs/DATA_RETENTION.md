@@ -57,7 +57,8 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 ## 10. Verifizierungsfotos (Storage)
 - **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
 - **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** `functions/src/deleteExpiredPhotos.ts` verarbeitet fällige `verification_events` und löscht mit Generation-Precondition. Offene Prüfungen ohne Entscheidung werden nicht vom Retention-Worker gelöscht.
+- **Legacy-Worker:** `functions/src/deleteExpiredPhotos.ts` ist fail-closed und löscht keine `verification/`-Objekte mehr. Die bisherige Upload-Alter-Löschung ist deaktiviert; der bestehende Scheduler-Export bleibt vorläufig erhalten, um eine ungeplante Cloud-Function-Löschung bei Deployments zu vermeiden. Er bereinigt weiterhin ausschließlich unabhängige, abgelaufene `funnel_events`.
+- **Entscheidungsbasierter Pfad:** `purgeVerificationStorageCron` ruft separat `/api/admin/purge-verification-storage` auf. Dieser Pfad ist nicht durch die Deaktivierung des Legacy-Workers abgesichert. Vor einer Produktionsaktivierung sind All-Writer-Fencing, Late-Hold-Negativtests, explizite Bucket-/Projektbindung sowie unabhängige AppSec-/DPO-/SRE-Freigaben erforderlich. Ein Quellcode- oder CI-Nachweis allein belegt keine sichere produktive Löschung.
 - **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
 
 ## Security Rules Architektur (Least Privilege)
