@@ -22,6 +22,15 @@ Iteration 2 found substantial pre-existing remediation work in stacked Draft PRs
 
 A green CI run on one stacked branch does not validate another branch or a later combined SHA. Evidence above is per exact commit only. No PR is merged by this register.
 
+## Same-day follow-up — legacy upload-age worker interlock
+
+[PR #363](https://github.com/Veselin-Takev/Klar-Dating/pull/363) was opened on 2026-11-16 against main to disable the legacy upload-age-based verification-photo deletion in functions/src/deleteExpiredPhotos.ts.
+
+- Exact head: cd25203b782eeebe9fd608993c67f4fd2dcf7341.
+- Change: remove Storage bucket listing and upload-age deletion from the legacy scheduled worker; retain the scheduler export to avoid an unplanned function deletion; preserve independent funnel-event cleanup; add a Node regression test to the Functions build and correct DATA_RETENTION documentation.
+- Enterprise CI run [#43869160182](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43869160182) was still in progress at register update time.
+- This partially mitigates Issue #202 at source level only. The deployed legacy function is unchanged until an approved deployment. The separate decision-aware purge route and its Firestore/GCS late-hold race remain P0.
+
 ## P0 — Verification-photo deletion is not safely fenced across Firestore and GCS
 
 - The legacy scheduled upload-age deletion path is tracked by [Issue #202](https://github.com/Veselin-Takev/Klar-Dating/issues/202).
