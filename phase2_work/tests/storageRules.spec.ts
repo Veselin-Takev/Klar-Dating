@@ -27,6 +27,14 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
     await assertFails(Promise.resolve(user(prefix).ref(path).put(new Uint8Array(8 * 1024 * 1024), { contentType: 'image/jpeg' })));
   });
+  it('denies profile image reads to anonymous guest sessions', async () => {
+    const bucket = getAppBucket();
+    const path = `profiles/${prefix}/avatar.jpg`;
+    await bucket.file(path).save(image);
+    await assertFails(user('guest-reader', 'anonymous').ref(path).getDownloadURL());
+    await assertSucceeds(user('permanent-reader').ref(path).getDownloadURL());
+    await bucket.file(path).delete();
+  });
   it('executes the retention worker against real emulator objects after 30 days', async () => {
     const bucket = getAppBucket();
     const photo = bucket.file(`verification/${prefix}/photo.jpg`);
