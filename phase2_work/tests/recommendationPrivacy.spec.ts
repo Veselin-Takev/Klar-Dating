@@ -37,17 +37,19 @@ describe('published preferences and recommendation privacy', () => {
       for (const id of fillerIds.slice(offset, offset + 450)) {
         batch.set(getDb().collection('public_profiles').doc(id), {
           name: 'Nicht verifiziert', age: 28, location: 'Berlin',
-          isVerified: false, active: true, lastActiveAt: new Date(),
+          interests: ['unrelated'], isVerified: false, active: true, lastActiveAt: new Date(),
         });
       }
       await batch.commit();
     }
     await getDb().collection('public_profiles').doc(candidate).set({
       name: 'Eligible', age: 28, location: 'Berlin',
-      isVerified: true, active: true, lastActiveAt: new Date(),
+      interests: ['iteration2-unique'], isVerified: true, active: true, lastActiveAt: new Date(),
     });
 
-    const recommendations = await getRecommendations(getDb(), `viewer-${prefix}`, { location: 'Berlin' });
+    const recommendations = await getRecommendations(getDb(), `viewer-${prefix}`, {
+      location: 'Berlin', interests: ['iteration2-unique'],
+    });
     expect(recommendations.some(row => row.id === candidate)).toBe(true);
   }, 30_000);
 
