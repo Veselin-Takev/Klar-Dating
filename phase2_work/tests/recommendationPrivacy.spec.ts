@@ -26,6 +26,33 @@ describe('published preferences and recommendation privacy', () => {
     }
   }, 30_000); // Emulator integration: >400 writes, two paginated queries and cleanup.
 
+  it('finds eligible profiles after the first 500 city documents', async () => {
+    const prefix = `scan-${crypto.randomUUID()}`;
+    const candidate = `${prefix}-z-eligible`;
+    const fillerIds = Array.from({ length: 510 }, (_, index) => `${prefix}-a-${String(index).padStart(3, '0')}`);
+    ids.push(candidate, ...fillerIds);
+
+    for (let offset = 0; offset < fillerIds.length; offset += 450) {
+      const batch = getDb().batch();
+      for (const id of fillerIds.slice(offset, offset + 450)) {
+        batch.set(getDb().collection('public_profiles').doc(id), {
+          name: 'Nicht verifiziert', age: 28, location: 'Berlin',
+          interests: ['unrelated'], isVerified: false, active: true, lastActiveAt: new Date(),
+        });
+      }
+      await batch.commit();
+    }
+    await getDb().collection('public_profiles').doc(candidate).set({
+      name: 'Eligible', age: 28, location: 'Berlin',
+      interests: ['iteration2-unique'], isVerified: true, active: true, lastActiveAt: new Date(),
+    });
+
+    const recommendations = await getRecommendations(getDb(), `viewer-${prefix}`, {
+      location: 'Berlin', interests: ['iteration2-unique'],
+    });
+    expect(recommendations.some(row => row.id === candidate)).toBe(true);
+  }, 30_000);
+
   it('retains valid music preferences in the safe public projection', () => {
     const profile = toPublicProfile('a', { name: 'Anna', age: 28, location: 'Berlin', musicPreferences: music, email: 'private@example.test' });
     expect(profile?.musicPreferences).toEqual(music); expect(profile).not.toHaveProperty('email');

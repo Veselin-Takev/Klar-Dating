@@ -179,7 +179,34 @@ export async function getRecommendations(
   const minAge = Math.max(18, Math.min(80, profile.minAge ?? 18));
   const maxAge = Math.max(minAge, Math.min(100, profile.maxAge ?? 80));
   const limit = Math.max(1, Math.min(30, profile.limit ?? 12));
-  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
+
+  // Page the full city result set before applying in-memory eligibility and
+  // ranking filters. A single 500-row query silently hid eligible profiles
+  // behind older/unverified documents. Keep work bounded and fail closed if
+  // the city exceeds the scan budget rather than returning a biased shortlist.
+  const pageSize = 500;
+  const scanBudget = 25_000;
+  const profileQuery = db.collection('public_profiles').where('location', '==', city);
+  const profileDocs: import('firebase-admin/firestore').QueryDocumentSnapshot[] = [];
+  let profileCursor: import('firebase-admin/firestore').QueryDocumentSnapshot | undefined;
+  let scannedProfiles = 0;
+  while (true) {
+    if (scannedProfiles >= scanBudget) {
+      const beyondBudget = await profileQuery.startAfter(profileCursor!).limit(1).get();
+      if (!beyondBudget.empty) throw new Error('Recommendation profile scan budget exceeded');
+      break;
+    }
+    const currentPageSize = Math.min(pageSize, scanBudget - scannedProfiles);
+    const pageQuery = profileCursor
+      ? profileQuery.startAfter(profileCursor).limit(currentPageSize)
+      : profileQuery.limit(currentPageSize);
+    const page = await pageQuery.get();
+    profileDocs.push(...page.docs);
+    scannedProfiles += page.size;
+    if (page.size < currentPageSize) break;
+    profileCursor = page.docs[page.docs.length - 1];
+  }
+
   const blocked = new Set<string>();
   // Never truncate an exclusion list: an omitted block is a privacy failure.
   // Bound work and fail closed if an exceptional account exceeds the scan budget.
@@ -195,7 +222,7 @@ export async function getRecommendations(
     }
   }
 
-  const candidates = snap.docs
+  const candidates = profileDocs
     .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
     .filter(({ id, data }) => id !== uid && data.isExample !== true && !blocked.has(id) && data.active !== false && data.isVerified === true)
     .filter(({ data }) => typeof data.age === 'number' && data.age >= minAge && data.age <= maxAge)
