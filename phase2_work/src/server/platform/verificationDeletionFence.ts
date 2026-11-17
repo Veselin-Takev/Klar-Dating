@@ -101,6 +101,8 @@ export interface LogVerificationDeleteAttemptInput {
 export interface LogVerificationDeleteAttemptResult {
   attempt: VerificationDeleteAttempt;
   fence: VerificationDeletionFence;
+  /** False means this exact pending attempt already exists and must be reconciled, not replayed. */
+  created: boolean;
 }
 
 export interface BeginVerificationDeletionHoldInput {
@@ -589,7 +591,7 @@ export async function logVerificationDeleteAttempt(
   const metageneration = normalizeGeneration(input.expectedMetageneration, 'verification_deletion_metageneration_invalid');
   const attemptId = randomUUID();
   const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
-  const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(attemptId);
+  const newAttemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(attemptId);
 
   return db.runTransaction(async tx => {
     const snapshot = await tx.get(fenceRef);
@@ -603,7 +605,40 @@ export async function logVerificationDeleteAttempt(
     if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
       fail('verification_deletion_reservation_expired');
     }
-    if (fence.activeDeleteAttemptId) fail('verification_deletion_attempt_already_active');
+
+    // Idempotent replay: an existing pending attempt is returned only when
+    // every destructive-operation parameter is identical. Callers must not
+    // issue another GCS request when created === false; reconcile this attempt.
+    if (fence.activeDeleteAttemptId) {
+      const activeAttemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION)
+        .doc(fence.activeDeleteAttemptId);
+      const activeSnapshot = await tx.get(activeAttemptRef);
+      if (!activeSnapshot.exists) fail('verification_deletion_active_attempt_missing');
+      const raw = activeSnapshot.data();
+      if (!isRecord(raw)
+        || raw.schemaVersion !== VERIFICATION_DELETION_FENCE_SCHEMA_VERSION
+        || raw.attemptId !== fence.activeDeleteAttemptId
+        || raw.objectKey !== key
+        || raw.uid !== fence.uid
+        || raw.bucket !== fence.bucket
+        || raw.storagePath !== fence.storagePath
+        || raw.reservationToken !== token
+        || raw.generation !== generation
+        || raw.metageneration !== metageneration
+        || raw.actor !== actor
+        || raw.status !== 'pending'
+        || !isTimestamp(raw.createdAt)
+        || !isTimestamp(raw.updatedAt)
+        || raw.completedAt !== null
+        || raw.errorCode !== null) {
+        fail('verification_deletion_attempt_conflict');
+      }
+      return {
+        attempt: raw as unknown as VerificationDeleteAttempt,
+        fence,
+        created: false,
+      };
+    }
 
     const now = Timestamp.now();
     const attempt: VerificationDeleteAttempt = {
@@ -630,10 +665,235 @@ export async function logVerificationDeleteAttempt(
       updatedAt: now,
       lastTransitionBy: actor,
     };
-    tx.create(attemptRef, attempt);
+    tx.create(newAttemptRef, attempt);
     tx.set(fenceRef, updatedFence);
-    return { attempt, fence: updatedFence };
+    return { attempt, fence: updatedFence, created: true };
   });
+}
+
+
+export interface PrepareVerificationDeleteCasInput extends CreateVerificationDeletionFenceInput {
+  /** Required for the GCS compare-and-swap ticket. */
+  observedMetageneration: string | number;
+  actor: string;
+  reservationOwner: string;
+  reservationTtlMs?: number;
+}
+
+export type VerificationDeleteCasBlockedReason =
+  | 'verification_deletion_held'
+  | 'verification_deletion_hold_pending'
+  | 'verification_deletion_already_deleted'
+  | 'verification_deletion_not_eligible'
+  | 'verification_deletion_reservation_owned_by_other_worker'
+  | 'verification_deletion_reservation_expired'
+  | 'verification_deletion_attempt_already_pending'
+  | 'verification_deletion_attempt_conflict'
+  | 'verification_deletion_fence_identity_mismatch'
+  | 'verification_deletion_metageneration_changed';
+
+export type PrepareVerificationDeleteCasResult =
+  | {
+      readyForGcs: true;
+      objectKey: string;
+      reservationToken: string;
+      generation: string;
+      metageneration: string;
+      attempt: VerificationDeleteAttempt;
+      fence: VerificationDeletionFence;
+      created: true;
+    }
+  | {
+      readyForGcs: false;
+      reason: VerificationDeleteCasBlockedReason;
+      objectKey?: string;
+      attempt?: VerificationDeleteAttempt;
+      fence?: VerificationDeletionFence;
+      created?: false;
+    };
+
+function prepareConflictReason(error: unknown): VerificationDeleteCasBlockedReason | null {
+  if (!(error instanceof VerificationDeletionFenceError)) return null;
+  switch (error.code) {
+    case 'verification_deletion_held':
+    case 'verification_deletion_hold_conflicts_with_reservation':
+      return 'verification_deletion_held';
+    case 'verification_deletion_hold_pending_mismatch':
+      return 'verification_deletion_hold_pending';
+    case 'verification_deletion_already_deleted':
+      return 'verification_deletion_already_deleted';
+    case 'verification_deletion_not_eligible':
+    case 'verification_deletion_not_reserved':
+      return 'verification_deletion_not_eligible';
+    case 'verification_deletion_reservation_expired':
+      return 'verification_deletion_reservation_expired';
+    case 'verification_deletion_metageneration_changed':
+      return 'verification_deletion_metageneration_changed';
+    case 'verification_deletion_attempt_conflict':
+    case 'verification_deletion_active_attempt_missing':
+      return 'verification_deletion_attempt_conflict';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Prepare the Firestore-side CAS ticket for one exact GCS object generation.
+ * This helper never calls GCS. Existing pending attempts are surfaced as a
+ * non-ready reconciliation result and must not trigger a second delete.
+ */
+export async function prepareVerificationDeleteCas(
+  db: Firestore,
+  input: PrepareVerificationDeleteCasInput,
+): Promise<PrepareVerificationDeleteCasResult> {
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const reservationOwner = requireIdentifier(
+    input.reservationOwner,
+    'verification_deletion_worker_invalid',
+    128,
+  );
+  const generation = normalizeGeneration(
+    input.observedGeneration,
+    'verification_deletion_generation_missing_or_invalid',
+  );
+  const metageneration = normalizeGeneration(
+    input.observedMetageneration,
+    'verification_deletion_metageneration_invalid',
+  );
+  const createInput: CreateVerificationDeletionFenceInput = {
+    uid: input.uid,
+    challengeId: input.challengeId,
+    bucket: input.bucket,
+    storagePath: input.storagePath,
+    observedGeneration: generation,
+    observedMetageneration: metageneration,
+    legalHoldActive: input.legalHoldActive,
+    moderationHoldActive: input.moderationHoldActive,
+    accountErasureActive: input.accountErasureActive,
+    createdBy: input.createdBy,
+  };
+  const proposed = buildVerificationDeletionFence(createInput);
+  const objectKey = proposed.objectKey;
+
+  let fence: VerificationDeletionFence;
+  try {
+    fence = await createVerificationDeletionFence(db, createInput);
+  } catch (error) {
+    if (!(error instanceof VerificationDeletionFenceError)
+      || error.code !== 'verification_deletion_fence_already_exists') {
+      const reason = prepareConflictReason(error);
+      if (reason) return { readyForGcs: false, reason, objectKey };
+      throw error;
+    }
+    fence = await readVerificationDeletionFence(db, objectKey);
+  }
+
+  // The deterministic key intentionally binds UID/bucket/path/generation.
+  // Check the remaining immutable identity separately, including challenge
+  // and metageneration, so a changed metadata version is never silently reused.
+  if (fence.uid !== input.uid
+    || fence.challengeId !== input.challengeId
+    || fence.bucket !== input.bucket
+    || fence.storagePath !== input.storagePath
+    || fence.observedGeneration !== generation
+    || fence.observedMetageneration !== metageneration) {
+    return {
+      readyForGcs: false,
+      reason: fence.observedMetageneration !== metageneration
+        ? 'verification_deletion_metageneration_changed'
+        : 'verification_deletion_fence_identity_mismatch',
+      objectKey,
+      fence,
+    };
+  }
+
+  let reservationToken: string;
+  let reservedFence: VerificationDeletionFence;
+
+  if (fence.state === 'eligible') {
+    try {
+      const reservation = await reserveVerificationDeletion(
+        db,
+        objectKey,
+        reservationOwner,
+        input.reservationTtlMs,
+      );
+      if (reservation.status !== 'reserved') {
+        return {
+          readyForGcs: false,
+          reason: 'verification_deletion_held',
+          objectKey,
+          fence: reservation.fence,
+        };
+      }
+      reservationToken = reservation.reservationToken;
+      reservedFence = reservation.fence;
+    } catch (error) {
+      const reason = prepareConflictReason(error);
+      if (reason) return { readyForGcs: false, reason, objectKey };
+      throw error;
+    }
+  } else if (fence.state === 'delete_reserved') {
+    if (fence.reservationOwner !== reservationOwner || !fence.reservationToken) {
+      return {
+        readyForGcs: false,
+        reason: 'verification_deletion_reservation_owned_by_other_worker',
+        objectKey,
+        fence,
+      };
+    }
+    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
+      return {
+        readyForGcs: false,
+        reason: 'verification_deletion_reservation_expired',
+        objectKey,
+        fence,
+      };
+    }
+    reservationToken = fence.reservationToken;
+    reservedFence = fence;
+  } else {
+    const reason: VerificationDeleteCasBlockedReason = fence.state === 'held'
+      ? 'verification_deletion_held'
+      : fence.state === 'hold_pending'
+        ? 'verification_deletion_hold_pending'
+        : 'verification_deletion_already_deleted';
+    return { readyForGcs: false, reason, objectKey, fence };
+  }
+
+  try {
+    const logged = await logVerificationDeleteAttempt(db, {
+      objectKey,
+      reservationToken,
+      expectedGeneration: generation,
+      expectedMetageneration: metageneration,
+      actor,
+    });
+    if (!logged.created) {
+      return {
+        readyForGcs: false,
+        reason: 'verification_deletion_attempt_already_pending',
+        objectKey,
+        attempt: logged.attempt,
+        fence: logged.fence,
+        created: false,
+      };
+    }
+    return {
+      readyForGcs: true,
+      objectKey,
+      reservationToken,
+      generation,
+      metageneration,
+      attempt: logged.attempt,
+      fence: logged.fence ?? reservedFence,
+      created: true,
+    };
+  } catch (error) {
+    const reason = prepareConflictReason(error);
+    if (reason) return { readyForGcs: false, reason, objectKey, fence: reservedFence };
+    throw error;
+  }
 }
 
 /**
