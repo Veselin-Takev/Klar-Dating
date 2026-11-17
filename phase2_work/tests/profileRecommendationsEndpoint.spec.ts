@@ -29,10 +29,14 @@ function dbFor(
     }),
   }));
   let deletionBarrierExists = deletionExists;
+  // Firestore invokes the transaction callback again after a contention retry;
+  // runTransaction itself is still called only once by the route.
+  const transactionAttempts = vi.fn();
   const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => {
     let attempt = 0;
     while (true) {
       const stagedWrites: Array<[ref: unknown, data: unknown]> = [];
+      transactionAttempts();
       const result = await work({
         get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
           ? { exists: deletionBarrierExists, data: () => ({ status: 'pending' }) }
@@ -52,7 +56,7 @@ function dbFor(
     }
   });
   const db = { collection, runTransaction } as any;
-  return { db, set, get, runTransaction };
+  return { db, set, get, runTransaction, transactionAttempts };
 }
 
 async function endpoint(
@@ -121,7 +125,9 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint({}, undefined, false, true);
     const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
     expect(response.status).toBe(200);
-    expect(ctx.store.runTransaction).toHaveBeenCalledTimes(2);
+    // The route starts one Firestore transaction; Firestore retries its callback.
+    expect(ctx.store.runTransaction).toHaveBeenCalledTimes(1);
+    expect(ctx.store.transactionAttempts).toHaveBeenCalledTimes(2);
     expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
     expect(ctx.store.set).not.toHaveBeenCalled();
   });
