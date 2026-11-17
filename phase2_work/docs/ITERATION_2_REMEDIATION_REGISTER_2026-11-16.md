@@ -410,3 +410,16 @@ GitHub state was verified as closed for all three; all report `merged=false`. Ca
 - #371 / #353: remains P0 OPEN. The late Firestore legal-hold/moderation-revocation race before physical GCS deletion and the complete all-writer inventory/fence are not resolved by CI on #353.
 
 No PR merge to main, production deployment, cloud/IAM/billing change, data migration or physical deletion was performed. `productionApproved=false` remains mandatory; release decision remains NO-GO.
+
+## 0.4 Package A — Issue #371 deletion fence (PR #378 exact-head CI)
+
+**Verified 2026-11-17.** PR [#378](https://github.com/Veselin-Takev/Klar-Dating/pull/378) is an open Draft PR on branch `security/issue-371-deletion-fence-package-a-20261117`, exact head `6667764fa7a5123fa27981178193c13387283e1f`. The SHA-bound GitHub Actions run [#44054128397](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44054128397) completed with conclusion **success**.
+
+- Fence test file: **12/12 passed**, including **7/7 Firestore Emulator transaction tests** and **5/5 pure unit tests**.
+- Full Vitest suite: **195 files / 1,495 tests passed**.
+- Browser acceptance (Playwright): **26/26 passed**.
+- Enterprise CI gates, TypeScript, Functions build, tests, application build, production smoke and browser acceptance all completed successfully on the exact head above.
+- This evidence is specific to PR #378 / SHA `6667764fa7a5123fa27981178193c13387283e1f`; it does not validate an integrated purge route, moderation/legal-hold writers, external Storage writers, production configuration or live Cloud state.
+- PR #378 remains open, draft and unmerged. Package A supplies the schema/state-machine helpers only; Issue #371 remains **P0 open** pending Package B integration, deterministic late-hold barrier proof, all-writer inventory and independent approvals.
+
+**Release decision unchanged:** `productionApproved=false`; **NO-GO**. No production deployment, Cloud/IAM change, migration or destructive operation is authorized by this evidence.
