@@ -7,6 +7,7 @@ import {
   buildVerificationDeletionFence,
   createVerificationDeletionFence,
   markVerificationDeletionComplete,
+  prepareVerificationDeleteCas,
   readVerificationDeletionFence,
   reserveVerificationDeletion,
   setVerificationDeletionHold,
@@ -52,6 +53,7 @@ async function withEmulatorDb(testBody: (db: Firestore) => Promise<void>): Promi
     await testBody(db);
   } finally {
     try {
+      await db.recursiveDelete(db.collection('verificationDeletionAttempts'));
       await db.recursiveDelete(db.collection('verificationDeletionFences'));
     } finally {
       await deleteApp(app);
@@ -260,6 +262,48 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
       expect(losers).toHaveLength(1);
       expect((losers[0] as PromiseRejectedResult).reason).toBeInstanceOf(VerificationDeletionFenceError);
       expect((await readVerificationDeletionFence(db, created.objectKey)).state).toBe('delete_reserved');
+    });
+  }, 30_000);
+
+  it('prepares one CAS ticket and makes an identical pending replay reconciliation-only', async () => {
+    await withEmulatorDb(async db => {
+      const input = {
+        ...baseInput('preflight-idempotent'),
+        actor: 'purge-worker-1',
+        reservationOwner: 'purge-worker-1',
+      };
+      const first = await prepareVerificationDeleteCas(db, input);
+      expect(first).toMatchObject({
+        readyForGcs: true,
+        created: true,
+        generation: '773',
+        metageneration: '1',
+      });
+      if (!first.readyForGcs) throw new Error('expected_gcs_cas_ticket');
+
+      const replay = await prepareVerificationDeleteCas(db, input);
+      expect(replay).toMatchObject({
+        readyForGcs: false,
+        reason: 'verification_deletion_attempt_already_pending',
+        created: false,
+        attempt: { attemptId: first.attempt.attemptId, status: 'pending' },
+      });
+    });
+  }, 30_000);
+
+  it('returns a structured blocked result when the pre-existing fence is held', async () => {
+    await withEmulatorDb(async db => {
+      const input = {
+        ...baseInput('preflight-held'),
+        legalHoldActive: true,
+        actor: 'purge-worker-1',
+        reservationOwner: 'purge-worker-1',
+      };
+      const result = await prepareVerificationDeleteCas(db, input);
+      expect(result).toMatchObject({
+        readyForGcs: false,
+        reason: 'verification_deletion_held',
+      });
     });
   }, 30_000);
 
