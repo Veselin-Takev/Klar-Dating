@@ -453,6 +453,13 @@ export function createVerificationStoragePurgeRouter(deps: {
                 return holds;
               });
 
+              if (recordHolds.legalHoldActive
+                || recordHolds.moderationHoldActive
+                || recordHolds.accountErasureActive) {
+                logSafeFailure('verification_purge_item_skipped');
+                throw new Error('verification_purge_record_retention_guard');
+              }
+
               const workerActor = 'verification-photo-purge-worker';
               const cas = await prepareVerificationDeleteCas(db, {
                 uid: artifact.uid,
