@@ -496,6 +496,9 @@ export async function confirmVerificationDeletionHold(
   db: Firestore,
   input: ConfirmVerificationDeletionHoldInput,
 ): Promise<VerificationDeletionFence> {
+  if (!['legalHoldActive', 'moderationHoldActive', 'accountErasureActive'].includes(input.holdField)) {
+    fail('verification_deletion_hold_field_invalid');
+  }
   const key = requireIdentifier(input.objectKey, 'verification_deletion_object_key_invalid', 128);
   const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
   const requestId = requireIdentifier(input.requestId, 'verification_deletion_hold_request_invalid', 128);
