@@ -359,13 +359,13 @@ export async function reserveVerificationDeletion(
 
 /**
  * Activate a preservation hold through the same transactionally authoritative
- * document as deletion reservation. Holds are monotonic in Package A: release
- * is deliberately not implemented until the legal linearization policy and
- * authorized release workflow are approved.
+ * document as deletion reservation. A hold wins over any outstanding
+ * reservation: it atomically clears the reservation token/owner/timestamps and
+ * transitions the fence to held. A worker holding the old token must fail its
+ * final reservation verification before issuing a Storage delete.
  *
- * A hold arriving after delete_reserved is rejected with a conflict code and
- * MUST be surfaced as deletion-in-flight; callers must not acknowledge it as
- * an effective hold. No automatic override of the outstanding reservation.
+ * Hold release remains intentionally unsupported pending an approved legal
+ * release workflow. A hold cannot resurrect an already-deleted generation.
  */
 export async function setVerificationDeletionHold(
   db: Firestore,
@@ -385,29 +385,72 @@ export async function setVerificationDeletionHold(
     if (!snapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(snapshot.data(), key);
 
-    if (fence.state === 'delete_reserved') {
-      fail('verification_deletion_reservation_in_flight');
-    }
     if (fence.state === 'deleted') {
       fail('verification_deletion_already_deleted');
     }
 
+    // Idempotent retry for a hold already committed in the held state.
     if (fence[holdField] && fence.state === 'held') return fence;
 
     const now = Timestamp.now();
+    const invalidatingReservation = fence.state === 'delete_reserved';
     const updated: VerificationDeletionFence = {
       ...fence,
       [holdField]: true,
       state: 'held',
+      // Invalidate the exact in-flight capability atomically with the hold.
+      reservationToken: null,
+      reservationOwner: null,
+      reservedAt: null,
+      reservationExpiresAt: null,
       holdVersion: fence.holdVersion + (fence[holdField] ? 0 : 1),
       decisionVersion: fence.decisionVersion + 1,
-      decisionReason: 'preservation_hold_activated',
+      decisionReason: invalidatingReservation
+        ? 'preservation_hold_invalidated_reservation'
+        : 'preservation_hold_activated',
       updatedAt: now,
       lastTransitionAt: now,
       lastTransitionBy: by,
     };
     tx.set(ref, updated);
     return updated;
+  });
+}
+
+
+/**
+ * Revalidate the exact reservation capability immediately before a destructive
+ * Storage call. This is a Firestore transaction, not a cross-service atomic
+ * lock: every hold writer must use the same fence and the residual interval
+ * between this transaction and the GCS request remains an external-writer /
+ * distributed-systems risk requiring separate fencing controls.
+ */
+export async function verifyVerificationDeletionReservation(
+  db: Firestore,
+  objectKey: string,
+  reservationToken: string,
+  expectedGeneration: string | number,
+): Promise<VerificationDeletionFence> {
+  const key = requireIdentifier(objectKey, 'verification_deletion_object_key_invalid', 128);
+  const token = requireIdentifier(reservationToken, 'verification_deletion_reservation_token_invalid', 128);
+  const generation = normalizeGeneration(
+    expectedGeneration,
+    'verification_deletion_generation_missing_or_invalid',
+  );
+  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+
+  return db.runTransaction(async tx => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) fail('verification_deletion_fence_missing');
+    const fence = parseFence(snapshot.data(), key);
+    if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
+    if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
+    if (fence.observedGeneration !== generation) fail('verification_deletion_generation_changed');
+    if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
+    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
+      fail('verification_deletion_reservation_expired');
+    }
+    return fence;
   });
 }
 
