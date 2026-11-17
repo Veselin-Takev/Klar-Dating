@@ -4,6 +4,14 @@ import { getStorage } from 'firebase-admin/storage';
 import { FieldPath, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { readPurgeCursor, scanPurgePages } from '../platform/verificationPurgeScan';
 import { executeVerificationRetentionBatch, isVerificationArtifactExpired, type VerificationArtifactRecord } from '../platform/storageRetentionEngine';
+import { logSafeFailure } from '../safeErrorLog';
+import {
+  prepareVerificationDeleteCas,
+  verifyVerificationDeletionReservation,
+  writeVerificationDeletionReceipt,
+  VERIFICATION_DELETION_ATTEMPT_COLLECTION,
+  VERIFICATION_DELETION_FENCE_COLLECTION,
+} from '../platform/verificationDeletionFence';
 
 const MAX_BATCH = 25;
 const MAX_PAGES = 4;
@@ -112,12 +120,23 @@ type PurgeIntent = {
   status: 'approved' | 'rejected';
 };
 
-type PurgeProof = { generation: string; method: 'delete_acknowledged' | 'absence_reconciled' };
+type PurgeProof = {
+  generation: string;
+  method: 'delete_acknowledged' | 'absence_reconciled';
+  attemptId?: string;
+  objectKey?: string;
+};
 
 function isStorageNotFound(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   const code = (error as { code?: unknown }).code;
   return code === 404 || code === '404';
+}
+
+function isStoragePreconditionFailed(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 412 || code === '412';
 }
 
 /**
@@ -258,6 +277,16 @@ function normalizeTimestamp(value: unknown): number | null {
   return null;
 }
 
+function readOptionalPurgeHoldFlag(
+  data: Record<string, unknown> | undefined,
+  field: string,
+): boolean {
+  const value = data?.[field];
+  if (value === undefined || value === false) return false;
+  if (value === true) return true;
+  throw new Error('verification_photo_hold_flag_invalid');
+}
+
 function assertActivePurgeLease(state: Record<string, unknown> | undefined, leaseId: string): void {
   const expiresAt = normalizeTimestamp(state?.leaseUntil);
   if (state?.leaseId !== leaseId || expiresAt === null || expiresAt <= Date.now()) {
@@ -267,7 +296,7 @@ function assertActivePurgeLease(state: Record<string, unknown> | undefined, leas
 
 export function createVerificationStoragePurgeRouter(deps: {
   getDb: () => Firestore;
-  getBucket?: () => { file: (path: string) => VerificationStorageFile };
+  getBucket?: () => { name: string; file: (path: string) => VerificationStorageFile };
 }): Router {
   const router = Router();
   router.post('/purge-verification-storage', express.raw({ inflate: false, type: 'application/json', limit: '2kb' }), async (req, res) => {
@@ -377,9 +406,9 @@ export function createVerificationStoragePurgeRouter(deps: {
             async (path, artifact) => {
               const ref = db.collection('verification_events').doc(artifact.challengeId);
               const file = bucket.file(path);
-              let generation: string | number;
+              let storageMetadata: { generation: string | number; metageneration: string | number };
               try {
-                generation = await inspectVerificationStorageGeneration(file);
+                storageMetadata = await inspectVerificationStorageMetadata(file);
               } catch (error) {
                 if (!isStorageNotFound(error)) throw error;
                 // 404 is evidence of present absence, NOT proof this worker
@@ -401,48 +430,123 @@ export function createVerificationStoragePurgeRouter(deps: {
                 return;
               }
 
-              // Commit an immutable-in-place deletion intent BEFORE touching
-              // Storage. A subsequent 404 can then be reconciled conservatively.
+              const bucketName = typeof bucket.name === 'string' ? bucket.name.trim() : '';
+              if (!bucketName) throw new Error('verification_purge_bucket_identity_missing');
+
+              // Revalidate the record and lease before creating a durable
+              // deletion fence. The existing record holds remain fail-closed.
+              const recordHolds = await db.runTransaction(async tx => {
+                const [lease, record] = await Promise.all([
+                  tx.get(checkpointRef), tx.get(ref),
+                ]);
+                assertActivePurgeLease(lease.data(), leaseId);
+                const recordData = record.data();
+                assertStillEligibleForPurge(recordData, artifact, Date.now());
+
+                const holds = {
+                  legalHoldActive: readOptionalPurgeHoldFlag(recordData, 'legalHoldActive')
+                    || readOptionalPurgeHoldFlag(recordData, 'legalHold'),
+                  moderationHoldActive: readOptionalPurgeHoldFlag(recordData, 'moderationHoldActive')
+                    || readOptionalPurgeHoldFlag(recordData, 'photoPurgeHold'),
+                  accountErasureActive: readOptionalPurgeHoldFlag(recordData, 'accountErasureActive'),
+                };
+                tx.update(checkpointRef, {
+                  leaseUntil: new Date(Date.now() + LEASE_MS),
+                });
+                return holds;
+              });
+
+              const workerActor = 'verification-photo-purge-worker';
+              const cas = await prepareVerificationDeleteCas(db, {
+                uid: artifact.uid,
+                challengeId: artifact.challengeId,
+                bucket: bucketName,
+                storagePath: path,
+                observedGeneration: storageMetadata.generation,
+                observedMetageneration: storageMetadata.metageneration,
+                legalHoldActive: recordHolds.legalHoldActive,
+                moderationHoldActive: recordHolds.moderationHoldActive,
+                accountErasureActive: recordHolds.accountErasureActive,
+                createdBy: workerActor,
+                actor: workerActor,
+                reservationOwner: leaseId,
+              });
+
+              if (!cas.readyForGcs) {
+                // This callback is processed by purgeSingleVerificationArtifact's
+                // per-item catch. Throwing prevents the DB updater from falsely
+                // acknowledging deletion and lets the batch continue to the next item.
+                logSafeFailure('verification_purge_item_skipped');
+                throw new Error('verification_purge_cas_not_ready');
+              }
+
+              // Preserve the last lease and moderation checks immediately
+              // before the GCS request, then verify the current fence token.
               await db.runTransaction(async tx => {
                 const [lease, record] = await Promise.all([
                   tx.get(checkpointRef), tx.get(ref),
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
-                assertStillEligibleForPurge(record.data(), artifact, now);
-                const existing = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
-                if (existing && existing.generation !== String(generation)) {
-                  throw new Error('verification_purge_intent_generation_changed');
+                assertStillEligibleForPurge(record.data(), artifact, Date.now());
+                const latestHolds = {
+                  legalHoldActive: readOptionalPurgeHoldFlag(record.data(), 'legalHoldActive')
+                    || readOptionalPurgeHoldFlag(record.data(), 'legalHold'),
+                  moderationHoldActive: readOptionalPurgeHoldFlag(record.data(), 'moderationHoldActive')
+                    || readOptionalPurgeHoldFlag(record.data(), 'photoPurgeHold'),
+                  accountErasureActive: readOptionalPurgeHoldFlag(record.data(), 'accountErasureActive'),
+                };
+                if (latestHolds.legalHoldActive || latestHolds.moderationHoldActive
+                  || latestHolds.accountErasureActive) {
+                  throw new Error('verification_purge_record_hold_active');
                 }
-                if (!existing) {
-                  tx.update(ref, { photoPurgeIntent: {
-                    generation: String(generation), storagePath: path,
-                    decidedAt: artifact.decidedAt, status: artifact.status,
-                    preparedAt: new Date(),
-                  } });
-                }
-              });
-              // Repeat metadata/hold validation to reduce the read/delete
-              // race; use exact generation precondition against replacement.
-              await deleteVerificationStorageFile(file, generation, async () => {
-                // A moderation change or expired lease between initial read
-                // and the last Storage metadata check must block deletion.
-                await db.runTransaction(async tx => {
-                  const [lease, record] = await Promise.all([
-                    tx.get(checkpointRef), tx.get(ref),
-                  ]);
-                  assertActivePurgeLease(lease.data(), leaseId);
-                  assertStillEligibleForPurge(record.data(), artifact, Date.now());
-                  const intent = readMatchingPurgeIntent(record.data()?.photoPurgeIntent, artifact);
-                  if (!intent || intent.generation !== String(generation)) {
-                    throw new Error('verification_purge_predelete_intent_mismatch');
-                  }
-                  // Refresh only while still the valid owner. A Storage API call
-                  // can still outlive its lease and must fail audit if it does.
-                  tx.update(checkpointRef, { leaseUntil: new Date(Date.now() + LEASE_MS) });
+                tx.update(checkpointRef, {
+                  leaseUntil: new Date(Date.now() + LEASE_MS),
                 });
               });
+
+              await verifyVerificationDeletionReservation(
+                db,
+                cas.objectKey,
+                cas.reservationToken,
+                cas.generation,
+              );
+
+              // Generation + metageneration are the GCS-side compare-and-swap.
+              try {
+                await file.delete({
+                  ifGenerationMatch: cas.generation,
+                  ifMetagenerationMatch: cas.metageneration,
+                });
+              } catch (error) {
+                // 404 and 412 are item-level reconciliation/precondition
+                // outcomes. The retention engine catches this item failure and
+                // continues its bounded batch without invoking the DB updater.
+                if (isStorageNotFound(error) || isStoragePreconditionFailed(error)) {
+                  logSafeFailure('verification_purge_item_delete_failed');
+                } else {
+                  logSafeFailure('verification_purge_item_delete_failed');
+                }
+                throw new Error('verification_purge_gcs_delete_failed');
+              }
+
+              // A receipt is written only after GCS acknowledges the conditional delete.
+              try {
+                await writeVerificationDeletionReceipt(
+                  db,
+                  cas.attempt.attemptId,
+                  cas.generation,
+                  workerActor,
+                );
+              } catch {
+                logSafeFailure('verification_purge_item_receipt_failed');
+                throw new Error('verification_purge_receipt_write_failed');
+              }
+
               proofs.set(artifact.challengeId, {
-                generation: String(generation), method: 'delete_acknowledged',
+                generation: cas.generation,
+                method: 'delete_acknowledged',
+                attemptId: cas.attempt.attemptId,
+                objectKey: cas.objectKey,
               });
             },
             async (uid, challengeId, auditData) => {
@@ -464,18 +568,51 @@ export function createVerificationStoragePurgeRouter(deps: {
                 ]);
                 assertActivePurgeLease(lease.data(), leaseId);
                 assertStillEligibleForPurge(current.data(), expected, Date.now());
-                const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
-                if (!intent || intent.generation !== proof.generation) {
-                  throw new Error('verification_photo_audit_intent_mismatch');
+                if (proof.method === 'absence_reconciled') {
+                  const intent = readMatchingPurgeIntent(current.data()?.photoPurgeIntent, expected);
+                  if (!intent || intent.generation !== proof.generation) {
+                    throw new Error('verification_photo_audit_intent_mismatch');
+                  }
+                } else {
+                  if (!proof.attemptId || !proof.objectKey) {
+                    throw new Error('verification_photo_audit_receipt_reference_missing');
+                  }
+                  const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION)
+                    .doc(proof.attemptId);
+                  const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION)
+                    .doc(proof.objectKey);
+                  const [attemptSnapshot, fenceSnapshot] = await Promise.all([
+                    tx.get(attemptRef),
+                    tx.get(fenceRef),
+                  ]);
+                  const attemptData = attemptSnapshot.data();
+                  const fenceData = fenceSnapshot.data();
+                  if (!attemptSnapshot.exists || !fenceSnapshot.exists
+                    || attemptData?.attemptId !== proof.attemptId
+                    || attemptData?.objectKey !== proof.objectKey
+                    || attemptData?.status !== 'succeeded'
+                    || attemptData?.generation !== proof.generation
+                    || fenceData?.objectKey !== proof.objectKey
+                    || fenceData?.state !== 'deleted'
+                    || fenceData?.deletedGeneration !== proof.generation) {
+                    throw new Error('verification_photo_audit_receipt_mismatch');
+                  }
                 }
                 const evidenceDigest = createHash('sha256')
-                  .update([auditData.auditDigest, proof.method, proof.generation].join(':'))
+                  .update([
+                    auditData.auditDigest,
+                    proof.method,
+                    proof.generation,
+                    proof.attemptId ?? 'legacy-absence',
+                    proof.objectKey ?? 'legacy-intent',
+                  ].join(':'))
                   .digest('hex');
                 tx.update(ref, {
                   ...auditData,
                   photoPurgeProof: {
                     method: proof.method,
                     generation: proof.generation,
+                    ...(proof.attemptId ? { attemptId: proof.attemptId } : {}),
                     evidenceDigest,
                     verifiedAt: new Date(),
                   },
