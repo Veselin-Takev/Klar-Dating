@@ -15,7 +15,7 @@ function dbFor(
   deletionExists = false,
   simulateDeletionRace = false,
 ) {
-  const set = vi.fn(async () => undefined);
+  const set = vi.fn(async (_ref: unknown, _data: unknown) => undefined);
   const get = vi.fn(async () => ({
     exists: user.exists ?? true,
     data: () => user.data ?? { isAdult: true, location: 'München' },
@@ -32,12 +32,12 @@ function dbFor(
   const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => {
     let attempt = 0;
     while (true) {
-      const stagedWrites: unknown[][] = [];
+      const stagedWrites: Array<[ref: unknown, data: unknown]> = [];
       const result = await work({
         get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
           ? { exists: deletionBarrierExists, data: () => ({ status: 'pending' }) }
           : { exists: user.exists ?? true, data: () => user.data ?? { isAdult: true, location: 'München' } },
-        set: (...args: unknown[]) => { stagedWrites.push(args); },
+        set: (ref: unknown, data: unknown) => { stagedWrites.push([ref, data]); },
       });
       // Simulate Firestore retry after the deletion transaction wins the
       // conflict: writes from attempt one are discarded, and attempt two
@@ -47,7 +47,7 @@ function dbFor(
         attempt += 1;
         continue;
       }
-      for (const args of stagedWrites) set(...args);
+      for (const [ref, data] of stagedWrites) set(ref, data);
       return result;
     }
   });
