@@ -450,9 +450,6 @@ export function createVerificationStoragePurgeRouter(deps: {
                     || readOptionalPurgeHoldFlag(recordData, 'photoPurgeHold'),
                   accountErasureActive: readOptionalPurgeHoldFlag(recordData, 'accountErasureActive'),
                 };
-                tx.update(checkpointRef, {
-                  leaseUntil: new Date(Date.now() + LEASE_MS),
-                });
                 return holds;
               });
 
