@@ -359,3 +359,54 @@ This is a test-double typing defect, not evidence that the production transactio
 **Audit outcome:** #365 CI PASS. #369 consolidation is code/test complete relative to #343/#344. #368 is the preferred #202 candidate but needs the unique funnel cleanup assertion ported before #363 closure. #375 remains blocked pending the specified test-helper correction and fresh exact-head validation.
 
 All PRs remain in their existing GitHub states. No merges, closures, code changes to remediation PRs, cloud/deployment changes, IAM/billing operations or data mutations were performed. \`productionApproved=false\`; production remains NO-GO.
+
+
+---
+
+# Phase 0 follow-up — supersession closure evidence and final PR #375 CI
+
+**Evidence date:** 2026-11-17  
+**Audit branch:** `audit/iteration2-remediation-register-20261116`  
+**Release decision:** NO-GO / `productionApproved=false`.
+
+## F0.6 Owner-approved supersession closures
+
+The repository owner explicitly authorized the following duplicate closures. Each PR was closed without merging and received a top-level audit comment containing its canonical PR, canonical commit SHA and exact-head Enterprise CI run.
+
+| Closed PR | Canonical PR | Canonical head SHA | Exact-head Enterprise CI | Closure comment |
+|---|---|---|---|---|
+| [#363](https://github.com/Veselin-Takev/Klar-Dating/pull/363) | [#368](https://github.com/Veselin-Takev/Klar-Dating/pull/368) | `554fa00957ba21e5ae49d0f30e5f6dc06eea1cfb` | [#44047303449 SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44047303449) | [comment #6943142612](https://github.com/Veselin-Takev/Klar-Dating/pull/363#issuecomment-6943142612) |
+| [#343](https://github.com/Veselin-Takev/Klar-Dating/pull/343) | [#369](https://github.com/Veselin-Takev/Klar-Dating/pull/369) | `e44d2f9bfb349babf902171feb6194d3100649b3` | [#43882884789 SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43882884789) | [comment #6943144135](https://github.com/Veselin-Takev/Klar-Dating/pull/343#issuecomment-6943144135) |
+| [#344](https://github.com/Veselin-Takev/Klar-Dating/pull/344) | [#369](https://github.com/Veselin-Takev/Klar-Dating/pull/369) | `e44d2f9bfb349babf902171feb6194d3100649b3` | [#43882884789 SUCCESS](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/43882884789) | [comment #6943145843](https://github.com/Veselin-Takev/Klar-Dating/pull/344#issuecomment-6943145843) |
+
+GitHub state was verified as closed for all three; all report `merged=false`. Canonical ownership is #368 for #363 and #369 for #343/#344. No branch deletion, merge, deployment or cloud operation was performed.
+
+## F0.7 Updated exact-head evidence — canonical PR #368
+
+- PR: [#368](https://github.com/Veselin-Takev/Klar-Dating/pull/368)
+- Exact head: `554fa00957ba21e5ae49d0f30e5f6dc06eea1cfb`
+- Enterprise CI: [Run #44047303449](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44047303449) — completed SUCCESS.
+- Verified gates: Enterprise static gates, Typecheck, Functions build, Tests, Build, Production smoke and Browser acceptance all passed.
+- Retention guard output confirms the canonical 20-group TTL guard, 13 TTL mutations, legacy photo-purge hard-stop and three funnel-retention mutations. The run is source/CI evidence only; it performs no cloud writes and does not establish live TTL or deployed Scheduler state.
+
+## F0.8 Final exact-head validation — PR #375 / Issue #373
+
+- PR: [#375](https://github.com/Veselin-Takev/Klar-Dating/pull/375)
+- Exact head: `289babdded7818c6720ea353a9621c452314cb5a`
+- Enterprise CI: [Run #44049314291](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44049314291) — completed SUCCESS, run number 2082, job `validate` success.
+- `phase2_work/tests/profileRecommendationsEndpoint.spec.ts`: 17 tests passed, including the deletion-wins retry race.
+- Test mock now records one outer `runTransaction` invocation and two transaction-callback attempts. The first attempt's staged writes are discarded when the simulated deletion wins; the second observes `account_deletions/{uid}` and returns the deletion barrier result. The test asserts `transactionAttempts` called twice and `store.set` not called.
+- Full suite: 192 test files / 1,375 tests passed.
+- Enterprise static gates, Typecheck, Functions build, Tests, Build, Production smoke and Browser acceptance (26 tests) all passed. Browser failure diagnostics were skipped because acceptance passed.
+
+**Verdict:** PR #375 is technically validated on this exact head for the repository's Enterprise CI pipeline. This does not prove native Firestore concurrency semantics in production, live cloud state, independent security review or release approval. Keep emulator adversarial coverage and independent review as release gates.
+
+## F0.9 Updated consolidated decision
+
+- #363, #343 and #344: closed as owner-approved superseded duplicates; none merged.
+- #368: canonical legacy-photo-worker hard-stop candidate; exact-head CI #44047303449 SUCCESS.
+- #369: canonical Firebase/Admin identity candidate; exact-head CI #43882884789 SUCCESS.
+- #375: exact-head Enterprise CI #44049314291 SUCCESS; test/typecheck/build/smoke/Playwright gates passed.
+- #371 / #353: remains P0 OPEN. The late Firestore legal-hold/moderation-revocation race before physical GCS deletion and the complete all-writer inventory/fence are not resolved by CI on #353.
+
+No PR merge to main, production deployment, cloud/IAM/billing change, data migration or physical deletion was performed. `productionApproved=false` remains mandatory; release decision remains NO-GO.
