@@ -98,6 +98,15 @@ function requireIdentifier(value: unknown, code: string, maxLength = 256): strin
   return value;
 }
 
+function requireVerificationStoragePath(value: unknown, uid: string): string {
+  if (typeof value !== 'string' || !value.trim() || value.length > 1024
+    || !value.startsWith(`verification/${uid}/`)
+    || value.split('/').some(part => !part || part === '.' || part === '..')) {
+    fail('verification_deletion_path_invalid');
+  }
+  return value;
+}
+
 export function verificationDeletionObjectKey(input: {
   uid: string;
   bucket: string;
@@ -106,15 +115,11 @@ export function verificationDeletionObjectKey(input: {
 }): string {
   const uid = requireIdentifier(input.uid, 'verification_deletion_uid_invalid');
   const bucket = requireIdentifier(input.bucket, 'verification_deletion_bucket_invalid');
-  const storagePath = requireIdentifier(input.storagePath, 'verification_deletion_path_invalid', 1024);
+  const storagePath = requireVerificationStoragePath(input.storagePath, uid);
   const generation = normalizeGeneration(
     input.observedGeneration,
     'verification_deletion_generation_missing_or_invalid',
   );
-  if (!storagePath.startsWith(`verification/${uid}/`)
-    || storagePath.split('/').some(part => !part || part === '.' || part === '..')) {
-    fail('verification_deletion_path_invalid');
-  }
 
   return createHash('sha256')
     .update([uid, bucket, storagePath, generation].join('\u0000'))
@@ -140,7 +145,7 @@ export function buildVerificationDeletionFence(
   const uid = requireIdentifier(input.uid, 'verification_deletion_uid_invalid');
   const challengeId = requireIdentifier(input.challengeId, 'verification_deletion_challenge_invalid');
   const bucket = requireIdentifier(input.bucket, 'verification_deletion_bucket_invalid');
-  const storagePath = requireIdentifier(input.storagePath, 'verification_deletion_path_invalid', 1024);
+  const storagePath = requireVerificationStoragePath(input.storagePath, uid);
   const observedGeneration = normalizeGeneration(
     input.observedGeneration,
     'verification_deletion_generation_missing_or_invalid',
