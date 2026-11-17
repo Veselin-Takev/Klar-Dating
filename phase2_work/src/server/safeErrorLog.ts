@@ -28,6 +28,9 @@ const failureEvents = {
   compliance_audit_query_failure: 'error',
   compliance_audit_read_failure: 'error',
   compliance_audit_export_failure: 'error',
+  verification_purge_item_skipped: 'warn',
+  verification_purge_item_delete_failed: 'warn',
+  verification_purge_item_receipt_failed: 'error',
   unclassified_failure: 'error',
 } as const;
 export type SafeFailureEvent = keyof typeof failureEvents;
