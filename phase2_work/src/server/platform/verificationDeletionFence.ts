@@ -602,10 +602,6 @@ export async function logVerificationDeleteAttempt(
     if (fence.observedGeneration !== generation) fail('verification_deletion_generation_changed');
     if (fence.observedMetageneration !== metageneration) fail('verification_deletion_metageneration_changed');
     if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
-    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
-      fail('verification_deletion_reservation_expired');
-    }
-
     // Idempotent replay: an existing pending attempt is returned only when
     // every destructive-operation parameter is identical. Callers must not
     // issue another GCS request when created === false; reconcile this attempt.
@@ -638,6 +634,10 @@ export async function logVerificationDeleteAttempt(
         fence,
         created: false,
       };
+    }
+
+    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
+      fail('verification_deletion_reservation_expired');
     }
 
     const now = Timestamp.now();
@@ -737,6 +737,24 @@ function prepareConflictReason(error: unknown): VerificationDeleteCasBlockedReas
   }
 }
 
+async function blockedByLatestFence(
+  db: Firestore,
+  objectKey: string,
+  fallbackReason: VerificationDeleteCasBlockedReason,
+): Promise<PrepareVerificationDeleteCasResult> {
+  const latest = await readVerificationDeletionFence(db, objectKey);
+  const reason: VerificationDeleteCasBlockedReason = latest.state === 'held'
+    ? 'verification_deletion_held'
+    : latest.state === 'hold_pending'
+      ? 'verification_deletion_hold_pending'
+      : latest.state === 'deleted'
+        ? 'verification_deletion_already_deleted'
+        : latest.state === 'delete_reserved' && latest.activeDeleteAttemptId
+          ? 'verification_deletion_attempt_already_pending'
+          : fallbackReason;
+  return { readyForGcs: false, reason, objectKey, fence: latest };
+}
+
 /**
  * Prepare the Firestore-side CAS ticket for one exact GCS object generation.
  * This helper never calls GCS. Existing pending attempts are surfaced as a
@@ -830,7 +848,13 @@ export async function prepareVerificationDeleteCas(
       reservedFence = reservation.fence;
     } catch (error) {
       const reason = prepareConflictReason(error);
-      if (reason) return { readyForGcs: false, reason, objectKey };
+      if (reason) {
+        if (error instanceof VerificationDeletionFenceError
+          && ['verification_deletion_held', 'verification_deletion_not_eligible'].includes(error.code)) {
+          return blockedByLatestFence(db, objectKey, reason);
+        }
+        return { readyForGcs: false, reason, objectKey };
+      }
       throw error;
     }
   } else if (fence.state === 'delete_reserved') {
@@ -842,7 +866,8 @@ export async function prepareVerificationDeleteCas(
         fence,
       };
     }
-    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
+    if ((!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now())
+      && !fence.activeDeleteAttemptId) {
       return {
         readyForGcs: false,
         reason: 'verification_deletion_reservation_expired',
@@ -891,7 +916,18 @@ export async function prepareVerificationDeleteCas(
     };
   } catch (error) {
     const reason = prepareConflictReason(error);
-    if (reason) return { readyForGcs: false, reason, objectKey, fence: reservedFence };
+    if (reason) {
+      if (error instanceof VerificationDeletionFenceError
+        && [
+          'verification_deletion_held',
+          'verification_deletion_hold_conflicts_with_reservation',
+          'verification_deletion_not_reserved',
+          'verification_deletion_not_eligible',
+        ].includes(error.code)) {
+        return blockedByLatestFence(db, objectKey, reason);
+      }
+      return { readyForGcs: false, reason, objectKey, fence: reservedFence };
+    }
     throw error;
   }
 }
