@@ -6,12 +6,14 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
   buildVerificationDeletionFence,
   createVerificationDeletionFence,
-  markVerificationDeletionComplete,
+  beginVerificationDeletionHold,
+  confirmVerificationDeletionHold,
+  logVerificationDeleteAttempt,
   prepareVerificationDeleteCas,
   readVerificationDeletionFence,
   reserveVerificationDeletion,
-  setVerificationDeletionHold,
   verifyVerificationDeletionReservation,
+  writeVerificationDeletionReceipt,
   verificationDeletionObjectKey,
   VerificationDeletionFenceError,
   type CreateVerificationDeletionFenceInput,
@@ -142,12 +144,20 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
   it('serializes a preservation hold before reservation and denies the purge', async () => {
     await withEmulatorDb(async db => {
       const created = await createVerificationDeletionFence(db, baseInput('hold-before'));
-      const held = await setVerificationDeletionHold(db, created.objectKey, 'legalHoldActive', 'legal-writer');
+      const holdInput = {
+        objectKey: created.objectKey,
+        holdField: 'legalHoldActive' as const,
+        actor: 'legal-writer',
+        requestId: 'legal-request-before',
+      };
+      const pending = await beginVerificationDeletionHold(db, holdInput);
+      expect(pending.state).toBe('hold_pending');
+      const held = await confirmVerificationDeletionHold(db, holdInput);
       expect(held).toMatchObject({
         state: 'held',
         legalHoldActive: true,
         holdVersion: 1,
-        decisionVersion: 1,
+        decisionVersion: 2,
       });
       await expect(reserveVerificationDeletion(db, created.objectKey, 'purge-worker-1'))
         .rejects.toMatchObject({ code: 'verification_deletion_held' });
@@ -178,17 +188,31 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
       const reserved = await reserveVerificationDeletion(db, created.objectKey, 'purge-worker-1');
       if (reserved.status !== 'reserved') throw new Error('expected_reservation');
 
-      const held = await setVerificationDeletionHold(db, created.objectKey, 'legalHoldActive', 'legal-writer');
-      expect(held).toMatchObject({
-        state: 'held',
-        legalHoldActive: true,
-        holdVersion: 1,
-        decisionVersion: 2,
+      const holdInput = {
+        objectKey: created.objectKey,
+        holdField: 'legalHoldActive' as const,
+        actor: 'legal-writer',
+        requestId: 'legal-request-after-reserve',
+      };
+      const pending = await beginVerificationDeletionHold(db, holdInput);
+      expect(pending).toMatchObject({
+        state: 'hold_pending',
         reservationToken: null,
         reservationOwner: null,
         reservedAt: null,
         reservationExpiresAt: null,
-        decisionReason: 'preservation_hold_invalidated_reservation',
+      });
+      const held = await confirmVerificationDeletionHold(db, holdInput);
+      expect(held).toMatchObject({
+        state: 'held',
+        legalHoldActive: true,
+        holdVersion: 1,
+        decisionVersion: 3,
+        reservationToken: null,
+        reservationOwner: null,
+        reservedAt: null,
+        reservationExpiresAt: null,
+        decisionReason: 'preservation_hold_confirmed_after_gcs_barrier',
       });
       await expect(verifyVerificationDeletionReservation(
         db, created.objectKey, reserved.reservationToken, '773',
@@ -221,29 +245,49 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
   it('rejects invalid state jumps and fencing-token substitution', async () => {
     await withEmulatorDb(async db => {
       const created = await createVerificationDeletionFence(db, baseInput('invalid-jumps'));
-      await expect(markVerificationDeletionComplete(db, created.objectKey, 'random-token', '773'))
+      await expect(verifyVerificationDeletionReservation(db, created.objectKey, 'random-token', '773'))
         .rejects.toMatchObject({ code: 'verification_deletion_not_reserved' });
       expect((await readVerificationDeletionFence(db, created.objectKey)).state).toBe('eligible');
 
       const reserved = await reserveVerificationDeletion(db, created.objectKey, 'purge-worker-1');
       if (reserved.status !== 'reserved') throw new Error('expected_reservation');
-      await expect(markVerificationDeletionComplete(db, created.objectKey, 'wrong-token', '773'))
-        .rejects.toMatchObject({ code: 'verification_deletion_fencing_token_mismatch' });
-      await expect(markVerificationDeletionComplete(db, created.objectKey, reserved.reservationToken, '774'))
+      await expect(logVerificationDeleteAttempt(db, {
+        objectKey: created.objectKey,
+        reservationToken: 'wrong-token',
+        expectedGeneration: '773',
+        expectedMetageneration: '1',
+        actor: 'purge-worker-1',
+      })).rejects.toMatchObject({ code: 'verification_deletion_fencing_token_mismatch' });
+      await expect(logVerificationDeleteAttempt(db, {
+        objectKey: created.objectKey,
+        reservationToken: reserved.reservationToken,
+        expectedGeneration: '774',
+        expectedMetageneration: '1',
+        actor: 'purge-worker-1',
+      })).rejects.toMatchObject({ code: 'verification_deletion_generation_changed' });
+
+      const logged = await logVerificationDeleteAttempt(db, {
+        objectKey: created.objectKey,
+        reservationToken: reserved.reservationToken,
+        expectedGeneration: '773',
+        expectedMetageneration: '1',
+        actor: 'purge-worker-1',
+      });
+      expect(logged.created).toBe(true);
+      await expect(writeVerificationDeletionReceipt(db, logged.attempt.attemptId, '774', 'purge-worker-1'))
         .rejects.toMatchObject({ code: 'verification_deletion_generation_changed' });
 
-      const deleted = await markVerificationDeletionComplete(
-        db, created.objectKey, reserved.reservationToken, '773',
+      const deleted = await writeVerificationDeletionReceipt(
+        db, logged.attempt.attemptId, '773', 'purge-worker-1',
       );
       expect(deleted).toMatchObject({
         state: 'deleted',
         decisionVersion: 2,
         deletedGeneration: '773',
       });
-      const replay = await markVerificationDeletionComplete(
-        db, created.objectKey, reserved.reservationToken, '773',
-      );
-      expect(replay.state).toBe('deleted');
+      await expect(writeVerificationDeletionReceipt(
+        db, logged.attempt.attemptId, '773', 'purge-worker-1',
+      )).rejects.toMatchObject({ code: 'verification_deletion_attempt_corrupt_or_not_pending' });
       await expect(reserveVerificationDeletion(db, created.objectKey, 'purge-worker-2'))
         .rejects.toMatchObject({ code: 'verification_deletion_not_eligible' });
     });
@@ -314,7 +358,7 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
       await expect(createVerificationDeletionFence(db, input))
         .rejects.toMatchObject({ code: 'verification_deletion_fence_already_exists' });
       expect((await readVerificationDeletionFence(db, created.objectKey)).observedGeneration).toBe('773');
-      await expect(markVerificationDeletionComplete(db, created.objectKey, 'no-token', '774'))
+      await expect(verifyVerificationDeletionReservation(db, created.objectKey, 'no-token', '774'))
         .rejects.toMatchObject({ code: 'verification_deletion_not_reserved' });
       expect((await readVerificationDeletionFence(db, created.objectKey)).observedGeneration).toBe('773');
     });
