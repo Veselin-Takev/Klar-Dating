@@ -437,6 +437,12 @@ export async function setVerificationDeletionHold(
   holdField: VerificationDeletionHoldField,
   actor: string,
 ): Promise<VerificationDeletionFence> {
+  // Keep the legacy signature for source compatibility, but make its
+  // arguments explicit to noUnusedParameters while preserving fail-closed behavior.
+  void db;
+  void objectKey;
+  void holdField;
+  void actor;
   throw new Error('legacy_disabled_gcs_fencing_required');
 }
 
@@ -1041,5 +1047,11 @@ export async function markVerificationDeletionComplete(
   reservationToken: string,
   deletedGeneration: string | number,
 ): Promise<VerificationDeletionFence> {
+  // Keep the legacy signature for source compatibility; destructive legacy
+  // completion remains disabled and these values are intentionally unused.
+  void db;
+  void objectKey;
+  void reservationToken;
+  void deletedGeneration;
   throw new Error('legacy_disabled_gcs_fencing_required');
 }
