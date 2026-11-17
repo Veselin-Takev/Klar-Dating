@@ -58,4 +58,15 @@ const reenabledLegacyCron = legacyCron.replace(
 assert.notEqual(reenabledLegacyCron, legacyCron, 'Legacy photo purge mutation was not applied');
 const legacyResult = run(source, docs, reenabledLegacyCron);
 assert.notEqual(legacyResult.status, 0, 'Fail-open legacy upload-age photo purge regression');
-console.log('PASS: canonical 20-group TTL guard, ' + cases.length + ' TTL mutations and legacy photo purge hard-stop mutation (no cloud writes)');
+// Funnel cleanup is independent of verification-photo deletion and must not regress.
+for (const [label, marker] of [
+  ['funnel_events collection', "collection('funnel_events')"],
+  ['expiresAt cutoff', "where('expiresAt', '<=', Timestamp.now())"],
+  ['funnel retention audit marker', "'funnel_event_retention'"],
+]) {
+  const mutatedCron = legacyCron.replace(marker, 'REMOVED_FUNNEL_RETENTION_ASSERTION');
+  assert.notEqual(mutatedCron, legacyCron, 'Funnel mutation was not applied: ' + label);
+  const result = run(source, docs, mutatedCron);
+  assert.notEqual(result.status, 0, 'Fail-open funnel retention regression: ' + label);
+}
+console.log('PASS: canonical 20-group TTL guard, ' + cases.length + ' TTL mutations and legacy photo purge hard-stop + 3 funnel-retention mutations (no cloud writes)');
