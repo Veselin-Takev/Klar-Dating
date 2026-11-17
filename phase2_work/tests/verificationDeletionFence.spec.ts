@@ -10,6 +10,7 @@ import {
   readVerificationDeletionFence,
   reserveVerificationDeletion,
   setVerificationDeletionHold,
+  verifyVerificationDeletionReservation,
   verificationDeletionObjectKey,
   VerificationDeletionFenceError,
   type CreateVerificationDeletionFenceInput,
@@ -169,17 +170,49 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
     });
   }, 30_000);
 
-  it('rejects a hold arriving after deletion reservation and leaves the token fenced', async () => {
+  it('atomically invalidates an in-flight reservation when a late preservation hold commits', async () => {
     await withEmulatorDb(async db => {
       const created = await createVerificationDeletionFence(db, baseInput('late-hold'));
       const reserved = await reserveVerificationDeletion(db, created.objectKey, 'purge-worker-1');
       if (reserved.status !== 'reserved') throw new Error('expected_reservation');
-      await expect(setVerificationDeletionHold(db, created.objectKey, 'legalHoldActive', 'legal-writer'))
-        .rejects.toMatchObject({ code: 'verification_deletion_reservation_in_flight' });
+
+      const held = await setVerificationDeletionHold(db, created.objectKey, 'legalHoldActive', 'legal-writer');
+      expect(held).toMatchObject({
+        state: 'held',
+        legalHoldActive: true,
+        holdVersion: 1,
+        decisionVersion: 2,
+        reservationToken: null,
+        reservationOwner: null,
+        reservedAt: null,
+        reservationExpiresAt: null,
+        decisionReason: 'preservation_hold_invalidated_reservation',
+      });
+      await expect(verifyVerificationDeletionReservation(
+        db, created.objectKey, reserved.reservationToken, '773',
+      )).rejects.toMatchObject({ code: 'verification_deletion_not_reserved' });
+
       const current = await readVerificationDeletionFence(db, created.objectKey);
-      expect(current.state).toBe('delete_reserved');
-      expect(current.reservationToken).toBe(reserved.reservationToken);
-      expect(current.legalHoldActive).toBe(false);
+      expect(current.state).toBe('held');
+      expect(current.reservationToken).toBeNull();
+      expect(current.legalHoldActive).toBe(true);
+    });
+  }, 30_000);
+
+  it('requires the exact unexpired reservation token and immutable generation before deletion', async () => {
+    await withEmulatorDb(async db => {
+      const created = await createVerificationDeletionFence(db, baseInput('final-verify'));
+      const reserved = await reserveVerificationDeletion(db, created.objectKey, 'purge-worker-1', 60_000);
+      if (reserved.status !== 'reserved') throw new Error('expected_reservation');
+      await expect(verifyVerificationDeletionReservation(
+        db, created.objectKey, 'wrong-token', '773',
+      )).rejects.toMatchObject({ code: 'verification_deletion_fencing_token_mismatch' });
+      await expect(verifyVerificationDeletionReservation(
+        db, created.objectKey, reserved.reservationToken, '774',
+      )).rejects.toMatchObject({ code: 'verification_deletion_generation_changed' });
+      await expect(verifyVerificationDeletionReservation(
+        db, created.objectKey, reserved.reservationToken, '773',
+      )).resolves.toMatchObject({ state: 'delete_reserved', reservationToken: reserved.reservationToken });
     });
   }, 30_000);
 
