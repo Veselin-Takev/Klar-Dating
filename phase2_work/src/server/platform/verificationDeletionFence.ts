@@ -403,7 +403,7 @@ export async function setVerificationDeletionHold(
       reservationOwner: null,
       reservedAt: null,
       reservationExpiresAt: null,
-      holdVersion: fence.holdVersion + (fence[holdField] ? 0 : 1),
+      holdVersion: fence.holdVersion + ((invalidatingReservation || !fence[holdField]) ? 1 : 0),
       decisionVersion: fence.decisionVersion + 1,
       decisionReason: invalidatingReservation
         ? 'preservation_hold_invalidated_reservation'
