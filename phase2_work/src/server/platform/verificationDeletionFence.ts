@@ -743,16 +743,41 @@ async function blockedByLatestFence(
   fallbackReason: VerificationDeleteCasBlockedReason,
 ): Promise<PrepareVerificationDeleteCasResult> {
   const latest = await readVerificationDeletionFence(db, objectKey);
-  const reason: VerificationDeleteCasBlockedReason = latest.state === 'held'
-    ? 'verification_deletion_held'
-    : latest.state === 'hold_pending'
-      ? 'verification_deletion_hold_pending'
-      : latest.state === 'deleted'
-        ? 'verification_deletion_already_deleted'
-        : latest.state === 'delete_reserved' && latest.activeDeleteAttemptId
-          ? 'verification_deletion_attempt_already_pending'
+  let attempt: VerificationDeleteAttempt | undefined;
+  let reason: VerificationDeleteCasBlockedReason;
+
+  if (latest.activeDeleteAttemptId) {
+    const attemptSnapshot = await db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION)
+      .doc(latest.activeDeleteAttemptId).get();
+    const raw = attemptSnapshot.data();
+    if (attemptSnapshot.exists && isRecord(raw)
+      && raw.attemptId === latest.activeDeleteAttemptId
+      && raw.objectKey === objectKey
+      && raw.status === 'pending') {
+      attempt = raw as unknown as VerificationDeleteAttempt;
+      reason = hasActiveHold(latest)
+        ? 'verification_deletion_held'
+        : 'verification_deletion_attempt_already_pending';
+    } else {
+      reason = 'verification_deletion_attempt_conflict';
+    }
+  } else {
+    reason = latest.state === 'held'
+      ? 'verification_deletion_held'
+      : latest.state === 'hold_pending'
+        ? 'verification_deletion_hold_pending'
+        : latest.state === 'deleted'
+          ? 'verification_deletion_already_deleted'
           : fallbackReason;
-  return { readyForGcs: false, reason, objectKey, fence: latest };
+  }
+
+  return {
+    readyForGcs: false,
+    reason,
+    objectKey,
+    fence: latest,
+    ...(attempt ? { attempt, created: false as const } : {}),
+  };
 }
 
 /**
