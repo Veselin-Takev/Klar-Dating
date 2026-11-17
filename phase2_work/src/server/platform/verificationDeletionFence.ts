@@ -2,11 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 
 export const VERIFICATION_DELETION_FENCE_COLLECTION = 'verificationDeletionFences';
+export const VERIFICATION_DELETION_ATTEMPT_COLLECTION = 'verificationDeletionAttempts';
 export const VERIFICATION_DELETION_FENCE_SCHEMA_VERSION = 1 as const;
 export const DEFAULT_DELETION_RESERVATION_TTL_MS = 5 * 60_000;
 
 export type VerificationDeletionState =
   | 'eligible'
+  | 'hold_pending'
   | 'held'
   | 'delete_reserved'
   | 'deleted';
@@ -44,6 +46,10 @@ export interface VerificationDeletionFence {
   lastErrorCode: string | null;
   deletedAt: Timestamp | null;
   deletedGeneration: string | null;
+  /** A pending hold blocks reservation while its external GCS barrier is staged. */
+  pendingHoldField?: VerificationDeletionHoldField | null;
+  holdRequestId?: string | null;
+  activeDeleteAttemptId?: string | null;
 }
 
 export interface CreateVerificationDeletionFenceInput {
@@ -62,6 +68,54 @@ export interface CreateVerificationDeletionFenceInput {
 export type VerificationDeletionReservation =
   | { status: 'reserved'; objectKey: string; reservationToken: string; fence: VerificationDeletionFence }
   | { status: 'held'; objectKey: string; fence: VerificationDeletionFence };
+
+
+export type VerificationDeleteAttemptStatus = 'pending' | 'succeeded' | 'failed';
+
+export interface VerificationDeleteAttempt {
+  schemaVersion: typeof VERIFICATION_DELETION_FENCE_SCHEMA_VERSION;
+  attemptId: string;
+  objectKey: string;
+  uid: string;
+  bucket: string;
+  storagePath: string;
+  reservationToken: string;
+  generation: string;
+  metageneration: string;
+  actor: string;
+  status: VerificationDeleteAttemptStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  completedAt: Timestamp | null;
+  errorCode: string | null;
+}
+
+export interface LogVerificationDeleteAttemptInput {
+  objectKey: string;
+  reservationToken: string;
+  expectedGeneration: string | number;
+  expectedMetageneration: string | number;
+  actor: string;
+}
+
+export interface LogVerificationDeleteAttemptResult {
+  attempt: VerificationDeleteAttempt;
+  fence: VerificationDeletionFence;
+}
+
+export interface BeginVerificationDeletionHoldInput {
+  objectKey: string;
+  holdField: VerificationDeletionHoldField;
+  actor: string;
+  requestId: string;
+}
+
+export interface ConfirmVerificationDeletionHoldInput {
+  objectKey: string;
+  holdField: VerificationDeletionHoldField;
+  actor: string;
+  requestId: string;
+}
 
 export class VerificationDeletionFenceError extends Error {
   constructor(readonly code: string) {
@@ -189,6 +243,9 @@ export function buildVerificationDeletionFence(
     lastErrorCode: null,
     deletedAt: null,
     deletedGeneration: null,
+    pendingHoldField: null,
+    holdRequestId: null,
+    activeDeleteAttemptId: null,
   };
 }
 
@@ -205,7 +262,7 @@ function parseFence(value: unknown, expectedObjectKey: string): VerificationDele
     || !/^[1-9][0-9]*$/.test(value.observedGeneration)
     || !(value.observedMetageneration === null
       || (typeof value.observedMetageneration === 'string' && /^[1-9][0-9]*$/.test(value.observedMetageneration)))
-    || !['eligible', 'held', 'delete_reserved', 'deleted'].includes(String(value.state))
+    || !['eligible', 'hold_pending', 'held', 'delete_reserved', 'deleted'].includes(String(value.state))
     || !Number.isSafeInteger(value.decisionVersion) || (value.decisionVersion as number) < 0
     || !Number.isSafeInteger(value.holdVersion) || (value.holdVersion as number) < 0
     || !Number.isSafeInteger(value.attemptCount) || (value.attemptCount as number) < 0
@@ -221,7 +278,12 @@ function parseFence(value: unknown, expectedObjectKey: string): VerificationDele
     || !(value.decisionReason === null || typeof value.decisionReason === 'string')
     || !(value.lastErrorCode === null || typeof value.lastErrorCode === 'string')
     || !(value.deletedAt === null || isTimestamp(value.deletedAt))
-    || !(value.deletedGeneration === null || typeof value.deletedGeneration === 'string')) {
+    || !(value.deletedGeneration === null || typeof value.deletedGeneration === 'string')
+    || !(value.pendingHoldField === undefined || value.pendingHoldField === null
+      || ['legalHoldActive', 'moderationHoldActive', 'accountErasureActive'].includes(String(value.pendingHoldField)))
+    || !(value.holdRequestId === undefined || value.holdRequestId === null || typeof value.holdRequestId === 'string')
+    || !(value.activeDeleteAttemptId === undefined || value.activeDeleteAttemptId === null
+      || typeof value.activeDeleteAttemptId === 'string')) {
     fail('verification_deletion_fence_schema_invalid');
   }
 
@@ -234,7 +296,7 @@ function parseFence(value: unknown, expectedObjectKey: string): VerificationDele
   if (canonicalObjectKey !== expectedObjectKey) {
     fail('verification_deletion_fence_identity_mismatch');
   }
-  if ((value.state === 'eligible' || value.state === 'held')
+  if ((value.state === 'eligible' || value.state === 'hold_pending' || value.state === 'held')
     && (value.reservationToken !== null || value.reservationOwner !== null
       || value.reservedAt !== null || value.reservationExpiresAt !== null)) {
     fail('verification_deletion_reservation_corrupt');
@@ -373,11 +435,70 @@ export async function setVerificationDeletionHold(
   holdField: VerificationDeletionHoldField,
   actor: string,
 ): Promise<VerificationDeletionFence> {
-  if (!['legalHoldActive', 'moderationHoldActive', 'accountErasureActive'].includes(holdField)) {
+  throw new Error('legacy_disabled_gcs_fencing_required');
+}
+
+
+
+/**
+ * Begin a two-phase hold. This transaction immediately invalidates any
+ * outstanding deletion reservation and places the fence in hold_pending.
+ * The caller must establish and verify the corresponding GCS hold before
+ * calling confirmVerificationDeletionHold.
+ */
+export async function beginVerificationDeletionHold(
+  db: Firestore,
+  input: BeginVerificationDeletionHoldInput,
+): Promise<VerificationDeletionFence> {
+  if (!['legalHoldActive', 'moderationHoldActive', 'accountErasureActive'].includes(input.holdField)) {
     fail('verification_deletion_hold_field_invalid');
   }
-  const key = requireIdentifier(objectKey, 'verification_deletion_object_key_invalid', 128);
-  const by = requireIdentifier(actor, 'verification_deletion_actor_invalid', 128);
+  const key = requireIdentifier(input.objectKey, 'verification_deletion_object_key_invalid', 128);
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const requestId = requireIdentifier(input.requestId, 'verification_deletion_hold_request_invalid', 128);
+  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+
+  return db.runTransaction(async tx => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) fail('verification_deletion_fence_missing');
+    const fence = parseFence(snapshot.data(), key);
+    if (fence.state === 'deleted') fail('verification_deletion_already_deleted');
+
+    if (fence.state === 'hold_pending'
+      && fence.pendingHoldField === input.holdField
+      && fence.holdRequestId === requestId) return fence;
+
+    const now = Timestamp.now();
+    const pending: VerificationDeletionFence = {
+      ...fence,
+      state: 'hold_pending',
+      pendingHoldField: input.holdField,
+      holdRequestId: requestId,
+      reservationToken: null,
+      reservationOwner: null,
+      reservedAt: null,
+      reservationExpiresAt: null,
+      activeDeleteAttemptId: null,
+      holdVersion: fence.holdVersion + 1,
+      decisionVersion: fence.decisionVersion + 1,
+      decisionReason: 'preservation_hold_pending_gcs_confirmation',
+      updatedAt: now,
+      lastTransitionAt: now,
+      lastTransitionBy: actor,
+    };
+    tx.set(ref, pending);
+    return pending;
+  });
+}
+
+/** Confirm a pending hold only after the caller has verified the GCS barrier. */
+export async function confirmVerificationDeletionHold(
+  db: Firestore,
+  input: ConfirmVerificationDeletionHoldInput,
+): Promise<VerificationDeletionFence> {
+  const key = requireIdentifier(input.objectKey, 'verification_deletion_object_key_invalid', 128);
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const requestId = requireIdentifier(input.requestId, 'verification_deletion_hold_request_invalid', 128);
   const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
 
   return db.runTransaction(async tx => {
@@ -385,35 +506,29 @@ export async function setVerificationDeletionHold(
     if (!snapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(snapshot.data(), key);
 
-    if (fence.state === 'deleted') {
-      fail('verification_deletion_already_deleted');
+    if (fence.state === 'held' && fence[input.holdField] && fence.holdRequestId === requestId) {
+      return fence;
+    }
+    if (fence.state !== 'hold_pending'
+      || fence.pendingHoldField !== input.holdField
+      || fence.holdRequestId !== requestId) {
+      fail('verification_deletion_hold_pending_mismatch');
     }
 
-    // Idempotent retry for a hold already committed in the held state.
-    if (fence[holdField] && fence.state === 'held') return fence;
-
     const now = Timestamp.now();
-    const invalidatingReservation = fence.state === 'delete_reserved';
-    const updated: VerificationDeletionFence = {
+    const held: VerificationDeletionFence = {
       ...fence,
-      [holdField]: true,
+      [input.holdField]: true,
       state: 'held',
-      // Invalidate the exact in-flight capability atomically with the hold.
-      reservationToken: null,
-      reservationOwner: null,
-      reservedAt: null,
-      reservationExpiresAt: null,
-      holdVersion: fence.holdVersion + ((invalidatingReservation || !fence[holdField]) ? 1 : 0),
+      pendingHoldField: null,
       decisionVersion: fence.decisionVersion + 1,
-      decisionReason: invalidatingReservation
-        ? 'preservation_hold_invalidated_reservation'
-        : 'preservation_hold_activated',
+      decisionReason: 'preservation_hold_confirmed_after_gcs_barrier',
       updatedAt: now,
       lastTransitionAt: now,
-      lastTransitionBy: by,
+      lastTransitionBy: actor,
     };
-    tx.set(ref, updated);
-    return updated;
+    tx.set(ref, held);
+    return held;
   });
 }
 
@@ -454,6 +569,140 @@ export async function verifyVerificationDeletionReservation(
   });
 }
 
+
+/**
+ * Persist a durable attempt before the GCS delete. The attempt is bound to the
+ * exact reservation token, generation and metageneration supplied by the
+ * caller. A hold transaction and this transaction serialize on the fence doc.
+ */
+export async function logVerificationDeleteAttempt(
+  db: Firestore,
+  input: LogVerificationDeleteAttemptInput,
+): Promise<LogVerificationDeleteAttemptResult> {
+  const key = requireIdentifier(input.objectKey, 'verification_deletion_object_key_invalid', 128);
+  const token = requireIdentifier(input.reservationToken, 'verification_deletion_reservation_token_invalid', 128);
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const generation = normalizeGeneration(input.expectedGeneration, 'verification_deletion_generation_missing_or_invalid');
+  const metageneration = normalizeGeneration(input.expectedMetageneration, 'verification_deletion_metageneration_invalid');
+  const attemptId = randomUUID();
+  const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+  const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(attemptId);
+
+  return db.runTransaction(async tx => {
+    const snapshot = await tx.get(fenceRef);
+    if (!snapshot.exists) fail('verification_deletion_fence_missing');
+    const fence = parseFence(snapshot.data(), key);
+    if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
+    if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
+    if (fence.observedGeneration !== generation) fail('verification_deletion_generation_changed');
+    if (fence.observedMetageneration !== metageneration) fail('verification_deletion_metageneration_changed');
+    if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
+    if (!fence.reservationExpiresAt || fence.reservationExpiresAt.toMillis() <= Date.now()) {
+      fail('verification_deletion_reservation_expired');
+    }
+    if (fence.activeDeleteAttemptId) fail('verification_deletion_attempt_already_active');
+
+    const now = Timestamp.now();
+    const attempt: VerificationDeleteAttempt = {
+      schemaVersion: VERIFICATION_DELETION_FENCE_SCHEMA_VERSION,
+      attemptId,
+      objectKey: key,
+      uid: fence.uid,
+      bucket: fence.bucket,
+      storagePath: fence.storagePath,
+      reservationToken: token,
+      generation,
+      metageneration,
+      actor,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null,
+      errorCode: null,
+    };
+    const updatedFence: VerificationDeletionFence = {
+      ...fence,
+      activeDeleteAttemptId: attemptId,
+      attemptCount: fence.attemptCount + 1,
+      updatedAt: now,
+      lastTransitionBy: actor,
+    };
+    tx.create(attemptRef, attempt);
+    tx.set(fenceRef, updatedFence);
+    return { attempt, fence: updatedFence };
+  });
+}
+
+/**
+ * Write the durable receipt only after the caller receives a successful GCS
+ * conditional-delete response. This records the exact attempt and generation.
+ */
+export async function writeVerificationDeletionReceipt(
+  db: Firestore,
+  attemptId: string,
+  deletedGeneration: string | number,
+  actor: string,
+): Promise<VerificationDeletionFence> {
+  const id = requireIdentifier(attemptId, 'verification_deletion_attempt_id_invalid', 128);
+  const generation = normalizeGeneration(deletedGeneration, 'verification_deletion_generation_missing_or_invalid');
+  const by = requireIdentifier(actor, 'verification_deletion_actor_invalid', 128);
+  const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(id);
+
+  return db.runTransaction(async tx => {
+    const attemptSnapshot = await tx.get(attemptRef);
+    if (!attemptSnapshot.exists) fail('verification_deletion_attempt_missing');
+    const rawAttempt = attemptSnapshot.data();
+    if (!isRecord(rawAttempt)
+      || rawAttempt.attemptId !== id
+      || rawAttempt.status !== 'pending'
+      || typeof rawAttempt.objectKey !== 'string'
+      || typeof rawAttempt.reservationToken !== 'string'
+      || typeof rawAttempt.generation !== 'string') {
+      fail('verification_deletion_attempt_corrupt_or_not_pending');
+    }
+    const key = requireIdentifier(rawAttempt.objectKey, 'verification_deletion_object_key_invalid', 128);
+    const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+    const fenceSnapshot = await tx.get(fenceRef);
+    if (!fenceSnapshot.exists) fail('verification_deletion_fence_missing');
+    const fence = parseFence(fenceSnapshot.data(), key);
+
+    if (generation !== rawAttempt.generation || generation !== fence.observedGeneration) {
+      fail('verification_deletion_generation_changed');
+    }
+    if (fence.state !== 'delete_reserved'
+      || fence.reservationToken !== rawAttempt.reservationToken
+      || fence.activeDeleteAttemptId !== id) {
+      fail('verification_deletion_receipt_attempt_mismatch');
+    }
+    if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
+
+    const now = Timestamp.now();
+    const deleted: VerificationDeletionFence = {
+      ...fence,
+      state: 'deleted',
+      activeDeleteAttemptId: null,
+      decisionVersion: fence.decisionVersion + 1,
+      deletedAt: now,
+      deletedGeneration: generation,
+      decisionReason: 'conditional_gcs_delete_receipt_recorded',
+      updatedAt: now,
+      lastTransitionAt: now,
+      lastTransitionBy: by,
+    };
+    const completedAttempt: VerificationDeleteAttempt = {
+      ...(rawAttempt as unknown as VerificationDeleteAttempt),
+      status: 'succeeded',
+      updatedAt: now,
+      completedAt: now,
+      errorCode: null,
+    };
+    tx.set(fenceRef, deleted);
+    tx.set(attemptRef, completedAttempt);
+    return deleted;
+  });
+}
+
+
 /**
  * Record physical deletion only after the GCS API has acknowledged deletion
  * (or an independently verified reconciliation proves the exact generation
@@ -465,39 +714,5 @@ export async function markVerificationDeletionComplete(
   reservationToken: string,
   deletedGeneration: string | number,
 ): Promise<VerificationDeletionFence> {
-  const key = requireIdentifier(objectKey, 'verification_deletion_object_key_invalid', 128);
-  const token = requireIdentifier(reservationToken, 'verification_deletion_reservation_token_invalid', 128);
-  const generation = normalizeGeneration(
-    deletedGeneration,
-    'verification_deletion_generation_missing_or_invalid',
-  );
-  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
-
-  return db.runTransaction(async tx => {
-    const snapshot = await tx.get(ref);
-    if (!snapshot.exists) fail('verification_deletion_fence_missing');
-    const fence = parseFence(snapshot.data(), key);
-
-    if (fence.state === 'deleted' && fence.reservationToken === token
-      && fence.deletedGeneration === generation) return fence;
-    if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
-    if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
-    if (generation !== fence.observedGeneration) fail('verification_deletion_generation_changed');
-    if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
-
-    const now = Timestamp.now();
-    const deleted: VerificationDeletionFence = {
-      ...fence,
-      state: 'deleted',
-      decisionVersion: fence.decisionVersion + 1,
-      deletedAt: now,
-      deletedGeneration: generation,
-      decisionReason: 'physical_generation_deletion_confirmed',
-      updatedAt: now,
-      lastTransitionAt: now,
-      lastTransitionBy: fence.reservationOwner ?? 'unknown',
-    };
-    tx.set(ref, deleted);
-    return deleted;
-  });
+  throw new Error('legacy_disabled_gcs_fencing_required');
 }
