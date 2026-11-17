@@ -16,6 +16,12 @@ assert(!legacyPhotoCron.includes('getMaintenanceBucket'), 'Legacy photo cron mus
 assert(!legacyPhotoCron.includes("prefix: 'verification/'"), 'Legacy photo cron must not scan verification objects');
 assert(legacyPhotoCron.includes('legacy_upload_age_worker_not_authorized'),
   'Legacy photo cron must retain an explicit fail-closed audit marker');
+assert(legacyPhotoCron.includes("collection('funnel_events')"),
+  'Legacy scheduler must preserve the independent funnel_events cleanup');
+assert(legacyPhotoCron.includes("where('expiresAt', '<=', Timestamp.now())"),
+  'Funnel-event cleanup must remain bounded by expiresAt');
+assert(legacyPhotoCron.includes("'funnel_event_retention'"),
+  'Funnel-event cleanup must retain its audit marker');
 const match = script.match(/(?:^|\n)groups=\(\s*([\s\S]*?)\s*\)/);
 assert(match, 'Retention staging script must define an explicit groups=(...) matrix');
 const groups = match[1].trim().split(/\s+/);
