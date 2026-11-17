@@ -290,31 +290,31 @@ describe('decision-based verification object deletion safety', () => {
   });
 
   it('deletes only the inspected Storage generation', async () => {
-    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    const deletes: Array<{ ifGenerationMatch: string | number; ifMetagenerationMatch: string | number }> = [];
     await deleteVerificationStorageFile({
-      getMetadata: async () => [{ generation: '1234567890', temporaryHold: false, eventBasedHold: false }],
+      getMetadata: async () => [{ generation: '1234567890', metageneration: '1', temporaryHold: false, eventBasedHold: false }],
       delete: async options => { deletes.push(options); },
     }, undefined, async () => {});
-    expect(deletes).toEqual([{ ifGenerationMatch: '1234567890' }]);
+    expect(deletes).toEqual([{ ifGenerationMatch: '1234567890', ifMetagenerationMatch: '1' }]);
   });
 
   it.each([
-    { label: 'temporary legal hold', metadata: { generation: '12', temporaryHold: true } },
-    { label: 'event-based hold', metadata: { generation: '12', eventBasedHold: true } },
-    { label: 'string temporary hold', metadata: { generation: '12', temporaryHold: 'true' } },
-    { label: 'string event hold', metadata: { generation: '12', eventBasedHold: 'false' } },
-    { label: 'null temporary hold', metadata: { generation: '12', temporaryHold: null } },
-    { label: 'null event hold', metadata: { generation: '12', eventBasedHold: null } },
-    { label: 'numeric temporary hold', metadata: { generation: '12', temporaryHold: 0 } },
-    { label: 'object event hold', metadata: { generation: '12', eventBasedHold: { active: false } } },
-    { label: 'missing generation', metadata: { temporaryHold: false } },
+    { label: 'temporary legal hold', metadata: { generation: '12', metageneration: '1', temporaryHold: true } },
+    { label: 'event-based hold', metadata: { generation: '12', metageneration: '1', eventBasedHold: true } },
+    { label: 'string temporary hold', metadata: { generation: '12', metageneration: '1', temporaryHold: 'true' } },
+    { label: 'string event hold', metadata: { generation: '12', metageneration: '1', eventBasedHold: 'false' } },
+    { label: 'null temporary hold', metadata: { generation: '12', metageneration: '1', temporaryHold: null } },
+    { label: 'null event hold', metadata: { generation: '12', metageneration: '1', eventBasedHold: null } },
+    { label: 'numeric temporary hold', metadata: { generation: '12', metageneration: '1', temporaryHold: 0 } },
+    { label: 'object event hold', metadata: { generation: '12', metageneration: '1', eventBasedHold: { active: false } } },
+    { label: 'missing generation', metadata: { metageneration: '1', temporaryHold: false } },
     { label: 'non-decimal generation', metadata: { generation: 'other' } },
     { label: 'invalid numeric generation', metadata: { generation: -1 } },
     { label: 'unsafe integer generation', metadata: { generation: Number.MAX_SAFE_INTEGER + 1 } },
   ])('does not delete on $label', async ({ metadata }) => {
     let deleted = false;
     await expect(deleteVerificationStorageFile({
-      getMetadata: async () => [metadata],
+      getMetadata: async () => [metadata as any],
       delete: async () => { deleted = true; },
     }, undefined, async () => {})).rejects.toThrow();
     expect(deleted).toBe(false);
@@ -335,7 +335,7 @@ describe('decision-based verification object deletion safety', () => {
   });
   it('rechecks Storage generation before applying the conditional delete', async () => {
     const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
-    const deletes: Array<{ ifGenerationMatch: string | number }> = [];
+    const deletes: Array<{ ifGenerationMatch: string | number; ifMetagenerationMatch: string | number }> = [];
     await expect(deleteVerificationStorageFile({
       getMetadata: async () => [{ generation: '9001' }],
       delete: async opts => { deletes.push(opts); },
@@ -361,7 +361,7 @@ describe('decision-based verification object deletion safety', () => {
       getMetadata: async () => { calls.push('metadata'); return [{ generation: '99' }]; },
       delete: async options => {
         calls.push('delete');
-        expect(options).toEqual({ ifGenerationMatch: '99' });
+        expect(options).toEqual({ ifGenerationMatch: '99', ifMetagenerationMatch: '1' });
       },
     }, '99', async () => { calls.push('authorization'); });
     expect(calls).toEqual(['metadata', 'authorization', 'delete']);
@@ -426,7 +426,7 @@ describe('decision-based verification object deletion safety', () => {
     let decision: 'approved' | 'pending' = 'approved';
     let deleted = false;
     const operation = deleteVerificationStorageFile({
-      getMetadata: async () => [{ generation: '77', temporaryHold: false, eventBasedHold: false }],
+      getMetadata: async () => [{ generation: '77', metageneration: '1', temporaryHold: false, eventBasedHold: false }],
       delete: async ({ ifGenerationMatch }) => {
         await release;
         expect(ifGenerationMatch).toBe('77');
@@ -453,7 +453,7 @@ describe('decision-based verification object deletion safety', () => {
       getMetadata: async () => {
         calls.push('metadata');
         decision = 'pending'; // concurrent revocation before the final authorization callback
-        return [{ generation: '81', temporaryHold: false, eventBasedHold: false }];
+        return [{ generation: '81', metageneration: '1', temporaryHold: false, eventBasedHold: false }];
       },
       delete: async () => { calls.push('delete'); },
     }, '81', async () => {
