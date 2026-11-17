@@ -28,6 +28,16 @@ export type VerificationStorageFile = {
   }) => Promise<unknown>;
 };
 
+// SDK metadata marks generation fields optional even though GCS supplies them.
+// Keep the SDK boundary broad and enforce the required fields at runtime.
+type VerificationStorageFileLike = {
+  getMetadata: () => Promise<[unknown, ...unknown[]]>;
+  delete: (options: {
+    ifGenerationMatch: string | number;
+    ifMetagenerationMatch: string | number;
+  }) => Promise<unknown>;
+};
+
 function isValidStorageVersion(value: unknown): value is string | number {
   return (typeof value === 'string' || typeof value === 'number')
     && /^[1-9][0-9]*$/.test(String(value))
@@ -35,13 +45,16 @@ function isValidStorageVersion(value: unknown): value is string | number {
 }
 
 export async function inspectVerificationStorageMetadata(
-  file: VerificationStorageFile,
+  file: VerificationStorageFileLike,
 ): Promise<{ generation: string | number; metageneration: string | number }> {
-  const [metadata] = await file.getMetadata();
+  const [metadataValue] = await file.getMetadata();
   // Provider metadata is a trust boundary. Unexpected present values are not
   // permission to destroy sensitive verification media.
-  if (!metadata
-    || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+  if (typeof metadataValue !== 'object' || metadataValue === null || Array.isArray(metadataValue)) {
+    throw new Error('verification_photo_metadata_or_hold_invalid');
+  }
+  const metadata = metadataValue as Record<string, unknown>;
+  if ((metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
     || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
   }
@@ -58,13 +71,13 @@ export async function inspectVerificationStorageMetadata(
 }
 
 export async function inspectVerificationStorageGeneration(
-  file: VerificationStorageFile,
+  file: VerificationStorageFileLike,
 ): Promise<string | number> {
   return (await inspectVerificationStorageMetadata(file)).generation;
 }
 
 export async function deleteVerificationStorageFile(
-  file: VerificationStorageFile,
+  file: VerificationStorageFileLike,
   expectedGeneration: string | number | undefined,
   beforeDelete: () => Promise<void>,
   expectedMetageneration?: string | number,
