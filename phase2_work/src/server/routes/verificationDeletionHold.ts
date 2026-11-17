@@ -189,11 +189,7 @@ export function createVerificationDeletionHoldRouter(
             return res.status(409).json({ code: 'verification_deletion_metageneration_changed' });
           }
 
-          // Computed property invocation avoids a false positive in the
-          // text-based React state-setter gate for this external SDK method.
-          const metadataSetterKey = ('set' + 'Metadata') as 'setMetadata';
-          const metadataWriter = file[metadataSetterKey].bind(file);
-          await metadataWriter(
+          await file.setMetadata(
             { temporaryHold: true },
             {
               ifGenerationMatch: before.observedGeneration,
