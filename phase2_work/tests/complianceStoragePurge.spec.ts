@@ -367,6 +367,34 @@ describe('decision-based verification object deletion safety', () => {
     expect(calls).toEqual(['metadata', 'authorization', 'delete']);
   });
 
+  it('blocks GCS deletion when a hold invalidates the reservation at the pre-delete barrier', async () => {
+    const calls: string[] = [];
+    let releaseMetadata!: () => void;
+    const metadataBarrier = new Promise<void>(resolve => { releaseMetadata = resolve; });
+    let reservationState: 'delete_reserved' | 'held' = 'delete_reserved';
+    const operation = deleteVerificationStorageFile({
+      getMetadata: async () => {
+        calls.push('metadata');
+        await metadataBarrier;
+        return [{ generation: '773' }];
+      },
+      delete: async () => { calls.push('delete'); },
+    }, '773', async () => {
+      calls.push('final-reservation-check');
+      // Simulates the atomic Firestore hold transaction clearing the token
+      // before the worker's final reservation verification commits.
+      if (reservationState !== 'delete_reserved') {
+        throw new Error('verification_deletion_not_reserved');
+      }
+    });
+
+    reservationState = 'held';
+    releaseMetadata();
+    await expect(operation).rejects.toThrow('verification_deletion_not_reserved');
+    expect(calls).toEqual(['metadata', 'final-reservation-check']);
+    expect(calls).not.toContain('delete');
+  });
+
   it('reconciles only when Storage confirms object absence', async () => {
     const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
     await expect(confirmVerificationStorageAbsence({
