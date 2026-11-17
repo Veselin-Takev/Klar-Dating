@@ -31,6 +31,7 @@ const failureEvents = {
   verification_purge_item_skipped: 'warn',
   verification_purge_item_delete_failed: 'warn',
   verification_purge_item_receipt_failed: 'error',
+  verification_deletion_hold_failure: 'error',
   unclassified_failure: 'error',
 } as const;
 export type SafeFailureEvent = keyof typeof failureEvents;
