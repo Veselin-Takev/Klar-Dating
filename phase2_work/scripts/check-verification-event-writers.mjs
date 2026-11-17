@@ -24,8 +24,9 @@ const expected = new Map([
   }],
   ['src/server/routes/complianceStorage.ts', {
     count: 3,
-    signature: /tx\.update\(ref,\s*\{\s*photoPurgeIntent:/,
+    signature: /const ref = db\.collection\('verification_events'\)\.doc\(artifact\.challengeId\)/,
     secondSignature: /tx\.update\(ref,\s*\{\s*\.\.\.auditData,/,
+    thirdSignature: /prepareVerificationDeleteCas\(db,[\s\S]*?observedMetageneration:[\s\S]*?writeVerificationDeletionReceipt\(/,
   }],
 ]);
 
@@ -54,7 +55,11 @@ export function verificationEventWriterViolations(files) {
       issues.push('unreviewed verification_events reference: ' + path);
     } else if (rule && occurrences !== rule.count) {
       issues.push('verification_events reference count drift: ' + path + ' (' + occurrences + ' vs ' + rule.count + ')');
-    } else if (rule && (!rule.signature.test(source) || (rule.secondSignature && !rule.secondSignature.test(source)))) {
+    } else if (rule && (
+      !rule.signature.test(source)
+      || (rule.secondSignature && !rule.secondSignature.test(source))
+      || (rule.thirdSignature && !rule.thirdSignature.test(source))
+    )) {
       issues.push('verification_events authorized operation drift: ' + path);
     }
   }
