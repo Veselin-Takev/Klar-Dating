@@ -741,6 +741,7 @@ async function blockedByLatestFence(
   db: Firestore,
   objectKey: string,
   fallbackReason: VerificationDeleteCasBlockedReason,
+  reservationOwner: string,
 ): Promise<PrepareVerificationDeleteCasResult> {
   const latest = await readVerificationDeletionFence(db, objectKey);
   let attempt: VerificationDeleteAttempt | undefined;
@@ -768,7 +769,9 @@ async function blockedByLatestFence(
         ? 'verification_deletion_hold_pending'
         : latest.state === 'deleted'
           ? 'verification_deletion_already_deleted'
-          : fallbackReason;
+          : latest.state === 'delete_reserved' && latest.reservationOwner !== reservationOwner
+            ? 'verification_deletion_reservation_owned_by_other_worker'
+            : fallbackReason;
   }
 
   return {
@@ -876,7 +879,7 @@ export async function prepareVerificationDeleteCas(
       if (reason) {
         if (error instanceof VerificationDeletionFenceError
           && ['verification_deletion_held', 'verification_deletion_not_eligible'].includes(error.code)) {
-          return blockedByLatestFence(db, objectKey, reason);
+          return blockedByLatestFence(db, objectKey, reason, reservationOwner);
         }
         return { readyForGcs: false, reason, objectKey };
       }
