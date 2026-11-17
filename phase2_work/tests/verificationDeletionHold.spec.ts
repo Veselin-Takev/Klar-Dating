@@ -53,7 +53,7 @@ const fence = {
 
 function makeFile(initial: Record<string, unknown>) {
   let current = { ...initial };
-  const getMetadata = vi.fn(async () => [{ ...current }]);
+  const getMetadata = vi.fn(async (): Promise<[unknown, ...unknown[]]> => [{ ...current }]);
   const setMetadata = vi.fn(async (
     metadata: { temporaryHold: true },
     options: { ifGenerationMatch: string | number; ifMetagenerationMatch: string | number },
@@ -81,7 +81,7 @@ async function postHold(input: {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    req.user = { uid: 'moderator-1', role: input.role ?? 'moderator' } as typeof req.user;
+    req.user = { uid: 'moderator-1', role: input.role ?? 'moderator' } as unknown as typeof req.user;
     next();
   });
   app.use(createVerificationDeletionHoldRouter({
@@ -150,10 +150,12 @@ describe('POST /verification-deletion/hold', () => {
       actor: 'moderator-1',
       requestId: REQUEST_ID,
     });
-    expect(holdMocks.beginVerificationDeletionHold.mock.invocationCallOrder[0])
-      .toBeLessThan(file.setMetadata.mock.invocationCallOrder[0]);
-    expect(file.setMetadata.mock.invocationCallOrder[0])
-      .toBeLessThan(holdMocks.confirmVerificationDeletionHold.mock.invocationCallOrder[0]);
+    const beginOrder = holdMocks.beginVerificationDeletionHold.mock.invocationCallOrder[0] ?? -1;
+    const gcsOrder = file.setMetadata.mock.invocationCallOrder[0] ?? -1;
+    const confirmOrder = holdMocks.confirmVerificationDeletionHold.mock.invocationCallOrder[0] ?? -1;
+    expect(beginOrder).toBeGreaterThan(0);
+    expect(gcsOrder).toBeGreaterThan(beginOrder);
+    expect(confirmOrder).toBeGreaterThan(gcsOrder);
   });
 
   it('maps GCS 412 to HTTP 409 and never confirms a failed GCS barrier', async () => {
