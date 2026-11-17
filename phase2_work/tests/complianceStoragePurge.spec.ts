@@ -279,7 +279,7 @@ describe('decision-based verification object deletion safety', () => {
   it('rejects any direct caller that omits the final authorization callback before GCS access', async () => {
     const calls: string[] = [];
     const file = {
-      getMetadata: async () => { calls.push('metadata'); return [{ generation: '77' }]; },
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '77', metageneration: '1' }]; },
       delete: async () => { calls.push('delete'); },
     };
     // Reflect.apply deliberately simulates untyped JS callers bypassing
@@ -308,7 +308,8 @@ describe('decision-based verification object deletion safety', () => {
     { label: 'numeric temporary hold', metadata: { generation: '12', metageneration: '1', temporaryHold: 0 } },
     { label: 'object event hold', metadata: { generation: '12', metageneration: '1', eventBasedHold: { active: false } } },
     { label: 'missing generation', metadata: { metageneration: '1', temporaryHold: false } },
-    { label: 'non-decimal generation', metadata: { generation: 'other' } },
+    { label: 'missing metageneration', metadata: { generation: '13' } },
+    { label: 'non-decimal generation', metadata: { generation: 'other', metageneration: '1' } },
     { label: 'invalid numeric generation', metadata: { generation: -1 } },
     { label: 'unsafe integer generation', metadata: { generation: Number.MAX_SAFE_INTEGER + 1 } },
   ])('does not delete on $label', async ({ metadata }) => {
@@ -322,7 +323,7 @@ describe('decision-based verification object deletion safety', () => {
 
   it('does not convert generation-precondition conflict into success', async () => {
     await expect(deleteVerificationStorageFile({
-      getMetadata: async () => [{ generation: '100' }],
+      getMetadata: async () => [{ generation: '100', metageneration: '1' }],
       delete: async () => { throw Object.assign(new Error('generation conflict'), { code: 412 }); },
     }, undefined, async () => {})).rejects.toMatchObject({ code: 412 });
   });
@@ -337,7 +338,7 @@ describe('decision-based verification object deletion safety', () => {
     const { deleteVerificationStorageFile } = await import('../src/server/routes/complianceStorage');
     const deletes: Array<{ ifGenerationMatch: string | number; ifMetagenerationMatch: string | number }> = [];
     await expect(deleteVerificationStorageFile({
-      getMetadata: async () => [{ generation: '9001' }],
+      getMetadata: async () => [{ generation: '9001', metageneration: '1' }],
       delete: async opts => { deletes.push(opts); },
     }, '9000', async () => {})).rejects.toThrow('verification_photo_generation_changed');
     expect(deletes).toHaveLength(0);
@@ -346,7 +347,7 @@ describe('decision-based verification object deletion safety', () => {
   it('never calls Storage delete if the final authorization callback fails', async () => {
     const calls: string[] = [];
     await expect(deleteVerificationStorageFile({
-      getMetadata: async () => { calls.push('metadata'); return [{ generation: '55' }]; },
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '55', metageneration: '1' }]; },
       delete: async () => { calls.push('deleted'); },
     }, '55', async () => {
       calls.push('authorization');
@@ -358,7 +359,7 @@ describe('decision-based verification object deletion safety', () => {
   it('checks final authorization immediately before generation-conditional delete', async () => {
     const calls: string[] = [];
     await deleteVerificationStorageFile({
-      getMetadata: async () => { calls.push('metadata'); return [{ generation: '99' }]; },
+      getMetadata: async () => { calls.push('metadata'); return [{ generation: '99', metageneration: '1' }]; },
       delete: async options => {
         calls.push('delete');
         expect(options).toEqual({ ifGenerationMatch: '99', ifMetagenerationMatch: '1' });
@@ -376,7 +377,7 @@ describe('decision-based verification object deletion safety', () => {
       getMetadata: async () => {
         calls.push('metadata');
         await metadataBarrier;
-        return [{ generation: '773' }];
+        return [{ generation: '773', metageneration: '1' }];
       },
       delete: async () => { calls.push('delete'); },
     }, '773', async () => {
@@ -405,7 +406,7 @@ describe('decision-based verification object deletion safety', () => {
   it('never treats an object that reappeared as absent', async () => {
     const { confirmVerificationStorageAbsence } = await import('../src/server/routes/complianceStorage');
     await expect(confirmVerificationStorageAbsence({
-      getMetadata: async () => [{ generation: '774' }],
+      getMetadata: async () => [{ generation: '774', metageneration: '1' }],
     })).rejects.toThrow('verification_photo_absence_no_longer_confirmed');
   });
 
