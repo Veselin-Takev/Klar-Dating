@@ -121,7 +121,7 @@ export function verificationDeletionObjectKey(input: {
     .digest('hex');
 }
 
-function readHoldFlag(value: unknown, field: VerificationDeletionHoldField): boolean {
+function readHoldFlag(value: unknown): boolean {
   if (value === undefined) return false;
   if (typeof value !== 'boolean') fail('verification_deletion_hold_flag_invalid');
   return value;
@@ -151,9 +151,9 @@ export function buildVerificationDeletionFence(
   const createdBy = requireIdentifier(input.createdBy, 'verification_deletion_actor_invalid', 128);
   const objectKey = verificationDeletionObjectKey({ uid, bucket, storagePath, observedGeneration });
 
-  const legalHoldActive = readHoldFlag(input.legalHoldActive, 'legalHoldActive');
-  const moderationHoldActive = readHoldFlag(input.moderationHoldActive, 'moderationHoldActive');
-  const accountErasureActive = readHoldFlag(input.accountErasureActive, 'accountErasureActive');
+  const legalHoldActive = readHoldFlag(input.legalHoldActive);
+  const moderationHoldActive = readHoldFlag(input.moderationHoldActive);
+  const accountErasureActive = readHoldFlag(input.accountErasureActive);
   const held = legalHoldActive || moderationHoldActive || accountErasureActive;
 
   return {
@@ -218,6 +218,21 @@ function parseFence(value: unknown, expectedObjectKey: string): VerificationDele
     || !(value.deletedAt === null || isTimestamp(value.deletedAt))
     || !(value.deletedGeneration === null || typeof value.deletedGeneration === 'string')) {
     fail('verification_deletion_fence_schema_invalid');
+  }
+
+  const canonicalObjectKey = verificationDeletionObjectKey({
+    uid: value.uid,
+    bucket: value.bucket,
+    storagePath: value.storagePath,
+    observedGeneration: value.observedGeneration,
+  });
+  if (canonicalObjectKey !== expectedObjectKey) {
+    fail('verification_deletion_fence_identity_mismatch');
+  }
+  if ((value.state === 'eligible' || value.state === 'held')
+    && (value.reservationToken !== null || value.reservationOwner !== null
+      || value.reservedAt !== null || value.reservationExpiresAt !== null)) {
+    fail('verification_deletion_reservation_corrupt');
   }
 
   if (value.state === 'delete_reserved'
@@ -420,6 +435,7 @@ export async function markVerificationDeletionComplete(
     if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
     if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
     if (generation !== fence.observedGeneration) fail('verification_deletion_generation_changed');
+    if (hasActiveHold(fence)) fail('verification_deletion_hold_conflicts_with_reservation');
 
     const now = Timestamp.now();
     const deleted: VerificationDeletionFence = {

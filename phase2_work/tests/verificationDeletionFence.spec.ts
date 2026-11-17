@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
@@ -16,7 +16,7 @@ import {
 } from '../src/server/platform/verificationDeletionFence';
 
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
-const emulatorAddress = /^(localhost|127\\.0\\.1|\\[::1\\]):([0-9]{1,5})$/.exec(emulatorHost);
+const emulatorAddress = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(emulatorHost);
 const emulatorActive = Boolean(emulatorAddress);
 const selectedProjects = [
   process.env.GCLOUD_PROJECT,
