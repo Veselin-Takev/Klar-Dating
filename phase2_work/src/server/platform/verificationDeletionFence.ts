@@ -472,9 +472,11 @@ export async function beginVerificationDeletionHold(
     const fence = parseFence(snapshot.data(), key);
     if (fence.state === 'deleted') fail('verification_deletion_already_deleted');
 
-    if (fence.state === 'hold_pending'
-      && fence.pendingHoldField === input.holdField
-      && fence.holdRequestId === requestId) return fence;
+    if (fence.state === 'hold_pending') {
+      if (fence.pendingHoldField === input.holdField
+        && fence.holdRequestId === requestId) return fence;
+      fail('verification_deletion_hold_pending_conflict');
+    }
 
     const now = Timestamp.now();
     const pending: VerificationDeletionFence = {
