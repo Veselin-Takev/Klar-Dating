@@ -11,14 +11,32 @@ const LEASE_MS = 5 * 60_000;
 const MAX_SCAN_MS = 100_000;
 const SIGNATURE_MAX_AGE_MS = 5 * 60_000;
 
-// The Google Cloud Storage generation is an opaque decimal identifier.
-// Replacements must never be deleted using an unchecked or stale generation.
+// GCS generations and metagenerations are opaque decimal identifiers.
+// Both are mandatory: the delete call must compare-and-swap both values.
+export interface VerificationStorageMetadata {
+  generation: string | number;
+  metageneration: string | number;
+  temporaryHold?: unknown;
+  eventBasedHold?: unknown;
+}
+
 export type VerificationStorageFile = {
-  getMetadata: () => Promise<[{ generation?: string | number; temporaryHold?: unknown; eventBasedHold?: unknown }, ...unknown[]]>;
-  delete: (options: { ifGenerationMatch: string | number }) => Promise<unknown>;
+  getMetadata: () => Promise<[VerificationStorageMetadata, ...unknown[]]>;
+  delete: (options: {
+    ifGenerationMatch: string | number;
+    ifMetagenerationMatch: string | number;
+  }) => Promise<unknown>;
 };
 
-export async function inspectVerificationStorageGeneration(file: VerificationStorageFile): Promise<string | number> {
+function isValidStorageVersion(value: unknown): value is string | number {
+  return (typeof value === 'string' || typeof value === 'number')
+    && /^[1-9][0-9]*$/.test(String(value))
+    && (typeof value !== 'number' || Number.isSafeInteger(value));
+}
+
+export async function inspectVerificationStorageMetadata(
+  file: VerificationStorageFile,
+): Promise<{ generation: string | number; metageneration: string | number }> {
   const [metadata] = await file.getMetadata();
   // Provider metadata is a trust boundary. Unexpected present values are not
   // permission to destroy sensitive verification media.
@@ -27,18 +45,29 @@ export async function inspectVerificationStorageGeneration(file: VerificationSto
     || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
     throw new Error('verification_photo_metadata_or_hold_invalid');
   }
-  const generation = metadata.generation;
-  if ((typeof generation !== 'string' && typeof generation !== 'number')
-    || !/^[1-9][0-9]*$/.test(String(generation))
-    || (typeof generation === 'number' && !Number.isSafeInteger(generation))) {
+  if (!isValidStorageVersion(metadata.generation)) {
     throw new Error('verification_photo_generation_missing');
   }
-  return generation;
+  if (!isValidStorageVersion(metadata.metageneration)) {
+    throw new Error('verification_photo_metageneration_missing');
+  }
+  return {
+    generation: metadata.generation,
+    metageneration: metadata.metageneration,
+  };
+}
+
+export async function inspectVerificationStorageGeneration(
+  file: VerificationStorageFile,
+): Promise<string | number> {
+  return (await inspectVerificationStorageMetadata(file)).generation;
 }
 
 export async function deleteVerificationStorageFile(
-  file: VerificationStorageFile, expectedGeneration: string | number | undefined,
+  file: VerificationStorageFile,
+  expectedGeneration: string | number | undefined,
   beforeDelete: () => Promise<void>,
+  expectedMetageneration?: string | number,
 ): Promise<void> {
   // Destructive helper is exported: deny accidental direct callers bypassing
   // the final authorization hook, even from untyped JavaScript consumers.
@@ -46,14 +75,21 @@ export async function deleteVerificationStorageFile(
   if (typeof beforeDelete !== 'function') {
     throw new Error('verification_photo_final_authorization_missing');
   }
-  const generation = await inspectVerificationStorageGeneration(file);
-  if (expectedGeneration !== undefined && String(generation) !== String(expectedGeneration)) {
+  const metadata = await inspectVerificationStorageMetadata(file);
+  if (expectedGeneration !== undefined && String(metadata.generation) !== String(expectedGeneration)) {
     throw new Error('verification_photo_generation_changed');
+  }
+  if (expectedMetageneration !== undefined
+    && String(metadata.metageneration) !== String(expectedMetageneration)) {
+    throw new Error('verification_photo_metageneration_changed');
   }
   // Revalidate Firestore authorization after the last Storage metadata read.
   // A cross-service update after this callback still needs operational fencing.
   await beforeDelete();
-  await file.delete({ ifGenerationMatch: generation });
+  await file.delete({
+    ifGenerationMatch: metadata.generation,
+    ifMetagenerationMatch: metadata.metageneration,
+  });
 }
 
 type PurgeIntent = {
@@ -77,7 +113,7 @@ function isStorageNotFound(error: unknown): boolean {
  * finalizing an absence-reconciled audit receipt.
  */
 export async function confirmVerificationStorageAbsence(
-  file: Pick<VerificationStorageFile, 'getMetadata'>,
+  file: { getMetadata: () => Promise<[unknown, ...unknown[]]> },
 ): Promise<void> {
   try {
     await file.getMetadata();
