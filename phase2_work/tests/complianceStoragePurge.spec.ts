@@ -1,7 +1,39 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import type { Server } from 'node:http';
+ 
+const verificationDeletionFenceMocks = vi.hoisted(() => ({
+  prepareVerificationDeleteCas: vi.fn(),
+  verifyVerificationDeletionReservation: vi.fn(),
+  writeVerificationDeletionReceipt: vi.fn(),
+}));
+
+vi.mock('../src/server/platform/verificationDeletionFence', () => ({
+  prepareVerificationDeleteCas: verificationDeletionFenceMocks.prepareVerificationDeleteCas,
+  verifyVerificationDeletionReservation: verificationDeletionFenceMocks.verifyVerificationDeletionReservation,
+  writeVerificationDeletionReceipt: verificationDeletionFenceMocks.writeVerificationDeletionReceipt,
+  VERIFICATION_DELETION_ATTEMPT_COLLECTION: 'verificationDeletionAttempts',
+  VERIFICATION_DELETION_FENCE_COLLECTION: 'verificationDeletionFences',
+}));
+
+beforeEach(() => {
+  verificationDeletionFenceMocks.prepareVerificationDeleteCas.mockReset().mockResolvedValue({
+    readyForGcs: true,
+    objectKey: 'a'.repeat(64),
+    reservationToken: 'test-reservation-token',
+    generation: '773',
+    metageneration: '1',
+    attempt: { attemptId: 'test-delete-attempt' },
+    fence: { state: 'delete_reserved' },
+    created: true,
+  });
+  verificationDeletionFenceMocks.verifyVerificationDeletionReservation.mockReset()
+    .mockResolvedValue({ state: 'delete_reserved' });
+  verificationDeletionFenceMocks.writeVerificationDeletionReceipt.mockReset()
+    .mockResolvedValue({ state: 'deleted' });
+});
+
 import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, assertVerificationPurgeRecordNotHeld, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';
 
 describe('verification photo purge deployment interlock', () => {
