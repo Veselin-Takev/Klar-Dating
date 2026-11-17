@@ -952,7 +952,7 @@ export async function prepareVerificationDeleteCas(
           'verification_deletion_not_reserved',
           'verification_deletion_not_eligible',
         ].includes(error.code)) {
-        return blockedByLatestFence(db, objectKey, reason);
+        return blockedByLatestFence(db, objectKey, reason, reservationOwner);
       }
       return { readyForGcs: false, reason, objectKey, fence: reservedFence };
     }
