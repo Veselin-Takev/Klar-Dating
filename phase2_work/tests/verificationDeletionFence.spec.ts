@@ -313,6 +313,7 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
     await withEmulatorDb(async db => {
       const input = {
         ...baseInput('preflight-idempotent'),
+        observedMetageneration: '1',
         actor: 'purge-worker-1',
         reservationOwner: 'purge-worker-1',
       };
@@ -339,6 +340,7 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
     await withEmulatorDb(async db => {
       const input = {
         ...baseInput('preflight-held'),
+        observedMetageneration: '1',
         legalHoldActive: true,
         actor: 'purge-worker-1',
         reservationOwner: 'purge-worker-1',
