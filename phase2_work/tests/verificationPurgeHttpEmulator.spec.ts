@@ -392,7 +392,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         shouldFailAudit = true;
       }, async () => {
         if (!present) throw Object.assign(Error('Storage object missing'), { code: 404 });
-        return [{ generation: '773', temporaryHold: false }];
+        return [{ generation: '773', metageneration: '1', temporaryHold: false }];
       });
       try {
         const initial = await api.request();
@@ -457,7 +457,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       let deletes = 0;
       const api = await startApi(db, async () => { deletes++; }, async () => {
         reads++;
-        return [{ generation: reads === 1 ? '773' : '774', temporaryHold: false }];
+        return [{ generation: reads === 1 ? '773' : '774', metageneration: '1', temporaryHold: false }];
       });
       try {
         const first = await api.request();
@@ -485,7 +485,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
       const api = await startApi(db, async () => { deletes++; }, async () => {
         metadataReads++;
         if (metadataReads === 2) await event.update({ status: 'pending' });
-        return [{ generation: '773', temporaryHold: false }];
+        return [{ generation: '773', metageneration: '1', temporaryHold: false }];
       });
       try {
         const result = await api.request();
@@ -512,7 +512,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
           // Legacy status remains approved; canonical moderation now rejects it.
           await event.update({ entscheidung: 'abgelehnt' });
         }
-        return [{ generation: '773', temporaryHold: false }];
+        return [{ generation: '773', metageneration: '1', temporaryHold: false }];
       });
       try {
         const result = await api.request();
@@ -542,7 +542,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
               .toMatchObject({ generation: '773' });
             await event.update({ [field]: true });
           }
-          return [{ generation: '773', temporaryHold: false }];
+          return [{ generation: '773', metageneration: '1', temporaryHold: false }];
         });
         try {
           const response = await api.request();
@@ -575,7 +575,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
           expect(state?.leaseId).toEqual(expect.any(String));
           await lease.update({ leaseUntil: new Date(Date.now() - 1_000) });
         }
-        return [{ generation: '773', temporaryHold: false }];
+        return [{ generation: '773', metageneration: '1', temporaryHold: false }];
       });
       try {
         const result = await api.request();
@@ -615,7 +615,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         }
       }, async () => {
         if (!present) throw Object.assign(Error('no_live_object'), { code: 404 });
-        return [{ generation: '773', temporaryHold: false }];
+        return [{ generation: '773', metageneration: '1', temporaryHold: false }];
       });
       try {
         const staleRequest = api.request();
@@ -708,7 +708,7 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
           throw Object.assign(new Error('original object was missing'), { code: 404 });
         }
         // An object has reappeared between the initial 404 and audit.
-        return [{ generation: '774', temporaryHold: false }];
+        return [{ generation: '774', metageneration: '1', temporaryHold: false }];
       });
       try {
         const result = await api.request();
