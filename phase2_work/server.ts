@@ -70,6 +70,7 @@ import {
 import { createCheckoutSession, validateReturnUrl } from "./src/server/stripeService";
 import { mountStripeRawBody, createWebhooksRouter } from './src/server/routes/webhooks';
 import { createVerificationStoragePurgeRouter } from './src/server/routes/complianceStorage';
+import { createVerificationDeletionHoldRouter } from './src/server/routes/verificationDeletionHold';
 
 // // import { trackEvent } from "./src/server/analytics";
 
@@ -95,6 +96,7 @@ import {
 import { topfFuer, UEBERSETZUNG_GRENZE, UEBERSETZUNG_GRENZE_GAST } from "./src/server/kontingente";
 import { emulatorCsp } from "./src/server/emulatorCsp";
 import { getServerFirebaseApp, initServerDb } from './src/server/db';
+import { getStorage } from 'firebase-admin/storage';
 import { getAuth } from 'firebase-admin/auth';
 import { validateServerAuthSession } from './src/lib/authSessionSchema';
 import crypto from 'crypto';
@@ -554,6 +556,25 @@ const adminHealthCheckLimiter = rateLimit({
   // Compliance purge is public only at the routing layer; the endpoint itself requires
   // a fresh HMAC proof with COMPLIANCE_JOB_SECRET and remains behind the API rate limiter.
   app.use('/api/admin', createVerificationStoragePurgeRouter({ getDb: getFirestore }));
+
+  // Authenticated preservation-hold endpoint. The router enforces field-specific
+  // roles and obtains the actor from the verified Firebase ID token.
+  app.use('/api/admin', createVerificationDeletionHoldRouter({
+    getDb: getFirestore,
+    getBucket: bucketName => {
+      const bucket = getStorage().bucket(bucketName);
+      return {
+        name: bucket.name,
+        file: path => {
+          const file = bucket.file(path);
+          return {
+            getMetadata: () => file.getMetadata(),
+            setMetadata: (metadata, options) => file.setMetadata(metadata, options as never),
+          };
+        },
+      };
+    },
+  }));
 
   // BEFUND 10.08.2026: /api/health stand in BEIDEN Ausnahmelisten
   // (OEFFENTLICH und OHNE_ALTERSPRUEFUNG) -- die Route selbst gab es
