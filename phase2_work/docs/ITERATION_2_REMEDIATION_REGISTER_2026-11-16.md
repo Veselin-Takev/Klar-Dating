@@ -210,3 +210,152 @@ Phase 0 checklist:
 - [ ] P0 evidence and independent operational/legal/security approvals complete.
 
 **Phase 0 decision: BLOCKED / NO-GO.** This is a plan/evidence index, not a claim any P0 is closed. \`productionApproved=false\` remains mandatory. No main merge, cloud/deployment/configuration change, IAM/billing action, data migration, token rotation, scheduler operation or physical deletion is authorized.
+
+
+---
+
+# Phase 0 follow-up — CI verification, duplicate PR diff audit, and #375 typecheck triage
+
+**Audit date:** 2026-11-17  
+**Comparison baseline:** \`main@2fa3ba223989ff248ad1abaea67f4f454f7c9f6b\`  
+**Audit branch:** \`audit/iteration2-remediation-register-20261116\`  
+**Constraints:** read-only source inspection + this documentation update only. No PRs closed, no merges, no cloud/deployment changes. \`productionApproved=false\` / NO-GO retained.
+
+## F0.1 PR #365 exact-head CI result
+
+**PASS — GitHub Actions Run #44044744941**, workflow \`Klar Enterprise CI\`, run number 2078, attempt 1.
+
+- Exact head: \`8377c933395a857ff404445c87525341e9309fe0\`
+- Exact base: \`2fa3ba223989ff248ad1abaea67f4f454f7c9f6b\`
+- PR: #365, branch \`audit/iteration2-remediation-register-20261116\`
+- Job \`validate\`: \`success\`
+- All validation steps passed, including Enterprise static gates, Typecheck, Functions build, Tests, Build, Production smoke and Browser acceptance.
+- Browser failure diagnostics step skipped as expected because browser acceptance passed.
+
+Evidence: https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44044744941
+
+This is an exact-head CI PASS for the documentation-only PR #365. It does not validate the P0 remediation PRs, a combined code SHA, live cloud configuration, or production readiness.
+
+## F0.2 File-level delta audit — #363 versus #368 (#202)
+
+Both PRs are open Drafts and independently based on the same requested mainline SHA:
+
+- #363 head \`b395c7e2581943f7969c362b24da9f4c335642bb\`, base \`2fa3ba223989ff248ad1abaea67f4f454f7c9f6b\`.
+- #368 head \`92d71f69851d7f1209b89d04a00353b0ed773358\`, base \`2fa3ba223989ff248ad1abaea67f4f454f7c9f6b\`.
+
+### Shared-file findings
+
+| File | #363 | #368 | Delta / decision |
+|---|---|---|---|
+| \`phase2_work/functions/src/deleteExpiredPhotos.ts\` | Removes bucket access and upload-age deletion; retains scheduler export and funnel cleanup; marker \`verification_photo_retention_disabled_legacy_worker\` / reason \`decision_aware_fenced_purge_required\`. | Same core fail-closed behavior; marker \`verification_photo_retention_disabled\` / reason \`legacy_upload_age_worker_not_authorized\`; retains funnel cleanup and records \`checkedAt\`. | Both stop the legacy worker from listing/deleting verification objects. #368's wording/marker is internally paired with its guard scripts. Do not cherry-pick #363 source wholesale. |
+| \`phase2_work/docs/DATA_RETENTION.md\` | Explicitly describes the separate \`purgeVerificationStorageCron\` / \`/api/admin/purge-verification-storage\` path as unfenced and requiring all-writer/late-hold proof. | More explicit that a generation precondition alone does not prevent a late Legal-Hold race; a deletion receipt is valid only after an authorized physical delete; disabled legacy worker is not Art.17 completion. | Preserve #363's separate-endpoint wording if not already elsewhere in the canonical register; #368's audit/receipt language is stronger. No security logic gap in the worker itself. |
+
+### Unique files and assertions
+
+**Only in #363:**
+- \`phase2_work/functions/package.json\` adds \`tests/legacy-photo-retention.node.cjs\` to the Functions \`build\` script.
+- \`phase2_work/functions/tests/legacy-photo-retention.node.cjs\` adds two assertions:
+  1. Worker source must not reference \`getMaintenanceBucket\` or \`deleteExpiredPhotoPage\`, and must contain the disabled marker + decision-aware reason.
+  2. The independent \`funnel_events\` / \`expiresAt\` cleanup and \`funnel_event_retention\` log remain.
+
+**Only in #368:**
+- \`phase2_work/scripts/check-retention-matrix.mjs\` adds static assertions that the legacy worker cannot reference the photo deletion helper, obtain the Storage bucket, or scan \`verification/\`; it also requires the explicit fail-closed marker.
+- \`phase2_work/scripts/test-retention-matrix.mjs\` adds a mutation test that injects a legacy delete call and asserts the matrix guard fails.
+
+### CI execution evidence and closure recommendation
+
+- #363 exact head \`b395c7e2581943f7969c362b24da9f4c335642bb\`: Run #43880654865 completed SUCCESS.
+- #368 exact head \`92d71f69851d7f1209b89d04a00353b0ed773358\`: Run #43883028260 completed SUCCESS. Its \`Enterprise static gates\` executes \`bun run check:enterprise\`; the phase2 \`check:enterprise\` includes \`check:retention-p0\`, which runs \`check-retention-matrix.mjs\` and \`test-retention-matrix.mjs\`. Its Functions build also passed.
+
+**Delta verdict:** #368 is the better canonical PR: it has the stronger mutation guard and explicit no-delete assertions, and the guard is wired into Enterprise CI. However, #363 has one unique regression assertion not found in #368: preservation of the unrelated funnel-event cleanup. The exact marker assertions in #363 cannot be copied verbatim because #368 intentionally uses different marker/reason strings.
+
+**Required before owner-approved closure of #363:** port the funnel-event-preservation assertions into #368's existing \`test-retention-matrix.mjs\` (or an equivalent test invoked by \`check:retention-p0\`), asserting \`funnel_events\`, \`expiresAt\`, and \`funnel_event_retention\` remain present; retain #368's own marker assertion. Then rerun exact-head Enterprise CI on the updated #368 head. After that evidence and owner sign-off, #363 can be closed as superseded. Until then, closure is **not yet safe**. No PR was closed by this audit.
+
+## F0.3 File-level delta audit — #343 / #344 versus #369 (Firebase project identity)
+
+### Exact branch provenance
+
+- #343 base \`96c3857c53f5ced31fe1394895185f42c75bc716\`, head \`601c316c4b875242989f488473bba61b4c22322c\`.
+- #344 stacked base #343 head \`601c316c4b875242989f488473bba61b4c22322c\`, head \`6e3a10a7dee58f3b55d9e2bc52986d686e189844\`.
+- #369 consolidated base main \`2fa3ba223989ff248ad1abaea67f4f454f7c9f6b\`, head \`e44d2f9bfb349babf902171feb6194d3100649b3\`.
+
+### Code and test patch comparison
+
+The unified patch for each shared code/test file was byte-for-byte identical between its original component PR and #369:
+
+| Component PR | Shared file | #369 equivalent | Delta |
+|---|---|---|---|
+| #343 | \`phase2_work/src/server/firebaseRuntime.ts\` | Same path | Identical patch |
+| #343 | \`phase2_work/tests/firebaseRuntime.spec.ts\` | Same path | Identical patch |
+| #344 | \`phase2_work/src/server/db.ts\` | Same path | Identical patch |
+| #344 | \`phase2_work/src/server/storage.ts\` | Same path | Identical patch |
+| #344 | \`phase2_work/tests/nativeFirestoreBoundary.spec.ts\` | Same path | Identical patch |
+| #344 | \`phase2_work/tests/storageBucketIsolation.spec.ts\` | Same path | Identical patch |
+
+Therefore no unique runtime or Storage security assertion from #343/#344 is missing from #369's code/tests. #369 carries the environment-ID mismatch and stale database-ID protections, default Admin app identity checks, wrong-project bucket fail-closed behavior, blank/gs:// rejection, demo-only Storage emulator behavior, and their associated tests.
+
+### Unique documentation delta
+
+Both #343 and #344 modify \`phase2_work/docs/VES12_FIREBASE_RUNTIME_PROJECT_ISOLATION_2026-11-07.md\`; #369 does not include that documentation file. It contains historical context that should be preserved in the canonical audit register:
+- source defect and rationale for rejecting inconsistent runtime project IDs and stale Firestore database IDs;
+- default Admin app reuse risk and compatibility review requirement;
+- cross-project Storage bucket fallback risk and explicit bucket requirement;
+- prior failed #344 test run #42414110302 (missing default export in the \`node:fs\` Vitest mock), subsequent corrected exact-head run #42414827630 SUCCESS;
+- staging project/bucket ownership, IAM, real resource existence and EUR 10 budget evidence remain separate and unverified gates.
+
+The unique file is evidence/documentation, not an omitted runtime control. Its essential risk and gate content is captured in this register; do not merge #343/#344 solely to preserve the duplicate documentation file.
+
+### Exact-head CI and closure recommendation
+
+- #369 exact head \`e44d2f9bfb349babf902171feb6194d3100649b3\`: Run #43882884789 completed SUCCESS.
+- #344 exact head \`6e3a10a7dee58f3b55d9e2bc52986d686e189844\`: Run #42414827630 completed SUCCESS.
+- #343 exact head \`601c316c4b875242989f488473bba61b4c22322c\`: Run #42413071403 previously documented as SUCCESS; its older base and separate SHA do not certify #369.
+
+**Delta verdict:** #369 is a clean main-based consolidation and contains every code/test patch from #343 and #344. No cherry-pick of runtime or Storage code/tests is required. Once the owner confirms #369 is the canonical path and its independent AppSec/SRE + staging identity gates remain tracked, #343 and #344 are safe candidates for owner-approved closure as superseded. No PR was closed by this audit.
+
+**Important boundary:** successful unit tests and CI do not establish that any actual staging project, Firestore database, bucket, IAM policy, Cloud Run service account or billing budget exists or is correctly configured. No cloud access or mutation was performed.
+
+## F0.4 PR #375 Typecheck root cause — #373
+
+Run #43888474459 exact head \`0055d2d32689d15c47108ddf4a712d93b2f5265f\` failed in job \`validate\`, step 19 \`Typecheck\`. The exact compiler output is:
+
+\`\`\`text
+tests/profileRecommendationsEndpoint.spec.ts(50,44): error TS2556:
+A spread argument must either have a tuple type or be passed to a rest parameter.
+\`\`\`
+
+No other TypeScript compiler diagnostic was emitted in that run. Steps after Typecheck (Functions build, Tests, Build, Production smoke, Playwright) were skipped as a consequence.
+
+### Exact source location
+
+File: \`phase2_work/tests/profileRecommendationsEndpoint.spec.ts\`
+
+- Line 18: \`const set = vi.fn(async () => undefined);\` — mock currently has zero declared parameters.
+- Line 35: \`const stagedWrites: unknown[][] = [];\` — staged write entries are arbitrary arrays, not fixed tuples.
+- Line 40: transaction mock captures \`set\` arguments with \`stagedWrites.push(args)\`, preserving the unbounded \`unknown[]\` type.
+- **Line 50, column 44:** \`for (const args of stagedWrites) set(...args);\` — spreads an \`unknown[]\` into a zero-argument mock; this is the TS2556 source.
+
+### Minimal type-safe correction specification
+
+Keep this isolated to the test helper; do not alter production route or Firestore Rules to suppress the diagnostic.
+
+1. Type the mock as a two-argument write operation, e.g. \`const set = vi.fn(async (_ref: unknown, _data: unknown) => undefined);\`.
+2. Replace \`unknown[][]\` with a fixed tuple array, e.g. \`const stagedWrites: Array<[ref: unknown, data: unknown]> = [];\`.
+3. Type the transaction test-double's \`set\` callback as accepting \`(ref: unknown, data: unknown)\` and push \`[ref, data]\`, not an arbitrary rest array.
+4. Replay with explicit tuple destructuring: \`for (const [ref, data] of stagedWrites) set(ref, data);\`.
+5. Keep the existing race simulation semantics: first attempt's staged writes are discarded when deletion wins; second attempt sees \`account_deletions/{uid}\` and writes nothing.
+6. Rerun \`bun run typecheck\` on the new exact PR head, then full Enterprise CI, Firestore Rules Emulator, unit tests and Playwright. Do not reuse Run #43888474459 as validation for a changed SHA.
+
+This is a test-double typing defect, not evidence that the production transaction is correct. The mocked retry is not a substitute for a native Firestore Emulator concurrency test.
+
+## F0.5 Consolidated decision
+
+| Workstream | Technical delta result | Owner action |
+|---|---|---|
+| #363 → #368 | #368 stronger and CI-wired; #363 has unique funnel cleanup assertion to port/adapt | Keep #363 open until assertion is ported and #368 exact-head CI reruns; then owner may close #363 |
+| #343/#344 → #369 | All runtime and Storage code/test patches identical in #369; only shared documentation file omitted | #369 canonical; #343/#344 can be owner-closed after canonical confirmation and tracking of external staging gates |
+| #375 | One exact TS2556 at test helper line 50, caused by untyped rest spread | Apply tuple typing on a child/new head, rerun all required checks |
+
+**Audit outcome:** #365 CI PASS. #369 consolidation is code/test complete relative to #343/#344. #368 is the preferred #202 candidate but needs the unique funnel cleanup assertion ported before #363 closure. #375 remains blocked pending the specified test-helper correction and fresh exact-head validation.
+
+All PRs remain in their existing GitHub states. No merges, closures, code changes to remediation PRs, cloud/deployment changes, IAM/billing operations or data mutations were performed. \`productionApproved=false\`; production remains NO-GO.
