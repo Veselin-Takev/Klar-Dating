@@ -46,8 +46,11 @@ type HttpResult = { status: number; data: Record<string, unknown> };
 async function startApi(
   db: Firestore,
   onDelete: (path: string) => Promise<void>,
-  metadata: () => Promise<[{ generation: string; temporaryHold: boolean }]> =
-    async () => [{ generation: '773', temporaryHold: false }],
+  metadata: () => Promise<[{
+    generation: string;
+    metageneration: string;
+    temporaryHold: boolean;
+  }]> = async () => [{ generation: '773', metageneration: '1', temporaryHold: false }],
   enabled = true,
 ) {
   process.env.COMPLIANCE_JOB_SECRET = secret;
@@ -62,10 +65,17 @@ async function startApi(
     getBucket: () => {
       if (!enabled) throw new Error('disabled_purge_must_not_touch_storage');
       return {
+        name: 'synthetic-verification-bucket',
         file: (path: string) => ({
           getMetadata: metadata,
-          delete: async (options: { ifGenerationMatch: string | number }) => {
-            expect(options).toEqual({ ifGenerationMatch: '773' });
+          delete: async (options: {
+            ifGenerationMatch: string | number;
+            ifMetagenerationMatch: string | number;
+          }) => {
+            expect(options).toEqual({
+              ifGenerationMatch: '773',
+              ifMetagenerationMatch: '1',
+            });
             await onDelete(path);
           },
         }),
