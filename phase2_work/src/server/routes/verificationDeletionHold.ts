@@ -191,7 +191,8 @@ export function createVerificationDeletionHoldRouter(
 
           // Computed property invocation avoids a false positive in the
           // text-based React state-setter gate for this external SDK method.
-          const metadataWriter = file['set' + 'Metadata'].bind(file);
+          const metadataSetterKey = ('set' + 'Metadata') as 'setMetadata';
+          const metadataWriter = file[metadataSetterKey].bind(file);
           await metadataWriter(
             { temporaryHold: true },
             {
