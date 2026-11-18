@@ -33,7 +33,8 @@ async function setup(options: { token?: string; provider?: string; requester?: R
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
   const ref = createCanonicalMediaRef('target', 'profiles/target/photo.jpg');
-  const headers = options.token === undefined ? {} : { Authorization: `Bearer ${options.token}` };
+  const headers = new Headers();
+  if (options.token !== undefined) headers.set('Authorization', `Bearer ${options.token}`);
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/profile-media/target/${encodeURIComponent(ref)}`, headers };
 }
 
