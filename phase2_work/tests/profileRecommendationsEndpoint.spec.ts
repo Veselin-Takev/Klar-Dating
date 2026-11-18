@@ -106,13 +106,13 @@ describe('profile publication and recommendation HTTP boundary', () => {
   });
 
   it.each([
-    ['underage', { isAdult: false }],
-    ['inactive', { active: false }],
-    ['blocked', { isBlocked: true }],
-    ['suspended', { isSuspended: true }],
-    ['deletion-pending', { deletionPending: true }],
-  ])('rejects %s requesters before recommendation computation', async (_label, data) => {
-    const ctx = await endpoint({}, { data: { ...data, location: 'München' } });
+    ['underage', { isAdult: false }, false],
+    ['inactive', { active: false }, false],
+    ['blocked', { isBlocked: true }, false],
+    ['suspended', { isSuspended: true }, false],
+    ['deletion-pending', {}, true],
+  ] as const)('rejects %s requesters before recommendation computation', async (_label, data, deletionPending) => {
+    const ctx = await endpoint({}, { data: { ...data, location: 'München' }, deletionPending });
     const response = await fetch(ctx.base + '/recommendations');
     expect(response.status).toBe(403);
     expect(ctx.getRecommendations).not.toHaveBeenCalled();
