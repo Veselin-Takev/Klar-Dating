@@ -83,7 +83,8 @@ export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
   const storageRef = ref(getStorage(), objectPath);
 
   await uploadBytes(storageRef, datei, { contentType });
-  if (auth.currentUser?.uid !== uploader.uid || auth.currentUser.isAnonymous) {
+  const currentSession = auth.currentUser;
+  if (!currentSession || currentSession.uid !== uploader.uid || currentSession.isAnonymous) {
     throw new Error('Die Sitzung hat sich während des Uploads geändert.');
   }
 
