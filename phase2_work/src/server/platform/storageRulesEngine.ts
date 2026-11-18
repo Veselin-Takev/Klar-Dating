@@ -7,7 +7,7 @@
  *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
  *   - delete: false (only server-side admin cleanup)
  * - /profiles/{uid}/{datei}:
- *   - read: requester adult + target owner adult + signedIn() + !istGast()
+ *   - read: false (all profile media reads go through the authenticated backend proxy)
  *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
  *   - delete: adult gate + signedIn() + !istGast() + auth.uid == uid
  */
@@ -138,70 +138,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
   if (topCollection === 'profiles') {
     const rulePath = '/profiles/{uid}/{datei}';
 
-    // read: requester must be adult and the target profile owner must also be adult.
+    // Direct client reads are denied; media is streamed only by the backend proxy.
     if (request.operation === 'read') {
-      if (!signedIn) {
-        return { allowed: false, reason: 'Profilbilder erfordern eine Anmeldung.', rulePath, code: 'UNAUTHENTICATED' };
-      }
-      if (isGuest) {
-        return { allowed: false, reason: 'Gäste dürfen keine Profilbilder lesen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (request.targetUserIsAdult !== true) {
-        return { allowed: false, reason: 'Zielprofil ist nicht als volljährig freigegeben.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      return { allowed: true, rulePath, code: 'ALLOWED' };
+      return { allowed: false, reason: 'Direkte Client-Lesezugriffe auf Profilmedien sind gesperrt.', rulePath, code: 'PERMISSION_DENIED' };
     }
-
-    // write: if istVolljaehrig() && request.auth.uid == uid && istBild() && request.resource.size < 8 * 1024 * 1024;
-    if (request.operation === 'write') {
-      if (!signedIn) {
-        return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
-      }
-      if (isGuest) {
-        return { allowed: false, reason: 'Gäste dürfen keine Profilbilder hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (!isOwner) {
-        return { allowed: false, reason: 'Profilbilder dürfen nur im eigenen Ordner hochgeladen werden.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (!isImageContentType(request.resource?.contentType)) {
-        return { allowed: false, reason: 'Nur Bildformate (JPEG, PNG, WebP) sind zulässig.', rulePath, code: 'INVALID_MIME' };
-      }
-      if (typeof request.resource?.size !== 'number' || request.resource.size >= MAX_FILE_SIZE_BYTES) {
-        return { allowed: false, reason: 'Dateigröße überschreitet 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
-      }
-
-      return { allowed: true, rulePath, code: 'ALLOWED' };
-    }
-
-    // delete: if istVolljaehrig() && request.auth.uid == uid;
-    if (request.operation === 'delete') {
-      if (!signedIn) {
-        return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
-      }
-      if (isGuest) {
-        return { allowed: false, reason: 'Gäste dürfen keine Profilbilder löschen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (!isOwner) {
-        return { allowed: false, reason: 'Nur eigene Profilbilder dürfen gelöscht werden.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-
-      return { allowed: true, rulePath, code: 'ALLOWED' };
-    }
-  }
-
-  // Default deny-all
-  return {
-    allowed: false,
-    reason: 'Keine übereinstimmende Sicherheitsregel gefunden (Default Deny).',
-    code: 'PERMISSION_DENIED',
-  };
-}
