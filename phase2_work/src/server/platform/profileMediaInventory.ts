@@ -10,8 +10,8 @@ export type ProfileMediaObjectInspection = {
 
 export type ProfileMediaTokenInventorySummary = {
   readOnly: true;
-  usersScanned: number;
-  usersWithLegacyDownloadUrls: number;
+  profileRecordsScanned: number;
+  profileRecordsWithLegacyDownloadUrls: number;
   legacyDownloadUrlReferences: number;
   unresolvedLegacyDownloadUrls: number;
   uniqueReferencedObjects: number;
@@ -94,8 +94,8 @@ export async function runProfileMediaTokenInventory(
   }
 
   let userCursor: unknown | undefined;
-  let usersScanned = 0;
-  let usersWithLegacyDownloadUrls = 0;
+  let profileRecordsScanned = 0;
+  let profileRecordsWithLegacyDownloadUrls = 0;
   let legacyDownloadUrlReferences = 0;
   let unresolvedLegacyDownloadUrls = 0;
   const objectReferenceCounts = new Map<string, number>();
@@ -107,7 +107,7 @@ export async function runProfileMediaTokenInventory(
     }
 
     for (const user of page.users) {
-      usersScanned++;
+      profileRecordsScanned++;
       let userHasLegacyDownloadUrl = false;
 
       for (const value of profileMediaValues(user.data)) {
@@ -123,7 +123,7 @@ export async function runProfileMediaTokenInventory(
         objectReferenceCounts.set(objectPath, (objectReferenceCounts.get(objectPath) ?? 0) + 1);
       }
 
-      if (userHasLegacyDownloadUrl) usersWithLegacyDownloadUrls++;
+      if (userHasLegacyDownloadUrl) profileRecordsWithLegacyDownloadUrls++;
     }
 
     if (!page.nextCursor) break;
@@ -192,8 +192,8 @@ export async function runProfileMediaTokenInventory(
 
   return {
     readOnly: true,
-    usersScanned,
-    usersWithLegacyDownloadUrls,
+    profileRecordsScanned,
+    profileRecordsWithLegacyDownloadUrls,
     legacyDownloadUrlReferences,
     unresolvedLegacyDownloadUrls,
     uniqueReferencedObjects,
