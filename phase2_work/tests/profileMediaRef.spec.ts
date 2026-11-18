@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createCanonicalProfileMediaRef, isCanonicalProfileMediaRef } from '../src/lib/profileMediaRef';
+import { normalizeProfileMedia } from '../src/server/platform/profileMedia';
 
 describe('canonical profile media references', () => {
   it('matches the server base64url representation for an owner-scoped path', () => {
@@ -22,5 +23,11 @@ describe('canonical profile media references', () => {
 
   it('does not accept a bearer download URL as an opaque media reference', () => {
     expect(isCanonicalProfileMediaRef('https://firebasestorage.googleapis.com/photo?token=secret')).toBe(false);
+  });
+
+  it('allows the server to normalize only the canonical reference owned by the profile UID', () => {
+    const reference = createCanonicalProfileMediaRef('viewer', 'profiles/viewer/avatar.jpg');
+    expect(normalizeProfileMedia('viewer', { photoURL: reference })).toBe(reference);
+    expect(normalizeProfileMedia('another-user', { photoURL: reference })).toBeNull();
   });
 });
