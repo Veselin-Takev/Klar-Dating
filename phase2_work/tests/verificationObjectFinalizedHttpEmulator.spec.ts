@@ -17,7 +17,7 @@ import {
 } from '../src/server/platform/verificationObjectRegistration';
 
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
-const localEmulator = /^(localhost|127\\.0\\.0\\.1|\\[::1\\]):([0-9]{1,5})$/.exec(emulatorHost);
+const localEmulator = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(emulatorHost);
 const emulatorActive = Boolean(localEmulator);
 const projects = [
   process.env.GCLOUD_PROJECT,
