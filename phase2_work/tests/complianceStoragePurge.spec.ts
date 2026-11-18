@@ -7,12 +7,18 @@ const verificationDeletionFenceMocks = vi.hoisted(() => ({
   prepareVerificationDeleteCas: vi.fn(),
   verifyVerificationDeletionReservation: vi.fn(),
   writeVerificationDeletionReceipt: vi.fn(),
+  failVerificationDeletionAttempt: vi.fn(),
+  reclaimVerificationDeletionAttemptForActiveWorker: vi.fn(),
+  reconcileVerificationDeletionAbsence: vi.fn(),
 }));
 
 vi.mock('../src/server/platform/verificationDeletionFence', () => ({
   prepareVerificationDeleteCas: verificationDeletionFenceMocks.prepareVerificationDeleteCas,
   verifyVerificationDeletionReservation: verificationDeletionFenceMocks.verifyVerificationDeletionReservation,
   writeVerificationDeletionReceipt: verificationDeletionFenceMocks.writeVerificationDeletionReceipt,
+  failVerificationDeletionAttempt: verificationDeletionFenceMocks.failVerificationDeletionAttempt,
+  reclaimVerificationDeletionAttemptForActiveWorker: verificationDeletionFenceMocks.reclaimVerificationDeletionAttemptForActiveWorker,
+  reconcileVerificationDeletionAbsence: verificationDeletionFenceMocks.reconcileVerificationDeletionAbsence,
   VERIFICATION_DELETION_ATTEMPT_COLLECTION: 'verificationDeletionAttempts',
   VERIFICATION_DELETION_FENCE_COLLECTION: 'verificationDeletionFences',
 }));
@@ -32,6 +38,9 @@ beforeEach(() => {
     .mockResolvedValue({ state: 'delete_reserved' });
   verificationDeletionFenceMocks.writeVerificationDeletionReceipt.mockReset()
     .mockResolvedValue({ state: 'deleted' });
+  verificationDeletionFenceMocks.failVerificationDeletionAttempt.mockReset().mockResolvedValue(true);
+  verificationDeletionFenceMocks.reclaimVerificationDeletionAttemptForActiveWorker.mockReset().mockResolvedValue(false);
+  verificationDeletionFenceMocks.reconcileVerificationDeletionAbsence.mockReset().mockResolvedValue(null);
 });
 
 import { complianceSignature, validComplianceRequest, deleteVerificationStorageFile, readConsistentVerificationDecision, isVerificationPhotoPurgeEnabled, validatedVerificationPurgeBucketName, assertVerificationPurgeRecordNotHeld, createVerificationStoragePurgeRouter } from '../src/server/routes/complianceStorage';

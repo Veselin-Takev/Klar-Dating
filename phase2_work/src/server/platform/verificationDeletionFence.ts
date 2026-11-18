@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentReference, type Firestore } from 'firebase-admin/firestore';
 
 export const VERIFICATION_DELETION_FENCE_COLLECTION = 'verificationDeletionFences';
 export const VERIFICATION_DELETION_ATTEMPT_COLLECTION = 'verificationDeletionAttempts';
@@ -50,6 +50,8 @@ export interface VerificationDeletionFence {
   pendingHoldField?: VerificationDeletionHoldField | null;
   holdRequestId?: string | null;
   activeDeleteAttemptId?: string | null;
+  /** Exact most recent attempt that completed or was absence-reconciled. */
+  lastDeleteAttemptId?: string | null;
 }
 
 export interface CreateVerificationDeletionFenceInput {
@@ -248,6 +250,7 @@ export function buildVerificationDeletionFence(
     pendingHoldField: null,
     holdRequestId: null,
     activeDeleteAttemptId: null,
+    lastDeleteAttemptId: null,
   };
 }
 
@@ -285,7 +288,9 @@ function parseFence(value: unknown, expectedObjectKey: string): VerificationDele
       || ['legalHoldActive', 'moderationHoldActive', 'accountErasureActive'].includes(String(value.pendingHoldField)))
     || !(value.holdRequestId === undefined || value.holdRequestId === null || typeof value.holdRequestId === 'string')
     || !(value.activeDeleteAttemptId === undefined || value.activeDeleteAttemptId === null
-      || typeof value.activeDeleteAttemptId === 'string')) {
+      || typeof value.activeDeleteAttemptId === 'string')
+    || !(value.lastDeleteAttemptId === undefined || value.lastDeleteAttemptId === null
+      || typeof value.lastDeleteAttemptId === 'string')) {
     fail('verification_deletion_fence_schema_invalid');
   }
 
@@ -1019,6 +1024,7 @@ export async function writeVerificationDeletionReceipt(
       decisionVersion: fence.decisionVersion + 1,
       deletedAt: now,
       deletedGeneration: generation,
+      lastDeleteAttemptId: id,
       decisionReason: 'conditional_gcs_delete_receipt_recorded',
       updatedAt: now,
       lastTransitionAt: now,
@@ -1034,6 +1040,177 @@ export async function writeVerificationDeletionReceipt(
     tx.set(fenceRef, deleted);
     tx.set(attemptRef, completedAttempt);
     return deleted;
+  });
+}
+
+
+
+/**
+ * Close an attempt only when the outcome proves no conditional deletion was
+ * accepted, such as GCS 412 or a pre-delete guard rejection. Ambiguous provider
+ * failures remain pending and must not trigger a duplicate destructive request.
+ */
+export async function failVerificationDeletionAttempt(
+  db: Firestore, attemptId: string, actor: string, errorCode: string,
+): Promise<boolean> {
+  const id = requireIdentifier(attemptId, 'verification_deletion_attempt_id_invalid', 128);
+  const by = requireIdentifier(actor, 'verification_deletion_actor_invalid', 128);
+  const reason = requireIdentifier(errorCode, 'verification_deletion_attempt_error_invalid', 128);
+  const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(id);
+  return db.runTransaction(async tx => {
+    const attemptSnapshot = await tx.get(attemptRef);
+    if (!attemptSnapshot.exists) fail('verification_deletion_attempt_missing');
+    const rawAttempt = attemptSnapshot.data();
+    if (!isRecord(rawAttempt) || rawAttempt.attemptId !== id
+      || typeof rawAttempt.objectKey !== 'string'
+      || typeof rawAttempt.reservationToken !== 'string'
+      || typeof rawAttempt.generation !== 'string'
+      || typeof rawAttempt.metageneration !== 'string') fail('verification_deletion_attempt_corrupt');
+    if (rawAttempt.status !== 'pending') return false;
+    const key = requireIdentifier(rawAttempt.objectKey, 'verification_deletion_object_key_invalid', 128);
+    const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+    const fenceSnapshot = await tx.get(fenceRef);
+    if (!fenceSnapshot.exists) fail('verification_deletion_fence_missing');
+    const fence = parseFence(fenceSnapshot.data(), key);
+    const now = Timestamp.now();
+    tx.set(attemptRef, {
+      ...(rawAttempt as unknown as VerificationDeleteAttempt),
+      status: 'failed', updatedAt: now, completedAt: now, errorCode: reason,
+    });
+    if (fence.activeDeleteAttemptId === id && fence.state === 'delete_reserved'
+      && fence.reservationToken === rawAttempt.reservationToken) {
+      const held = hasActiveHold(fence);
+      tx.set(fenceRef, {
+        ...fence,
+        state: held ? 'held' : 'eligible',
+        reservationToken: null, reservationOwner: null, reservedAt: null,
+        reservationExpiresAt: null, activeDeleteAttemptId: null,
+        decisionVersion: fence.decisionVersion + 1,
+        decisionReason: held ? 'failed_attempt_closed_with_preservation_hold' : 'failed_attempt_closed_for_safe_retry',
+        updatedAt: now, lastTransitionAt: now, lastTransitionBy: by, lastErrorCode: reason,
+      });
+    }
+    return true;
+  });
+}
+
+/**
+ * A live successor lease may take over an attempt whose prior scanner no longer
+ * owns the singleton purge lease. GCS CAS arbitrates requests already in flight.
+ */
+export async function reclaimVerificationDeletionAttemptForActiveWorker(
+  db: Firestore,
+  input: { objectKey: string; activeWorkerLeaseId: string; workerLeaseRef: DocumentReference; actor: string },
+): Promise<boolean> {
+  const key = requireIdentifier(input.objectKey, 'verification_deletion_object_key_invalid', 128);
+  const owner = requireIdentifier(input.activeWorkerLeaseId, 'verification_deletion_worker_invalid', 128);
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+  return db.runTransaction(async tx => {
+    const [leaseSnapshot, fenceSnapshot] = await Promise.all([tx.get(input.workerLeaseRef), tx.get(fenceRef)]);
+    const lease = leaseSnapshot.data();
+    if (!isRecord(lease) || lease.leaseId !== owner || !isTimestamp(lease.leaseUntil)
+      || lease.leaseUntil.toMillis() <= Date.now()) fail('verification_deletion_successor_lease_not_active');
+    if (!fenceSnapshot.exists) return false;
+    const fence = parseFence(fenceSnapshot.data(), key);
+    if (fence.state !== 'delete_reserved' || fence.reservationOwner === owner) return false;
+    if (fence.activeDeleteAttemptId) {
+      const oldRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(fence.activeDeleteAttemptId);
+      const oldSnapshot = await tx.get(oldRef);
+      const old = oldSnapshot.data();
+      if (!oldSnapshot.exists || !isRecord(old) || old.attemptId !== fence.activeDeleteAttemptId
+        || old.objectKey !== key || old.reservationToken !== fence.reservationToken
+        || old.generation !== fence.observedGeneration || old.metageneration !== fence.observedMetageneration
+        || old.status !== 'pending') fail('verification_deletion_stale_attempt_conflict');
+      const now = Timestamp.now();
+      tx.set(oldRef, { ...old, status: 'failed', updatedAt: now, completedAt: now,
+        errorCode: 'superseded_by_active_purge_lease' });
+    }
+    const now = Timestamp.now();
+    const held = hasActiveHold(fence);
+    tx.set(fenceRef, {
+      ...fence, state: held ? 'held' : 'eligible',
+      reservationToken: null, reservationOwner: null, reservedAt: null,
+      reservationExpiresAt: null, activeDeleteAttemptId: null,
+      decisionVersion: fence.decisionVersion + 1,
+      decisionReason: held ? 'stale_attempt_reclaimed_with_preservation_hold' : 'stale_attempt_reclaimed_by_successor_lease',
+      updatedAt: now, lastTransitionAt: now, lastTransitionBy: actor,
+      lastErrorCode: 'superseded_by_active_purge_lease',
+    });
+    return true;
+  });
+}
+
+/**
+ * Complete the fence after a durable intent and independently confirmed 404.
+ * A pending exact attempt is completed; after a definitive 412 a synthetic
+ * reconciliation receipt records that the generation is now absent.
+ */
+export async function reconcileVerificationDeletionAbsence(
+  db: Firestore,
+  input: { uid: string; challengeId: string; bucket: string; storagePath: string;
+    generation: string | number; metageneration?: string | number; actor: string },
+): Promise<{ objectKey: string; attemptId: string | null } | null> {
+  const generation = normalizeGeneration(input.generation, 'verification_deletion_generation_missing_or_invalid');
+  const actor = requireIdentifier(input.actor, 'verification_deletion_actor_invalid', 128);
+  const objectKey = verificationDeletionObjectKey({
+    uid: input.uid, bucket: input.bucket, storagePath: input.storagePath, observedGeneration: generation,
+  });
+  const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(objectKey);
+  return db.runTransaction(async tx => {
+    const fenceSnapshot = await tx.get(fenceRef);
+    if (!fenceSnapshot.exists) return null;
+    const fence = parseFence(fenceSnapshot.data(), objectKey);
+    if (fence.uid !== input.uid || fence.challengeId !== input.challengeId
+      || fence.bucket !== input.bucket || fence.storagePath !== input.storagePath
+      || fence.observedGeneration !== generation || fence.observedMetageneration === null
+      || (input.metageneration !== undefined && fence.observedMetageneration !== normalizeGeneration(
+        input.metageneration, 'verification_deletion_metageneration_invalid'))) {
+      fail('verification_deletion_absence_identity_mismatch');
+    }
+    if (fence.state === 'deleted') {
+      if (fence.deletedGeneration !== generation) fail('verification_deletion_absence_generation_mismatch');
+      return { objectKey, attemptId: fence.lastDeleteAttemptId ?? null };
+    }
+    if (fence.state === 'held' || fence.state === 'hold_pending' || hasActiveHold(fence)) {
+      fail('verification_deletion_absence_blocked_by_hold');
+    }
+    if (fence.state !== 'eligible' && fence.state !== 'delete_reserved') {
+      fail('verification_deletion_absence_state_invalid');
+    }
+    const now = Timestamp.now();
+    const token = fence.reservationToken ?? randomUUID();
+    const attemptId = fence.activeDeleteAttemptId ?? randomUUID();
+    const attemptRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(attemptId);
+    if (fence.activeDeleteAttemptId) {
+      const attemptSnapshot = await tx.get(attemptRef);
+      const raw = attemptSnapshot.data();
+      if (!attemptSnapshot.exists || !isRecord(raw) || raw.attemptId !== attemptId
+        || raw.objectKey !== objectKey || raw.reservationToken !== token
+        || raw.generation !== generation || raw.metageneration !== fence.observedMetageneration
+        || raw.status !== 'pending') fail('verification_deletion_absence_attempt_mismatch');
+      tx.set(attemptRef, { ...raw, status: 'succeeded', updatedAt: now, completedAt: now, errorCode: null });
+    } else {
+      const synthetic: VerificationDeleteAttempt = {
+        schemaVersion: VERIFICATION_DELETION_FENCE_SCHEMA_VERSION, attemptId, objectKey,
+        uid: fence.uid, bucket: fence.bucket, storagePath: fence.storagePath,
+        reservationToken: token, generation, metageneration: fence.observedMetageneration,
+        actor, status: 'succeeded', createdAt: now, updatedAt: now, completedAt: now, errorCode: null,
+      };
+      tx.create(attemptRef, synthetic);
+    }
+    const completed: VerificationDeletionFence = {
+      ...fence, state: 'deleted', reservationToken: token,
+      reservationOwner: fence.reservationOwner ?? actor,
+      reservedAt: fence.reservedAt ?? now,
+      reservationExpiresAt: fence.reservationExpiresAt ?? now,
+      activeDeleteAttemptId: null, lastDeleteAttemptId: attemptId,
+      decisionVersion: fence.decisionVersion + 1, deletedAt: now, deletedGeneration: generation,
+      decisionReason: 'generation_absence_reconciled_after_durable_intent',
+      updatedAt: now, lastTransitionAt: now, lastTransitionBy: actor, lastErrorCode: null,
+    };
+    tx.set(fenceRef, completed);
+    return { objectKey, attemptId };
   });
 }
 
