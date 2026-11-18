@@ -23,6 +23,10 @@ export function normalizeProfileMedia(uid: string, data: Record<string, unknown>
   const legacy = typeof data.photoPath === 'string' ? data.photoPath : null;
   const aliases = [data.photoURL, data.photoUrl, ...(Array.isArray(data.photos) ? data.photos : [])]
     .filter((value): value is string => typeof value === 'string');
+  // New writers persist the opaque canonical reference directly. Accept it
+  // only when decoding proves that it belongs to this profile UID.
+  const canonicalAlias = aliases.find(value => parseCanonicalMediaRef(uid, value) !== null);
+  if (canonicalAlias) return canonicalAlias;
   const aliasPath = aliases.map(value => {
     try {
       const parsed = new URL(value);
