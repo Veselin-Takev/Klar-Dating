@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { auth } from './firebase';
+import { createCanonicalProfileMediaRef } from './profileMediaRef';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // `firebase/storage` wird NICHT hier oben importiert.
@@ -66,21 +67,31 @@ export async function nimmKontaktZurueck(targetUid: string): Promise<void> {
 // ── Profilfoto ─────────────────────────────────────────────────────────────
 
 export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
-  if (!auth.currentUser) throw new Error('Nicht angemeldet.');
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+  const uploader = auth.currentUser;
+  if (!uploader || uploader.isAnonymous) throw new Error('Nicht angemeldet.');
+  const contentType = datei.type;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)
+    || datei.size <= 0 || datei.size >= 8 * 1024 * 1024) {
+    throw new Error('Ungültiges Profilbild.');
+  }
 
-  const ext = datei.type === 'image/png' ? 'png' : datei.type === 'image/webp' ? 'webp' : 'jpg';
-  const fileName = `profiles/${auth.currentUser.uid}/avatar_${Date.now()}.${ext}`;
-  const storageRef = ref(getStorage(), fileName);
+  // Firebase Storage reads are denied to clients. Persist an opaque owner-scoped
+  // reference instead of minting a permanent bearer download URL.
+  const { getStorage, ref, uploadBytes } = await import('firebase/storage');
+  const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+  const objectPath = `profiles/${uploader.uid}/avatar_${Date.now()}.${ext}`;
+  const storageRef = ref(getStorage(), objectPath);
 
-  await uploadBytes(storageRef, datei, { contentType: datei.type || 'image/jpeg' });
-  const url = await getDownloadURL(storageRef);
+  await uploadBytes(storageRef, datei, { contentType });
+  if (auth.currentUser?.uid !== uploader.uid || auth.currentUser.isAnonymous) {
+    throw new Error('Die Sitzung hat sich während des Uploads geändert.');
+  }
 
-  // Setze die URL im Profil
+  const mediaRef = createCanonicalProfileMediaRef(uploader.uid, objectPath);
   const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(getFirestore(), 'users', auth.currentUser.uid), { photoURL: url }, { merge: true });
+  await setDoc(doc(getFirestore(), 'users', uploader.uid), { photoURL: mediaRef }, { merge: true });
 
-  return url;
+  return mediaRef;
 }
 
 // ── Icebreaker-Gate ────────────────────────────────────────────────────────
