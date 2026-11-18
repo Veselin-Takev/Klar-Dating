@@ -74,6 +74,7 @@ import { triggerHaptic } from "../lib/haptics";
 import { Cloud, Database } from "lucide-react";
 import { melde } from "../lib/fehler";
 import { useModalAccessibility } from "../lib/useModalAccessibility";
+import { useAuthenticatedProfileMedia } from '../lib/profileMediaClient';
 
 function OfflineCacheStatus() {
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -330,6 +331,11 @@ export default function Profile() {
 
   const { t } = useTranslation();
   const { user, logOut, updateProfileData, profileData, refreshProfile } = useAuth();
+  const selfProfileMedia = useAuthenticatedProfileMedia(
+    profileData?.photoURL && !profileData.photoURL.includes('/_/upload/') ? { kind: 'self' } : null,
+    user?.uid ?? null,
+    profileData?.photoURL ?? null,
+  );
   const [activeRadarValue, setActiveRadarValue] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -876,7 +882,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             <div className="w-14 h-[70px] bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden border-2 border-white dark:border-stone-900 shadow-sm relative">
               <img
-                src={(profileData?.photoURL && !profileData.photoURL.includes('/_/upload/')) ? profileData.photoURL : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
+                src={selfProfileMedia.src ?? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
                 alt="Avatar"
                 onError={(e) => {
                   e.currentTarget.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200";
