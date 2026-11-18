@@ -105,7 +105,27 @@ describe('profile publication and recommendation HTTP boundary', () => {
     expect(ctx.getRecommendations).not.toHaveBeenCalled();
   });
 
-  it.each([\n    ['underage', { isAdult: false }],\n    ['inactive', { active: false }],\n    ['blocked', { isBlocked: true }],\n    ['suspended', { isSuspended: true }],\n    ['deletion-pending', { deletionPending: true }],\n  ])('rejects %s requesters before recommendation computation', async (_label, data) => {\n    const ctx = await endpoint({}, { data: { ...data, location: 'München' } });\n    const response = await fetch(ctx.base + '/recommendations');\n    expect(response.status).toBe(403);\n    expect(ctx.getRecommendations).not.toHaveBeenCalled();\n  });\n\n  it('rejects guest requesters before reading recommendations', async () => {\n    const ctx = await endpoint({ isGuest: () => true });\n    const response = await fetch(ctx.base + '/recommendations');\n    expect(response.status).toBe(403);\n    expect(ctx.getRecommendations).not.toHaveBeenCalled();\n  });\n\n  it('rejects an unsupported stored city before recommendation computation', async () => {
+  it.each([
+    ['underage', { isAdult: false }],
+    ['inactive', { active: false }],
+    ['blocked', { isBlocked: true }],
+    ['suspended', { isSuspended: true }],
+    ['deletion-pending', { deletionPending: true }],
+  ])('rejects %s requesters before recommendation computation', async (_label, data) => {
+    const ctx = await endpoint({}, { data: { ...data, location: 'München' } });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects guest requesters before reading recommendations', async () => {
+    const ctx = await endpoint({ isGuest: () => true });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported stored city before recommendation computation', async () => {
     const ctx = await endpoint({}, { data: { isAdult: true, location: 'London' } });
     const response = await fetch(ctx.base + '/recommendations');
     expect(response.status).toBe(400);
