@@ -71,6 +71,7 @@ import { createCheckoutSession, validateReturnUrl } from "./src/server/stripeSer
 import { mountStripeRawBody, createWebhooksRouter } from './src/server/routes/webhooks';
 import { createVerificationStoragePurgeRouter } from './src/server/routes/complianceStorage';
 import { createVerificationDeletionHoldRouter } from './src/server/routes/verificationDeletionHold';
+import { createVerificationObjectFinalizedRouter } from './src/server/routes/verificationObjectFinalized';
 
 // // import { trackEvent } from "./src/server/analytics";
 
@@ -484,6 +485,10 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/vertraege', createPublicContractsRouter());
   app.use('/internal/compliance', createComplianceJobsRouter());
   app.use('/internal/kyc', createKycReconciliationRouter(kycDependencies));
+  app.use('/internal/verification', createVerificationObjectFinalizedRouter({
+    getDb: getFirestore,
+    getBucketName: () => process.env.FIREBASE_STORAGE_BUCKET,
+  }));
   app.use('/api/webhooks', createDiditWebhookRouter(kycDependencies));
   app.use('/api/analytics/track', createAnalyticsRouter({ requireAuth, getDb: getFirestore, enabled: () => process.env.ENABLE_FUNNEL_ANALYTICS === 'true' }));
   // Capture *actual* signed compliance bytes BEFORE the global JSON parser.
