@@ -53,7 +53,8 @@ async function streamAuthorizedProfileMedia(
     const token = header.trim().slice(7);
     const decoded = await deps.getAuth().verifyIdToken(token, true);
     const requester = decoded.uid;
-    const target = selfView ? requester : req.params.uid;
+    const requestedTarget = req.params.uid;
+    const target = selfView ? requester : typeof requestedTarget === 'string' ? requestedTarget : '';
     if (!requester || !target || decoded.firebase?.sign_in_provider === 'anonymous') return res.status(403).end();
     // The public-profile route never grants self-read. Self-view has its own
     // route and derives the target exclusively from the verified token UID.
@@ -87,7 +88,10 @@ async function streamAuthorizedProfileMedia(
     // Self-view resolves media only from the authenticated user's own profile
     // document. Legacy download-token URLs are parsed server-side to an
     // owner-scoped object path; the bearer URL is never returned to the client.
-    const canonicalRef = selfView ? normalizeProfileMedia(target, targetData) : req.params.mediaRef;
+    const requestedMediaRef = req.params.mediaRef;
+    const canonicalRef = selfView
+      ? normalizeProfileMedia(target, targetData)
+      : typeof requestedMediaRef === 'string' ? requestedMediaRef : null;
     const objectPath = parseCanonicalMediaRef(target, canonicalRef);
     if (!objectPath) return res.status(404).end();
     const file = deps.getBucket().file(objectPath);
