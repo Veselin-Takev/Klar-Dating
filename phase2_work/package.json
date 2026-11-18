@@ -81,7 +81,7 @@
     "test:production": "node scripts/check-emulator-ports.mjs && firebase emulators:exec --project demo-klar --only auth,firestore,storage \"node scripts/smoke-production.mjs\"",
     "audit:inventory": "node scripts/audit-inventory.mjs",
     "profile-media:inventory:dry-run": "node --import=tsx scripts/profile-media-token-inventory.ts",
-    "profile-media:inventory:emulator": "firebase emulators:exec --project demo-klar --only firestore,storage 'node --import=tsx scripts/profile-media-token-inventory.ts --emulator',
+    "profile-media:inventory:emulator": "firebase emulators:exec --project demo-klar --only firestore,storage 'node --import=tsx scripts/profile-media-token-inventory.ts --emulator'",
     "load:staging": "tsx scripts/load-slo.ts",
     "audit:production-controls": "tsx scripts/audit-production-controls.ts",
     "a11y:evidence": "tsx scripts/validate-accessibility-evidence.ts",
