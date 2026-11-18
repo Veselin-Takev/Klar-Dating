@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { defineSecret, defineString } from 'firebase-functions/params';
+import { defineSecret, defineString, storageBucket } from 'firebase-functions/params';
 import { warn } from 'firebase-functions/logger';
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 
@@ -15,6 +15,7 @@ const complianceApiOrigin = defineString('COMPLIANCE_API_ORIGIN', {
  */
 export const registerVerificationDeletionFenceOnObjectFinalized = onObjectFinalized({
   region: 'europe-west3',
+  bucket: storageBucket,
   retry: true,
   secrets: [complianceSecret],
 }, async event => {
