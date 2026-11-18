@@ -17,17 +17,17 @@ function hasFlag(name: string): boolean {
 function configureReadOnlyTarget(): { mode: 'emulator' | 'live-read-only'; projectId: string; bucketName: string } {
   if (hasFlag('--emulator')) {
     const firestoreEmulator = process.env.FIRESTORE_EMULATOR_HOST;
-    const storageEmulator = process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? process.env.STORAGE_EMULATOR_HOST;
+    const firebaseStorageEmulator = process.env.FIREBASE_STORAGE_EMULATOR_HOST;
     const projectId = process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT ?? 'demo-klar';
-    if (!firestoreEmulator || !storageEmulator || !projectId.startsWith('demo-')) {
-      throw new Error('Emulator mode requires Firestore and Storage emulator hosts and a demo-* project.');
+    if (!firestoreEmulator || !firebaseStorageEmulator || !projectId.startsWith('demo-')) {
+      throw new Error('Emulator mode requires Firestore and Firebase Storage emulator hosts and a demo-* project.');
     }
     process.env.GCLOUD_PROJECT = projectId;
     process.env.GOOGLE_CLOUD_PROJECT = projectId;
     if (!process.env.STORAGE_EMULATOR_HOST) {
-      process.env.STORAGE_EMULATOR_HOST = storageEmulator.startsWith('http')
-        ? storageEmulator
-        : 'http://' + storageEmulator;
+      process.env.STORAGE_EMULATOR_HOST = firebaseStorageEmulator.startsWith('http')
+        ? firebaseStorageEmulator
+        : 'http://' + firebaseStorageEmulator;
     }
     return { mode: 'emulator', projectId, bucketName: projectId + '.appspot.com' };
   }
