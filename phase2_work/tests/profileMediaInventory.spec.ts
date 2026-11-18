@@ -52,7 +52,10 @@ describe('read-only legacy profile media token inventory', () => {
         return { objectPaths: [objectA], nextCursor: 'storage-page-1' };
       }
       if (cursor === 'storage-page-1') {
-        return { objectPaths: [objectB, orphanObject] };
+        return { objectPaths: [objectB], nextCursor: 'storage-page-2' };
+      }
+      if (cursor === 'storage-page-2') {
+        return { objectPaths: [orphanObject] };
       }
       return { objectPaths: [] };
     });
@@ -92,7 +95,7 @@ describe('read-only legacy profile media token inventory', () => {
     expect(serialized).not.toContain('user-a');
     expect(serialized).not.toContain('avatar-a.jpg');
     expect(listUsersPage).toHaveBeenCalledTimes(2);
-    expect(listProfileObjectsPage).toHaveBeenCalledTimes(2);
+    expect(listProfileObjectsPage).toHaveBeenCalledTimes(3);
   });
 
   it('counts a token URL with an invalid owner path as unresolved and ignores non-Firebase hosts', async () => {
