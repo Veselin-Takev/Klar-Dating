@@ -30,9 +30,9 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
   it('denies direct client reads of profile media while preserving owner uploads', async () => {
     const path = `profiles/${prefix}/avatar.jpg`;
     await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
-    await assertFails(user(prefix).ref(path).getBytes());
-    await assertFails(user('another').ref(path).getBytes());
-    await assertFails(user(prefix, 'anonymous').ref(path).getBytes());
+    await assertFails(user(prefix).ref(path).getDownloadURL());
+    await assertFails(user('another').ref(path).getDownloadURL());
+    await assertFails(user(prefix, 'anonymous').ref(path).getDownloadURL());
   });
   it('executes the retention worker against real emulator objects after 30 days', async () => {
     const bucket = getAppBucket();
