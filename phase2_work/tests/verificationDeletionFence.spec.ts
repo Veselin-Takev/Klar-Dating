@@ -20,6 +20,10 @@ import {
   VerificationDeletionFenceError,
   type CreateVerificationDeletionFenceInput,
 } from '../src/server/platform/verificationDeletionFence';
+import {
+  registerFinalizedVerificationObject,
+  TRUSTED_VERIFICATION_WRITER_MARKER,
+} from '../src/server/platform/verificationObjectRegistration';
 
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST ?? '';
 const emulatorAddress = /^(localhost|127\.0\.0\.1|\[::1\]):([0-9]{1,5})$/.exec(emulatorHost);
@@ -410,4 +414,105 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
       expect((await readVerificationDeletionFence(db, created.objectKey)).observedGeneration).toBe('773');
     });
   }, 30_000);
+
+  it('registers a finalized backend verification object and permits a legal hold before any purge attempt', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('finalize-hold');
+      const fence = await registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket,
+        name: input.storagePath,
+        generation: input.observedGeneration,
+        metageneration: input.observedMetageneration,
+        metadata: {
+          klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+          uid: input.uid,
+          challengeId: input.challengeId,
+          createdBy: 'verification-backend',
+        },
+      });
+      expect(fence).toMatchObject({
+        uid: input.uid,
+        challengeId: input.challengeId,
+        observedGeneration: '773',
+        observedMetageneration: '1',
+        state: 'eligible',
+      });
+
+      const holdInput = {
+        objectKey: fence!.objectKey,
+        holdField: 'legalHoldActive' as const,
+        actor: 'legal-writer',
+        requestId: 'finalize-hold-before-purge',
+      };
+      const pending = await beginVerificationDeletionHold(db, holdInput);
+      expect(pending.state).toBe('hold_pending');
+      const held = await confirmVerificationDeletionHold(db, holdInput);
+      expect(held).toMatchObject({ state: 'held', legalHoldActive: true, holdVersion: 1 });
+      await expect(reserveVerificationDeletion(db, fence!.objectKey, 'purge-worker'))
+        .rejects.toMatchObject({ code: 'verification_deletion_held' });
+      expect((await readVerificationDeletionFence(db, fence!.objectKey)).state).toBe('held');
+    });
+  }, 30_000);
+
+  it('fails closed on missing or mismatched trusted identity metadata without creating a fence', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('finalize-invalid');
+      await expect(registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket,
+        name: input.storagePath,
+        generation: '773',
+        metageneration: '1',
+        metadata: { uid: input.uid, challengeId: input.challengeId, createdBy: 'backend' },
+      })).rejects.toThrow('verification_deletion_finalize_identity_invalid');
+
+      await expect(registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket,
+        name: input.storagePath,
+        generation: '773',
+        metageneration: '1',
+        metadata: {
+          klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+          uid: 'different-user',
+          challengeId: input.challengeId,
+          createdBy: 'backend',
+        },
+      })).rejects.toThrow('verification_deletion_finalize_identity_invalid');
+
+      expect((await db.collection('verificationDeletionFences').get()).empty).toBe(true);
+    });
+  }, 30_000);
+
+  it('reconciles a finalized-object fence and its terminal attempt during account erasure', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('finalize-art17');
+      const fence = await registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket,
+        name: input.storagePath,
+        generation: '773',
+        metageneration: '1',
+        metadata: {
+          klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+          uid: input.uid,
+          challengeId: input.challengeId,
+          createdBy: 'verification-backend',
+        },
+      });
+      const reservation = await reserveVerificationDeletion(db, fence!.objectKey, 'purge-worker');
+      if (reservation.status !== 'reserved') throw new Error('expected_reservation');
+      const logged = await logVerificationDeleteAttempt(db, {
+        objectKey: fence!.objectKey,
+        reservationToken: reservation.reservationToken,
+        expectedGeneration: '773',
+        expectedMetageneration: '1',
+        actor: 'purge-worker',
+      });
+      await writeVerificationDeletionReceipt(db, logged.attempt.attemptId, '773', 'purge-worker');
+
+      await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, input.uid))
+        .resolves.toMatchObject({ removedFences: 1, removedAttempts: 1 });
+      expect((await db.collection('verificationDeletionFences').where('uid', '==', input.uid).get()).empty).toBe(true);
+      expect((await db.collection('verificationDeletionAttempts').where('uid', '==', input.uid).get()).empty).toBe(true);
+    });
+  }, 30_000);
+
 });
