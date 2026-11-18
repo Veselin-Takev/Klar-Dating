@@ -185,7 +185,7 @@ describe.skipIf(!emulatorActive)('verification Object Finalize HTTP boundary (Fi
         expect(first).toMatchObject({ status: 200, data: { ok: true, registered: true } });
         const firstSnapshot = await fenceSnapshot(db);
         expect(firstSnapshot).toHaveLength(1);
-        expect(firstSnapshot[0].data).toMatchObject({
+        expect(firstSnapshot[0]?.data).toMatchObject({
           uid,
           challengeId: 'challenge-' + uid,
           bucket: 'synthetic-klar-verification-test',
