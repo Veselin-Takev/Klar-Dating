@@ -208,8 +208,15 @@ export function readConsistentVerificationDecision(
  * present value is malformed. This is not a cross-service writer fence.
  */
 export function assertVerificationPurgeRecordNotHeld(data: Record<string, unknown>): void {
+  // Preserve the canonical legacy pair as an explicit guardrail contract.
+  for (const field of ['photoPurgeHold', 'legalHold'] as const) {
+    const value = data[field];
+    if (value !== undefined && value !== false) {
+      throw new Error('verification_photo_record_hold_or_invalid');
+    }
+  }
+  // Additional current fence flags are checked independently and fail closed.
   for (const field of [
-    'photoPurgeHold', 'legalHold',
     'legalHoldActive', 'moderationHoldActive', 'accountErasureActive',
   ] as const) {
     const value = data[field];

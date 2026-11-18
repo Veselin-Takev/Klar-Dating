@@ -287,6 +287,8 @@ describe('Firestore verification-photo legal and preservation hold contract', ()
     { legalHold: null }, { photoPurgeHold: 0 },
     { legalHold: 'false' }, { photoPurgeHold: 'true' },
     { legalHold: { active: false } }, { legalHold: true, photoPurgeHold: false },
+    { legalHoldActive: true }, { moderationHoldActive: true }, { accountErasureActive: true },
+    { legalHoldActive: null }, { moderationHoldActive: 'false' }, { accountErasureActive: 0 },
   ])('blocks active or malformed record-level holds %#', data => {
     expect(() => assertVerificationPurgeRecordNotHeld(data))
       .toThrow('verification_photo_record_hold_or_invalid');
