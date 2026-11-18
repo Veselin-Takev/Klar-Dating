@@ -6,6 +6,8 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
   buildVerificationDeletionFence,
   createVerificationDeletionFence,
+  ensureVerificationDeletionFenceForUploadedObject,
+  reconcileVerificationDeletionArtifactsForAccountErasure,
   beginVerificationDeletionHold,
   confirmVerificationDeletionHold,
   logVerificationDeleteAttempt,
@@ -118,6 +120,49 @@ describe('verification deletion fence schema (pure unit tests)', () => {
 });
 
 describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator transactions', () => {
+  it('idempotently registers an object at initial creation and rejects generation metadata drift', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('initial-register');
+      const first = await ensureVerificationDeletionFenceForUploadedObject(db, input);
+      const retry = await ensureVerificationDeletionFenceForUploadedObject(db, input);
+      expect(retry.objectKey).toBe(first.objectKey);
+      await expect(ensureVerificationDeletionFenceForUploadedObject(db, {
+        ...input, observedMetageneration: '2',
+      })).rejects.toThrow('verification_deletion_fence_identity_mismatch');
+      expect((await readVerificationDeletionFence(db, first.objectKey)).state).toBe('eligible');
+    });
+  }, 30_000);
+
+  it('reconciles only terminal artifacts after account storage is empty and blocks holds or pending attempts', async () => {
+    await withEmulatorDb(async db => {
+      const eligible = await createVerificationDeletionFence(db, baseInput('art17-eligible'));
+      await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, eligible.uid))
+        .resolves.toMatchObject({ removedFences: 1, removedAttempts: 0 });
+      await expect(readVerificationDeletionFence(db, eligible.objectKey))
+        .rejects.toThrow('verification_deletion_fence_missing');
+
+      const held = await createVerificationDeletionFence(db, baseInput('art17-held'));
+      await db.collection('verificationDeletionFences').doc(held.objectKey).update({
+        state: 'held', moderationHoldActive: true,
+      });
+      await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, held.uid))
+        .rejects.toThrow('verification_deletion_fence_unresolved');
+      expect((await readVerificationDeletionFence(db, held.objectKey)).state).toBe('held');
+
+      const pending = await createVerificationDeletionFence(db, baseInput('art17-pending'));
+      const attemptId = randomUUID();
+      await db.collection('verificationDeletionAttempts').doc(attemptId).set({
+        schemaVersion: 1, attemptId, objectKey: pending.objectKey, uid: pending.uid,
+        bucket: pending.bucket, storagePath: pending.storagePath, reservationToken: randomUUID(),
+        generation: pending.observedGeneration, metageneration: pending.observedMetageneration,
+        actor: 'emulator-test', status: 'pending',
+        createdAt: pending.createdAt, updatedAt: pending.updatedAt, completedAt: null, errorCode: null,
+      });
+      await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, pending.uid))
+        .rejects.toThrow('verification_deletion_attempt_unresolved');
+      expect((await db.collection('verificationDeletionAttempts').doc(attemptId).get()).exists).toBe(true);
+    });
+  }, 30_000);
   it('creates and atomically reserves a generation-bound eligible fence', async () => {
     await withEmulatorDb(async db => {
       const created = await createVerificationDeletionFence(db, baseInput('reserve'));

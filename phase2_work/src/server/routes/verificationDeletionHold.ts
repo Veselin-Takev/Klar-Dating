@@ -6,6 +6,9 @@ import {
   beginVerificationDeletionHold,
   confirmVerificationDeletionHold,
   readVerificationDeletionFence,
+  ensureVerificationDeletionFenceForUploadedObject,
+  verificationDeletionObjectKey,
+  type VerificationDeletionFence,
   type VerificationDeletionHoldField,
 } from '../platform/verificationDeletionFence';
 
@@ -35,7 +38,8 @@ interface VerificationHoldBucket {
 
 export interface VerificationDeletionHoldRouterDeps {
   getDb: () => Firestore;
-  getBucket: (bucketName: string) => VerificationHoldBucket;
+  /** Omitted bucket name resolves only to the configured application bucket. */
+  getBucket: (bucketName?: string) => VerificationHoldBucket;
 }
 
 const HOLD_FIELDS = new Set<VerificationDeletionHoldField>([
@@ -126,12 +130,27 @@ export function createVerificationDeletionHoldRouter(
       return res.status(400).json({ code: 'verification_deletion_hold_payload_invalid' });
     }
 
-    const { objectKey, holdField, actor: suppliedActor, requestId: bodyRequestId } = req.body;
+    const {
+      objectKey: suppliedObjectKey,
+      uid: targetUid,
+      challengeId,
+      storagePath,
+      holdField,
+      actor: suppliedActor,
+      requestId: bodyRequestId,
+    } = req.body;
     const headerRequestId = req.get('Idempotency-Key');
     const requestId = bodyRequestId ?? headerRequestId;
 
-    if (typeof objectKey !== 'string' || !/^[a-f0-9]{64}$/.test(objectKey)
-      || typeof holdField !== 'string' || !HOLD_FIELDS.has(holdField as VerificationDeletionHoldField)
+    const hasObjectKey = typeof suppliedObjectKey === 'string' && /^[a-f0-9]{64}$/.test(suppliedObjectKey);
+    const hasIdentity = typeof targetUid === 'string' && !!targetUid.trim()
+      && typeof challengeId === 'string' && !!challengeId.trim()
+      && typeof storagePath === 'string' && !!storagePath.trim();
+    const hasPartialIdentity = targetUid !== undefined || challengeId !== undefined || storagePath !== undefined;
+    if ((suppliedObjectKey !== undefined && !hasObjectKey)
+      || (!hasObjectKey && !hasIdentity)
+      || (hasPartialIdentity && !hasIdentity)
+      || (typeof holdField !== 'string' || !HOLD_FIELDS.has(holdField as VerificationDeletionHoldField))
       || typeof requestId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(requestId)
       || (bodyRequestId !== undefined && headerRequestId !== undefined
         && bodyRequestId !== headerRequestId)
@@ -144,18 +163,67 @@ export function createVerificationDeletionHoldRouter(
 
     try {
       const db = deps.getDb();
-      const before = await readVerificationDeletionFence(db, objectKey);
+      let objectKey = hasObjectKey ? suppliedObjectKey as string : '';
+      let before: VerificationDeletionFence | undefined;
+      let bucket: VerificationHoldBucket;
+      let file: VerificationHoldFile;
+
+      if (hasObjectKey) {
+        try {
+          before = await readVerificationDeletionFence(db, objectKey);
+        } catch (error) {
+          if (!(error instanceof Error) || error.message !== 'verification_deletion_fence_missing' || !hasIdentity) {
+            throw error;
+          }
+        }
+      }
+
+      if (!before) {
+        if (!hasIdentity) return res.status(404).json({ code: 'verification_deletion_fence_missing' });
+        bucket = deps.getBucket();
+        if (!bucket || typeof bucket.name !== 'string' || !bucket.name) {
+          logSafeFailure('verification_deletion_hold_failure');
+          return res.status(503).json({ code: 'verification_deletion_hold_storage_unavailable' });
+        }
+        file = bucket.file(storagePath as string);
+        const [rawMetadata] = await file.getMetadata();
+        const initialMetadata = readMetadata(rawMetadata);
+        const derivedObjectKey = verificationDeletionObjectKey({
+          uid: targetUid as string,
+          bucket: bucket.name,
+          storagePath: storagePath as string,
+          observedGeneration: initialMetadata.generation,
+        });
+        if (hasObjectKey && objectKey !== derivedObjectKey) {
+          return res.status(409).json({ code: 'verification_deletion_fence_identity_mismatch' });
+        }
+        objectKey = derivedObjectKey;
+        before = await ensureVerificationDeletionFenceForUploadedObject(db, {
+          uid: targetUid as string,
+          challengeId: challengeId as string,
+          bucket: bucket.name,
+          storagePath: storagePath as string,
+          observedGeneration: initialMetadata.generation,
+          observedMetageneration: initialMetadata.metageneration,
+          createdBy: actor,
+        });
+      } else {
+        if (hasIdentity && (before.uid !== targetUid
+          || before.challengeId !== challengeId
+          || before.storagePath !== storagePath)) {
+          return res.status(409).json({ code: 'verification_deletion_fence_identity_mismatch' });
+        }
+        bucket = deps.getBucket(before.bucket);
+        file = bucket.file(before.storagePath);
+      }
+
       if (before.observedMetageneration === null) {
         return res.status(409).json({ code: 'verification_deletion_metageneration_missing' });
       }
-
-      const bucket = deps.getBucket(before.bucket);
       if (!bucket || bucket.name !== before.bucket) {
         logSafeFailure('verification_deletion_hold_failure');
         return res.status(503).json({ code: 'verification_deletion_hold_storage_unavailable' });
       }
-
-      const file = bucket.file(before.storagePath);
 
       // This transaction invalidates any outstanding deletion reservation
       // before the external GCS barrier is requested.

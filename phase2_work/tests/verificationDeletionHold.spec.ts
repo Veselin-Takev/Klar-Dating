@@ -6,12 +6,16 @@ import type { Firestore } from 'firebase-admin/firestore';
 
 const holdMocks = vi.hoisted(() => ({
   readVerificationDeletionFence: vi.fn(),
+  ensureVerificationDeletionFenceForUploadedObject: vi.fn(),
+  verificationDeletionObjectKey: vi.fn(),
   beginVerificationDeletionHold: vi.fn(),
   confirmVerificationDeletionHold: vi.fn(),
 }));
 
 vi.mock('../src/server/platform/verificationDeletionFence', () => ({
   readVerificationDeletionFence: holdMocks.readVerificationDeletionFence,
+  ensureVerificationDeletionFenceForUploadedObject: holdMocks.ensureVerificationDeletionFenceForUploadedObject,
+  verificationDeletionObjectKey: holdMocks.verificationDeletionObjectKey,
   beginVerificationDeletionHold: holdMocks.beginVerificationDeletionHold,
   confirmVerificationDeletionHold: holdMocks.confirmVerificationDeletionHold,
 }));
@@ -86,8 +90,8 @@ async function postHold(input: {
   });
   app.use(createVerificationDeletionHoldRouter({
     getDb: () => ({} as Firestore),
-    getBucket: name => ({
-      name,
+    getBucket: (name?: string) => ({
+      name: name ?? 'synthetic-verification-bucket',
       file: () => input.file,
     }),
   }));
@@ -119,6 +123,8 @@ async function postHold(input: {
 describe('POST /verification-deletion/hold', () => {
   beforeEach(() => {
     holdMocks.readVerificationDeletionFence.mockReset().mockResolvedValue(fence);
+    holdMocks.ensureVerificationDeletionFenceForUploadedObject.mockReset().mockResolvedValue(fence);
+    holdMocks.verificationDeletionObjectKey.mockReset().mockReturnValue(OBJECT_KEY);
     holdMocks.beginVerificationDeletionHold.mockReset().mockResolvedValue({
       ...fence,
       state: 'hold_pending',
@@ -156,6 +162,41 @@ describe('POST /verification-deletion/hold', () => {
     expect(beginOrder).toBeGreaterThan(0);
     expect(gcsOrder).toBeGreaterThan(beginOrder);
     expect(confirmOrder).toBeGreaterThan(gcsOrder);
+  });
+
+  it('creates an initial fence when legal/moderation hold predates the purge worker', async () => {
+    const file = makeFile({
+      generation: '773',
+      metageneration: '11',
+      temporaryHold: false,
+    });
+    holdMocks.readVerificationDeletionFence.mockRejectedValueOnce(new Error('verification_deletion_fence_missing'));
+    const response = await postHold({
+      file: file.file,
+      body: {
+        uid: 'user-1',
+        challengeId: 'challenge-773',
+        storagePath: 'verification/user-1/photo.jpg',
+        holdField: 'moderationHoldActive',
+        requestId: REQUEST_ID,
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(holdMocks.ensureVerificationDeletionFenceForUploadedObject).toHaveBeenCalledWith(expect.anything(), {
+      uid: 'user-1',
+      challengeId: 'challenge-773',
+      bucket: 'synthetic-verification-bucket',
+      storagePath: 'verification/user-1/photo.jpg',
+      observedGeneration: '773',
+      observedMetageneration: '11',
+      createdBy: 'moderator-1',
+    });
+    expect(holdMocks.beginVerificationDeletionHold).toHaveBeenCalledWith(expect.anything(), {
+      objectKey: OBJECT_KEY,
+      holdField: 'moderationHoldActive',
+      actor: 'moderator-1',
+      requestId: REQUEST_ID,
+    });
   });
 
   it('maps GCS 412 to HTTP 409 and never confirms a failed GCS barrier', async () => {

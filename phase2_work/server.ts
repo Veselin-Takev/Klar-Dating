@@ -562,7 +562,8 @@ const adminHealthCheckLimiter = rateLimit({
   app.use('/api/admin', createVerificationDeletionHoldRouter({
     getDb: getFirestore,
     getBucket: bucketName => {
-      const bucket = getStorage().bucket(bucketName);
+      const storage = getStorage();
+      const bucket = bucketName ? storage.bucket(bucketName) : storage.bucket();
       return {
         name: bucket.name,
         file: path => {

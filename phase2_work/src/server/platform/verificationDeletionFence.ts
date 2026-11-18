@@ -340,6 +340,36 @@ export async function createVerificationDeletionFence(
   return fence;
 }
 
+/**
+ * Idempotent object-registration primitive for the initial verification-object
+ * creation/upload lifecycle. Writers call this only after GCS confirms the
+ * exact object generation and metageneration; it never mutates an existing
+ * fence or silently adopts a different generation.
+ */
+export async function ensureVerificationDeletionFenceForUploadedObject(
+  db: Firestore,
+  input: CreateVerificationDeletionFenceInput,
+): Promise<VerificationDeletionFence> {
+  const proposed = buildVerificationDeletionFence(input);
+  try {
+    return await createVerificationDeletionFence(db, input);
+  } catch (error) {
+    if (!(error instanceof VerificationDeletionFenceError)
+      || error.code !== 'verification_deletion_fence_already_exists') throw error;
+  }
+
+  const existing = await readVerificationDeletionFence(db, proposed.objectKey);
+  if (existing.uid !== proposed.uid
+    || existing.challengeId !== proposed.challengeId
+    || existing.bucket !== proposed.bucket
+    || existing.storagePath !== proposed.storagePath
+    || existing.observedGeneration !== proposed.observedGeneration
+    || existing.observedMetageneration !== proposed.observedMetageneration) {
+    fail('verification_deletion_fence_identity_mismatch');
+  }
+  return existing;
+}
+
 export async function readVerificationDeletionFence(
   db: Firestore,
   objectKey: string,
@@ -348,6 +378,110 @@ export async function readVerificationDeletionFence(
   const snapshot = await db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key).get();
   if (!snapshot.exists) fail('verification_deletion_fence_missing');
   return parseFence(snapshot.data(), key);
+}
+
+/**
+ * Reconcile UID-scoped deletion artifacts only after the caller has established
+ * that the complete GCS verification prefix is empty. Ambiguous attempts,
+ * active holds, reservations and malformed/unmanaged records fail closed.
+ *
+ * Attempts are drained before fences so a pending attempt cannot be hidden
+ * behind a page of terminal attempts while its parent fence is removed.
+ */
+export async function reconcileVerificationDeletionArtifactsForAccountErasure(
+  db: Firestore,
+  uid: string,
+): Promise<{ removedFences: number; removedAttempts: number }> {
+  const owner = requireIdentifier(uid, 'verification_deletion_uid_invalid');
+  let removedFences = 0;
+  let removedAttempts = 0;
+
+  for (;;) {
+    const page = await db.runTransaction(async tx => {
+      const attemptsQuery = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION)
+        .where('uid', '==', owner).limit(200);
+      const fencesQuery = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION)
+        .where('uid', '==', owner).limit(200);
+      const [attemptSnapshots, fenceSnapshots] = await Promise.all([
+        tx.get(attemptsQuery),
+        tx.get(fencesQuery),
+      ]);
+
+      for (const snapshot of attemptSnapshots.docs) {
+        const raw = snapshot.data();
+        if (!isRecord(raw)
+          || raw.schemaVersion !== VERIFICATION_DELETION_FENCE_SCHEMA_VERSION
+          || raw.attemptId !== snapshot.id
+          || raw.uid !== owner
+          || typeof raw.objectKey !== 'string'
+          || typeof raw.bucket !== 'string'
+          || typeof raw.storagePath !== 'string'
+          || typeof raw.reservationToken !== 'string' || !raw.reservationToken
+          || typeof raw.actor !== 'string' || !raw.actor
+          || !isTimestamp(raw.createdAt) || !isTimestamp(raw.updatedAt)
+          || !isTimestamp(raw.completedAt)
+          || !(raw.errorCode === null || typeof raw.errorCode === 'string')) {
+          fail('verification_deletion_artifact_identity_invalid');
+        }
+        const generation = normalizeGeneration(
+          raw.generation,
+          'verification_deletion_artifact_identity_invalid',
+        );
+        normalizeGeneration(raw.metageneration, 'verification_deletion_artifact_identity_invalid');
+        const expectedKey = verificationDeletionObjectKey({
+          uid: owner,
+          bucket: raw.bucket,
+          storagePath: raw.storagePath,
+          observedGeneration: generation,
+        });
+        if (raw.objectKey !== expectedKey) fail('verification_deletion_artifact_identity_invalid');
+        if (raw.status === 'pending') fail('verification_deletion_attempt_unresolved');
+        if (raw.status !== 'succeeded' && raw.status !== 'failed') {
+          fail('verification_deletion_artifact_status_invalid');
+        }
+      }
+
+      if (!attemptSnapshots.empty) {
+        for (const snapshot of attemptSnapshots.docs) tx.delete(snapshot.ref);
+        return { removedFences: 0, removedAttempts: attemptSnapshots.size };
+      }
+
+      for (const snapshot of fenceSnapshots.docs) {
+        const fence = parseFence(snapshot.data(), snapshot.id);
+        if (fence.uid !== owner
+          || fence.objectKey !== snapshot.id
+          || hasActiveHold(fence)
+          || (fence.state !== 'eligible' && fence.state !== 'deleted')
+          || fence.pendingHoldField != null
+          || fence.activeDeleteAttemptId != null) {
+          fail('verification_deletion_fence_unresolved');
+        }
+      }
+      for (const snapshot of fenceSnapshots.docs) tx.delete(snapshot.ref);
+      return { removedFences: fenceSnapshots.size, removedAttempts: 0 };
+    });
+
+    removedFences += page.removedFences;
+    removedAttempts += page.removedAttempts;
+    if (page.removedFences === 0 && page.removedAttempts === 0) {
+      return { removedFences, removedAttempts };
+    }
+  }
+}
+
+/** Transactional finalization guard: no UID-scoped fence or attempt may remain. */
+export async function assertNoVerificationDeletionArtifacts(
+  db: Firestore,
+  uid: string,
+): Promise<void> {
+  const owner = requireIdentifier(uid, 'verification_deletion_uid_invalid');
+  await db.runTransaction(async tx => {
+    const [fences, attempts] = await Promise.all([
+      tx.get(db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).where('uid', '==', owner).limit(1)),
+      tx.get(db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).where('uid', '==', owner).limit(1)),
+    ]);
+    if (!fences.empty || !attempts.empty) fail('verification_deletion_artifacts_unresolved');
+  });
 }
 
 /**
