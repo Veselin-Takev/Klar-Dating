@@ -16,15 +16,22 @@ export type ProfileMediaTokenInventorySummary = {
   unresolvedLegacyDownloadUrls: number;
   uniqueReferencedObjects: number;
   duplicateObjectReferences: number;
-  objectsInspected: number;
-  objectsMissing: number;
-  objectsWithFirebaseDownloadTokenMetadata: number;
-  objectsWithoutFirebaseDownloadTokenMetadata: number;
+  referencedObjectsMissing: number;
+  referencedObjectsWithFirebaseDownloadTokenMetadata: number;
+  referencedObjectsWithoutFirebaseDownloadTokenMetadata: number;
+  storageObjectsScanned: number;
+  storageObjectsWithFirebaseDownloadTokenMetadata: number;
+  storageObjectsWithoutFirebaseDownloadTokenMetadata: number;
+  orphanedStorageObjects: number;
 };
 
 export type ProfileMediaTokenInventoryDependencies = {
   listUsersPage: (cursor: unknown | undefined, pageSize: number) => Promise<{
     users: ProfileMediaInventoryUser[];
+    nextCursor?: unknown;
+  }>;
+  listProfileObjectsPage: (cursor: unknown | undefined, pageSize: number) => Promise<{
+    objectPaths: string[];
     nextCursor?: unknown;
   }>;
   inspectObject: (objectPath: string) => Promise<ProfileMediaObjectInspection>;
@@ -74,9 +81,9 @@ function profileMediaValues(data: Record<string, unknown>): unknown[] {
 }
 
 /**
- * Read-only inventory over Firestore profile aliases and referenced Storage
- * object metadata. This function intentionally has no mutation dependency.
- * It returns counts only: no UID, URL, object path, token or metadata values.
+ * Read-only inventory over Firestore profile aliases and every object below
+ * profiles/. The dependency surface contains list/get operations only.
+ * The result is counts only: no UID, URL, object path, token or metadata value.
  */
 export async function runProfileMediaTokenInventory(
   dependencies: ProfileMediaTokenInventoryDependencies,
@@ -86,7 +93,7 @@ export async function runProfileMediaTokenInventory(
     throw new Error('Invalid inventory page size.');
   }
 
-  let cursor: unknown | undefined;
+  let userCursor: unknown | undefined;
   let usersScanned = 0;
   let usersWithLegacyDownloadUrls = 0;
   let legacyDownloadUrlReferences = 0;
@@ -94,7 +101,7 @@ export async function runProfileMediaTokenInventory(
   const objectReferenceCounts = new Map<string, number>();
 
   for (;;) {
-    const page = await dependencies.listUsersPage(cursor, pageSize);
+    const page = await dependencies.listUsersPage(userCursor, pageSize);
     if (!Array.isArray(page.users) || page.users.length > pageSize) {
       throw new Error('Invalid user inventory page.');
     }
@@ -120,24 +127,63 @@ export async function runProfileMediaTokenInventory(
     }
 
     if (!page.nextCursor) break;
-    if (page.users.length === 0) throw new Error('Inventory pagination did not advance.');
-    cursor = page.nextCursor;
+    if (page.users.length === 0) throw new Error('User inventory pagination did not advance.');
+    userCursor = page.nextCursor;
   }
 
-  let objectsMissing = 0;
-  let objectsWithFirebaseDownloadTokenMetadata = 0;
-  let objectsWithoutFirebaseDownloadTokenMetadata = 0;
+  const referencedObjectPaths = new Set(objectReferenceCounts.keys());
+  const inspected = new Map<string, ProfileMediaObjectInspection>();
+  for (const objectPath of referencedObjectPaths) {
+    inspected.set(objectPath, await dependencies.inspectObject(objectPath));
+  }
 
-  for (const objectPath of objectReferenceCounts.keys()) {
-    const inspection = await dependencies.inspectObject(objectPath);
-    if (!inspection.exists) {
-      objectsMissing++;
-      continue;
+  const storageObjectPaths = new Set<string>();
+  let storageCursor: unknown | undefined;
+  for (;;) {
+    const page = await dependencies.listProfileObjectsPage(storageCursor, pageSize);
+    if (!Array.isArray(page.objectPaths) || page.objectPaths.length > pageSize) {
+      throw new Error('Invalid Storage inventory page.');
     }
-    if (inspection.hasFirebaseDownloadTokenMetadata) {
-      objectsWithFirebaseDownloadTokenMetadata++;
+
+    for (const objectPath of page.objectPaths) {
+      if (typeof objectPath !== 'string' || !objectPath.startsWith('profiles/')
+        || objectPath.includes('\\') || objectPath.split('/').some(segment => !segment || segment === '.' || segment === '..')) {
+        continue;
+      }
+      storageObjectPaths.add(objectPath);
+      if (!inspected.has(objectPath)) {
+        inspected.set(objectPath, await dependencies.inspectObject(objectPath));
+      }
+    }
+
+    if (!page.nextCursor) break;
+    if (page.objectPaths.length === 0) throw new Error('Storage inventory pagination did not advance.');
+    storageCursor = page.nextCursor;
+  }
+
+  let referencedObjectsMissing = 0;
+  let referencedObjectsWithFirebaseDownloadTokenMetadata = 0;
+  let referencedObjectsWithoutFirebaseDownloadTokenMetadata = 0;
+  for (const objectPath of referencedObjectPaths) {
+    const inspection = inspected.get(objectPath);
+    if (!inspection || !inspection.exists) {
+      referencedObjectsMissing++;
+    } else if (inspection.hasFirebaseDownloadTokenMetadata) {
+      referencedObjectsWithFirebaseDownloadTokenMetadata++;
     } else {
-      objectsWithoutFirebaseDownloadTokenMetadata++;
+      referencedObjectsWithoutFirebaseDownloadTokenMetadata++;
+    }
+  }
+
+  let storageObjectsWithFirebaseDownloadTokenMetadata = 0;
+  let storageObjectsWithoutFirebaseDownloadTokenMetadata = 0;
+  for (const objectPath of storageObjectPaths) {
+    const inspection = inspected.get(objectPath);
+    if (!inspection || !inspection.exists) continue;
+    if (inspection.hasFirebaseDownloadTokenMetadata) {
+      storageObjectsWithFirebaseDownloadTokenMetadata++;
+    } else {
+      storageObjectsWithoutFirebaseDownloadTokenMetadata++;
     }
   }
 
@@ -152,9 +198,12 @@ export async function runProfileMediaTokenInventory(
     unresolvedLegacyDownloadUrls,
     uniqueReferencedObjects,
     duplicateObjectReferences: totalResolvedReferences - uniqueReferencedObjects,
-    objectsInspected: uniqueReferencedObjects,
-    objectsMissing,
-    objectsWithFirebaseDownloadTokenMetadata,
-    objectsWithoutFirebaseDownloadTokenMetadata,
+    referencedObjectsMissing,
+    referencedObjectsWithFirebaseDownloadTokenMetadata,
+    referencedObjectsWithoutFirebaseDownloadTokenMetadata,
+    storageObjectsScanned: storageObjectPaths.size,
+    storageObjectsWithFirebaseDownloadTokenMetadata,
+    storageObjectsWithoutFirebaseDownloadTokenMetadata,
+    orphanedStorageObjects: [...storageObjectPaths].filter(path => !referencedObjectPaths.has(path)).length,
   };
 }
