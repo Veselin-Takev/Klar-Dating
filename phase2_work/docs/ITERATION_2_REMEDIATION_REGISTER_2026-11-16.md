@@ -426,23 +426,16 @@ No PR merge to main, production deployment, cloud/IAM/billing change, data migra
 
 ## F0.10 Package B — PR #379 exact-head enterprise validation and Issue #371 all-writer gate
 
-**Evidence verified 2026-11-18.** Draft PR [#379](https://github.com/Veselin-Takev/Klar-Dating/pull/379), branch `security/issue-371-deletion-fence-package-b-20261117`, exact head `bd42b333ae341384cf819727b3ec4ad97d5a658b), has a completed **Klar Enterprise CI SUCCESS** run [#44260930996](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44260930996).
+**Evidence verified 2026-11-18.** Draft PR [#379](https://github.com/Veselin-Takev/Klar-Dating/pull/379), branch `security/issue-371-deletion-fence-package-b-20261117`, exact head `0e645a4fcb939539e2fe2a3eea004647af442ac0`, has a completed **Klar Enterprise CI SUCCESS** run [#44271493017](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44271493017) (run number **2132**).
 
-- Full Vitest suite: **196/196 test files and 1,512/1,512 tests passed**.
-- Targeted suites: `verificationPurgeHttpEmulator.spec.ts` **23/23**, `complianceStoragePurge.spec.ts` **90/90**, `verificationDeletionFence.spec.ts` **15/15**.
-- Browser Acceptance: **26/26 passed**.
-- Enterprise static gates, Typecheck, Functions build, Tests, Build, Production Smoke and Browser Acceptance all completed with SUCCESS on the exact SHA above.
-- The Firestore/Auth/Storage emulator workflow used the isolated `demo-klar` project. These are source/CI tests, not evidence of a live GCS deletion or deployed Cloud state.
-
-### Package B technical evidence and limits
-
-The active `complianceStorage.ts` route now persists a generation-, metageneration-, path- and decision-bound `photoPurgeIntent` before issuing a conditional GCS delete; rechecks Storage metadata and current Firestore eligibility/holds/lease before deletion; and supplies both `ifGenerationMatch` and `ifMetagenerationMatch`. The fence module records exact delete attempts, closes attempts after definitive 412 or pre-delete rejection, supports confirmed-404 reconciliation, and allows attempt reclamation only by a worker holding the active singleton purge lease.
-
-The nine previously failing `verificationPurgeHttpEmulator.spec.ts` regression cases passed in the exact-head CI run: GCS 412 handling, audit-transaction failure after deletion, replacement generation, changed moderation decision, changed canonical decision, late `legalHold`, late `photoPurgeHold`, expired lease before deletion, and stale-worker/successor-lease reconciliation.
+- SHA-bound workflow identity verified: branch `security/issue-371-deletion-fence-package-b-20261117`, head `0e645a4fcb939539e2fe2a3eea004647af442ac0`, PR #379.
+- All Enterprise CI gates completed successfully: Enterprise static gates, Typecheck (including the prior TS2532 correction), Functions build, full Tests / Emulator-Suite, Build, Production smoke and Browser acceptance.
+- The PR adds proactive object-finalization deletion-fence registration for trusted verification-object finalization, atomic Firestore-backed HMAC replay protection, and HTTP emulator coverage for invalid/missing/replayed HMAC proofs, trusted metadata validation, deterministic idempotent fence registration and malformed-metadata fail-closed behavior.
+- The emulator tests exercise the Art. 17 reconciliation boundary by verifying that untrusted or replayed finalize requests do not create or mutate deletion-fence records, while valid trusted finalization registers the deterministic fence.
+- This exact-head CI pass is source/test evidence only. It does not prove production deployment, live Cloud configuration, complete all-writer adoption, physical deletion safety or legal compliance.
 
 ### Remaining Issue #371 closure gates
 
-- The successful PR #379 CI result establishes the tested Package B path only. It is not a complete all-writer proof.
 - Independently inspect every moderation/verification decision writer, verification upload path, legal-hold writer, Storage retention worker, account-erasure path and any other Storage Admin SDK caller for use of the same generation-bound fence.
 - Verify Art. 17 account erasure cannot report completion while verification objects, active holds, unresolved delete attempts or storage-fence records remain.
 - The residual Firestore-to-GCS cross-service TOCTOU interval remains: these services do not share an atomic transaction. Supported-writer adoption and independent adversarial review remain required.
