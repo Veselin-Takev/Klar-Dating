@@ -9,7 +9,7 @@ const OBJECT_PATH_PATTERN = /^[A-Za-z0-9_./-]+$/;
  */
 export function createCanonicalProfileMediaRef(uid: string, objectPath: string): string {
   if (!UID_PATTERN.test(uid)
-    || !objectPath.startsWith(`profiles/${uid}/`)
+    || !objectPath.startsWith(\`profiles/\${uid}/\`)
     || !OBJECT_PATH_PATTERN.test(objectPath)
     || objectPath.split('/').some(segment => !segment || segment === '.' || segment === '..')) {
     throw new Error('Invalid profile media path.');
@@ -17,8 +17,8 @@ export function createCanonicalProfileMediaRef(uid: string, objectPath: string):
 
   const encoded = btoa(objectPath)
     .replace(/=/g, '')
-    .replace(/\\+/g, '-')
-    .replace(/\\//g, '_');
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
   return PREFIX + encoded;
 }
 
