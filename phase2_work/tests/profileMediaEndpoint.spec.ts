@@ -17,6 +17,7 @@ async function setup(options: { token?: string; provider?: string; requester?: R
   };
   const targetUid = options.targetUid ?? 'target';
   const target = { isAdult: true, active: true, ...(options.target ?? {}) };
+  const requestedPaths: string[] = [];
   const db = { collection: (name: string) => {
     if (name === 'users') return { doc: (uid: string) => ({ get: async () => ({ exists: true, data: () => uid === 'viewer' ? requester : target }) }) };
     if (name === 'account_deletions') return { doc: (uid: string) => ({ get: async () => ({ exists: uid === 'viewer' ? !!options.requesterDeleted : !!options.targetDeleted }) }) };
