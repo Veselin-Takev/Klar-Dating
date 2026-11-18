@@ -40,7 +40,7 @@ function configureReadOnlyTarget(): { mode: 'emulator' | 'live-read-only'; proje
   }
   const projectId = option('--project-id');
   const bucketName = option('--bucket');
-  if (!projectId || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId) || !bucketName || /[\\s/]/.test(bucketName)) {
+  if (!projectId || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId) || !bucketName || bucketName.includes('/') || /\\s/.test(bucketName)) {
     throw new Error('Live read-only mode requires a valid --project-id and --bucket.');
   }
   process.env.GCLOUD_PROJECT = projectId;
@@ -61,14 +61,30 @@ async function main(): Promise<void> {
 
   const summary = await runProfileMediaTokenInventory({
     listUsersPage: async (cursor, pageSize) => {
-      let query = db.collection('users').orderBy(FieldPath.documentId()).limit(pageSize);
-      if (cursor) query = query.startAfter(cursor as FirebaseFirestore.QueryDocumentSnapshot);
-      const snapshot = await query.get();
-      const last = snapshot.docs[snapshot.docs.length - 1];
-      return {
-        users: snapshot.docs.map(document => ({ uid: document.id, data: document.data() as Record<string, unknown> })),
-        ...(snapshot.docs.length === pageSize && last ? { nextCursor: last } : {}),
-      };
+      const collections = ['users', 'public_profiles'] as const;
+      const state = cursor as { sourceIndex: number; lastDocument?: import('firebase-admin/firestore').QueryDocumentSnapshot } | undefined;
+      let sourceIndex = state?.sourceIndex ?? 0;
+      let lastDocument = state?.lastDocument;
+      const users: Array<{ uid: string; data: Record<string, unknown> }> = [];
+
+      while (sourceIndex < collections.length && users.length < pageSize) {
+        const remaining = pageSize - users.length;
+        let query = db.collection(collections[sourceIndex]!).orderBy(FieldPath.documentId()).limit(remaining);
+        if (lastDocument) query = query.startAfter(lastDocument);
+        const snapshot = await query.get();
+        users.push(...snapshot.docs.map(document => ({
+          uid: document.id,
+          data: document.data() as Record<string, unknown>,
+        })));
+
+        if (snapshot.docs.length === remaining && snapshot.docs.length > 0) {
+          const last = snapshot.docs[snapshot.docs.length - 1];
+          return { users, nextCursor: { sourceIndex, lastDocument: last } };
+        }
+        sourceIndex++;
+        lastDocument = undefined;
+      }
+      return { users };
     },
     listProfileObjectsPage: async (cursor, pageSize) => {
       const [files, next] = await bucket.getFiles({
