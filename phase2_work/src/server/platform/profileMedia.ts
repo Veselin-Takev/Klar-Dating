@@ -47,15 +47,27 @@ async function streamAuthorizedProfileMedia(
   res: Response,
   selfView: boolean,
 ) {
+  const header = req.headers.authorization;
+  if (typeof header !== 'string' || !/^Bearer\s+[^\s]+$/i.test(header.trim())) {
+    return res.status(401).end();
+  }
+
+  const token = header.trim().slice(7);
+  let decoded: Awaited<ReturnType<Auth['verifyIdToken']>>;
   try {
-    const header = req.headers.authorization;
-    if (typeof header !== 'string' || !/^Bearer\\s+[^\\s]+$/.test(header.trim())) return res.status(401).end();
-    const token = header.trim().slice(7);
-    const decoded = await deps.getAuth().verifyIdToken(token, true);
+    // Firebase Admin verifies signature, expiry and revocation. Only failures
+    // in this authentication step are classified as HTTP 401.
+    decoded = await deps.getAuth().verifyIdToken(token, true);
+  } catch {
+    return res.status(401).end();
+  }
+
+  try {
     const requester = decoded.uid;
     const requestedTarget = req.params.uid;
     const target = selfView ? requester : typeof requestedTarget === 'string' ? requestedTarget : '';
     if (!requester || !target || decoded.firebase?.sign_in_provider === 'anonymous') return res.status(403).end();
+
     // The public-profile route never grants self-read. Self-view has its own
     // route and derives the target exclusively from the verified token UID.
     if (!selfView && requester === target) return res.status(404).end();
@@ -110,7 +122,9 @@ async function streamAuthorizedProfileMedia(
     stream.on('error', () => { if (!res.headersSent) res.status(404).end(); else res.destroy(); });
     stream.pipe(res);
   } catch {
-    return res.status(401).end();
+    // Infrastructure/Firestore/Storage failures are server errors, not
+    // authentication failures. Do not misreport them as invalid credentials.
+    return res.status(500).end();
   }
 }
 
