@@ -88,6 +88,9 @@ export function createVerificationObjectFinalizedRouter(
       const fence = await registerFinalizedVerificationObject(deps.getDb(), bucketName, object);
       return res.status(200).json({ ok: true, registered: fence !== null });
     } catch (error) {
+      if (error instanceof Error && error.message.startsWith('verification_deletion_finalize_')) {
+        return res.status(422).json({ code: 'verification_object_registration_rejected' });
+      }
       if (error instanceof VerificationDeletionFenceError) {
         const status = error.code === 'verification_deletion_fence_identity_mismatch' ? 409 : 422;
         return res.status(status).json({ code: 'verification_object_registration_rejected' });
