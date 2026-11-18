@@ -126,7 +126,7 @@ export function createVerificationDeletionHoldRouter(
     }
 
     const bodyKeys = Object.keys(req.body);
-    if (bodyKeys.some(key => !['objectKey', 'holdField', 'actor', 'requestId'].includes(key))) {
+    if (bodyKeys.some(key => !['objectKey', 'uid', 'challengeId', 'storagePath', 'holdField', 'actor', 'requestId'].includes(key))) {
       return res.status(400).json({ code: 'verification_deletion_hold_payload_invalid' });
     }
 

@@ -419,7 +419,7 @@ export async function reconcileVerificationDeletionArtifactsForAccountErasure(
           || typeof raw.reservationToken !== 'string' || !raw.reservationToken
           || typeof raw.actor !== 'string' || !raw.actor
           || !isTimestamp(raw.createdAt) || !isTimestamp(raw.updatedAt)
-          || !isTimestamp(raw.completedAt)
+          || !(raw.completedAt === null || isTimestamp(raw.completedAt))
           || !(raw.errorCode === null || typeof raw.errorCode === 'string')) {
           fail('verification_deletion_artifact_identity_invalid');
         }
@@ -438,6 +438,9 @@ export async function reconcileVerificationDeletionArtifactsForAccountErasure(
         if (raw.status === 'pending') fail('verification_deletion_attempt_unresolved');
         if (raw.status !== 'succeeded' && raw.status !== 'failed') {
           fail('verification_deletion_artifact_status_invalid');
+        }
+        if (!isTimestamp(raw.completedAt)) {
+          fail('verification_deletion_artifact_identity_invalid');
         }
       }
 
