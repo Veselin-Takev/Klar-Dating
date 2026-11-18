@@ -56,7 +56,7 @@ export function createVerificationObjectFinalizedRouter(
         const status = error.code === 'verification_deletion_fence_identity_mismatch' ? 409 : 422;
         return res.status(status).json({ code: 'verification_object_registration_rejected' });
       }
-      logSafeFailure('verification_object_registration_failure');
+      logSafeFailure('unclassified_failure');
       return res.status(503).json({ code: 'verification_object_registration_unavailable' });
     }
   });
