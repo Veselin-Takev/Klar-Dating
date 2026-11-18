@@ -70,8 +70,8 @@ describe('read-only legacy profile media token inventory', () => {
 
     expect(result).toEqual({
       readOnly: true,
-      usersScanned: 2,
-      usersWithLegacyDownloadUrls: 2,
+      profileRecordsScanned: 2,
+      profileRecordsWithLegacyDownloadUrls: 2,
       legacyDownloadUrlReferences: 4,
       unresolvedLegacyDownloadUrls: 0,
       uniqueReferencedObjects: 3,
