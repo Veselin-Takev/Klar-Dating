@@ -40,7 +40,7 @@ function configureReadOnlyTarget(): { mode: 'emulator' | 'live-read-only'; proje
   }
   const projectId = option('--project-id');
   const bucketName = option('--bucket');
-  if (!projectId || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId) || !bucketName || bucketName.includes('/') || /\\s/.test(bucketName)) {
+  if (!projectId || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId) || !bucketName || bucketName.includes('/') || /\s/.test(bucketName)) {
     throw new Error('Live read-only mode requires a valid --project-id and --bucket.');
   }
   process.env.GCLOUD_PROJECT = projectId;
