@@ -8,7 +8,7 @@ import { createProfileMediaRouter, createCanonicalMediaRef } from '../src/server
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(s => new Promise<void>(r => s.close(() => r())))); vi.restoreAllMocks(); });
 
-async function setup(options: { token?: string; provider?: string; requester?: Record<string, unknown>; target?: Record<string, unknown>; requesterDeleted?: boolean; targetDeleted?: boolean; blocked?: boolean; exists?: boolean; selfView?: boolean; targetUid?: string } = {}) {
+async function setup(options: { token?: string; provider?: string; requester?: Record<string, unknown>; target?: Record<string, unknown>; requesterDeleted?: boolean; targetDeleted?: boolean; blocked?: boolean; exists?: boolean; selfView?: boolean; targetUid?: string; firestoreFailure?: boolean } = {}) {
   const requester = {
     isAdult: true,
     active: true,
@@ -28,13 +28,17 @@ async function setup(options: { token?: string; provider?: string; requester?: R
     getMetadata: async () => [{ contentType: 'image/jpeg', size: '12' }],
     createReadStream: () => Readable.from([Buffer.from('image-bytes')]),
   };
+  const verifyIdToken = vi.fn(async (token: string, checkRevoked: boolean) => {
+    if (token !== 'valid' || checkRevoked !== true) throw new Error('invalid');
+    return { uid: 'viewer', firebase: { sign_in_provider: options.provider ?? 'password' } };
+  });
   const app = express();
   app.use('/api', createProfileMediaRouter({
-    getFirestore: () => db,
-    getAuth: () => ({ verifyIdToken: vi.fn(async (token: string, checkRevoked: boolean) => {
-      if (token !== 'valid' || checkRevoked !== true) throw new Error('invalid');
-      return { uid: 'viewer', firebase: { sign_in_provider: options.provider ?? 'password' } };
-    }) } as any),
+    getFirestore: () => {
+      if (options.firestoreFailure) throw new Error('Firestore unavailable');
+      return db;
+    },
+    getAuth: () => ({ verifyIdToken }) as any,
     getBucket: () => ({ file: (path: string) => { requestedPaths.push(path); return file; } }) as any,
   }));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
@@ -45,27 +49,37 @@ async function setup(options: { token?: string; provider?: string; requester?: R
   const path = options.selfView
     ? '/api/profile-media/self'
     : `/api/profile-media/${encodeURIComponent(targetUid)}/${encodeURIComponent(ref)}`;
-  return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}${path}`, headers, requestedPaths };
+  return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}${path}`, headers, requestedPaths, verifyIdToken };
 }
 
 describe('authenticated profile media delivery', () => {
-  it('denies missing and invalid credentials', async () => {
-    const missing = await setup(); expect((await fetch(missing.url)).status).toBe(401);
-    const invalid = await setup({ token: 'bad' }); expect((await fetch(invalid.url, { headers: invalid.headers })).status).toBe(401);
+  it('returns 401 only for missing or invalid Firebase ID tokens', async () => {
+    const missing = await setup();
+    expect((await fetch(missing.url)).status).toBe(401);
+    expect(missing.verifyIdToken).not.toHaveBeenCalled();
+
+    const invalid = await setup({ token: 'bad' });
+    expect((await fetch(invalid.url, { headers: invalid.headers })).status).toBe(401);
+    expect(invalid.verifyIdToken).toHaveBeenCalledWith('bad', true);
+
+    const valid = await setup({ token: 'valid' });
+    await fetch(valid.url, { headers: valid.headers });
+    expect(valid.verifyIdToken).toHaveBeenCalledWith('valid', true);
   });
   it.each([
-    ['guest', { provider: 'anonymous' }],
-    ['underage requester', { requester: { isAdult: false } }],
-    ['inactive requester', { requester: { active: false } }],
-    ['suspended requester', { requester: { isSuspended: true } }],
-    ['deletion-pending requester', { requesterDeleted: true }],
-    ['underage target', { target: { isAdult: false } }],
-    ['suspended target', { target: { isSuspended: true } }],
-    ['deletion-pending target', { targetDeleted: true }],
-    ['mutually blocked pair', { blocked: true }],
-  ] as const)('denies %s', async (_name, options) => {
+    ['guest', { provider: 'anonymous' }, 403],
+    ['underage requester', { requester: { isAdult: false } }, 403],
+    ['inactive requester', { requester: { active: false } }, 403],
+    ['suspended requester', { requester: { isSuspended: true } }, 403],
+    ['deletion-pending requester', { requesterDeleted: true }, 403],
+    ['underage target', { target: { isAdult: false } }, 404],
+    ['suspended target', { target: { isSuspended: true } }, 404],
+    ['deletion-pending target', { targetDeleted: true }, 404],
+    ['mutually blocked pair', { blocked: true }, 404],
+  ] as const)('denies %s with the expected authorization status', async (_name, options, expectedStatus) => {
     const ctx = await setup({ token: 'valid', ...options });
-    expect([403, 404]).toContain((await fetch(ctx.url, { headers: ctx.headers })).status);
+    expect((await fetch(ctx.url, { headers: ctx.headers })).status).toBe(expectedStatus);
+    expect(ctx.verifyIdToken).toHaveBeenCalledWith('valid', true);
   });
   it('denies self-reads through the other-profile route', async () => {
     const ctx = await setup({ token: 'valid', targetUid: 'viewer' });
@@ -91,5 +105,10 @@ describe('authenticated profile media delivery', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toContain('no-store');
     expect(await response.text()).toBe('image-bytes');
+  });
+  it('returns 500 rather than 401 for an authenticated backend dependency failure', async () => {
+    const ctx = await setup({ token: 'valid', firestoreFailure: true });
+    expect((await fetch(ctx.url, { headers: ctx.headers })).status).toBe(500);
+    expect(ctx.verifyIdToken).toHaveBeenCalledWith('valid', true);
   });
 });
