@@ -98,8 +98,8 @@ describe.runIf(emulatorEnabled)('profile media inventory against Firebase emulat
 
     expect(summary).toMatchObject({
       readOnly: true,
-      usersScanned: 2,
-      usersWithLegacyDownloadUrls: 2,
+      profileRecordsScanned: 2,
+      profileRecordsWithLegacyDownloadUrls: 2,
       legacyDownloadUrlReferences: 3,
       unresolvedLegacyDownloadUrls: 0,
       uniqueReferencedObjects: 2,
