@@ -142,3 +142,22 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
     if (request.operation === 'read') {
       return { allowed: false, reason: 'Direkte Client-Lesezugriffe auf Profilmedien sind gesperrt.', rulePath, code: 'PERMISSION_DENIED' };
     }
+
+    if (request.operation === 'write') {
+      if (!signedIn) return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
+      if (isGuest) return { allowed: false, reason: 'Gäste dürfen keine Profilbilder hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
+      if (!isOwner) return { allowed: false, reason: 'Schreiben nur in den eigenen Pfad erlaubt.', rulePath, code: 'PERMISSION_DENIED' };
+      if (!isImageContentType(request.resource?.contentType)) return { allowed: false, reason: 'Nur Bildformate (JPEG, PNG, WebP) sind erlaubt.', rulePath, code: 'INVALID_MIME' };
+      if (typeof request.resource?.size !== 'number' || request.resource.size >= MAX_FILE_SIZE_BYTES) return { allowed: false, reason: 'Dateigröße überschreitet das Limit von 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
+      return { allowed: true, rulePath, code: 'ALLOWED' };
+    }
+    if (request.operation === 'delete') {
+      if (!signedIn) return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
+      if (isGuest) return { allowed: false, reason: 'Gäste dürfen keine Profilbilder löschen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
+      if (!isOwner) return { allowed: false, reason: 'Löschen nur im eigenen Pfad erlaubt.', rulePath, code: 'PERMISSION_DENIED' };
+      return { allowed: true, rulePath, code: 'ALLOWED' };
+    }
+  }
+
+  return { allowed: false, reason: 'Keine passende Storage-Regel.', code: 'PERMISSION_DENIED' };
+}
