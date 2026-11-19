@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
@@ -36,7 +36,18 @@ describe('account erasure including archived messages and photos', () => {
     // Worker leasing, provider ordering, final_sweep and completion are covered
     // by the deterministic deletionLifecycle suite.
     const deletionRequestId = result.requestId as string;
-    await expect(purgeAccountData(uid, deletionRequestId)).rejects.toBeInstanceOf(DeletionStoragePageComplete);
+    // No automatic path may erase this verification object while the common
+    // Firestore/GCS legal-hold fence is unproven. The durable deletion request
+    // remains pending and must NOT claim Art. 17 erasure completed.
+    await expect(purgeAccountData(uid, deletionRequestId))
+      .rejects.toThrow('verification_photo_p0_fencing_unverified');
+    expect((await file.exists())[0]).toBe(true);
+    expect((await db.collection('users').doc(uid).get()).exists).toBe(true);
+    expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
+
+    // Simulate separately authorized fixture-only cleanup in the isolated
+    // Storage emulator; never invoke the unfenced application purge to do it.
+    await file.delete();
     await purgeAccountData(uid, deletionRequestId);
     expect((await db.collection('users').doc(uid).get()).exists).toBe(false);
     expect((await db.collection('users').doc(uid).collection('ai_budget').get()).empty).toBe(true);
