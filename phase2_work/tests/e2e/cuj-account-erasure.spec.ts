@@ -52,43 +52,62 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
 
   await page.getByRole('button', { name: 'Konto löschen' }).click();
 
-  let deletionStatus: number | undefined;
-  let deletionReceipt: unknown;
-  await page.route('**/api/account/delete', async (route) => {
+  let resolveCapture!: (capture: { status: number; receipt: unknown }) => void;
+  let rejectCapture!: (error: Error) => void;
+  const capturePromise = new Promise<{ status: number; receipt: unknown }>((resolve, reject) => {
+    resolveCapture = resolve;
+    rejectCapture = reject;
+  });
+  const deletionRoute = '**/api/account/delete';
+
+  await page.route(deletionRoute, async (route) => {
     const originalRequest = route.request();
     if (originalRequest.method() !== 'POST') {
       await route.continue();
       return;
     }
 
-    // Keep the upstream response outside the page lifecycle: the UI navigates
-    // immediately after the 202, which can dispose route.fetch() APIResponse bodies.
-    const headers = await originalRequest.allHeaders();
-    for (const header of ['host', 'content-length', 'connection', 'accept-encoding']) {
-      delete headers[header];
-    }
-    const upstream = await request.fetch(originalRequest.url(), {
-      method: originalRequest.method(),
-      headers,
-      data: originalRequest.postDataBuffer() ?? undefined,
-    });
-    const responseBody = await upstream.body();
-    deletionStatus = upstream.status();
-    deletionReceipt = JSON.parse(responseBody.toString('utf8'));
+    try {
+      // Capture the upstream response through the independent API context before
+      // fulfilling the browser request, whose success immediately triggers navigation.
+      const headers = await originalRequest.allHeaders();
+      for (const header of ['host', 'content-length', 'connection', 'accept-encoding']) {
+        delete headers[header];
+      }
+      const upstream = await request.fetch(originalRequest.url(), {
+        method: originalRequest.method(),
+        headers,
+        data: originalRequest.postDataBuffer() ?? undefined,
+      });
+      const responseBody = await upstream.body();
+      const status = upstream.status();
+      const receipt: unknown = JSON.parse(responseBody.toString('utf8'));
 
-    const responseHeaders = Object.fromEntries(
-      Object.entries(upstream.headers()).filter(([name]) =>
-        !['content-length', 'transfer-encoding', 'connection', 'content-encoding', 'keep-alive'].includes(name.toLowerCase()),
-      ),
-    );
-    await route.fulfill({
-      status: deletionStatus,
-      headers: responseHeaders,
-      body: responseBody,
-    });
+      // Resolve only after both status and the complete JSON receipt are captured.
+      resolveCapture({ status, receipt });
+
+      const responseHeaders = Object.fromEntries(
+        Object.entries(upstream.headers()).filter(([name]) =>
+          !['content-length', 'transfer-encoding', 'connection', 'content-encoding', 'keep-alive'].includes(name.toLowerCase()),
+        ),
+      );
+      await route.fulfill({
+        status,
+        headers: responseHeaders,
+        body: responseBody,
+      });
+    } catch (error) {
+      rejectCapture(error instanceof Error ? error : new Error(String(error)));
+      await route.abort().catch(() => undefined);
+    }
   });
 
-  await page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click();
+  const [{ status: deletionStatus, receipt: deletionReceipt }] = await Promise.all([
+    capturePromise,
+    page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click(),
+  ]);
+  await page.unroute(deletionRoute);
+
   expect(deletionStatus).toBe(202);
   expect(deletionReceipt).toMatchObject({ ok: true, status: 'pending' });
   expect((deletionReceipt as { requestId?: unknown } | undefined)?.requestId).toEqual(expect.any(String));
