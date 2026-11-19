@@ -102,7 +102,7 @@ jobs:
 
             const rows = checks
               .map(([name, outcome]) => `| ${name} | ${render(outcome)} |`)
-              .join('\\n');
+              .join('\n');
 
             const body = [
               marker,
@@ -115,7 +115,7 @@ jobs:
               rows,
               '',
               '_Results reflect the actual GitHub Actions step outcomes for this workflow run; skipped checks are not reported as passes._',
-            ].join('\\n');
+            ].join('\n');
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
