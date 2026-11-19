@@ -67,7 +67,7 @@ The current main lockfile records `chromium-bidi@17.0.2` with dependency `zod: ^
 **Initial exact-head Browser Acceptance:** failed in [run #44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) on HEAD `6acb0f4f0f47b7ef866c43bdba765358edbfcec4` (30 passed / 4 failed).  
 **Latest completed exact-head Browser Acceptance before this fix:** failed in [Klar Enterprise CI run #44605420683](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420683) on HEAD `657aaa240018e8c400db185fba1ea757c31b8af5` (33 passed / 1 failed); `cuj-account-erasure.spec.ts:60` received HTTP 503 instead of HTTP 202 because the first-time account deletion rate limiter attempted `tx.update` on a missing document.  
 **Rate-limit remediation:** current change uses `tx.set` for a missing record, retains the three-request/24-hour limit and 429 rejection, and adds `tests/accountDeletionRateLimit.spec.ts`; the E2E assertion for HTTP 202 and the Art. 17 immediate erasure barriers is unchanged.  
-**New exact-head Klar Enterprise CI:** [TO VERIFY] — triggered by the current PR #387 head after this remediation commit; do not infer PASS before completion.
+**Exact-head Klar Enterprise CI for rate-limit remediation HEAD `be20a55b13f2e00f54d45f9acf566db3655daaa4`:** [run #44611836293](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836293) — **FAILURE**. Typecheck, Functions build, Tests, Build and Production Smoke passed; Browser Acceptance was 33/34. The HTTP 202 status assertion passed; the sole failure was Playwright response-body retrieval at `cuj-account-erasure.spec.ts:61` after navigation (`Network.getResponseBody` response unavailable).
 
 The read-first audit found existing coverage for under-18 rejection and the mandatory age gate (`tests/e2e/e2e-critical-flows.spec.ts`), optional consent acceptance/onboarding (`tests/e2e/onboarding.spec.ts`), consent withdrawal (`tests/e2e/privacy-settings.spec.ts`), one-sided icebreaker/fail-closed chat status (`tests/e2e/chat-security.spec.ts`) and public-entry accessibility (`tests/e2e/accessibility.spec.ts`). New non-duplicative specs add:
 
@@ -92,7 +92,20 @@ The fixture-mask and accessibility remediations are reflected in exact-head run 
 
 ### Art. 17 first-request rate-limit fix — 2026-11-19
 
-The latest failing Browser Acceptance exposed a first-request defect in `accountDeleteLimiter`: when the hashed UID-scoped document did not exist, the transaction fell through to `tx.update`, which fails for a missing Firestore document and returned the fail-closed HTTP 503. The fix initializes a missing record with `tx.set` (`count: 1`, current 24-hour window, expiry); existing records still increment with `tx.update`, the fourth request in a 24-hour window remains rejected with HTTP 429, and genuine transaction failures still return HTTP 503 without invoking erasure. Focused regression coverage is in `phase2_work/tests/accountDeletionRateLimit.spec.ts`. New exact-head CI remains **[TO VERIFY]**.
+The latest failing Browser Acceptance exposed a first-request defect in `accountDeleteLimiter`: when the hashed UID-scoped document did not exist, the transaction fell through to `tx.update`, which fails for a missing Firestore document and returned the fail-closed HTTP 503. The fix initializes a missing record with `tx.set` (`count: 1`, current 24-hour window, expiry); existing records still increment with `tx.update`, the fourth request in a 24-hour window remains rejected with HTTP 429, and genuine transaction failures still return HTTP 503 without invoking erasure. Focused regression coverage is in `phase2_work/tests/accountDeletionRateLimit.spec.ts`; exact-head run [#44611836293](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836293) recorded **3/3 PASS** for this file. The associated Browser Acceptance response-body failure is documented below.
+
+
+### Account-erasure response-body capture remediation — 2026-11-19
+
+**Verified baseline evidence on PR #387 HEAD `be20a55b13f2e00f54d45f9acf566db3655daaa4`:**
+
+- `Klar Enterprise CI` [run #44611836293](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836293): **FAILURE**. Typecheck, Functions build, Tests, Build and Production Smoke passed. Browser Acceptance completed 33/34; HTTP 202 was received and its status assertion passed, but the test then attempted `response.json()` after navigation and Chromium reported that the response body was no longer available. This is a Playwright response-capture failure; it does not indicate a non-202 API response.
+- `tests/accountDeletionRateLimit.spec.ts`: **3/3 PASS** in the Tests step of run #44611836293.
+- `Enterprise Compliance & Security Audit Gate` [run #44611836292](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836292): **SUCCESS**. Tier 1 production audit: **PASS**, `bun audit --prod --audit-level=high` found no High+ vulnerabilities across 549 checked packages (three below the configured threshold). Tier 2 full supply-chain audit: **ADVISORY**, one High Zod advisory `GHSA-mrhx-c7xc-m3w5` in the full dependency graph. The advisory is reported separately and does not override the Tier 1 production hard-fail result.
+
+**Response-capture fix in this change:** `cuj-account-erasure.spec.ts` now intercepts `POST /api/account/delete` with `page.route()`, obtains the upstream result via `route.fetch()`, captures its status and parses the JSON receipt inside the route handler, then relays the same upstream response using `route.fulfill({ response })`. The test asserts HTTP 202 and validates the pending receipt after the browser action. The existing pending-job, public-profile 404, verification-revocation, UID-scoped localStorage cleanup and global-theme-preservation assertions remain in place and are not weakened. No `waitForTimeout()` was added.
+
+**New commit validation:** exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` runs for this response-capture commit: **[TO VERIFY]** until GitHub Actions reports completion. Do not infer PASS from the prior baseline runs.
 
 ## Release invariant
 

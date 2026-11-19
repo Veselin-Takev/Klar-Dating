@@ -51,16 +51,25 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
   }, account.uid);
 
   await page.getByRole('button', { name: 'Konto löschen' }).click();
-  const deletionResponse = page.waitForResponse(response =>
-    new URL(response.url()).pathname === '/api/account/delete'
-    && response.request().method() === 'POST',
-  );
+
+  let deletionStatus: number | undefined;
+  let deletionReceipt: unknown;
+  await page.route('**/api/account/delete', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.continue();
+      return;
+    }
+
+    const response = await route.fetch();
+    deletionStatus = response.status();
+    deletionReceipt = await response.json();
+    await route.fulfill({ response });
+  });
+
   await page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click();
-  const accepted = await deletionResponse;
-  expect(accepted.status()).toBe(202);
-  const receipt = await accepted.json();
-  expect(receipt).toMatchObject({ ok: true, status: 'pending' });
-  expect(receipt.requestId).toEqual(expect.any(String));
+  expect(deletionStatus).toBe(202);
+  expect(deletionReceipt).toMatchObject({ ok: true, status: 'pending' });
+  expect((deletionReceipt as { requestId?: unknown } | undefined)?.requestId).toEqual(expect.any(String));
 
   await expect(page.getByRole('heading', { name: 'Willkommen bei Klar' })).toBeVisible({ timeout: 15000 });
   const browserState = await page.evaluate((uid) => ({
