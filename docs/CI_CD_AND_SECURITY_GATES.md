@@ -1,5 +1,7 @@
 # CI/CD and Security Gates
 
+**Current `main` HEAD:** `191ce9b64205ff1e523093cf1fa3d9a523daf0e1` (includes PR #384 merge).  
+
 ## Pinned toolchain
 
 The application dependency workspace is `phase2_work/`.
@@ -33,7 +35,7 @@ Important implementation boundary: the current `check:ci-toolchain-pins` script 
 
 ## Two-Tier Dependency Audit
 
-The two-tier model is implemented on Draft PR #384 in `.github/workflows/enterprise-compliance-audit-gate.yml`; it is **not yet part of main**.
+The two-tier model is now included in `main` via the PR #384 merge commit `191ce9b64205ff1e523093cf1fa3d9a523daf0e1`, in `.github/workflows/enterprise-compliance-audit-gate.yml`. The `Enterprise Compliance & Security Audit Gate` push run on that exact `main` commit is [#44603682135](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44603682135) (**success**). The prior PR-triggered Audit Gate run [#44605420707](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420707) was successful on earlier PR #387 head `657aaa240018e8c400db185fba1ea757c31b8af5`, and is not evidence for the main push. This does not by itself authorize production or remove unrelated production dependency blockers.
 
 ### Tier 1 — production hard-fail
 
@@ -93,6 +95,14 @@ Axe's zero-critical/serious CUJ scans remain strict. Form controls rendered on P
 
 **Failure evidence:** initial exact-head PR #387 run [#44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) had 30 Browser Acceptance passes and four failures. The remediation change updates existing-user emulator fixtures with field masks and adds the two missing `HapticSettings` labels. New exact-head CI results remain **[TO VERIFY]** until completed.
 
+## Art. 17 account-deletion rate-limit transaction
+
+The UID-scoped `account_deletion_rate_limits` transaction permits at most **three** deletion requests in a 24-hour window. When the transaction snapshot does not exist, initialize it with `tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: ... })`; do not call `tx.update` on a missing document. Existing records below the limit continue through `tx.update`; an exhausted limit returns HTTP 429. Genuine Firestore transaction errors remain fail-closed with HTTP 503 and must not invoke the deletion handler.
+
+Regression coverage: `tests/accountDeletionRateLimit.spec.ts` verifies first-request HTTP 202 and initial record creation, three permitted requests plus fourth-request HTTP 429, and HTTP 503/no erasure-handler invocation on genuine transaction failure. The Playwright CUJ `tests/e2e/cuj-account-erasure.spec.ts` retains its HTTP 202 assertion and all pending-receipt, public-profile barrier, verification-revocation and UID-scoped browser-state cleanup assertions. Do not weaken these checks.
+
+**Prior exact-head failure evidence:** PR #387 / HEAD `657aaa240018e8c400db185fba1ea757c31b8af5`, [Klar Enterprise CI run #44605420683](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420683): 33/34 Browser Acceptance tests passed; Account-Erasure received HTTP 503 at `cuj-account-erasure.spec.ts:60`, due to the missing-document `tx.update` path. The present fix and regression test are on the synchronized feature branch. New exact-head CI for the remediation commit: **[TO VERIFY]** until the triggered run completes.
+
 ## PR evidence rules
 
 - Validate the exact PR HEAD SHA, not a parent or earlier commit.
@@ -120,4 +130,4 @@ New Playwright specs:
 
 The fixtures use the local `demo-klar` Emulator REST endpoints and test-only accounts/documents. The account-erasure UI test asserts the server-accepted pending request, discoverability barrier and browser UID-namespace cleanup; it does not claim that the asynchronous worker completed every provider/Firestore/Storage deletion.
 
-**Validation evidence for this candidate:** local `bun run typecheck`, `bun run test:pure` and `bun run playwright test` are **[TO VERIFY]** because no local checkout/runtime was available in the execution environment. Do not infer PASS from source inspection or a preview deployment. Record the exact commit SHA and `Klar Enterprise CI` run ID/conclusion once observed.
+**Validation evidence for the synchronized remediation candidate:** source and regression-test changes are committed on PR #387 after merging `main` at `191ce9b64205ff1e523093cf1fa3d9a523daf0e1` (merge commit `8c6ba106e047c1b54c37e35258e8b8543047cfb4`). The new exact-head `Klar Enterprise CI` run is **[TO VERIFY]**; do not infer PASS from source inspection or from the preceding run. The Playwright account-erasure HTTP 202 and full immediate Art. 17 barrier assertions remain mandatory.

@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-19  
-**Main HEAD:** `14a00816a491ae50ff862c723312440a92017713`  
+**Main HEAD:** `191ce9b64205ff1e523093cf1fa3d9a523daf0e1`  
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -61,9 +61,13 @@ The current main lockfile records `chromium-bidi@17.0.2` with dependency `zod: ^
 ## Hermetic Playwright critical-user-journey coverage
 
 **Candidate branch:** `test/e2e-critical-user-journeys`  
-**Base:** `main` at `14a00816a491ae50ff862c723312440a92017713`  
+**Base:** `main` at `191ce9b64205ff1e523093cf1fa3d9a523daf0e1`  
+**Branch synchronization:** merged `origin/main` at `191ce9b64205ff1e523093cf1fa3d9a523daf0e1` into this branch via merge commit `8c6ba106e047c1b54c37e35258e8b8543047cfb4` (13 previously missing main commits; no overlapping source paths in the main-side delta).  
 **PR:** [#387](https://github.com/Veselin-Takev/Klar-Dating/pull/387) — Open, Draft, unmerged  
-**Initial exact-head Browser Acceptance:** failed in [Klar Enterprise CI run #44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) on HEAD `6acb0f4f0f47b7ef866c43bdba765358edbfcec4`; the remediation commit is on this branch and its new exact-head CI is [TO VERIFY]
+**Initial exact-head Browser Acceptance:** failed in [run #44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) on HEAD `6acb0f4f0f47b7ef866c43bdba765358edbfcec4` (30 passed / 4 failed).  
+**Latest completed exact-head Browser Acceptance before this fix:** failed in [Klar Enterprise CI run #44605420683](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420683) on HEAD `657aaa240018e8c400db185fba1ea757c31b8af5` (33 passed / 1 failed); `cuj-account-erasure.spec.ts:60` received HTTP 503 instead of HTTP 202 because the first-time account deletion rate limiter attempted `tx.update` on a missing document.  
+**Rate-limit remediation:** current change uses `tx.set` for a missing record, retains the three-request/24-hour limit and 429 rejection, and adds `tests/accountDeletionRateLimit.spec.ts`; the E2E assertion for HTTP 202 and the Art. 17 immediate erasure barriers is unchanged.  
+**New exact-head Klar Enterprise CI:** [TO VERIFY] — triggered by the current PR #387 head after this remediation commit; do not infer PASS before completion.
 
 The read-first audit found existing coverage for under-18 rejection and the mandatory age gate (`tests/e2e/e2e-critical-flows.spec.ts`), optional consent acceptance/onboarding (`tests/e2e/onboarding.spec.ts`), consent withdrawal (`tests/e2e/privacy-settings.spec.ts`), one-sided icebreaker/fail-closed chat status (`tests/e2e/chat-security.spec.ts`) and public-entry accessibility (`tests/e2e/accessibility.spec.ts`). New non-duplicative specs add:
 
@@ -84,7 +88,11 @@ Initial exact-head run [#44602173051](https://github.com/Veselin-Takev/Klar-Dati
 - The login/age-gate failures and the contact endpoint's `401 / alter_fehlt` shared one fixture root cause: Firestore REST `PATCH` calls without `updateMask.fieldPaths` replaced the existing `users/{uid}` document, removing authoritative `isAdult` and `einwilligung` fields written by the age/consent APIs. Existing-user fixture updates now use explicit masks; new fixture documents may still be created without a mask.
 - Axe found two real critical accessibility violations in `HapticSettings`: the pattern `select` lacked an accessible name and the intensity range input lacked an associated label. Both controls now have visible, programmatically associated labels. Axe assertions are unchanged.
 
-The corrected code and this evidence update are included in the same remediation change. New exact-head Typecheck and Browser Acceptance results remain **[TO VERIFY]** until the next CI run completes. The Art. 17 browser test still proves request acceptance and immediate barriers only, not asynchronous deletion-worker completion.
+The fixture-mask and accessibility remediations are reflected in exact-head run #44605420683; Typecheck, Tests, Build and Production Smoke passed, while Browser Acceptance remained 33/34 because of the first-time deletion rate-limit document bug described above. The present fix adds an existence-aware transaction write and a focused regression test; the browser test continues to require HTTP 202, the pending receipt, public-profile removal, verification revocation and UID-scoped browser-state cleanup. The asynchronous deletion worker's completion remains outside this browser assertion. The new exact-head CI result remains **[TO VERIFY]** until GitHub Actions completes.
+
+### Art. 17 first-request rate-limit fix — 2026-11-19
+
+The latest failing Browser Acceptance exposed a first-request defect in `accountDeleteLimiter`: when the hashed UID-scoped document did not exist, the transaction fell through to `tx.update`, which fails for a missing Firestore document and returned the fail-closed HTTP 503. The fix initializes a missing record with `tx.set` (`count: 1`, current 24-hour window, expiry); existing records still increment with `tx.update`, the fourth request in a 24-hour window remains rejected with HTTP 429, and genuine transaction failures still return HTTP 503 without invoking erasure. Focused regression coverage is in `phase2_work/tests/accountDeletionRateLimit.spec.ts`. New exact-head CI remains **[TO VERIFY]**.
 
 ## Release invariant
 
