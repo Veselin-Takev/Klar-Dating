@@ -195,7 +195,28 @@ A stacked PR targeting `security/issue-374-client-media-cutover-20261118` does n
 
 ### New exact-head evidence
 
-- `Klar Enterprise CI`: newly triggered for the resulting PR HEAD; run ID and final conclusion **[TO VERIFY]** until GitHub Actions registers/completes the run. Typecheck, unit tests, build and Browser Acceptance must each be evaluated from that run; do not claim 34/34 before the Browser acceptance step has actually completed.
-- `Enterprise Compliance & Security Audit Gate`: **[TO VERIFY]** pending a manual `workflow_dispatch` against the resulting feature-branch HEAD; no Tier 1 Production Audit PASS is claimed.
+- `Klar Enterprise CI`: [run #44624709849](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44624709849) completed **SUCCESS** on exact HEAD `02de612e6b34a4078ed958e7cf482f558efb75cc`; Typecheck, Functions build, Tests, Build, Production Smoke and Browser Acceptance passed, with **34/34 Playwright tests**.
+- `Enterprise Compliance & Security Audit Gate`: manual Run [#44629915925](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44629915925), `workflow_dispatch`, exact HEAD `02de612e6b34a4078ed958e7cf482f558efb75cc`, completed **FAILURE** at Gitleaks. Tier 1 Production Runtime Audit was skipped and is **not PASS**; follow-up on the new remediation HEAD remains **[TO VERIFY]** pending another exact-HEAD manual dispatch.
 
 `productionApproved=false` remains mandatory. PR #382 stays open/Draft/unmerged. PR #383 and `main` are not modified. No cloud/IAM/deployment mutations are performed.
+
+## PR #382 — manual Audit Gate Run #17: Gitleaks history findings and remediation (2026-11-19)
+
+### Exact failure
+
+PR #382 HEAD `02de612e6b34a4078ed958e7cf482f558efb75cc`, manual `workflow_dispatch` [Enterprise Compliance & Security Audit Gate Run #17 / ID 44629915925](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44629915925): **FAILURE**. The failed job was `Enterprise Compliance & Security Audit`; the failing step was **Gitleaks**, step 9, running Gitleaks 8.24.3. The log states that no `.gitleaks.toml` was present and the default Gitleaks rules were used. The scan examined 3,706 commits and reported **18 findings**; artifact `gitleaks-results.sarif.zip`, ID `14580783462`, was uploaded.
+
+Earlier steps in that same job — Quality / TypeScript, Unit Tests and Compliance & Security Checks — completed **SUCCESS**. Because Gitleaks is a hard-fail step, the Tier 1 production runtime dependency audit (`bun audit --prod --audit-level=high`) and Production Build were **SKIPPED**. Therefore Run #17 has no Tier 1 PASS. The separate full dependency audit ran as advisory and reported High Zod `GHSA-mrhx-c7xc-m3w5`; that advisory was not the cause of the job failure.
+
+### Finding classification and fix
+
+The 18 findings were traced to their exact historical source commits and lines. They resolve to (a) SHA-256 integrity digests in two security evidence JSON files, (b) documentation/reference text in three Markdown records, (c) synthetic test fixture values for lease tokens, HMAC/consent secrets and an AdMob public-key parser, and (d) the Firebase web-app `apiKey` field in two historical app-config paths. Firebase documents Firebase web API keys as public project/app identifiers rather than authorization secrets; actual cloud API restrictions were not live-checked or mutated. The exact paths, commits, rule IDs and line numbers are recorded as fingerprints in the root `.gitleaksignore`, without copying any candidate secret values into the repository documentation.
+
+The remediation adds **18 exact historical fingerprints** to `.gitleaksignore`. Gitleaks continues using its default built-in rules and full Git history scan; the ignore file matches only the exact historical fingerprint (commit + path + rule + line). There are no path-wide, rule-wide, regex-wide, or commit-wide exclusions. A new occurrence, changed line, new commit, or any other finding remains subject to the unmodified hard-fail Gitleaks step. This uses the supported exact-finding fingerprint ignore mechanism and does not change scanner rules or configuration.
+
+### Exact-HEAD validation after remediation
+
+- `Klar Enterprise CI`: newly triggered by the remediation commit; run ID and final conclusion **[TO VERIFY]** until completion. Do not infer Typecheck, Tests, Build, Production Smoke or Browser Acceptance PASS.
+- `Enterprise Compliance & Security Audit Gate`: stacked PR #382 does not match the workflow `pull_request` base filter (`main`); exact-HEAD audit requires `workflow_dispatch` with the Package C branch ref. The new manual run and Tier 1 result remain **[TO VERIFY]** until dispatched and its `head_sha` is verified.
+
+`productionApproved=false` remains mandatory. PR #382 remains open/Draft/unmerged; PR #383 and `main` are not modified. No cloud/IAM/deployment mutation is performed.
