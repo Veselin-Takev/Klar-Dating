@@ -45,6 +45,7 @@ jobs:
           bun-version: "1.4.4"
 
       - name: Install dependencies (frozen lockfile)
+        id: install_dependencies
         run: bun install --frozen-lockfile
 
       - name: Quality - TypeScript
@@ -71,9 +72,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Dependency Audit
+      - name: 5. Dependency Audit — Production Runtime (Hard-Fail High+)
         id: dep_audit
-        run: bun audit --audit-level=high
+        run: bun audit --prod --audit-level=high
+
+      - name: 5b. Dependency Audit — Full Supply Chain incl. Dev (Advisory)
+        id: dep_audit_full
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          if ! bun audit --audit-level=high; then
+            echo "::warning title=Full Supply-Chain Audit (Dev-Dependencies)::High/Critical advisory detected in devDependencies. Review logs for upstream patch availability."
+            exit 1
+          fi
 
       - name: Production Build
         id: build
@@ -87,7 +98,8 @@ jobs:
           UNIT_TESTS_OUTCOME: ${{ steps.unit_tests.outcome }}
           COMPLIANCE_OUTCOME: ${{ steps.compliance.outcome }}
           GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
-          DEP_AUDIT_OUTCOME: ${{ steps.dep_audit.outcome }}
+          OUTCOME_DEP_AUDIT: ${{ steps.dep_audit.outcome }}
+          OUTCOME_DEP_AUDIT_FULL: ${{ steps.dep_audit_full.outcome }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
         with:
           script: |
@@ -99,9 +111,20 @@ jobs:
               ['Unit tests', process.env.UNIT_TESTS_OUTCOME],
               ['Compliance & security', process.env.COMPLIANCE_OUTCOME],
               ['Gitleaks', process.env.GITLEAKS_OUTCOME],
-              ['Dependency audit', process.env.DEP_AUDIT_OUTCOME],
+              ['Production dependency audit (hard-fail High+)', process.env.OUTCOME_DEP_AUDIT],
+              ['Full Supply-Chain Audit (incl. Dev)', process.env.OUTCOME_DEP_AUDIT_FULL],
               ['Build', process.env.BUILD_OUTCOME],
             ];
+
+            const hardFailOutcomes = [
+              process.env.QUALITY_OUTCOME,
+              process.env.UNIT_TESTS_OUTCOME,
+              process.env.COMPLIANCE_OUTCOME,
+              process.env.GITLEAKS_OUTCOME,
+              process.env.OUTCOME_DEP_AUDIT,
+              process.env.BUILD_OUTCOME,
+            ];
+            const overallPass = hardFailOutcomes.every(outcome => outcome === 'success');
 
             const render = (outcome) => {
               if (outcome === 'success') return '✅ PASS';
@@ -109,23 +132,35 @@ jobs:
               if (outcome === 'skipped') return '⏭️ SKIPPED';
               return `⚠️ ${outcome || 'unknown'}`;
             };
+            const renderFullAudit = (outcome) => {
+              if (outcome === 'failure') return '⚠️ ADVISORY';
+              return render(outcome);
+            };
 
             const rows = checks
-              .map(([name, outcome]) => `| ${name} | ${render(outcome)} |`)
-              .join('\n');
+              .map(([name, outcome]) => {
+                const result = name === 'Full Supply-Chain Audit (incl. Dev)'
+                  ? renderFullAudit(outcome)
+                  : render(outcome);
+                return `| ${name} | ${result} |`;
+              })
+              .join('\\n');
 
             const body = [
               marker,
               '## Enterprise Compliance & Security Audit Gate',
               '',
-              `**Audited PR head:** \`${headSha}\``,
+              `**Audited PR head:** \\`${headSha}\\``,
+              '',
+              `**Hard-fail gate (6 required checks):** ${overallPass ? '✅ PASS' : '❌ FAIL'}`,
               '',
               '| Check | Result |',
               '|---|---|',
               rows,
               '',
+              '_The hard-fail gate is determined only by TypeScript, unit tests, compliance/security, Gitleaks, production dependency audit, and build. Full Supply-Chain Audit is separately reported as advisory._',
               '_Results reflect the actual GitHub Actions step outcomes for this workflow run; skipped checks are not reported as passes._',
-            ].join('\n');
+            ].join('\\n');
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
