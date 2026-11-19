@@ -133,6 +133,8 @@ import { createHealthRouter } from './src/server/routes/health';
 import { createAccountRouter } from './src/server/routes/account';
 import { createFeedbackRouter } from './src/server/routes/feedback';
 import { createProfileRecommendationsRouter } from './src/server/routes/profileRecommendations';
+import { createProfileMediaRouter } from './src/server/platform/profileMedia';
+import { getAppBucket } from './src/server/storage';
 import { createChecklistRouter } from './src/server/routes/checklists';
 import { createDatePlansRouter } from './src/server/routes/datePlans';
 import { createLegalUpdatesRouter } from './src/server/routes/legalUpdates';
@@ -928,6 +930,7 @@ const adminHealthCheckLimiter = rateLimit({
   // Public feedback is intentionally anonymous and has its own strict payload boundary.
   app.use('/api', createFeedbackRouter({ getFirestore }));
 
+  app.use('/api', createProfileMediaRouter({ getFirestore, getAuth: () => getAuth(), getBucket: getAppBucket }));
   app.use('/api', createProfileRecommendationsRouter({
     currentUserId,
     getFirestore,

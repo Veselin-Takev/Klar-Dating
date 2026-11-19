@@ -78,16 +78,16 @@ test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-si
   assert.equal(ownerDelete.code, 'PERMISSION_DENIED');
 });
 
-test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner write and owner delete', () => {
+test('Storage Rules: /profiles/{uid}/{datei} denies direct reads and retains owner write/delete', () => {
   const validResource = { size: 1 * 1024 * 1024, contentType: 'image/png' };
 
-  // 1. Any signed in user can read profile picture
+  // 1. All direct client reads are denied; backend media proxy is the only read path
   const bobReadsAlice = evaluateStorageSecurityRule({
     operation: 'read',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
   });
-  assert.equal(bobReadsAlice.allowed, true);
+  assert.equal(bobReadsAlice.allowed, false);
 
   // 2. Unauthenticated cannot read profile picture
   const unauthRead = evaluateStorageSecurityRule({
@@ -96,7 +96,7 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     auth: null,
   });
   assert.equal(unauthRead.allowed, false);
-  assert.equal(unauthRead.code, 'UNAUTHENTICATED');
+  assert.equal(unauthRead.code, 'PERMISSION_DENIED');
 
   // 3. Owner can write profile picture
   const aliceWrites = evaluateStorageSecurityRule({

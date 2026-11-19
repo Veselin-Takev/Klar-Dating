@@ -29,6 +29,13 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(user(prefix).ref(path).delete());
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
   });
+  it('denies direct client reads of profile media while preserving owner uploads', async () => {
+    const path = `profiles/${prefix}/avatar.jpg`;
+    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
+    await assertFails(user(prefix).ref(path).getDownloadURL());
+    await assertFails(user('another').ref(path).getDownloadURL());
+    await assertFails(user(prefix, 'anonymous').ref(path).getDownloadURL());
+  });
 
   it('prevents client overwrite of a retained verification object and recreation after Admin SDK deletion', async () => {
     const path = `verification/${prefix}/write-locked.jpg`;

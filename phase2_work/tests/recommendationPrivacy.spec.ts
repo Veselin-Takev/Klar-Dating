@@ -36,7 +36,7 @@ describe('published preferences and recommendation privacy', () => {
   });
   it('does not return legacy private fields from an existing public document', async () => {
     const id = `privacy-${crypto.randomUUID()}`; ids.push(id);
-    await getDb().collection('public_profiles').doc(id).set({ name: 'Test', age: 28, location: 'Berlin', isVerified: true, active: true, lastActiveAt: new Date(), musicPreferences: music, email: 'private@example.test', einwilligung: { evidenceId: 'private' }, role: 'admin' });
+    await getDb().collection('public_profiles').doc(id).set({ name: 'Test', age: 28, location: 'Berlin', isAdult: true, isVerified: true, active: true, lastActiveAt: new Date(), musicPreferences: music, email: 'private@example.test', einwilligung: { evidenceId: 'private' }, role: 'admin' });
     const rows = await getRecommendations(getDb(), 'viewer', { location: 'Berlin', musicPreferences: music });
     const profile = rows.find(row => row.id === id)?.profile;
     expect(profile).toBeDefined(); expect(profile).not.toHaveProperty('email'); expect(profile).not.toHaveProperty('einwilligung'); expect(profile).not.toHaveProperty('role');

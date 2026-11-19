@@ -2,6 +2,7 @@ import type { UserMusicPreferences } from '../../types/user';
 import crypto from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
+import { normalizeProfileMedia } from './profileMedia';
 import { explainCompatibility, type CompatibilityProfile } from './compatibility';
 
 export const LAUNCH_CITIES = ['München', 'Berlin', 'Hamburg', 'Köln', 'Frankfurt am Main'] as const;
@@ -37,6 +38,7 @@ export type PublicProfile = {
   availability?: string[];
   isVerified?: boolean;
   isExample?: boolean;
+  isAdult?: boolean;
   active?: boolean;
   lastActiveAt?: unknown;
 };
@@ -63,7 +65,7 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
     age,
     location: city,
     bio: typeof data.bio === 'string' ? data.bio.trim().slice(0, 800) : '',
-    photoUrl: typeof data.photoUrl === 'string' ? data.photoUrl : '',
+    photoUrl: (() => { const ref = normalizeProfileMedia(uid, data); return ref ? `/api/profile-media/${encodeURIComponent(uid)}/${encodeURIComponent(ref)}` : ''; })(),
     interests: cleanStringList(data.interests),
     ...(cleanMusicPreferences(data.musicPreferences) ? { musicPreferences: cleanMusicPreferences(data.musicPreferences) } : {}),
     values: cleanStringList(data.values),
@@ -73,6 +75,7 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
     availability: cleanStringList(data.availability),
     isVerified: data.isVerified === true,
     isExample: data.isExample === true,
+    isAdult: data.isAdult === true,
     active: true,
     lastActiveAt: FieldValue.serverTimestamp(),
   };
@@ -195,9 +198,14 @@ export async function getRecommendations(
     }
   }
 
+  const pendingDeletion = new Set<string>();
+  await Promise.all(snap.docs.map(async document => {
+    const marker = await db.collection('account_deletions').doc(document.id).get();
+    if (marker.exists) pendingDeletion.add(document.id);
+  }));
   const candidates = snap.docs
     .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
-    .filter(({ id, data }) => id !== uid && data.isExample !== true && !blocked.has(id) && data.active !== false && data.isVerified === true)
+    .filter(({ id, data }) => id !== uid && data.isAdult === true && data.isExample !== true && !pendingDeletion.has(id) && !blocked.has(id) && data.active === true && data.isSuspended !== true && data.isBlocked !== true && data.status !== 'blocked' && data.status !== 'suspended' && data.status !== 'deleted' && data.isVerified === true)
     .filter(({ data }) => typeof data.age === 'number' && data.age >= minAge && data.age <= maxAge)
     .filter(({ data }) => daysSince(data.lastActiveAt) <= 7)
     .map(({ id, data }) => {

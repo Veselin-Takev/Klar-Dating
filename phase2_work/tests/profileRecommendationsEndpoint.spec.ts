@@ -10,21 +10,21 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function dbFor(user: { exists?: boolean; data?: Record<string, unknown> } = {}) {
+function dbFor(user: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean } = {}) {
   const set = vi.fn(async () => undefined);
   const get = vi.fn(async () => ({
     exists: user.exists ?? true,
-    data: () => user.data ?? { isAdult: true, location: 'München' },
+    data: () => ({ isAdult: true, active: true, location: 'München', ...(user.data ?? {}) }),
   }));
   const db = {
     collection: vi.fn((name: string) => ({
-      doc: vi.fn(() => name === 'users' ? { get } : { set }),
+      doc: vi.fn(() => name === 'users' ? { get } : name === 'account_deletions' ? { get: vi.fn(async () => ({ exists: user.deletionPending === true })) } : { set }),
     })),
   } as any;
   return { db, set, get };
 }
 
-async function endpoint(overrides: Partial<ProfileRecommendationsRouterDeps> = {}, user?: { exists?: boolean; data?: Record<string, unknown> }) {
+async function endpoint(overrides: Partial<ProfileRecommendationsRouterDeps> = {}, user?: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean }) {
   const store = dbFor(user);
   const getRecommendations = vi.fn(async () => [{ id: 'candidate-1' }]);
   const deps: ProfileRecommendationsRouterDeps = {
@@ -102,6 +102,26 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint();
     const response = await fetch(ctx.base + '/recommendations?' + query);
     expect(response.status).toBe(400);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['underage', { isAdult: false }, false],
+    ['inactive', { active: false }, false],
+    ['blocked', { isBlocked: true }, false],
+    ['suspended', { isSuspended: true }, false],
+    ['deletion-pending', {}, true],
+  ] as const)('rejects %s requesters before recommendation computation', async (_label, data, deletionPending) => {
+    const ctx = await endpoint({}, { data: { ...data, location: 'München' }, deletionPending });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects guest requesters before reading recommendations', async () => {
+    const ctx = await endpoint({ isGuest: () => true });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
     expect(ctx.getRecommendations).not.toHaveBeenCalled();
   });
 
