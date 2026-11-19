@@ -55,15 +55,37 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
   let deletionStatus: number | undefined;
   let deletionReceipt: unknown;
   await page.route('**/api/account/delete', async (route) => {
-    if (route.request().method() !== 'POST') {
+    const originalRequest = route.request();
+    if (originalRequest.method() !== 'POST') {
       await route.continue();
       return;
     }
 
-    const response = await route.fetch();
-    deletionStatus = response.status();
-    deletionReceipt = await response.json();
-    await route.fulfill({ response });
+    // Keep the upstream response outside the page lifecycle: the UI navigates
+    // immediately after the 202, which can dispose route.fetch() APIResponse bodies.
+    const headers = await originalRequest.allHeaders();
+    for (const header of ['host', 'content-length', 'connection', 'accept-encoding']) {
+      delete headers[header];
+    }
+    const upstream = await request.fetch(originalRequest.url(), {
+      method: originalRequest.method(),
+      headers,
+      data: originalRequest.postDataBuffer() ?? undefined,
+    });
+    const responseBody = await upstream.body();
+    deletionStatus = upstream.status();
+    deletionReceipt = JSON.parse(responseBody.toString('utf8'));
+
+    const responseHeaders = Object.fromEntries(
+      Object.entries(upstream.headers()).filter(([name]) =>
+        !['content-length', 'transfer-encoding', 'connection', 'content-encoding', 'keep-alive'].includes(name.toLowerCase()),
+      ),
+    );
+    await route.fulfill({
+      status: deletionStatus,
+      headers: responseHeaders,
+      body: responseBody,
+    });
   });
 
   await page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click();

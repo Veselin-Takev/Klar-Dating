@@ -110,3 +110,12 @@ The latest failing Browser Acceptance exposed a first-request defect in `account
 ## Release invariant
 
 `productionApproved=false` remains mandatory. No merge, deployment, cloud/IAM/Firestore/Storage mutation, live migration or production purge is authorized by this handover. A green CI run, source-level fix or Draft PR does not equal production GO.
+
+
+### PR #387 — follow-up to disposed route response (2026-11-19)
+
+**Exact-head failure evidence:** PR #387 HEAD `9a741c8188cfabfbf453d7d817504d74e5d19cb6`, `Klar Enterprise CI` [run #44616052807](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44616052807) — **FAILURE**, Browser Acceptance **33/34**. The diagnostic artifact `browser-diagnostics-44616052807-1` (artifact ID `14576445383`) confirms `tests/e2e/cuj-account-erasure.spec.ts:22`; the failing handler line was 65. `route.fetch()` returned an APIResponse whose body was already disposed when `response.json()` ran (`apiResponse.json: Response has been disposed`). Consequently `deletionStatus` remained undefined and the strict HTTP-202 assertion failed at line 70. This run did **not** establish a downstream Art. 17 barrier failure: receipt and downstream assertions were not reached.
+
+The replacement keeps the browser request paused, copies the original request method, URL, body and authentication/cookie headers into the test fixture's independent `APIRequestContext`, reads the upstream status and body there, parses the receipt before releasing the route, then fulfills the browser request with the captured status, response headers and bytes. This avoids tying response-body lifetime to the page navigation. HTTP 202, pending receipt/requestId, pending deletion job, public-profile 404, verification revocation, UID-scoped browser-state removal and global-theme preservation assertions remain intact. No `waitForTimeout()` was added.
+
+The separate `Enterprise Compliance & Security Audit Gate` [run #44616052794](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44616052794) on the same HEAD completed **SUCCESS** (six hard-fail checks PASS; full supply-chain audit remains ADVISORY). Exact-head validation for the new response-capture correction: **[TO VERIFY]** until the newly triggered workflows complete. `productionApproved=false`; PR #387 remains Draft and unmerged.
