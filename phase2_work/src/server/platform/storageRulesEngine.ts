@@ -3,9 +3,8 @@
  * 
  * Formal verification and execution model for storage.rules:
  * - /verification/{uid}/{datei}:
- *   - read: false (Strict zero-read Art. 9 biometric data protection)
- *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
- *   - delete: false (only server-side admin cleanup)
+ *   - all Firebase client operations DENIED: legacy gesture/photo KYC retired
+ *   - only IAM-authorized Admin SDK can handle retained files (separate policy)
  * - /profiles/{uid}/{datei}:
  *   - read: requester adult + target owner adult + signedIn() + !istGast()
  *   - write: adult gate + signedIn() + !istGast() + auth.uid == uid + image + <8MB
@@ -109,28 +108,14 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       };
     }
 
-    // write: if istVolljaehrig() && request.auth.uid == uid && istBild() && request.resource.size < 8 * 1024 * 1024;
+    // No Firebase client may create or replace a retired biometric photo.
     if (request.operation === 'write') {
-      if (!signedIn) {
-        return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
-      }
-      if (isGuest) {
-        return { allowed: false, reason: 'Gäste dürfen keine Verifizierungsfotos hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      }
-      if (request.auth?.token?.isAdult !== true) {
-        return { allowed: false, reason: 'Altersfreigabe erforderlich.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (!isOwner) {
-        return { allowed: false, reason: 'Schreiben nur in den eigenen Pfad erlaubt.', rulePath, code: 'PERMISSION_DENIED' };
-      }
-      if (!isImageContentType(request.resource?.contentType)) {
-        return { allowed: false, reason: 'Nur Bildformate (JPEG, PNG, WebP) sind erlaubt.', rulePath, code: 'INVALID_MIME' };
-      }
-      if (typeof request.resource?.size !== 'number' || request.resource.size >= MAX_FILE_SIZE_BYTES) {
-        return { allowed: false, reason: 'Dateigröße überschreitet das Limit von 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
-      }
-
-      return { allowed: true, rulePath, code: 'ALLOWED' };
+      return {
+        allowed: false,
+        reason: 'Die clientseitige Fotoverifizierung ist eingestellt; Uploads sind gesperrt.',
+        rulePath,
+        code: 'PERMISSION_DENIED',
+      };
     }
   }
 
