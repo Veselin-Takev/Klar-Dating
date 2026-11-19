@@ -19,6 +19,7 @@ The green checks do not constitute Enterprise readiness, WCAG certification, or 
 - [Documentation index](phase2_work/docs/README.md)
 - [Project status and release gates](phase2_work/docs/PROJECT_STATUS.md)
 - [Developer guide](phase2_work/docs/DEVELOPMENT.md)
+- [Contributing and PR hygiene](CONTRIBUTING.md)
 - [End-to-end audit](phase2_work/docs/END_TO_END_AUDIT_2026-09-20.md)
 - [Production runbook](phase2_work/docs/PRODUCTION_RUNBOOK.md)
 - [Accessibility standard](phase2_work/docs/ACCESSIBILITY.md)
