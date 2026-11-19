@@ -144,13 +144,13 @@ jobs:
                   : render(outcome);
                 return `| ${name} | ${result} |`;
               })
-              .join('\\n');
+              .join('\n');
 
             const body = [
               marker,
               '## Enterprise Compliance & Security Audit Gate',
               '',
-              `**Audited PR head:** \\`${headSha}\\``,
+              `**Audited PR head:** \`${headSha}\``,
               '',
               `**Hard-fail gate (6 required checks):** ${overallPass ? '✅ PASS' : '❌ FAIL'}`,
               '',
@@ -160,7 +160,7 @@ jobs:
               '',
               '_The hard-fail gate is determined only by TypeScript, unit tests, compliance/security, Gitleaks, production dependency audit, and build. Full Supply-Chain Audit is separately reported as advisory._',
               '_Results reflect the actual GitHub Actions step outcomes for this workflow run; skipped checks are not reported as passes._',
-            ].join('\\n');
+            ].join('\n');
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
