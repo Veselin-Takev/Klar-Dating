@@ -56,10 +56,14 @@ export function calculateVerificationRetentionExpiry(
   if (!Number.isFinite(decidedAt) || decidedAt <= 0) {
     throw new Error('Ungültiger oder fehlender Entscheidungszeitpunkt (decidedAt).');
   }
-  if (retentionDays < 0) {
-    throw new Error('Aufbewahrungsdauer darf nicht negativ sein.');
+  if (!Number.isFinite(retentionDays) || retentionDays < 0) {
+    throw new Error('Aufbewahrungsdauer muss endlich und nicht negativ sein.');
   }
-  return decidedAt + retentionDays * MS_PER_DAY;
+  const expiry = decidedAt + retentionDays * MS_PER_DAY;
+  if (!Number.isFinite(expiry)) {
+    throw new Error('Berechneter Ablaufzeitpunkt ist ungültig.');
+  }
+  return expiry;
 }
 
 /**
@@ -70,7 +74,8 @@ export function isVerificationArtifactExpired(
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
 ): boolean {
-  if (!Number.isFinite(decidedAt) || decidedAt <= 0) return false;
+  // An invalid clock must never make a retention decision eligible for deletion.
+  if (!Number.isFinite(decidedAt) || decidedAt <= 0 || !Number.isFinite(now) || now <= 0) return false;
   const expiry = calculateVerificationRetentionExpiry(decidedAt, retentionDays);
   return now >= expiry;
 }
@@ -94,7 +99,7 @@ export function generatePurgeAuditDigest(
  */
 export async function purgeSingleVerificationArtifact(
   artifact: VerificationArtifactRecord,
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
@@ -109,7 +114,9 @@ export async function purgeSingleVerificationArtifact(
     };
   }
 
-  if (artifact.status === 'pending') {
+  // Only explicit moderation approvals/rejections authorize retention-based
+  // deletion. Unknown runtime values must fail closed like pending decisions.
+  if (artifact.status !== 'approved' && artifact.status !== 'rejected') {
     return {
       uid: artifact.uid,
       challengeId: artifact.challengeId,
@@ -131,7 +138,7 @@ export async function purgeSingleVerificationArtifact(
 
   try {
     // 1. Physische Löschung im Storage
-    await deleteStorageFileFn(artifact.storagePath);
+    await deleteStorageFileFn(artifact.storagePath, artifact);
 
     // 2. Audit-Digest generieren
     const auditDigest = generatePurgeAuditDigest(
@@ -174,7 +181,7 @@ export async function purgeSingleVerificationArtifact(
  */
 export async function executeVerificationRetentionBatch(
   artifacts: VerificationArtifactRecord[],
-  deleteStorageFileFn: (path: string) => Promise<void>,
+  deleteStorageFileFn: (path: string, artifact: VerificationArtifactRecord) => Promise<void>,
   updateDatabaseFn: (uid: string, challengeId: string, auditData: { photoPurged: boolean; photoPurgedAt: number; auditDigest: string }) => Promise<void>,
   now: number = Date.now(),
   retentionDays: number = DEFAULT_VERIFICATION_RETENTION_DAYS
