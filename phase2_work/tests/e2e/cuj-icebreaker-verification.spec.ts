@@ -3,8 +3,16 @@ import { createAccount, emulatorPassword } from './identity-helpers';
 
 const FIRESTORE_EMULATOR = 'http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents';
 
-async function patchFixture(request: APIRequestContext, path: string, fields: Record<string, unknown>) {
-  const response = await request.patch(`${FIRESTORE_EMULATOR}/${path}`, {
+async function patchFixture(
+  request: APIRequestContext,
+  path: string,
+  fields: Record<string, unknown>,
+  updateMask: string[] = [],
+) {
+  const query = new URLSearchParams();
+  for (const field of updateMask) query.append('updateMask.fieldPaths', field);
+  const suffix = query.size ? `?${query.toString()}` : '';
+  const response = await request.patch(`${FIRESTORE_EMULATOR}/${path}${suffix}`, {
     headers: { Authorization: 'Bearer owner' },
     data: { fields },
   });
@@ -14,7 +22,7 @@ async function patchFixture(request: APIRequestContext, path: string, fields: Re
 async function seedOnboarding(request: APIRequestContext, uid: string) {
   await patchFixture(request, `users/${uid}`, {
     interests: { arrayValue: { values: [{ stringValue: 'Musik' }] } },
-  });
+  }, ['interests']);
 }
 
 async function signInToChat(page: Page, email: string, chatId: string) {
@@ -89,7 +97,7 @@ test('CUJ 3: stale "verified" status cannot override a false server isVerified f
   await patchFixture(request, `users/${account.uid}`, {
     isVerified: { booleanValue: false },
     verificationStatus: { stringValue: 'bestaetigt' },
-  });
+  }, ['isVerified', 'verificationStatus']);
   const targetUid = `cuj-unverified-target-${account.uid.slice(0, 8)}`;
   await patchFixture(request, `users/${targetUid}`, {
     isAdult: { booleanValue: true },

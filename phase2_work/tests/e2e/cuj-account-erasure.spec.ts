@@ -3,8 +3,16 @@ import { createAccount, emulatorPassword } from './identity-helpers';
 
 const FIRESTORE_EMULATOR = 'http://127.0.0.1:8080/v1/projects/demo-klar/databases/(default)/documents';
 
-async function patchFixture(request: APIRequestContext, path: string, fields: Record<string, unknown>) {
-  const response = await request.patch(`${FIRESTORE_EMULATOR}/${path}`, {
+async function patchFixture(
+  request: APIRequestContext,
+  path: string,
+  fields: Record<string, unknown>,
+  updateMask: string[] = [],
+) {
+  const query = new URLSearchParams();
+  for (const field of updateMask) query.append('updateMask.fieldPaths', field);
+  const suffix = query.size ? `?${query.toString()}` : '';
+  const response = await request.patch(`${FIRESTORE_EMULATOR}/${path}${suffix}`, {
     headers: { Authorization: 'Bearer owner' },
     data: { fields },
   });
@@ -16,7 +24,7 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
   const account = await createAccount(request);
   await patchFixture(request, `users/${account.uid}`, {
     interests: { arrayValue: { values: [{ stringValue: 'Musik' }] } },
-  });
+  }, ['interests']);
   await patchFixture(request, `public_profiles/${account.uid}`, {
     uid: { stringValue: account.uid },
     isVerified: { booleanValue: true },

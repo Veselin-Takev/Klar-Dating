@@ -62,8 +62,8 @@ The current main lockfile records `chromium-bidi@17.0.2` with dependency `zod: ^
 
 **Candidate branch:** `test/e2e-critical-user-journeys`  
 **Base:** `main` at `14a00816a491ae50ff862c723312440a92017713`  
-**PR:** [TO VERIFY] until the Draft PR is created  
-**Exact-head Browser Acceptance:** [TO VERIFY] until a CI run is observed
+**PR:** [#387](https://github.com/Veselin-Takev/Klar-Dating/pull/387) — Open, Draft, unmerged  
+**Initial exact-head Browser Acceptance:** failed in [Klar Enterprise CI run #44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) on HEAD `6acb0f4f0f47b7ef866c43bdba765358edbfcec4`; the remediation commit is on this branch and its new exact-head CI is [TO VERIFY]
 
 The read-first audit found existing coverage for under-18 rejection and the mandatory age gate (`tests/e2e/e2e-critical-flows.spec.ts`), optional consent acceptance/onboarding (`tests/e2e/onboarding.spec.ts`), consent withdrawal (`tests/e2e/privacy-settings.spec.ts`), one-sided icebreaker/fail-closed chat status (`tests/e2e/chat-security.spec.ts`) and public-entry accessibility (`tests/e2e/accessibility.spec.ts`). New non-duplicative specs add:
 
@@ -76,6 +76,15 @@ The read-first audit found existing coverage for under-18 rejection and the mand
 All new fixtures use loopback Firebase Auth/Firestore Emulator APIs under `demo-klar`; no live cloud, production, KYC, payment or external AI calls are part of these new journeys. The existing Playwright config discovers `tests/e2e` and the existing Enterprise CI Browser Acceptance step runs the complete suite. No workflow change is needed.
 
 Local `bun run typecheck`, `bun run test:pure` and Playwright execution were **not run in this execution environment** because no local `phase2_work` checkout/runtime is mounted. These results remain **[TO VERIFY]**; do not report PASS until local or exact-head CI evidence is available. `productionApproved=false` remains mandatory.
+
+### CI failure analysis and remediation — 2026-11-19
+
+Initial exact-head run [#44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) completed Typecheck, Tests, Build and Production Smoke successfully. Browser Acceptance reported **30 passed / 4 failed**.
+
+- The login/age-gate failures and the contact endpoint's `401 / alter_fehlt` shared one fixture root cause: Firestore REST `PATCH` calls without `updateMask.fieldPaths` replaced the existing `users/{uid}` document, removing authoritative `isAdult` and `einwilligung` fields written by the age/consent APIs. Existing-user fixture updates now use explicit masks; new fixture documents may still be created without a mask.
+- Axe found two real critical accessibility violations in `HapticSettings`: the pattern `select` lacked an accessible name and the intensity range input lacked an associated label. Both controls now have visible, programmatically associated labels. Axe assertions are unchanged.
+
+The corrected code and this evidence update are included in the same remediation change. New exact-head Typecheck and Browser Acceptance results remain **[TO VERIFY]** until the next CI run completes. The Art. 17 browser test still proves request acceptance and immediate barriers only, not asynchronous deletion-worker completion.
 
 ## Release invariant
 
