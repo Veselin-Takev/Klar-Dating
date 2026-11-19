@@ -163,3 +163,39 @@ On PR #387 exact HEAD `4569b8ac1a82612154cfe2a556cf97b242e5f778`:
 The correction creates a typed `capturePromise` before registering the route. The route resolves it only after obtaining upstream status and parsing the JSON receipt; it rejects on fetch/body/JSON failure and aborts the intercepted browser route. The test awaits capture and click together with `Promise.all`, performs the strict HTTP-202 and receipt/requestId checks only after capture has completed, and unregisters the route using `page.unroute(deletionRoute)`. The complete set of Art. 17 assertions is retained: HTTP 202, receipt/requestId, pending deletion record, public-profile 404, `isVerified=false`, UID-scoped storage cleanup and global-theme preservation. No `waitForTimeout()` was added.
 
 New exact-head CI runs for this correction: **[TO VERIFY]** until completed; attach their run IDs and conclusions to the new commit only. PR #387 remains Open/Draft/Unmerged. `productionApproved=false`.
+
+
+## PR #382 — TypeScript import correction and exact-head workflow evidence (2026-11-19)
+
+### Previous failing run
+
+On PR #382 HEAD `4e203ee7383cd954003db0f4b2609b7e86ac85e9`, `Klar Enterprise CI` [run #44623218511](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44623218511) completed **FAILURE** at Typecheck:
+
+```text
+tests/accountErasure.spec.ts(150,85): error TS2552:
+Cannot find name 'DeletionStoragePageComplete'.
+Did you mean 'DeletionPageComplete'?
+```
+
+The later Functions build, Tests, Build, Production smoke and Browser acceptance steps were skipped. Consequently this run did not execute Playwright Browser Acceptance and did not establish 34/34.
+
+### TypeScript fix
+
+`src/server/deletionProgress.ts` exports both `DeletionPageComplete` and `DeletionStoragePageComplete`. The latter is the exact sentinel thrown by the Storage pagination path in `trustAndSafety.ts`, and the existing `tests/deletionLifecycle.spec.ts` imports it from the same module. `tests/accountErasure.spec.ts` used it in an `instanceof` assertion but imported only `DeletionPageComplete`. The correction adds `DeletionStoragePageComplete` to that existing named import. It does not replace the assertion, widen a type, suppress an error, change a TypeScript setting, or alter any `tsconfig` project.
+
+### Enterprise Compliance & Security Audit Gate trigger scope
+
+The checked-in `.github/workflows/enterprise-compliance-audit-gate.yml` declares:
+
+- `pull_request: branches: [main]`
+- `push: branches: [main, 'release/*']`
+- `workflow_dispatch`
+
+A stacked PR targeting `security/issue-374-client-media-cutover-20261118` does not match the `pull_request` base-branch filter and therefore does not receive an automatic audit run from that event. To produce exact-HEAD audit evidence for PR #382, manually dispatch **Enterprise Compliance & Security Audit Gate** with the intended Package C feature-branch ref after the fix is pushed, then verify the run's `head_sha` equals the live PR HEAD. A result for a parent or earlier SHA is not evidence for the new HEAD. No manual dispatch is performed as part of this commit/push task.
+
+### New exact-head evidence
+
+- `Klar Enterprise CI`: newly triggered for the resulting PR HEAD; run ID and final conclusion **[TO VERIFY]** until GitHub Actions registers/completes the run. Typecheck, unit tests, build and Browser Acceptance must each be evaluated from that run; do not claim 34/34 before the Browser acceptance step has actually completed.
+- `Enterprise Compliance & Security Audit Gate`: **[TO VERIFY]** pending a manual `workflow_dispatch` against the resulting feature-branch HEAD; no Tier 1 Production Audit PASS is claimed.
+
+`productionApproved=false` remains mandatory. PR #382 stays open/Draft/unmerged. PR #383 and `main` are not modified. No cloud/IAM/deployment mutations are performed.

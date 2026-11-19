@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
