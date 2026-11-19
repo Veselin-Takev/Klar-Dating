@@ -127,3 +127,9 @@ The repository now contains the Phase-2 AI control plane for Technical Foundatio
 - `config/ai-budget.json` — budget and rate-limit policy
 
 The Phase-2 controls are additive to the existing server-side provider boundary. They do not create direct client-side LLM access and do not constitute production deployment approval.
+
+## Developer Handover
+
+- [Current developer handover status, live PR inventory and blockers](docs/HANDOVER_STATUS.md)
+- [CI/CD and security gates](docs/CI_CD_AND_SECURITY_GATES.md)
+- [Full open PR inventory (2026-11-19)](docs/OPEN_PR_INVENTORY_2026-11-19.md)
