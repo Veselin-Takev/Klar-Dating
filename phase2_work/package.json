@@ -221,7 +221,7 @@
     "@firebase/firestore@4.17.2": {
       "@grpc/grpc-js": "1.13.6"
     },
-    "basic-ftp": "6.2.1"
+    "basic-ftp": "6.2.4"
   },
   "packageManager": "bun@1.4.4"
 }
