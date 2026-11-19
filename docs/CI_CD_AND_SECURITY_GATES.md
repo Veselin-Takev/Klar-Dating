@@ -92,3 +92,24 @@ A failed hard-fail check blocks the PR gate. Do not weaken the command, add an i
 - A skipped step is not PASS; missing CI evidence is `[TO VERIFY]`.
 - Draft PRs are not merge-authorized.
 - Successful CI is not independent security review or production approval.
+
+## Hermetic Playwright Browser Acceptance and CUJ gates
+
+The canonical Playwright configuration is `phase2_work/playwright.config.ts`:
+
+- `testDir: './tests/e2e'` means every `*.spec.ts` in `phase2_work/tests/e2e/` is discovered automatically.
+- CI uses one Chromium worker, zero retries and a 15-minute global suite timeout. Tests should use role/test-id locators and web-first assertions; fixed `waitForTimeout()` sleeps are not an accepted synchronization strategy.
+- The Playwright web server starts `npm run dev:lokal`. That script invokes `firebase emulators:exec --project demo-klar --only auth,firestore,storage`; emulator endpoints are loopback-only (Auth 9099, Firestore 8080, Storage 9199).
+- `.github/workflows/ci.yml` runs `bun run playwright test` in the existing **Browser acceptance** step after installing Chromium. The new CUJ specs are picked up by the existing `testDir`; no new live service, secret or production workflow dependency is introduced.
+- `bun run test:production` invokes `scripts/smoke-production.mjs`, which explicitly refuses to run without Auth and Firestore emulator host variables and starts the built server locally. Its name does not authorize or imply a live production call.
+
+New Playwright specs:
+- `tests/e2e/cuj-onboarding-consent.spec.ts`
+- `tests/e2e/cuj-daily-quota.spec.ts`
+- `tests/e2e/cuj-icebreaker-verification.spec.ts`
+- `tests/e2e/cuj-account-erasure.spec.ts`
+- `tests/e2e/cuj-accessibility.spec.ts`
+
+The fixtures use the local `demo-klar` Emulator REST endpoints and test-only accounts/documents. The account-erasure UI test asserts the server-accepted pending request, discoverability barrier and browser UID-namespace cleanup; it does not claim that the asynchronous worker completed every provider/Firestore/Storage deletion.
+
+**Validation evidence for this candidate:** local `bun run typecheck`, `bun run test:pure` and `bun run playwright test` are **[TO VERIFY]** because no local checkout/runtime was available in the execution environment. Do not infer PASS from source inspection or a preview deployment. Record the exact commit SHA and `Klar Enterprise CI` run ID/conclusion once observed.
