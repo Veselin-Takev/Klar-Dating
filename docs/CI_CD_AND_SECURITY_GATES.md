@@ -1,5 +1,7 @@
 # CI/CD and Security Gates
 
+**Current `main` HEAD:** `191ce9b64205ff1e523093cf1fa3d9a523daf0e1` (includes PR #384 merge).  
+
 ## Pinned toolchain
 
 The application dependency workspace is `phase2_work/`.
@@ -33,7 +35,7 @@ Important implementation boundary: the current `check:ci-toolchain-pins` script 
 
 ## Two-Tier Dependency Audit
 
-The two-tier model is implemented on Draft PR #384 in `.github/workflows/enterprise-compliance-audit-gate.yml`; it is **not yet part of main**.
+The two-tier model is now included in `main` via the PR #384 merge commit `191ce9b64205ff1e523093cf1fa3d9a523daf0e1`, in `.github/workflows/enterprise-compliance-audit-gate.yml`. The `Enterprise Compliance & Security Audit Gate` push run on that exact `main` commit is [#44603682135](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44603682135) (**success**). The prior PR-triggered Audit Gate run [#44605420707](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420707) was successful on earlier PR #387 head `657aaa240018e8c400db185fba1ea757c31b8af5`, and is not evidence for the main push. This does not by itself authorize production or remove unrelated production dependency blockers.
 
 ### Tier 1 — production hard-fail
 
@@ -85,6 +87,33 @@ bun audit --audit-level=high
 
 A failed hard-fail check blocks the PR gate. Do not weaken the command, add an ignore/allowlist, or convert a production finding into an advisory to obtain green CI.
 
+## Playwright emulator fixture and accessible-control rules
+
+For REST fixture updates to an **existing** Firestore document in `demo-klar`, always pass an explicit `updateMask.fieldPaths` for every changed field. A PATCH without an update mask replaces the document fields and can silently remove authoritative `users/{uid}` values such as `isAdult` and `einwilligung`; protected API requests then correctly fail closed (the observed response was `401 / alter_fehlt`). Use no mask only when intentionally creating a new isolated fixture document. For multiple field updates, append one `updateMask.fieldPaths` query parameter per field.
+
+Axe's zero-critical/serious CUJ scans remain strict. Form controls rendered on Profile views must have programmatically associated accessible names; for range controls and selects, use visible `label[for]` elements rather than nearby paragraph text or placeholder-only names.
+
+**Failure evidence:** initial exact-head PR #387 run [#44602173051](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44602173051) had 30 Browser Acceptance passes and four failures. The remediation change updates existing-user emulator fixtures with field masks and adds the two missing `HapticSettings` labels. New exact-head CI results remain **[TO VERIFY]** until completed.
+
+## Art. 17 account-deletion rate-limit transaction
+
+The UID-scoped `account_deletion_rate_limits` transaction permits at most **three** deletion requests in a 24-hour window. When the transaction snapshot does not exist, initialize it with `tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: ... })`; do not call `tx.update` on a missing document. Existing records below the limit continue through `tx.update`; an exhausted limit returns HTTP 429. Genuine Firestore transaction errors remain fail-closed with HTTP 503 and must not invoke the deletion handler.
+
+Regression coverage: `tests/accountDeletionRateLimit.spec.ts` verifies first-request HTTP 202 and initial record creation, three permitted requests plus fourth-request HTTP 429, and HTTP 503/no erasure-handler invocation on genuine transaction failure. The Playwright CUJ `tests/e2e/cuj-account-erasure.spec.ts` retains its HTTP 202 assertion and all pending-receipt, public-profile barrier, verification-revocation and UID-scoped browser-state cleanup assertions. Do not weaken these checks.
+
+**Earlier rate-limit failure evidence:** PR #387 / HEAD `657aaa240018e8c400db185fba1ea757c31b8af5`, [Klar Enterprise CI run #44605420683](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44605420683): 33/34 Browser Acceptance tests passed; Account-Erasure received HTTP 503 at `cuj-account-erasure.spec.ts:60` because the first-request limiter called `tx.update` on a missing document. The existence-aware transaction fix and its focused regression test are on the synchronized feature branch. The next exact-head baseline run and its response-body capture failure are recorded below.
+
+
+## PR #387 response-capture follow-up — 2026-11-19
+
+On baseline HEAD `be20a55b13f2e00f54d45f9acf566db3655daaa4`, `Klar Enterprise CI` [run #44611836293](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836293) failed only in Browser Acceptance (33/34): the HTTP 202 check had passed, but Playwright could not read the response body after the application navigated away. The same run's focused `tests/accountDeletionRateLimit.spec.ts` suite passed **3/3**.
+
+The response capture now occurs inside a `page.route()` handler: `route.fetch()` retrieves the upstream response, the handler reads `status()` and `json()` before releasing it, and `route.fulfill({ response })` returns the upstream result to the browser. This is test synchronization only; it does not change the account-erasure API or remove/relax any legal-erasure barrier assertion.
+
+Audit evidence on that same baseline HEAD: `Enterprise Compliance & Security Audit Gate` [run #44611836292](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836292) **SUCCESS**; Tier 1 production audit **PASS** (no High+ findings across 549 checked packages); Tier 2 full supply-chain result **ADVISORY** with one High Zod advisory `GHSA-mrhx-c7xc-m3w5`. Keep the full-graph advisory visible; do not recast it as a Tier 1 production finding or suppress it.
+
+Exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` results for this response-capture commit: **[TO VERIFY]** until both triggered workflows complete. All new run IDs and conclusions must be tied to this exact new HEAD.
+
 ## PR evidence rules
 
 - Validate the exact PR HEAD SHA, not a parent or earlier commit.
@@ -92,3 +121,45 @@ A failed hard-fail check blocks the PR gate. Do not weaken the command, add an i
 - A skipped step is not PASS; missing CI evidence is `[TO VERIFY]`.
 - Draft PRs are not merge-authorized.
 - Successful CI is not independent security review or production approval.
+
+## Hermetic Playwright Browser Acceptance and CUJ gates
+
+The canonical Playwright configuration is `phase2_work/playwright.config.ts`:
+
+- `testDir: './tests/e2e'` means every `*.spec.ts` in `phase2_work/tests/e2e/` is discovered automatically.
+- CI uses one Chromium worker, zero retries and a 15-minute global suite timeout. Tests should use role/test-id locators and web-first assertions; fixed `waitForTimeout()` sleeps are not an accepted synchronization strategy.
+- The Playwright web server starts `npm run dev:lokal`. That script invokes `firebase emulators:exec --project demo-klar --only auth,firestore,storage`; emulator endpoints are loopback-only (Auth 9099, Firestore 8080, Storage 9199).
+- `.github/workflows/ci.yml` runs `bun run playwright test` in the existing **Browser acceptance** step after installing Chromium. The new CUJ specs are picked up by the existing `testDir`; no new live service, secret or production workflow dependency is introduced.
+- `bun run test:production` invokes `scripts/smoke-production.mjs`, which explicitly refuses to run without Auth and Firestore emulator host variables and starts the built server locally. Its name does not authorize or imply a live production call.
+
+New Playwright specs:
+- `tests/e2e/cuj-onboarding-consent.spec.ts`
+- `tests/e2e/cuj-daily-quota.spec.ts`
+- `tests/e2e/cuj-icebreaker-verification.spec.ts`
+- `tests/e2e/cuj-account-erasure.spec.ts`
+- `tests/e2e/cuj-accessibility.spec.ts`
+
+The fixtures use the local `demo-klar` Emulator REST endpoints and test-only accounts/documents. The account-erasure UI test asserts the server-accepted pending request, discoverability barrier and browser UID-namespace cleanup; it does not claim that the asynchronous worker completed every provider/Firestore/Storage deletion.
+
+**Verified baseline evidence on PR #387 HEAD `be20a55b13f2e00f54d45f9acf566db3655daaa4`:** `Klar Enterprise CI` [run #44611836293](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836293) completed **FAILURE** because Browser Acceptance was 33/34: the HTTP 202 assertion passed, but `response.json()` at `cuj-account-erasure.spec.ts:61` ran after navigation and Chromium no longer exposed the body. The `tests/accountDeletionRateLimit.spec.ts` suite was **3/3 PASS**. The `Enterprise Compliance & Security Audit Gate` [run #44611836292](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44611836292) was **SUCCESS**: Tier 1 production audit **PASS** (no High+ findings across 549 checked packages); Tier 2 full dependency graph **ADVISORY** with one High Zod advisory `GHSA-mrhx-c7xc-m3w5`. This Tier 2 advisory remains visible and is not represented as a Tier 1 production finding. The response-capture change in this commit preserves the mandatory HTTP 202, receipt and all immediate Art. 17 barrier assertions. New exact-head workflows for this response-capture commit: **[TO VERIFY]** until completed.
+
+
+## PR #387 — disposed route response correction (2026-11-19)
+
+On exact PR HEAD `9a741c8188cfabfbf453d7d817504d74e5d19cb6`, `Klar Enterprise CI` [run #44616052807](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44616052807) completed **FAILURE**: 33/34 Browser Acceptance tests passed. The exact failing test was `tests/e2e/cuj-account-erasure.spec.ts:22`; the failing handler operation was `response.json()` at line 65. Diagnostic artifact [`browser-diagnostics-44616052807-1`](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44616052807) (artifact ID `14576445383`) records `apiResponse.json: Response has been disposed`. This disposed `route.fetch()` APIResponse prevented status/receipt capture; `deletionStatus` stayed undefined, so the strict HTTP-202 assertion failed at line 70. The test did not progress to receipt or downstream erasure-barrier assertions in this run.
+
+The correction uses the test fixture's independent `APIRequestContext` to replay the intercepted request with its original method, URL, body and authentication/cookie headers. It reads the response body and status from that independent context, parses the receipt, then fulfills the paused browser route using the captured status, sanitized response headers and raw body bytes. This prevents the page's post-deletion navigation from disposing the captured response. It changes only test transport/synchronization; it does not weaken or remove any Art. 17 assertion. The HTTP 202, pending receipt/requestId, pending deletion record, public-profile 404, `isVerified=false`, UID-scoped localStorage cleanup and global-theme preservation assertions remain mandatory. No fixed sleep was introduced.
+
+Audit Gate [run #44616052794](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44616052794), on the same HEAD, completed **SUCCESS**. The hard-fail checks passed; the full dependency graph audit remains **ADVISORY** and must be reported separately. Newly triggered exact-head CI for this correction: **[TO VERIFY]** until completion; record the new run IDs and conclusions against the resulting HEAD only. PR #387 remains open/Draft/unmerged and `productionApproved=false`.
+
+
+## PR #387 — capture-promise synchronization correction (2026-11-19)
+
+On PR #387 exact HEAD `4569b8ac1a82612154cfe2a556cf97b242e5f778`:
+
+- [Klar Enterprise CI #44618445371](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44618445371): **FAILURE**, Browser Acceptance 33/34. Artifact `browser-diagnostics-44618445371-1`, ID `14576717329`. The failing test clicked the final account-delete button and immediately asserted the status variable without awaiting the asynchronous route handler. It observed `undefined`; teardown disposed the APIRequestContext while `request.fetch()` was still pending, producing `Request context disposed`. This is a test synchronization failure; downstream Art. 17 assertions were not reached in that run.
+- [Enterprise Compliance & Security Audit Gate #44618446075](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44618446075): **SUCCESS**. Tier 1 production audit **PASS** (no High+ findings across 549 packages). Tier 2 full dependency graph **ADVISORY**, one High Zod advisory `GHSA-mrhx-c7xc-m3w5`.
+
+The correction creates a typed `capturePromise` before registering the route. The route resolves it only after obtaining upstream status and parsing the JSON receipt; it rejects on fetch/body/JSON failure and aborts the intercepted browser route. The test awaits capture and click together with `Promise.all`, performs the strict HTTP-202 and receipt/requestId checks only after capture has completed, and unregisters the route using `page.unroute(deletionRoute)`. The complete set of Art. 17 assertions is retained: HTTP 202, receipt/requestId, pending deletion record, public-profile 404, `isVerified=false`, UID-scoped storage cleanup and global-theme preservation. No `waitForTimeout()` was added.
+
+New exact-head CI runs for this correction: **[TO VERIFY]** until completed; attach their run IDs and conclusions to the new commit only. PR #387 remains Open/Draft/Unmerged. `productionApproved=false`.
