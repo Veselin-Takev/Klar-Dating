@@ -660,6 +660,45 @@
       "creativityHobbies": "Las aficiones creativas os unen.",
       "careerGoals": "Compartís la ambición por vuestras metas profesionales.",
       "careerBalance": "Comprendéis que a veces el trabajo requiere jornadas largas."
+    },
+    "ui": {
+      "importTitle": "Completa tu perfil automáticamente",
+      "importDescription": "Pega aquí el texto de LinkedIn o tus notas.",
+      "start": "Comenzar",
+      "optimizeTitle": "Mejora tu perfil",
+      "optimizeDescription": "Haz que tu perfil resulte más atractivo con IA.",
+      "discard": "Descartar",
+      "history": "Historial",
+      "save": "Guardar",
+      "restore": "Restaurar",
+      "valueOptimization": "Mejoras basadas en valores",
+      "apply": "Aplicar",
+      "icebreakersTitle": "Tus preguntas para iniciar conversaciones",
+      "icebreakersDescription": "Preguntas que las personas pueden ver en tu perfil.",
+      "radarTutorial": "Selecciona un eje de valores (por ejemplo, «Aventura») para ver explicaciones detalladas y posibles afinidades con otras conexiones.",
+      "understood": "Entendido",
+      "customizeColors": "Personalizar colores",
+      "exportImage": "Exportar como imagen",
+      "filters": {
+        "all": "Todos",
+        "similarity": "Similitudes",
+        "complement": "Complementos",
+        "contrast": "Contrastes"
+      },
+      "growthEmpty": "Aquí puedes ver cómo evoluciona tu experiencia de citas. Las estadísticas aparecerán automáticamente cuando haya suficiente actividad para analizarlas.",
+      "currentPlan": "Plan actual: Klar",
+      "learnMore": "Descubre qué hace diferente a Klar+",
+      "chatLanguage": "Mi idioma de chat",
+      "appearance": {
+        "title": "Apariencia",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+      },
+      "smartConnectionNotifications": "Notificaciones inteligentes de conexión",
+      "smartConnectionNotificationsDescription": "Notificaciones push solo para conexiones superiores al 90 %",
+      "verified": "Verificado",
+      "basic": "Básico"
     }
   },
   "profileCheck": {
@@ -714,6 +753,42 @@
     "noOptimizations": "Todavía no hay optimizaciones.",
     "closePdf": "Cerrar vista previa del PDF",
     "pdfTitle": "Vista previa del PDF",
-    "avatar": "Foto de perfil"
+    "avatar": "Foto de perfil",
+    "ui": {
+      "analysisLoading": "Analizando el perfil …",
+      "ready": "¡Listo para crear más conexiones!",
+      "trendGain": "+{{trend}} puntos de potencial de conexión",
+      "analysis": "Análisis",
+      "scanning": "Gemini está analizando tu perfil …",
+      "tryAgain": "Intentar de nuevo",
+      "bioUpdated": "¡Biografía actualizada correctamente!",
+      "undo": "Deshacer",
+      "optimizedPreview": "Vista previa de la biografía optimizada",
+      "current": "Actual",
+      "optimized": "Optimizada",
+      "cancel": "Cancelar",
+      "applyNow": "Aplicar ahora",
+      "quickInsights": "Información rápida",
+      "whyScore": "¿Por qué esta puntuación?",
+      "analyzeNewFocus": "Analizar con un nuevo enfoque",
+      "personalizedSuggestions": "Sugerencias personalizadas",
+      "viewPreview": "Ver vista previa",
+      "exportReport": "Exportar informe",
+      "categories": {
+        "all": "Todos",
+        "languageStyle": "Estilo de escritura",
+        "interestFocus": "Enfoque en intereses",
+        "icebreakerQuality": "Calidad de las preguntas"
+      },
+      "scoreComposition": "Composición de la puntuación",
+      "trendLegend": "Leyenda de tendencia",
+      "scoreCompositionExplanation": "Composición específica de la puntuación en este momento:",
+      "trendLegendExplanation": "El gráfico muestra tu puntuación de compatibilidad. Un aumento indica que tu biografía es más auténtica y encaja mejor con la comunidad.",
+      "optimizationFocus": "Enfoque de optimización",
+      "apply": "Aplicar",
+      "close": "Cerrar",
+      "pdfPreview": "Vista previa del PDF",
+      "download": "Descargar ahora"
+    }
   }
 }
