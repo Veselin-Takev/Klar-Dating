@@ -57,6 +57,15 @@ test('CUJ 5: Profile safety and account controls have no serious or critical WCA
 test('SPA navigation moves keyboard focus to the main content landmark', async ({ page }) => {
   await enterGuestPreview(page);
   await completeAgeAndConsent(page);
+
+  // Consent completion exposes the dashboard, but first-run onboarding can
+  // still present its own modal overlay. Dismiss it through its accessible
+  // control before exercising pointer-driven SPA navigation.
+  const introduction = page.getByRole('dialog', { name: 'Willkommen bei Klar' });
+  await expect(introduction).toBeVisible();
+  await introduction.getByRole('button', { name: 'Einführung überspringen', exact: true }).click();
+  await expect(introduction).toBeHidden();
+
   await page.getByRole('link', { name: /Chats|Gespräche/ }).first().click();
   await expect(page).toHaveURL(/\/chats$/);
   await expect(page.locator('main#inhalt')).toBeFocused();
