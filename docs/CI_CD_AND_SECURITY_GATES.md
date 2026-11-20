@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `24a57615544f6a190e5a76900d49b65646a320b9` (PR #389 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee` (PR #390 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -275,12 +275,31 @@ The hardening branch `fix/e2e-cuj4-unroute-flake-and-handover-docs` is based on 
 
 On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterprise CI` Run #2188 / ID `44712275292` was **[TO VERIFY] / in progress** at this snapshot. `Enterprise Compliance & Security Audit Gate` Run #23 / ID `44712275190` completed **SUCCESS**: Gitleaks reported `no leaks found`; Tier 1 checked 549 production packages and found no High+ vulnerabilities. This Docs-as-Code follow-up creates a new PR HEAD; the exact-head CI and Audit Gate results for that new commit remain **[TO VERIFY]** until completed. `productionApproved=false` remains mandatory; no cloud, IAM, Firestore, Storage or deployment mutation is part of this work.
 
-## Verified main baseline for UX / Accessibility / i18n work (2026-11-20)
+## Historical main baseline after PR #389 — UX / Accessibility / i18n work (2026-11-20)
 
-- Baseline commit: PR #389 merge SHA and current `main` HEAD `24a57615544f6a190e5a76900d49b65646a320b9`; preceding PR #388 merge point `06d193e054651e74736bf7a0a6911bf954a20b84`.
+- Historical baseline commit: PR #389 merge SHA `24a57615544f6a190e5a76900d49b65646a320b9`; preceding PR #388 merge point `06d193e054651e74736bf7a0a6911bf954a20b84`. This historical baseline was superseded by PR #390 merge SHA `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`.
 - `Klar Enterprise CI` [Run #44717268425](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44717268425), exact SHA `24a57615544f6a190e5a76900d49b65646a320b9`: **SUCCESS**. Typecheck, Functions build, Tests (1,583 passed / 206 files), Build, Production Smoke and Browser Acceptance **34/34** passed. The configured `tests/e2e` suite includes CUJ-1 `cuj-onboarding-consent.spec.ts` and CUJ-4 `cuj-account-erasure.spec.ts`.
 - `Enterprise Compliance & Security Audit Gate` [Run #44717268456](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44717268456), same exact SHA: **SUCCESS**. Gitleaks **PASS** (`no leaks found`); Tier 1 Production Runtime Audit **PASS** (549 packages, no High+ vulnerabilities); Production Build **PASS**.
 - Full supply-chain advisory: existing High Zod dev-dependency finding `GHSA-mrhx-c7xc-m3w5`. It remains an advisory-only dependency follow-up. Do not modify packages or lockfiles in this workstream.
 - New branch `feat/ux-a11y-i18n-audit-and-governance-polish` is based directly on `24a57615544f6a190e5a76900d49b65646a320b9`. Its Draft PR's own Enterprise CI and Audit Gate Run IDs/conclusions remain **[TO VERIFY]** until verified against the final PR `head_sha`.
 - Anti-SHA-Chasing: preserve completed baseline Run IDs as immutable evidence. Do not make a self-referencing docs-only commit just to add the active PR's own Run IDs; report those IDs in the PR/final handover when available, without changing the validated HEAD.
 - Release authorization remains **NO-GO**; `productionApproved=false`.
+
+## Verified post-PR #390 main baseline and Zod remediation handover (2026-11-20)
+
+### Current main HEAD and immutable workflow evidence
+
+- PR #390 merged into `main`; verified merge SHA and `main` HEAD: `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`.
+- Historical PR #389 baseline `24a57615544f6a190e5a76900d49b65646a320b9` and its exact-head Run #44717268425 / #44717268456 evidence remain recorded in the historical section above; those results are not transferred to the newer SHA.
+- `Klar Enterprise CI` [Run #44739816147](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44739816147), exact SHA `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`: **SUCCESS**. Static Gates, Typecheck, Functions Build, Tests (**1,595 passed / 209 files / 0 failed**), Build, Production Smoke and Browser Acceptance (**35/35**) passed.
+- `Enterprise Compliance & Security Audit Gate` [Run #44739816099](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44739816099), same exact SHA: **SUCCESS**. Tier 1 Production Runtime Audit **PASS** (549 packages; no High+ runtime vulnerabilities). The post-merge Gitleaks step reported no leaks but scanned `0 commits` in its merge-event range. Pre-merge PR #390 Audit Gate [Run #44737576769](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44737576769) scanned 30 commits / approximately 45.62 KB cleanly (`no leaks found`) on PR HEAD `1a97eadd4d6094b7f95324078d598e15fb49c5e5`.
+- The full supply-chain audit on this baseline still reports High Zod advisory `GHSA-mrhx-c7xc-m3w5` in the Dev-inclusive graph; it is separate from Tier 1 and must remain visible until fixed and re-audited.
+
+### Isolated Zod dependency remediation — active Draft PR workstream
+
+- Branch `security/remediate-zod-advisory-ghsa-mrhx-c7xc-m3w5` starts at verified main SHA `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`. Dependency commit: `bdd4f68287fa56b47c77d8cc773a07becd28d3e9` (direct parent = exact main SHA).
+- `phase2_work/package.json` declares Puppeteer `^25.18.1`; `phase2_work/bun.lock` resolves Puppeteer and Puppeteer Core `25.18.1`, `chromium-bidi@157.0.8090-0` with Zod range `^4.6.5`, and retains direct Zod `4.6.6`. The vulnerable prior nested mapping `chromium-bidi/zod -> zod@3.25.76` is removed. The MCP SDK allows Zod `^3.25 || ^4.0`; no global Zod override or audit suppression was added.
+- The branch's Docs-as-Code synchronization is a separate commit after the dependency commit. Its resulting main-targeted PR remains **Draft / unmerged**; the final PR number and final PR HEAD are in GitHub PR metadata and the release handover.
+- New Draft PR's own exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` Run IDs, conclusions, full lockfile audit result, and proof that `GHSA-mrhx-c7xc-m3w5` is cleared: **[TO VERIFY]** pending hosted runs on the final PR `head_sha`. Do not transfer the PR #390 main-baseline Run IDs to the security-branch HEAD.
+- Preserve `bun audit --prod --audit-level=high` as a hard-fail Tier 1 gate. Preserve the Dev-inclusive `bun audit --audit-level=high` advisory reporting; do not ignore, suppress, or weaken either check.
+- `productionApproved=false` remains mandatory. No merge to `main`, cloud, IAM, Firestore, Storage or deployment mutation is authorized or performed by this workstream.

@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-20
-**Main HEAD (verified after PR #389 merge):** `24a57615544f6a190e5a76900d49b65646a320b9`
+**Main HEAD (verified after PR #390 merge):** `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -54,9 +54,9 @@ Other active candidates:
 
 PR #384's latest exact-head Audit Gate run failed because `re2js@2.8.6` remains in the production path `firebase > @firebase/firestore-compat > @firebase/firestore > re2js`. Advisory: GHSA-gg6h-894w-4m9c; fixed boundary `2.8.7`. This is a production hard-fail, not a dev-only advisory.
 
-### Documented dev-only Zod 3 exception
+### Historical dev-only Zod 3 resolution at the PR #389 baseline
 
-The current main lockfile records `chromium-bidi@17.0.2` with dependency `zod: ^3.24.1`, resolved as `chromium-bidi/zod -> zod@3.25.76`. `chromium-bidi` is pulled by `puppeteer` / `puppeteer-core`; `puppeteer` is declared under `devDependencies`. The direct application dependency remains `zod@4.6.6`. This specific lockfile path is a **dev-only transitive exception**, not evidence that the runtime graph uses Zod 3. Do not add a global override forcing Zod 3 to Zod 4. Resolve only through compatible parent updates and re-check with `bun why zod` when the graph changes.
+At the immutable PR #389 baseline (`24a57615544f6a190e5a76900d49b65646a320b9`), the lockfile recorded `chromium-bidi@17.0.2` with dependency `zod: ^3.24.1`, resolved as `chromium-bidi/zod -> zod@3.25.76`. `chromium-bidi` was pulled by `puppeteer` / `puppeteer-core`; `puppeteer` was declared under `devDependencies`. The direct application dependency was already `zod@4.6.6`. This was a **dev-only transitive exception**, not evidence that the runtime graph used Zod 3. Do not add a global override forcing Zod 3 to Zod 4. The isolated security branch updates Puppeteer to a version whose `chromium-bidi` dependency accepts Zod 4; its exact-PR hosted audit remains `[TO VERIFY]`.
 
 ## Hermetic Playwright critical-user-journey coverage
 
@@ -221,7 +221,7 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 - This Docs-as-Code follow-up changes the PR HEAD; exact-head CI and Audit Gate runs for the resulting new commit are **[TO VERIFY]** until they complete.
 - `productionApproved=false` remains unchanged; this merge and the green Audit Gate do not constitute production approval.
 
-## Verified MAIN_BASELINE_GREEN — UX / Accessibility / i18n workstream (2026-11-20)
+## Historical verified main baseline after PR #389 — UX / Accessibility / i18n workstream (2026-11-20)
 
 ### Immutable baseline and exact-head workflow evidence
 
@@ -232,3 +232,24 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 - Full-supply-chain/dev-dependency advisory: existing High Zod finding `GHSA-mrhx-c7xc-m3w5`. This is a separate, non-blocking dev-dependency follow-up, not a Tier 1 production-runtime failure. Do not change dependency manifests or lockfiles in this UX/a11y/i18n workstream.
 - Feature branch `feat/ux-a11y-i18n-audit-and-governance-polish` starts at the immutable verified SHA `24a57615544f6a190e5a76900d49b65646a320b9`. Its own Draft PR number/HEAD-bound CI and Audit Gate evidence remains **[TO VERIFY]** until PR creation and exact-head workflow completion.
 - `productionApproved=false` remains mandatory. This baseline is authorized for feature development only, not production release.
+
+## Verified MAIN_BASELINE_GREEN — post-PR #390 main baseline (2026-11-20)
+
+### Immutable main baseline and post-merge evidence
+
+- PR [#390](https://github.com/Veselin-Takev/Klar-Dating/pull/390) merged into `main` at `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`; the verified `main` HEAD matched this full merge SHA at the time of this handover.
+- Historical PR #389 baseline remains preserved above: `24a57615544f6a190e5a76900d49b65646a320b9`, with its own exact-head CI/Audit results unchanged.
+- `Klar Enterprise CI` [Run #44739816147](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44739816147), exact `head_sha` `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`: **SUCCESS**. Enterprise Static Gates, Typecheck, Functions Build, Tests (**1,595 passed / 209 files / 0 failed**), Build and Production Smoke passed. Browser Acceptance: **35/35 passed** (2.4m).
+- `Enterprise Compliance & Security Audit Gate` [Run #44739816099](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44739816099), same exact `head_sha`: **SUCCESS**. Tier 1 Production Runtime Audit **PASS**; `bun audit --prod --audit-level=high` found no High+ vulnerability across 549 checked packages.
+- Post-merge Gitleaks step in Run #44739816099 concluded successfully and reported no leaks, but its log states `0 commits scanned` for the merge-event `--no-merges --first-parent` range. The separate pre-merge PR #390 Audit Gate [Run #44737576769](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44737576769), exact PR HEAD `1a97eadd4d6094b7f95324078d598e15fb49c5e5`, scanned **30 commits / approximately 45.62 KB** and reported **no leaks found**.
+- The full supply-chain audit on the PR #390 merge baseline continued to report the High dev-dependency advisory `GHSA-mrhx-c7xc-m3w5`; it was advisory-only and did not change the Tier 1 production-runtime PASS.
+
+### Isolated Zod advisory remediation workstream
+
+- Security branch: `security/remediate-zod-advisory-ghsa-mrhx-c7xc-m3w5`.
+- Dependency commit `bdd4f68287fa56b47c77d8cc773a07becd28d3e9` is directly based on PR #390 merge SHA `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`; it changes `phase2_work/package.json` Puppeteer from `^25.11.0` to `^25.18.1` and updates `phase2_work/bun.lock`.
+- Lockfile resolution replaces `chromium-bidi@17.0.2` (dependency `zod: ^3.24.1`, nested `zod@3.25.76`) with `chromium-bidi@157.0.8090-0` (dependency `zod: ^4.6.5`). The direct application Zod remains `4.6.6`; the MCP SDK dependency range accepts `^3.25 || ^4.0`, allowing the patched root Zod 4.6.6. The old `chromium-bidi/zod` nested lock entry is removed. No global Zod-major override is added.
+- The repository owner reports that the dependency update and lockfile were generated and verified with Bun in Codespaces. This handover records the checked-in manifest/lockfile state; exact-HEAD hosted validation remains authoritative.
+- A new main-targeted Draft PR is being prepared from this branch. Its own `Klar Enterprise CI`, `Enterprise Compliance & Security Audit Gate`, and proof that `GHSA-mrhx-c7xc-m3w5` is absent from the resolved full dependency graph are **[TO VERIFY]** until the workflows complete against the final PR `head_sha`. Do not infer advisory clearance from the lockfile diff alone.
+- Do not weaken or suppress `bun audit --prod --audit-level=high` or the full supply-chain audit. Keep production runtime audit hard-fail and report the Dev-inclusive advisory separately until exact-head results prove it is cleared.
+- `productionApproved=false` remains mandatory. This baseline authorizes isolated development only, not production release. No merge, cloud, IAM, Firestore, Storage or deployment mutation is authorized by this handover.
