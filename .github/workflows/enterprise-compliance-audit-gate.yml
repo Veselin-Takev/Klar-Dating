@@ -68,7 +68,7 @@ jobs:
 
       - name: Gitleaks
         id: gitleaks
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0 (Node 24)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -92,7 +92,7 @@ jobs:
 
       - name: Post Truthful Audit Results to PR (Upsert)
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0 (Node 24)
         env:
           QUALITY_OUTCOME: ${{ steps.quality.outcome }}
           UNIT_TESTS_OUTCOME: ${{ steps.unit_tests.outcome }}

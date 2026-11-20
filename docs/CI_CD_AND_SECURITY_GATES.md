@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee` (PR #390 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `2f9a4349df652ee32246f29d1291c11136a8a769` (PR #391 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -285,7 +285,7 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - Anti-SHA-Chasing: preserve completed baseline Run IDs as immutable evidence. Do not make a self-referencing docs-only commit just to add the active PR's own Run IDs; report those IDs in the PR/final handover when available, without changing the validated HEAD.
 - Release authorization remains **NO-GO**; `productionApproved=false`.
 
-## Verified post-PR #390 main baseline and Zod remediation handover (2026-11-20)
+## Historical post-PR #390 main baseline and Zod remediation handover (2026-11-20)
 
 ### Current main HEAD and immutable workflow evidence
 
@@ -299,7 +299,23 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 
 - Branch `security/remediate-zod-advisory-ghsa-mrhx-c7xc-m3w5` starts at verified main SHA `8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee`. Dependency commit: `bdd4f68287fa56b47c77d8cc773a07becd28d3e9` (direct parent = exact main SHA).
 - `phase2_work/package.json` declares Puppeteer `^25.18.1`; `phase2_work/bun.lock` resolves Puppeteer and Puppeteer Core `25.18.1`, `chromium-bidi@157.0.8090-0` with Zod range `^4.6.5`, and retains direct Zod `4.6.6`. The vulnerable prior nested mapping `chromium-bidi/zod -> zod@3.25.76` is removed. The MCP SDK allows Zod `^3.25 || ^4.0`; no global Zod override or audit suppression was added.
-- The branch's Docs-as-Code synchronization is a separate commit after the dependency commit. Its resulting main-targeted PR remains **Draft / unmerged**; the final PR number and final PR HEAD are in GitHub PR metadata and the release handover.
-- New Draft PR's own exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` Run IDs, conclusions, full lockfile audit result, and proof that `GHSA-mrhx-c7xc-m3w5` is cleared: **[TO VERIFY]** pending hosted runs on the final PR `head_sha`. Do not transfer the PR #390 main-baseline Run IDs to the security-branch HEAD.
+- The branch was submitted as Draft PR [#391](https://github.com/Veselin-Takev/Klar-Dating/pull/391), final PR HEAD 622ae73514ba212caec8397600b821648558680d. PR #391 is now merged into main at 2f9a4349df652ee32246f29d1291c11136a8a769; its post-merge exact-main evidence is documented in the current baseline section below.
+- PR #391 exact-head validation: Klar Enterprise CI [Run #44745959136](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44745959136) **SUCCESS** (1,595 tests / 209 files; Browser Acceptance 35/35); Enterprise Compliance & Security Audit Gate [Run #44745959150](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44745959150) **SUCCESS** (Gitleaks scanned 2 commits / approximately 11.01 KB with no leaks; Tier 1 549 packages and full supply chain 1,245 packages with no High+ findings). The full resolved graph no longer reports GHSA-mrhx-c7xc-m3w5. These PR-head results are not transferred to the merge SHA; post-merge evidence is listed separately below.
 - Preserve `bun audit --prod --audit-level=high` as a hard-fail Tier 1 gate. Preserve the Dev-inclusive `bun audit --audit-level=high` advisory reporting; do not ignore, suppress, or weaken either check.
 - `productionApproved=false` remains mandatory. No merge to `main`, cloud, IAM, Firestore, Storage or deployment mutation is authorized or performed by this workstream.
+
+
+## Verified MAIN_BASELINE_GREEN — post-PR #391 main baseline (2026-11-20)
+
+- PR #391 merged into main; exact merge SHA and verified live main HEAD: 2f9a4349df652ee32246f29d1291c11136a8a769. This supersedes the PR #390 baseline 8352eeec82325f9a9bd3a0b2dcf90a5e33ac53ee; retain the PR #390 and PR #389 run evidence above as immutable historical records for their own SHAs.
+- Klar Enterprise CI [Run #44747921722](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44747921722), exact SHA 2f9a4349df652ee32246f29d1291c11136a8a769: **SUCCESS**. Enterprise Static Gates, Typecheck, Functions Build, Tests (1,595 passed / 209 files / 0 failed), Build, Production Smoke, and Browser Acceptance (35/35 passed / 0 failed) all passed.
+- Enterprise Compliance & Security Audit Gate [Run #44747921914](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44747921914), same exact SHA: **SUCCESS**. Gitleaks reported no leaks; Tier 1 Production Runtime Audit **PASS** (549 packages, 0 High+); Full Supply-Chain Audit **PASS** (1,245 packages, 0 High+). The full dependency graph retains seven findings below the configured High threshold and the production runtime graph three below that threshold. GHSA-mrhx-c7xc-m3w5 is cleared from the resolved graph.
+- Gitleaks coverage caveat: the post-merge push-event scan used --no-merges --first-parent and logged 0 commits scanned. Actual PR #391 content was scanned in pre-merge exact-head Audit Gate [Run #44745959150](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44745959150): 2 commits / approximately 11.01 KB, no leaks. Do not overstate the post-merge scan's coverage.
+- productionApproved=false and release NO-GO remain mandatory.
+
+## GitHub Actions Node 24 maintenance — active Draft workstream
+
+- Base: main at 2f9a4349df652ee32246f29d1291c11136a8a769; branch: chore/ci-actions-node24-maintenance.
+- Only .github/workflows/enterprise-compliance-audit-gate.yml needs changes for the two identified Node 20 actions. gitleaks/gitleaks-action changes from ff98106e4c7b2bc287b24eaf42907196329070c7 to e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e (v3.0.0, runs.using: node24); actions/github-script changes from f28e40c7f34bde8b3046d885e986cb6290c5673b to 3a2844b7e9c422d3c10d287c895573f7108da1b3 (v9.0.0, runs.using: node24). Both are pinned to exact 40-character commit SHAs with release comments.
+- The existing github-script source uses github and context; it does not require @actions/github via CommonJS or redeclare getOctokit, the v9 migration hazards. No inputs, permissions, security controls, audit commands, CI gates, app dependencies, or lockfiles are altered. All other workflow references remain full-SHA pins.
+- New Draft PR final HEAD, exact-head CI and Audit Gate Run IDs/status/conclusions, and confirmation that GitHub Actions logs no longer emit a Node 20 deprecation warning: **[TO VERIFY]** pending hosted validation. Follow AGENTS.md Anti-SHA-Chasing: report exact Run IDs in final handover/PR metadata; do not create a self-referential docs-only follow-up commit.
