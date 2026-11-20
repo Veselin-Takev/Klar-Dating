@@ -77,7 +77,9 @@
   "resilience_match_fallback": "Network connection limited. Showing cached suggestions.",
   "accessibility": {
     "skipToContent": "Skip to content",
-    "mainNav": "Main navigation"
+    "mainNav": "Main navigation",
+    "mainContent": "Main content",
+    "profileSections": "Profile sections"
   },
   "navigationLabels": {
     "discover": "Discover: View new suggestions",
@@ -348,7 +350,11 @@
         "description": "Klar processes age information and consent with purpose limitation and server-side privacy controls.",
         "source": "European Commission"
       }
-    }
+    },
+    "unseenSingle": "{{count}} new update",
+    "unseenPlural": "{{count}} new updates",
+    "openUpdatesAriaSingle": "{{count}} new legal update. Activate to open updates.",
+    "openUpdatesAriaPlural": "{{count}} new legal updates. Activate to open updates."
   },
   "dashboardOnboarding": {
     "steps": [
@@ -373,5 +379,75 @@
     "skip": "Skip introduction",
     "next": "Next",
     "start": "Get started"
+  },
+  "offline": {
+    "message": "No connection. Displayed content may be out of date.",
+    "lastSynced": "Last synced: {{time}}"
+  },
+  "consentCenter": {
+    "title": "Privacy and consent",
+    "description": "Optional processing can be controlled separately. Every change is recorded atomically on the server.",
+    "purposes": {
+      "aiAnalysis": {
+        "label": "AI analysis",
+        "description": "Processing for optional coaching and AI features."
+      },
+      "errorReports": {
+        "label": "Error reports",
+        "description": "Technical diagnostics to improve stability."
+      },
+      "productAnalytics": {
+        "label": "Product analytics",
+        "description": "Optional usage analytics to improve the product."
+      }
+    },
+    "status": {
+      "allowed": "Allowed",
+      "notAllowed": "Not allowed"
+    },
+    "actions": {
+      "grant": "Allow",
+      "withdraw": "Withdraw"
+    },
+    "saving": "Saving …",
+    "messages": {
+      "granted": "Consent has been granted.",
+      "revoked": "Consent has been withdrawn.",
+      "failed": "The change could not be confirmed. Please try again."
+    }
+  },
+  "datePrep": {
+    "title": "Date preparation checklist",
+    "close": "Close checklist",
+    "description": "Personalized conversation topics based on {{name}}’s profile.",
+    "loading": "Generating topics …",
+    "regenerate": "Generate new topics",
+    "defaultPlace": "coffee",
+    "defaultInterest": "travel",
+    "fallbackPlace": "Ask about favorite places for {{interest}}",
+    "fallbackHighlight": "Discuss a recent highlight related to {{interest}}",
+    "fallbackAnecdote": "Ask for a funny anecdote"
+  },
+  "theme": {
+    "switchToDark": "Switch to dark appearance",
+    "switchToSystem": "Switch to system appearance",
+    "switchToLight": "Switch to light appearance",
+    "light": "Light appearance",
+    "dark": "Dark appearance",
+    "system": "System appearance (auto)"
+  },
+  "profileTabs": {
+    "profile": "Profile",
+    "growth": "Growth",
+    "partners": "Klar & partners",
+    "settings": "Settings"
+  },
+  "app": {
+    "loading": "Loading",
+    "offline": {
+      "title": "No internet connection",
+      "description": "Check your connection and try again.",
+      "reload": "Reload"
+    }
   }
 }
