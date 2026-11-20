@@ -17,7 +17,7 @@ import { ImageCropperModal } from "../components/ImageCropperModal";
 import { ladeProfilfotoHoch } from "../lib/klar";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { askAICoach, askAIList, parseProfileImport, optimizeProfileApi } from "../lib/api";
-// BEFUND 10.08.2026: downloadRadarImage war am Knopf "Als Bild exportieren"
+// BEFUND 10.08.2026: downloadRadarImage war am Knopf "{t('profileScreen.ui.exportImage')}"
 // angebunden, aber nirgends definiert -- Absturz beim Rendern des Profils.
 // Der Behaelter traegt bereits id="werte-radar-container"; die Funktion war
 // also vorgesehen und nur nie geschrieben. toPng ist dieselbe Bibliothek,
@@ -157,7 +157,7 @@ function OfflineCacheStatus() {
 // aktiv", obwohl sie eingeschaltet war. Kein Fehler, keine Meldung.
 //
 // ── 4. NEUN MAL `JSON.parse` OHNE PRÜFUNG, SECHS LEERE `catch (e) { console.warn(e); ; }` ─────
-// Darunter der Bio-Verlauf, der zwei Formate kennt (alte Zeichenketten,
+// Darunter der Bio-{t('profileScreen.ui.history')}, der zwei Formate kennt (alte Zeichenketten,
 // neue Objekte) und beide ungeprüft weiterreichte.
 //
 // ── 5. ZWEI ANFRAGEN OHNE STATUSPRÜFUNG ───────────────────────────────────
@@ -395,7 +395,7 @@ export default function Profile() {
     }
     try {
       const datenUrl = await toPng(behaelter, {
-        // Ohne Hintergrund waere das PNG durchsichtig und im Dunkelmodus
+        // Ohne Hintergrund waere das PNG durchsichtig und im {t('profileScreen.ui.appearance.dark')}modus
         // unlesbar. cacheBust verhindert veraltete Schriftschnitte.
         backgroundColor: document.documentElement.classList.contains('dark')
           ? '#1c1917'
@@ -578,7 +578,7 @@ export default function Profile() {
     const savedBio = getUserStorageItem('klar_user_bio');
     if (savedBio) setUserBio(savedBio);
 
-    // Der Bio-Verlauf lag frueher als reine Zeichenketten-Liste vor. Die
+    // Der Bio-{t('profileScreen.ui.history')} lag frueher als reine Zeichenketten-Liste vor. Die
     // Umstellung auf { text, timestamp } bleibt erhalten — jetzt aber ohne
     // die Annahme, dass alle Eintraege dieselbe Form haben.
     const savedBioHistory = klarStorage.getItem("klar_bio_history");
@@ -906,8 +906,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true) || t('profileScreen.name.missing')}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
-            {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title={t('profileScreen.header.verified')}>
+            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.email{t('profileScreen.ui.verified')} === true) || t('profileScreen.name.missing')}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
+            {profileData?.is{t('profileScreen.ui.verified')} === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title={t('profileScreen.header.verified')}>
               <ShieldCheck size={16} />
             </div>}
           </div>
@@ -986,17 +986,17 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <div>
                 <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                   <Wand2 size={16} className="text-brand dark:text-brand-light" />
-                  Profil automagisch ausfüllen
+                  {t('profileScreen.ui.importTitle')}
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Füge deinen LinkedIn-Text oder Notizen ein.
+                  {t('profileScreen.ui.importDescription')}
                 </p>
               </div>
               <button
                 onClick={() => setShowImport(true)}
                 className="px-4 py-2 bg-brand dark:bg-brand-light text-white dark:text-stone-900 rounded-full text-sm font-medium"
               >
-                Starten
+                {t('profileScreen.ui.start')}
               </button>
             </div>
           ) : (
@@ -1037,7 +1037,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         <div className="mt-8">
           {/* ENTFERNT: ChatResponseTimeWidget — die Reaktionszeiten kamen
-              aus `0`. Bei jedem Neuladen ein anderer Verlauf. */}
+              aus `0`. Bei jedem Neuladen ein anderer {t('profileScreen.ui.history')}. */}
         </div>
         <div className="mt-4">
           <MoodCalendarGridWidget />
@@ -1049,10 +1049,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div>
               <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                 <Sparkles size={16} className="text-indigo-500" />
-                Profil optimieren
+                {t('profileScreen.ui.optimizeTitle')}
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Mach dein Profil ansprechender mit KI.
+                {t('profileScreen.ui.optimizeDescription')}
               </p>
             </div>
             <button
@@ -1089,7 +1089,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   onClick={() => setOptimizedData(null)}
                   className="flex-1 py-2 bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-medium transition-colors hover:bg-stone-300 dark:hover:bg-stone-700"
                 >
-                  Verwerfen
+                  {t('profileScreen.ui.discard')}
                 </button>
                 <button
                   onClick={() => {
@@ -1292,7 +1292,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${showHistory ? 'bg-brand/10 dark:bg-brand-light/10 text-brand dark:text-brand-light' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'}`}
                 >
                   <History size={14} />
-                  Verlauf
+                  {t('profileScreen.ui.history')}
                 </button>
               )}
 
@@ -1346,7 +1346,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="px-4 py-1.5 bg-brand dark:bg-brand-light text-white dark:text-stone-900 text-xs font-semibold rounded-lg hover:opacity-90"
                 >
-                  Speichern
+                  {t('profileScreen.ui.save')}
                 </button>
               </div>
             </div>
@@ -1384,7 +1384,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         className="text-xs font-medium text-brand dark:text-brand-light hover:opacity-80 transition-opacity flex items-center gap-1"
                       >
                         <RefreshCw size={12} />
-                        Wiederherstellen
+                        {t('profileScreen.ui.restore')}
                       </button>
                     </div>
                   </div>
@@ -1398,7 +1398,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           {valueBioSuggestions.length > 0 && (
             <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl space-y-2">
               <h4 className="text-xs font-semibold text-purple-700 dark:text-purple-400 flex items-center gap-1 mb-2">
-                <Sparkles size={12} /> Werte-Optimierung
+                <Sparkles size={12} /> {t('profileScreen.ui.valueOptimization')}
               </h4>
               {valueBioSuggestions.map((sug, idx) => (
                 <div key={idx} className="bg-white dark:bg-stone-800 p-2 rounded-lg text-[10px] text-stone-700 dark:text-stone-300 shadow-sm border border-stone-100 dark:border-stone-700">
@@ -1470,7 +1470,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="flex-1 py-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-xl text-xs font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
                 >
-                  Verwerfen
+                  {t('profileScreen.ui.discard')}
                 </button>
                 <button
                   onClick={() => {
@@ -1484,7 +1484,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="flex-1 py-2 bg-brand dark:bg-brand-light text-white dark:text-stone-900 rounded-xl text-xs font-medium hover:opacity-90 transition-opacity"
                 >
-                  Apply
+                  {t('profileScreen.ui.apply')}
                 </button>
               </div>
             </div>
@@ -1499,10 +1499,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div>
               <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                 <Sparkles size={16} className="text-brand dark:text-brand-light" />
-                Deine Icebreaker
+                {t('profileScreen.ui.icebreakersTitle')}
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Fragen, die Verbindungen auf deinem Profil sehen.
+                {t('profileScreen.ui.icebreakersDescription')}
               </p>
             </div>
 
@@ -1591,7 +1591,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         onClick={dismissRadarTutorial}
                         className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors"
                       >
-                        Verstanden
+                        {t('profileScreen.ui.understood')}
                       </button>
                     </div>
                   </motion.div>
@@ -1653,13 +1653,13 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 onClick={() => setShowRadarSettings(!showRadarSettings)}
                 className="text-xs flex items-center gap-1 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
               >
-                <Settings size={14} /> Farben anpassen
+                <Settings size={14} /> {t('profileScreen.ui.customizeColors')}
               </button>
               <button
                 onClick={downloadRadarImage}
                 className="text-xs flex items-center gap-1 text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400 font-medium"
               >
-                <Download size={14} /> Als Bild exportieren
+                <Download size={14} /> {t('profileScreen.ui.exportImage')}
               </button>
             </div>
 
@@ -1708,25 +1708,25 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('all'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'all' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Alle
+                  {t('profileScreen.ui.filters.all')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('similarities'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'similarities' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Ähnlichkeiten
+                  {t('profileScreen.ui.filters.similarity')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('complements'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'complements' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Ergänzungen
+                  {t('profileScreen.ui.filters.complement')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('contrasts'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'contrasts' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Kontraste
+                  {t('profileScreen.ui.filters.contrast')}
                 </button>
               </div>
             )}
@@ -1916,12 +1916,12 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
           <SmartPause />
           {/* ENTFERNT 11.08.2026 — <ThemeSettingsWidget />.
-              Dritte Hell/Dunkel/System-Wahl auf derselben Seite, und die
+              Dritte {t('profileScreen.ui.appearance.light')}/{t('profileScreen.ui.appearance.dark')}/{t('profileScreen.ui.appearance.system')}-Wahl auf derselben Seite, und die
               dritte, die nach `klarStorage['theme']` schrieb statt nach
               `klar_theme`. Sie war damit ohne dauerhafte Wirkung und
               konnte einen anderen Zustand anzeigen als die beiden
-              anderen. Geblieben sind die Systemleiste oben (schneller
-              Wechsel) und "Einstellungen -> Erscheinungsbild" weiter
+              anderen. Geblieben sind die {t('profileScreen.ui.appearance.system')}leiste oben (schneller
+              Wechsel) und "Einstellungen -> {t('profileScreen.ui.appearance.title')}" weiter
               unten (vollstaendige Wahl, ueber useTheme).
               Die Datei src/components/ThemeSettingsWidget.tsx wird damit
               von niemandem mehr benutzt und ist zu loeschen. */}
@@ -1939,7 +1939,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         {/* ── KLAR+ 14.08.2026 ─────────────────────────────────────────
             Vorher standen hier 75 Zeilen Vergleichstabelle (acht Zeilen mal
             drei Spalten, rund 600 px) zwischen der Fokuszeit und der
-            Erscheinungsbild-Wahl — und darunter ein Knopf „Klar+ entdecken"
+            {t('profileScreen.ui.appearance.title')}-Wahl — und darunter ein Knopf „Klar+ entdecken"
             ohne `onClick`.
 
             Jetzt: eine Zeile, die dauerhaft auffindbar ist, und die Seite
@@ -1956,10 +1956,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <Zap size={18} className="text-brand dark:text-brand-light shrink-0" aria-hidden="true" />
           <span className="flex-1">
             <span className="block text-sm font-medium text-stone-900 dark:text-stone-100">
-              Aktueller Plan: Klar
+              {t('profileScreen.ui.currentPlan')}
             </span>
             <span className="block text-xs text-stone-500 dark:text-stone-400">
-              Was Klar+ anders macht ansehen
+              {t('profileScreen.ui.learnMore')}
             </span>
           </span>
           <ChevronRight size={18} className="text-stone-400 shrink-0" aria-hidden="true" />
@@ -1977,7 +1977,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className={settingsCategory === 'privacy' ? 'mt-6' : 'hidden'}>
               <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
                 <ShieldCheck size={18} className="text-stone-500" />
-                Datenschutz & Sichtbarkeit
+                {t('profileScreen.settings.privacyCategory')}
               </h4>
               <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
                 <p className="text-xs text-stone-500 mb-4">{t('profileScreen.settings.visibilityHint')}</p>
@@ -2014,7 +2014,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className={settingsCategory === 'preferences' ? 'space-y-4' : 'hidden'}>
             <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
               <Languages size={18} className="text-stone-500" />
-              Meine Chat-Sprache
+              {t('profileScreen.ui.chatLanguage')}
             </h4>
             <div className="mb-6 flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
               {['de', 'en', 'es', 'fr'].map(lang => {
@@ -2033,7 +2033,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
             <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
               <Sun size={18} className="text-stone-500" />
-              Erscheinungsbild
+              {t('profileScreen.ui.appearance.title')}
             </h4>
             <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
               <button
@@ -2041,21 +2041,21 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'light' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Sun size={14} />
-                Hell
+                {t('profileScreen.ui.appearance.light')}
               </button>
               <button
                 onClick={() => setTheme('dark')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'dark' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Moon size={14} />
-                Dunkel
+                {t('profileScreen.ui.appearance.dark')}
               </button>
               <button
                 onClick={() => setTheme('system')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'system' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Monitor size={14} />
-                System
+                {t('profileScreen.ui.appearance.system')}
               </button>
             </div>
           </div>
@@ -2066,10 +2066,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <BellRing size={20} className="text-stone-500 dark:text-stone-400" />
               <div>
                 <span className="block text-sm font-medium text-stone-700 dark:text-stone-300">
-                  Smart Verbindung Benachrichtigungen
+                  {t('profileScreen.ui.smartConnectionNotifications')}
                 </span>
                 <span className="block text-xs text-stone-500 dark:text-stone-400">
-                  Push-Alerts nur für Verbindungen über 90%
+                  {t('profileScreen.ui.smartConnectionNotificationsDescription')}
                 </span>
               </div>
             </div>
@@ -2155,18 +2155,18 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
                   {t('profileSafety.verificationLevel')}
                 </span>
-                {profileData?.isVerified ? (
+                {profileData?.is{t('profileScreen.ui.verified')} ? (
                   <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-brand/10 text-brand border-brand/20 dark:bg-brand-light/10 dark:text-brand-light dark:border-brand-light/20 flex items-center gap-1.5">
-                    <ShieldCheck size={14} /> Verified
+                    <ShieldCheck size={14} /> {t('profileScreen.ui.verified')}
                   </span>
                 ) : (
                   <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-700 dark:text-stone-400 dark:border-stone-600">
-                    Basic
+                    {t('profileScreen.ui.basic')}
                   </span>
                 )}
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">
-                {profileData?.isVerified ? t('profileSafety.verifiedDescription') : t('profileSafety.basicDescription')}
+                {profileData?.is{t('profileScreen.ui.verified')} ? t('profileSafety.verifiedDescription') : t('profileSafety.basicDescription')}
               </p>
 
               <div className="flex gap-2">
@@ -2175,7 +2175,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   className="flex-1 flex items-center justify-between p-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 rounded-lg transition-colors"
                 >
                   <span className="text-sm text-stone-700 dark:text-stone-300">
-                    {profileData?.isVerified ? t('profileSafety.viewVerification') : t('profileSafety.verifyNow')}
+                    {profileData?.is{t('profileScreen.ui.verified')} ? t('profileSafety.viewVerification') : t('profileSafety.verifyNow')}
                   </span>
                   <ChevronRight size={18} className="text-stone-400" />
                 </Link>
