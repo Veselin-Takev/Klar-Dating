@@ -506,7 +506,8 @@
       "quality": "Calidad de la conexión",
       "verified": "Verificado",
       "locationMissing": "Ubicación no indicada",
-      "focusTime": "Tiempo de concentración"
+      "focusTime": "Tiempo de concentración",
+      "cover": "Imagen de portada del perfil"
     },
     "name": {
       "missing": "Añade tu nombre al perfil",
@@ -712,6 +713,7 @@
     "tip": "Consejo de IA:",
     "noOptimizations": "Todavía no hay optimizaciones.",
     "closePdf": "Cerrar vista previa del PDF",
-    "pdfTitle": "Vista previa del PDF"
+    "pdfTitle": "Vista previa del PDF",
+    "avatar": "Foto de perfil"
   }
 }
