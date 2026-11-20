@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
-**Snapshot:** 2026-11-19  
-**Main HEAD:** `191ce9b64205ff1e523093cf1fa3d9a523daf0e1`  
+**Snapshot:** 2026-11-20
+**Main HEAD (verified for Issue #374 integration):** `13cce96660ba4a35d54c222e9eeae2e31f260863`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -32,7 +32,7 @@ GitHub reported **198 open PRs: 196 Draft and 2 non-Draft**. The full inventory 
 
 Verified dependency order:
 1. Package B [#381](https://github.com/Veselin-Takev/Klar-Dating/pull/381) is merged and provides the base branch for Package C.
-2. Package C [#382](https://github.com/Veselin-Takev/Klar-Dating/pull/382) precedes Package D [#383](https://github.com/Veselin-Takev/Klar-Dating/pull/383), because #383 targets #382's branch. Both are Draft. Latest observed CI: #382 success, run [44566140085](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44566140085); #383 success, run [44312127379](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44312127379). Draft and independent review still block merge.
+2. Package C [#382](https://github.com/Veselin-Takev/Klar-Dating/pull/382) and Package D [#383](https://github.com/Veselin-Takev/Klar-Dating/pull/383) are now merged in sequence. #382 merge commit: `30690f549f7eac1b925076b1227ee5508845eae0` (2026-11-20 07:37:37 UTC); #383 merge commit: `1b30ea60dc9acab31020533fd55ba1cf69feaf33` (2026-11-20 07:38:33 UTC). The current Issue #374 integration consolidation and exact merge parents are recorded in the 2026-11-20 addendum below.
 3. Integration candidate [#353](https://github.com/Veselin-Takev/Klar-Dating/pull/353) precedes deletion-fence Package A [#378](https://github.com/Veselin-Takev/Klar-Dating/pull/378), because #378 targets #353's branch. Both remain Draft; this dependency chain is not production approval.
 
 Other active candidates:
@@ -131,3 +131,68 @@ The separate `Enterprise Compliance & Security Audit Gate` [run #44616052794](ht
 **Synchronization correction in this commit:** the route handler now resolves a typed `capturePromise` only after it has read the upstream status and parsed the complete JSON receipt. It rejects that promise if request/response capture fails. The test awaits `Promise.all([capturePromise, finalDeleteButton.click()])` before asserting HTTP 202 and receipt/requestId, then unregisters the route with `page.unroute(deletionRoute)`. This ensures test teardown cannot dispose the request context before capture has completed. All Art. 17 assertions remain unchanged: 202, pending receipt/requestId, pending deletion record, public-profile 404, verification revocation, UID-scoped localStorage cleanup and global theme preservation. No fixed sleeps were added.
 
 New exact-head CI for this synchronization correction: **[TO VERIFY]** until the newly triggered workflows complete. `productionApproved=false`; PR #387 remains open/Draft/unmerged.
+
+
+### PR #382 — missing deletion progress type import (2026-11-19)
+
+**Verified failure baseline:** PR #382 HEAD `4e203ee7383cd954003db0f4b2609b7e86ac85e9`, `Klar Enterprise CI` [run #44623218511](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44623218511) completed **FAILURE**. Typecheck stopped at `tests/accountErasure.spec.ts(150,85)` with TS2552: `Cannot find name 'DeletionStoragePageComplete'. Did you mean 'DeletionPageComplete'?`. The subsequent Functions build, Tests, Build, Production smoke and Browser acceptance steps were skipped; this run provides no 34/34 Playwright evidence.
+
+**Type correction in this follow-up:** `DeletionStoragePageComplete` is already exported by `src/server/deletionProgress.ts` and is imported/used by `tests/deletionLifecycle.spec.ts`. `accountErasure.spec.ts` already asserted `purgeAccountData(...)` rejects with an instance of that exact storage-page sentinel but omitted it from its named import. The test now imports both `DeletionPageComplete` and `DeletionStoragePageComplete` from the existing module. The runtime assertion and all other test assertions are unchanged. No TypeScript compiler options, strictness settings or project references were changed.
+
+**Audit workflow trigger scope:** `.github/workflows/enterprise-compliance-audit-gate.yml` has `pull_request` with `branches: [main]`, plus `push` for `main` and `release/*`, and `workflow_dispatch`. PR #382 is stacked on `security/issue-374-client-media-cutover-20261118`, not `main`; its pull-request event therefore does not automatically trigger this audit workflow. Exact-HEAD audit evidence for a stacked PR requires manually dispatching this workflow against the intended feature-branch ref and verifying the resulting run's `head_sha` equals the PR HEAD. No manual audit dispatch was initiated in this change.
+
+**Verified validation for the type-import commit `02de612e6b34a4078ed958e7cf482f558efb75cc`:** `Klar Enterprise CI` [run #44624709849](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44624709849) completed **SUCCESS** on that exact HEAD. Typecheck, Functions build, Tests, Build, Production Smoke and Browser Acceptance succeeded; the Browser Acceptance log records **34 passed (2.4m)**. The subsequent manual `Enterprise Compliance & Security Audit Gate` [run #44629915925](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44629915925), also on that exact SHA, failed at Gitleaks; the production runtime dependency audit and production build were skipped. The failure diagnosis and exact-fingerprint remediation are recorded below. No Tier 1 Production Audit PASS is inferred from the skipped step.
+
+`productionApproved=false` remains mandatory. PR #382 remains open and Draft; do not merge. PR #383 and `main` are out of scope. No cloud, IAM, deployment, Firestore or Storage mutation is authorized or performed.
+
+### PR #382 — manual Audit Gate Run #17 Gitleaks failure and exact-fingerprint remediation (2026-11-19)
+
+**Exact failure evidence:** PR #382 HEAD `02de612e6b34a4078ed958e7cf482f558efb75cc`; `Enterprise Compliance & Security Audit Gate` [Run #17 / ID 44629915925](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44629915925), event `workflow_dispatch`, branch `security/issue-374-package-c-upload-cutover-20261118`, completed **FAILURE**. The only failing step was **Gitleaks** (step 9, action using Gitleaks 8.24.3). Quality / TypeScript, Unit Tests and Compliance & Security Checks all passed. Gitleaks scanned 3,706 commits and reported 18 findings; it emitted artifact `gitleaks-results.sarif.zip` (artifact ID `14580783462`). The hard-fail production runtime dependency audit (Tier 1) and Production Build were skipped after Gitleaks failed. The full dependency audit ran as advisory and reported the existing High Zod advisory `GHSA-mrhx-c7xc-m3w5`; this did not cause the job failure.
+
+**Finding classification (no secret values copied into this record):** the 18 exact findings are historical false positives in SHA-256 evidence digests (`OPERATIONAL_VERIFICATION.json`, `LEGACY_ADMIN_ACCESS.json`), documentation lines containing policy/reference material, synthetic test-only `leaseToken`/HMAC/consent values and a public-key parser fixture, plus the `apiKey` field in the checked-in Firebase web-app configuration. Firebase documents Firebase web-app API keys as public project/app identifiers, with authorization enforced by IAM, Security Rules and App Check; the specific cloud restrictions for these project keys were not checked or changed in this task. The test and evidence values were confirmed in their historical source contexts. No credential values are recorded here.
+
+**Minimal remediation:** add root `.gitleaksignore` with exactly the 18 commit/path/rule/line fingerprints emitted by Run #17. This is an exact-fingerprint exception for these historical occurrences only. It does not add path-wide or rule-wide exclusions, alter Gitleaks rules/configuration, reduce the 3,706-commit scan scope, change the Gitleaks action, exit code or `continue-on-error` behavior, or suppress future occurrences with different fingerprints. Gitleaks remains a hard-fail step; newly introduced and otherwise unmatched findings still fail the workflow.
+
+**New commit validation:** new `Klar Enterprise CI` exact-HEAD run: **[TO VERIFY]** until GitHub Actions completes. New `Enterprise Compliance & Security Audit Gate` exact-HEAD `workflow_dispatch`: **[TO VERIFY]** until a manual dispatch is made against the new branch HEAD and the Tier 1 Production Runtime Audit is shown as PASS. Run #17 on the previous SHA is historical failure evidence, not a PASS for the remediation commit.
+
+Historical snapshot from 2026-11-19 during PR #382 remediation: PR #382 was then open and Draft. PR #382 and PR #383 were subsequently merged on 2026-11-20; see the Issue #374 addendum below for their merge SHAs and the consolidated integration state. `productionApproved=false` remains mandatory. No cloud, IAM, deployment, Firestore or Storage mutation was performed.
+
+## Issue #374 — Package C + D consolidated integration handover (2026-11-20)
+
+**Release decision: NO-GO.** productionApproved=false remains unchanged. This integration is a Draft review candidate only; green CI or merged code does not authorize production rollout.
+
+### Verified merged PR chain
+
+- PR #381 (Package B / authenticated client profile-media foundation): merged 2026-11-19 10:17:00 UTC; merge commit 5d6f2e9972111d23d64f1df4af43f0ac475fdfd3.
+- PR #382 (Package C / legacy profile upload and token inventory): merged 2026-11-20 07:37:37 UTC; merge commit 30690f549f7eac1b925076b1227ee5508845eae0.
+- PR #383 (Package D / profile-media migration and staged token-revocation plan): merged 2026-11-20 07:38:33 UTC; merge commit 1b30ea60dc9acab31020533fd55ba1cf69feaf33.
+
+These merge states supersede the earlier entries above that describe PR #382 or #383 as open/Draft. Those entries remain historical run-specific evidence, not current lifecycle status.
+
+### Integration consolidation
+
+- Authorized integration branch: security/issue-374-client-media-cutover-20261118.
+- Exact pre-merge integration HEAD: 30690f549f7eac1b925076b1227ee5508845eae0 (PR #382 merge).
+- Exact Package C source HEAD containing Package D: 1b30ea60dc9acab31020533fd55ba1cf69feaf33 (PR #383 merge).
+- Standard git merge --no-edit completed with the ort strategy and no conflicts. Consolidation merge commit: 0d9a058d90de148c62f8f89c4d7fb0d97054ad2d; parents, in order: 30690f549f7eac1b925076b1227ee5508845eae0 and 1b30ea60dc9acab31020533fd55ba1cf69feaf33. No rebase, force-push or history rewrite was used.
+- All four Package D documents are present under phase2_work/docs/security/: ISSUE_374_ENTERPRISE_REVIEW_DOSSIER.md, ISSUE_374_EXECUTIVE_SUMMARY.md, ISSUE_374_RELEASE_TRACKING.md, and PACKAGE_D_MIGRATION_AND_REVOCATION_PLAN.md (815 inserted lines total).
+- Main synchronization at this consolidation point: main HEAD 13cce96660ba4a35d54c222e9eeae2e31f260863; git rev-list --left-right --count origin/main...HEAD = 0 47 (zero commits behind, 47 branch-only commits).
+
+### Historical exact-head evidence (not transferable to the new integration HEAD)
+
+- PR #381: Klar Enterprise CI Run #2144 / ID 44293821811 on commit 3befc46251559dc4965a2c9a7ccfe808af49827d: SUCCESS, including 26/26 Browser Acceptance. This is historical coverage on the pre-merge profile-media branch head.
+- PR #383: Klar Enterprise CI Run #2151 / ID 44312127379 on commit 998b6ecb2b90bf5d3d3af04108637d175544fc82: SUCCESS, Browser Acceptance 26/26. It is not validation of the consolidated integration HEAD.
+- PR #382: final Package C Klar Enterprise CI Run #44631763988 and manual Enterprise Compliance & Security Audit Gate Run #44632518985 both completed SUCCESS on Package C commit 7c94b290bea41e27059d277d9f7299d5f57b5f6b. CI recorded 34/34 Browser Acceptance. Audit Gate recorded Gitleaks PASS and Tier 1 Production Runtime Audit PASS (549 packages; no High+ findings); Tier 2 full-supply-chain audit remains advisory with the existing Zod advisory. These results do not validate Package D or the new integration commit.
+
+### Local validation on the consolidated branch
+
+- Toolchain: Node.js v22.23.3 and Bun 1.4.4, matching the repository pins.
+- bun install --frozen-lockfile: PASS, 1,331 packages installed; the committed lockfile was not changed.
+- bun audit --prod --audit-level=high: PASS, no High/Critical vulnerabilities (549 production packages checked; 3 below the configured threshold).
+- bun run typecheck: [TO VERIFY]. The first local attempt terminated with a V8 heap-out-of-memory error at the sandbox's default heap limit. A retry with a 640-MB heap remained in the first TypeScript project beyond the 180-second command limit in a 976-MiB sandbox and was stopped due to resource pressure. No TypeScript diagnostic failure was observed, but local Typecheck is not claimed as PASS. Hosted CI on the new main-targeted Draft PR must provide the complete validation.
+
+### New main-targeted Draft integration PR
+
+Draft PR #388 is open against main and remains Draft/unmerged. The initial PR HEAD was 60fb53160630c1850e4ee9a4b2ed41adb6d8c673. On that exact HEAD, Klar Enterprise CI Run #2184 / ID 44701180440 completed SUCCESS with Typecheck, Tests (1,583 passed), Build, Production Smoke and Browser Acceptance (34/34) all passing. Enterprise Compliance & Security Audit Gate Run #19 / ID 44701180377 completed SUCCESS; Gitleaks reported no leaks and Tier 1 found no High/Critical production vulnerabilities across 549 packages. The Tier 2 full-supply-chain advisory still reported the existing High Zod advisory GHSA-mrhx-c7xc-m3w5. This additional documentation correction creates a new PR HEAD, so the new exact-head Klar Enterprise CI and Audit Gate run IDs, conclusions and per-step outcomes remain [TO VERIFY] pending hosted execution. .github/workflows/ci.yml accepts pull_request events without a base-branch restriction; .github/workflows/enterprise-compliance-audit-gate.yml restricts its pull_request trigger to main, which the new PR will target.
+
+No live cloud, IAM, Firestore, Storage or deployment mutation was performed. Main was not edited. productionApproved=false remains mandatory.

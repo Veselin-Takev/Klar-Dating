@@ -1,12 +1,13 @@
 // @vitest-environment node
 import { emptyDeletionCounts } from '../src/server/deletionAccounting';
 import { createHash, randomUUID } from 'node:crypto';
-import { DeletionPageComplete } from '../src/server/deletionProgress';
+import { DeletionPageComplete, DeletionStoragePageComplete } from '../src/server/deletionProgress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { getDb } from '../src/server/db';
 import { getAppBucket } from '../src/server/storage';
+import { createCanonicalProfileMediaRef } from '../src/lib/profileMediaRef';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
 import { purgeAccountData } from '../src/server/trustAndSafety';
 
@@ -104,6 +105,66 @@ describe('account erasure including archived messages and photos', () => {
       for (const ref of [...owned, unrelated, profile]) await db.recursiveDelete(ref);
       await receipt.delete();
       await job.delete();
+    }
+  }, 30_000);
+
+  it.runIf(!!(process.env.FIREBASE_STORAGE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.FIRESTORE_EMULATOR_HOST))('erases a klar-media:v1 profile photo reference and its owned Storage object', async () => {
+    const uid = `erase-profile-media-${randomUUID()}`;
+    const db = getDb();
+    const auth = getAuth();
+    const bucket = getAppBucket();
+    const profile = db.collection('users').doc(uid);
+    const job = db.collection('account_deletions').doc(uid);
+    const objectPath = `profiles/${uid}/avatar_${randomUUID()}.jpg`;
+    const mediaRef = createCanonicalProfileMediaRef(uid, objectPath);
+    const file = bucket.file(objectPath);
+    let userCreated = false;
+
+    try {
+      await auth.createUser({ uid });
+      userCreated = true;
+      await profile.set({ photoURL: mediaRef });
+      await file.save(Buffer.from('private-profile-photo'), {
+        metadata: { contentType: 'image/jpeg' },
+      });
+
+      expect(mediaRef).toMatch(/^klar-media:v1:/);
+      expect((await file.exists())[0]).toBe(true);
+      const [verificationFilesBefore] = await bucket.getFiles({ prefix: `verification/${uid}/` });
+      expect(verificationFilesBefore).toHaveLength(0);
+
+      let status = 200;
+      let result: any;
+      const res = {
+        status(code: number) { status = code; return this; },
+        json(value: unknown) { result = value; return this; },
+      };
+      await handleDeleteAccount(
+        { user: { uid, auth_time: Math.floor(Date.now() / 1000) } } as unknown as Request,
+        res as unknown as Response,
+      );
+      expect(status).toBe(202);
+      expect(result).toMatchObject({ ok: true, status: 'pending' });
+
+      const deletionRequestId = result.requestId as string;
+      await expect(purgeAccountData(uid, deletionRequestId)).rejects.toBeInstanceOf(DeletionStoragePageComplete);
+      expect((await file.exists())[0]).toBe(false);
+      expect((await profile.get()).exists).toBe(true);
+      expect((await profile.get()).data()?.photoURL).toBe(mediaRef);
+      expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
+
+      await purgeAccountData(uid, deletionRequestId);
+      expect((await profile.get()).exists).toBe(false);
+      expect((await file.exists())[0]).toBe(false);
+      expect((await job.get()).data()).toMatchObject({ status: 'pending', phase: 'purge' });
+
+      const [verificationFilesAfter] = await bucket.getFiles({ prefix: `verification/${uid}/` });
+      expect(verificationFilesAfter).toHaveLength(0);
+    } finally {
+      await db.recursiveDelete(profile).catch(() => undefined);
+      await job.delete().catch(() => undefined);
+      await file.delete().catch(() => undefined);
+      if (userCreated) await auth.deleteUser(uid).catch(() => undefined);
     }
   }, 30_000);
 
