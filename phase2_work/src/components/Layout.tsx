@@ -22,7 +22,6 @@ import {
   Flower2,
   BookOpen,
   User,
-  type LucideIcon,
 } from 'lucide-react';
 
 interface InAppNotificationMessage {
