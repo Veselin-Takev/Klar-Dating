@@ -273,7 +273,7 @@ export function Layout({ children }: LayoutProps) {
               { to: '/rituals', labelKey: 'bottomNav.rituals', Icon: Flower2 },
               { to: '/tips', labelKey: 'bottomNav.tips', Icon: BookOpen },
               { to: '/profile', labelKey: 'bottomNav.profile', Icon: User },
-            ] satisfies ReadonlyArray<{ to: string; labelKey: string; Icon: LucideIcon }>).map(({ to, labelKey, Icon }) => {
+            ] as const).map(({ to, labelKey, Icon }) => {
               const path = to;
               const active = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
               const C = Icon;
