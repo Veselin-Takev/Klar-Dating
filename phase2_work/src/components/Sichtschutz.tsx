@@ -1,5 +1,5 @@
 import { klarStorage } from '../lib/userScopedStorage';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
@@ -31,8 +31,8 @@ export function SichtschutzKnopf() {
     else if (menuWasOpen.current) triggerRef.current?.focus();
     menuWasOpen.current = menuOpen;
   }, [menuOpen]);
-  useEffect(() => () => cancelPress(), []);
-  const onMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  useEffect(() => () => { if (pressTimer.current) clearTimeout(pressTimer.current); }, []);
+  const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') { event.preventDefault(); closeMenu(); return; }
     const activeIndex = menuItemRefs.current.findIndex(item => item === document.activeElement);
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
