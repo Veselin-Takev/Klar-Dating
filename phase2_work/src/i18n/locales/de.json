@@ -506,7 +506,8 @@
       "quality": "Qualität der Deep-Verbindung",
       "verified": "Verifiziert",
       "locationMissing": "Ort noch nicht angegeben",
-      "focusTime": "Fokus-Zeit"
+      "focusTime": "Fokus-Zeit",
+      "cover": "Profil-Titelbild"
     },
     "name": {
       "missing": "Namen im Profil ergänzen",
@@ -712,6 +713,7 @@
     "tip": "KI-Tipp:",
     "noOptimizations": "Noch keine Optimierungen vorhanden.",
     "closePdf": "PDF-Vorschau schließen",
-    "pdfTitle": "PDF-Vorschau"
+    "pdfTitle": "PDF-Vorschau",
+    "avatar": "Profilbild"
   }
 }
