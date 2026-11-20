@@ -1794,7 +1794,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                       {t(VALUE_EXPLANATIONS[activeRadarValue as keyof typeof VALUE_EXPLANATIONS])}
                     </p>
 
-                    {showCompareRadar && DEEP_MATCH_INSIGHTS[activeRadarValue] && (
+                    {showCompareRadar && DEEP_MATCH_INSIGHTS[activeRadarValue as keyof typeof DEEP_MATCH_INSIGHTS] && (
                       <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800/30">
                         <h5 className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">{t('profileScreen.radar.commonalities')}</h5>
                         <ul className="flex flex-col gap-1.5">
