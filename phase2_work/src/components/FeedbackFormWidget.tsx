@@ -70,7 +70,7 @@ export function FeedbackFormWidget() {
             key={r}
             aria-label={t('profileScreen.feedback.ratingLabel', { rating: r })}
             aria-pressed={rating === r}
-            onClick={() => setRating(r)}}
+            onClick={() => setRating(r)}
             disabled={zustand === 'lade'}
             className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${rating === r ? 'bg-brand text-white' : 'bg-white border border-stone-200 text-stone-600 hover:border-brand'}`}
           >
