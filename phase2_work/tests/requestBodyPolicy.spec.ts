@@ -60,11 +60,25 @@ describe('request entity encoding boundary', () => {
     const server = readFileSync('server.ts', 'utf8'), mount = server.indexOf('app.use(rejectEncodedRequestBodies)');
     expect(mount).toBeGreaterThan(0);
     for (const call of ['mountStripeRawBody(app)', 'createPublicContractsRouter()', 'createComplianceJobsRouter()', 'createDiditWebhookRouter(kycDependencies)', 'app.use(express.json(']) expect(server.indexOf(call)).toBeGreaterThan(mount);
+    // Exactly one additional, deliberately scoped raw parser protects the
+    // compliance HMAC request before the global JSON parser. Guard both its
+    // placement and its number instead of merely increasing a stale count.
+    const complianceRaw = "app.use('/api/admin/purge-verification-storage',";
+    const rawSites = [...server.matchAll(/app\.use\('\/api\/admin\/purge-verification-storage',\s*express\.raw\(\{/g)];
+    expect(rawSites).toHaveLength(1);
+    const rawAt = server.indexOf(complianceRaw);
+    const jsonAt = server.indexOf('app.use(express.json({');
+    const complianceRouterAt = server.indexOf("app.use('/api/admin', createVerificationStoragePurgeRouter(");
+    expect(rawAt).toBeGreaterThan(mount);
+    expect(jsonAt).toBeGreaterThan(rawAt);
+    expect(complianceRouterAt).toBeGreaterThan(jsonAt);
+
     const files = ['server.ts', 'src/server/complianceJobs.ts', 'src/server/contracts.ts', 'src/server/routes/webhooks.ts', 'src/server/routes/complianceStorage.ts', 'src/server/routes/analytics.ts', 'src/server/routes/launch.ts', 'src/server/routes/feedback.ts', 'src/server/verification/diditKyc.ts'];
     let count = 0;
     for (const file of files) for (const match of readFileSync(file, 'utf8').matchAll(/\b(?:express\.(?:json|raw)|urlencoded|text)\(\{([^}]+)\}/g)) {
       expect(match[1], file).toMatch(/\binflate:\s*false\b/); count++;
     }
-    expect(count).toBe(14);
+    // Formerly 14; the extra compliant raw parser is counted separately.
+    expect(count).toBe(15);
   });
 });

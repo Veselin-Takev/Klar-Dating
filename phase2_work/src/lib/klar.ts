@@ -79,18 +79,69 @@ export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
   // reference instead of minting a permanent bearer download URL.
   const { getStorage, ref, uploadBytes } = await import('firebase/storage');
   const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
-  const objectPath = `profiles/${uploader.uid}/avatar_${Date.now()}.${ext}`;
+  // A collision-resistant path prevents concurrent uploads from overwriting
+  // each other's objects and makes compensation specific to this upload.
+  const uploadId = globalThis.crypto.randomUUID();
+  const objectPath = `profiles/${uploader.uid}/avatar_${uploadId}.${ext}`;
   const storageRef = ref(getStorage(), objectPath);
 
   await uploadBytes(storageRef, datei, { contentType });
+  const mediaRef = createCanonicalProfileMediaRef(uploader.uid, objectPath);
+
+  // Compensation is deliberately fail-closed. Delete only when a server read
+  // proves that no supported profile field references this exact object.
+  // A changed session, failed read, or failed delete retains the object.
+  const compensateIfUnreferenced = async (): Promise<void> => {
+    const currentSession = auth.currentUser;
+    if (!currentSession || currentSession.uid !== uploader.uid || currentSession.isAnonymous) return;
+
+    try {
+      const { getFirestore, doc, getDocFromServer } = await import('firebase/firestore');
+      const snapshot = await getDocFromServer(doc(getFirestore(), 'users', uploader.uid));
+      const profile: Record<string, unknown> = snapshot.exists()
+        ? (snapshot.data() ?? {}) as Record<string, unknown>
+        : {};
+      const references = [
+        profile.photoURL,
+        profile.photoUrl,
+        profile.photoPath,
+        profile.photoStoragePath,
+        ...(Array.isArray(profile.photos) ? profile.photos : []),
+      ];
+      const isReferenced = references.some(value => {
+        if (value === mediaRef || value === objectPath) return true;
+        if (typeof value !== 'string') return false;
+        try {
+          const parsed = new URL(value);
+          const marker = parsed.pathname.indexOf('/o/');
+          return marker >= 0
+            && decodeURIComponent(parsed.pathname.slice(marker + 3)) === objectPath;
+        } catch {
+          return false;
+        }
+      });
+      if (isReferenced) return;
+
+      const { deleteObject } = await import('firebase/storage');
+      await deleteObject(storageRef);
+    } catch {
+      // Uncertainty is not proof of non-reference: retain the uploaded object.
+    }
+  };
+
   const currentSession = auth.currentUser;
   if (!currentSession || currentSession.uid !== uploader.uid || currentSession.isAnonymous) {
+    await compensateIfUnreferenced();
     throw new Error('Die Sitzung hat sich während des Uploads geändert.');
   }
 
-  const mediaRef = createCanonicalProfileMediaRef(uploader.uid, objectPath);
-  const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(getFirestore(), 'users', uploader.uid), { photoURL: mediaRef }, { merge: true });
+  try {
+    const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+    await setDoc(doc(getFirestore(), 'users', uploader.uid), { photoURL: mediaRef }, { merge: true });
+  } catch (error) {
+    await compensateIfUnreferenced();
+    throw error;
+  }
 
   return mediaRef;
 }

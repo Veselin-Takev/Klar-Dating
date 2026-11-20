@@ -46,7 +46,7 @@ export function createAccountRouter(deps: AccountRouterDeps): Router {
         const windowStartedAt = Number(data?.windowStartedAt) || now;
         const count = Number(data?.count) || 0;
         const windowMs = 24 * 60 * 60 * 1000;
-        if (now - windowStartedAt >= windowMs) {
+        if (!snap.exists || now - windowStartedAt >= windowMs) {
           tx.set(ref, { count: 1, windowStartedAt: now, expiresAt: new Date(now + windowMs) });
           return true;
         }

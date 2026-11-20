@@ -11,6 +11,7 @@ export { deleteExpiredPhotosCron } from './deleteExpiredPhotos';
 export { retryComplianceJobsCron } from './complianceJobs';
 export { sendDateRemindersCron } from './dateReminders';
 export { purgeVerificationStorageCron } from './purgeVerificationStorage';
+export { registerVerificationDeletionFenceOnObjectFinalized } from './verificationObjectFinalized';
 
 const kycReconciliationSecret = defineSecret('KYC_RECONCILIATION_JOB_SECRET');
 const klarApiOrigin = defineString('KLAR_API_ORIGIN', { description: 'HTTPS origin of the Klar API; no path or credentials.' });

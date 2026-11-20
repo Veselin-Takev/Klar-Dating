@@ -23,6 +23,7 @@ Parent or historical CI does not certify this PR or its eventual integration. --
 - [ ] Applicable unit, native emulator, build, production smoke and browser gates pass
 - [ ] Required checks pass for the current revision and intended integration
 - [ ] No secrets, personal production data or generated runtime artifacts added
+- [ ] /docs reviewed & updated, or confirmed not applicable
 
 ## Review and completion
 - [ ] Independent review and unresolved threads addressed where required

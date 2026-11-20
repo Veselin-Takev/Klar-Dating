@@ -1,26 +1,78 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
-import { deleteExpiredPhotoPage, PHOTO_RETENTION_MS } from '../functions/src/retention';
+import { deleteAccountPhotos } from '../functions/src/retention';
 
-describe('photo retention boundary and concurrent replacement', () => {
-  it('deletes only expired generations and honors holds', async () => {
-    const now = new Date('2026-09-27T12:00:00Z');
-    const metadata = [
-      { timeCreated: new Date(+now - PHOTO_RETENTION_MS).toISOString(), generation: '1' },
-      { timeCreated: new Date(+now - PHOTO_RETENTION_MS + 1).toISOString(), generation: '2' },
-      { timeCreated: '2020-01-01T00:00:00Z', generation: '3', temporaryHold: true },
-    ];
-    const files = metadata.map(value => ({ getMetadata: async () => [value], delete: vi.fn().mockResolvedValue(undefined) }));
-    const bucket = { getFiles: async () => [files, { pageToken: 'cursor' }] };
-    expect(await deleteExpiredPhotoPage(bucket as any, now)).toEqual({ deleted: 1, scanned: 3, nextPageToken: 'cursor' });
-    expect(files[0]!.delete).toHaveBeenCalledWith({ ifGenerationMatch: '1' });
-    expect(files[1]!.delete).not.toHaveBeenCalled(); expect(files[2]!.delete).not.toHaveBeenCalled();
+describe('account erasure photo boundary (independent of verification upload age)', () => {
+  it('erases only UID-scoped profile photos, never verification photos, with generation CAS', async () => {
+    const deleted: string[] = [];
+    const requests: string[] = [];
+    const bucket = {
+      getFiles: async ({ prefix }: { prefix: string }) => {
+        requests.push(prefix);
+        const files = prefix === 'profiles/unit-user/' ? [{
+          getMetadata: async () => [{ generation: '15', temporaryHold: false }],
+          delete: async ({ ifGenerationMatch }: { ifGenerationMatch: string | number }) => {
+            expect(ifGenerationMatch).toBe('15');
+            deleted.push(prefix);
+          },
+        }] : [];
+        return [files, null] as const;
+      },
+    };
+    // The default caller must check the verification prefix before and after
+    // progressing on profile objects; it must never delete a verification object.
+    expect(await deleteAccountPhotos(bucket as any, 'unit-user')).toBe(false);
+    expect(requests).toEqual([
+      'verification/unit-user/', 'profiles/unit-user/', 'verification/unit-user/',
+    ]);
+    expect(deleted).toEqual(['profiles/unit-user/']);
   });
-  it.each([404, 412])('safely handles a deleted or replaced generation (%s)', async code => {
-    const file = { getMetadata: async () => [{ timeCreated: '2020-01-01', generation: '4' }], delete: vi.fn().mockRejectedValue({ code }) };
-    expect((await deleteExpiredPhotoPage({ getFiles: async () => [[file], {}] } as any, new Date())).deleted).toBe(0);
+
+  it('blocks deletion of account photos when an unfenced verification object exists', async () => {
+    const deletion = vi.fn();
+    const listing = vi.fn(async ({ prefix }: { prefix: string }) => {
+      if (prefix === 'verification/unit-user/') {
+        return [[{ getMetadata: vi.fn(), delete: deletion }], null] as const;
+      }
+      return [[], null] as const;
+    });
+    await expect(deleteAccountPhotos({ getFiles: listing } as any, 'unit-user'))
+      .rejects.toThrow('verification_photo_p0_fencing_unverified');
+    expect(listing).toHaveBeenCalledTimes(1);
+    expect(deletion).not.toHaveBeenCalled();
   });
-  it('propagates storage failure so the scheduler retries without advancing its cursor', async () => {
-    await expect(deleteExpiredPhotoPage({ getFiles: async () => { throw new Error('unavailable'); } } as any, new Date())).rejects.toThrow('unavailable');
+
+  it('rejects temporary holds on profile photos instead of treating them as erased', async () => {
+    const deletion = vi.fn();
+    const bucket = {
+      getFiles: async ({ prefix }: { prefix: string }) => [
+        prefix === 'profiles/unit-user/' ? [{
+          getMetadata: async () => [{ generation: '17', temporaryHold: true }],
+          delete: deletion,
+        }] : [],
+        null,
+      ] as const,
+    };
+    await expect(deleteAccountPhotos(bucket as any, 'unit-user')).rejects.toThrow('storage_object_held');
+    expect(deletion).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a missing profile object produces no acknowledged progress', async () => {
+    const bucket = {
+      getFiles: async ({ prefix }: { prefix: string }) => [
+        prefix === 'profiles/unit-user/' ? [{
+          getMetadata: async () => [{ generation: '19' }],
+          delete: async () => { throw { code: 404 }; },
+        }] : [],
+        null,
+      ] as const,
+    };
+    await expect(deleteAccountPhotos(bucket as any, 'unit-user'))
+      .rejects.toThrow('storage_erasure_no_progress');
+  });
+
+  it.each(['', '/', '..', 'user/other'])('rejects unsafe account storage identity %j', async uid => {
+    await expect(deleteAccountPhotos({ getFiles: vi.fn() } as any, uid))
+      .rejects.toThrow('Invalid storage owner');
   });
 });

@@ -32,6 +32,17 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     expect(completed.status).toBe('completed'); expect(completed).not.toHaveProperty('customerId'); expect(completed).not.toHaveProperty('subscriptionId');
     expect(completed.expiresAt.toMillis()).toBeGreaterThan(completed.completedAt.toMillis());
   });
+  it('does not cross the auth-deletion boundary when verification fence artifacts remain', async () => {
+    const { uid, ref, deps } = await setup();
+    const artifactRef = getDb().collection('verificationDeletionFences').doc('held-' + uid);
+    await artifactRef.set({ uid, state: 'held', moderationHoldActive: true });
+    await runAccountDeletion(uid, deps);
+    expect(deps.removeAuth).not.toHaveBeenCalled();
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', lastError: 'retry_required' });
+    expect((await getDb().collection('deletion_log').doc(deletionReceiptId((await ref.get()).data()!.requestId)).get()).exists).toBe(false);
+    await artifactRef.delete();
+  });
+
   it('publishes cumulative totals only with final-sweep job completion', async () => {
     const { uid, ref, deps, advance } = await setup();
     const requestId = (await ref.get()).data()!.requestId as string;
@@ -50,6 +61,21 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     expect(finalReceipt).toMatchObject({ schemaVersion: 2, deletedChats: 52, deletedMessages: 103, status: 'completed' });
     await runAccountDeletion(uid, deps);
     expect((await receipt.get()).data()).toEqual(finalReceipt);
+  });
+
+  it('refuses final receipt publication if a fence appears during the final-sweep delay', async () => {
+    const { uid, ref, deps, advance } = await setup();
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()?.phase).toBe('final_sweep');
+    const lateFenceRef = getDb().collection('verificationDeletionFences').doc('late-' + uid);
+    vi.mocked(deps.removeAuth).mockImplementationOnce(async () => {
+      await lateFenceRef.set({ uid, state: 'eligible', moderationHoldActive: false });
+    });
+    advance(62 * 60_000);
+    await runAccountDeletion(uid, deps);
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', phase: 'final_sweep', lastError: 'retry_required' });
+    expect((await getDb().collection('deletion_log').doc(deletionReceiptId((await ref.get()).data()!.requestId)).get()).exists).toBe(false);
+    await lateFenceRef.delete();
   });
 
   it('cannot complete the job or overwrite an existing receipt when publication conflicts', async () => {
