@@ -934,7 +934,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 setNameSaving(false);
               }
             }}>
-              <label className="block text-sm font-medium" htmlFor="profile-name-edit">{t('profileScreen.name.label')}</label>>
+              <label className="block text-sm font-medium" htmlFor="profile-name-edit">{t('profileScreen.name.label')}</label>
               <input id="profile-name-edit" name="profile-name-edit" type="text" maxLength={80} required autoComplete="nickname"
                 value={nameDraft} onChange={event => setNameDraft(event.target.value)}
                 className="min-h-11 w-full rounded-xl border border-stone-400 bg-white dark:bg-stone-800 px-3 text-stone-900 dark:text-stone-100" />
@@ -943,7 +943,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   {nameSaving ? t('profileScreen.name.saving') : t('profileScreen.name.save')}
                 </button>
                 <button type="button" disabled={nameSaving} onClick={() => setEditingName(false)}
-                  className="min-h-11 rounded-xl border border-stone-300 px-4">{t('profileScreen.name.cancel')}</button>>
+                  className="min-h-11 rounded-xl border border-stone-300 px-4">{t('profileScreen.name.cancel')}</button>
               </div>
             </form>
           )}
@@ -1405,7 +1405,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   {sug}
                 </div>
               ))}
-              <button onClick={() => setValueBioSuggestions([])} className="text-[10px] text-stone-500 underline mt-1">{t('profileScreen.bio.closeSuggestions')}</button>>
+              <button onClick={() => setValueBioSuggestions([])} className="text-[10px] text-stone-500 underline mt-1">{t('profileScreen.bio.closeSuggestions')}</button>
             </div>
           )}
           {bioFeedback && (
