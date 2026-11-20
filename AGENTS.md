@@ -25,3 +25,15 @@ Documentation updates are part of the same change and must be included before th
 - Do not merge, close, mark ready, or otherwise change PR lifecycle state unless explicitly authorized.
 - Treat missing CI/security evidence as unverified, not successful.
 - Keep changes narrowly scoped and report exact commit SHAs and validation evidence.
+
+## Anti-SHA-Chasing and evidence lifecycle
+
+Agents MUST distinguish an immutable verified integration baseline from the moving HEAD of an active pull request.
+
+1. Record exact verified `main` HEADs, prior merge SHAs, and completed CI/Audit workflow Run IDs and conclusions in `docs/HANDOVER_STATUS.md` and `docs/CI_CD_AND_SECURITY_GATES.md`. Name the exact SHA each result validates; never transfer results to another SHA.
+2. For an active PR, record its current PR number, branch, and HEAD when known. Mark its own pending or not-yet-observed CI and Audit results `[TO VERIFY]`. Missing or in-progress runs are not PASS.
+3. Once the active PR's own workflows complete, report their exact Run IDs, `head_sha`, status, and conclusion in the PR/final handover report. Do NOT create a recursive commit or follow-up PR solely to add that PR's self-referencing Run IDs to its own source docs: that changes the PR HEAD and invalidates the exact-HEAD evidence being recorded.
+4. Do not chase a moving SHA with documentation-only commits for checks belonging to the same active PR. A new commit is justified only by a substantive code, test, policy, or independently necessary documentation change. Re-run exact-HEAD gates only when the validated HEAD changes or required evidence is genuinely missing.
+5. Preserve previously verified baseline evidence as immutable history. If `main` advances, record the new baseline separately; do not rewrite or relabel prior verification.
+
+This rule complements Docs-as-Code and the `productionApproved=false` invariant; it does not waive required documentation or validation.
