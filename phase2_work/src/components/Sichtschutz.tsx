@@ -37,7 +37,7 @@ export function SichtschutzKnopf() {
     const activeIndex = menuItemRefs.current.findIndex(item => item === document.activeElement);
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : event.key === 'ArrowDown' ? (activeIndex + 1) % 2 : (activeIndex + 1) % 2;
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : event.key === 'ArrowDown' ? (activeIndex + 1) % 2 : (activeIndex - 1 + 2) % 2;
       menuItemRefs.current[next]?.focus();
     }
   };

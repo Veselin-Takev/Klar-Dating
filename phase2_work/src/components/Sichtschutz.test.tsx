@@ -9,15 +9,19 @@ vi.mock('../lib/userScopedStorage', () => ({ klarStorage: storage }));
 const renderWithI18n = (children: ReactNode) => render(<I18nextProvider i18n={createRequestI18n('de')}>{children}</I18nextProvider>);
 beforeEach(() => vi.clearAllMocks());
 describe('screen privacy accessibility', () => {
-  it('opens the pause menu from the keyboard and restores trigger focus on Escape', () => {
+  it('opens the pause menu from the keyboard, supports both arrow directions, and restores trigger focus on Escape', () => {
     renderWithI18n(<SichtschutzKnopf />);
     const trigger = screen.getByRole('button', { name: 'Bildschirm verdecken' });
     fireEvent.keyDown(trigger, { key: 'ContextMenu' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const pause = screen.getByRole('menuitem', { name: 'Automatischen Sichtschutz 5 Minuten pausieren' });
+    const close = screen.getByRole('menuitem', { name: 'Sichtschutzoptionen schließen' });
     expect(pause).toHaveFocus();
     fireEvent.keyDown(pause, { key: 'ArrowDown' });
-    const close = screen.getByRole('menuitem', { name: 'Sichtschutzoptionen schließen' });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(close, { key: 'ArrowUp' });
+    expect(pause).toHaveFocus();
+    fireEvent.keyDown(pause, { key: 'ArrowUp' });
     expect(close).toHaveFocus();
     fireEvent.keyDown(close, { key: 'Escape' });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
