@@ -660,6 +660,45 @@
       "creativityHobbies": "Kreative Hobbys verbinden euch.",
       "careerGoals": "Ihr teilt euren Ehrgeiz bei beruflichen Zielen.",
       "careerBalance": "Ihr habt Verständnis für längere Arbeitszeiten."
+    },
+    "ui": {
+      "importTitle": "Profil automatisch ausfüllen",
+      "importDescription": "Füge deinen LinkedIn-Text oder deine Notizen ein.",
+      "start": "Starten",
+      "optimizeTitle": "Profil optimieren",
+      "optimizeDescription": "Mach dein Profil mit KI ansprechender.",
+      "discard": "Verwerfen",
+      "history": "Verlauf",
+      "save": "Speichern",
+      "restore": "Wiederherstellen",
+      "valueOptimization": "Werte-Optimierung",
+      "apply": "Übernehmen",
+      "icebreakersTitle": "Deine Icebreaker",
+      "icebreakersDescription": "Fragen, die Menschen auf deinem Profil sehen.",
+      "radarTutorial": "Tippe auf die einzelnen Werte-Achsen (z. B. „Abenteuer“), um detaillierte Erklärungen und mögliche Gemeinsamkeiten mit Verbindungen zu sehen.",
+      "understood": "Verstanden",
+      "customizeColors": "Farben anpassen",
+      "exportImage": "Als Bild exportieren",
+      "filters": {
+        "all": "Alle",
+        "similarity": "Ähnlichkeiten",
+        "complement": "Ergänzungen",
+        "contrast": "Kontraste"
+      },
+      "growthEmpty": "Hier siehst du, wie sich dein Dating-Alltag entwickelt. Auswertungen erscheinen automatisch, sobald es etwas auszuwerten gibt.",
+      "currentPlan": "Aktueller Plan: Klar",
+      "learnMore": "Entdecke, was Klar+ anders macht",
+      "chatLanguage": "Meine Chat-Sprache",
+      "appearance": {
+        "title": "Erscheinungsbild",
+        "light": "Hell",
+        "dark": "Dunkel",
+        "system": "System"
+      },
+      "smartConnectionNotifications": "Smart-Verbindungs-Benachrichtigungen",
+      "smartConnectionNotificationsDescription": "Push-Benachrichtigungen nur für Verbindungen über 90 %",
+      "verified": "Verifiziert",
+      "basic": "Basis"
     }
   },
   "profileCheck": {
@@ -714,6 +753,42 @@
     "noOptimizations": "Noch keine Optimierungen vorhanden.",
     "closePdf": "PDF-Vorschau schließen",
     "pdfTitle": "PDF-Vorschau",
-    "avatar": "Profilbild"
+    "avatar": "Profilbild",
+    "ui": {
+      "analysisLoading": "Profil wird analysiert …",
+      "ready": "Bereit für mehr Verbindungen!",
+      "trendGain": "+{{trend}} Punkte beim Verbindungspotenzial!",
+      "analysis": "Analyse",
+      "scanning": "Gemini analysiert dein Profil …",
+      "tryAgain": "Erneut versuchen",
+      "bioUpdated": "Bio erfolgreich aktualisiert!",
+      "undo": "Rückgängig machen",
+      "optimizedPreview": "Vorschau: Optimierte Bio",
+      "current": "Aktuell",
+      "optimized": "Optimiert",
+      "cancel": "Abbrechen",
+      "applyNow": "Jetzt anwenden",
+      "quickInsights": "Schnelle Einblicke",
+      "whyScore": "Warum dieser Score?",
+      "analyzeNewFocus": "Mit neuem Fokus analysieren",
+      "personalizedSuggestions": "Personalisierte Vorschläge",
+      "viewPreview": "Vorschau ansehen",
+      "exportReport": "Bericht exportieren",
+      "categories": {
+        "all": "Alle",
+        "languageStyle": "Sprachstil",
+        "interestFocus": "Interessenfokus",
+        "icebreakerQuality": "Icebreaker-Qualität"
+      },
+      "scoreComposition": "Score-Zusammensetzung",
+      "trendLegend": "Trend-Legende",
+      "scoreCompositionExplanation": "Die spezifische Zusammensetzung des Scores an diesem Punkt:",
+      "trendLegendExplanation": "Das Diagramm zeigt deinen Kompatibilitäts-Score. Ein Anstieg bedeutet, dass deine Bio authentischer und passender für die Community wurde.",
+      "optimizationFocus": "Fokus der Optimierung",
+      "apply": "Anwenden",
+      "close": "Schließen",
+      "pdfPreview": "PDF-Vorschau",
+      "download": "Jetzt herunterladen"
+    }
   }
 }
