@@ -219,7 +219,7 @@ The remediation adds **18 exact historical fingerprints** to `.gitleaksignore`. 
 - `Klar Enterprise CI`: newly triggered by the remediation commit; run ID and final conclusion **[TO VERIFY]** until completion. Do not infer Typecheck, Tests, Build, Production Smoke or Browser Acceptance PASS.
 - `Enterprise Compliance & Security Audit Gate`: stacked PR #382 does not match the workflow `pull_request` base filter (`main`); exact-HEAD audit requires `workflow_dispatch` with the Package C branch ref. The new manual run and Tier 1 result remain **[TO VERIFY]** until dispatched and its `head_sha` is verified.
 
-`productionApproved=false` remains mandatory. PR #382 remains open/Draft/unmerged; PR #383 and `main` are not modified. No cloud/IAM/deployment mutation is performed.
+Historical snapshot from 2026-11-19 during PR #382 remediation: PR #382 was then open/Draft/unmerged. PR #382 and PR #383 were subsequently merged on 2026-11-20; see the consolidated Issue #374 section below for the final merge SHAs and integration evidence. `productionApproved=false` remains mandatory. No cloud/IAM/deployment mutation was performed.
 
 ## Issue #374 — consolidated Package C + Package D integration validation (2026-11-20)
 

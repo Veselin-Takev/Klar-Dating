@@ -155,7 +155,7 @@ New exact-head CI for this synchronization correction: **[TO VERIFY]** until the
 
 **New commit validation:** new `Klar Enterprise CI` exact-HEAD run: **[TO VERIFY]** until GitHub Actions completes. New `Enterprise Compliance & Security Audit Gate` exact-HEAD `workflow_dispatch`: **[TO VERIFY]** until a manual dispatch is made against the new branch HEAD and the Tier 1 Production Runtime Audit is shown as PASS. Run #17 on the previous SHA is historical failure evidence, not a PASS for the remediation commit.
 
-`productionApproved=false` remains mandatory. PR #382 remains open and Draft; do not merge. PR #383 and `main` remain out of scope. No cloud, IAM, deployment, Firestore or Storage mutation was performed.
+Historical snapshot from 2026-11-19 during PR #382 remediation: PR #382 was then open and Draft. PR #382 and PR #383 were subsequently merged on 2026-11-20; see the Issue #374 addendum below for their merge SHAs and the consolidated integration state. `productionApproved=false` remains mandatory. No cloud, IAM, deployment, Firestore or Storage mutation was performed.
 
 ## Issue #374 — Package C + D consolidated integration handover (2026-11-20)
 
@@ -167,7 +167,7 @@ New exact-head CI for this synchronization correction: **[TO VERIFY]** until the
 - PR #382 (Package C / legacy profile upload and token inventory): merged 2026-11-20 07:37:37 UTC; merge commit 30690f549f7eac1b925076b1227ee5508845eae0.
 - PR #383 (Package D / profile-media migration and staged token-revocation plan): merged 2026-11-20 07:38:33 UTC; merge commit 1b30ea60dc9acab31020533fd55ba1cf69feaf33.
 
-These merge states supersede older entries below that describe PR #382 or #383 as open/Draft. Those entries remain historical run-specific evidence, not current lifecycle status.
+These merge states supersede the earlier entries above that describe PR #382 or #383 as open/Draft. Those entries remain historical run-specific evidence, not current lifecycle status.
 
 ### Integration consolidation
 
