@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-20
-**Main HEAD (verified after PR #391 merge):** `2f9a4349df652ee32246f29d1291c11136a8a769`
+**Main HEAD (verified after PR #392 merge):** `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -272,3 +272,21 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 - The only workflow file changed is .github/workflows/enterprise-compliance-audit-gate.yml: Gitleaks is upgraded from ff98106e4c7b2bc287b24eaf42907196329070c7 to e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e (gitleaks/gitleaks-action v3.0.0, verified node24); GitHub Script is upgraded from f28e40c7f34bde8b3046d885e986cb6290c5673b to 3a2844b7e9c422d3c10d287c895573f7108da1b3 (actions/github-script v9.0.0, verified node24). Both remain full 40-character commit-SHA pins with release comments.
 - The existing github-script body uses the injected github and context objects and does not use the v9-incompatible require('@actions/github') pattern or redeclare getOctokit. Existing inputs, environment variables, permissions, Gitleaks step ID, Tier 1 hard-fail command, full-supply-chain advisory command, and CI gates are unchanged. No app dependency manifest or lockfile is changed. All other workflow action references remain full 40-character SHA pins.
 - This branch's new Draft PR exact HEAD, Klar Enterprise CI Run ID/conclusion, Enterprise Compliance & Security Audit Gate Run ID/conclusion, and verification that no Node 20 deprecation warning remains in the final-head logs: **[TO VERIFY]** until hosted workflows complete on the final PR head_sha. Per Anti-SHA-Chasing, report those exact Run IDs and outcomes in the final handover / PR metadata; do not create a recursive docs-only commit to embed self-referential run IDs.
+
+
+## Verified MAIN_BASELINE_GREEN — post-PR #392 main baseline (2026-11-20)
+
+- PR [#392](https://github.com/Veselin-Takev/Klar-Dating/pull/392) merged into main; exact merge SHA and verified main HEAD: `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`. This supersedes the earlier #391 baseline `2f9a4349df652ee32246f29d1291c11136a8a769`. Prior #389/#390/#391 history and evidence above remain historical and are not rewritten or transferred.
+- Klar Enterprise CI [Run #2221 / ID 44806101342](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44806101342), exact SHA `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`: SUCCESS. Static gates, Typecheck, Functions Build, Tests (1,595 passed / 209 files / 0 failed), Build and Production Smoke passed; Browser Acceptance 35/35 passed.
+- Enterprise Compliance & Security Audit Gate [Run #56 / ID 44806101226](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44806101226), same exact SHA: SUCCESS. Gitleaks v3.0.0 step succeeded; Tier 1 Production Runtime Audit and Full Supply-Chain Audit passed with 0 High+ findings (549 production packages / 1,245 total packages).
+- Gitleaks caveat: the post-merge push run reported 0 commits scanned because the merge event range used --no-merges --first-parent. Pre-merge PR #392 Audit Gate [Run #55 / ID 44758491336](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44758491336), exact source HEAD `b6064a89bea4e6cb455669179c5785ef25fde3f3`, scanned 2 commits and reported no leaks.
+- The merged workflow keeps Gitleaks v3.0.0 and GitHub Script v9.0.0 pinned to immutable full SHAs with Node 24. No Node.js 20 Action deprecation warning appeared in the post-merge logs; separate DEP0040 (punycode) and DEP0169 (url.parse) Node API warnings were present and are not Action-runner warnings.
+
+### Active Draft — Profile i18n migration
+
+- Branch: feat/profile-i18n-migration, created from verified baseline `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`; intended target is main. PR lifecycle must remain Draft / unmerged.
+- Scope: Profile screen and name editor/status feedback, local/remote feedback, import/interests/No-Gos, Bio Coach, radar and settings navigation; profile detail/theme selectors; profile AI-check and history labels; profile milestone card. DE/EN/ES/FR catalog namespaces have 257 profile-flow leaf keys per catalog, equal key sets and matching interpolation placeholders.
+- This active PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate run IDs, exact head_sha, status and conclusions: [TO VERIFY] until hosted workflows complete. The baseline Run #2221 / #56 above validates only the main SHA and is not evidence for this feature branch.
+- No dependency, lockfile or workflow file is changed. Art. 17 erasure, Consent, Accessibility and existing E2E assertions remain in place. No Cloud, IAM, Firestore, Storage or deployment mutation is performed.
+- Anti-SHA-Chasing: after the active PR's workflows complete, report exact Run IDs and head_sha in the PR/final handover; do not create a recursive docs-only commit solely to add the PR's own run IDs.
+- productionApproved=false remains unchanged; Production remains NO-GO.

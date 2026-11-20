@@ -24,23 +24,22 @@ import { askAICoach, askAIList, parseProfileImport, optimizeProfileApi } from ".
 // die WeeklyConsistencyTracker.tsx schon benutzt.
 import { toPng } from 'html-to-image';
 
-const VALUE_EXPLANATIONS: Record<string, string> = {
-  'Abenteuer': 'Zeigt an, wie spontan und offen für neue, ungeplante Erlebnisse du bist.',
-  'Achtsamkeit': 'Wie stark du auf emotionale Balance und bewusstes Leben achtest.',
-  'Gemeinschaft': 'Der Stellenwert von Freunden, Familie und sozialem Umfeld.',
-  'Ehrlichkeit': 'Wichtigkeit von transparenter, direkter Kommunikation ohne Spielchen.',
-  'Kreativität': 'Wie viel Raum du für persönliche Entfaltung und kreative Hobbys brauchst.',
-  'Karriere': 'Dein Fokus auf beruflichen Erfolg und finanzielle Stabilität.'
-};
-
-const DEEP_MATCH_INSIGHTS: Record<string, string[]> = {
-  'Abenteuer': ['Ihr mögt beide unplante Wochenend-Trips.', 'Ausprobieren neuer Restaurants ist euch wichtig.'],
-  'Achtsamkeit': ['Meditation & Yoga sind feste Bestandteile im Alltag.', 'Gemeinsames Reflektieren über den Tag.'],
-  'Gemeinschaft': ['Familienzeit wird bei euch beiden großgeschrieben.', 'Ihr seid beide gerne Gastgeber.'],
-  'Ehrlichkeit': ['Ihr schätzt direkte, klare Kommunikation.', 'Konflikte werden offen und schnell angesprochen.'],
-  'Kreativität': ['Ihr habt beide ein Faible für Kunstausstellungen.', 'Gestalterische Hobbys verbinden euch.'],
-  'Karriere': ['Ihr teilt den Drive für berufliche Ziele.', 'Verständnis für längere Arbeitszeiten ist gegeben.']
-};
+const VALUE_EXPLANATIONS = {
+  'Abenteuer': 'profileScreen.valueExplanations.adventure',
+  'Achtsamkeit': 'profileScreen.valueExplanations.mindfulness',
+  'Gemeinschaft': 'profileScreen.valueExplanations.community',
+  'Ehrlichkeit': 'profileScreen.valueExplanations.honesty',
+  'Kreativität': 'profileScreen.valueExplanations.creativity',
+  'Karriere': 'profileScreen.valueExplanations.career'
+} as const;
+const DEEP_MATCH_INSIGHTS = {
+  'Abenteuer': ['profileScreen.deepMatchInsights.adventureWeekend', 'profileScreen.deepMatchInsights.adventureFood'],
+  'Achtsamkeit': ['profileScreen.deepMatchInsights.mindfulnessMeditation', 'profileScreen.deepMatchInsights.mindfulnessReflection'],
+  'Gemeinschaft': ['profileScreen.deepMatchInsights.communityFamily', 'profileScreen.deepMatchInsights.communityHosting'],
+  'Ehrlichkeit': ['profileScreen.deepMatchInsights.honestyCommunication', 'profileScreen.deepMatchInsights.honestyConflict'],
+  'Kreativität': ['profileScreen.deepMatchInsights.creativityArt', 'profileScreen.deepMatchInsights.creativityHobbies'],
+  'Karriere': ['profileScreen.deepMatchInsights.careerGoals', 'profileScreen.deepMatchInsights.careerBalance']
+} as const;
 
 import { DatingMoodTrackerWidget } from "../components/DatingMoodTrackerWidget";
 import { InsightsChart } from "../components/InsightsChart";
@@ -77,6 +76,7 @@ import { useModalAccessibility } from "../lib/useModalAccessibility";
 import { useAuthenticatedProfileMedia } from '../lib/profileMediaClient';
 
 function OfflineCacheStatus() {
+  const { t } = useTranslation();
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [cachedItems, setCachedItems] = useState<string[]>([]);
 
@@ -84,9 +84,9 @@ function OfflineCacheStatus() {
     const updateStatus = () => {
       // Find cached profile data
       const items = [];
-      if (getUserStorageItem('klar_user_bio')) items.push('Bio');
-      if (getUserStorageItem('userInterests')) items.push('Interessen');
-      if (klarStorage.getItem('userNoGos')) items.push('No-Gos');
+      if (getUserStorageItem('klar_user_bio')) items.push(t('profileScreen.cache.bio'));
+      if (getUserStorageItem('userInterests')) items.push(t('profileScreen.cache.interests'));
+      if (klarStorage.getItem('userNoGos')) items.push(t('profileScreen.cache.noGos'));
 
       setCachedItems(items);
 
@@ -124,12 +124,12 @@ function OfflineCacheStatus() {
 
       <div className="flex items-center gap-1.5 px-2 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-lg text-[10px] font-medium border border-stone-200 dark:border-stone-700">
         <Database size={12} />
-        Lokal: {cachedItems.join(', ') || 'Keine'}
+        {t('profileScreen.cache.local', { items: cachedItems.join(', ') || t('profileScreen.cache.none') })}
       </div>
       {lastSync && (
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-lg text-[10px] font-medium border border-stone-200 dark:border-stone-700" title="Letzter erfolgreicher Cloud-Sync">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-lg text-[10px] font-medium border border-stone-200 dark:border-stone-700" title={t('profileScreen.cache.lastCloudSync')}>
           <Cloud size={12} className={navigator.onLine ? "text-emerald-500" : "text-stone-400"} />
-          Sync: {lastSync}
+          {t('profileScreen.cache.sync', { time: lastSync })}
         </div>
       )}
     </div>
@@ -236,13 +236,15 @@ interface RadarTooltipEigenschaften {
 
 const CustomRadarTooltip = ({ active, payload }: RadarTooltipEigenschaften) => {
 
+  const { t } = useTranslation();
   const data = active ? payload?.[0]?.payload : undefined;
+  const explanationKey = data?.subject ? VALUE_EXPLANATIONS[data.subject as keyof typeof VALUE_EXPLANATIONS] : undefined;
   if (data?.subject) {
     return (
       <div className="bg-white dark:bg-stone-800 p-3 rounded-xl shadow-lg border border-stone-100 dark:border-stone-700 max-w-[200px]">
         <p className="font-bold text-stone-800 dark:text-stone-200 text-sm mb-1">{data.subject}</p>
         <p className="text-xs text-stone-600 dark:text-stone-400">
-          {VALUE_EXPLANATIONS[data.subject] ?? ''}
+          {explanationKey ? t(explanationKey) : ''}
         </p>
       </div>
     );
@@ -254,6 +256,7 @@ const CustomRadarTooltip = ({ active, payload }: RadarTooltipEigenschaften) => {
 // App eingestellt ist — von aussen nach innen.
 type ReiterId = "profil" | "entwicklung" | "partner" | "einstellungen";
 export function ProfileFeedback() {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -271,8 +274,8 @@ export function ProfileFeedback() {
         <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
           <Heart size={24} />
         </div>
-        <h3 className="font-medium text-stone-900 dark:text-stone-100">Danke für dein Feedback!</h3>
-        <p className="text-sm text-stone-500 mt-2">Deine Meinung hilft uns, Klar noch besser zu machen.</p>
+        <h3 className="font-medium text-stone-900 dark:text-stone-100">{t('profileScreen.feedback.thanksTitle')}</h3>
+        <p className="text-sm text-stone-500 mt-2">{t('profileScreen.feedback.thanksBody')}</p>
       </div>
     );
   }
@@ -281,15 +284,17 @@ export function ProfileFeedback() {
     <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-6 shadow-sm">
       <h3 className="font-medium text-stone-900 dark:text-stone-100 flex items-center gap-2 mb-4">
         <MessageSquare size={18} className="text-brand dark:text-brand-light" />
-        Deine Meinung zu Klar
+        {t('profileScreen.feedback.prompt')}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-stone-600 dark:text-stone-400 mb-2">Wie zufrieden bist du?</label>
+          <label className="block text-sm text-stone-600 dark:text-stone-400 mb-2">{t('profileScreen.feedback.rating')}</label>
           <div className="flex gap-2">
             {[1,2,3,4,5].map(r => (
               <button
                 key={r} type="button"
+                aria-label={t('profileScreen.feedback.ratingLabel', { rating: r })}
+                aria-pressed={rating === r}
                 onClick={() => setRating(r)}
                 className={`p-2 rounded-full transition-colors ${rating >= r ? 'text-amber-400' : 'text-stone-300 dark:text-stone-700'}`}
               >
@@ -299,10 +304,10 @@ export function ProfileFeedback() {
           </div>
         </div>
         <div>
-          <label htmlFor="feedback-textarea" className="block text-sm text-stone-600 dark:text-stone-400 mb-2">Verbesserungsvorschläge (optional)</label>
+          <label htmlFor="feedback-textarea" className="block text-sm text-stone-600 dark:text-stone-400 mb-2">{t('profileScreen.feedback.suggestions')}</label>
           <textarea id="feedback-textarea"
             className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand/50 min-h-[80px]"
-            placeholder="Was können wir besser machen?"
+            placeholder={t('profileScreen.feedback.placeholder')}
             value={feedback}
             onChange={e => setFeedback(e.target.value)}
           />
@@ -312,7 +317,7 @@ export function ProfileFeedback() {
           disabled={rating === 0}
           className="w-full bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50"
         >
-          Feedback senden
+          {t('profileScreen.feedback.submit')}
         </button>
       </form>
     </div>
@@ -366,15 +371,15 @@ export default function Profile() {
     setProfileActionMessage('');
     try {
       const uid = auth.currentUser?.uid;
-      if (!uid) throw new Error('Bitte melde dich erneut an.');
+      if (!uid) throw new Error(t('profileScreen.photo.reauth'));
       const url = await ladeProfilfotoHoch(croppedBlob);
-      if (auth.currentUser?.uid !== uid) throw new Error('Die Sitzung hat sich geändert.');
+      if (auth.currentUser?.uid !== uid) throw new Error(t('profileScreen.photo.sessionChanged'));
       await updateProfileData({ photoURL: url });
       await refreshProfile();
-      setProfileActionMessage('Profilfoto erfolgreich aktualisiert.');
+      setProfileActionMessage(t('profileScreen.photo.saved'));
     } catch (error: unknown) {
       melde('Profile/photo-upload', error);
-      setProfileActionMessage('Das Profilfoto konnte nicht vollständig gespeichert werden. Bitte versuche es erneut.');
+      setProfileActionMessage(t('profileScreen.photo.saveFailed'));
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -410,7 +415,7 @@ export default function Profile() {
   // Lesenamen haelt das Verhalten unveraendert und stoppt den Absturz.
   const [, setRadarAnimated] = useState(false);
   const [userInterests, setUserInterests] = useState<string[]>([]);
-  const [userBio, setUserBio] = useState<string>("Kaffeeliebhaber, verbringe meine Wochenenden gerne auf dem Fahrrad. Suche jemanden für tiefgründige Gespräche und spontane Ausflüge.");
+  const [userBio, setUserBio] = useState<string>(t('profileScreen.bio.sample'));
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -607,8 +612,8 @@ export default function Profile() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Mein Klar Profil',
-          text: 'Schau dir mein Klar Profil an!',
+          title: t('profileScreen.share.title'),
+          text: t('profileScreen.share.text'),
           url: profileLink,
         });
       } catch (err) {
@@ -617,10 +622,10 @@ export default function Profile() {
     } else {
       try {
         await navigator.clipboard.writeText(profileLink);
-        alert('Profil-Link in die Zwischenablage kopiert!');
+        alert(t('profileScreen.share.copied'));
       } catch (err) {
         console.warn("Failed to copy:", err);
-        alert('Profil-Link konnte nicht kopiert werden.');
+        alert(t('profileScreen.share.copyFailed'));
       }
     }
   };
@@ -631,7 +636,7 @@ export default function Profile() {
     setProfileActionMessage('');
     try {
       const uid = auth.currentUser?.uid;
-      if (!uid) throw new Error('Bitte melde dich erneut an.');
+      if (!uid) throw new Error(t('profileScreen.photo.reauth'));
       const data = await parseProfileImport(importText.trim());
       const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
       const interests = Array.isArray(data.interests)
@@ -641,15 +646,15 @@ export default function Profile() {
       const combined = Array.from(new Set([...userInterests, ...interests])).slice(0, 10);
       const changes = { ...(bio ? { bio } : {}), ...(interests.length ? { interests: combined } : {}) };
       await updateProfileData(changes);
-      if (auth.currentUser?.uid !== uid) throw new Error('Die Sitzung hat sich geändert.');
+      if (auth.currentUser?.uid !== uid) throw new Error(t('profileScreen.photo.sessionChanged'));
       if (bio) { setUserBio(bio); setUserStorageItem('klar_user_bio', bio); }
       if (interests.length) { setUserInterests(combined); setUserStorageItem('userInterests', JSON.stringify(combined)); }
       setShowImport(false);
       setImportText('');
-      setProfileActionMessage('Profiltext erfolgreich übernommen und gespeichert.');
+      setProfileActionMessage(t('profileScreen.import.imported'));
     } catch (error) {
       melde('Profile/import', error);
-      setProfileActionMessage('Der Text konnte nicht gespeichert werden. Deine Eingabe bleibt erhalten. Bitte erneut versuchen.');
+      setProfileActionMessage(t('profileScreen.import.saveFailed'));
     } finally {
       setIsImporting(false);
     }
@@ -703,7 +708,7 @@ export default function Profile() {
       setNogoSuggestions(vorschlaegeAus(await res.text()));
     } catch(e) {
       melde("Profile", e);
-      setNogoSuggestions(["Unehrlichkeit", "Zu spät kommen", "Ghosting"]);
+      setNogoSuggestions([t('profileScreen.noGos.fallbackHonesty'), t('profileScreen.noGos.fallbackLate'), t('profileScreen.noGos.fallbackGhosting')]);
     } finally {
       setIsLoadingNogoSuggestions(false);
     }
@@ -739,13 +744,13 @@ export default function Profile() {
     setIsCheckingBio(true);
     setBioFeedback("");
     try {
-      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : "Allgemeine Themen";
+      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : t('profileScreen.bio.defaultTopics');
       const prompt = `Analysiere diese Dating-Profil-Bio: "${userBio}". Meine Interessen sind: ${interestsText}. Gib mir basierend auf diesen Interessen konkrete KI-generierte Vorschläge, wie ich die Bio spezifischer und ansprechender formulieren kann. Halte es kurz.`;
       const feedback = await askAICoach(prompt);
       setBioFeedback(feedback);
     } catch (e) {
       melde("Profile", e);
-      setBioFeedback("Konnte die Bio nicht prüfen. Bitte versuche es später nochmal.");
+      setBioFeedback(t('profileScreen.bio.reviewFailed'));
     } finally {
       setIsCheckingBio(false);
     }
@@ -755,7 +760,7 @@ export default function Profile() {
     setIsGeneratingBio(true);
     try {
       const goal = getUserStorageItem('userGoal') || 'undecided';
-      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : "Allgemeine Themen";
+      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : t('profileScreen.bio.defaultTopics');
 
       let goalDescription = "Offen bleiben & Entdecken";
       if (goal === 'relationship') goalDescription = "Feste Beziehung finden";
@@ -781,7 +786,7 @@ Halte es natürlich, sympathisch und authentisch. Gib NUR den generierten Text z
       setShowHistory(false);
     } catch (e) {
       console.warn("Failed to generate bio:", e);
-      setSuggestedBio((e instanceof Error ? e.message : String(e)) || "Fehler beim Generieren. Bitte versuche es später nochmal.");
+      setSuggestedBio((e instanceof Error ? e.message : String(e)) || t('profileScreen.bio.generationFailed'));
     } finally {
       setIsGeneratingBio(false);
     }
@@ -797,7 +802,7 @@ Halte es natürlich, sympathisch und authentisch. Gib NUR den generierten Text z
       }
     } catch (e) {
       melde("Profile", e);
-      alert((e instanceof Error ? e.message : String(e)) || "Ein unerwarteter Fehler ist aufgetreten.");
+      alert((e instanceof Error ? e.message : String(e)) || t('profileScreen.bio.unexpected'));
     } finally {
       setIsOptimizing(false);
     }
@@ -806,7 +811,7 @@ Halte es natürlich, sympathisch und authentisch. Gib NUR den generierten Text z
   const generateIcebreakers = async () => {
     setIsGenerating(true);
     try {
-      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : "Allgemeine Themen";
+      const interestsText = userInterests.length > 0 ? userInterests.join(", ") : t('profileScreen.bio.defaultTopics');
       const prompt = `Erstelle 3 kreative, einladende Icebreaker-Fragen für mein Dating-Profil, um interessante Gespräche zu starten. Basiere sie auf meinen Interessen: ${interestsText}.
 Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, ohne Aufzählungszeichen, ohne Einleitung, ohne Fazit).`;
 
@@ -819,7 +824,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
       }
     } catch (e) {
       melde("Profile", e);
-      setIcebreakers([(e instanceof Error ? e.message : String(e)) || "Fehler beim Generieren. Bitte versuche es später nochmal."]);
+      setIcebreakers([(e instanceof Error ? e.message : String(e)) || t('profileScreen.bio.generationFailed')]);
     } finally {
       setIsGenerating(false);
     }
@@ -829,7 +834,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
     <>
     <div className="p-6 h-full overflow-y-auto pb-24 bg-light-bg dark:bg-dark-bg">
       {profileActionMessage && <p role="status" aria-live="polite" className="mb-4 rounded-xl border border-stone-300 dark:border-stone-700 p-3 text-sm text-stone-800 dark:text-stone-100">{profileActionMessage}</p>}
-      {isUploadingPhoto && <p role="status" aria-live="polite" className="mb-4 text-sm">Profilfoto wird gespeichert …</p>}
+      {isUploadingPhoto && <p role="status" aria-live="polite" className="mb-4 text-sm">{t('profileScreen.photo.saving')}</p>}
       {isCropping && imageToCrop && (
         <ImageCropperModal
           imageSrc={imageToCrop}
@@ -841,14 +846,14 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         />
       )}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-serif text-stone-900 dark:text-stone-100">Dein Profil</h1>
+        <h1 className="text-3xl font-serif text-stone-900 dark:text-stone-100">{t('profileScreen.header.title')}</h1>
         <div className="flex items-center gap-2">
 
 
           <button
             onClick={() => setShowPreview(true)}
             className="p-2 bg-brand/10 dark:bg-brand-light/10 text-brand dark:text-brand-light rounded-full hover:bg-brand/20 dark:hover:bg-brand-light/20 transition-colors"
-            title="Profil Vorschau"
+            title={t('profileScreen.share.preview')}
           >
             <Eye size={20} />
           </button>
@@ -856,7 +861,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <button
             onClick={handleShareProfile}
             className="p-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
-            title="Profil teilen"
+            title={t('profileScreen.share.share')}
           >
             <Share2 size={20} />
           </button>
@@ -881,7 +886,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className="w-14 h-[70px] bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden border-2 border-white dark:border-stone-900 shadow-sm relative">
               <img
                 src={selfProfileMedia.src ?? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
-                alt="Avatar"
+                alt={t('profileScreen.header.avatar')}
                 onError={(e) => {
                   e.currentTarget.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200";
                 }}
@@ -893,7 +898,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             </div>
           </label>
           {auditScore !== null && (
-            <div className="absolute -bottom-1 -right-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border-2 border-white dark:border-stone-900" title="Deep-Verbindung Qualität">
+            <div className="absolute -bottom-1 -right-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md flex items-center gap-1 border-2 border-white dark:border-stone-900" title={t('profileScreen.header.quality')}>
               <Sparkles size={10} />
               {auditScore * 10}%
             </div>
@@ -901,44 +906,44 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true)}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
-            {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title="Verifiziert">
+            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true) || t('profileScreen.name.missing')}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
+            {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title={t('profileScreen.header.verified')}>
               <ShieldCheck size={16} />
             </div>}
           </div>
-          <p className="text-stone-500 dark:text-stone-400 text-sm">{profileData?.location || 'Ort noch nicht angegeben'}</p>
+          <p className="text-stone-500 dark:text-stone-400 text-sm">{profileData?.location || t('profileScreen.header.locationMissing')}</p>
           <button type="button" onClick={() => { setNameDraft(profileData?.name === 'Neu' ? '' : (profileData?.name || '')); setNameMessage(''); setEditingName(true); }}
             className="mt-1 min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 dark:text-stone-200 underline underline-offset-2 focus-visible:outline focus-visible:outline-2">
-            Namen bearbeiten
+            {t('profileScreen.name.edit')}
           </button>
           {editingName && (
             <form className="mt-2 space-y-2" onSubmit={async event => {
               event.preventDefault();
               const value = nameDraft.trim();
-              if (!value || value.length > 80) { setNameMessage('Bitte gib einen Namen mit maximal 80 Zeichen ein.'); return; }
+              if (!value || value.length > 80) { setNameMessage(t('profileScreen.name.invalid')); return; }
               setNameSaving(true);
               setNameMessage('');
               try {
                 await updateProfileData({ name: value });
                 setEditingName(false);
-                setNameMessage('Name gespeichert.');
+                setNameMessage(t('profileScreen.name.saved'));
               } catch (error) {
                 melde('Profile/name-update', error);
-                setNameMessage('Der Name konnte nicht gespeichert werden. Bitte versuche es erneut.');
+                setNameMessage(t('profileScreen.name.saveFailed'));
               } finally {
                 setNameSaving(false);
               }
             }}>
-              <label className="block text-sm font-medium" htmlFor="profile-name-edit">Anzeigename</label>
+              <label className="block text-sm font-medium" htmlFor="profile-name-edit">{t('profileScreen.name.label')}</label>
               <input id="profile-name-edit" name="profile-name-edit" type="text" maxLength={80} required autoComplete="nickname"
                 value={nameDraft} onChange={event => setNameDraft(event.target.value)}
                 className="min-h-11 w-full rounded-xl border border-stone-400 bg-white dark:bg-stone-800 px-3 text-stone-900 dark:text-stone-100" />
               <div className="flex flex-wrap gap-2">
                 <button type="submit" disabled={nameSaving} className="min-h-11 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 px-4 disabled:opacity-50">
-                  {nameSaving ? 'Speichere …' : 'Speichern'}
+                  {nameSaving ? t('profileScreen.name.saving') : t('profileScreen.name.save')}
                 </button>
                 <button type="button" disabled={nameSaving} onClick={() => setEditingName(false)}
-                  className="min-h-11 rounded-xl border border-stone-300 px-4">Abbrechen</button>
+                  className="min-h-11 rounded-xl border border-stone-300 px-4">{t('profileScreen.name.cancel')}</button>
               </div>
             </form>
           )}
@@ -948,7 +953,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         {isFocusTimeActive && (
           <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-full text-xs font-medium border border-stone-200 dark:border-stone-700 shrink-0">
             <Moon size={12} className="text-indigo-500" />
-            Fokus-Zeit
+            {t('profileScreen.header.focusTime')}
           </div>
         )}
       </div>
@@ -981,29 +986,29 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <div>
                 <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                   <Wand2 size={16} className="text-brand dark:text-brand-light" />
-                  Profil automagisch ausfüllen
+                  {t('profileScreen.ui.importTitle')}
                 </h3>
                 <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Füge deinen LinkedIn-Text oder Notizen ein.
+                  {t('profileScreen.ui.importDescription')}
                 </p>
               </div>
               <button
                 onClick={() => setShowImport(true)}
                 className="px-4 py-2 bg-brand dark:bg-brand-light text-white dark:text-stone-900 rounded-full text-sm font-medium"
               >
-                Starten
+                {t('profileScreen.ui.start')}
               </button>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-              <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Text einfügen</h3>
+              <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">{t('profileScreen.import.title')}</h3>
               <textarea
                 id="profil-import-text"
                 name="profil-import-text"
-                aria-label="Text zum Importieren"
+                aria-label={t('profileScreen.import.ariaLabel')}
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
-                placeholder="z.B. 'Ich bin Softwareentwickler, spiele gerne Gitarre und liebe es zu reisen...'"
+                placeholder={t('profileScreen.import.placeholder')}
                 className="w-full h-32 p-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-brand/50 mb-3 resize-none"
               />
               <div className="flex gap-2">
@@ -1021,7 +1026,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   {isImporting ? (
                     <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span>
                   ) : (
-                    <>Importieren <ArrowRight size={16} /></>
+                    <>{t('profileScreen.import.action')} <ArrowRight size={16} /></>
                   )}
                 </button>
               </div>
@@ -1044,10 +1049,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div>
               <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                 <Sparkles size={16} className="text-indigo-500" />
-                Profil optimieren
+                {t('profileScreen.ui.optimizeTitle')}
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Mach dein Profil ansprechender mit KI.
+                {t('profileScreen.ui.optimizeDescription')}
               </p>
             </div>
             <button
@@ -1058,19 +1063,19 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               {isOptimizing ? (
                 <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span>
               ) : (
-                "Optimieren"
+                t('profileScreen.import.optimize')
               )}
             </button>
           </div>
 
           {optimizedData && (
             <div className="mt-4 pt-3 border-t border-indigo-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
-              <h4 className="text-xs font-medium text-indigo-500 mb-2">Vorgeschlagene Bio:</h4>
+              <h4 className="text-xs font-medium text-indigo-500 mb-2">{t('profileScreen.import.suggestedBio')}</h4>
               <p className="text-sm text-stone-600 dark:text-stone-400 mb-3 italic bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/10">
                 "{optimizedData.bio}"
               </p>
 
-              <h4 className="text-xs font-medium text-indigo-500 mb-2">Passende Interests:</h4>
+              <h4 className="text-xs font-medium text-indigo-500 mb-2">{t('profileScreen.import.matchingInterests')}</h4>
               <div className="flex flex-wrap gap-2 mb-4">
                 {optimizedData.interests.map(interest => (
                   <span key={interest} className="px-3 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-full text-xs font-medium">
@@ -1084,7 +1089,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   onClick={() => setOptimizedData(null)}
                   className="flex-1 py-2 bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-medium transition-colors hover:bg-stone-300 dark:hover:bg-stone-700"
                 >
-                  Verwerfen
+                  {t('profileScreen.ui.discard')}
                 </button>
                 <button
                   onClick={() => {
@@ -1102,7 +1107,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="flex-1 py-2 bg-indigo-500 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
                 >
-                  Alles übernehmen
+                  {t('profileScreen.import.applyAll')}
                 </button>
               </div>
             </div>
@@ -1111,8 +1116,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         {userInterests.length > 0 && (
           <div className="p-4 bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl shadow-sm">
-            <h3 className="font-medium mb-1 text-stone-900 dark:text-stone-100">Deine Interessen</h3>
-            <p className="text-xs text-stone-500 mb-3">Tippe auf ein Interesse, um es als 'Must-have' für Verbindungen zu markieren.</p>
+            <h3 className="font-medium mb-1 text-stone-900 dark:text-stone-100">{t('profileScreen.interests.title')}</h3>
+            <p className="text-xs text-stone-500 mb-3">{t('profileScreen.interests.hint')}</p>
             <div className="flex flex-wrap gap-2">
               {userInterests.map(interest => {
                 const isMustHave = mustHaveInterests.includes(interest);
@@ -1157,11 +1162,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <input
                 id="profil-neues-interesse"
                 name="profil-neues-interesse"
-                aria-label="Neues Interesse hinzufügen"
+                aria-label={t('profileScreen.interests.newLabel')}
                 type="text"
                 value={newInterest}
                 onChange={(e) => setNewInterest(e.target.value)}
-                placeholder="Neues Interesse hinzufügen..."
+                placeholder={t('profileScreen.interests.newPlaceholder')}
                 className="flex-1 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newInterest.trim()) {
@@ -1172,7 +1177,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }
                 }}
               />
-              <button aria-label="Interesse hinzufügen"
+              <button aria-label={t('profileScreen.interests.add')}
                 onClick={() => {
                   if (newInterest.trim()) {
                     const updated = [...userInterests, newInterest.trim()];
@@ -1192,13 +1197,13 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         {/* No-Gos */}
         <div className="p-4 bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl shadow-sm">
-          <h3 className="font-medium mb-1 text-stone-900 dark:text-stone-100">Meine No-Gos</h3>
-          <p className="text-xs text-stone-500 mb-3">Schließe Persönlichkeitsmerkmale oder Interessen aus, die der Deep-Verbindung Algorithmus priorisiert ignorieren soll.</p>
+          <h3 className="font-medium mb-1 text-stone-900 dark:text-stone-100">{t('profileScreen.noGos.title')}</h3>
+          <p className="text-xs text-stone-500 mb-3">{t('profileScreen.noGos.description')}</p>
           <div className="flex flex-wrap gap-2">
             {userNoGos.map((nogo, idx) => (
               <div key={idx} className="px-3 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-full text-xs flex items-center gap-1">
                 {nogo}
-                <button aria-label="No-Go entfernen" onClick={() => {
+                <button aria-label={t('profileScreen.noGos.remove')} onClick={() => {
                   const newArr = userNoGos.filter((_, i) => i !== idx);
                   setUserNoGos(newArr);
                   klarStorage.setItem("userNoGos", JSON.stringify(newArr));
@@ -1212,11 +1217,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <input
               id="profil-neues-nogo"
               name="profil-neues-nogo"
-              aria-label="No-Go hinzufügen"
+              aria-label={t('profileScreen.noGos.add')}
               type="text"
               value={newNoGo}
               onChange={(e) => setNewNoGo(e.target.value)}
-              placeholder="No-Go hinzufügen (z.B. Raucher)"
+              placeholder={t('profileScreen.noGos.placeholder')}
               className="flex-1 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newNoGo.trim()) {
@@ -1227,7 +1232,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 }
               }}
             />
-            <button aria-label="No-Go hinzufügen"
+            <button aria-label={t('profileScreen.noGos.add')}
               onClick={() => {
                 if (newNoGo.trim()) {
                   const newArr = [...userNoGos, newNoGo.trim()];
@@ -1249,11 +1254,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               className="mt-3 text-xs flex items-center gap-1 text-brand dark:text-brand-light font-medium"
             >
               <Sparkles size={12} className={isLoadingNogoSuggestions ? "" : ""} />
-              {isLoadingNogoSuggestions ? "Analysiere Journal..." : "KI-Vorschläge basierend auf Erfahrungen"}
+              {isLoadingNogoSuggestions ? t('profileScreen.noGos.loadingSuggestions') : t('profileScreen.noGos.suggestions')}
             </button>
           ) : (
             <div className="mt-3">
-              <p className="text-xs text-stone-500 mb-2 flex items-center gap-1"><Sparkles size={12}/> KI-Vorschläge (aus Journal & Chat):</p>
+              <p className="text-xs text-stone-500 mb-2 flex items-center gap-1"><Sparkles size={12}/> {t('profileScreen.noGos.suggestionsSource')}</p>
               <div className="flex gap-2 flex-wrap">
                 {nogoSuggestions.map((sug, i) => (
                   <button
@@ -1279,7 +1284,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         <div className="p-4 bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-medium text-stone-900 dark:text-stone-100">Über mich</h3>
+            <h3 className="font-medium text-stone-900 dark:text-stone-100">{t('profileScreen.bio.title')}</h3>
             <div className="flex gap-2">
               {bioHistory.length > 0 && (
                 <button
@@ -1287,7 +1292,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${showHistory ? 'bg-brand/10 dark:bg-brand-light/10 text-brand dark:text-brand-light' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'}`}
                 >
                   <History size={14} />
-                  Verlauf
+                  {t('profileScreen.ui.history')}
                 </button>
               )}
 
@@ -1295,30 +1300,30 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 onClick={checkBio}
                 disabled={isCheckingBio || !userBio.trim()}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-lg shadow-sm hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
-                title="Profil-Check durch KI-Coach"
+                title={t('profileCheck.heading')}
               >
                 {isCheckingBio ? <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span> : <ShieldCheck size={14} />}
-                <span className="text-xs font-medium">Bio-Check</span>
+                <span className="text-xs font-medium">{t('profileCheck.heading')}</span>
               </button>
 
               <button
                 onClick={optimizeBioValues}
                 disabled={isOptimizingValues || !userBio.trim() || userValuesRadar.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-                title="Bio basierend auf Werten optimieren"
+                title={t('profileScreen.radar.title')}
               >
                 {isOptimizingValues ? <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span> : <Sparkles size={14} />}
-                <span className="text-xs font-medium">Werte-Boost</span>
+                <span className="text-xs font-medium">{t('profileScreen.radar.title')}</span>
               </button>
               <button
                 onClick={generateBio}
 
                 disabled={isGeneratingBio}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-brand dark:bg-brand-light text-white dark:text-stone-900 rounded-lg shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-                title="Auto-Bio generieren"
+                title={t('profileScreen.bio.preview')}
               >
                 {isGeneratingBio ? <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span> : <Wand2 size={14} />}
-                <span className="text-xs font-medium">Auto-Bio</span>
+                <span className="text-xs font-medium">{t('profileScreen.bio.preview')}</span>
               </button>
             </div>
           </div>
@@ -1327,7 +1332,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <textarea
                 id="profil-bio"
                 name="profil-bio"
-                aria-label="Über mich"
+                aria-label={t('profileScreen.bio.ariaLabel')}
                 value={userBio}
                 onChange={(e) => setUserBio(e.target.value)}
                 className="w-full min-h-[100px] p-3 text-sm bg-stone-50 dark:bg-stone-800 border border-brand/30 dark:border-brand-light/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 resize-none text-stone-700 dark:text-stone-300"
@@ -1341,12 +1346,12 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="px-4 py-1.5 bg-brand dark:bg-brand-light text-white dark:text-stone-900 text-xs font-semibold rounded-lg hover:opacity-90"
                 >
-                  Speichern
+                  {t('profileScreen.ui.save')}
                 </button>
               </div>
             </div>
           ) : (
-            <p role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsEditingBio(true); }} className="text-sm text-stone-600 dark:text-stone-400 mb-2 cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 p-2 -mx-2 rounded-lg transition-colors" onClick={() => setIsEditingBio(true)} title="Klicken zum Bearbeiten">
+            <p role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsEditingBio(true); }} className="text-sm text-stone-600 dark:text-stone-400 mb-2 cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 p-2 -mx-2 rounded-lg transition-colors" onClick={() => setIsEditingBio(true)} title={t('profileScreen.bio.editHint')}>
               {userBio}
               <span className="inline-block ml-2 text-stone-400 opacity-50"><Edit size={12} className="inline" /></span>
             </p>
@@ -1354,7 +1359,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
           {showHistory && bioHistory.length > 0 && (
             <div className="mt-4 pt-3 border-t border-stone-100 dark:border-stone-700 animate-in fade-in slide-in-from-top-2 duration-300">
-              <h4 className="text-xs font-medium text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">Vorherige Versionen</h4>
+              <h4 className="text-xs font-medium text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">{t('profileScreen.bio.previous')}</h4>
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                 {bioHistory.map((item, idx) => {
                   const date = new Date(item.timestamp);
@@ -1379,7 +1384,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         className="text-xs font-medium text-brand dark:text-brand-light hover:opacity-80 transition-opacity flex items-center gap-1"
                       >
                         <RefreshCw size={12} />
-                        Wiederherstellen
+                        {t('profileScreen.ui.restore')}
                       </button>
                     </div>
                   </div>
@@ -1393,14 +1398,14 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           {valueBioSuggestions.length > 0 && (
             <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl space-y-2">
               <h4 className="text-xs font-semibold text-purple-700 dark:text-purple-400 flex items-center gap-1 mb-2">
-                <Sparkles size={12} /> Werte-Optimierung
+                <Sparkles size={12} /> {t('profileScreen.ui.valueOptimization')}
               </h4>
               {valueBioSuggestions.map((sug, idx) => (
                 <div key={idx} className="bg-white dark:bg-stone-800 p-2 rounded-lg text-[10px] text-stone-700 dark:text-stone-300 shadow-sm border border-stone-100 dark:border-stone-700">
                   {sug}
                 </div>
               ))}
-              <button onClick={() => setValueBioSuggestions([])} className="text-[10px] text-stone-500 underline mt-1">Schließen</button>
+              <button onClick={() => setValueBioSuggestions([])} className="text-[10px] text-stone-500 underline mt-1">{t('profileScreen.bio.closeSuggestions')}</button>
             </div>
           )}
           {bioFeedback && (
@@ -1411,10 +1416,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   <ShieldCheck size={16} />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-brand dark:text-brand-light mb-1">KI-Coach Feedback</h4>
+                  <h4 className="text-sm font-semibold text-brand dark:text-brand-light mb-1">{t('profileScreen.bio.coachFeedback')}</h4>
                   <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{bioFeedback}</p>
                 </div>
-                <button aria-label="Rückmeldung schließen" onClick={() => setBioFeedback("")} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors">
+                <button aria-label={t('profileScreen.bio.closeFeedback')} onClick={() => setBioFeedback("")} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -1426,7 +1431,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <Sparkles size={14} className="text-brand dark:text-brand-light" />
-                  <span className="text-xs font-medium text-brand dark:text-brand-light">Auto-Bio Preview</span>
+                  <span className="text-xs font-medium text-brand dark:text-brand-light">{t('profileScreen.bio.preview')}</span>
                 </div>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
@@ -1440,11 +1445,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               {showPreview ? (
                 <div className="mb-4 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl overflow-hidden shadow-sm">
                   <div className="h-32 bg-stone-200 dark:bg-stone-800 w-full relative">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400&h=300" alt="Cover" className="w-full h-full object-cover" />
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400&h=300" alt={t('profileScreen.header.cover')} className="w-full h-full object-cover" />
                     <div className="absolute inset-0  from-black/60 to-transparent"></div>
                     <div className="absolute bottom-3 left-4 text-white">
-                      <h4 className="font-semibold text-lg drop-shadow-md">Du, 29</h4>
-                      <p className="text-xs opacity-90 drop-shadow-md">{profileData?.location || 'Ort noch nicht angegeben'}</p>
+                      <h4 className="font-semibold text-lg drop-shadow-md">{t('profileScreen.bio.preview')}</h4>
+                      <p className="text-xs opacity-90 drop-shadow-md">{profileData?.location || t('profileScreen.header.locationMissing')}</p>
                     </div>
                   </div>
                   <div className="p-4">
@@ -1465,7 +1470,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="flex-1 py-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-xl text-xs font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
                 >
-                  Verwerfen
+                  {t('profileScreen.ui.discard')}
                 </button>
                 <button
                   onClick={() => {
@@ -1479,7 +1484,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   }}
                   className="flex-1 py-2 bg-brand dark:bg-brand-light text-white dark:text-stone-900 rounded-xl text-xs font-medium hover:opacity-90 transition-opacity"
                 >
-                  Apply
+                  {t('profileScreen.ui.apply')}
                 </button>
               </div>
             </div>
@@ -1494,10 +1499,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div>
               <h3 className="font-medium flex items-center gap-2 text-stone-900 dark:text-stone-100 mb-1">
                 <Sparkles size={16} className="text-brand dark:text-brand-light" />
-                Deine Icebreaker
+                {t('profileScreen.ui.icebreakersTitle')}
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Fragen, die Verbindungen auf deinem Profil sehen.
+                {t('profileScreen.ui.icebreakersDescription')}
               </p>
             </div>
 
@@ -1505,7 +1510,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               onClick={generateIcebreakers}
               disabled={isGenerating}
               className="p-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
-              title="Neu generieren"
+              title={t('profileScreen.bio.regenerate')}
             >
               <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span>
             </button>
@@ -1521,7 +1526,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               ))
             ) : (
               <div className="text-center py-6">
-                <p className="text-sm text-stone-500 mb-4">Noch keine Icebreaker generiert.</p>
+                <p className="text-sm text-stone-500 mb-4">{t('profileScreen.bio.noSuggestions')}</p>
                 <button
                   onClick={generateIcebreakers}
                   disabled={isGenerating}
@@ -1547,8 +1552,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 <Sparkles size={20} />
               </div>
               <div>
-                <h3 className="font-semibold text-stone-900 dark:text-stone-100">Werte-Radar</h3>
-                <p className="text-xs text-stone-500 dark:text-stone-400">Deine Deep-Verbindung Ausrichtung</p>
+                <h3 className="font-semibold text-stone-900 dark:text-stone-100">{t('profileScreen.radar.title')}</h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400">{t('profileScreen.radar.subtitle')}</p>
               </div>
             </div>
             {/* BEFUND 12.08.2026 — endlich zugeordnet:
@@ -1578,7 +1583,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                       <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Sparkles size={24} />
                       </div>
-                      <h4 className="font-bold text-stone-900 dark:text-stone-100 mb-2">Dein Deep-Verbindung Radar</h4>
+                      <h4 className="font-bold text-stone-900 dark:text-stone-100 mb-2">{t('profileScreen.radar.description')}</h4>
                       <p className="text-sm text-stone-600 dark:text-stone-300 mb-5">
                         Tippe auf die einzelnen Werte-Achsen (z.B. "Abenteuer"), um detaillierte Erklärungen und potenzielle Gemeinsamkeiten mit Verbindungen zu sehen.
                       </p>
@@ -1586,7 +1591,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         onClick={dismissRadarTutorial}
                         className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors"
                       >
-                        Verstanden
+                        {t('profileScreen.ui.understood')}
                       </button>
                     </div>
                   </motion.div>
@@ -1625,7 +1630,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                             }}
                             style={{ cursor: 'pointer' }}
                           >
-                            <title>{VALUE_EXPLANATIONS[payload.value] || payload.value}</title>
+                            <title>{VALUE_EXPLANATIONS[payload.value as keyof typeof VALUE_EXPLANATIONS] ? t(VALUE_EXPLANATIONS[payload.value as keyof typeof VALUE_EXPLANATIONS]) : payload.value}</title>
                             <tspan x={x} dy="0em">{payload.value}</tspan>
                           </text>
                         </motion.g>
@@ -1648,13 +1653,13 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 onClick={() => setShowRadarSettings(!showRadarSettings)}
                 className="text-xs flex items-center gap-1 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
               >
-                <Settings size={14} /> Farben anpassen
+                <Settings size={14} /> {t('profileScreen.ui.customizeColors')}
               </button>
               <button
                 onClick={downloadRadarImage}
                 className="text-xs flex items-center gap-1 text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400 font-medium"
               >
-                <Download size={14} /> Als Bild exportieren
+                <Download size={14} /> {t('profileScreen.ui.exportImage')}
               </button>
             </div>
 
@@ -1668,11 +1673,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 >
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label htmlFor="radar-farbe-a" className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">Dein Profil</label>
+                      <label htmlFor="radar-farbe-a" className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">{t('profileScreen.radar.profileA')}</label>
                       <input id="radar-farbe-a" name="radar-farbe-a" type="color" value={radarColorA} onChange={(e) => setRadarColorA(e.target.value)} className="w-full h-8 rounded cursor-pointer" />
                     </div>
                     <div className="flex-1">
-                      <label htmlFor="radar-farbe-b" className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">Verbindung Profil</label>
+                      <label htmlFor="radar-farbe-b" className="text-xs font-medium text-stone-600 dark:text-stone-400 block mb-1">{t('profileScreen.radar.profileB')}</label>
                       <input id="radar-farbe-b" name="radar-farbe-b" type="color" value={radarColorB} onChange={(e) => setRadarColorB(e.target.value)} className="w-full h-8 rounded cursor-pointer" />
                     </div>
                   </div>
@@ -1682,8 +1687,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
             {/* Compare Toggle */}
             <div className="flex justify-between items-center mt-4 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-xl">
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">Mit Verbindung vergleichen</span>
-              <button role="switch" aria-checked={showCompareRadar} aria-label="Mit Verbindung vergleichen"
+              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">{t('profileScreen.radar.compare')}</span>
+              <button role="switch" aria-checked={showCompareRadar} aria-label={t('profileScreen.radar.compare')}
                 onClick={() => setShowCompareRadar(!showCompareRadar)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showCompareRadar ? 'bg-amber-500' : 'bg-stone-200 dark:bg-stone-700'}`}
               >
@@ -1703,25 +1708,25 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('all'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'all' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Alle
+                  {t('profileScreen.ui.filters.all')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('similarities'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'similarities' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Ähnlichkeiten
+                  {t('profileScreen.ui.filters.similarity')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('complements'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'complements' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Ergänzungen
+                  {t('profileScreen.ui.filters.complement')}
                 </button>
                 <button
                   onClick={() => { triggerHaptic('LIGHT_TAP'); setMatchFilter('contrasts'); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${matchFilter === 'contrasts' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'}`}
                 >
-                  Kontraste
+                  {t('profileScreen.ui.filters.contrast')}
                 </button>
               </div>
             )}
@@ -1738,14 +1743,14 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   className="mt-4 overflow-hidden"
                 >
                   <div className="p-4 bg-stone-50 dark:bg-stone-800/50 rounded-xl">
-                    <h4 className="font-semibold text-stone-800 dark:text-stone-200 mb-3">Deep Verbindung Übersicht</h4>
+                    <h4 className="font-semibold text-stone-800 dark:text-stone-200 mb-3">{t('profileScreen.radar.overview')}</h4>
                     <ul className="flex flex-col gap-3">
                       {(matchFilter === 'all' || matchFilter === 'similarities') && (
                         <li className="flex gap-3 items-start bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
                           <Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">Ähnlichkeit (Achtsamkeit)</span>
-                            <span className="text-xs text-stone-600 dark:text-stone-400">Ihr teilt eine hohe Ausprägung bei Achtsamkeit. Gute Basis für tiefgründige Gespräche.</span>
+                            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">{t('profileScreen.radar.similarity')}</span>
+                            <span className="text-xs text-stone-600 dark:text-stone-400">{t('profileScreen.radar.similarityText')}</span>
                           </div>
                         </li>
                       )}
@@ -1753,8 +1758,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         <li className="flex gap-3 items-start bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
                           <Sparkles size={16} className="text-blue-500 shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-xs font-bold text-blue-800 dark:text-blue-300 block mb-0.5">Ergänzung (Abenteuer)</span>
-                            <span className="text-xs text-stone-600 dark:text-stone-400">Du bist eher ruhig, dein Verbindung bringt Abenteuerlust ein. Das kann euch beide bereichern.</span>
+                            <span className="text-xs font-bold text-blue-800 dark:text-blue-300 block mb-0.5">{t('profileScreen.radar.complement')}</span>
+                            <span className="text-xs text-stone-600 dark:text-stone-400">{t('profileScreen.radar.complementText')}</span>
                           </div>
                         </li>
                       )}
@@ -1762,8 +1767,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                         <li className="flex gap-3 items-start bg-rose-50 dark:bg-rose-900/10 p-3 rounded-lg border border-rose-100 dark:border-rose-800/30">
                           <Zap size={16} className="text-rose-500 shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-xs font-bold text-rose-800 dark:text-rose-300 block mb-0.5">Kontrast (Karriere)</span>
-                            <span className="text-xs text-stone-600 dark:text-stone-400">Sehr unterschiedliche Fokus-Bereiche bei Karriere. Offene Kommunikation ist hier wichtig.</span>
+                            <span className="text-xs font-bold text-rose-800 dark:text-rose-300 block mb-0.5">{t('profileScreen.radar.contrast')}</span>
+                            <span className="text-xs text-stone-600 dark:text-stone-400">{t('profileScreen.radar.contrastText')}</span>
                           </div>
                         </li>
                       )}
@@ -1786,17 +1791,17 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                       <Sparkles size={16} /> {activeRadarValue}
                     </h4>
                     <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">
-                      {VALUE_EXPLANATIONS[activeRadarValue]}
+                      {t(VALUE_EXPLANATIONS[activeRadarValue as keyof typeof VALUE_EXPLANATIONS])}
                     </p>
 
-                    {showCompareRadar && DEEP_MATCH_INSIGHTS[activeRadarValue] && (
+                    {showCompareRadar && DEEP_MATCH_INSIGHTS[activeRadarValue as keyof typeof DEEP_MATCH_INSIGHTS] && (
                       <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800/30">
-                        <h5 className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">Deep Verbindung Gemeinsamkeiten:</h5>
+                        <h5 className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">{t('profileScreen.radar.commonalities')}</h5>
                         <ul className="flex flex-col gap-1.5">
-                          {DEEP_MATCH_INSIGHTS[activeRadarValue].map((insight, idx) => (
+                          {DEEP_MATCH_INSIGHTS[activeRadarValue as keyof typeof DEEP_MATCH_INSIGHTS].map((insight, idx) => (
                             <li key={idx} className="flex items-start gap-2 text-xs text-stone-600 dark:text-stone-400">
                               <Check size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                              <span>{insight}</span>
+                              <span>{t(insight)}</span>
                             </li>
                           ))}
                         </ul>
@@ -1858,8 +1863,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             ob die Kinder etwas gerendert haben; das weiss der Elternteil in
             React nicht. */}
         <p className="text-sm text-stone-500 dark:text-stone-400 px-1">
-          Hier siehst du, wie sich dein Dating-Alltag entwickelt. Auswertungen
-          erscheinen von selbst, sobald es etwas auszuwerten gibt.
+          {t('profileScreen.ui.growthEmpty')}
         </p>
         <div className="mb-6">
           <DatingMoodTrackerWidget />
@@ -1891,8 +1895,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         {reiter === "einstellungen" && (
         <div role="tabpanel" id="profil-einstellungen-inhalt" aria-labelledby="profil-einstellungen" className="space-y-4">
-        <nav aria-label="Einstellungskategorien" className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-2xl bg-[#FAF8F5] dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2">
-          {([['privacy', 'Sicherheit & Datenschutz'], ['preferences', 'Präferenzen & Hinweise'], ['advanced', 'Erweitert & Konto']] as const).map(([id, label]) => (
+        <nav aria-label={t('profileScreen.settings.categories')} className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-2xl bg-[#FAF8F5] dark:bg-stone-900 border border-stone-200 dark:border-stone-700 p-2">
+          {([['privacy', t('profileScreen.settings.privacyCategory')], ['preferences', t('profileScreen.settings.preferencesCategory')], ['advanced', t('profileScreen.settings.advancedCategory')]] as const).map(([id, label]) => (
             <button key={id} type="button" aria-pressed={settingsCategory === id} onClick={() => setSettingsCategory(id)}
               className={`min-h-11 rounded-xl px-3 py-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 dark:focus-visible:outline-stone-100 ${settingsCategory === id ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900' : 'text-stone-800 dark:text-stone-100 hover:bg-stone-200 dark:hover:bg-stone-800'}`}>
               {label}
@@ -1911,12 +1915,12 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
           <SmartPause />
           {/* ENTFERNT 11.08.2026 — <ThemeSettingsWidget />.
-              Dritte Hell/Dunkel/System-Wahl auf derselben Seite, und die
+              Dritte {t('profileScreen.ui.appearance.light')}/{t('profileScreen.ui.appearance.dark')}/{t('profileScreen.ui.appearance.system')}-Wahl auf derselben Seite, und die
               dritte, die nach `klarStorage['theme']` schrieb statt nach
               `klar_theme`. Sie war damit ohne dauerhafte Wirkung und
               konnte einen anderen Zustand anzeigen als die beiden
-              anderen. Geblieben sind die Systemleiste oben (schneller
-              Wechsel) und "Einstellungen -> Erscheinungsbild" weiter
+              anderen. Geblieben sind die {t('profileScreen.ui.appearance.system')}leiste oben (schneller
+              Wechsel) und "Einstellungen -> {t('profileScreen.ui.appearance.title')}" weiter
               unten (vollstaendige Wahl, ueber useTheme).
               Die Datei src/components/ThemeSettingsWidget.tsx wird damit
               von niemandem mehr benutzt und ist zu loeschen. */}
@@ -1934,7 +1938,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         {/* ── KLAR+ 14.08.2026 ─────────────────────────────────────────
             Vorher standen hier 75 Zeilen Vergleichstabelle (acht Zeilen mal
             drei Spalten, rund 600 px) zwischen der Fokuszeit und der
-            Erscheinungsbild-Wahl — und darunter ein Knopf „Klar+ entdecken"
+            {t('profileScreen.ui.appearance.title')}-Wahl — und darunter ein Knopf „Klar+ entdecken"
             ohne `onClick`.
 
             Jetzt: eine Zeile, die dauerhaft auffindbar ist, und die Seite
@@ -1951,10 +1955,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <Zap size={18} className="text-brand dark:text-brand-light shrink-0" aria-hidden="true" />
           <span className="flex-1">
             <span className="block text-sm font-medium text-stone-900 dark:text-stone-100">
-              Aktueller Plan: Klar
+              {t('profileScreen.ui.currentPlan')}
             </span>
             <span className="block text-xs text-stone-500 dark:text-stone-400">
-              Was Klar+ anders macht ansehen
+              {t('profileScreen.ui.learnMore')}
             </span>
           </span>
           <ChevronRight size={18} className="text-stone-400 shrink-0" aria-hidden="true" />
@@ -1963,7 +1967,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="w-full mt-4 p-4 bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 rounded-2xl shadow-sm">
 
-          <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Einstellungen</h3>
+          <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">{t('profileScreen.settings.title')}</h3>
 
           <div className="mb-6">
             {/* ── Epic 3: Spracheinstellungen ──────────────────────────────── */}
@@ -1972,10 +1976,10 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className={settingsCategory === 'privacy' ? 'mt-6' : 'hidden'}>
               <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
                 <ShieldCheck size={18} className="text-stone-500" />
-                Datenschutz & Sichtbarkeit
+                {t('profileScreen.settings.privacyCategory')}
               </h4>
               <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
-                <p className="text-xs text-stone-500 mb-4">Lege fest, welche Profilinformationen für andere Nutzer sichtbar sind.</p>
+                <p className="text-xs text-stone-500 mb-4">{t('profileScreen.settings.visibilityHint')}</p>
                 <div className="space-y-3">
                   {[
                     { id: 'showAge', label: 'Alter anzeigen' },
@@ -2009,7 +2013,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             <div className={settingsCategory === 'preferences' ? 'space-y-4' : 'hidden'}>
             <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
               <Languages size={18} className="text-stone-500" />
-              Meine Chat-Sprache
+              {t('profileScreen.ui.chatLanguage')}
             </h4>
             <div className="mb-6 flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
               {['de', 'en', 'es', 'fr'].map(lang => {
@@ -2028,7 +2032,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
             <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
               <Sun size={18} className="text-stone-500" />
-              Erscheinungsbild
+              {t('profileScreen.ui.appearance.title')}
             </h4>
             <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
               <button
@@ -2036,21 +2040,21 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'light' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Sun size={14} />
-                Hell
+                {t('profileScreen.ui.appearance.light')}
               </button>
               <button
                 onClick={() => setTheme('dark')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'dark' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Moon size={14} />
-                Dunkel
+                {t('profileScreen.ui.appearance.dark')}
               </button>
               <button
                 onClick={() => setTheme('system')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-colors ${theme === 'system' ? 'bg-white dark:bg-stone-700 text-brand shadow-sm' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'}`}
               >
                 <Monitor size={14} />
-                System
+                {t('profileScreen.ui.appearance.system')}
               </button>
             </div>
           </div>
@@ -2061,15 +2065,15 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               <BellRing size={20} className="text-stone-500 dark:text-stone-400" />
               <div>
                 <span className="block text-sm font-medium text-stone-700 dark:text-stone-300">
-                  Smart Verbindung Benachrichtigungen
+                  {t('profileScreen.ui.smartConnectionNotifications')}
                 </span>
                 <span className="block text-xs text-stone-500 dark:text-stone-400">
-                  Push-Alerts nur für Verbindungen über 90%
+                  {t('profileScreen.ui.smartConnectionNotificationsDescription')}
                 </span>
               </div>
             </div>
 
-            <button role="switch" aria-checked={smartMatchAlerts} aria-label="Smart-Verbindung-Hinweise"
+            <button role="switch" aria-checked={smartMatchAlerts} aria-label={t('profileScreen.settings.smartConnectionHints')}
               onClick={() => {
                 const newValue = !smartMatchAlerts;
                 setSmartMatchAlerts(newValue);
@@ -2152,11 +2156,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 </span>
                 {profileData?.isVerified ? (
                   <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-brand/10 text-brand border-brand/20 dark:bg-brand-light/10 dark:text-brand-light dark:border-brand-light/20 flex items-center gap-1.5">
-                    <ShieldCheck size={14} /> Verified
+                    <ShieldCheck size={14} /> {t('profileScreen.ui.verified')}
                   </span>
                 ) : (
                   <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-700 dark:text-stone-400 dark:border-stone-600">
-                    Basic
+                    {t('profileScreen.ui.basic')}
                   </span>
                 )}
               </div>

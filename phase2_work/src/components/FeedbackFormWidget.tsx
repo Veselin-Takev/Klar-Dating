@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquareHeart, Send, CheckCircle2 } from 'lucide-react';
 
 export function FeedbackFormWidget() {
+  const { t } = useTranslation();
   const [rating, setRating] = useState<number>(0);
   const [text, setText] = useState('');
   const [zustand, setZustand] = useState<'leer' | 'lade' | 'erfolg' | 'fehler'>('leer');
@@ -10,7 +12,7 @@ export function FeedbackFormWidget() {
   if (!navigator.onLine) {
     return (
       <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 mb-6 text-center text-stone-500 text-sm">
-        (Feedback erfordert eine Internetverbindung)
+        {t('profileScreen.feedback.offline')}
       </div>
     );
   }
@@ -27,11 +29,11 @@ export function FeedbackFormWidget() {
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Senden fehlgeschlagen');
+        throw new Error(errorData.error || t('profileScreen.feedback.submitFailed'));
       }
       setZustand('erfolg');
     } catch(e: unknown) {
-      setErrorMsg(e instanceof Error ? e.message : 'Senden fehlgeschlagen');
+      setErrorMsg(e instanceof Error ? e.message : t('profileScreen.feedback.submitFailed'));
       setZustand('fehler');
     }
   };
@@ -40,8 +42,8 @@ export function FeedbackFormWidget() {
     return (
       <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 mb-6 flex flex-col items-center justify-center text-center gap-2">
         <CheckCircle2 size={24} className="text-emerald-500" />
-        <p className="font-medium text-stone-900">Danke für dein Feedback!</p>
-        <p className="text-sm text-stone-500">Wir lesen jede Rückmeldung aufmerksam.</p>
+        <p role="status" aria-live="polite" className="font-medium text-stone-900">{t('profileScreen.feedback.thanksTitle')}</p>
+        <p className="text-sm text-stone-500">{t('profileScreen.feedback.thanksBody')}</p>
       </div>
     );
   }
@@ -53,8 +55,8 @@ export function FeedbackFormWidget() {
           <MessageSquareHeart size={20} className="text-brand" />
         </div>
         <div>
-          <h3 className="font-medium text-stone-900">App-Zufriedenheit</h3>
-          <p className="text-sm text-stone-500">Deine Meinung hilft uns, Klar zu verbessern.</p>
+          <h3 className="font-medium text-stone-900">{t('profileScreen.feedback.prompt')}</h3>
+          <p className="text-sm text-stone-500">{t('profileScreen.feedback.thanksBody')}</p>
         </div>
       </div>
 
@@ -66,6 +68,8 @@ export function FeedbackFormWidget() {
         {[1,2,3,4,5].map(r => (
           <button
             key={r}
+            aria-label={t('profileScreen.feedback.ratingLabel', { rating: r })}
+            aria-pressed={rating === r}
             onClick={() => setRating(r)}
             disabled={zustand === 'lade'}
             className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${rating === r ? 'bg-brand text-white' : 'bg-white border border-stone-200 text-stone-600 hover:border-brand'}`}
@@ -80,7 +84,8 @@ export function FeedbackFormWidget() {
         onChange={e => setText(e.target.value)}
         disabled={zustand === 'lade'}
         maxLength={2000}
-        placeholder="Was können wir besser machen?"
+        placeholder={t('profileScreen.feedback.placeholder')}
+        aria-label={t('profileScreen.feedback.suggestions')}
         className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand/50 mb-3 resize-none h-24"
       />
 
@@ -89,7 +94,7 @@ export function FeedbackFormWidget() {
         disabled={rating === 0 || zustand === 'lade'}
         className="w-full bg-stone-900 text-white rounded-xl py-3 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        {zustand === 'lade' ? 'Wird gesendet...' : <><Send size={16} /> Absenden</>}
+        {zustand === 'lade' ? t('profileScreen.feedback.sending') : <><Send size={16} /> {t('profileScreen.feedback.submit')}</>}
       </button>
     </div>
   );

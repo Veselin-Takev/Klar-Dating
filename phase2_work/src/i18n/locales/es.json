@@ -461,5 +461,334 @@
     "nobodyCanSee": "Tu pantalla está oculta.",
     "autoActivation": "La protección también se activa tras un periodo de inactividad o al salir de esta pestaña.",
     "showScreen": "Mostrar pantalla"
+  },
+  "profileScreen": {
+    "cache": {
+      "bio": "Biografía",
+      "interests": "Intereses",
+      "noGos": "Aspectos no negociables",
+      "local": "Guardado localmente: {{items}}",
+      "none": "Ninguno",
+      "lastCloudSync": "Última sincronización correcta con la nube",
+      "sync": "Sincronización: {{time}}"
+    },
+    "feedback": {
+      "thanksTitle": "¡Gracias por tus comentarios!",
+      "thanksBody": "Tu opinión nos ayuda a mejorar Klar.",
+      "prompt": "Tu opinión sobre Klar",
+      "rating": "¿Qué tan satisfecho estás?",
+      "ratingLabel": "Selecciona {{rating}} de 5 estrellas",
+      "suggestions": "Sugerencias de mejora (opcional)",
+      "placeholder": "¿Qué podríamos hacer mejor?",
+      "submit": "Enviar comentarios",
+      "offline": "Se necesita conexión a Internet para enviar comentarios.",
+      "submitFailed": "No se pudieron enviar tus comentarios.",
+      "sending": "Enviando …"
+    },
+    "photo": {
+      "reauth": "Vuelve a iniciar sesión.",
+      "sessionChanged": "La sesión ha cambiado.",
+      "saved": "La foto del perfil se ha actualizado correctamente.",
+      "saveFailed": "No se pudo guardar completamente la foto del perfil. Inténtalo de nuevo.",
+      "saving": "Guardando la foto del perfil …"
+    },
+    "share": {
+      "title": "Mi perfil de Klar",
+      "text": "¡Echa un vistazo a mi perfil de Klar!",
+      "copied": "¡Enlace al perfil copiado al portapapeles!",
+      "copyFailed": "No se pudo copiar el enlace al perfil.",
+      "preview": "Vista previa del perfil",
+      "share": "Compartir perfil"
+    },
+    "header": {
+      "title": "Tu perfil",
+      "avatar": "Foto de perfil",
+      "quality": "Calidad de la conexión",
+      "verified": "Verificado",
+      "locationMissing": "Ubicación no indicada",
+      "focusTime": "Tiempo de concentración",
+      "cover": "Imagen de portada del perfil"
+    },
+    "name": {
+      "missing": "Añade tu nombre al perfil",
+      "edit": "Editar nombre",
+      "invalid": "Introduce un nombre de 80 caracteres como máximo.",
+      "saved": "Nombre guardado.",
+      "saveFailed": "No se pudo guardar el nombre. Inténtalo de nuevo.",
+      "label": "Nombre visible",
+      "saving": "Guardando …",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "import": {
+      "title": "Pegar texto",
+      "ariaLabel": "Texto para importar",
+      "placeholder": "Por ejemplo: «Soy desarrollador de software, me gusta tocar la guitarra y viajar …»",
+      "action": "Importar",
+      "imported": "El texto del perfil se ha importado y guardado.",
+      "saveFailed": "No se pudo guardar el texto. Tu entrada sigue disponible. Inténtalo de nuevo.",
+      "suggestedBio": "Biografía sugerida:",
+      "matchingInterests": "Intereses relacionados:",
+      "optimize": "Optimizar",
+      "applyAll": "Aplicar todo"
+    },
+    "interests": {
+      "title": "Tus intereses",
+      "hint": "Toca un interés para marcarlo como imprescindible para las conexiones.",
+      "newLabel": "Añadir un interés",
+      "newPlaceholder": "Añadir un interés …",
+      "add": "Añadir interés"
+    },
+    "noGos": {
+      "title": "Mis aspectos no negociables",
+      "description": "Excluye rasgos de personalidad o intereses que no deban tenerse en cuenta en las sugerencias.",
+      "remove": "Eliminar aspecto no negociable",
+      "add": "Añadir aspecto no negociable",
+      "placeholder": "Añadir un aspecto no negociable (p. ej., fumar)",
+      "loadingSuggestions": "Analizando el diario …",
+      "suggestions": "Sugerencias de IA basadas en experiencias",
+      "suggestionsSource": "Sugerencias de IA (del diario y del chat):",
+      "fallbackHonesty": "Falta de sinceridad",
+      "fallbackLate": "Llegar tarde",
+      "fallbackGhosting": "Desaparecer sin responder"
+    },
+    "bio": {
+      "title": "Sobre mí",
+      "ariaLabel": "Sobre mí",
+      "editHint": "Haz clic para editar",
+      "previous": "Versiones anteriores",
+      "closeSuggestions": "Cerrar",
+      "coachFeedback": "Comentarios del coach de IA",
+      "closeFeedback": "Cerrar comentarios",
+      "preview": "Vista previa de la biografía automática",
+      "sample": "Me encanta el café y salir en bicicleta los fines de semana. Busco a alguien para mantener conversaciones profundas y hacer planes espontáneos.",
+      "noSuggestions": "Todavía no se han generado preguntas para romper el hielo.",
+      "regenerate": "Generar de nuevo",
+      "reviewFailed": "No se pudo revisar tu biografía. Inténtalo de nuevo más tarde.",
+      "generationFailed": "Se produjo un error al generar el texto. Inténtalo de nuevo más tarde.",
+      "unexpected": "Se ha producido un error inesperado.",
+      "defaultTopics": "Temas generales"
+    },
+    "radar": {
+      "title": "Radar de valores",
+      "subtitle": "Tu orientación para crear conexiones profundas",
+      "description": "Tu radar de conexión",
+      "profileA": "Tu perfil",
+      "profileB": "Perfil de la conexión",
+      "compare": "Comparar con una conexión",
+      "overview": "Resumen de la conexión",
+      "similarity": "Similitud (atención plena)",
+      "similarityText": "Compartís una gran afinidad por la atención plena, una buena base para conversaciones profundas.",
+      "complement": "Complemento (aventura)",
+      "complementText": "Tú tienes un perfil más tranquilo y la otra persona aporta espíritu aventurero. Eso puede enriqueceros a ambos.",
+      "contrast": "Contraste (carrera)",
+      "contrastText": "Vuestras prioridades profesionales son bastante distintas. La comunicación abierta es importante.",
+      "commonalities": "Afinidades de vuestra conexión"
+    },
+    "settings": {
+      "categories": "Categorías de ajustes",
+      "title": "Ajustes",
+      "visibilityHint": "Elige qué información del perfil pueden ver otras personas.",
+      "privacyCategory": "Seguridad y privacidad",
+      "preferencesCategory": "Preferencias y avisos",
+      "advancedCategory": "Opciones avanzadas y cuenta",
+      "smartConnectionHints": "Avisos de conexión inteligente"
+    },
+    "modal": {
+      "close": "Cerrar",
+      "aboutMe": "Sobre mí",
+      "interests": "Intereses"
+    },
+    "theme": {
+      "title": "Tema del perfil",
+      "description": "Elige un color de fondo para tu perfil que refleje tu personalidad. Otras personas verán este tema al consultar tu perfil.",
+      "select": "Seleccionar el tema {{theme}}"
+    },
+    "milestones": {
+      "title": "Hitos",
+      "summary": "{{completed}} de {{total}} completados",
+      "allReached": "Has completado los {{total}}.",
+      "firstSteps": "Un buen punto de partida:",
+      "nextSteps": "Lo siguiente:",
+      "achieved": "Completados:",
+      "viewAll": "Ver los {{total}}",
+      "items": {
+        "profil-vollstaendig": {
+          "name": "Perfil listo",
+          "description": "Una breve biografía de más de 20 caracteres y al menos tres intereses."
+        },
+        "profil-geprueft": {
+          "name": "Perfil revisado",
+          "description": "Pide al coach de IA que revise tu perfil."
+        },
+        "erstes-date": {
+          "name": "Primera cita planificada",
+          "description": "Añade una cita al planificador."
+        },
+        "verabredungen-vorbereitet": {
+          "name": "Dos citas preparadas",
+          "description": "Utiliza el planificador de citas dos veces."
+        },
+        "duelle": {
+          "name": "Tres duelos ganados",
+          "description": "Gana tres duelos de citas."
+        },
+        "verbindungen": {
+          "name": "Cinco conexiones",
+          "description": "Cinco personas con interés mutuo."
+        }
+      }
+    },
+    "valueExplanations": {
+      "adventure": "Indica lo espontáneo y abierto que eres a las experiencias imprevistas.",
+      "mindfulness": "Cuánto valoras el equilibrio emocional y una vida consciente.",
+      "community": "La importancia que das a tus amistades, familia y entorno social.",
+      "honesty": "Lo importante que es para ti una comunicación transparente y directa.",
+      "creativity": "El espacio que necesitas para expresarte y disfrutar de aficiones creativas.",
+      "career": "La importancia que tienen para ti el éxito profesional y la estabilidad económica."
+    },
+    "deepMatchInsights": {
+      "adventureWeekend": "A ambos os gustan las escapadas espontáneas de fin de semana.",
+      "adventureFood": "Para ambos es importante probar restaurantes nuevos.",
+      "mindfulnessMeditation": "La meditación y el yoga forman parte de vuestra rutina.",
+      "mindfulnessReflection": "Os gusta reflexionar juntos sobre el día.",
+      "communityFamily": "La familia es importante para ambos.",
+      "communityHosting": "A ambos os gusta recibir invitados.",
+      "honestyCommunication": "Valoráis la comunicación directa y clara.",
+      "honestyConflict": "Habláis de los desacuerdos con franqueza y a tiempo.",
+      "creativityArt": "A ambos os interesan las exposiciones de arte.",
+      "creativityHobbies": "Las aficiones creativas os unen.",
+      "careerGoals": "Compartís la ambición por vuestras metas profesionales.",
+      "careerBalance": "Comprendéis que a veces el trabajo requiere jornadas largas."
+    },
+    "ui": {
+      "importTitle": "Completa tu perfil automáticamente",
+      "importDescription": "Pega aquí el texto de LinkedIn o tus notas.",
+      "start": "Comenzar",
+      "optimizeTitle": "Mejora tu perfil",
+      "optimizeDescription": "Haz que tu perfil resulte más atractivo con IA.",
+      "discard": "Descartar",
+      "history": "Historial",
+      "save": "Guardar",
+      "restore": "Restaurar",
+      "valueOptimization": "Mejoras basadas en valores",
+      "apply": "Aplicar",
+      "icebreakersTitle": "Tus preguntas para iniciar conversaciones",
+      "icebreakersDescription": "Preguntas que las personas pueden ver en tu perfil.",
+      "radarTutorial": "Selecciona un eje de valores (por ejemplo, «Aventura») para ver explicaciones detalladas y posibles afinidades con otras conexiones.",
+      "understood": "Entendido",
+      "customizeColors": "Personalizar colores",
+      "exportImage": "Exportar como imagen",
+      "filters": {
+        "all": "Todos",
+        "similarity": "Similitudes",
+        "complement": "Complementos",
+        "contrast": "Contrastes"
+      },
+      "growthEmpty": "Aquí puedes ver cómo evoluciona tu experiencia de citas. Las estadísticas aparecerán automáticamente cuando haya suficiente actividad para analizarlas.",
+      "currentPlan": "Plan actual: Klar",
+      "learnMore": "Descubre qué hace diferente a Klar+",
+      "chatLanguage": "Mi idioma de chat",
+      "appearance": {
+        "title": "Apariencia",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+      },
+      "smartConnectionNotifications": "Notificaciones inteligentes de conexión",
+      "smartConnectionNotificationsDescription": "Notificaciones push solo para conexiones superiores al 90 %",
+      "verified": "Verificado",
+      "basic": "Básico"
+    }
+  },
+  "profileCheck": {
+    "tips": {
+      "smile": "Consejo: Una sonrisa en tu primera foto puede causar una buena impresión.",
+      "honest": "Consejo: Los intereses sinceros ayudan a encontrar personas afines.",
+      "tone": "Consejo: Un tono abierto y positivo resulta acogedor.",
+      "concise": "Consejo: Menos es más; prioriza la calidad frente a la cantidad.",
+      "question": "Consejo: Una pregunta en tu biografía puede iniciar una conversación."
+    },
+    "errors": {
+      "profileIncomplete": "Primero añade una biografía o intereses a tu perfil.",
+      "scanFailed": "No se pudo cargar el análisis del perfil.",
+      "analysisFailed": "No se pudo cargar el análisis del perfil."
+    },
+    "insight": {
+      "empty": "Tu perfil todavía está vacío. Añade texto para recibir comentarios de IA.",
+      "shortBio": "Tu biografía es bastante breve. La IA puede ayudarte a mostrar más personalidad y profundidad.",
+      "sport": "¡Llevas una vida activa! Destaquemos ese aspecto para posibles conexiones.",
+      "travel": "¡Te encanta explorar! La IA puede resaltar tus historias de viaje.",
+      "pets": "¡Te encantan los animales! Vamos a destacarlo en tu perfil.",
+      "music": "¡Te encanta la música! La IA puede ayudarte a destacar este interés.",
+      "default": "Ya tienes una base auténtica. Inicia aquí un análisis más detallado del perfil."
+    },
+    "heading": "Análisis de IA para mostrarte de forma más auténtica",
+    "close": "Cerrar ventana",
+    "copy": "Copiar al portapapeles",
+    "authenticity": "Autenticidad",
+    "community": "Conexión con la comunidad",
+    "icebreaker": "Potencial para iniciar conversaciones",
+    "calculation": "Base del cálculo",
+    "weightedFactors": "Factores principales ponderados (base del cálculo)",
+    "aiFocus": "Enfoque de IA para la optimización",
+    "focusAuthentic": "100 % auténtico",
+    "focusAppealing": "100 % atractivo",
+    "tone": "Tono",
+    "tones": {
+      "honest": "Sincero y directo",
+      "humorous": "Divertido e informal",
+      "professional": "Profesional y cuidado"
+    },
+    "history": {
+      "title": "Historial de puntuación",
+      "all": "Todos / cronológico",
+      "success": "Ordenar por éxito",
+      "sevenDays": "Últimos 7 días",
+      "thirtyDays": "Últimos 30 días"
+    },
+    "before": "Antes",
+    "optimized": "Optimizado por IA",
+    "tip": "Consejo de IA:",
+    "noOptimizations": "Todavía no hay optimizaciones.",
+    "closePdf": "Cerrar vista previa del PDF",
+    "pdfTitle": "Vista previa del PDF",
+    "avatar": "Foto de perfil",
+    "ui": {
+      "analysisLoading": "Analizando el perfil …",
+      "ready": "¡Listo para crear más conexiones!",
+      "trendGain": "+{{trend}} puntos de potencial de conexión",
+      "analysis": "Análisis",
+      "scanning": "Gemini está analizando tu perfil …",
+      "tryAgain": "Intentar de nuevo",
+      "bioUpdated": "¡Biografía actualizada correctamente!",
+      "undo": "Deshacer",
+      "optimizedPreview": "Vista previa de la biografía optimizada",
+      "current": "Actual",
+      "optimized": "Optimizada",
+      "cancel": "Cancelar",
+      "applyNow": "Aplicar ahora",
+      "quickInsights": "Información rápida",
+      "whyScore": "¿Por qué esta puntuación?",
+      "analyzeNewFocus": "Analizar con un nuevo enfoque",
+      "personalizedSuggestions": "Sugerencias personalizadas",
+      "viewPreview": "Ver vista previa",
+      "exportReport": "Exportar informe",
+      "categories": {
+        "all": "Todos",
+        "languageStyle": "Estilo de escritura",
+        "interestFocus": "Enfoque en intereses",
+        "icebreakerQuality": "Calidad de las preguntas"
+      },
+      "scoreComposition": "Composición de la puntuación",
+      "trendLegend": "Leyenda de tendencia",
+      "scoreCompositionExplanation": "Composición específica de la puntuación en este momento:",
+      "trendLegendExplanation": "El gráfico muestra tu puntuación de compatibilidad. Un aumento indica que tu biografía es más auténtica y encaja mejor con la comunidad.",
+      "optimizationFocus": "Enfoque de optimización",
+      "apply": "Aplicar",
+      "close": "Cerrar",
+      "pdfPreview": "Vista previa del PDF",
+      "download": "Descargar ahora"
+    }
   }
 }

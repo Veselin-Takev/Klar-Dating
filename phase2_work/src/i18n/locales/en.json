@@ -461,5 +461,334 @@
     "nobodyCanSee": "Your screen is hidden from view.",
     "autoActivation": "Screen cover also activates after inactivity or when you leave this tab.",
     "showScreen": "Show screen"
+  },
+  "profileScreen": {
+    "cache": {
+      "bio": "Bio",
+      "interests": "Interests",
+      "noGos": "Deal-breakers",
+      "local": "Saved locally: {{items}}",
+      "none": "None",
+      "lastCloudSync": "Last successful cloud sync",
+      "sync": "Sync: {{time}}"
+    },
+    "feedback": {
+      "thanksTitle": "Thank you for your feedback!",
+      "thanksBody": "Your opinion helps us make Klar even better.",
+      "prompt": "Your opinion about Klar",
+      "rating": "How satisfied are you?",
+      "ratingLabel": "Select {{rating}} out of 5 stars",
+      "suggestions": "Suggestions for improvement (optional)",
+      "placeholder": "What could we do better?",
+      "submit": "Send feedback",
+      "offline": "An internet connection is required to send feedback.",
+      "submitFailed": "Your feedback could not be sent.",
+      "sending": "Sending …"
+    },
+    "photo": {
+      "reauth": "Please sign in again.",
+      "sessionChanged": "Your session has changed.",
+      "saved": "Profile photo updated successfully.",
+      "saveFailed": "The profile photo could not be saved completely. Please try again.",
+      "saving": "Saving profile photo …"
+    },
+    "share": {
+      "title": "My Klar profile",
+      "text": "Take a look at my Klar profile!",
+      "copied": "Profile link copied to the clipboard!",
+      "copyFailed": "The profile link could not be copied.",
+      "preview": "Profile preview",
+      "share": "Share profile"
+    },
+    "header": {
+      "title": "Your profile",
+      "avatar": "Profile picture",
+      "quality": "Connection quality",
+      "verified": "Verified",
+      "locationMissing": "Location not provided",
+      "focusTime": "Focus time",
+      "cover": "Profile cover image"
+    },
+    "name": {
+      "missing": "Add your name to your profile",
+      "edit": "Edit name",
+      "invalid": "Please enter a name with no more than 80 characters.",
+      "saved": "Name saved.",
+      "saveFailed": "The name could not be saved. Please try again.",
+      "label": "Display name",
+      "saving": "Saving …",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "import": {
+      "title": "Paste text",
+      "ariaLabel": "Text to import",
+      "placeholder": "e.g. “I am a software developer, enjoy playing guitar and love to travel …”",
+      "action": "Import",
+      "imported": "Profile text imported and saved.",
+      "saveFailed": "The text could not be saved. Your input is still available. Please try again.",
+      "suggestedBio": "Suggested bio:",
+      "matchingInterests": "Matching interests:",
+      "optimize": "Optimize",
+      "applyAll": "Apply all"
+    },
+    "interests": {
+      "title": "Your interests",
+      "hint": "Select an interest to mark it as a must-have for connections.",
+      "newLabel": "Add a new interest",
+      "newPlaceholder": "Add a new interest …",
+      "add": "Add interest"
+    },
+    "noGos": {
+      "title": "My deal-breakers",
+      "description": "Exclude personality traits or interests that should deliberately be left out of suggestions.",
+      "remove": "Remove deal-breaker",
+      "add": "Add deal-breaker",
+      "placeholder": "Add a deal-breaker (e.g. smoking)",
+      "loadingSuggestions": "Analyzing journal …",
+      "suggestions": "AI suggestions based on experience",
+      "suggestionsSource": "AI suggestions (from journal and chat):",
+      "fallbackHonesty": "Dishonesty",
+      "fallbackLate": "Being late",
+      "fallbackGhosting": "Ghosting"
+    },
+    "bio": {
+      "title": "About me",
+      "ariaLabel": "About me",
+      "editHint": "Click to edit",
+      "previous": "Previous versions",
+      "closeSuggestions": "Close",
+      "coachFeedback": "AI coach feedback",
+      "closeFeedback": "Close feedback",
+      "preview": "Auto-bio preview",
+      "sample": "Coffee lover. I enjoy cycling on weekends and am looking for someone who likes deep conversations and spontaneous outings.",
+      "noSuggestions": "No icebreakers generated yet.",
+      "regenerate": "Generate again",
+      "reviewFailed": "We couldn't review your bio. Please try again later.",
+      "generationFailed": "Something went wrong while generating. Please try again later.",
+      "unexpected": "An unexpected error occurred.",
+      "defaultTopics": "General topics"
+    },
+    "radar": {
+      "title": "Values radar",
+      "subtitle": "Your orientation for meaningful connections",
+      "description": "Your connection radar",
+      "profileA": "Your profile",
+      "profileB": "Connection profile",
+      "compare": "Compare with a connection",
+      "overview": "Connection overview",
+      "similarity": "Similarity (mindfulness)",
+      "similarityText": "You share a strong focus on mindfulness—a good foundation for deeper conversations.",
+      "complement": "Complement (adventure)",
+      "complementText": "You tend to be calmer, while the other person brings a sense of adventure. That can enrich both of you.",
+      "contrast": "Contrast (career)",
+      "contrastText": "Your career priorities differ noticeably. Open communication matters here.",
+      "commonalities": "Shared strengths in your connection"
+    },
+    "settings": {
+      "categories": "Settings categories",
+      "title": "Settings",
+      "visibilityHint": "Choose which profile details are visible to other people.",
+      "privacyCategory": "Safety and privacy",
+      "preferencesCategory": "Preferences and reminders",
+      "advancedCategory": "Advanced and account",
+      "smartConnectionHints": "Smart connection alerts"
+    },
+    "modal": {
+      "close": "Close",
+      "aboutMe": "About me",
+      "interests": "Interests"
+    },
+    "theme": {
+      "title": "Profile theme",
+      "description": "Choose a background color for your profile that reflects your personality. Other people will see this theme when viewing your profile.",
+      "select": "Select the {{theme}} theme"
+    },
+    "milestones": {
+      "title": "Milestones",
+      "summary": "{{completed}} of {{total}} completed",
+      "allReached": "All {{total}} completed.",
+      "firstSteps": "A good place to start:",
+      "nextSteps": "Coming up next:",
+      "achieved": "Completed:",
+      "viewAll": "View all {{total}}",
+      "items": {
+        "profil-vollstaendig": {
+          "name": "Profile ready",
+          "description": "A short bio of more than 20 characters and at least three interests."
+        },
+        "profil-geprueft": {
+          "name": "Profile reviewed",
+          "description": "Have the AI coach review your profile once."
+        },
+        "erstes-date": {
+          "name": "First date planned",
+          "description": "Add a date to the date planner."
+        },
+        "verabredungen-vorbereitet": {
+          "name": "Two dates prepared",
+          "description": "Use the date planner twice."
+        },
+        "duelle": {
+          "name": "Three duels won",
+          "description": "Win three dating duels."
+        },
+        "verbindungen": {
+          "name": "Five connections",
+          "description": "Five people with mutual interest."
+        }
+      }
+    },
+    "valueExplanations": {
+      "adventure": "Shows how spontaneous and open you are to unplanned experiences.",
+      "mindfulness": "How much you value emotional balance and mindful living.",
+      "community": "The importance you place on friends, family and your social circle.",
+      "honesty": "How important transparent, direct communication without games is to you.",
+      "creativity": "How much room you need for self-expression and creative hobbies.",
+      "career": "How strongly you focus on professional success and financial stability."
+    },
+    "deepMatchInsights": {
+      "adventureWeekend": "You both enjoy spontaneous weekend trips.",
+      "adventureFood": "Trying new restaurants matters to both of you.",
+      "mindfulnessMeditation": "Meditation and yoga are part of both your routines.",
+      "mindfulnessReflection": "You enjoy reflecting on the day together.",
+      "communityFamily": "Family time is important to both of you.",
+      "communityHosting": "You both enjoy having people over.",
+      "honestyCommunication": "You value direct and clear communication.",
+      "honestyConflict": "You address disagreements openly and promptly.",
+      "creativityArt": "You both enjoy art exhibitions.",
+      "creativityHobbies": "Creative hobbies bring you together.",
+      "careerGoals": "You share drive for your professional goals.",
+      "careerBalance": "You understand when work requires longer hours."
+    },
+    "ui": {
+      "importTitle": "Fill in your profile automatically",
+      "importDescription": "Paste your LinkedIn text or notes here.",
+      "start": "Get started",
+      "optimizeTitle": "Improve your profile",
+      "optimizeDescription": "Make your profile more engaging with AI.",
+      "discard": "Discard",
+      "history": "History",
+      "save": "Save",
+      "restore": "Restore",
+      "valueOptimization": "Values-based improvements",
+      "apply": "Apply",
+      "icebreakersTitle": "Your icebreakers",
+      "icebreakersDescription": "Questions people can see on your profile.",
+      "radarTutorial": "Select an individual value axis (such as “Adventure”) to see detailed explanations and potential common ground with connections.",
+      "understood": "Got it",
+      "customizeColors": "Customize colors",
+      "exportImage": "Export as image",
+      "filters": {
+        "all": "All",
+        "similarity": "Similarities",
+        "complement": "Complements",
+        "contrast": "Contrasts"
+      },
+      "growthEmpty": "This is where you can see how your dating life evolves. Insights will appear automatically once there is enough activity to review.",
+      "currentPlan": "Current plan: Klar",
+      "learnMore": "See what makes Klar+ different",
+      "chatLanguage": "My chat language",
+      "appearance": {
+        "title": "Appearance",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "smartConnectionNotifications": "Smart connection notifications",
+      "smartConnectionNotificationsDescription": "Push notifications only for connections above 90%",
+      "verified": "Verified",
+      "basic": "Basic"
+    }
+  },
+  "profileCheck": {
+    "tips": {
+      "smile": "Tip: A smile in your first photo can make a positive impression.",
+      "honest": "Tip: Honest interests help you find people with similar tastes.",
+      "tone": "Tip: An open, positive tone feels welcoming.",
+      "concise": "Tip: Less is often more—prioritize quality over quantity in your text.",
+      "question": "Tip: A question in your bio can help start a conversation."
+    },
+    "errors": {
+      "profileIncomplete": "Please add a bio or interests to your profile first.",
+      "scanFailed": "The profile scan could not be loaded.",
+      "analysisFailed": "Unfortunately, the profile analysis could not be loaded."
+    },
+    "insight": {
+      "empty": "Your profile is still empty. Add text to receive AI feedback.",
+      "shortBio": "Your bio is quite short. AI can help bring out more personality and depth.",
+      "sport": "You lead an active lifestyle! Let's highlight that for potential connections.",
+      "travel": "You enjoy exploring! AI can help bring your travel stories to life.",
+      "pets": "You love animals! Let's make that stand out in your profile.",
+      "music": "You love music! AI can show you how to highlight this interest in your profile.",
+      "default": "You have an authentic foundation. Start a more detailed profile analysis here."
+    },
+    "heading": "AI analysis for a more authentic presence",
+    "close": "Close window",
+    "copy": "Copy to clipboard",
+    "authenticity": "Authenticity",
+    "community": "Community connection",
+    "icebreaker": "Icebreaker potential",
+    "calculation": "Calculation basis",
+    "weightedFactors": "Weighted key factors (calculation basis)",
+    "aiFocus": "AI optimization focus",
+    "focusAuthentic": "100% authentic",
+    "focusAppealing": "100% appealing",
+    "tone": "Tone",
+    "tones": {
+      "honest": "Honest and direct",
+      "humorous": "Humorous and relaxed",
+      "professional": "Professional and polished"
+    },
+    "history": {
+      "title": "Score history",
+      "all": "All / chronological",
+      "success": "Sort by success",
+      "sevenDays": "Last 7 days",
+      "thirtyDays": "Last 30 days"
+    },
+    "before": "Before",
+    "optimized": "AI optimized",
+    "tip": "AI tip:",
+    "noOptimizations": "No optimizations yet.",
+    "closePdf": "Close PDF preview",
+    "pdfTitle": "PDF preview",
+    "avatar": "Profile picture",
+    "ui": {
+      "analysisLoading": "Analyzing profile …",
+      "ready": "Ready to build more connections!",
+      "trendGain": "+{{trend}} connection-potential points!",
+      "analysis": "Analysis",
+      "scanning": "Gemini is scanning your profile …",
+      "tryAgain": "Try again",
+      "bioUpdated": "Bio updated successfully!",
+      "undo": "Undo",
+      "optimizedPreview": "Optimized bio preview",
+      "current": "Current",
+      "optimized": "Optimized",
+      "cancel": "Cancel",
+      "applyNow": "Apply now",
+      "quickInsights": "Quick insights",
+      "whyScore": "Why this score?",
+      "analyzeNewFocus": "Analyze with a new focus",
+      "personalizedSuggestions": "Personalized suggestions",
+      "viewPreview": "View preview",
+      "exportReport": "Export report",
+      "categories": {
+        "all": "All",
+        "languageStyle": "Writing style",
+        "interestFocus": "Interest focus",
+        "icebreakerQuality": "Icebreaker quality"
+      },
+      "scoreComposition": "Score breakdown",
+      "trendLegend": "Trend legend",
+      "scoreCompositionExplanation": "How this score was composed at this point:",
+      "trendLegendExplanation": "The chart shows your compatibility score. An increase means your bio has become more authentic and a better fit for the community.",
+      "optimizationFocus": "Optimization focus",
+      "apply": "Apply",
+      "close": "Close",
+      "pdfPreview": "PDF preview",
+      "download": "Download now"
+    }
   }
 }

@@ -14,13 +14,14 @@ describe('authenticated profile name resolution', () => {
     expect(resolveProfileDisplayName('', null, 'jane.doe@example.com', true)).toBe('jane doe');
   });
   it('does not reveal an unverified email or fabricate a profile identity', () => {
-    expect(resolveProfileDisplayName('Neu', null, 'someone@example.com', false)).toBe('Namen im Profil ergänzen');
+    expect(resolveProfileDisplayName('Neu', null, 'someone@example.com', false)).toBe('');
   });
   it('has a persisted name editor with accessible feedback', () => {
     const source = readFileSync('src/screens/Profile.tsx', 'utf8');
-    expect(source).toContain('Namen bearbeiten');
+    expect(source).toContain("t('profileScreen.name.edit')");
     expect(source).toContain('await updateProfileData({ name: value })');
     expect(source).toContain('htmlFor="profile-name-edit"');
+    expect(source).toContain("t('profileScreen.name.label')");
     expect(source).toContain('aria-live="polite"');
   });
 });
