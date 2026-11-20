@@ -53,3 +53,11 @@ test('CUJ 5: Profile safety and account controls have no serious or critical WCA
   await expect(page.getByRole('button', { name: 'Konto löschen' })).toBeVisible();
   await expectNoSeriousOrCriticalAxeViolations(page, 'Profile safety / account controls');
 });
+
+test('SPA navigation moves keyboard focus to the main content landmark', async ({ page }) => {
+  await enterGuestPreview(page);
+  await completeAgeAndConsent(page);
+  await page.getByRole('link', { name: /Gespräche/ }).first().click();
+  await expect(page).toHaveURL(/\/chats$/);
+  await expect(page.locator('main#inhalt')).toBeFocused();
+});
