@@ -31,6 +31,7 @@ import { klarStorage } from '../lib/userScopedStorage';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Trophy, ChevronRight, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   ALLE_SCHLUESSEL,
   MEILENSTEINE,
@@ -56,7 +57,17 @@ export function leseRohdaten(): Rohdaten {
   return r;
 }
 
+const MILESTONE_COPY = {
+  'profil-vollstaendig': { name: 'profileScreen.milestones.items.profil-vollstaendig.name', description: 'profileScreen.milestones.items.profil-vollstaendig.description' },
+  'profil-geprueft': { name: 'profileScreen.milestones.items.profil-geprueft.name', description: 'profileScreen.milestones.items.profil-geprueft.description' },
+  'erstes-date': { name: 'profileScreen.milestones.items.erstes-date.name', description: 'profileScreen.milestones.items.erstes-date.description' },
+  'verabredungen-vorbereitet': { name: 'profileScreen.milestones.items.verabredungen-vorbereitet.name', description: 'profileScreen.milestones.items.verabredungen-vorbereitet.description' },
+  'duelle': { name: 'profileScreen.milestones.items.duelle.name', description: 'profileScreen.milestones.items.duelle.description' },
+  'verbindungen': { name: 'profileScreen.milestones.items.verbindungen.name', description: 'profileScreen.milestones.items.verbindungen.description' }
+} as const;
+
 export function Meilensteine() {
+  const { t } = useTranslation();
   const [roh, setRoh] = useState<Rohdaten>({});
 
   const lesen = useCallback(() => setRoh(leseRohdaten()), []);
@@ -80,20 +91,20 @@ export function Meilensteine() {
         <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-1.5 rounded-lg">
           <Trophy size={16} aria-hidden="true" />
         </div>
-        <h3 className="font-semibold text-stone-900 dark:text-stone-100">Meilensteine</h3>
+        <h3 className="font-semibold text-stone-900 dark:text-stone-100">{t('profileScreen.milestones.title')}</h3>
         <span className="ml-auto text-xs font-medium text-stone-500 dark:text-stone-400">
-          {zusammenfassung(roh)}
+          {t('profileScreen.milestones.summary', { completed: fertig.length, total: MEILENSTEINE.length })}
         </span>
       </div>
 
       {drei.length === 0 ? (
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-3">
-          Alle {MEILENSTEINE.length} erreicht.
+          {t('profileScreen.milestones.allReached', { total: MEILENSTEINE.length })}
         </p>
       ) : (
         <>
           <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
-            {fertig.length === 0 ? 'Womit du anfangen kannst:' : 'Was als Nächstes ansteht:'}
+            {fertig.length === 0 ? t('profileScreen.milestones.firstSteps') : t('profileScreen.milestones.nextSteps')}
           </p>
           <ul className="space-y-3">
             {drei.map((m) => {
@@ -103,14 +114,14 @@ export function Meilensteine() {
                 <li key={m.id}>
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      {m.name}
+                      {t(MILESTONE_COPY[m.id as keyof typeof MILESTONE_COPY].name)}
                     </span>
                     <span className="text-xs text-stone-500 dark:text-stone-400 shrink-0">
                       {stand} von {m.ziel}
                     </span>
                   </div>
                   <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 mb-1.5">
-                    {m.beschreibung}
+                    {t(MILESTONE_COPY[m.id as keyof typeof MILESTONE_COPY].description)}
                   </p>
                   {/* `aria-hidden`, weil der Stand daneben bereits als Text
                       steht. Zweimal dieselbe Angabe vorzulesen hilft
@@ -134,7 +145,7 @@ export function Meilensteine() {
       {fertig.length > 0 && (
         <p className="mt-4 text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
           <Check size={14} className="text-brand dark:text-brand-light" aria-hidden="true" />
-          Erreicht: {fertig.map((m) => m.name).join(', ')}
+          {t('profileScreen.milestones.achieved')} {fertig.map((m) => t(MILESTONE_COPY[m.id as keyof typeof MILESTONE_COPY].name)).join(', ')}
         </p>
       )}
 
@@ -142,7 +153,7 @@ export function Meilensteine() {
         to="/meilensteine"
         className="mt-4 flex items-center justify-between text-sm text-brand dark:text-brand-light min-h-[44px]"
       >
-        Alle {MEILENSTEINE.length} ansehen
+        {t('profileScreen.milestones.viewAll', { total: MEILENSTEINE.length })}
         <ChevronRight size={16} aria-hidden="true" />
       </Link>
     </div>
