@@ -50,7 +50,23 @@ describe('profile flow translation coverage', () => {
     'profileScreen.theme.title', 'profileScreen.milestones.title',
     'profileCheck.heading', 'profileCheck.errors.profileIncomplete',
     'profileCheck.insight.empty', 'profileCheck.history.title',
-    'profileCheck.closePdf'
+    'profileCheck.closePdf',
+    'profileScreen.ui.importTitle',
+    'profileScreen.ui.optimizeTitle',
+    'profileScreen.ui.icebreakersTitle',
+    'profileScreen.ui.radarTutorial',
+    'profileScreen.ui.filters.similarity',
+    'profileScreen.ui.currentPlan',
+    'profileScreen.ui.appearance.dark',
+    'profileScreen.ui.smartConnectionNotificationsDescription',
+    'profileScreen.ui.growthEmpty',
+    'profileCheck.ui.analysisLoading',
+    'profileCheck.ui.ready',
+    'profileCheck.ui.trendGain',
+    'profileCheck.ui.quickInsights',
+    'profileCheck.ui.categories.languageStyle',
+    'profileCheck.ui.whyScore',
+    'profileCheck.ui.download'
   ] as const;
 
   it.each(['de', 'en', 'es', 'fr'] as const)('resolves profile UI keys and interpolations in %s', language => {
@@ -62,5 +78,6 @@ describe('profile flow translation coverage', () => {
     expect(instance.t('profileScreen.feedback.ratingLabel', { rating: 4 })).toContain('4');
     expect(instance.t('profileScreen.cache.local', { items: 'Bio' })).toContain('Bio');
     expect(instance.t('profileScreen.milestones.summary', { completed: 2, total: 6 })).toContain('2');
+    expect(instance.t('profileCheck.ui.trendGain', { trend: 7 })).toContain('7');
   });
 });
