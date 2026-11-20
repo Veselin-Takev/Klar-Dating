@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-20
-**Main HEAD (verified for Issue #374 integration):** `13cce96660ba4a35d54c222e9eeae2e31f260863`
+**Main HEAD (verified after PR #388 merge):** `06d193e054651e74736bf7a0a6911bf954a20b84`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -196,3 +196,27 @@ These merge states supersede the earlier entries above that describe PR #382 or 
 Draft PR #388 is open against main and remains Draft/unmerged. The initial PR HEAD was 60fb53160630c1850e4ee9a4b2ed41adb6d8c673. On that exact HEAD, Klar Enterprise CI Run #2184 / ID 44701180440 completed SUCCESS with Typecheck, Tests (1,583 passed), Build, Production Smoke and Browser Acceptance (34/34) all passing. Enterprise Compliance & Security Audit Gate Run #19 / ID 44701180377 completed SUCCESS; Gitleaks reported no leaks and Tier 1 found no High/Critical production vulnerabilities across 549 packages. The Tier 2 full-supply-chain advisory still reported the existing High Zod advisory GHSA-mrhx-c7xc-m3w5. This additional documentation correction creates a new PR HEAD, so the new exact-head Klar Enterprise CI and Audit Gate run IDs, conclusions and per-step outcomes remain [TO VERIFY] pending hosted execution. .github/workflows/ci.yml accepts pull_request events without a base-branch restriction; .github/workflows/enterprise-compliance-audit-gate.yml restricts its pull_request trigger to main, which the new PR will target.
 
 No live cloud, IAM, Firestore, Storage or deployment mutation was performed. Main was not edited. productionApproved=false remains mandatory.
+
+
+## PR #388 merge and CUJ-4 route-teardown hardening (2026-11-20)
+
+### Verified merge and post-merge workflow evidence
+
+- PR [#388](https://github.com/Veselin-Takev/Klar-Dating/pull/388) is **merged** into `main`. Merge SHA and current `main` HEAD: `06d193e054651e74736bf7a0a6911bf954a20b84` (verified identical).
+- `Enterprise Compliance & Security Audit Gate` Run **#22 / ID 44711489596** on exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **SUCCESS**. Gitleaks: **PASS**, `no leaks found`. Tier 1 Production Runtime Audit: **PASS**, `bun audit --prod --audit-level=high` reported no vulnerabilities across 549 checked packages (3 below the configured threshold).
+- `Klar Enterprise CI` Run [#2187 / ID 44711489858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44711489858), exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **FAILURE**. Browser Acceptance: **33 passed / 1 failed**. The sole failure was CUJ-1 `cuj-onboarding-consent.spec.ts:29`: expected `Einwilligung wurde erteilt.`, received `Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.` after the grant request had returned HTTP 200. Typecheck, Functions build, Tests (1,583 passed), Build and Production Smoke were PASS. Therefore 34/34 is not established.
+
+### Historical CUJ-4 timeout and scoped remediation
+
+Historical `Klar Enterprise CI` Run [#2180 / ID 44622876559](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44622876559), exact prior `main` HEAD `13cce96660ba4a35d54c222e9eeae2e31f260863`, failed only at Browser Acceptance. Playwright reported `page.unroute: Test timeout of 60000ms exceeded` at `phase2_work/tests/e2e/cuj-account-erasure.spec.ts:109`. Typecheck, Functions build, unit/integration Tests, Build and Production Smoke had completed successfully in that run.
+
+The route callback resolves `capturePromise` after reading the upstream status and complete JSON receipt, but before its subsequent `await route.fulfill(...)` has necessarily settled. Therefore completion of `capturePromise` does not prove that the route callback has finished. The test called default `page.unroute(deletionRoute)` immediately after capture/click synchronization; this teardown waits for active route handlers and hit the 60-second test timeout before the downstream Art. 17 assertions were reached.
+
+The hardening change removes that early blocking `page.unroute` call and invokes `page.unrouteAll({ behavior: 'ignoreErrors' })` only after all existing deletion receipt, pending-job, public-profile 404, `isVerified=false`, UID-scoped browser-state cleanup and global-theme-preservation assertions complete. It does not weaken Art. 17 or accessibility assertions, change application behavior, or add `waitForTimeout()`.
+
+### Hardening PR evidence
+
+- Feature branch: `fix/e2e-cuj4-unroute-flake-and-handover-docs`, based on `06d193e054651e74736bf7a0a6911bf954a20b84`.
+- On the initial hardening PR HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`, `Enterprise Compliance & Security Audit Gate` Run #23 / ID `44712275190` completed **SUCCESS** (Gitleaks no leaks; Tier 1 production audit passed across 549 packages). `Klar Enterprise CI` Run #2188 / ID `44712275292` was still **[TO VERIFY] / in progress** when this documentation follow-up was prepared.
+- This Docs-as-Code follow-up changes the PR HEAD; exact-head CI and Audit Gate runs for the resulting new commit are **[TO VERIFY]** until they complete.
+- `productionApproved=false` remains unchanged; this merge and the green Audit Gate do not constitute production approval.
