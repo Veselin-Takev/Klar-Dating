@@ -20,7 +20,7 @@ interface ProfileCheckData {
   suggestions: string[];
   factors?: string[];
   optimizedBio?: string;
-  optimizationCategory?: "Sprachstil" | "Interessenfokus" | "Icebreaker-Qualität";
+  optimizationCategory?: "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}";
 }
 
 interface HistoryEntry {
@@ -34,7 +34,7 @@ interface HistoryEntry {
   suggestions: string[];
   factors?: string[];
   optimizedBio?: string;
-  optimizationCategory?: "Sprachstil" | "Interessenfokus" | "Icebreaker-Qualität";
+  optimizationCategory?: "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}";
 }
 
 const datingTipKeys = [
@@ -84,7 +84,7 @@ export function ProfileCheckWidget() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "success" | "7days" | "30days">("all");
-  const [categoryFilter, setCategoryFilter] = useState<"All" | "Sprachstil" | "Interessenfokus" | "Icebreaker-Qualität">("All");
+  const [categoryFilter, setCategoryFilter] = useState<"All" | "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}">("All");
   const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
   const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const [showScoreExplanation, setShowScoreExplanation] = useState(false);
@@ -381,7 +381,7 @@ export function ProfileCheckWidget() {
              </div>
              <div className="relative z-10 flex flex-col items-center gap-3 w-full max-w-[280px]">
                <div className="text-sm font-semibold text-brand dark:text-brand-light  flex items-center gap-2">
-                 <Sparkles size={16} /> Analysiere Profil...
+                 <Sparkles size={16} /> {t('profileCheck.ui.analysisLoading')}
                </div>
                <div className="w-full h-1.5 bg-brand/10 dark:bg-brand/20 rounded-full overflow-hidden relative ">
                  <motion.div
@@ -414,7 +414,7 @@ export function ProfileCheckWidget() {
                 </div>
                 <div className="flex-1 pr-2">
                   <h3 className="font-semibold text-stone-900 dark:text-stone-100 text-lg">
-                    {analysisSuccess ? 'Analyse erfolgreich!' : 'Profil-Scan'}
+                    {analysisSuccess ? '{t('profileCheck.ui.analysis')} erfolgreich!' : 'Profil-Scan'}
                   </h3>
                   <div className="text-sm text-stone-500 dark:text-stone-400 mt-0.5 min-h-[40px] flex items-center">
                     <AnimatePresence mode="wait">
@@ -431,11 +431,11 @@ export function ProfileCheckWidget() {
                         </motion.span>
                       ) : analysisSuccess && trend > 0 ? (
                         <motion.span key="success-trend" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-600 dark:text-emerald-400 font-medium">
-                          +{trend} Verbindung-Potenzial-Punkte!
+                          {t('profileCheck.ui.trendGain', { trend })}
                         </motion.span>
                       ) : analysisSuccess ? (
                         <motion.span key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-600 dark:text-emerald-400 font-medium">
-                          Bereit für mehr Verbindungen!
+                          {t('profileCheck.ui.ready')}
                         </motion.span>
                       ) : (
                         <motion.span key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{t('profileCheck.heading')}</motion.span>
@@ -474,7 +474,7 @@ export function ProfileCheckWidget() {
                     onClick={() => setShowHistory(false)}
                     className={`font-bold text-lg transition-colors ${!showHistory ? 'text-brand dark:text-brand-light' : 'text-stone-400'}`}
                   >
-                    Analyse
+                    {t('profileCheck.ui.analysis')}
                   </button>
                   <button
                     onClick={() => setShowHistory(true)}
@@ -508,7 +508,7 @@ export function ProfileCheckWidget() {
                           <div className="absolute inset-0 bg-brand/10 " />
                         </div>
                         <p className="text-sm font-medium text-stone-600 dark:text-stone-400  flex items-center gap-2">
-                          <Sparkles size={16} /> Gemini scannt Profil...
+                          <Sparkles size={16} /> {t('profileCheck.ui.scanning')}
                         </p>
                       </div>
                     ) : error ? (
@@ -519,7 +519,7 @@ export function ProfileCheckWidget() {
                           onClick={fetchProfileCheck}
                           className="mt-4 px-4 py-2 bg-stone-200 dark:bg-stone-700 rounded-lg font-medium hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
                         >
-                          Erneut versuchen
+                          {t('profileCheck.ui.tryAgain')}
                         </button>
                       </div>
                     ) : data && (
@@ -527,10 +527,10 @@ export function ProfileCheckWidget() {
                         {previousBio && (
                           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between">
                             <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                              <Check size={16} /> Bio erfolgreich aktualisiert!
+                              <Check size={16} /> {t('profileCheck.ui.bioUpdated')}
                             </span>
                             <button onClick={handleUndoBio} className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 flex items-center gap-1 bg-white dark:bg-stone-800 px-2 py-1 rounded shadow-sm">
-                              <Undo size={14} /> Rückgängig machen
+                              <Undo size={14} /> {t('profileCheck.ui.undo')}
                             </button>
                           </motion.div>
                         )}
@@ -542,13 +542,13 @@ export function ProfileCheckWidget() {
                           >
                             <h3 className="text-lg font-bold mb-4 text-stone-900 dark:text-stone-100 flex items-center gap-2">
                               <Layers className="text-brand" size={20} />
-                              Vorschau: Optimierte Bio
+                              {t('profileCheck.ui.optimizedPreview')}
                             </h3>
 
                             <div className="grid grid-cols-2 gap-4 mb-6">
                               <div className="p-4 bg-stone-50 dark:bg-stone-800/50 rounded-xl border border-stone-200 dark:border-stone-700 relative">
                                 <span className="absolute -top-3 left-4 bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                                  Aktuell
+                                  {t('profileCheck.ui.current')}
                                 </span>
                                 <p className="text-sm text-stone-700 dark:text-stone-300 mt-1 whitespace-pre-wrap">
                                   {bio}
@@ -556,7 +556,7 @@ export function ProfileCheckWidget() {
                               </div>
                               <div className="p-4 bg-brand/5 dark:bg-brand/10 rounded-xl border border-brand/20 relative group">
                                 <span className="absolute -top-3 left-4 bg-brand text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
-                                  <Sparkles size={10} /> Optimiert
+                                  <Sparkles size={10} /> {t('profileCheck.ui.optimized')}
                                 </span>
                                 <button
                                   onClick={() => {
@@ -582,14 +582,14 @@ export function ProfileCheckWidget() {
                                 onClick={() => setShowPreview(false)}
                                 className="px-4 py-2 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-lg text-sm font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
                               >
-                                Abbrechen
+                                {t('profileCheck.ui.cancel')}
                               </button>
                               <button
                                 onClick={() => handleApplySuggestion(data.optimizedBio)}
                                 disabled={!data.optimizedBio}
                                 className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-brand/20 hover:opacity-90 transition-opacity disabled:opacity-50"
                               >
-                                <Check size={16} /> Jetzt anwenden
+                                <Check size={16} /> {t('profileCheck.ui.applyNow')}
                               </button>
                             </div>
                           </motion.div>
@@ -667,7 +667,7 @@ export function ProfileCheckWidget() {
 
                               <div className="mt-6 bg-brand/5 dark:bg-brand/10 border border-brand/20 rounded-2xl p-5">
                                 <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100 mb-3 flex items-center gap-2">
-                                  <Sparkles size={16} className="text-brand" /> Quick-Insights
+                                  <Sparkles size={16} className="text-brand" /> {t('profileCheck.ui.quickInsights')}
                                 </h4>
                                 <ul className="space-y-2">
                                   {data.suggestions?.slice(0, 3).map((insight: string, idx: number) => (
@@ -684,7 +684,7 @@ export function ProfileCheckWidget() {
                             {data.factors && data.factors.length > 0 && (
                               <div className="bg-brand/5 dark:bg-brand/10 rounded-2xl p-4 border border-brand/10 dark:border-brand/20">
                                 <h4 className="text-xs font-semibold text-brand dark:text-brand-light uppercase tracking-wider mb-3 flex items-center gap-2">
-                                  <Sparkles size={14} /> Warum dieser Score?
+                                  <Sparkles size={14} /> {t('profileCheck.ui.whyScore')}
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
                                   {data.factors.map((factor, i) => (
@@ -738,21 +738,21 @@ export function ProfileCheckWidget() {
                                 onClick={fetchProfileCheck}
                                 className="w-full text-xs text-stone-700 dark:text-stone-300 font-medium hover:bg-stone-200 dark:hover:bg-stone-700 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-3 py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1"
                               >
-                                <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span> Mit neuem Fokus analysieren
+                                <span className="w-4 h-4 rounded-full bg-current opacity-50 "></span> {t('profileCheck.ui.analyzeNewFocus')}
                               </button>
                             </div>
 
                             <div>
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-xs font-semibold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
-                                  Personalisierte Vorschläge
+                                  {t('profileCheck.ui.personalizedSuggestions')}
                                 </h4>
                                 {data.optimizedBio && (
                                   <button
                                     onClick={() => setShowPreview(true)}
                                     className="text-xs flex items-center gap-1 font-medium bg-brand text-white px-3 py-1.5 rounded-full shadow-sm hover:opacity-90 transition-opacity"
                                   >
-                                    <Sparkles size={12} /> Vorschau ansehen
+                                    <Sparkles size={12} /> {t('profileCheck.ui.viewPreview')}
                                   </button>
                                 )}
                               </div>
@@ -801,23 +801,23 @@ export function ProfileCheckWidget() {
                           onClick={handleExport}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-brand/10 text-brand rounded-lg text-xs font-medium hover:bg-brand/20 transition-colors"
                         >
-                          <Download size={14} /> Bericht exportieren
+                          <Download size={14} /> {t('profileCheck.ui.exportReport')}
                         </button>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 print:hidden mb-4">
                       <button onClick={() => setCategoryFilter("All")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "All" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
-                        Alle
+                        {t('profileCheck.ui.categories.all')}
                       </button>
-                      <button onClick={() => setCategoryFilter("Sprachstil")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Sprachstil" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
-                        Sprachstil
+                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.languageStyle')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.languageStyle')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                        {t('profileCheck.ui.categories.languageStyle')}
                       </button>
-                      <button onClick={() => setCategoryFilter("Interessenfokus")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Interessenfokus" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
-                        Interessenfokus
+                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.interestFocus')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.interestFocus')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                        {t('profileCheck.ui.categories.interestFocus')}
                       </button>
-                      <button onClick={() => setCategoryFilter("Icebreaker-Qualität")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Icebreaker-Qualität" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
-                        Icebreaker-Qualität
+                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.icebreakerQuality')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.icebreakerQuality')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                        {t('profileCheck.ui.categories.icebreakerQuality')}
                       </button>
                     </div>
 
@@ -904,7 +904,7 @@ export function ProfileCheckWidget() {
                              {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.factors && (
                                <div className="mt-4 pt-4 border-t border-brand/10">
                                   <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2">
-                                    {hoveredHistoryIndex !== null ? "Wirkende Erfolgsfaktoren" : "Aktuelle Erfolgsfaktoren"}
+                                    {hoveredHistoryIndex !== null ? "Wirkende Erfolgsfaktoren" : "{t('profileCheck.ui.current')}e Erfolgsfaktoren"}
                                   </span>
                                   <ul className="space-y-1.5">
                                     {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.factors?.map((f: string, i: number) => (
@@ -916,7 +916,7 @@ export function ProfileCheckWidget() {
                                   {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.optimizationCategory && (
                                     <div className="mt-4 pt-4 border-t border-brand/10">
                                       <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                                        Fokus der Optimierung
+                                        {t('profileCheck.ui.optimizationFocus')}
                                       </span>
                                       <span className="inline-block px-2 py-1 bg-white dark:bg-stone-800 rounded-md text-xs font-semibold text-brand shadow-sm">
                                         {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.optimizationCategory}
@@ -944,7 +944,7 @@ export function ProfileCheckWidget() {
                                 <div className="flex justify-between items-center mb-2">
                                   <span className="text-xs font-bold text-stone-500 dark:text-stone-400">{entry.date}</span>
                                   <button onClick={() => handleApplySuggestion(entry.optimizedBio || entry.bio)} className="flex items-center gap-1 text-[10px] bg-brand/10 text-brand px-2 py-1 rounded hover:bg-brand/20 transition-colors font-bold uppercase tracking-wider">
-                                    <Check size={12} /> Anwenden
+                                    <Check size={12} /> {t('profileCheck.ui.apply')}
                                   </button>
                                 </div>
                                 {entry.optimizationCategory && (
@@ -1018,7 +1018,7 @@ export function ProfileCheckWidget() {
                     onClick={() => setIsModalOpen(false)}
                     className="px-6 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl font-medium shadow-sm hover:opacity-90 transition-opacity"
                   >
-                    Schließen
+                    {t('profileCheck.ui.close')}
                   </button>
                 </div>
               )}
@@ -1033,7 +1033,7 @@ export function ProfileCheckWidget() {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-4xl h-[90vh] bg-white dark:bg-stone-800 rounded-2xl overflow-hidden flex flex-col shadow-md">
               <div className="p-4 border-b border-stone-200 dark:border-stone-700 flex justify-between items-center bg-stone-50 dark:bg-stone-800">
                 <h3 className="font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                  <Download size={18} className="text-brand" /> PDF Vorschau
+                  <Download size={18} className="text-brand" /> {t('profileCheck.ui.pdfPreview')}
                 </h3>
                 <div className="flex gap-3">
                    <button onClick={() => {
@@ -1043,7 +1043,7 @@ export function ProfileCheckWidget() {
                      a.click();
                      setShowPdfPreview(false);
                    }} className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand/90 shadow-sm transition-all">
-                     Jetzt herunterladen
+                     {t('profileCheck.ui.download')}
                    </button>
                    <button aria-label={t('profileCheck.closePdf')} onClick={() => setShowPdfPreview(false)} className="p-2 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 bg-stone-200 dark:bg-stone-800 rounded-lg transition-colors">
                      <X size={18} />
