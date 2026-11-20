@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
+import { useTranslation } from "react-i18next";
+import { useModalAccessibility } from "../lib/useModalAccessibility";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Sparkles, ListChecks, CheckSquare, Square } from "lucide-react";
 import type { Profile } from "../data";
@@ -16,6 +18,9 @@ export function DatePrepChecklistModal({
   onClose: () => void;
   userInterests: string[];
 }) {
+  const { t } = useTranslation();
+  const titleId = useId();
+  const { dialogRef, onKeyDown } = useModalAccessibility<HTMLDivElement>(onClose, isOpen);
   const [topics, setTopics] = useState<{id: string, text: string, checked: boolean}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,9 +53,9 @@ Finde gemeinsame Themen oder Dinge, über die man leicht reden kann. Gib nur ein
     } catch (e) {
       melde("DatePrepChecklistModal", e);
       setTopics([
-        { id: '1', text: `Nach Lieblingsorten für ${profile.interests[0] || 'Kaffee'} fragen`, checked: false },
-        { id: '2', text: `Ein aktuelles Highlight aus dem Bereich ${profile.interests[1] || 'Reisen'} besprechen`, checked: false },
-        { id: '3', text: 'Nach einer lustigen Anekdote fragen', checked: false }
+        { id: '1', text: t('datePrep.fallbackPlace', { interest: profile.interests[0] || t('datePrep.defaultPlace') }), checked: false },
+        { id: '2', text: t('datePrep.fallbackHighlight', { interest: profile.interests[1] || t('datePrep.defaultInterest') }), checked: false },
+        { id: '3', text: t('datePrep.fallbackAnecdote'), checked: false }
       ]);
     } finally {
       setIsLoading(false);
@@ -69,10 +74,18 @@ Finde gemeinsame Themen oder Dinge, über die man leicht reden kann. Gib nur ein
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 "
+            className="absolute inset-0 bg-black/60"
+            aria-hidden="true"
             onClick={onClose}
           />
           <motion.div
+            ref={dialogRef}
+            onKeyDown={onKeyDown}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-busy={isLoading}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -81,10 +94,11 @@ Finde gemeinsame Themen oder Dinge, über die man leicht reden kann. Gib nur ein
             <div className="p-5 border-b border-stone-100 dark:border-stone-700 flex justify-between items-center bg-brand/5 dark:bg-brand-light/5">
               <div className="flex items-center gap-2 text-brand dark:text-brand-light">
                 <ListChecks size={20} />
-                <h3 className="font-bold">Date-Prep Checkliste</h3>
+                <h2 id={titleId} className="font-bold">{t('datePrep.title')}</h2>
               </div>
               <button
-                aria-label="Checkliste schließen"
+                type="button"
+                aria-label={t('datePrep.close')}
                 onClick={onClose}
                 className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 rounded-full transition-colors"
               >
@@ -93,45 +107,44 @@ Finde gemeinsame Themen oder Dinge, über die man leicht reden kann. Gib nur ein
             </div>
 
             <div className="p-5">
-              <p className="text-xs text-stone-500 mb-4">
-                Personalisierte Gesprächsthemen basierend auf dem Profil von <span className="font-bold text-stone-700 dark:text-stone-300">{profile.name}</span>.
-              </p>
+              <p className="text-sm text-stone-600 dark:text-stone-300 mb-4">{t('datePrep.description', { name: profile.name })}</p>
 
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-8 text-stone-400">
+                <div className="flex flex-col items-center justify-center py-8 text-stone-500" role="status" aria-live="polite">
                   <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-700 "></div>
-                  <span className="text-xs font-medium">Generiere Themen...</span>
+                  <span className="text-sm font-medium">{t('datePrep.loading')}</span>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {(topics || []).map(topic => (
-                    <div
+                    <button
+                      type="button"
                       key={topic.id}
+                      aria-pressed={topic.checked}
                       onClick={() => toggleCheck(topic.id)}
-                      className={`flex items-start gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
+                      className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors ${
                         topic.checked
                           ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
                           : 'bg-stone-50 dark:bg-stone-800/50 border-stone-200 dark:border-stone-700'
                       }`}
                     >
-                      <button className="shrink-0 mt-0.5 focus:outline-none">
-                        {topic.checked
-                          ? <CheckSquare size={18} className="text-emerald-500" />
-                          : <Square size={18} className="text-stone-400" />
-                        }
-                      </button>
+                      {topic.checked
+                        ? <CheckSquare size={18} className="text-emerald-700 dark:text-emerald-400 mt-0.5" aria-hidden="true" />
+                        : <Square size={18} className="text-stone-500 dark:text-stone-300 mt-0.5" aria-hidden="true" />
+                      }
                       <span className={`text-sm ${topic.checked ? 'text-emerald-700 dark:text-emerald-400 line-through opacity-70' : 'text-stone-700 dark:text-stone-300'}`}>
                         {topic.text}
                       </span>
-                    </div>
+                    </button>
                   ))}
 
                   <div className="pt-4 flex justify-center">
                     <button
+                      type="button"
                       onClick={generateTopics}
                       className="text-xs font-semibold text-brand dark:text-brand-light flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                     >
-                      <Sparkles size={14} /> Neue Themen generieren
+                      <Sparkles size={14} aria-hidden="true" /> {t('datePrep.regenerate')}
                     </button>
                   </div>
                 </div>
