@@ -285,7 +285,9 @@
     "deletionRetains": "Se conservan, sin vínculo directo contigo, los reportes enviados por otras personas sobre ti y los justificantes de pago cuando exista obligación legal de conservación.",
     "deletionFailed": "La eliminación no se completó. Vuelve a iniciar sesión.",
     "serverResponse": "Respuesta del servidor {{status}}",
-    "exportFailed": "Error al exportar: {{error}}"
+    "exportFailed": "Error al exportar: {{error}}",
+    "signOutConfirmTitle": "¿Cerrar sesión?",
+    "signOutConfirmDescription": "Se borrarán la sesión local y los datos de la aplicación asociados a tu usuario. También se invalidarán los tokens de renovación de sesión existentes en el servidor."
   },
   "ageGate": {
     "title": "¿Cuántos años tienes?",

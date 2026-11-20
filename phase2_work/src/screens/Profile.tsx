@@ -2219,7 +2219,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
               onClick={() => setShowLogoutConfirm(true)}
               className="w-full min-h-11 flex items-center justify-between p-3 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors mt-2"
             >
-              <span className="text-sm font-medium">Abmelden</span>
+              <span className="text-sm font-medium">{t('profileSafety.signOut')}</span>
               <LogOut size={18} aria-hidden="true" />
             </button>
 
@@ -2234,9 +2234,9 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   aria-labelledby={logoutTitleId}
                   className="w-full max-w-md rounded-2xl bg-white dark:bg-stone-800 p-6 shadow-xl"
                 >
-                  <h3 id={logoutTitleId} className="text-xl font-semibold text-stone-900 dark:text-white">Abmelden?</h3>
+                  <h3 id={logoutTitleId} className="text-xl font-semibold text-stone-900 dark:text-white">{t('profileSafety.signOutConfirmTitle')}</h3>
                   <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
-                    Deine lokale Sitzung und nutzerbezogenen App-Daten werden bereinigt. Serverseitig werden bestehende Sitzungserneuerungen ebenfalls ungültig.
+                    {t('profileSafety.signOutConfirmDescription')}
                   </p>
                   <div className="mt-6 flex gap-3">
                     <button
@@ -2244,14 +2244,14 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                       onClick={() => setShowLogoutConfirm(false)}
                       className="flex-1 min-h-11 rounded-lg border border-stone-200 dark:border-stone-600 px-4 py-2 font-medium text-stone-700 dark:text-stone-200"
                     >
-                      Abbrechen
+                      {t('actions.cancel')}
                     </button>
                     <button
                       type="button"
                       onClick={() => { void logOut().finally(() => setShowLogoutConfirm(false)); }}
                       className="flex-1 min-h-11 rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
                     >
-                      Abmelden
+                      {t('profileSafety.signOut')}
                     </button>
                   </div>
                 </div>

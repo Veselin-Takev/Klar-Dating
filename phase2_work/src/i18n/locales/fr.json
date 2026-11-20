@@ -285,7 +285,9 @@
     "deletionRetains": "Les signalements déposés par d’autres personnes à votre sujet sont conservés sans lien direct avec vous, ainsi que les justificatifs de paiement lorsque la loi impose leur conservation.",
     "deletionFailed": "La suppression n’a pas abouti. Veuillez vous reconnecter.",
     "serverResponse": "Réponse du serveur {{status}}",
-    "exportFailed": "Échec de l’export : {{error}}"
+    "exportFailed": "Échec de l’export : {{error}}",
+    "signOutConfirmTitle": "Se déconnecter ?",
+    "signOutConfirmDescription": "Votre session locale et les données de l’application liées à votre compte seront effacées. Les jetons de renouvellement de session existants côté serveur seront également invalidés."
   },
   "ageGate": {
     "title": "Quel âge as-tu ?",

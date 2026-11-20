@@ -285,7 +285,9 @@
     "deletionRetains": "Nicht gelöscht werden: Meldungen anderer Personen über dich (ohne Bezug zu dir) und Zahlungsbelege. Beides müssen wir aufbewahren.",
     "deletionFailed": "Die Löschung ist nicht durchgelaufen. Bitte melde dich neu an.",
     "serverResponse": "Server-Antwort {{status}}",
-    "exportFailed": "Export fehlgeschlagen: {{error}}"
+    "exportFailed": "Export fehlgeschlagen: {{error}}",
+    "signOutConfirmTitle": "Abmelden?",
+    "signOutConfirmDescription": "Deine lokale Sitzung und nutzerbezogenen App-Daten werden bereinigt. Serverseitig werden bestehende Sitzungserneuerungen ebenfalls ungültig."
   },
   "ageGate": {
     "title": "Wie alt bist du?",

@@ -285,7 +285,9 @@
     "deletionRetains": "Reports submitted by other people about you are retained without a direct link to you, as are payment records where retention is legally required.",
     "deletionFailed": "Deletion did not complete. Please sign in again.",
     "serverResponse": "Server response {{status}}",
-    "exportFailed": "Export failed: {{error}}"
+    "exportFailed": "Export failed: {{error}}",
+    "signOutConfirmTitle": "Sign out?",
+    "signOutConfirmDescription": "Your local session and user-scoped app data will be cleared. Existing server-side session refresh tokens will also be invalidated."
   },
   "ageGate": {
     "title": "How old are you?",
