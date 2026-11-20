@@ -405,7 +405,7 @@ export function ProfileCheckWidget() {
             <div className="flex items-center justify-between relative z-10">
               <div className="flex items-center gap-4 w-full">
                 <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border-2 border-white dark:border-stone-700 shadow-sm">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150&h=150" alt="Avatar" className="w-full h-full object-cover" />
+                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150&h=150" alt={t('profileCheck.avatar')} className="w-full h-full object-cover" />
                   {analysisSuccess && (
                     <div className="absolute inset-0 bg-emerald-500/80 flex items-center justify-center  z-20">
                       <Check size={24} className="text-white drop-shadow-md" />
@@ -973,11 +973,11 @@ export function ProfileCheckWidget() {
                                     <div className="h-1 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{width: `${entry.authenticityScore || entry.compatibilityScore}%`}}></div></div>
                                   </div>
                                   <div>
-                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">Community</span><span className="font-bold">{entry.expressivenessScore || entry.compatibilityScore}%</span></div>
+                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">{t('profileCheck.community')}</span><span className="font-bold">{entry.expressivenessScore || entry.compatibilityScore}%</span></div>
                                     <div className="h-1 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-purple-500" style={{width: `${entry.expressivenessScore || entry.compatibilityScore}%`}}></div></div>
                                   </div>
                                   <div>
-                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">Icebreaker</span><span className="font-bold">{getIcebreakerScore(entry.compatibilityScore, entry.authenticityScore, entry.expressivenessScore)}%</span></div>
+                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">{t('profileCheck.icebreaker')}</span><span className="font-bold">{getIcebreakerScore(entry.compatibilityScore, entry.authenticityScore, entry.expressivenessScore)}%</span></div>
                                     <div className="h-1 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{width: `${getIcebreakerScore(entry.compatibilityScore, entry.authenticityScore, entry.expressivenessScore)}%`}}></div></div>
                                   </div>
                                 </div>
