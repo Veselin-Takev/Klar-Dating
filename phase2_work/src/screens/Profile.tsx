@@ -1863,8 +1863,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
             ob die Kinder etwas gerendert haben; das weiss der Elternteil in
             React nicht. */}
         <p className="text-sm text-stone-500 dark:text-stone-400 px-1">
-          Hier siehst du, wie sich dein Dating-Alltag entwickelt. Auswertungen
-          erscheinen von selbst, sobald es etwas auszuwerten gibt.
+          {t('profileScreen.ui.growthEmpty')}
         </p>
         <div className="mb-6">
           <DatingMoodTrackerWidget />
