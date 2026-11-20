@@ -14,17 +14,17 @@ describe('accessible consent withdrawal', () => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
     renderConsent();
     expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse Widerrufen' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('wurde widerrufen'));
     expect(hooks.refreshProfile).toHaveBeenCalledOnce();
     expect(screen.getByText('Produktanalyse: Nicht erlaubt')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Produktanalyse erlauben' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Produktanalyse Erlauben' })).toBeEnabled();
   });
   it('refuses success when server evidence does not match the refreshed profile', async () => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
     hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'other', zwecke: { produktanalyse: false } } });
     renderConsent();
-    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse Widerrufen' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('konnte nicht bestätigt'));
     expect(screen.getByText('Produktanalyse: Erlaubt')).toBeInTheDocument();
   });
@@ -36,13 +36,13 @@ describe('accessible consent withdrawal', () => {
     hooks.request.mockResolvedValue(new Response(JSON.stringify({ ok: true, evidenceId: 'proof' })));
     hooks.refreshProfile.mockResolvedValue({ einwilligung: { version: EINWILLIGUNG_VERSION, evidenceId: 'proof', zwecke: { produktanalyse: true, [purpose]: true } } });
     renderConsent();
-    fireEvent.click(screen.getByRole('button', { name: label + ' erlauben' }));
+    fireEvent.click(screen.getByRole('button', { name: label + ' Erlauben' }));
     await waitFor(() => expect(screen.getByText(label + ': Erlaubt')).toBeInTheDocument());
   });
 
   it('keeps an unavailable withdrawal visible as a failure', async () => {
     hooks.request.mockResolvedValue(new Response('{}', { status: 503 }));
-    renderConsent(); fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse widerrufen' }));
+    renderConsent(); fireEvent.click(screen.getByRole('button', { name: 'Produktanalyse Widerrufen' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('konnte nicht bestätigt'));
     expect(hooks.refreshProfile).not.toHaveBeenCalled();
   });

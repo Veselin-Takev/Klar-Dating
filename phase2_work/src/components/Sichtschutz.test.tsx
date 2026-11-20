@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { createRequestI18n } from '../i18n/config';
@@ -9,7 +9,7 @@ vi.mock('../lib/userScopedStorage', () => ({ klarStorage: storage }));
 const renderWithI18n = (children: ReactNode) => render(<I18nextProvider i18n={createRequestI18n('de')}>{children}</I18nextProvider>);
 beforeEach(() => vi.clearAllMocks());
 describe('screen privacy accessibility', () => {
-  it('opens the pause menu from the keyboard, supports both arrow directions, and restores trigger focus on Escape', () => {
+  it('opens the pause menu from the keyboard, supports both arrow directions, and restores trigger focus on Escape', async () => {
     renderWithI18n(<SichtschutzKnopf />);
     const trigger = screen.getByRole('button', { name: 'Bildschirm verdecken' });
     fireEvent.keyDown(trigger, { key: 'ContextMenu' });
@@ -24,7 +24,7 @@ describe('screen privacy accessibility', () => {
     fireEvent.keyDown(pause, { key: 'ArrowUp' });
     expect(close).toHaveFocus();
     fireEvent.keyDown(close, { key: 'Escape' });
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
   });
   it('exposes the screen cover as a named modal and closes it with Escape', () => {
