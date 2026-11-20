@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `2f9a4349df652ee32246f29d1291c11136a8a769` (PR #391 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3` (PR #392 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -319,3 +319,21 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - Only .github/workflows/enterprise-compliance-audit-gate.yml needs changes for the two identified Node 20 actions. gitleaks/gitleaks-action changes from ff98106e4c7b2bc287b24eaf42907196329070c7 to e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e (v3.0.0, runs.using: node24); actions/github-script changes from f28e40c7f34bde8b3046d885e986cb6290c5673b to 3a2844b7e9c422d3c10d287c895573f7108da1b3 (v9.0.0, runs.using: node24). Both are pinned to exact 40-character commit SHAs with release comments.
 - The existing github-script source uses github and context; it does not require @actions/github via CommonJS or redeclare getOctokit, the v9 migration hazards. No inputs, permissions, security controls, audit commands, CI gates, app dependencies, or lockfiles are altered. All other workflow references remain full-SHA pins.
 - New Draft PR final HEAD, exact-head CI and Audit Gate Run IDs/status/conclusions, and confirmation that GitHub Actions logs no longer emit a Node 20 deprecation warning: **[TO VERIFY]** pending hosted validation. Follow AGENTS.md Anti-SHA-Chasing: report exact Run IDs in final handover/PR metadata; do not create a self-referential docs-only follow-up commit.
+
+
+## Verified post-PR #392 main baseline — 2026-11-20
+
+- Verified main HEAD / PR #392 merge commit: `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`. The previous #391 HEAD `2f9a4349df652ee32246f29d1291c11136a8a769` remains historical; earlier #389/#390/#391 evidence is preserved above.
+- Klar Enterprise CI [Run #2221 / ID 44806101342](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44806101342), exact head_sha `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`: SUCCESS — 1,595/1,595 tests, 209 files, Production Smoke PASS, Browser Acceptance 35/35 PASS.
+- Enterprise Compliance & Security Audit Gate [Run #56 / ID 44806101226](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44806101226), same exact head_sha: SUCCESS — Gitleaks v3.0.0 step PASS; Tier 1 production runtime audit PASS (549 packages, 0 High+); Full Supply-Chain Audit PASS (1,245 packages, 0 High+).
+- Post-merge Gitleaks coverage caveat: the push-event range reported 0 commits scanned due to --no-merges --first-parent; exact pre-merge PR #392 Audit Gate [Run #55 / ID 44758491336](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44758491336), source HEAD `b6064a89bea4e6cb455669179c5785ef25fde3f3`, scanned 2 commits and reported no leaks.
+- The merged workflow uses immutable full-SHA pins for Gitleaks v3.0.0 and GitHub Script v9.0.0 / Node 24. No Node.js 20 Action runtime warnings appeared post-merge. Separate Node API deprecation warnings DEP0040 and DEP0169 remain distinct from Action-runner warnings.
+
+### Active Draft PR — profile i18n migration
+
+- Feature branch feat/profile-i18n-migration is based on exact main baseline `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`, targeting main; PR must remain Draft and unmerged.
+- Profile screen and embedded profile subcomponents/flows are being localized with DE/EN/ES/FR catalog key and placeholder parity. Deterministic translation and feedback accessible-name tests are included.
+- This active PR's own Enterprise CI and Audit Gate exact-head Run IDs/status/conclusions are [TO VERIFY] until those workflows complete. Runs #2221 and #56 certify only main SHA `e1eac9ff...`.
+- No dependency, lockfile or workflow changes. No existing Art. 17 erasure, Consent, Accessibility or E2E assertions are removed or weakened.
+- Anti-SHA-Chasing: record this PR's completed exact-head Run IDs in the PR/final handover; no recursive docs-only commit to chase this PR's moving SHA.
+- Preserve productionApproved=false; a passing CI does not authorize a production release.
