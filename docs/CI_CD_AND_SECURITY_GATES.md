@@ -220,3 +220,35 @@ The remediation adds **18 exact historical fingerprints** to `.gitleaksignore`. 
 - `Enterprise Compliance & Security Audit Gate`: stacked PR #382 does not match the workflow `pull_request` base filter (`main`); exact-HEAD audit requires `workflow_dispatch` with the Package C branch ref. The new manual run and Tier 1 result remain **[TO VERIFY]** until dispatched and its `head_sha` is verified.
 
 `productionApproved=false` remains mandatory. PR #382 remains open/Draft/unmerged; PR #383 and `main` are not modified. No cloud/IAM/deployment mutation is performed.
+
+## Issue #374 — consolidated Package C + Package D integration validation (2026-11-20)
+
+### Merge and branch evidence
+
+GitHub confirms the upstream dependency PRs are merged: #381 → 5d6f2e9972111d23d64f1df4af43f0ac475fdfd3, #382 → 30690f549f7eac1b925076b1227ee5508845eae0, and #383 → 1b30ea60dc9acab31020533fd55ba1cf69feaf33. Their prior open/Draft status statements in earlier entries are historical snapshots and are superseded by this section.
+
+On security/issue-374-client-media-cutover-20261118, standard git merge --no-edit origin/security/issue-374-package-c-upload-cutover-20261118 merged source HEAD 1b30ea60dc9acab31020533fd55ba1cf69feaf33 into pre-merge integration HEAD 30690f549f7eac1b925076b1227ee5508845eae0. The resulting no-conflict ort merge commit is c386eff537999ae2f33e5bfac31bbbf13b121d5d, with parents 30690f549f7eac1b925076b1227ee5508845eae0 and 1b30ea60dc9acab31020533fd55ba1cf69feaf33. It adds the four Package D security documents (815 lines total): ISSUE_374_ENTERPRISE_REVIEW_DOSSIER.md, ISSUE_374_EXECUTIVE_SUMMARY.md, ISSUE_374_RELEASE_TRACKING.md, and PACKAGE_D_MIGRATION_AND_REVOCATION_PLAN.md under phase2_work/docs/security/.
+
+At consolidation, main was 13cce96660ba4a35d54c222e9eeae2e31f260863. git rev-list --left-right --count origin/main...HEAD returned 0 47: integration is 0 behind main and 47 commits ahead.
+
+### Toolchain and local gate results
+
+- Node.js 22.23.3; Bun 1.4.4 (both match the repository pins).
+- bun install --frozen-lockfile: PASS, 1,331 packages installed; no lockfile edit.
+- bun audit --prod --audit-level=high: PASS — no High/Critical vulnerabilities in 549 checked production packages; 3 findings below the configured threshold.
+- bun run typecheck: [TO VERIFY], not PASS. The first attempt hit Node/V8 heap OOM at the default heap cap; the 640-MB retry did not complete within the 180-second sandbox command limit while using a 976-MiB memory environment. No code diagnostic was captured. Hosted CI on the new PR HEAD must provide the complete Typecheck result.
+
+### Historical workflow results (exact earlier SHAs only)
+
+- PR #381 Klar Enterprise CI Run #2144 / ID 44293821811, exact SHA 3befc46251559dc4965a2c9a7ccfe808af49827d: SUCCESS, Browser Acceptance 26/26.
+- PR #383 Klar Enterprise CI Run #2151 / ID 44312127379, exact SHA 998b6ecb2b90bf5d3d3af04108637d175544fc82: SUCCESS, Browser Acceptance 26/26.
+- PR #382 Package C Klar Enterprise CI Run #44631763988 and manual Enterprise Compliance & Security Audit Gate Run #44632518985, both exact SHA 7c94b290bea41e27059d277d9f7299d5f57b5f6b: SUCCESS. CI Browser Acceptance 34/34. Audit Gate Gitleaks PASS, Tier 1 Production Runtime Audit PASS (549 packages, no High+ findings); Tier 2 full dependency audit remains advisory with the existing Zod advisory. These earlier SHA results do not certify the consolidation merge commit.
+
+### New Draft PR targeting main — automatic trigger expectations
+
+The new integration PR is to be created as Draft, with base main; it must not be merged or marked ready. .github/workflows/ci.yml declares pull_request without a base-branch filter, so Klar Enterprise CI is expected to run on PR creation. .github/workflows/enterprise-compliance-audit-gate.yml restricts its pull_request trigger to branches: [main]; the main-targeted PR also satisfies this filter, so an automatic Audit Gate run is expected and no manual workflow_dispatch should be required. Verify each run's head_sha against the final PR HEAD; an earlier Package C/D run must not be reused as proof.
+
+- Klar Enterprise CI exact new PR HEAD run ID/conclusion and Typecheck, Tests, Build, Production Smoke and Browser Acceptance: [TO VERIFY] pending workflow completion.
+- Enterprise Compliance & Security Audit Gate exact new PR HEAD run ID/conclusion, Gitleaks and Tier 1 Production Runtime Audit: [TO VERIFY] pending workflow completion.
+
+productionApproved=false is unchanged. This branch consolidation performs no live cloud/IAM/Firestore/Storage or deployment operation and does not edit main.
