@@ -660,6 +660,45 @@
       "creativityHobbies": "Vos loisirs créatifs vous rapprochent.",
       "careerGoals": "Vous partagez la même ambition professionnelle.",
       "careerBalance": "Vous comprenez tous les deux les périodes de travail prolongées."
+    },
+    "ui": {
+      "importTitle": "Compléter automatiquement le profil",
+      "importDescription": "Collez ici votre texte LinkedIn ou vos notes.",
+      "start": "Commencer",
+      "optimizeTitle": "Améliorer votre profil",
+      "optimizeDescription": "Rendez votre profil plus attractif grâce à l’IA.",
+      "discard": "Abandonner",
+      "history": "Historique",
+      "save": "Enregistrer",
+      "restore": "Restaurer",
+      "valueOptimization": "Améliorations selon les valeurs",
+      "apply": "Appliquer",
+      "icebreakersTitle": "Vos amorces de conversation",
+      "icebreakersDescription": "Les questions visibles par les personnes qui consultent votre profil.",
+      "radarTutorial": "Sélectionnez un axe de valeurs (par exemple « Aventure ») pour consulter des explications détaillées et découvrir vos points communs potentiels avec vos connexions.",
+      "understood": "Compris",
+      "customizeColors": "Personnaliser les couleurs",
+      "exportImage": "Exporter en image",
+      "filters": {
+        "all": "Tous",
+        "similarity": "Similarités",
+        "complement": "Compléments",
+        "contrast": "Contrastes"
+      },
+      "growthEmpty": "Cette section vous permet de suivre l’évolution de votre vie amoureuse. Les statistiques apparaîtront automatiquement lorsque l’activité sera suffisante pour être analysée.",
+      "currentPlan": "Offre actuelle : Klar",
+      "learnMore": "Découvrez ce qui distingue Klar+",
+      "chatLanguage": "Ma langue de discussion",
+      "appearance": {
+        "title": "Apparence",
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      },
+      "smartConnectionNotifications": "Notifications intelligentes de connexion",
+      "smartConnectionNotificationsDescription": "Notifications push uniquement pour les connexions supérieures à 90 %",
+      "verified": "Vérifié",
+      "basic": "Essentiel"
     }
   },
   "profileCheck": {
@@ -714,6 +753,42 @@
     "noOptimizations": "Aucune optimisation pour le moment.",
     "closePdf": "Fermer l’aperçu PDF",
     "pdfTitle": "Aperçu PDF",
-    "avatar": "Photo de profil"
+    "avatar": "Photo de profil",
+    "ui": {
+      "analysisLoading": "Analyse du profil …",
+      "ready": "Prêt à créer davantage de connexions !",
+      "trendGain": "+{{trend}} points de potentiel de connexion !",
+      "analysis": "Analyse",
+      "scanning": "Gemini analyse votre profil …",
+      "tryAgain": "Réessayer",
+      "bioUpdated": "Bio mise à jour avec succès !",
+      "undo": "Annuler",
+      "optimizedPreview": "Aperçu de la bio optimisée",
+      "current": "Actuel",
+      "optimized": "Optimisé",
+      "cancel": "Annuler",
+      "applyNow": "Appliquer maintenant",
+      "quickInsights": "Aperçus rapides",
+      "whyScore": "Pourquoi ce score ?",
+      "analyzeNewFocus": "Analyser avec un nouvel objectif",
+      "personalizedSuggestions": "Suggestions personnalisées",
+      "viewPreview": "Voir l’aperçu",
+      "exportReport": "Exporter le rapport",
+      "categories": {
+        "all": "Tous",
+        "languageStyle": "Style rédactionnel",
+        "interestFocus": "Centres d’intérêt",
+        "icebreakerQuality": "Qualité des amorces"
+      },
+      "scoreComposition": "Composition du score",
+      "trendLegend": "Légende de tendance",
+      "scoreCompositionExplanation": "Composition détaillée du score à ce moment précis :",
+      "trendLegendExplanation": "Le graphique présente votre score de compatibilité. Une hausse signifie que votre bio est devenue plus authentique et mieux adaptée à la communauté.",
+      "optimizationFocus": "Objectif de l’optimisation",
+      "apply": "Appliquer",
+      "close": "Fermer",
+      "pdfPreview": "Aperçu PDF",
+      "download": "Télécharger maintenant"
+    }
   }
 }
