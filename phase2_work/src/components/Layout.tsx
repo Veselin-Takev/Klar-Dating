@@ -85,6 +85,14 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const online = useOnline();
   const lastSync = useFirestoreSyncTime();
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPathname = useRef(location.pathname);
+
+  useEffect(() => {
+    if (previousPathname.current === location.pathname) return;
+    previousPathname.current = location.pathname;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [location.pathname]);
 
   const isChatView = location.pathname.startsWith('/chat/');
 
@@ -213,11 +221,11 @@ export function Layout({ children }: LayoutProps) {
       {/* Offline-Leiste: Vorhanden, wenn keine Verbindung besteht */}
       {!online && (
         <div role="status" className="bg-accent-quiet text-ink text-sm px-4 py-2 flex flex-col items-center justify-center gap-1 text-center">
-          <span>Keine Verbindung. Angezeigte Inhalte können veraltet sein.</span>
+          <span>{t('offline.message')}</span>
           {lastSync && (
             <div className="flex items-center gap-1 text-xs opacity-80">
               <Clock size={12} />
-              <span>Zuletzt synchronisiert: {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span>{t('offline.lastSynced', { time: lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}</span>
             </div>
           )}
         </div>
@@ -259,24 +267,24 @@ export function Layout({ children }: LayoutProps) {
         <nav className="hidden md:flex border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-4" aria-label={t('accessibility.mainNav', 'Hauptnavigation')}>
           <div className="mx-auto flex w-full max-w-5xl items-center justify-center gap-2 py-2">
             {([
-              { to: '/', label: 'Entdecken', Icon: Compass },
-              { to: '/chats', label: 'Gespräche', Icon: MessageCircle },
-              { to: '/ai-coach', label: 'Coach', Icon: Sparkles },
-              { to: '/rituals', label: 'Rituale', Icon: Flower2 },
-              { to: '/tips', label: 'Tipps', Icon: BookOpen },
-              { to: '/profile', label: 'Profil', Icon: User },
-            ] satisfies ReadonlyArray<{ to: string; label: string; Icon: LucideIcon }>).map(({ to, label, Icon }) => {
+              { to: '/', labelKey: 'bottomNav.discover', Icon: Compass },
+              { to: '/chats', labelKey: 'bottomNav.chats', Icon: MessageCircle },
+              { to: '/ai-coach', labelKey: 'bottomNav.coach', Icon: Sparkles },
+              { to: '/rituals', labelKey: 'bottomNav.rituals', Icon: Flower2 },
+              { to: '/tips', labelKey: 'bottomNav.tips', Icon: BookOpen },
+              { to: '/profile', labelKey: 'bottomNav.profile', Icon: User },
+            ] satisfies ReadonlyArray<{ to: string; labelKey: string; Icon: LucideIcon }>).map(({ to, labelKey, Icon }) => {
               const path = to;
               const active = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
               const C = Icon;
-              return <Link key={path} to={path} onClick={() => hapticFeedback('light')} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${active ? 'bg-brand/10 text-brand dark:bg-brand-light/10 dark:text-brand-light' : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700'}`}><C size={18}/><span>{label}</span></Link>;
+              return <Link key={path} to={path} onClick={() => hapticFeedback('light')} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${active ? 'bg-brand/10 text-brand dark:bg-brand-light/10 dark:text-brand-light' : 'text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700'}`}><C size={18} aria-hidden="true"/><span>{t(labelKey)}</span></Link>;
             })}
           </div>
         </nav>
       )}
 
       {/* Hauptinhaltsbereich */}
-      <main id="inhalt" tabIndex={-1} className="flex-1 overflow-y-auto hide-scrollbar relative outline-none">
+      <main ref={mainRef} id="inhalt" tabIndex={-1} aria-label={t('accessibility.mainContent')} className="flex-1 overflow-y-auto hide-scrollbar relative outline-none">
         {children}
       </main>
 
@@ -286,11 +294,11 @@ export function Layout({ children }: LayoutProps) {
           {unseenLegalCount > 0 && (
             <button
               onClick={() => setIsLegalModalOpen(true)}
-              aria-label={`${unseenLegalCount} neue rechtliche Updates. Klicken zum Öffnen.`}
+              aria-label={t(unseenLegalCount === 1 ? 'legalUpdates.openUpdatesAriaSingle' : 'legalUpdates.openUpdatesAriaPlural', { count: unseenLegalCount })}
               className="absolute -top-12 left-1/2 -translate-x-1/2 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 px-4 py-2 rounded-full shadow-lg text-xs font-medium flex items-center gap-2 transition-transform"
             >
               <Scale size={14} />
-              {unseenLegalCount} {unseenLegalCount === 1 ? 'neues Update' : 'neue Updates'}
+              {t(unseenLegalCount === 1 ? 'legalUpdates.unseenSingle' : 'legalUpdates.unseenPlural', { count: unseenLegalCount })}
             </button>
           )}
           <div className="flex items-center justify-around p-3">
