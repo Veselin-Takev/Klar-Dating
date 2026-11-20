@@ -204,7 +204,7 @@ No live cloud, IAM, Firestore, Storage or deployment mutation was performed. Mai
 
 - PR [#388](https://github.com/Veselin-Takev/Klar-Dating/pull/388) is **merged** into `main`. Merge SHA and current `main` HEAD: `06d193e054651e74736bf7a0a6911bf954a20b84` (verified identical).
 - `Enterprise Compliance & Security Audit Gate` Run **#22 / ID 44711489596** on exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **SUCCESS**. Gitleaks: **PASS**, `no leaks found`. Tier 1 Production Runtime Audit: **PASS**, `bun audit --prod --audit-level=high` reported no vulnerabilities across 549 checked packages (3 below the configured threshold).
-- `Klar Enterprise CI` Run **#2187 / ID 44711489858** is attached to exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`; at this handover snapshot it is still **[TO VERIFY] / in progress**. The final Browser Acceptance count, including the requested 34/34, is not claimed until the run completes.
+- `Klar Enterprise CI` Run [#2187 / ID 44711489858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44711489858), exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **FAILURE**. Browser Acceptance: **33 passed / 1 failed**. The sole failure was CUJ-1 `cuj-onboarding-consent.spec.ts:29`: expected `Einwilligung wurde erteilt.`, received `Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen.` after the grant request had returned HTTP 200. Typecheck, Functions build, Tests (1,583 passed), Build and Production Smoke were PASS. Therefore 34/34 is not established.
 
 ### Historical CUJ-4 timeout and scoped remediation
 
@@ -217,5 +217,6 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 ### Hardening PR evidence
 
 - Feature branch: `fix/e2e-cuj4-unroute-flake-and-handover-docs`, based on `06d193e054651e74736bf7a0a6911bf954a20b84`.
-- New Draft PR CI and Audit Gate exact-head run IDs/conclusions: **[TO VERIFY]** until GitHub Actions completes. Do not infer PASS.
+- On the initial hardening PR HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`, `Enterprise Compliance & Security Audit Gate` Run #23 / ID `44712275190` completed **SUCCESS** (Gitleaks no leaks; Tier 1 production audit passed across 549 packages). `Klar Enterprise CI` Run #2188 / ID `44712275292` was still **[TO VERIFY] / in progress** when this documentation follow-up was prepared.
+- This Docs-as-Code follow-up changes the PR HEAD; exact-head CI and Audit Gate runs for the resulting new commit are **[TO VERIFY]** until they complete.
 - `productionApproved=false` remains unchanged; this merge and the green Audit Gate do not constitute production approval.
