@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
+import type { ReactNode } from 'react';
 import { createRequestI18n } from '../i18n/config';
 import { SICHTSCHUTZ_EIN, Sichtschutz, SichtschutzKnopf } from './Sichtschutz';
 const storage = vi.hoisted(() => ({ getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() }));
 vi.mock('../lib/userScopedStorage', () => ({ klarStorage: storage }));
-const renderWithI18n = (children: React.ReactNode) => render(<I18nextProvider i18n={createRequestI18n('de')}>{children}</I18nextProvider>);
+const renderWithI18n = (children: ReactNode) => render(<I18nextProvider i18n={createRequestI18n('de')}>{children}</I18nextProvider>);
 beforeEach(() => vi.clearAllMocks());
 describe('screen privacy accessibility', () => {
   it('opens the pause menu from the keyboard and restores trigger focus on Escape', () => {
