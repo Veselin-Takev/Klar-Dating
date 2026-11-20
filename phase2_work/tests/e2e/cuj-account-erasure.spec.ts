@@ -102,9 +102,14 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
     }
   });
 
+  // Account deletion signs out and then performs a full document reload.
+  // Subscribe before the confirmation click so the transient signed-out render
+  // cannot race the subsequent account-scoped localStorage inspection.
+  const postDeletionNavigation = page.waitForNavigation({ waitUntil: 'load' });
   const [{ status: deletionStatus, receipt: deletionReceipt }] = await Promise.all([
     capturePromise,
     page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click(),
+    postDeletionNavigation,
   ]);
   expect(deletionStatus).toBe(202);
   expect(deletionReceipt).toMatchObject({ ok: true, status: 'pending' });
