@@ -1,6 +1,7 @@
 import { klarStorage } from '../lib/userScopedStorage';
 import React, { useState, useEffect } from 'react';
 import { Palette, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const THEMES = [
   { id: 'default', name: 'Klar Classic', color: 'bg-white dark:bg-stone-800', border: 'border-stone-200 dark:border-stone-700' },
@@ -11,6 +12,7 @@ const THEMES = [
 ];
 
 export const ProfileCardThemeSelector: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTheme, setActiveTheme] = useState('default');
 
   useEffect(() => {
@@ -30,10 +32,10 @@ export const ProfileCardThemeSelector: React.FC = () => {
     <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 mb-6 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <Palette className="text-brand dark:text-brand-light" size={20} />
-        <h3 className="font-serif text-lg text-stone-900 dark:text-stone-100">Profil-Thema</h3>
+        <h3 className="font-serif text-lg text-stone-900 dark:text-stone-100">{t('profileScreen.theme.title')}</h3>
       </div>
       <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
-        Wähle eine Hintergrundfarbe für dein Profil, die deine Persönlichkeit widerspiegelt. Andere Personen sehen dieses Thema, wenn sie dein Profil betrachten.
+        {t('profileScreen.theme.description')}
       </p>
 
       <div className="grid grid-cols-5 gap-2">
@@ -47,6 +49,7 @@ export const ProfileCardThemeSelector: React.FC = () => {
                 : 'border-transparent '
             }`}
             title={theme.name}
+            aria-label={t('profileScreen.theme.select', { theme: theme.name })}
           >
             {activeTheme === theme.id && (
               <div className="absolute inset-0 flex items-center justify-center text-brand dark:text-brand-light">
