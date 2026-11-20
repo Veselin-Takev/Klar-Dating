@@ -16,7 +16,7 @@ export function QuickThemeToggle() {
   };
   return (
     <button type="button" onClick={toggle}
-      className="relative p-2 w-10 h-10 flex items-center justify-center rounded-full text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
+      className="relative p-2 min-h-11 min-w-11 flex items-center justify-center rounded-full text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
       aria-label={label} title={title}>
       {theme === 'light' && <Moon size={20} aria-hidden="true" />}
       {theme === 'dark' && <MonitorSmartphone size={20} aria-hidden="true" />}

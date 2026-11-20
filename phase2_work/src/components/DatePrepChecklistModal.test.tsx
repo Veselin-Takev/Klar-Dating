@@ -26,7 +26,9 @@ describe('DatePrepChecklistModal accessibility', () => {
   it('closes on Escape and retains an explicit close control', () => {
     const onClose = renderModal();
     const dialog = screen.getByRole('dialog', { name: 'Date-Prep Checkliste' });
-    expect(screen.getByRole('button', { name: 'Checkliste schließen' })).toBeInTheDocument();
+    const closeButton = screen.getByRole('button', { name: 'Checkliste schließen' });
+    expect(closeButton).toBeInTheDocument();
+    expect(closeButton).toHaveClass('min-h-11', 'min-w-11');
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledOnce();
   });

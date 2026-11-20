@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `06d193e054651e74736bf7a0a6911bf954a20b84` (PR #388 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `24a57615544f6a190e5a76900d49b65646a320b9` (PR #389 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 

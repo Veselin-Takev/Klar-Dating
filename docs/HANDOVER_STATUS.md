@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-20
-**Main HEAD (verified after PR #388 merge):** `06d193e054651e74736bf7a0a6911bf954a20b84`
+**Main HEAD (verified after PR #389 merge):** `24a57615544f6a190e5a76900d49b65646a320b9`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart

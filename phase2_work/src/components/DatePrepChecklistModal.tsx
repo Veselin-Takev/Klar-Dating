@@ -100,7 +100,7 @@ Finde gemeinsame Themen oder Dinge, über die man leicht reden kann. Gib nur ein
                 type="button"
                 aria-label={t('datePrep.close')}
                 onClick={onClose}
-                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 rounded-full transition-colors"
+                className="min-h-11 min-w-11 flex items-center justify-center text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 rounded-full transition-colors"
               >
                 <X size={20} />
               </button>
