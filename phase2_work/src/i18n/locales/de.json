@@ -77,7 +77,9 @@
   "resilience_match_fallback": "Netzwerkverbindung eingeschränkt. Zeige zwischengespeicherte Vorschläge.",
   "accessibility": {
     "skipToContent": "Zum Inhalt springen",
-    "mainNav": "Hauptnavigation"
+    "mainNav": "Hauptnavigation",
+    "mainContent": "Hauptinhalt",
+    "profileSections": "Profilbereiche"
   },
   "navigationLabels": {
     "discover": "Entdecken: Neue Vorschläge ansehen",
@@ -283,7 +285,9 @@
     "deletionRetains": "Nicht gelöscht werden: Meldungen anderer Personen über dich (ohne Bezug zu dir) und Zahlungsbelege. Beides müssen wir aufbewahren.",
     "deletionFailed": "Die Löschung ist nicht durchgelaufen. Bitte melde dich neu an.",
     "serverResponse": "Server-Antwort {{status}}",
-    "exportFailed": "Export fehlgeschlagen: {{error}}"
+    "exportFailed": "Export fehlgeschlagen: {{error}}",
+    "signOutConfirmTitle": "Abmelden?",
+    "signOutConfirmDescription": "Deine lokale Sitzung und nutzerbezogenen App-Daten werden bereinigt. Serverseitig werden bestehende Sitzungserneuerungen ebenfalls ungültig."
   },
   "ageGate": {
     "title": "Wie alt bist du?",
@@ -348,7 +352,11 @@
         "description": "Klar verarbeitet Altersangaben und Zustimmungen zweckgebunden und mit serverseitigen Datenschutzkontrollen.",
         "source": "Europäische Kommission"
       }
-    }
+    },
+    "unseenSingle": "{{count}} neues Update",
+    "unseenPlural": "{{count}} neue Updates",
+    "openUpdatesAriaSingle": "{{count}} neues rechtliches Update. Zum Öffnen der Hinweise aktivieren.",
+    "openUpdatesAriaPlural": "{{count}} neue rechtliche Updates. Zum Öffnen der Hinweise aktivieren."
   },
   "dashboardOnboarding": {
     "steps": [
@@ -373,5 +381,85 @@
     "skip": "Einführung überspringen",
     "next": "Weiter",
     "start": "Loslegen"
+  },
+  "offline": {
+    "message": "Keine Verbindung. Angezeigte Inhalte können veraltet sein.",
+    "lastSynced": "Zuletzt synchronisiert: {{time}}"
+  },
+  "consentCenter": {
+    "title": "Datenschutz und Einwilligungen",
+    "description": "Optionale Verarbeitungen sind getrennt steuerbar. Jede Änderung wird serverseitig atomar protokolliert.",
+    "purposes": {
+      "aiAnalysis": {
+        "label": "KI-Auswertung",
+        "description": "Verarbeitung für optionale Coach- und KI-Funktionen."
+      },
+      "errorReports": {
+        "label": "Fehlerberichte",
+        "description": "Technische Fehlerdiagnostik zur Verbesserung der Stabilität."
+      },
+      "productAnalytics": {
+        "label": "Produktanalyse",
+        "description": "Optionale Nutzungsauswertung zur Produktverbesserung."
+      }
+    },
+    "status": {
+      "allowed": "Erlaubt",
+      "notAllowed": "Nicht erlaubt"
+    },
+    "actions": {
+      "grant": "Erlauben",
+      "withdraw": "Widerrufen"
+    },
+    "saving": "Speichere …",
+    "messages": {
+      "granted": "Einwilligung wurde erteilt.",
+      "revoked": "Einwilligung wurde widerrufen.",
+      "failed": "Die Änderung konnte nicht bestätigt werden. Bitte erneut versuchen."
+    }
+  },
+  "datePrep": {
+    "title": "Date-Prep Checkliste",
+    "close": "Checkliste schließen",
+    "description": "Personalisierte Gesprächsthemen basierend auf dem Profil von {{name}}.",
+    "loading": "Generiere Themen …",
+    "regenerate": "Neue Themen generieren",
+    "defaultPlace": "Kaffee",
+    "defaultInterest": "Reisen",
+    "fallbackPlace": "Nach Lieblingsorten für {{interest}} fragen",
+    "fallbackHighlight": "Ein aktuelles Highlight aus dem Bereich {{interest}} besprechen",
+    "fallbackAnecdote": "Nach einer lustigen Anekdote fragen"
+  },
+  "theme": {
+    "switchToDark": "Zu dunklem Aussehen wechseln",
+    "switchToSystem": "Zu System-Aussehen wechseln",
+    "switchToLight": "Zu hellem Aussehen wechseln",
+    "light": "Helles Aussehen",
+    "dark": "Dunkles Aussehen",
+    "system": "System-Aussehen (Auto)"
+  },
+  "profileTabs": {
+    "profile": "Profil",
+    "growth": "Entwicklung",
+    "partners": "Klar & Partner",
+    "settings": "Einstellungen"
+  },
+  "app": {
+    "loading": "Wird geladen",
+    "offline": {
+      "title": "Keine Internetverbindung",
+      "description": "Bitte überprüfe deine Verbindung und versuche es erneut.",
+      "reload": "Neu laden"
+    }
+  },
+  "privacy": {
+    "coverScreen": "Bildschirm verdecken",
+    "pauseMenu": "Automatischen Sichtschutz 5 Minuten pausieren",
+    "menu": "Sichtschutzoptionen",
+    "closeMenu": "Sichtschutzoptionen schließen",
+    "dialogTitle": "Bildschirm verdeckt",
+    "nobodyCanSee": "Niemand sieht, was du gerade liest.",
+    "autoActivation": "Der Sichtschutz aktiviert sich auch nach Inaktivität oder beim Verlassen des Tabs.",
+    "showScreen": "Wieder anzeigen"
   }
 }

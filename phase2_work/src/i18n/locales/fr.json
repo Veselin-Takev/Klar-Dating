@@ -71,7 +71,9 @@
   },
   "accessibility": {
     "skipToContent": "Aller au contenu",
-    "mainNav": "Navigation principale"
+    "mainNav": "Navigation principale",
+    "mainContent": "Contenu principal",
+    "profileSections": "Sections du profil"
   },
   "navigationLabels": {
     "discover": "Découvrir : Voir de nouvelles suggestions",
@@ -283,7 +285,9 @@
     "deletionRetains": "Les signalements déposés par d’autres personnes à votre sujet sont conservés sans lien direct avec vous, ainsi que les justificatifs de paiement lorsque la loi impose leur conservation.",
     "deletionFailed": "La suppression n’a pas abouti. Veuillez vous reconnecter.",
     "serverResponse": "Réponse du serveur {{status}}",
-    "exportFailed": "Échec de l’export : {{error}}"
+    "exportFailed": "Échec de l’export : {{error}}",
+    "signOutConfirmTitle": "Se déconnecter ?",
+    "signOutConfirmDescription": "Votre session locale et les données de l’application liées à votre compte seront effacées. Les jetons de renouvellement de session existants côté serveur seront également invalidés."
   },
   "ageGate": {
     "title": "Quel âge as-tu ?",
@@ -348,7 +352,11 @@
         "description": "Klar traite les informations d’âge et les consentements avec limitation des finalités et contrôles de confidentialité côté serveur.",
         "source": "Commission européenne"
       }
-    }
+    },
+    "unseenSingle": "{{count}} nouvelle mise à jour",
+    "unseenPlural": "{{count}} nouvelles mises à jour",
+    "openUpdatesAriaSingle": "{{count}} nouvelle mise à jour juridique. Activez pour ouvrir les mises à jour.",
+    "openUpdatesAriaPlural": "{{count}} nouvelles mises à jour juridiques. Activez pour ouvrir les mises à jour."
   },
   "dashboardOnboarding": {
     "steps": [
@@ -373,5 +381,85 @@
     "skip": "Passer l’introduction",
     "next": "Suivant",
     "start": "Commencer"
+  },
+  "offline": {
+    "message": "Aucune connexion. Le contenu affiché peut être obsolète.",
+    "lastSynced": "Dernière synchronisation : {{time}}"
+  },
+  "consentCenter": {
+    "title": "Confidentialité et consentement",
+    "description": "Les traitements facultatifs peuvent être contrôlés séparément. Chaque modification est enregistrée de manière atomique sur le serveur.",
+    "purposes": {
+      "aiAnalysis": {
+        "label": "Analyse par IA",
+        "description": "Traitement pour les fonctions facultatives de coaching et d’IA."
+      },
+      "errorReports": {
+        "label": "Rapports d’erreurs",
+        "description": "Diagnostic technique pour améliorer la stabilité."
+      },
+      "productAnalytics": {
+        "label": "Analyses du produit",
+        "description": "Analyse facultative de l’utilisation pour améliorer le produit."
+      }
+    },
+    "status": {
+      "allowed": "Autorisé",
+      "notAllowed": "Non autorisé"
+    },
+    "actions": {
+      "grant": "Autoriser",
+      "withdraw": "Retirer"
+    },
+    "saving": "Enregistrement …",
+    "messages": {
+      "granted": "Le consentement a été accordé.",
+      "revoked": "Le consentement a été retiré.",
+      "failed": "La modification n’a pas pu être confirmée. Veuillez réessayer."
+    }
+  },
+  "datePrep": {
+    "title": "Liste de préparation au rendez-vous",
+    "close": "Fermer la liste",
+    "description": "Sujets de conversation personnalisés selon le profil de {{name}}.",
+    "loading": "Génération des sujets …",
+    "regenerate": "Générer de nouveaux sujets",
+    "defaultPlace": "café",
+    "defaultInterest": "voyage",
+    "fallbackPlace": "Demander quels sont ses lieux préférés pour {{interest}}",
+    "fallbackHighlight": "Parler d’un moment récent marquant lié à {{interest}}",
+    "fallbackAnecdote": "Demander une anecdote amusante"
+  },
+  "theme": {
+    "switchToDark": "Passer à l’apparence sombre",
+    "switchToSystem": "Passer à l’apparence du système",
+    "switchToLight": "Passer à l’apparence claire",
+    "light": "Apparence claire",
+    "dark": "Apparence sombre",
+    "system": "Apparence du système (auto)"
+  },
+  "profileTabs": {
+    "profile": "Profil",
+    "growth": "Évolution",
+    "partners": "Klar et partenaires",
+    "settings": "Paramètres"
+  },
+  "app": {
+    "loading": "Chargement",
+    "offline": {
+      "title": "Aucune connexion Internet",
+      "description": "Vérifiez votre connexion et réessayez.",
+      "reload": "Recharger"
+    }
+  },
+  "privacy": {
+    "coverScreen": "Masquer l’écran",
+    "pauseMenu": "Suspendre le masquage automatique pendant 5 minutes",
+    "menu": "Options de masquage de l’écran",
+    "closeMenu": "Fermer les options de masquage",
+    "dialogTitle": "Écran masqué",
+    "nobodyCanSee": "Votre écran est masqué.",
+    "autoActivation": "Le masquage s’active aussi après une période d’inactivité ou lorsque vous quittez cet onglet.",
+    "showScreen": "Afficher l’écran"
   }
 }

@@ -22,6 +22,7 @@
 // das steht beim Aufrufer, weil nur er weiss, was er rendert.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface Reiter<T extends string> {
   id: T;
@@ -37,6 +38,7 @@ interface Props<T extends string> {
 }
 
 export function Reiterleiste<T extends string>({ reiter, aktiv, aufWechsel, name = 'reiter' }: Props<T>) {
+  const { t } = useTranslation();
   const knoepfe = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const beiTaste = (e: React.KeyboardEvent, index: number) => {
@@ -56,7 +58,7 @@ export function Reiterleiste<T extends string>({ reiter, aktiv, aufWechsel, name
   return (
     <div
       role="tablist"
-      aria-label="Bereiche"
+      aria-label={t('accessibility.profileSections')}
       className="flex gap-1 p-1 mb-6 bg-stone-100 dark:bg-stone-800 rounded-2xl"
     >
       {reiter.map((r, i) => {

@@ -71,7 +71,9 @@
   },
   "accessibility": {
     "skipToContent": "Saltar al contenido",
-    "mainNav": "Navegación principal"
+    "mainNav": "Navegación principal",
+    "mainContent": "Contenido principal",
+    "profileSections": "Secciones del perfil"
   },
   "navigationLabels": {
     "discover": "Descubrir: Ver nuevas sugerencias",
@@ -283,7 +285,9 @@
     "deletionRetains": "Se conservan, sin vínculo directo contigo, los reportes enviados por otras personas sobre ti y los justificantes de pago cuando exista obligación legal de conservación.",
     "deletionFailed": "La eliminación no se completó. Vuelve a iniciar sesión.",
     "serverResponse": "Respuesta del servidor {{status}}",
-    "exportFailed": "Error al exportar: {{error}}"
+    "exportFailed": "Error al exportar: {{error}}",
+    "signOutConfirmTitle": "¿Cerrar sesión?",
+    "signOutConfirmDescription": "Se borrarán la sesión local y los datos de la aplicación asociados a tu usuario. También se invalidarán los tokens de renovación de sesión existentes en el servidor."
   },
   "ageGate": {
     "title": "¿Cuántos años tienes?",
@@ -348,7 +352,11 @@
         "description": "Klar procesa los datos de edad y los consentimientos con limitación de finalidad y controles de privacidad del servidor.",
         "source": "Comisión Europea"
       }
-    }
+    },
+    "unseenSingle": "{{count}} actualización nueva",
+    "unseenPlural": "{{count}} actualizaciones nuevas",
+    "openUpdatesAriaSingle": "{{count}} actualización legal nueva. Activa para abrir las actualizaciones.",
+    "openUpdatesAriaPlural": "{{count}} actualizaciones legales nuevas. Activa para abrir las actualizaciones."
   },
   "dashboardOnboarding": {
     "steps": [
@@ -373,5 +381,85 @@
     "skip": "Saltar introducción",
     "next": "Continuar",
     "start": "Empezar"
+  },
+  "offline": {
+    "message": "Sin conexión. El contenido mostrado puede estar desactualizado.",
+    "lastSynced": "Última sincronización: {{time}}"
+  },
+  "consentCenter": {
+    "title": "Privacidad y consentimiento",
+    "description": "El tratamiento opcional se puede controlar por separado. Cada cambio se registra de forma atómica en el servidor.",
+    "purposes": {
+      "aiAnalysis": {
+        "label": "Análisis de IA",
+        "description": "Tratamiento para funciones opcionales de asesoramiento e inteligencia artificial."
+      },
+      "errorReports": {
+        "label": "Informes de errores",
+        "description": "Diagnóstico técnico para mejorar la estabilidad."
+      },
+      "productAnalytics": {
+        "label": "Analítica del producto",
+        "description": "Análisis opcional de uso para mejorar el producto."
+      }
+    },
+    "status": {
+      "allowed": "Permitido",
+      "notAllowed": "No permitido"
+    },
+    "actions": {
+      "grant": "Permitir",
+      "withdraw": "Retirar"
+    },
+    "saving": "Guardando …",
+    "messages": {
+      "granted": "Se ha concedido el consentimiento.",
+      "revoked": "Se ha retirado el consentimiento.",
+      "failed": "No se pudo confirmar el cambio. Inténtalo de nuevo."
+    }
+  },
+  "datePrep": {
+    "title": "Lista de preparación para la cita",
+    "close": "Cerrar lista",
+    "description": "Temas de conversación personalizados según el perfil de {{name}}.",
+    "loading": "Generando temas …",
+    "regenerate": "Generar temas nuevos",
+    "defaultPlace": "café",
+    "defaultInterest": "viajes",
+    "fallbackPlace": "Preguntar por lugares favoritos relacionados con {{interest}}",
+    "fallbackHighlight": "Hablar de algo reciente que destaque en {{interest}}",
+    "fallbackAnecdote": "Preguntar por una anécdota divertida"
+  },
+  "theme": {
+    "switchToDark": "Cambiar al aspecto oscuro",
+    "switchToSystem": "Cambiar al aspecto del sistema",
+    "switchToLight": "Cambiar al aspecto claro",
+    "light": "Aspecto claro",
+    "dark": "Aspecto oscuro",
+    "system": "Aspecto del sistema (automático)"
+  },
+  "profileTabs": {
+    "profile": "Perfil",
+    "growth": "Desarrollo",
+    "partners": "Klar y colaboradores",
+    "settings": "Ajustes"
+  },
+  "app": {
+    "loading": "Cargando",
+    "offline": {
+      "title": "Sin conexión a Internet",
+      "description": "Comprueba tu conexión e inténtalo de nuevo.",
+      "reload": "Recargar"
+    }
+  },
+  "privacy": {
+    "coverScreen": "Ocultar pantalla",
+    "pauseMenu": "Pausar la ocultación automática durante 5 minutos",
+    "menu": "Opciones de privacidad de pantalla",
+    "closeMenu": "Cerrar opciones de privacidad",
+    "dialogTitle": "Pantalla oculta",
+    "nobodyCanSee": "Tu pantalla está oculta.",
+    "autoActivation": "La protección también se activa tras un periodo de inactividad o al salir de esta pestaña.",
+    "showScreen": "Mostrar pantalla"
   }
 }

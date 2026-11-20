@@ -21,3 +21,14 @@ describe('request-scoped translation instances', () => {
     expect(instance.t('settings.language', { defaultValue: 'SHOULD_NOT_BE_USED' })).toBe('Language');
   });
 });
+
+describe('core journey translations', () => {
+  it.each(['de', 'en', 'es', 'fr'] as const)('resolves core journey UI keys in %s', language => {
+    const instance = createRequestI18n(language);
+    const keys = ['accessibility.mainContent', 'accessibility.profileSections', 'consentCenter.title', 'consentCenter.actions.grant', 'consentCenter.messages.failed', 'datePrep.title', 'datePrep.close', 'theme.switchToDark', 'profileTabs.settings', 'app.offline.title', 'privacy.dialogTitle', 'privacy.pauseMenu', 'profileSafety.signOut', 'profileSafety.signOutConfirmTitle', 'profileSafety.signOutConfirmDescription'] as const;
+    for (const key of keys) {
+      expect(instance.exists(key)).toBe(true);
+      expect(instance.t(key)).not.toBe(key);
+    }
+  });
+});

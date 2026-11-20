@@ -6,7 +6,7 @@ import { Sichtschutz } from "./components/Sichtschutz";
 import { RegistrierungsGate } from "./components/RegistrierungsGate";
 import { ContractLinks } from './components/ContractLinks';
 import { MagicLinkGate } from './components/MagicLinkGate';
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import i18n from "./i18n/config";
 import { LanguagePreferenceProvider } from './i18n/LanguagePreference';
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -48,6 +48,7 @@ const Verifizierung = lazy(() => import("./screens/Verifizierung"));
  *  nicht anders aussieht als ein Start. Sanfte Fade-In- und Fade-Out-Animation mit AnimatePresence minimiert Layout-Sprünge beim Laden.
  *  Berücksichtigt die WCAG 2.3.3 Anforderungen via useReducedMotion für barrierefreie Animationen. */
 export function Ladepunkt() {
+  const { t } = useTranslation();
   const shouldReduceMotion = Boolean(useReducedMotion());
 
   return (
@@ -62,7 +63,7 @@ export function Ladepunkt() {
         className="klar-page w-full h-full min-h-[100dvh] flex flex-col justify-start items-stretch overflow-hidden [will-change:opacity,transform]"
         role="status"
         aria-live="polite"
-        aria-label="Wird geladen"
+        aria-label={t('app.loading')}
         data-reduced-motion={shouldReduceMotion ? "true" : "false"}
       >
         <AppSkeleton key="app-skeleton" />
@@ -154,6 +155,7 @@ export const PageWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 function AppContent() {
+  const { t } = useTranslation();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState<string | undefined>();
   const [maintenanceEstimatedEndTime, setMaintenanceEstimatedEndTime] = useState<string | undefined>();
@@ -296,11 +298,11 @@ function AppContent() {
 
   if (isOffline) {
     return (
-      <div className="h-[calc(100dvh-var(--contract-links-height,0px))] flex items-center justify-center bg-stone-50 text-stone-900 p-6 text-center">
+      <div role="status" aria-live="polite" aria-atomic="true" className="h-[calc(100dvh-var(--contract-links-height,0px))] flex items-center justify-center bg-stone-50 text-stone-900 p-6 text-center">
         <div>
-          <h2 className="text-xl font-bold mb-2">Keine Internetverbindung</h2>
-          <p className="text-stone-600 mb-4">Bitte überprüfe deine Verbindung und versuche es erneut.</p>
-          <button onClick={() => window.location.reload()} className="px-6 py-2 bg-stone-900 text-white rounded-full font-medium">Neu laden</button>
+          <h2 id="offline-title" className="text-xl font-bold mb-2">{t('app.offline.title')}</h2>
+          <p className="text-stone-600 mb-4">{t('app.offline.description')}</p>
+          <button type="button" onClick={() => window.location.reload()} className="px-6 py-2 bg-stone-900 text-white rounded-full font-medium">{t('app.offline.reload')}</button>
         </div>
       </div>
     );
