@@ -16,7 +16,11 @@ describe('profile settings categories', () => {
     for (const key of categoryKeys) {
       expect(source).toContain(`t('profileScreen.settings.${key}')`);
     }
-    expect(localizedCategoryLabels[0][2]).toBe('Erweitert & Konto');
+    const germanAdvancedCategory = localizedCategoryLabels[0]?.[2];
+    if (germanAdvancedCategory === undefined) {
+      throw new Error('German advanced profile settings category is missing');
+    }
+    expect(germanAdvancedCategory).toBe('Erweitert & Konto');
     for (const labels of localizedCategoryLabels) {
       expect(labels).toHaveLength(3);
       expect(labels.every(label => label.trim().length > 0)).toBe(true);
