@@ -660,6 +660,45 @@
       "creativityHobbies": "Creative hobbies bring you together.",
       "careerGoals": "You share drive for your professional goals.",
       "careerBalance": "You understand when work requires longer hours."
+    },
+    "ui": {
+      "importTitle": "Fill in your profile automatically",
+      "importDescription": "Paste your LinkedIn text or notes here.",
+      "start": "Get started",
+      "optimizeTitle": "Improve your profile",
+      "optimizeDescription": "Make your profile more engaging with AI.",
+      "discard": "Discard",
+      "history": "History",
+      "save": "Save",
+      "restore": "Restore",
+      "valueOptimization": "Values-based improvements",
+      "apply": "Apply",
+      "icebreakersTitle": "Your icebreakers",
+      "icebreakersDescription": "Questions people can see on your profile.",
+      "radarTutorial": "Select an individual value axis (such as “Adventure”) to see detailed explanations and potential common ground with connections.",
+      "understood": "Got it",
+      "customizeColors": "Customize colors",
+      "exportImage": "Export as image",
+      "filters": {
+        "all": "All",
+        "similarity": "Similarities",
+        "complement": "Complements",
+        "contrast": "Contrasts"
+      },
+      "growthEmpty": "This is where you can see how your dating life evolves. Insights will appear automatically once there is enough activity to review.",
+      "currentPlan": "Current plan: Klar",
+      "learnMore": "See what makes Klar+ different",
+      "chatLanguage": "My chat language",
+      "appearance": {
+        "title": "Appearance",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "smartConnectionNotifications": "Smart connection notifications",
+      "smartConnectionNotificationsDescription": "Push notifications only for connections above 90%",
+      "verified": "Verified",
+      "basic": "Basic"
     }
   },
   "profileCheck": {
@@ -714,6 +753,42 @@
     "noOptimizations": "No optimizations yet.",
     "closePdf": "Close PDF preview",
     "pdfTitle": "PDF preview",
-    "avatar": "Profile picture"
+    "avatar": "Profile picture",
+    "ui": {
+      "analysisLoading": "Analyzing profile …",
+      "ready": "Ready to build more connections!",
+      "trendGain": "+{{trend}} connection-potential points!",
+      "analysis": "Analysis",
+      "scanning": "Gemini is scanning your profile …",
+      "tryAgain": "Try again",
+      "bioUpdated": "Bio updated successfully!",
+      "undo": "Undo",
+      "optimizedPreview": "Optimized bio preview",
+      "current": "Current",
+      "optimized": "Optimized",
+      "cancel": "Cancel",
+      "applyNow": "Apply now",
+      "quickInsights": "Quick insights",
+      "whyScore": "Why this score?",
+      "analyzeNewFocus": "Analyze with a new focus",
+      "personalizedSuggestions": "Personalized suggestions",
+      "viewPreview": "View preview",
+      "exportReport": "Export report",
+      "categories": {
+        "all": "All",
+        "languageStyle": "Writing style",
+        "interestFocus": "Interest focus",
+        "icebreakerQuality": "Icebreaker quality"
+      },
+      "scoreComposition": "Score breakdown",
+      "trendLegend": "Trend legend",
+      "scoreCompositionExplanation": "How this score was composed at this point:",
+      "trendLegendExplanation": "The chart shows your compatibility score. An increase means your bio has become more authentic and a better fit for the community.",
+      "optimizationFocus": "Optimization focus",
+      "apply": "Apply",
+      "close": "Close",
+      "pdfPreview": "PDF preview",
+      "download": "Download now"
+    }
   }
 }
