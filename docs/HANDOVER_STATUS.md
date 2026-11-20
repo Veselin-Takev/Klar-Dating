@@ -285,7 +285,7 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 ### Active Draft — Profile i18n migration
 
 - Branch: feat/profile-i18n-migration, created from verified baseline `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`; intended target is main. PR lifecycle must remain Draft / unmerged.
-- Scope: Profile screen and name editor/status feedback, local/remote feedback, import/interests/No-Gos, Bio Coach, radar and settings navigation; profile detail/theme selectors; profile AI-check and history labels; profile milestone card. DE/EN/ES/FR catalog namespaces have 190 profile-flow leaf keys per catalog, equal key sets and matching interpolation placeholders.
+- Scope: Profile screen and name editor/status feedback, local/remote feedback, import/interests/No-Gos, Bio Coach, radar and settings navigation; profile detail/theme selectors; profile AI-check and history labels; profile milestone card. DE/EN/ES/FR catalog namespaces have 192 profile-flow leaf keys per catalog, equal key sets and matching interpolation placeholders.
 - This active PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate run IDs, exact head_sha, status and conclusions: [TO VERIFY] until hosted workflows complete. The baseline Run #2221 / #56 above validates only the main SHA and is not evidence for this feature branch.
 - No dependency, lockfile or workflow file is changed. Art. 17 erasure, Consent, Accessibility and existing E2E assertions remain in place. No Cloud, IAM, Firestore, Storage or deployment mutation is performed.
 - Anti-SHA-Chasing: after the active PR's workflows complete, report exact Run IDs and head_sha in the PR/final handover; do not create a recursive docs-only commit solely to add the PR's own run IDs.
