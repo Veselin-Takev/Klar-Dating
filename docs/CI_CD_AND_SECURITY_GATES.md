@@ -332,7 +332,7 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 ### Active Draft PR — profile i18n migration
 
 - Feature branch feat/profile-i18n-migration is based on exact main baseline `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`, targeting main; PR must remain Draft and unmerged.
-- Profile screen and embedded profile subcomponents/flows are being localized with DE/EN/ES/FR catalog key and placeholder parity. Deterministic translation and feedback accessible-name tests are included.
+- Profile screen and embedded profile subcomponents/flows now have **257 profile-flow leaf keys per locale** across DE/EN/ES/FR, with identical key sets and matching interpolation placeholders. Deterministic translation and feedback accessible-name tests are included.
 - This active PR's own Enterprise CI and Audit Gate exact-head Run IDs/status/conclusions are [TO VERIFY] until those workflows complete. Runs #2221 and #56 certify only main SHA `e1eac9ff...`.
 - No dependency, lockfile or workflow changes. No existing Art. 17 erasure, Consent, Accessibility or E2E assertions are removed or weakened.
 - Anti-SHA-Chasing: record this PR's completed exact-head Run IDs in the PR/final handover; no recursive docs-only commit to chase this PR's moving SHA.
