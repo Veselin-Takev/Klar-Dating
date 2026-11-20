@@ -38,7 +38,6 @@ import {
   anteil,
   erreichte,
   naechste,
-  zusammenfassung,
   type Rohdaten,
 } from '../lib/meilensteine';
 
