@@ -8,6 +8,11 @@ import { getDb, runObservedTransaction } from './db';
 import { getStripe } from './stripeService';
 import { purgeAccountData } from './trustAndSafety';
 import { DeletionPageComplete, DeletionTimeSliceComplete, DeletionProviderPageComplete, DeletionStoragePageComplete } from './deletionProgress';
+import {
+  assertNoVerificationDeletionArtifacts,
+  VERIFICATION_DELETION_FENCE_COLLECTION,
+  VERIFICATION_DELETION_ATTEMPT_COLLECTION,
+} from './platform/verificationDeletionFence';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
 
@@ -136,6 +141,10 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     if (job.subscriptionId) await deps.cancelSubscription(job.subscriptionId, job.customerId);
     if (job.hasDidit && !await deps.eraseProvider(uid, job.requestId)) throw new DeletionProviderPageComplete();
     await deps.purge(uid, job.requestId, lease);
+    // Reconcile must have removed terminal artifacts after proving the GCS
+    // prefix empty. Never delete Firebase Auth while a hold, reservation or
+    // unresolved UID-scoped fence/attempt is still present.
+    await assertNoVerificationDeletionArtifacts(deps.db, uid);
     // Provider deletion is irreversible. Re-read the authoritative job state
     // immediately before the provider boundary so a worker that lost its lease
     // cannot perform the final destructive identity deletion.
@@ -159,6 +168,13 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
           lastError: null,
         });
       } else if (current.phase === 'final_sweep') {
+        const [fences, attempts] = await Promise.all([
+          tx.get(deps.db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).where('uid', '==', uid).limit(1)),
+          tx.get(deps.db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).where('uid', '==', uid).limit(1)),
+        ]);
+        if (!fences.empty || !attempts.empty) {
+          throw new Error('verification_deletion_artifacts_unresolved');
+        }
         const counts = readDeletionCounts(current);
         const receiptRef = deps.db.collection('deletion_log').doc(deletionReceiptId(String(current.requestId)));
         // Both writes commit together. A conflicting legacy receipt blocks completion.

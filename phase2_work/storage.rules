@@ -3,12 +3,12 @@ rules_version = '2';
 // ═══════════════════════════════════════════════════════════════════════════
 // Klar — Storage-Regeln. Vorgabe ist Verweigerung.
 //
-// Das Verifizierungsfoto ist ein biometrisches Datum im Sinne von Art. 9
-// DSGVO, sobald es zum Abgleich dient. Deshalb: schreiben ja, LESEN NEIN —
-// auch nicht für die eigene Person. Ein lesbarer Pfad ist ein teilbarer
-// Pfad, und ein Foto mit vorgegebener Geste ist genau das Material, mit dem
-// sich ein fremdes Konto verifizieren ließe. Die Sichtprüfung läuft über das
-// Admin-SDK und braucht die Client-Leseberechtigung nicht.
+// Die frühere clientseitige Gesten-/Fotoverifizierung ist eingestellt.
+// KYC erfolgt über den externen Didit-Prozess. Die Legacy-Storage-Pfade
+// enthalten potentiell biometrische Daten (DSGVO Art. 9) und sind für
+// sämtliche Firebase-Clientoperationen gesperrt. Nur autorisierte Admin-SDK-
+// Workflows dürfen bestehende Bilder für Retention/Art. 17 bearbeiten.
+// WICHTIG: Admin SDK umgeht Firebase Storage Rules; IAM separat prüfen.
 // ═══════════════════════════════════════════════════════════════════════════
 
 service firebase.storage {
@@ -25,10 +25,11 @@ service firebase.storage {
     function istBild() { return request.resource != null && request.resource.contentType != null && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
 
     match /verification/{uid}/{datei} {
+      // Zero-client-access: no new biometric uploads, no overwrite after
+      // a purge receipt, no reads and no client-side deletion.
       allow read: if false;
-      allow create, update: if signedIn() && !istGast() && request.auth.uid == uid
-                   && istBild() && request.resource.size < 8 * 1024 * 1024;
-      allow delete: if false;   // nur serverseitig, nach der Entscheidung
+      allow create, update: if false;
+      allow delete: if false;   // Nur Admin SDK (separate IAM boundary)
     }
 
     match /profiles/{uid}/{datei} {

@@ -113,9 +113,10 @@ export const HapticSettings: React.FC = () => {
       {isEnabled && (
         <>
           <div className="mb-6">
-            <p className="text-sm text-stone-700 dark:text-stone-300 mb-3 font-medium">Muster</p>
+            <label htmlFor="haptic-pattern" className="block text-sm text-stone-700 dark:text-stone-300 mb-3 font-medium">Muster</label>
             <div className="flex gap-2">
               <select
+                id="haptic-pattern"
                 value={patternType}
                 onChange={(e) => handlePatternChange(e.target.value)}
                 className="w-full bg-stone-100 dark:bg-stone-800 border-none text-stone-700 dark:text-stone-300 rounded-xl py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-brand focus:outline-none appearance-none"
@@ -128,10 +129,11 @@ export const HapticSettings: React.FC = () => {
           </div>
 
           <div className="mb-6">
-            <p className="text-sm text-stone-700 dark:text-stone-300 mb-3 font-medium">Intensität</p>
+            <label htmlFor="haptic-intensity" className="block text-sm text-stone-700 dark:text-stone-300 mb-3 font-medium">Intensität</label>
             <div className="flex items-center gap-4">
               <Volume2 size={16} className="text-stone-400 shrink-0 opacity-50" />
               <input
+                id="haptic-intensity"
                 type="range"
                 min="0"
                 max="100"

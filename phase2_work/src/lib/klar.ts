@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { auth } from './firebase';
+import { createCanonicalProfileMediaRef } from './profileMediaRef';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // `firebase/storage` wird NICHT hier oben importiert.
@@ -66,21 +67,83 @@ export async function nimmKontaktZurueck(targetUid: string): Promise<void> {
 // ── Profilfoto ─────────────────────────────────────────────────────────────
 
 export async function ladeProfilfotoHoch(datei: Blob): Promise<string> {
-  if (!auth.currentUser) throw new Error('Nicht angemeldet.');
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+  const uploader = auth.currentUser;
+  if (!uploader || uploader.isAnonymous) throw new Error('Nicht angemeldet.');
+  const contentType = datei.type;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)
+    || datei.size <= 0 || datei.size >= 8 * 1024 * 1024) {
+    throw new Error('Ungültiges Profilbild.');
+  }
 
-  const ext = datei.type === 'image/png' ? 'png' : datei.type === 'image/webp' ? 'webp' : 'jpg';
-  const fileName = `profiles/${auth.currentUser.uid}/avatar_${Date.now()}.${ext}`;
-  const storageRef = ref(getStorage(), fileName);
+  // Firebase Storage reads are denied to clients. Persist an opaque owner-scoped
+  // reference instead of minting a permanent bearer download URL.
+  const { getStorage, ref, uploadBytes } = await import('firebase/storage');
+  const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+  // A collision-resistant path prevents concurrent uploads from overwriting
+  // each other's objects and makes compensation specific to this upload.
+  const uploadId = globalThis.crypto.randomUUID();
+  const objectPath = `profiles/${uploader.uid}/avatar_${uploadId}.${ext}`;
+  const storageRef = ref(getStorage(), objectPath);
 
-  await uploadBytes(storageRef, datei, { contentType: datei.type || 'image/jpeg' });
-  const url = await getDownloadURL(storageRef);
+  await uploadBytes(storageRef, datei, { contentType });
+  const mediaRef = createCanonicalProfileMediaRef(uploader.uid, objectPath);
 
-  // Setze die URL im Profil
-  const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(getFirestore(), 'users', auth.currentUser.uid), { photoURL: url }, { merge: true });
+  // Compensation is deliberately fail-closed. Delete only when a server read
+  // proves that no supported profile field references this exact object.
+  // A changed session, failed read, or failed delete retains the object.
+  const compensateIfUnreferenced = async (): Promise<void> => {
+    const currentSession = auth.currentUser;
+    if (!currentSession || currentSession.uid !== uploader.uid || currentSession.isAnonymous) return;
 
-  return url;
+    try {
+      const { getFirestore, doc, getDocFromServer } = await import('firebase/firestore');
+      const snapshot = await getDocFromServer(doc(getFirestore(), 'users', uploader.uid));
+      const profile: Record<string, unknown> = snapshot.exists()
+        ? (snapshot.data() ?? {}) as Record<string, unknown>
+        : {};
+      const references = [
+        profile.photoURL,
+        profile.photoUrl,
+        profile.photoPath,
+        profile.photoStoragePath,
+        ...(Array.isArray(profile.photos) ? profile.photos : []),
+      ];
+      const isReferenced = references.some(value => {
+        if (value === mediaRef || value === objectPath) return true;
+        if (typeof value !== 'string') return false;
+        try {
+          const parsed = new URL(value);
+          const marker = parsed.pathname.indexOf('/o/');
+          return marker >= 0
+            && decodeURIComponent(parsed.pathname.slice(marker + 3)) === objectPath;
+        } catch {
+          return false;
+        }
+      });
+      if (isReferenced) return;
+
+      const { deleteObject } = await import('firebase/storage');
+      await deleteObject(storageRef);
+    } catch {
+      // Uncertainty is not proof of non-reference: retain the uploaded object.
+    }
+  };
+
+  const currentSession = auth.currentUser;
+  if (!currentSession || currentSession.uid !== uploader.uid || currentSession.isAnonymous) {
+    await compensateIfUnreferenced();
+    throw new Error('Die Sitzung hat sich während des Uploads geändert.');
+  }
+
+  try {
+    const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+    await setDoc(doc(getFirestore(), 'users', uploader.uid), { photoURL: mediaRef }, { merge: true });
+  } catch (error) {
+    await compensateIfUnreferenced();
+    throw error;
+  }
+
+  return mediaRef;
 }
 
 // ── Icebreaker-Gate ────────────────────────────────────────────────────────

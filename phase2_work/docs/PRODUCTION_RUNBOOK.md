@@ -435,3 +435,47 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+## P0 #202 — Biometric photo retention legacy worker mitigation (draft)
+
+**Status:** Proposed source mitigation only; do not deploy or merge without Security, DPO/Legal, Operations/SRE and Release Owner signoff.
+
+Source review of `functions/src/index.ts` showed **two exported scheduled functions**: `deleteExpiredPhotosCron` and `purgeVerificationStorageCron`. The former called `deleteExpiredPhotoPage` (Storage `verification/` scan, 30 days from `timeCreated`) independent of moderation decisions; the latter signs a request to the compliance endpoint that filters `verification_events.fotoLoeschenAb` and checks `decidedAt` and pending status. This is a source-level conflict with the approved retention policy and a potential premature deletion hazard if the legacy function was deployed. Actual deployment is **unknown**.
+
+The isolated patch retains the exported `deleteExpiredPhotosCron` schedule and its unrelated `funnel_events` expiry cleanup but **removes all Storage access** from that cron. It does not change the authorized `purgeVerificationStorageCron` route, engine, cloud environment or user data. A new offline source regression blocks reinstating upload-age deletion, and is wired to `check:retention-p0`. `DATA_RETENTION.md` also corrects two obsolete **13-group** statements to the current **20-group** approved TTL plan and documents the required `KLAR_RETENTION_MATRIX_REVISION_APPROVED` gate.
+
+**Required independent acceptance evidence:** exact commit SHA-bound CI, function build, unit and emulator tests for pending/approved/rejected/historical cases, 30-day expiry measured from decision, legal holds, generation-precondition concurrent-replace handling, retry/crash idempotence and proof persistence. Inspect current Cloud Functions, Scheduler and IAM deployments; confirm whether the legacy job is active, perform a reversible staging migration, validate non-deletion of pending photos, and collect DPO/Legal/Operations/Release approvals. No staging or production system was accessed or modified.
+
+**Risk/tradeoff:** photo removal by the legacy age-scanner intentionally stops; the signed decision-based purger must be independently operational and complete to avoid *over-retention*. No assertion that verification photos are presently being deleted on schedule. **Production NO-GO.**
+
+## Storage delete generation, hold and partial-failure hardening (2026-10-29)
+
+The signed, decision-based compliance endpoint previously used `bucket.file(path).delete({ ignoreNotFound: true })` after obtaining a Firestore snapshot. It lacked Storage generation preconditions and explicit object hold checks. In addition, `executeVerificationRetentionBatch` converts individual deletion/audit failures to `reason: error` without rejecting the batch; the HTTP route returned status 200 and included raw per-object `uid`/`storagePath` results. This could cause a Scheduler run to treat incomplete purges as success and expose unnecessary personal identifiers.
+
+The isolated follow-up adds `deleteVerificationStorageFile`, which inspects object metadata, refuses temporary/event-based holds or absent/invalid generations, then deletes only with `ifGenerationMatch`. Metadata 404 and generation conflict 412 remain errors for independent reconciliation; a missing object is not falsely logged as a verified deletion. The API now returns aggregate counts only and status **503** if any artifact failed, prompting the signed Scheduler to retry; the transactional audit update rejects missing/rebound event records rather than silently acknowledging them. New pure mocked-file Vitest tests cover generation, holds, invalid metadata, 404 and 412; an offline source regression covers the route's guards.
+
+**Source-only change.** This patch does not prove live Storage legal-hold semantics, a complete moderation-state concurrency lock, cleanup of already missing files, retries under production load, or immutable deletion receipts. Test execution, TypeScript/function builds and independent review remain pending. A deployed legacy cron and its timing must be separately inventoried before any release. **Production NO-GO / P0 #202 remains open.**
+
+## Verification photo purge scanner checkpoint (2026-10-29, draft #202)
+
+The signed `/api/admin/purge-verification-storage` response now returns only aggregates with `hasMore`, and returns 503 for unfinished pages or failures; Scheduler retries are expected. Inspect the Firestore server-only `system/verification_photo_purge_scan_v1` lease and cursor only through an approved incident runbook, never modify them manually without DPO/SRE two-person approval. Verify fairness with >100 due records, mixed pending/already-purged/failure cases and a forced crash between deletion and checkpoint. Prove no cross-project access, Cloud Logging PII minimization, index readiness, quotas, 30-day decision rule, generation holds, and legal retention exceptions in approved staging. Rollback must not re-enable the legacy upload-age worker. Source/static checks and generic CI are not evidence of live deletion. **Production NO-GO.**
+
+## P0 #202: Verification-photo purge audit reconciliation
+
+Only a server-side, generation-bound `verification_events.photoPurgeIntent` may authorize automatic verification of a missing photo after a failed audit transaction. Its path, decision state, decidedAt and generation must match current eligibility; finalized `photoPurgeProof.method` must distinguish `delete_acknowledged` from `absence_reconciled`. Never change a 404 to unconditional success, clear an intent to force re-delete, or declare live GCS compliance from mocked emulator assertions. Investigate recurring 503 for missing intent, 412 generation replacement, unexpected holds, invalid decisions or lease loss via approved two-person incident response with privacy-safe audit evidence. Required approvals: DPO/Legal, Security, SRE, Release Owner. **Production NO-GO.**
+
+## Additional pre-delete fencing (2026-10-30)
+
+Each attempt must recheck current Firestore decision, due date, audit intent and lease expiry in a transaction **after** final Storage metadata validation, immediately before conditional generation delete. Expired lease or changed decision returns retryable failure and must not delete or write a success audit. The lease is refreshed when the owner is valid, at the page checkpoint and during pre-delete checking. This is defense in depth, not an atomic Firestore–Cloud Storage transaction; long GCS calls, re-uploads, legal holds and moderation write-path fencing still require staging evidence and independent approvals. **Production NO-GO.**
+
+## Lease takeover during ambiguous GCS deletion (2026-10-30)
+
+A retryable 503 after lease loss is **not** evidence that a Storage object survived: a previously issued conditional delete can complete after the scanner loses ownership. Only a durable, matching generation-bound intent may support a later `absence_reconciled` receipt, not a fabricated `delete_acknowledged` receipt. For incident response, reconcile the exact event decision/path, lease fencing, GCS generation, audit proof method and last checkpoint without leaking UID or photo paths into public logs. Do not alter the scan lease or purge intent manually without SRE and DPO approval. **Production NO-GO.**
+
+## Abwesenheits-Abgleich nach erneutem Upload (2026-10-30)
+
+`absence_reconciled` verlangt einen passenden generationgebundenen Firestore-Löschauftrag **und** einen erneuten GCS-Metadatenabruf unmittelbar vor dem Audit. Wenn die Datei wieder existiert oder Storage andere Fehler als 404 zurückgibt, muss HTTP 503 ohne positives Lösch-Audit erfolgen. Eine reine 404-Beobachtung ist keine atomare, dauerhafte Löschbestätigung; Storage-Writes müssen zusätzlich über IAM/Objektlebenszyklus begrenzt werden. CI-Emulatorbefunde ersetzen keine GCS-Staging-Probe oder Datenschutzfreigabe. **Production NO-GO.**
+
+## Legacy verification upload lockdown (2026-10-30, draft PR #203)
+
+Firebase clients must no longer be able to **create or overwrite** `verification/{uid}/{datei}`, nor read or delete it. The gesture/photo client upload was retired; Didit KYC is the supported verification channel. Check source `storage.rules`, confirm rejected owner overwrite/recreate in a local Firebase Storage Emulator, inspect deployed Storage Rules and Cloud IAM (Admin SDK bypass), and perform a staged compatibility review of older installed app versions. Confirm GCS uploads via privileged service identities and signed URLs are separately blocked or traceable for purged prefixes. A successful CI suite does not prove deployed cloud policy. No production Storage Rules deployment is authorized without Security/DPO/SRE/Release approval. **PRODUCTION NO-GO.**
