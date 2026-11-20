@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { getUserStorageItem, setUserStorageItem, klarStorage } from '../lib/userScopedStorage';
 import { Sparkles, AlertCircle, ChevronRight, X, TrendingUp, TrendingDown, Download, Check, History, Filter, ArrowRight, User, RefreshCw, Layers, Copy, Undo } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -36,13 +37,10 @@ interface HistoryEntry {
   optimizationCategory?: "Sprachstil" | "Interessenfokus" | "Icebreaker-Qualität";
 }
 
-const datingTips = [
-  "Tipp: Ein Lächeln auf dem ersten Foto erhöht Verbindungen spürbar.",
-  "Tipp: Ehrliche Interessen ziehen gleichgesinnte an.",
-  "Tipp: Verwende einen offenen, positiven Ton.",
-  "Tipp: Weniger ist mehr – Qualität über Quantität beim Text.",
-  "Tipp: Stelle eine Frage in der Bio, um Gespräche zu starten!"
-];
+const datingTipKeys = [
+  'profileCheck.tips.smile', 'profileCheck.tips.honest', 'profileCheck.tips.tone',
+  'profileCheck.tips.concise', 'profileCheck.tips.question'
+] as const;
 
 const playSound = (type: 'start' | 'success') => {
   try {
@@ -76,6 +74,7 @@ const playSound = (type: 'start' | 'success') => {
 };
 
 export function ProfileCheckWidget() {
+  const { t, i18n } = useTranslation();
 
   const [data, setData] = useState<ProfileCheckData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,7 +101,7 @@ export function ProfileCheckWidget() {
   const [previousBio, setPreviousBio] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [aiQuickInsight, setAiQuickInsight] = useState<string | null>(null);
-  const [currentTip, setCurrentTip] = useState(datingTips[0]);
+  const [currentTip, setCurrentTip] = useState<(typeof datingTipKeys)[number]>(datingTipKeys[0]);
   const buttonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -148,7 +147,7 @@ export function ProfileCheckWidget() {
     setIsLoading(true);
     setError(null);
     setShowPreview(false);
-    setCurrentTip(datingTips[Math.floor(0 * datingTips.length)]);
+    setCurrentTip(datingTipKeys[0]);
     playSound('start');
 
     try {
@@ -156,7 +155,7 @@ export function ProfileCheckWidget() {
       const interests = interestsRaw ? JSON.parse(interestsRaw) : [];
 
       if (!bio && interests.length === 0) {
-        setError("Bitte fülle zuerst dein Profil (Bio oder Interessen) aus.");
+        setError(t('profileCheck.errors.profileIncomplete'));
         setIsLoading(false);
         return;
       }
@@ -169,7 +168,7 @@ export function ProfileCheckWidget() {
 
       if (!res.ok) {
         const errorData = await res.text().then(text => text ? JSON.parse(text) : {}).catch(() => ({}));
-        throw new Error(errorData.error || "Fehler beim Laden des Profil-Scans.");
+        throw new Error(errorData.error || t('profileCheck.errors.scanFailed'));
       }
 
       const result = await res.text().then(text => text ? JSON.parse(text) : {});
@@ -183,7 +182,7 @@ export function ProfileCheckWidget() {
         const newEntry: HistoryEntry = {
           id: "0".substring(7),
           timestamp: Date.now(),
-          date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          date: new Date().toLocaleDateString(i18n.resolvedLanguage || i18n.language, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
           bio: bio,
           compatibilityScore: result.compatibilityScore || 0,
           authenticityScore: result.authenticityScore,
@@ -200,7 +199,7 @@ export function ProfileCheckWidget() {
 
     } catch (e) {
       melde("ProfileCheckWidget", e);
-      setError(e instanceof Error ? e.message : "Profil-Analyse konnte leider nicht geladen werden.");
+      setError(e instanceof Error ? e.message : t('profileCheck.errors.analysisFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -235,14 +234,14 @@ export function ProfileCheckWidget() {
     if (data?.impression) return data.impression;
     if (aiQuickInsight) return aiQuickInsight;
     const wordCount = bio.split(/\s+/).filter(w => w.length > 0).length;
-    if (wordCount === 0) return "Dein Profil ist noch leer. Füge Text hinzu, um KI-Feedback zu erhalten.";
-    if (wordCount < 10) return "Kurze Bio erkannt. KI kann helfen, mehr Persönlichkeit und Tiefe zu zeigen.";
+    if (wordCount === 0) return t('profileCheck.insight.empty');
+    if (wordCount < 10) return t('profileCheck.insight.shortBio');
     const lowerBio = bio.toLowerCase();
-    if (lowerBio.includes('sport') || lowerBio.includes('fitness') || lowerBio.includes('gym')) return "Sportlich aktiv! Lass uns das für Verbindungen optimal hervorheben.";
-    if (lowerBio.includes('reisen') || lowerBio.includes('travel') || lowerBio.includes('meer')) return "Weltenbummler-Vibes! KI optimiert deine Geschichten für beste Resonanz.";
-    if (lowerBio.includes('hund') || lowerBio.includes('katze') || lowerBio.includes('tier')) return "Tierliebhaber! Das kommt super an, lass uns das perfekt in Szene setzen.";
-    if (lowerBio.includes('musik') || lowerBio.includes('konzert') || lowerBio.includes('festival')) return "Musikfan! KI zeigt dir, wie du damit die richtigen Verbindungen anziehst.";
-    return "Authentische Basis erkannt. Klicke hier für eine tiefergehende Profil-Analyse.";
+    if (lowerBio.includes('sport') || lowerBio.includes('fitness') || lowerBio.includes('gym')) return t('profileCheck.insight.sport');
+    if (lowerBio.includes('reisen') || lowerBio.includes('travel') || lowerBio.includes('meer')) return t('profileCheck.insight.travel');
+    if (lowerBio.includes('hund') || lowerBio.includes('katze') || lowerBio.includes('tier')) return t('profileCheck.insight.pets');
+    if (lowerBio.includes('musik') || lowerBio.includes('konzert') || lowerBio.includes('festival')) return t('profileCheck.insight.music');
+    return t('profileCheck.insight.default');
   };
 
   const handleExport = async () => {
@@ -396,7 +395,7 @@ export function ProfileCheckWidget() {
                  animate={{ opacity: 1, y: 0 }}
                  className="text-[11px] text-stone-500 dark:text-stone-400 font-medium text-center mt-2"
                >
-                 {currentTip}
+                 {t(currentTip)}
                </motion.div>
              </div>
            </div>
@@ -439,7 +438,7 @@ export function ProfileCheckWidget() {
                           Bereit für mehr Verbindungen!
                         </motion.span>
                       ) : (
-                        <motion.span key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>KI-Analyse für ein echteres Auftreten</motion.span>
+                        <motion.span key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{t('profileCheck.heading')}</motion.span>
                       )}
                     </AnimatePresence>
                   </div>
@@ -485,7 +484,7 @@ export function ProfileCheckWidget() {
                   </button>
                 </div>
                 {!isLoading && (
-                  <button aria-label="Fenster schließen"
+                  <button aria-label={t('profileCheck.close')}
                     onClick={() => setIsModalOpen(false)}
                     className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                   >
@@ -568,7 +567,7 @@ export function ProfileCheckWidget() {
                                     }
                                   }}
                                   className="absolute top-2 right-2 p-1.5 bg-white dark:bg-stone-800 rounded-lg shadow-sm border border-stone-200 dark:border-stone-700 text-stone-500 hover:text-brand transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                  title="In Zwischenablage kopieren"
+                                  title={t('profileCheck.copy')}
                                 >
                                   {copySuccess ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                                 </button>
@@ -598,11 +597,11 @@ export function ProfileCheckWidget() {
                           <>
                             <div className="grid grid-cols-2 gap-4">
                               <div className={`p-4 rounded-2xl border border-stone-100 dark:border-stone-700 flex flex-col items-center justify-center text-center ${getScoreBg(data.authenticityScore)}`}>
-                                <span className="text-xs uppercase font-bold text-stone-500 dark:text-stone-400 mb-1">Authentizität</span>
+                                <span className="text-xs uppercase font-bold text-stone-500 dark:text-stone-400 mb-1">{t('profileCheck.authenticity')}</span>
                                 <span className={`text-4xl font-bold ${getScoreColor(data.authenticityScore)}`}>{data.authenticityScore}%</span>
                               </div>
                               <div className={`p-4 rounded-2xl border border-stone-100 dark:border-stone-700 flex flex-col items-center justify-center text-center ${getScoreBg(data.expressivenessScore)}`}>
-                                <span className="text-xs uppercase font-bold text-stone-500 dark:text-stone-400 mb-1">Community Verbindung</span>
+                                <span className="text-xs uppercase font-bold text-stone-500 dark:text-stone-400 mb-1">{t('profileCheck.community')}</span>
                                 <span className={`text-4xl font-bold ${getScoreColor(data.expressivenessScore)}`}>{data.expressivenessScore}%</span>
                               </div>
                             </div>
@@ -611,7 +610,7 @@ export function ProfileCheckWidget() {
                               <>
                               <div className="mt-4 bg-stone-50 dark:bg-stone-800/50 p-5 rounded-2xl border border-stone-100 dark:border-stone-700 relative">
                                 <div className="absolute top-4 right-4">
-                                  <button onClick={() => setShowScoreExplanation(!showScoreExplanation)} className="text-stone-400 hover:text-brand transition-colors p-1" title="Berechnungsgrundlage">
+                                  <button onClick={() => setShowScoreExplanation(!showScoreExplanation)} className="text-stone-400 hover:text-brand transition-colors p-1" title={t('profileCheck.calculation')}>
                                     <AlertCircle size={18} />
                                   </button>
                                 </div>
@@ -645,18 +644,18 @@ export function ProfileCheckWidget() {
                                       className="overflow-hidden"
                                     >
                                       <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
-                                        <h5 className="text-xs font-bold uppercase text-stone-500 mb-3">Gewichtete Hauptfaktoren (Berechnungsgrundlage)</h5>
+                                        <h5 className="text-xs font-bold uppercase text-stone-500 mb-3">{t('profileCheck.weightedFactors')}</h5>
                                         <div className="space-y-3">
                                           <div>
-                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">Authentizität</span><span className="font-bold text-stone-900 dark:text-stone-100">40%</span></div>
+                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">{t('profileCheck.authenticity')}</span><span className="font-bold text-stone-900 dark:text-stone-100">40%</span></div>
                                             <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-blue-500 w-[40%]"></div></div>
                                           </div>
                                           <div>
-                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">Community Verbindung</span><span className="font-bold text-stone-900 dark:text-stone-100">40%</span></div>
+                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">{t('profileCheck.community')}</span><span className="font-bold text-stone-900 dark:text-stone-100">40%</span></div>
                                             <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-purple-500 w-[40%]"></div></div>
                                           </div>
                                           <div>
-                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">Icebreaker-Potenzial</span><span className="font-bold text-stone-900 dark:text-stone-100">20%</span></div>
+                                            <div className="flex justify-between text-xs mb-1"><span className="font-medium text-stone-700 dark:text-stone-300">{t('profileCheck.icebreaker')}</span><span className="font-bold text-stone-900 dark:text-stone-100">20%</span></div>
                                             <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-amber-500 w-[20%]"></div></div>
                                           </div>
                                         </div>
@@ -705,7 +704,7 @@ export function ProfileCheckWidget() {
 
                             <div className="bg-stone-50 dark:bg-stone-800/30 p-4 rounded-xl border border-stone-100 dark:border-stone-700 mt-2 mb-4">
                               <div className="flex justify-between items-center mb-2">
-                                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">KI-Fokus für Optimierung</label>
+                                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">{t('profileCheck.aiFocus')}</label>
                                 <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">
                                   {aiFocus < 50 ? 'Authentizität' : aiFocus > 50 ? 'Attraktivität' : 'Ausgewogen'}
                                 </span>
@@ -718,21 +717,21 @@ export function ProfileCheckWidget() {
                                 className="w-full accent-brand h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer"
                               />
                               <div className="flex justify-between text-[10px] text-stone-500 mt-1 mb-3">
-                                <span>100% Authentisch</span>
-                                <span>100% Attraktiv</span>
+                                <span>{t('profileCheck.focusAuthentic')}</span>
+                                <span>{t('profileCheck.focusAppealing')}</span>
                               </div>
 
                               <div className="flex justify-between items-center mb-2 mt-4">
-                                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">Tonalität</label>
+                                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">{t('profileCheck.tone')}</label>
                               </div>
                               <select
                                 value={tonality}
                                 onChange={(e) => setTonality(e.target.value as 'Ehrlich' | 'Humorvoll' | 'Professionell')}
                                 className="w-full text-xs bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 mb-4 text-stone-700 dark:text-stone-300 focus:outline-none focus:border-brand"
                               >
-                                <option value="Ehrlich">Ehrlich & Direkt</option>
-                                <option value="Humorvoll">Humorvoll & Locker</option>
-                                <option value="Professionell">Professionell & Seriös</option>
+                                <option value="Ehrlich">{t('profileCheck.tones.honest')}</option>
+                                <option value="Humorvoll">{t('profileCheck.tones.humorous')}</option>
+                                <option value="Professionell">{t('profileCheck.tones.professional')}</option>
                               </select>
 
                               <button
@@ -780,7 +779,7 @@ export function ProfileCheckWidget() {
                 ) : (
                   <div className="space-y-6">
                     <div className="flex justify-between items-center print:hidden">
-                      <h4 className="font-bold text-stone-900 dark:text-stone-100">Score-Verlauf</h4>
+                      <h4 className="font-bold text-stone-900 dark:text-stone-100">{t('profileCheck.history.title')}</h4>
                       <div className="flex gap-2">
                         <div className="relative group/filter">
                           <button
@@ -792,10 +791,10 @@ export function ProfileCheckWidget() {
                              historyFilter === "7days" ? "Letzte 7 Tage" : "Letzte 30 Tage"}
                           </button>
                           <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-lg opacity-0 invisible group-hover/filter:opacity-100 group-hover/filter:visible transition-all z-50 overflow-hidden flex flex-col">
-                            <button onClick={() => setHistoryFilter("all")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === 'all' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>Alle / Chronologisch</button>
-                            <button onClick={() => setHistoryFilter("success")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === 'success' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>Nach Erfolg sortieren</button>
-                            <button onClick={() => setHistoryFilter("7days")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === '7days' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>Letzte 7 Tage</button>
-                            <button onClick={() => setHistoryFilter("30days")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === '30days' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>Letzte 30 Tage</button>
+                            <button onClick={() => setHistoryFilter("all")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === 'all' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>{t('profileCheck.history.all')}</button>
+                            <button onClick={() => setHistoryFilter("success")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === 'success' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>{t('profileCheck.history.success')}</button>
+                            <button onClick={() => setHistoryFilter("7days")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === '7days' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>{t('profileCheck.history.sevenDays')}</button>
+                            <button onClick={() => setHistoryFilter("30days")} className={`text-left px-4 py-2 text-xs hover:bg-stone-50 dark:hover:bg-stone-800 ${historyFilter === '30days' ? 'font-bold text-brand bg-brand/5' : 'text-stone-700 dark:text-stone-300'}`}>{t('profileCheck.history.thirtyDays')}</button>
                           </div>
                         </div>
                         <button
@@ -877,7 +876,7 @@ export function ProfileCheckWidget() {
                              {hoveredHistoryIndex !== null && history[hoveredHistoryIndex] ? (
                                <div className="space-y-3">
                                  <div className="flex items-center justify-between">
-                                   <span className="text-xs font-medium text-stone-500">Authentizität</span>
+                                   <span className="text-xs font-medium text-stone-500">{t('profileCheck.authenticity')}</span>
                                    <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{history[hoveredHistoryIndex]?.authenticityScore || '-'}%</span>
                                  </div>
                                  <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden">
@@ -885,7 +884,7 @@ export function ProfileCheckWidget() {
                                  </div>
 
                                  <div className="flex items-center justify-between pt-1">
-                                   <span className="text-xs font-medium text-stone-500">Community Verbindung</span>
+                                   <span className="text-xs font-medium text-stone-500">{t('profileCheck.community')}</span>
                                    <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{history[hoveredHistoryIndex]?.expressivenessScore || '-'}%</span>
                                  </div>
                                  <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden">
@@ -893,7 +892,7 @@ export function ProfileCheckWidget() {
                                  </div>
 
                                  <div className="flex items-center justify-between pt-1">
-                                   <span className="text-xs font-medium text-stone-500">Icebreaker-Potenzial</span>
+                                   <span className="text-xs font-medium text-stone-500">{t('profileCheck.icebreaker')}</span>
                                    <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{getIcebreakerScore(history[hoveredHistoryIndex]?.compatibilityScore, history[hoveredHistoryIndex]?.authenticityScore, history[hoveredHistoryIndex]?.expressivenessScore)}%</span>
                                  </div>
                                  <div className="w-full bg-stone-200 dark:bg-stone-700 h-1.5 rounded-full overflow-hidden">
@@ -956,11 +955,11 @@ export function ProfileCheckWidget() {
                                 {entry.optimizedBio ? (
                                   <div className="grid grid-cols-2 gap-2 mb-3">
                                     <div className="bg-stone-50 dark:bg-stone-800/50 p-3 rounded-lg border border-stone-200 dark:border-stone-700 relative">
-                                      <span className="text-[9px] font-bold uppercase text-stone-500 block mb-1">Vorher</span>
+                                      <span className="text-[9px] font-bold uppercase text-stone-500 block mb-1">{t('profileCheck.before')}</span>
                                       <p className="text-xs text-stone-700 dark:text-stone-300 italic">"{entry.bio}"</p>
                                     </div>
                                     <div className="bg-brand/5 dark:bg-brand/10 p-3 rounded-lg border border-brand/20 relative">
-                                      <span className="text-[9px] font-bold uppercase text-brand block mb-1 flex items-center gap-1"><Sparkles size={10} /> KI-Optimiert</span>
+                                      <span className="text-[9px] font-bold uppercase text-brand block mb-1 flex items-center gap-1"><Sparkles size={10} /> {t('profileCheck.optimized')}</span>
                                       <p className="text-xs text-stone-900 dark:text-stone-100 font-medium">"{entry.optimizedBio}"</p>
                                     </div>
                                   </div>
@@ -970,7 +969,7 @@ export function ProfileCheckWidget() {
 
                                 <div className="mt-3 mb-3 pt-3 border-t border-stone-100 dark:border-stone-700 grid grid-cols-3 gap-2">
                                   <div>
-                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">Authentizität</span><span className="font-bold">{entry.authenticityScore || entry.compatibilityScore}%</span></div>
+                                    <div className="flex justify-between text-[9px] mb-1"><span className="text-stone-500">{t('profileCheck.authenticity')}</span><span className="font-bold">{entry.authenticityScore || entry.compatibilityScore}%</span></div>
                                     <div className="h-1 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{width: `${entry.authenticityScore || entry.compatibilityScore}%`}}></div></div>
                                   </div>
                                   <div>
@@ -994,7 +993,7 @@ export function ProfileCheckWidget() {
 
                                 {entry.suggestions && entry.suggestions.length > 0 && (
                                   <div className="text-xs text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-800/50 p-2 rounded-lg border border-stone-100 dark:border-stone-700/50">
-                                    <span className="font-semibold text-brand block mb-1">KI Tipp:</span>
+                                    <span className="font-semibold text-brand block mb-1">{t('profileCheck.tip')}</span>
                                     {entry.suggestions[0]}
                                   </div>
                                 )}
@@ -1006,7 +1005,7 @@ export function ProfileCheckWidget() {
                     ) : (
                       <div className="text-center py-12 text-stone-500">
                         <History size={32} className="mx-auto mb-3 opacity-20" />
-                        <p>Noch keine Optimierungen vorhanden.</p>
+                        <p>{t('profileCheck.noOptimizations')}</p>
                       </div>
                     )}
                   </div>
@@ -1046,12 +1045,12 @@ export function ProfileCheckWidget() {
                    }} className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand/90 shadow-sm transition-all">
                      Jetzt herunterladen
                    </button>
-                   <button aria-label="PDF-Vorschau schließen" onClick={() => setShowPdfPreview(false)} className="p-2 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 bg-stone-200 dark:bg-stone-800 rounded-lg transition-colors">
+                   <button aria-label={t('profileCheck.closePdf')} onClick={() => setShowPdfPreview(false)} className="p-2 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 bg-stone-200 dark:bg-stone-800 rounded-lg transition-colors">
                      <X size={18} />
                    </button>
                 </div>
               </div>
-              <iframe src={pdfPreviewDataUrl} className="w-full flex-1 bg-stone-100 dark:bg-stone-950" title="PDF Preview" />
+              <iframe src={pdfPreviewDataUrl} className="w-full flex-1 bg-stone-100 dark:bg-stone-950" title={t('profileCheck.pdfTitle')} />
             </motion.div>
           </div>
         )}
