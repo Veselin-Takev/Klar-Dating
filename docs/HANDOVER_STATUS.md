@@ -220,3 +220,15 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 - On the initial hardening PR HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`, `Enterprise Compliance & Security Audit Gate` Run #23 / ID `44712275190` completed **SUCCESS** (Gitleaks no leaks; Tier 1 production audit passed across 549 packages). `Klar Enterprise CI` Run #2188 / ID `44712275292` was still **[TO VERIFY] / in progress** when this documentation follow-up was prepared.
 - This Docs-as-Code follow-up changes the PR HEAD; exact-head CI and Audit Gate runs for the resulting new commit are **[TO VERIFY]** until they complete.
 - `productionApproved=false` remains unchanged; this merge and the green Audit Gate do not constitute production approval.
+
+## Verified MAIN_BASELINE_GREEN — UX / Accessibility / i18n workstream (2026-11-20)
+
+### Immutable baseline and exact-head workflow evidence
+
+- Prior verified main integration point from PR #388: `06d193e054651e74736bf7a0a6911bf954a20b84`.
+- PR #389 merged into `main`; merge SHA and verified current `main` HEAD: `24a57615544f6a190e5a76900d49b65646a320b9` (exact match).
+- `Klar Enterprise CI` [Run #44717268425](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44717268425), exact `head_sha` `24a57615544f6a190e5a76900d49b65646a320b9`: **SUCCESS**. Typecheck, Functions build, Tests (**1,583 passed / 206 files**), Build, Production Smoke and Browser Acceptance passed. Browser Acceptance recorded **34 passed (2.3m)**; the configured `tests/e2e` suite includes CUJ-1 `cuj-onboarding-consent.spec.ts` and CUJ-4 `cuj-account-erasure.spec.ts`.
+- `Enterprise Compliance & Security Audit Gate` [Run #44717268456](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44717268456), same exact `head_sha`: **SUCCESS**. Gitleaks reported **no leaks found**; Tier 1 Production Runtime Audit checked 549 packages and found no High+ production vulnerabilities; Production Build passed.
+- Full-supply-chain/dev-dependency advisory: existing High Zod finding `GHSA-mrhx-c7xc-m3w5`. This is a separate, non-blocking dev-dependency follow-up, not a Tier 1 production-runtime failure. Do not change dependency manifests or lockfiles in this UX/a11y/i18n workstream.
+- Feature branch `feat/ux-a11y-i18n-audit-and-governance-polish` starts at the immutable verified SHA `24a57615544f6a190e5a76900d49b65646a320b9`. Its own Draft PR number/HEAD-bound CI and Audit Gate evidence remains **[TO VERIFY]** until PR creation and exact-head workflow completion.
+- `productionApproved=false` remains mandatory. This baseline is authorized for feature development only, not production release.
