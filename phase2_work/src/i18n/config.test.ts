@@ -65,6 +65,12 @@ describe('profile flow translation coverage', () => {
     'profileCheck.ui.trendGain',
     'profileCheck.ui.quickInsights',
     'profileCheck.ui.categories.languageStyle',
+    'profileCheck.ui.categories.interestFocus',
+    'profileCheck.ui.categories.icebreakerQuality',
+    'profileCheck.ui.analysis',
+    'profileCheck.ui.ready',
+    'profileCheck.ui.quickInsights',
+    'profileCheck.ui.optimizationFocus',
     'profileCheck.ui.whyScore',
     'profileCheck.ui.download'
   ] as const;

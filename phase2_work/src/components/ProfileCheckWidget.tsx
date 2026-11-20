@@ -12,6 +12,8 @@ import html2canvas from "html2canvas-pro";
 import { BarChart, Bar, Cell, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { melde } from "../lib/fehler";
 
+type ProfileOptimizationCategory = "Sprachstil" | "Interessenfokus" | "Icebreaker-Qualität";
+
 interface ProfileCheckData {
   authenticityScore: number;
   expressivenessScore: number;
@@ -20,7 +22,7 @@ interface ProfileCheckData {
   suggestions: string[];
   factors?: string[];
   optimizedBio?: string;
-  optimizationCategory?: "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}";
+  optimizationCategory?: ProfileOptimizationCategory;
 }
 
 interface HistoryEntry {
@@ -34,7 +36,7 @@ interface HistoryEntry {
   suggestions: string[];
   factors?: string[];
   optimizedBio?: string;
-  optimizationCategory?: "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}";
+  optimizationCategory?: ProfileOptimizationCategory;
 }
 
 const datingTipKeys = [
@@ -75,6 +77,14 @@ const playSound = (type: 'start' | 'success') => {
 
 export function ProfileCheckWidget() {
   const { t, i18n } = useTranslation();
+  const getOptimizationCategoryLabel = (category?: ProfileOptimizationCategory): string => {
+    switch (category) {
+      case "Sprachstil": return t('profileCheck.ui.categories.languageStyle');
+      case "Interessenfokus": return t('profileCheck.ui.categories.interestFocus');
+      case "Icebreaker-Qualität": return t('profileCheck.ui.categories.icebreakerQuality');
+      default: return '';
+    }
+  };
 
   const [data, setData] = useState<ProfileCheckData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,7 +94,7 @@ export function ProfileCheckWidget() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "success" | "7days" | "30days">("all");
-  const [categoryFilter, setCategoryFilter] = useState<"All" | "{t('profileCheck.ui.categories.languageStyle')}" | "{t('profileCheck.ui.categories.interestFocus')}" | "{t('profileCheck.ui.categories.icebreakerQuality')}">("All");
+  const [categoryFilter, setCategoryFilter] = useState<"All" | ProfileOptimizationCategory>("All");
   const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
   const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const [showScoreExplanation, setShowScoreExplanation] = useState(false);
@@ -414,7 +424,7 @@ export function ProfileCheckWidget() {
                 </div>
                 <div className="flex-1 pr-2">
                   <h3 className="font-semibold text-stone-900 dark:text-stone-100 text-lg">
-                    {analysisSuccess ? '{t('profileCheck.ui.analysis')} erfolgreich!' : 'Profil-Scan'}
+                    {analysisSuccess ? t('profileCheck.ui.ready') : t('profileCheck.ui.analysis')}
                   </h3>
                   <div className="text-sm text-stone-500 dark:text-stone-400 mt-0.5 min-h-[40px] flex items-center">
                     <AnimatePresence mode="wait">
@@ -810,13 +820,13 @@ export function ProfileCheckWidget() {
                       <button onClick={() => setCategoryFilter("All")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "All" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
                         {t('profileCheck.ui.categories.all')}
                       </button>
-                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.languageStyle')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.languageStyle')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                      <button onClick={() => setCategoryFilter("Sprachstil")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Sprachstil" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
                         {t('profileCheck.ui.categories.languageStyle')}
                       </button>
-                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.interestFocus')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.interestFocus')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                      <button onClick={() => setCategoryFilter("Interessenfokus")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Interessenfokus" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
                         {t('profileCheck.ui.categories.interestFocus')}
                       </button>
-                      <button onClick={() => setCategoryFilter("{t('profileCheck.ui.categories.icebreakerQuality')}")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "{t('profileCheck.ui.categories.icebreakerQuality')}" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
+                      <button onClick={() => setCategoryFilter("Icebreaker-Qualität")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${categoryFilter === "Icebreaker-Qualität" ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700"}`}>
                         {t('profileCheck.ui.categories.icebreakerQuality')}
                       </button>
                     </div>
@@ -904,7 +914,7 @@ export function ProfileCheckWidget() {
                              {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.factors && (
                                <div className="mt-4 pt-4 border-t border-brand/10">
                                   <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-2">
-                                    {hoveredHistoryIndex !== null ? "Wirkende Erfolgsfaktoren" : "{t('profileCheck.ui.current')}e Erfolgsfaktoren"}
+                                    {hoveredHistoryIndex !== null ? t('profileCheck.ui.quickInsights') : t('profileCheck.ui.optimizationFocus')}
                                   </span>
                                   <ul className="space-y-1.5">
                                     {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.factors?.map((f: string, i: number) => (
@@ -919,7 +929,7 @@ export function ProfileCheckWidget() {
                                         {t('profileCheck.ui.optimizationFocus')}
                                       </span>
                                       <span className="inline-block px-2 py-1 bg-white dark:bg-stone-800 rounded-md text-xs font-semibold text-brand shadow-sm">
-                                        {history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.optimizationCategory}
+                                        {getOptimizationCategoryLabel(history[hoveredHistoryIndex !== null ? hoveredHistoryIndex : history.length - 1]?.optimizationCategory)}
                                       </span>
                                     </div>
                                   )}
@@ -949,7 +959,7 @@ export function ProfileCheckWidget() {
                                 </div>
                                 {entry.optimizationCategory && (
                                   <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-brand/10 text-brand mb-2">
-                                    {entry.optimizationCategory}
+                                    {getOptimizationCategoryLabel(entry.optimizationCategory)}
                                   </span>
                                 )}
                                 {entry.optimizedBio ? (

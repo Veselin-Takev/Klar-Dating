@@ -17,7 +17,7 @@ import { ImageCropperModal } from "../components/ImageCropperModal";
 import { ladeProfilfotoHoch } from "../lib/klar";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { askAICoach, askAIList, parseProfileImport, optimizeProfileApi } from "../lib/api";
-// BEFUND 10.08.2026: downloadRadarImage war am Knopf "{t('profileScreen.ui.exportImage')}"
+// BEFUND 10.08.2026: downloadRadarImage war am Knopf "Als Bild exportieren"
 // angebunden, aber nirgends definiert -- Absturz beim Rendern des Profils.
 // Der Behaelter traegt bereits id="werte-radar-container"; die Funktion war
 // also vorgesehen und nur nie geschrieben. toPng ist dieselbe Bibliothek,
@@ -157,7 +157,7 @@ function OfflineCacheStatus() {
 // aktiv", obwohl sie eingeschaltet war. Kein Fehler, keine Meldung.
 //
 // ── 4. NEUN MAL `JSON.parse` OHNE PRÜFUNG, SECHS LEERE `catch (e) { console.warn(e); ; }` ─────
-// Darunter der Bio-{t('profileScreen.ui.history')}, der zwei Formate kennt (alte Zeichenketten,
+// Darunter der Bio-Verlauf, der zwei Formate kennt (alte Zeichenketten,
 // neue Objekte) und beide ungeprüft weiterreichte.
 //
 // ── 5. ZWEI ANFRAGEN OHNE STATUSPRÜFUNG ───────────────────────────────────
@@ -395,7 +395,7 @@ export default function Profile() {
     }
     try {
       const datenUrl = await toPng(behaelter, {
-        // Ohne Hintergrund waere das PNG durchsichtig und im {t('profileScreen.ui.appearance.dark')}modus
+        // Ohne Hintergrund waere das PNG durchsichtig und im Dunkelmodus
         // unlesbar. cacheBust verhindert veraltete Schriftschnitte.
         backgroundColor: document.documentElement.classList.contains('dark')
           ? '#1c1917'
@@ -578,7 +578,7 @@ export default function Profile() {
     const savedBio = getUserStorageItem('klar_user_bio');
     if (savedBio) setUserBio(savedBio);
 
-    // Der Bio-{t('profileScreen.ui.history')} lag frueher als reine Zeichenketten-Liste vor. Die
+    // Der Bio-Verlauf lag frueher als reine Zeichenketten-Liste vor. Die
     // Umstellung auf { text, timestamp } bleibt erhalten — jetzt aber ohne
     // die Annahme, dass alle Eintraege dieselbe Form haben.
     const savedBioHistory = klarStorage.getItem("klar_bio_history");
@@ -906,8 +906,8 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.email{t('profileScreen.ui.verified')} === true) || t('profileScreen.name.missing')}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
-            {profileData?.is{t('profileScreen.ui.verified')} === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title={t('profileScreen.header.verified')}>
+            <h2 className="text-xl font-medium text-stone-900 dark:text-stone-100 truncate">{resolveProfileDisplayName(profileData?.name, user?.displayName, user?.email, user?.emailVerified === true) || t('profileScreen.name.missing')}{typeof profileData?.age === 'number' ? `, ${profileData.age}` : ''}</h2>
+            {profileData?.isVerified === true && <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-1 rounded-full shrink-0" title={t('profileScreen.header.verified')}>
               <ShieldCheck size={16} />
             </div>}
           </div>
@@ -1037,7 +1037,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
 
         <div className="mt-8">
           {/* ENTFERNT: ChatResponseTimeWidget — die Reaktionszeiten kamen
-              aus `0`. Bei jedem Neuladen ein anderer {t('profileScreen.ui.history')}. */}
+              aus `0`. Bei jedem Neuladen ein anderer Verlauf. */}
         </div>
         <div className="mt-4">
           <MoodCalendarGridWidget />
@@ -2154,7 +2154,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
                   {t('profileSafety.verificationLevel')}
                 </span>
-                {profileData?.is{t('profileScreen.ui.verified')} ? (
+                {profileData?.isVerified ? (
                   <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-brand/10 text-brand border-brand/20 dark:bg-brand-light/10 dark:text-brand-light dark:border-brand-light/20 flex items-center gap-1.5">
                     <ShieldCheck size={14} /> {t('profileScreen.ui.verified')}
                   </span>
@@ -2165,7 +2165,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                 )}
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">
-                {profileData?.is{t('profileScreen.ui.verified')} ? t('profileSafety.verifiedDescription') : t('profileSafety.basicDescription')}
+                {profileData?.isVerified ? t('profileSafety.verifiedDescription') : t('profileSafety.basicDescription')}
               </p>
 
               <div className="flex gap-2">
@@ -2174,7 +2174,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
                   className="flex-1 flex items-center justify-between p-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 rounded-lg transition-colors"
                 >
                   <span className="text-sm text-stone-700 dark:text-stone-300">
-                    {profileData?.is{t('profileScreen.ui.verified')} ? t('profileSafety.viewVerification') : t('profileSafety.verifyNow')}
+                    {profileData?.isVerified ? t('profileSafety.viewVerification') : t('profileSafety.verifyNow')}
                   </span>
                   <ChevronRight size={18} className="text-stone-400" />
                 </Link>
