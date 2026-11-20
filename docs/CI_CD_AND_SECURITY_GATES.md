@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `191ce9b64205ff1e523093cf1fa3d9a523daf0e1` (includes PR #384 merge).  
+**Current `main` HEAD:** `06d193e054651e74736bf7a0a6911bf954a20b84` (PR #388 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -252,3 +252,25 @@ Draft PR #388 is open against main and must remain Draft/unmerged. .github/workf
 - Enterprise Compliance & Security Audit Gate exact new PR HEAD run ID/conclusion, Gitleaks and Tier 1 Production Runtime Audit: [TO VERIFY] pending workflow completion.
 
 productionApproved=false is unchanged. This branch consolidation performs no live cloud/IAM/Firestore/Storage or deployment operation and does not edit main.
+
+
+## PR #388 merge baseline and CUJ-4 route teardown (2026-11-20)
+
+### Post-merge `main` evidence
+
+- PR [#388](https://github.com/Veselin-Takev/Klar-Dating/pull/388) merge SHA: `06d193e054651e74736bf7a0a6911bf954a20b84`.
+- Current `main` HEAD: `06d193e054651e74736bf7a0a6911bf954a20b84` (exact match with the merge SHA).
+- `Enterprise Compliance & Security Audit Gate` [Run #22 / ID 44711489596](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44711489596), exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **SUCCESS**. Gitleaks: **PASS** (`no leaks found`). Tier 1 production runtime dependency audit: **PASS** (549 packages checked; no vulnerabilities at High or above; 3 findings below configured --audit-level=high). Full supply-chain audit step also completed successfully in this run.
+- `Klar Enterprise CI` [Run #2187 / ID 44711489858](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44711489858), exact HEAD `06d193e054651e74736bf7a0a6911bf954a20b84`: **[TO VERIFY]** at this snapshot; run remained in progress. Do not claim 34/34 Playwright until the workflow has completed and Browser Acceptance reports that exact count.
+
+### Run #2180 CUJ-4 failure diagnosis
+
+On prior `main` HEAD `13cce96660ba4a35d54c222e9eeae2e31f260863`, `Klar Enterprise CI` [Run #2180 / ID 44622876559](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44622876559) completed Typecheck, Functions build, Tests, Build and Production Smoke successfully, but Browser Acceptance failed at `phase2_work/tests/e2e/cuj-account-erasure.spec.ts:109`: `page.unroute: Test timeout of 60000ms exceeded`.
+
+The route handler resolves `capturePromise` once it has read the upstream status and parsed the receipt, then continues to `await route.fulfill(...)`. Capture completion can therefore race ahead of route-handler completion. Calling default `page.unroute(deletionRoute)` immediately after `Promise.all([capturePromise, click])` may wait for the still-active route callback; the observed failure is the 60-second timeout at that teardown line. It prevented the test from reaching the later Art. 17 checks.
+
+### Deterministic route cleanup change
+
+The hardening branch `fix/e2e-cuj4-unroute-flake-and-handover-docs` is based on verified merge/main SHA `06d193e054651e74736bf7a0a6911bf954a20b84`. It removes the pre-assertion `page.unroute(deletionRoute)` and calls `page.unrouteAll({ behavior: 'ignoreErrors' })` only after successful completion of every existing Art. 17 assertion: HTTP 202, pending receipt and requestId, pending deletion record, public-profile 404, verification revocation (`isVerified=false`), UID-scoped localStorage removal and global theme preservation. No assertion is weakened or deleted, accessibility gates are untouched, and no fixed `waitForTimeout()` is introduced.
+
+New Draft PR exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` run IDs and conclusions: **[TO VERIFY]** until completed. `productionApproved=false` remains mandatory; no cloud, IAM, Firestore, Storage or deployment mutation is part of this work.

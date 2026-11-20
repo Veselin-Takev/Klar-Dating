@@ -106,8 +106,6 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
     capturePromise,
     page.getByRole('button', { name: 'Wirklich löschen — endgültig' }).click(),
   ]);
-  await page.unroute(deletionRoute);
-
   expect(deletionStatus).toBe(202);
   expect(deletionReceipt).toMatchObject({ ok: true, status: 'pending' });
   expect((deletionReceipt as { requestId?: unknown } | undefined)?.requestId).toEqual(expect.any(String));
@@ -135,4 +133,8 @@ test('CUJ 4: Art. 17 request removes discoverability and clears only the account
   });
   expect(user.status()).toBe(200);
   expect((await user.json()).fields.isVerified.booleanValue).toBe(false);
+
+  // capturePromise resolves before route.fulfill() has necessarily settled. Remove
+  // routes only after every Art. 17 assertion, without waiting on an in-flight callback.
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
