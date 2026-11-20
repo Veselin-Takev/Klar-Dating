@@ -451,45 +451,13 @@
     }
   },
   "privacy": {
-    "de": {
-      "coverScreen": "Bildschirm verdecken",
-      "pauseMenu": "Automatischen Sichtschutz 5 Minuten pausieren",
-      "menu": "Sichtschutzoptionen",
-      "closeMenu": "Sichtschutzoptionen schließen",
-      "dialogTitle": "Bildschirm verdeckt",
-      "nobodyCanSee": "Niemand sieht, was du gerade liest.",
-      "autoActivation": "Der Sichtschutz aktiviert sich auch nach Inaktivität oder beim Verlassen des Tabs.",
-      "showScreen": "Wieder anzeigen"
-    },
-    "en": {
-      "coverScreen": "Cover screen",
-      "pauseMenu": "Pause automatic screen cover for 5 minutes",
-      "menu": "Screen cover options",
-      "closeMenu": "Close screen cover options",
-      "dialogTitle": "Screen covered",
-      "nobodyCanSee": "Your screen is hidden from view.",
-      "autoActivation": "Screen cover also activates after inactivity or when you leave this tab.",
-      "showScreen": "Show screen"
-    },
-    "es": {
-      "coverScreen": "Ocultar pantalla",
-      "pauseMenu": "Pausar la ocultación automática durante 5 minutos",
-      "menu": "Opciones de privacidad de pantalla",
-      "closeMenu": "Cerrar opciones de privacidad",
-      "dialogTitle": "Pantalla oculta",
-      "nobodyCanSee": "Tu pantalla está oculta.",
-      "autoActivation": "La protección también se activa tras un periodo de inactividad o al salir de esta pestaña.",
-      "showScreen": "Mostrar pantalla"
-    },
-    "fr": {
-      "coverScreen": "Masquer l’écran",
-      "pauseMenu": "Suspendre le masquage automatique pendant 5 minutes",
-      "menu": "Options de masquage de l’écran",
-      "closeMenu": "Fermer les options de masquage",
-      "dialogTitle": "Écran masqué",
-      "nobodyCanSee": "Votre écran est masqué.",
-      "autoActivation": "Le masquage s’active aussi après une période d’inactivité ou lorsque vous quittez cet onglet.",
-      "showScreen": "Afficher l’écran"
-    }
+    "coverScreen": "Bildschirm verdecken",
+    "pauseMenu": "Automatischen Sichtschutz 5 Minuten pausieren",
+    "menu": "Sichtschutzoptionen",
+    "closeMenu": "Sichtschutzoptionen schließen",
+    "dialogTitle": "Bildschirm verdeckt",
+    "nobodyCanSee": "Niemand sieht, was du gerade liest.",
+    "autoActivation": "Der Sichtschutz aktiviert sich auch nach Inaktivität oder beim Verlassen des Tabs.",
+    "showScreen": "Wieder anzeigen"
   }
 }
