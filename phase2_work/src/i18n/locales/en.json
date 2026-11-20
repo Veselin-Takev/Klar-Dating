@@ -506,7 +506,8 @@
       "quality": "Connection quality",
       "verified": "Verified",
       "locationMissing": "Location not provided",
-      "focusTime": "Focus time"
+      "focusTime": "Focus time",
+      "cover": "Profile cover image"
     },
     "name": {
       "missing": "Add your name to your profile",
@@ -712,6 +713,7 @@
     "tip": "AI tip:",
     "noOptimizations": "No optimizations yet.",
     "closePdf": "Close PDF preview",
-    "pdfTitle": "PDF preview"
+    "pdfTitle": "PDF preview",
+    "avatar": "Profile picture"
   }
 }
