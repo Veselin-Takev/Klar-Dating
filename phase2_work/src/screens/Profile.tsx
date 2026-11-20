@@ -253,14 +253,6 @@ const CustomRadarTooltip = ({ active, payload }: RadarTooltipEigenschaften) => {
 // Die drei Bereiche. Reihenfolge: was andere sehen, wie es laeuft, wie die
 // App eingestellt ist — von aussen nach innen.
 type ReiterId = "profil" | "entwicklung" | "partner" | "einstellungen";
-const PROFIL_REITER: readonly Reiter<ReiterId>[] = [
-  { id: "profil", beschriftung: "Profil" },
-  { id: "entwicklung", beschriftung: "Entwicklung" },
-  { id: "partner", beschriftung: "Klar & Partner" },
-  { id: "einstellungen", beschriftung: "Einstellungen" },
-];
-
-
 export function ProfileFeedback() {
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -330,6 +322,12 @@ export function ProfileFeedback() {
 export default function Profile() {
 
   const { t } = useTranslation();
+  const profilReiter: readonly Reiter<ReiterId>[] = [
+    { id: 'profil', beschriftung: t('profileTabs.profile') },
+    { id: 'entwicklung', beschriftung: t('profileTabs.growth') },
+    { id: 'partner', beschriftung: t('profileTabs.partners') },
+    { id: 'einstellungen', beschriftung: t('profileTabs.settings') },
+  ];
   const { user, logOut, updateProfileData, profileData, refreshProfile } = useAuth();
   const selfProfileMedia = useAuthenticatedProfileMedia(
     profileData?.photoURL && !profileData.photoURL.includes('/_/upload/') ? { kind: 'self' } : null,
@@ -968,7 +966,7 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
       <div className="sticky top-0 z-10 -mx-6 px-6 pt-1 bg-light-bg dark:bg-dark-bg">
         <Reiterleiste
           name="profil"
-          reiter={PROFIL_REITER}
+          reiter={profilReiter}
           aktiv={reiter}
           aufWechsel={setReiter}
         />
