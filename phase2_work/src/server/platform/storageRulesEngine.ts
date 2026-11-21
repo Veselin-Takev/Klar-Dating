@@ -31,8 +31,16 @@ export interface StorageSecurityRequest {
   operation: 'read' | 'write' | 'delete';
   path: string;
   auth: StorageAuthContext | null;
-  /** Server-resolved adult state of the target profile owner. Required for profile reads. */
-  targetUserIsAdult?: boolean;
+  /** Firestore-backed owner state used by the deployable Storage Rules. */
+  ownerState?: {
+    exists?: boolean;
+    isAdult?: boolean;
+    active?: boolean;
+    isSuspended?: boolean;
+    isBlocked?: boolean;
+    deletionPending?: boolean;
+    status?: string;
+  };
   resource?: StorageResourceContext;
 }
 
@@ -40,7 +48,7 @@ export interface StorageSecurityDecision {
   allowed: boolean;
   reason?: string;
   rulePath?: string;
-  code?: 'PERMISSION_DENIED' | 'UNAUTHENTICATED' | 'ANONYMOUS_BLOCKED' | 'INVALID_MIME' | 'SIZE_LIMIT_EXCEEDED' | 'ALLOWED';
+  code?: 'PERMISSION_DENIED' | 'UNAUTHENTICATED' | 'ANONYMOUS_BLOCKED' | 'OWNER_STATE_UNVERIFIED' | 'ACCOUNT_DELETION_PENDING' | 'INVALID_MIME' | 'SIZE_LIMIT_EXCEEDED' | 'ALLOWED';
 }
 
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -128,18 +136,32 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       return { allowed: false, reason: 'Direkte Client-Lesezugriffe auf Profilmedien sind gesperrt.', rulePath, code: 'PERMISSION_DENIED' };
     }
 
-    if (request.operation === 'write') {
+    const verifyProfileOwner = (): StorageSecurityDecision | null => {
       if (!signedIn) return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
-      if (isGuest) return { allowed: false, reason: 'Gäste dürfen keine Profilbilder hochladen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      if (!isOwner) return { allowed: false, reason: 'Schreiben nur in den eigenen Pfad erlaubt.', rulePath, code: 'PERMISSION_DENIED' };
+      if (isGuest) return { allowed: false, reason: 'Gäste dürfen keine Profilbilder verwalten.', rulePath, code: 'ANONYMOUS_BLOCKED' };
+      if (!isOwner) return { allowed: false, reason: 'Nur der Eigentümer darf den Profilpfad verwalten.', rulePath, code: 'PERMISSION_DENIED' };
+      const owner = request.ownerState;
+      if (!owner || owner.exists !== true || owner.isAdult !== true || owner.active !== true ||
+          owner.isSuspended !== false || owner.isBlocked !== false ||
+          owner.status === 'blocked' || owner.status === 'suspended' || owner.status === 'deleted') {
+        return { allowed: false, reason: 'Der autoritative Kontostatus des Profilinhabers fehlt oder ist nicht freigegeben.', rulePath, code: 'OWNER_STATE_UNVERIFIED' };
+      }
+      if (owner.deletionPending !== false) {
+        return { allowed: false, reason: 'Kontolöschung ist aktiv oder der Löschstatus ist nicht verifiziert.', rulePath, code: 'ACCOUNT_DELETION_PENDING' };
+      }
+      return null;
+    };
+
+    if (request.operation === 'write') {
+      const ownerDenied = verifyProfileOwner();
+      if (ownerDenied) return ownerDenied;
       if (!isImageContentType(request.resource?.contentType)) return { allowed: false, reason: 'Nur Bildformate (JPEG, PNG, WebP) sind erlaubt.', rulePath, code: 'INVALID_MIME' };
       if (typeof request.resource?.size !== 'number' || request.resource.size >= MAX_FILE_SIZE_BYTES) return { allowed: false, reason: 'Dateigröße überschreitet das Limit von 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
       return { allowed: true, rulePath, code: 'ALLOWED' };
     }
     if (request.operation === 'delete') {
-      if (!signedIn) return { allowed: false, reason: 'Nicht authentifiziert.', rulePath, code: 'UNAUTHENTICATED' };
-      if (isGuest) return { allowed: false, reason: 'Gäste dürfen keine Profilbilder löschen.', rulePath, code: 'ANONYMOUS_BLOCKED' };
-      if (!isOwner) return { allowed: false, reason: 'Löschen nur im eigenen Pfad erlaubt.', rulePath, code: 'PERMISSION_DENIED' };
+      const ownerDenied = verifyProfileOwner();
+      if (ownerDenied) return ownerDenied;
       return { allowed: true, rulePath, code: 'ALLOWED' };
     }
   }
