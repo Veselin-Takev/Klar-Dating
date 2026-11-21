@@ -1,5 +1,28 @@
 # Production Readiness
 
+## Enterprise release decision — 2026-11-08 (current evidence)
+
+**NO-GO** · `productionApproved=false` · RC R2 and production remain **unmodified**. All references below are review-only Drafts; successful per-branch CI is not a production approval. Release blockers must be assessed against the **combined final integrated commit**, real staging and independent signed approvals.
+
+| Track | Exact source / evidence | Decision |
+| --- | --- | --- |
+| VES-5 / VES-15 combined review | [Draft #353](https://github.com/Veselin-Takev/Klar-Dating/pull/353), historic combined SHA `cedb1e39b086bea9c2f4d5738816be192857dc73`, [Enterprise CI #1914](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42458663010) **completed SUCCESS**; raw CI logs: 194 Vitest files / 1,482 tests including 23 Firestore purge Emulator and 81 compliance unit tests, plus 26 browser checks. | Combined source checks green for **that SHA only**; no all-writer fence |
+| Latest VES-5 / VES-15 direct-helper and local-emulator isolation | [Draft #353](https://github.com/Veselin-Takev/Klar-Dating/pull/353), current exact SHA `c653efd6984f573ab0443bdd3723ca37f63fa320`, [Enterprise CI #1929](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42460900607) **completed SUCCESS** (194 Vitest files / 1,483 tests including 23 Firestore purge Emulator, 82 compliance storage and 6 Storage Rules; 26 browser checks; static gates, Typecheck, Functions/app build, production smoke PASS). Legacy `unsafe-emulator-test-only` mode now demands explicit `NODE_ENV=test`, loopback Storage emulator and opt-in and rejects Cloud Run/Functions/Vercel runtime markers. [#1921](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42459701888) SUCCESS is older SHA only. | **Current source CI green**; all-writer fencing, Cloud IAM and independent legal/security approvals still **NO-GO** |
+| VES-11 age API proxy hardening | [Draft #351](https://github.com/Veselin-Takev/Klar-Dating/pull/351) SHA `c586b904e75efd1034f19c2715f49f74ee83d42d`, [CI #1895](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42454884046) **SUCCESS**. | No authenticated approved Cloud Run staging age/consent end-to-end proof |
+| VES-12 Firebase project isolation | [Drafts #343](https://github.com/Veselin-Takev/Klar-Dating/pull/343) / [#344](https://github.com/Veselin-Takev/Klar-Dating/pull/344) with separate green branch CI. | Live project/bucket/IAM, budget and independent staging evidence missing |
+| VES-14 release promotion | [Draft #347](https://github.com/Veselin-Takev/Klar-Dating/pull/347) SHA `e229e8f7047d0919d34a799e40ed152eef8ce89e` / [CI #1876](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42422943871) SUCCESS; stacked [Draft #354](https://github.com/Veselin-Takev/Klar-Dating/pull/354) exact SHA `3f4abd40ed9f0500f648041ba8c390e757a7ae27` / [CI #1936](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42462410643) **completed SUCCESS** (`validate` job, 192 Vitest files / 1,372 tests / 26 browser cases). Strict canary metrics, observation timestamp and evidence type validation added. | **P0 OPEN**: no production authorization, real canary provenance, IAM/image attestation or independent AppSec/SRE/Release Owner signoff |
+
+**P0 safety rule:** The signed scheduled verification-photo purge is deliberately production-denied until a verified all-writer Firestore/GCS fencing protocol exists. Normal Art.-17 account erasure remains **profile-only with a pending/fail-closed state** when unfenced verification objects are present in the #349/#353 review code. This avoids a false erasure receipt but requires DPO/Legal-approved preservation/DSAR timelines. The post-final-Firestore-authorization legal-hold race still lacks adversarial staging proof. Do not enable deletion flags or mark GO from passing isolated PR CI.
+
+**Required independent gates:** final combined exact SHA and full CI, verified production/staging Firebase/GCS identities, signed DPO/AppSec/SRE/Release Owner approval, authorized Cloud Run DOB/Consent tests, infrastructure/IAM/retention provenance, and monitored rollback/incident controls.
+
+**Bounded writer inventory:** [VES-5/VES-15 source writer review](https://github.com/Veselin-Takev/Klar-Dating/blob/docs/release-gate-evidence-2026-11-07/phase2_work/docs/VES5_VES15_WRITER_SOURCE_INVENTORY_2026-11-08.md) distinguishes the retired verification API (HTTP 410), signed retention job, direct account-erasure path, Didit KYC, Storage Rules and bucket resolution. It explicitly marks all external Cloud IAM/Console/third-party writers, deployed revision and tenant/bucket provenance as **unverified**; it is not all-writer P0 closure.
+
+**Sources of record:** [Release evidence register Draft #341](https://github.com/Veselin-Takev/Klar-Dating/pull/341), [VES-5](https://linear.app/takev/issue/VES-5), [VES-15](https://linear.app/takev/issue/VES-15), [VES-11](https://linear.app/takev/issue/VES-11).
+
+*Historical sections below describe earlier local/offline runner limitations dated October 2026. They should not be mistaken for the current November 2026 hosted CI status.*
+
+
 ## Completed in this package
 
 - Server Firestore access migrated to Firebase Admin/ADC; no hard-coded server password.
