@@ -108,6 +108,8 @@ async function main(): Promise<void> {
         return {
           exists: true,
           hasFirebaseDownloadTokenMetadata: typeof tokenMetadata === 'string' && tokenMetadata.trim().length > 0,
+          generation: typeof metadata.generation === 'string' ? metadata.generation : undefined,
+          metageneration: typeof metadata.metageneration === 'string' ? metadata.metageneration : undefined,
         };
       } catch (error) {
         if ((error as { code?: number }).code === 404) {

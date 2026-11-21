@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `7389e57a11e4a5e3e384cbfc6992345453a5dcaa` (PR #394 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c` (PR #395 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -386,3 +386,24 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - Regression command: `node --test phase2_work/scripts/gitleaks-pr-range.test.mjs`. Its synthetic 32-commit history proves that commit 31, commit 32 and final HEAD are all selected; workflow assertions prohibit use of the unpaginated Action/API path.
 - This Draft PR's own Klar Enterprise CI and Audit Gate are **[TO VERIFY]** until completed on its exact final `head_sha`. Record Run IDs in the PR/final handover per `AGENTS.md`; do not create a SHA-chasing docs-only commit.
 - No app runtime code, dependencies, lockfiles, live cloud/IAM/Firestore/Storage resources or deployments are in scope. `productionApproved=false`; release **NO-GO**.
+
+
+## Verified MAIN_BASELINE_GREEN — post-PR #395 merge (2026-11-21)
+
+- PR [#395](https://github.com/Veselin-Takev/Klar-Dating/pull/395) merged to `main` at merge SHA / verified live `main` HEAD `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`. Previous `main` parent: `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`; validated PR HEAD: `67fdcd40c3cd27da3f31fc9ad4fc928f23a05399`.
+- Merge tree SHA `6f240c6e4ce0d4eced8a47918bc5dd163cc91da7` is identical to the validated PR #395 HEAD tree. Preserve the PR #389–#395 and #375 records above as immutable SHA-specific history.
+- `Klar Enterprise CI` [Run #44943576348](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576348), exact `head_sha` `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`: **SUCCESS** — Enterprise Static Gates including `check-profile-media-boundary` PASS; Typecheck, Functions Build, Tests (**212 files / 1,627 passed / 0 failed**), Build and Production Smoke PASS; Playwright Browser Acceptance **35/35 passed / 0 failed**.
+- `Enterprise Compliance & Security Audit Gate` [Run #44943576333](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576333), same exact `head_sha`: **SUCCESS** — Quality / TypeScript, Unit Tests, Compliance & Security Checks and Production Build PASS; Tier 1 Runtime Audit **549 packages / 0 High+**; Full Supply-Chain Audit **1,245 packages / 0 High+**.
+- Post-merge Gitleaks in Run #44943576333 resolved the explicit push range `7389e57a11e4a5e3e384cbfc6992345453a5dcaa..83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`, used `--full-history --diff-merges=separate`, verified the official Gitleaks CLI **v8.24.3** checksum (`gitleaks_8.24.3_linux_x64.tar.gz: OK`), passed the full-range regression **4/4**, and scanned **2 commits / 42.97 KB / 0 leaks**.
+- This is a development/integration baseline only. `productionApproved=false` and release **NO-GO** remain mandatory. No live Cloud, IAM, Firestore, Storage, bucket or deployment mutation is authorized or evidenced.
+
+
+## Active Draft PR — P1 #206 E2 profile-media migration and token revocation
+
+- Branch `security/issue-206-e2-media-migration-revocation-20261121` is based on the exact verified `main` SHA `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`, targets `main`, and remains **Draft / unmerged**.
+- Inventory now recognizes `photoStoragePath`, `photoPath`, `photoURL`, `photoUrl`, `photos[]`, canonical refs and owner-scoped path aliases. Object generation/metageneration are retained internally for reconciliation; command output contains aggregate counts only.
+- Migration CLI defaults to dry-run, writes no Firestore or Storage data in that mode, and persists a restricted local action plan with file permissions 0600. Execution requires an exact staging project/bucket allowlist, a separately approved manifest with pinned digest, explicit staging confirmation, Firestore alias-snapshot compare-and-set, matching object generation/metageneration and bounded checkpoint/resume. A CAS conflict stops the batch.
+- Revocation CLI defaults to dry-run and requires an approved staging project/bucket/object cohort. Execution patches only `firebaseStorageDownloadTokens: null` with the current `ifMetagenerationMatch`; it preserves unrelated custom metadata and object contents, verifies the post-state and stops without blind retry on conflict.
+- AC-07–AC-13 unit/emulator tests have been added, including the paired test that the authenticated proxy continues serving the unchanged object after token metadata removal. Test results for this Draft PR's exact HEAD remain **[TO VERIFY]** until both hosted workflows finish.
+- `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` Run IDs for this active PR: **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, record exact run IDs and `head_sha` in PR/final handover; do not add recursive docs-only commits.
+- Real staging revocation verification remains pending and requires separate change approval. No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation was performed. `productionApproved=false`; release remains **NO-GO**.

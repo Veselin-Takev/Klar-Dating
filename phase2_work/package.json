@@ -138,7 +138,9 @@
     "check:release-go-evidence": "node --test scripts/test-release-go-evidence.mjs",
     "check:codeowners": "node scripts/check-codeowners.mjs && node --test scripts/test-codeowners.mjs",
     "check:enterprise-dashboard": "node --experimental-strip-types --test scripts/test-enterprise-dashboard-health.mjs",
-    "check:legacy-photo-purge": "node scripts/check-legacy-photo-purge.mjs && node --test scripts/check-legacy-photo-purge.test.mjs"
+    "check:legacy-photo-purge": "node scripts/check-legacy-photo-purge.mjs && node --test scripts/check-legacy-photo-purge.test.mjs",
+    "profile-media:migrate": "node --import=tsx scripts/profile-media-migration.ts",
+    "profile-media:token-revocation": "node --import=tsx scripts/profile-media-token-revocation.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

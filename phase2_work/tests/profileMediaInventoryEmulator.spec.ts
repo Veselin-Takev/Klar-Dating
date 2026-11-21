@@ -35,10 +35,12 @@ describe.runIf(emulatorEnabled)('profile media inventory against Firebase emulat
 
   it('counts Firestore aliases, inspects Storage custom metadata and identifies an orphan without exposing token values', async () => {
     await db.collection('users').doc(uid).set({
+      photoStoragePath: referencedWithToken,
       photoURL: tokenUrl(referencedWithToken, 'emulator-user-token'),
       photos: [tokenUrl(referencedWithToken, 'emulator-user-token')],
     });
     await db.collection('public_profiles').doc(uid).set({
+      photoPath: referencedWithoutToken,
       photoUrl: tokenUrl(referencedWithoutToken, 'emulator-public-token'),
     });
 
@@ -92,6 +94,8 @@ describe.runIf(emulatorEnabled)('profile media inventory against Firebase emulat
         return {
           exists: true,
           hasFirebaseDownloadTokenMetadata: typeof tokenMetadata === 'string' && tokenMetadata.length > 0,
+          generation: typeof metadata.generation === 'string' ? metadata.generation : undefined,
+          metageneration: typeof metadata.metageneration === 'string' ? metadata.metageneration : undefined,
         };
       },
     });
@@ -102,11 +106,16 @@ describe.runIf(emulatorEnabled)('profile media inventory against Firebase emulat
       profileRecordsWithLegacyDownloadUrls: 2,
       legacyDownloadUrlReferences: 3,
       unresolvedLegacyDownloadUrls: 0,
+      profileMediaReferencesScanned: 5,
+      canonicalProfileMediaReferences: 0,
+      rawProfileMediaPathReferences: 2,
       uniqueReferencedObjects: 2,
-      duplicateObjectReferences: 1,
+      duplicateObjectReferences: 3,
       referencedObjectsMissing: 0,
       referencedObjectsWithFirebaseDownloadTokenMetadata: 1,
       referencedObjectsWithoutFirebaseDownloadTokenMetadata: 1,
+      referencedObjectsWithVersionMetadata: 2,
+      referencedObjectsWithoutVersionMetadata: 0,
       storageObjectsScanned: 3,
       storageObjectsWithFirebaseDownloadTokenMetadata: 2,
       storageObjectsWithoutFirebaseDownloadTokenMetadata: 1,

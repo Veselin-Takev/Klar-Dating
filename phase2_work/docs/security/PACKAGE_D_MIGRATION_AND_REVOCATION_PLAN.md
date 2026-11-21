@@ -1,6 +1,6 @@
 # Package D — Profile Media Data Migration & Staged Token Revocation Plan
 
-**Status:** Architecture / scoping only — no execution authorized  
+**Status:** Architecture/scoping baseline; E2 implementation is now in a separate Draft PR — no migration or revocation execution authorized  
 **Issues:** #374, #206  
 **Historical parent:** PR #382 — Package C (merged to main; see current state in §8)  
 **Parent branch:** `security/issue-374-package-c-upload-cutover-20261118`  
@@ -352,3 +352,19 @@ Current package state (superseding the original planning-time PR lifecycle):
 - [Firebase Storage Android API — getDownloadUrl](https://firebase.google.com/docs/reference/android/com/google/firebase/storage/StorageReference): describes long-lived download URLs as tokenized and revokable.
 
 These references describe platform behavior. Package D must validate the exact pinned SDK behavior and the observed Firebase download-URL behavior in the selected staging environment before any approved rollout.
+
+
+---
+
+## 10. Superseding E1/E2 implementation status — 2026-11-21
+
+The planning and historical package records above are retained. Current verified integration state supersedes the earlier planning-time lifecycle statements:
+
+- PR #394 / E1 is **merged** to `main` at `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`. It delivered Storage Rules/pure-model parity, authenticated UI media consumers, diagnostics/Helmet and the static media boundary. E1 did not perform data migration or token revocation.
+- PR #395 is merged at verified `main` HEAD `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`. Its exact post-merge CI is Run #44943576348 (212 test files / 1,627 tests / 35 of 35 Playwright PASS); Audit Gate Run #44943576333 (2 commits / 42.97 KB Gitleaks / 0 leaks; Gitleaks v8.24.3 checksum verified; Tier 1 549 packages and Full Supply-Chain 1,245 packages with 0 High+; Production Build PASS).
+- E2 implementation is tracked in Draft branch `security/issue-206-e2-media-migration-revocation-20261121`, based directly on `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`. It adds the read-only inventory expansion, dry-run-first migration/revocation executables, CAS/checkpoint logic, approved-manifest and staging identity interlocks, unit tests and emulator tests.
+- Migration actions remain limited to the explicitly manifested `users` / `public_profiles` profile cohort. Ambiguous aliases, unsupported/malformed URLs, wrong-owner paths, missing/invalid objects and concurrent edits are never overwritten. Execution is per-record Firestore transaction CAS and bounded/resumable; a conflict stops processing.
+- Revocation is limited to exact object paths and versions in the approved staging manifest. The implementation removes only custom metadata key `firebaseStorageDownloadTokens` by metageneration-preconditioned patch; it does not rewrite/delete object data or alter unrelated metadata. It does not restore bearer URLs or tokens as rollback.
+- Both CLIs default to dry-run. Live staging selection requires separately injected exact project/bucket allowlist values; execution further requires the approval manifest's SHA-256 digest to be independently pinned and explicit confirmation. No staging target has been selected or changed in this PR.
+- AC-07 through AC-13 implementation tests are present; this Draft PR's exact-head CI/Audit results remain **[TO VERIFY]**. Its own run IDs must be reported in the PR/final handover without a self-referential docs-only commit.
+- Staging migration canary, staging token-revocation negative URL test, post-revocation proxy verification in staging, independent AppSec/DPO/SRE approval and Release Owner authorization are pending. Production remains **NO-GO**; `productionApproved=false`.
