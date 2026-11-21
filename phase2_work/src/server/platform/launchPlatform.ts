@@ -58,7 +58,7 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
   const city = normalizeLaunchCity(data.location);
   const name = typeof data.name === 'string' ? data.name.trim().slice(0, 80) : '';
   const age = typeof data.age === 'number' ? Math.floor(data.age) : 0;
-  if (!city || !name || age < 18 || age > 100) return null;
+  if (!city || !name || age < 18 || age > 100 || data.isAdult !== true || data.active !== true ||\n      data.isSuspended === true || data.isBlocked === true ||\n      data.status === 'blocked' || data.status === 'suspended' || data.status === 'deleted') return null;
   return {
     id: uid,
     name,
