@@ -25,15 +25,26 @@ export async function readChatAccess(db: Firestore, tx: Transaction, chatId: str
     throw new ChatAccessError(403, 'chat_forbidden', 'Kein Zugriff auf dieses Gespräch.');
   }
   const recipientId = participants.find(participant => participant !== uid) as string;
-  const blocks = await tx.getAll(
+  const [outgoingBlock, incomingBlock, requesterDeletion, recipientDeletion, recipientAccount] = await tx.getAll(
     db.collection('blocks').doc(`${uid}_${recipientId}`),
     db.collection('blocks').doc(`${recipientId}_${uid}`),
     db.collection('account_deletions').doc(uid),
     db.collection('account_deletions').doc(recipientId),
+    db.collection('users').doc(recipientId),
   );
-  if (blocks.some(block => block.exists)) throw new ChatAccessError(403, 'chat_unavailable', 'Gespräch nicht verfügbar.');
+  if (!outgoingBlock || !incomingBlock || !requesterDeletion || !recipientDeletion || !recipientAccount ||
+      outgoingBlock.exists || incomingBlock.exists || requesterDeletion.exists || recipientDeletion.exists) {
+    throw new ChatAccessError(403, 'chat_unavailable', 'Gespräch nicht verfügbar.');
+  }
   if (requireOpen && ![data.gateAntwortenA, data.gateAntwortenB].every(
     count => Number.isSafeInteger(count) && count >= GATE_FRAGEN,
   )) throw new ChatAccessError(403, 'gate_closed', 'Bitte zuerst die Gesprächsfragen abschließen.');
-  return { ref, data, participants: participants as string[], recipientId };
+  return {
+    ref,
+    data,
+    participants: participants as string[],
+    recipientId,
+    recipientAccountState: recipientAccount.exists ? recipientAccount.data() ?? {} : {},
+    recipientDeletionBarrierExists: recipientDeletion.exists,
+  };
 }

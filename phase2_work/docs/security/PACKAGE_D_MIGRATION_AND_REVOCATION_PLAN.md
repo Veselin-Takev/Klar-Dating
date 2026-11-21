@@ -2,7 +2,7 @@
 
 **Status:** Architecture / scoping only — no execution authorized  
 **Issues:** #374, #206  
-**Parent:** Draft PR #382 — Package C  
+**Historical parent:** PR #382 — Package C (merged to main; see current state in §8)  
 **Parent branch:** `security/issue-374-package-c-upload-cutover-20261118`  
 **Parent commit:** `3e7a8e53ffdc2355906006afa7a89f9294cce006`  
 **Parent CI:** Enterprise CI Run #2146 (`44302073866`) — completed, success  
@@ -296,7 +296,7 @@ Every execution batch must have a single operator, a separate reviewer and a wri
 
 ## 6. Required implementation packages and acceptance gates
 
-The following work is proposed for a future implementation PR and is not part of this documentation-only change.
+The following work is proposed for the separate E2 implementation PR and is not part of this documentation-only plan or E1 PR #394.
 
 | Gate | Required evidence |
 |---|---|
@@ -330,16 +330,18 @@ No gate is satisfied by this plan alone. CI success on this documentation-only P
 
 This document authorizes planning only. It does not authorize any Firestore write, Storage metadata patch, staging execution, production execution, project selection, IAM change or deployment.
 
-Current package state:
+Current package state (superseding the original planning-time PR lifecycle):
 
-- Package C baseline: exact commit `3e7a8e53ffdc2355906006afa7a89f9294cce006`.
-- Package C Enterprise CI: Run #2146 (`44302073866`) completed successfully.
-- Package D: scoping document only.
+- PR #380 / Package A merged to main at `ae56d2390fae9d4512a01e1607943fac1ab60f96`.
+- PR #381 / Package B merged to main at `5d6f2e9972111d23d64f1df4af43f0ac475fdfd3`.
+- PR #382 / Package C merged to main at `30690f549f7eac1b925076b1227ee5508845eae2`; its read-only inventory does not perform migration.
+- PR #383 / Package D merged to main at `1b30ea60dc9acab31020533fd55ba1cf69feaf33`; this remains a planning document only.
+- E1 is the separate Draft PR #394 for Storage Rules/pure-model parity, authenticated UI consumers, diagnostics/Helmet and the static guard. Its base is `main` at `30250a1fc82f24834c7ada62f8453df04af20f2a`; its own exact-head checks remain [TO VERIFY].
+- E2 will deliver the migration and token-revocation CLI implementation for P1 #206 in a separate reviewed PR. No migration worker or revocation executor is included in E1.
 - Production: `productionApproved=false` — NO-GO.
-- `main`: untouched; no PR merge.
-- Live cloud resources, Storage objects, download-token metadata, IAM and deployments: untouched.
+- No live cloud resources, Storage objects, download-token metadata, IAM or deployments are mutated by this plan or E1.
 
-**Next authorization boundary:** Any implementation must be a separate, reviewed feature PR. Any staging mutation requires explicit staging-only approval. Any production migration or token revocation requires a separate explicit production authorization and release decision.
+**Next authorization boundary:** E2 implementation requires its own reviewed feature PR. Any staging mutation requires explicit staging-only approval. Any production migration or token revocation requires a separate explicit production authorization and release decision.
 
 ---
 

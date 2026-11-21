@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { doc, setDoc } from 'firebase/firestore';
 import { getAppBucket } from '../src/server/storage';
 import { deleteAccountPhotos } from '../functions/src/retention';
 import { executeVerificationRetentionBatch, MS_PER_DAY } from '../src/server/platform/storageRetentionEngine';
@@ -9,14 +10,32 @@ import { deleteVerificationStorageFile } from '../src/server/routes/complianceSt
 
 let env: RulesTestEnvironment;
 const prefix = `storage-${crypto.randomUUID()}`;
+const hasFirestoreEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 beforeAll(async () => {
   if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) return;
   const [host, port] = process.env.FIREBASE_STORAGE_EMULATOR_HOST.split(':');
-  env = await initializeTestEnvironment({ projectId: 'demo-klar', storage: { rules: readFileSync('storage.rules', 'utf8'), host, port: Number(port) } });
+  const config: any = { projectId: 'demo-klar', storage: { rules: readFileSync('storage.rules', 'utf8'), host, port: Number(port) } };
+  if (process.env.FIRESTORE_EMULATOR_HOST) {
+    const [firestoreHost, firestorePort] = process.env.FIRESTORE_EMULATOR_HOST.split(':');
+    config.firestore = { host: firestoreHost, port: Number(firestorePort) };
+  }
+  env = await initializeTestEnvironment(config);
 });
 afterAll(async () => { await env?.cleanup(); });
 const user = (uid: string, provider: 'password' | 'anonymous' = 'password') => env.authenticatedContext(uid, { firebase: { sign_in_provider: provider } }).storage('gs://demo-klar.appspot.com');
 const image = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+async function seedOwner(uid: string, overrides: Record<string, unknown> = {}) {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), 'users', uid), {
+      isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false, ...overrides,
+    });
+  });
+}
+async function seedDeletion(uid: string) {
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), 'account_deletions', uid), { uid, status: 'pending' });
+  });
+}
 describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and automatic photo retention', () => {
   it('denies all legacy verification photo uploads, reads and deletes including the authenticated owner', async () => {
     const path = `verification/${prefix}/photo.jpg`;
@@ -29,12 +48,43 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(user(prefix).ref(path).delete());
     await assertFails(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'text/html' })));
   });
-  it('denies direct client reads of profile media while preserving owner uploads', async () => {
+  it('denies all direct client reads of profile media', async () => {
     const path = `profiles/${prefix}/avatar.jpg`;
-    await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
     await assertFails(user(prefix).ref(path).getDownloadURL());
     await assertFails(user('another').ref(path).getDownloadURL());
     await assertFails(user(prefix, 'anonymous').ref(path).getDownloadURL());
+  });
+
+  it.runIf(hasFirestoreEmulator)('denies profile create, update and delete for missing, underage, inactive, suspended, blocked and deletion-pending owners', async () => {
+    const cases = [
+      ['missing', undefined, false],
+      ['underage', { isAdult: false }, false],
+      ['inactive', { active: false }, false],
+      ['suspended', { isSuspended: true }, false],
+      ['suspended-state-missing', { isSuspended: null }, false],
+      ['blocked', { isBlocked: true }, false],
+      ['blocked-state-missing', { isBlocked: null }, false],
+      ['deletion-flag-pending', { deletionPending: true }, false],
+      ['deletion-flag-missing', { deletionPending: null }, false],
+      ['status-suspended', { status: 'suspended' }, false],
+      ['status-deleted', { status: 'deleted' }, false],
+      ['deletion-pending', {}, true],
+    ] as const;
+    for (const [label, overrides, deletionPending] of cases) {
+      const uid = `${prefix}-${label}`;
+      const createPath = `profiles/${uid}/create.jpg`;
+      const path = `profiles/${uid}/photo.jpg`;
+      if (overrides !== undefined) await seedOwner(uid, overrides);
+      if (deletionPending) await seedDeletion(uid);
+      const owner = user(uid);
+      await assertFails(Promise.resolve(owner.ref(createPath).put(image, { contentType: 'image/jpeg' })));
+      await env.withSecurityRulesDisabled(async ctx => {
+        await ctx.storage().ref(path).put(image, { contentType: 'image/jpeg' });
+      });
+      const ref = owner.ref(path);
+      await assertFails(Promise.resolve(ref.put(image, { contentType: 'image/jpeg' })));
+      await assertFails(ref.delete());
+    }
   });
 
   it('prevents client overwrite of a retained verification object and recreation after Admin SDK deletion', async () => {
@@ -51,13 +101,16 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       if ((await file.exists())[0]) await file.delete();
     }
   });
-  it('preserves allowed owner profile uploads while legacy verification uploads are denied', async () => {
+  it.runIf(hasFirestoreEmulator)('allows a verified active adult owner to create, update and delete profile media', async () => {
+    await seedOwner(prefix);
     const path = `profiles/${prefix}/owner-photo.jpg`;
     const file = getAppBucket().file(path);
     try {
       await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
       expect((await file.exists())[0]).toBe(true);
+      await assertSucceeds(Promise.resolve(user(prefix).ref(path).put(image, { contentType: 'image/jpeg' })));
       await assertFails(Promise.resolve(user('another').ref(path).put(image, { contentType: 'image/jpeg' })));
+      await assertSucceeds(user(prefix).ref(path).delete());
     } finally {
       if ((await file.exists())[0]) await file.delete();
     }

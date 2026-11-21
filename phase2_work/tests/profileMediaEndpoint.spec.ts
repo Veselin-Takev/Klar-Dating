@@ -12,11 +12,14 @@ async function setup(options: { token?: string; provider?: string; requester?: R
   const requester = {
     isAdult: true,
     active: true,
+    isSuspended: false,
+    isBlocked: false,
+    deletionPending: false,
     ...(options.selfView ? { photoURL: 'https://firebasestorage.googleapis.com/v0/b/demo-klar.appspot.com/o/profiles%2Fviewer%2Fphoto.jpg?alt=media&token=legacy-test-token' } : {}),
     ...(options.requester ?? {}),
   };
   const targetUid = options.targetUid ?? 'target';
-  const target = { isAdult: true, active: true, ...(options.target ?? {}) };
+  const target = { isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false, ...(options.target ?? {}) };
   const requestedPaths: string[] = [];
   const db = { collection: (name: string) => {
     if (name === 'users') return { doc: (uid: string) => ({ get: async () => ({ exists: true, data: () => uid === 'viewer' ? requester : target }) }) };
@@ -71,9 +74,17 @@ describe('authenticated profile media delivery', () => {
     ['underage requester', { requester: { isAdult: false } }, 403],
     ['inactive requester', { requester: { active: false } }, 403],
     ['suspended requester', { requester: { isSuspended: true } }, 403],
+    ['missing suspension state requester', { requester: { isSuspended: undefined } }, 403],
+    ['missing block state requester', { requester: { isBlocked: undefined } }, 403],
+    ['missing deletion state requester', { requester: { deletionPending: undefined } }, 403],
+    ['deletion flag requester', { requester: { deletionPending: true } }, 403],
     ['deletion-pending requester', { requesterDeleted: true }, 403],
     ['underage target', { target: { isAdult: false } }, 404],
     ['suspended target', { target: { isSuspended: true } }, 404],
+    ['missing suspension state target', { target: { isSuspended: undefined } }, 404],
+    ['missing block state target', { target: { isBlocked: undefined } }, 404],
+    ['missing deletion state target', { target: { deletionPending: undefined } }, 404],
+    ['deletion flag target', { target: { deletionPending: true } }, 404],
     ['deletion-pending target', { targetDeleted: true }, 404],
     ['mutually blocked pair', { blocked: true }, 404],
   ] as const)('denies %s with the expected authorization status', async (_name, options, expectedStatus) => {
