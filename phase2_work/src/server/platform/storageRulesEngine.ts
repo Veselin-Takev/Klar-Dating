@@ -156,7 +156,7 @@ export function evaluateStorageSecurityRule(request: StorageSecurityRequest): St
       const ownerDenied = verifyProfileOwner();
       if (ownerDenied) return ownerDenied;
       if (!isImageContentType(request.resource?.contentType)) return { allowed: false, reason: 'Nur Bildformate (JPEG, PNG, WebP) sind erlaubt.', rulePath, code: 'INVALID_MIME' };
-      if (typeof request.resource?.size !== 'number' || request.resource.size >= MAX_FILE_SIZE_BYTES) return { allowed: false, reason: 'Dateigröße überschreitet das Limit von 8 MB.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
+      if (typeof request.resource?.size !== 'number' || request.resource.size <= 0 || request.resource.size >= MAX_FILE_SIZE_BYTES) return { allowed: false, reason: 'Dateigröße muss größer als 0 und kleiner als 8 MB sein.', rulePath, code: 'SIZE_LIMIT_EXCEEDED' };
       return { allowed: true, rulePath, code: 'ALLOWED' };
     }
     if (request.operation === 'delete') {

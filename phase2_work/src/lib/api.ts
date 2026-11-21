@@ -13,7 +13,10 @@ function safeRequestPath(input: RequestInfo | URL): string {
           : '';
     if (!raw) return '/request';
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://klar.invalid';
-    return new URL(raw, base).pathname.slice(0, 180) || '/';
+    const pathname = new URL(raw, base).pathname;
+    if (pathname === '/api/profile-media/self') return pathname;
+    if (/^\/api\/profile-media\/[^/]+\/[^/]+$/.test(pathname)) return '/api/profile-media/:uid/:mediaRef';
+    return pathname.slice(0, 180) || '/';
   } catch {
     return '/request';
   }
@@ -180,7 +183,7 @@ export async function fetchWithTimeout(resource: RequestInfo, options: RequestIn
         if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Zeitüberschreitung bei der Server-Anfrage. Bitte versuche es später nochmal.');
         }
-        throw error;
+        throw new Error('Netzwerkfehler bei der Server-Anfrage.');
       }
 
       // Wait before retrying (exponential backoff)
@@ -508,7 +511,7 @@ export async function monitoredFetch(input: RequestInfo | URL, init?: RequestIni
     const duration = performance.now() - startTime;
     // Do not forward the raw URL or the original error message to diagnostics.
     melde(`[Fetch Error] Request ${safeRequestPath(input)} failed after ${Math.round(duration)}ms`, { name: error instanceof Error ? error.name : 'Error' });
-    throw error;
+    throw new Error('Netzwerkfehler bei der Server-Anfrage.');
   }
 }
 

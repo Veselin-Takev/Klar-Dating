@@ -40,31 +40,22 @@ test('public profile contains only launch-safe fields', () => {
   assert.equal('moodHistory' in (p ?? {}), false);
 });
 
-test('public profile publication fails closed when owner authorization state is missing or ineligible', () => {
-  const base = { name: 'Anna', age: 29, location: 'München', isAdult: true, active: true, isSuspended: false, isBlocked: false };
-  for (const state of [
-    {},
-    { isAdult: false },
-    { active: false },
-    { isSuspended: true },
-    { isBlocked: true },
-    { status: 'deleted' },
-  ]) {
-    assert.equal(toPublicProfile('u1', { ...base, ...state }), null);
-  }
-});
-
-test('public profile publication fails closed when owner authorization state is missing or ineligible', () => {
-  const base = { name: 'Anna', age: 29, location: 'München', isAdult: true, active: true, isSuspended: false, isBlocked: false };
-  for (const state of [
-    {},
-    { isAdult: false },
-    { active: false },
-    { isSuspended: true },
-    { isBlocked: true },
-    { status: 'deleted' },
-  ]) {
-    assert.equal(toPublicProfile('u1', { ...base, ...state }), null);
+test('public profile publishing requires explicit, eligible owner state', () => {
+  const valid = {
+    name: 'Anna', age: 29, location: 'München', isAdult: true, active: true,
+    isSuspended: false, isBlocked: false,
+  };
+  assert.ok(toPublicProfile('u1', valid));
+  const invalidStates = [
+    { isAdult: false }, { isAdult: undefined },
+    { active: false }, { active: undefined },
+    { isSuspended: true }, { isSuspended: undefined },
+    { isBlocked: true }, { isBlocked: undefined },
+    { deletionPending: true },
+    { status: 'blocked' }, { status: 'suspended' }, { status: 'deleted' },
+  ];
+  for (const state of invalidStates) {
+    assert.equal(toPublicProfile('u1', { ...valid, ...state }), null, JSON.stringify(state));
   }
 });
 

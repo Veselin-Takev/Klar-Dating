@@ -1,4 +1,7 @@
 import type { ImgHTMLAttributes } from 'react';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useAuthenticatedProfileMedia, type ProfileMediaTarget } from '../lib/profileMediaClient';
 
 type AuthenticatedProfileImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
@@ -38,8 +41,11 @@ export function AuthenticatedProfileImage({
   className,
   ...imageProps
 }: AuthenticatedProfileImageProps) {
+  const [observedViewerUid, setObservedViewerUid] = useState<string | null>(() => auth.currentUser?.uid ?? null);
+  useEffect(() => onAuthStateChanged(auth, user => setObservedViewerUid(user?.uid ?? null)), []);
+  const effectiveViewerUid = viewerUid === undefined ? observedViewerUid : viewerUid;
   const mediaTarget = target ?? targetFromProxyPath(src);
-  const media = useAuthenticatedProfileMedia(mediaTarget, viewerUid, revision);
+  const media = useAuthenticatedProfileMedia(mediaTarget, effectiveViewerUid, revision);
 
   if (media.status !== 'ready' || !media.src) {
     return (

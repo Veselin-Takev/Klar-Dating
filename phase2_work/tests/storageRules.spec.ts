@@ -61,18 +61,25 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       ['underage', { isAdult: false }, false],
       ['inactive', { active: false }, false],
       ['suspended', { isSuspended: true }, false],
+      ['suspended-state-missing', { isSuspended: null }, false],
       ['blocked', { isBlocked: true }, false],
+      ['blocked-state-missing', { isBlocked: null }, false],
+      ['status-suspended', { status: 'suspended' }, false],
+      ['status-deleted', { status: 'deleted' }, false],
       ['deletion-pending', {}, true],
     ] as const;
     for (const [label, overrides, deletionPending] of cases) {
       const uid = `${prefix}-${label}`;
+      const createPath = `profiles/${uid}/create.jpg`;
       const path = `profiles/${uid}/photo.jpg`;
       if (overrides !== undefined) await seedOwner(uid, overrides);
+      if (deletionPending) await seedDeletion(uid);
+      const owner = user(uid);
+      await assertFails(Promise.resolve(owner.ref(createPath).put(image, { contentType: 'image/jpeg' })));
       await env.withSecurityRulesDisabled(async ctx => {
         await ctx.storage().ref(path).put(image, { contentType: 'image/jpeg' });
       });
-      if (deletionPending) await seedDeletion(uid);
-      const ref = user(uid).ref(path);
+      const ref = owner.ref(path);
       await assertFails(Promise.resolve(ref.put(image, { contentType: 'image/jpeg' })));
       await assertFails(ref.delete());
     }

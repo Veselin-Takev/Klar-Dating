@@ -1,12 +1,22 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
-  auth: { currentUser: null as null | { uid: string; isAnonymous: boolean } },
+  auth: {
+    currentUser: null as null | { uid: string; isAnonymous: boolean },
+    listener: null as null | ((user: null | { uid: string; isAnonymous: boolean }) => void),
+  },
   authFetch: vi.fn(),
 }));
 vi.mock('../src/lib/firebase', () => ({ auth: mocks.auth }));
+vi.mock('firebase/auth', () => ({
+  onAuthStateChanged: (_auth: unknown, listener: (user: null | { uid: string; isAnonymous: boolean }) => void) => {
+    mocks.auth.listener = listener;
+    listener(mocks.auth.currentUser);
+    return vi.fn();
+  },
+}));
 vi.mock('../src/lib/authFetch', () => ({ authFetch: mocks.authFetch }));
 
 import { AuthenticatedProfileImage } from '../src/components/AuthenticatedProfileImage';
@@ -18,6 +28,7 @@ let originalRevoke: PropertyDescriptor | undefined;
 
 beforeEach(() => {
   mocks.auth.currentUser = { uid: 'viewer-1', isAnonymous: false };
+  mocks.auth.listener = null;
   mocks.authFetch.mockReset().mockResolvedValue({
     ok: true,
     status: 200,
@@ -69,5 +80,18 @@ describe('AuthenticatedProfileImage', () => {
       '/api/profile-media/self',
       expect.objectContaining({ method: 'GET', signal: expect.any(AbortSignal) }),
     ));
+  });
+
+  it('revokes the previous blob URL and reloads when the Firebase account changes', async () => {
+    const view = render(<AuthenticatedProfileImage src="/api/profile-media/person-2/klar-media%3Av1%3AYWJj" alt="Profilbild" />);
+    await waitFor(() => expect(screen.getByRole('img', { name: 'Profilbild' })).toHaveAttribute('src', 'blob:protected-image'));
+    const initialCalls = mocks.authFetch.mock.calls.length;
+    await act(async () => {
+      mocks.auth.currentUser = { uid: 'viewer-2', isAnonymous: false };
+      mocks.auth.listener?.(mocks.auth.currentUser);
+    });
+    await waitFor(() => expect(revokeObjectUrl).toHaveBeenCalledWith('blob:protected-image'));
+    await waitFor(() => expect(mocks.authFetch.mock.calls.length).toBeGreaterThan(initialCalls));
+    view.unmount();
   });
 });

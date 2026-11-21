@@ -58,7 +58,9 @@ export function toPublicProfile(uid: string, data: Record<string, unknown>): Pub
   const city = normalizeLaunchCity(data.location);
   const name = typeof data.name === 'string' ? data.name.trim().slice(0, 80) : '';
   const age = typeof data.age === 'number' ? Math.floor(data.age) : 0;
-  if (!city || !name || age < 18 || age > 100 || data.isAdult !== true || data.active !== true ||\n      data.isSuspended === true || data.isBlocked === true ||\n      data.status === 'blocked' || data.status === 'suspended' || data.status === 'deleted') return null;
+  if (!city || !name || age < 18 || age > 100 || data.isAdult !== true || data.active !== true ||
+      data.isSuspended !== false || data.isBlocked !== false || data.deletionPending === true ||
+      data.status === 'blocked' || data.status === 'suspended' || data.status === 'deleted') return null;
   return {
     id: uid,
     name,
@@ -205,7 +207,7 @@ export async function getRecommendations(
   }));
   const candidates = snap.docs
     .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
-    .filter(({ id, data }) => id !== uid && data.isAdult === true && data.isExample !== true && !pendingDeletion.has(id) && !blocked.has(id) && data.active === true && data.isSuspended !== true && data.isBlocked !== true && data.status !== 'blocked' && data.status !== 'suspended' && data.status !== 'deleted' && data.isVerified === true)
+    .filter(({ id, data }) => id !== uid && data.isAdult === true && data.isExample !== true && !pendingDeletion.has(id) && !blocked.has(id) && data.active === true && data.isSuspended === false && data.isBlocked === false && data.deletionPending !== true && data.status !== 'blocked' && data.status !== 'suspended' && data.status !== 'deleted' && data.isVerified === true)
     .filter(({ data }) => typeof data.age === 'number' && data.age >= minAge && data.age <= maxAge)
     .filter(({ data }) => daysSince(data.lastActiveAt) <= 7)
     .map(({ id, data }) => {

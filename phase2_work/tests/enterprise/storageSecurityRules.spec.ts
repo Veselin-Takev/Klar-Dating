@@ -156,7 +156,9 @@ test('Storage Rules: profile create/update/delete fail closed for missing or ine
     { ...ACTIVE_OWNER, isAdult: false },
     { ...ACTIVE_OWNER, active: false },
     { ...ACTIVE_OWNER, isSuspended: true },
+    { ...ACTIVE_OWNER, isSuspended: undefined },
     { ...ACTIVE_OWNER, isBlocked: true },
+    { ...ACTIVE_OWNER, isBlocked: undefined },
     { ...ACTIVE_OWNER, status: 'suspended' },
     { ...ACTIVE_OWNER, status: 'blocked' },
     { ...ACTIVE_OWNER, status: 'deleted' },
@@ -170,6 +172,15 @@ test('Storage Rules: profile create/update/delete fail closed for missing or ine
       assert.equal(decision.allowed, false, `unexpected allow for ${operation}: ${JSON.stringify(ownerState)}`);
     }
   }
+});
+
+test('Storage Rules: zero-byte profile writes are denied to match deployable rules', () => {
+  const decision = evaluateStorageSecurityRule({
+    operation: 'write', path: '/profiles/usr_alice/empty.png', auth: USER_ALICE,
+    ownerState: ACTIVE_OWNER, resource: { size: 0, contentType: 'image/png' },
+  });
+  assert.equal(decision.allowed, false);
+  assert.equal(decision.code, 'SIZE_LIMIT_EXCEEDED');
 });
 
 test('Storage Rules: valid Firestore owner state is required for both profile writes and deletion', () => {
