@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "audit_id": "KLAR-E2E-20261102-R1",
+  "captured_date": "2026-11-02",
+  "repository": "Veselin-Takev/Klar-Dating",
+  "source_baseline": {
+    "branch": "main",
+    "sha": "2808dc1cbb485f70b403681c108cea5a3361d950"
+  },
+  "ci_reference": {
+    "pull_request": 312,
+    "draft": true,
+    "merged": false,
+    "sha": "4ef6dde5874f7602f614f68a11dce2c0062b745f",
+    "run_id": 41474462939,
+    "run_status": "completed",
+    "conclusion": "success",
+    "job_name": "validate",
+    "successful_steps": 32,
+    "applies_to_main": false,
+    "applies_to_deployed_production": false
+  },
+  "ruleset_reference": {
+    "id": 25756841,
+    "enforcement": "active",
+    "required_status_check": "validate",
+    "required_approving_review_count": 0,
+    "require_code_owner_review": false,
+    "required_review_thread_resolution": false,
+    "dismiss_stale_reviews_on_push": false
+  },
+  "evidence_categories": {
+    "E0": "self_reported_or_docs_only",
+    "E1": "verified_source_or_config",
+    "E2": "exact_head_ci",
+    "E3": "native_emulator_or_staging_archived_proof",
+    "E4": "live_project_and_revision_bound_cloud_proof",
+    "E5": "independent_signed_approver"
+  },
+  "findings": [
+    {
+      "id": "K-E2E-01",
+      "priority": "P0",
+      "control": "verification_photo_legacy",
+      "evidence_state": "source_confirmed_unverified_live",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/202",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-02",
+      "priority": "P0",
+      "control": "gcs_purge_receipt",
+      "evidence_state": "source_confirmed_unverified_live",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/202",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-03",
+      "priority": "P0",
+      "control": "firestore_ttl_20",
+      "evidence_state": "independent_live_evidence_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/70",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-04",
+      "priority": "P0",
+      "control": "tenant_isolation",
+      "evidence_state": "migration_and_live_proof_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/254",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-05",
+      "priority": "P0",
+      "control": "required_independent_reviews",
+      "evidence_state": "live_ruleset_configuration_confirmed",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/73",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-06",
+      "priority": "P0",
+      "control": "release_operations",
+      "evidence_state": "production_operational_evidence_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/8",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-07",
+      "priority": "P0",
+      "control": "partner_conversion_identity",
+      "evidence_state": "independent_purchase_binding_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/55",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-08",
+      "priority": "P0",
+      "control": "partner_privacy_art17",
+      "evidence_state": "legal_retention_and_cascade_evidence_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/56",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-09",
+      "priority": "P1",
+      "control": "profile_storage_read",
+      "evidence_state": "source_policy_mismatch_confirmed",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/204",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-10",
+      "priority": "P1",
+      "control": "profile_download_token",
+      "evidence_state": "long_lived_bearer_url_design_risk",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/206",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-11",
+      "priority": "P1",
+      "control": "supply_chain_sca",
+      "evidence_state": "current_full_release_evidence_missing",
+      "issue": null,
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-12",
+      "priority": "P1",
+      "control": "production_observability",
+      "evidence_state": "fleet_sli_and_pager_evidence_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/71",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-13",
+      "priority": "P1",
+      "control": "didit_profile_refresh",
+      "evidence_state": "source_functional_discrepancy_open",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/237",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-14",
+      "priority": "P1",
+      "control": "ai_governance",
+      "evidence_state": "featurewise_legal_proof_missing",
+      "issue": null,
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-15",
+      "priority": "P1",
+      "control": "final_release_integration",
+      "evidence_state": "parent_draft_ci_not_release_ci",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/8",
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-16",
+      "priority": "P2",
+      "control": "accessibility_i18n_offline",
+      "evidence_state": "version_bound_manual_evidence_missing",
+      "issue": null,
+      "remediation": "open",
+      "production_approved": false
+    },
+    {
+      "id": "K-E2E-17",
+      "priority": "P2",
+      "control": "tco_finops_load",
+      "evidence_state": "production_load_budget_evidence_missing",
+      "issue": "https://github.com/Veselin-Takev/Klar-Dating/issues/58",
+      "remediation": "open",
+      "production_approved": false
+    }
+  ],
+  "finding_count": {
+    "total": 17,
+    "P0": 8,
+    "P1": 7,
+    "P2": 2
+  },
+  "mandatory_release_gates": [
+    {
+      "id": "G-01",
+      "name": "independent_codeowner_governance",
+      "state": "blocked"
+    },
+    {
+      "id": "G-02",
+      "name": "full_exact_release_sca_and_sbom",
+      "state": "not_verified"
+    },
+    {
+      "id": "G-03",
+      "name": "native_integrations_negative_faults",
+      "state": "not_complete"
+    },
+    {
+      "id": "G-04",
+      "name": "ttl_gcs_art17_privacy",
+      "state": "blocked"
+    },
+    {
+      "id": "G-05",
+      "name": "tenant_isolation_bola_migration",
+      "state": "blocked"
+    },
+    {
+      "id": "G-06",
+      "name": "legal_ai_consumer_consent",
+      "state": "pending"
+    },
+    {
+      "id": "G-07",
+      "name": "operations_alerts_recovery_cost",
+      "state": "pending"
+    },
+    {
+      "id": "G-08",
+      "name": "independent_security_dpo_legal_sre_releaseowner",
+      "state": "pending"
+    }
+  ],
+  "production_approved": false,
+  "release_decision": "BLOCKED_NO_GO",
+  "evidence_limitations": [
+    "no_live_cloud_inventory",
+    "no_production_gcs_receipts",
+    "no_deployed_sha_attestation",
+    "no_independent_approval",
+    "no_fresh_full_dependency_vulnerability_report",
+    "no_physical_penetration_test"
+  ],
+  "note": "Read-only repository and linked CI audit; no production actions, code fixes or signoff performed. Historical snapshots must not be treated as live evidence.",
+  "report_path": "phase2_work/docs/ENTERPRISE_E2E_AUDIT_2026-11-02.md"
+}
