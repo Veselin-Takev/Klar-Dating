@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `b2ae22fab32d1cb017c82116769e1d372bd384b0` (PR #393 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `7389e57a11e4a5e3e384cbfc6992345453a5dcaa` (PR #394 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -357,13 +357,32 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - No dependencies, lockfiles or workflow files are in scope. Do not create a recursive docs-only commit merely to record PR #375's own moving Run IDs; record exact IDs and head SHA in the final/PR handover once observed, per `AGENTS.md` Anti-SHA-Chasing.
 - Preserve all P0/P1 and operational blockers listed in `docs/HANDOVER_STATUS.md`; PR #375 only addresses the #373 publish/read erasure race. No cloud, IAM, Firestore, Storage or deployment mutation is authorized or performed.
 
-## Verified main baseline for E1 — 2026-11-21
+## Historical pre-merge main baseline for E1 — 2026-11-21
 
 - Exact `main` HEAD: `30250a1fc82f24834c7ada62f8453df04af20f2a`.
 - `Klar Enterprise CI` [Run #44879246458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246458): **210 test files / 35 of 35 Playwright checks PASS** on the stated baseline.
 - `Enterprise Compliance & Security Audit Gate` [Run #44879246487](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246487): **0 High+ / Build PASS** on the stated baseline.
 - Pre-merge tree-equivalent Gitleaks [Run #44878055568](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44878055568): **16.50 KB / 0 leaks**.
 - These three results are tied to this immutable main baseline; they do not certify a later PR commit. Historical PR #389–#393 records and PR #375 evidence above remain unchanged.
-- Canonical E1 Draft PR [#394](https://github.com/Veselin-Takev/Klar-Dating/pull/394) remains **Draft / unmerged**; its own exact-head CI and Audit Gate are **[TO VERIFY]** until the workflows complete on its current head SHA.
+- Historical state at this pre-merge baseline: E1 PR [#394](https://github.com/Veselin-Takev/Klar-Dating/pull/394) was Draft / unmerged and its own exact-head checks were **[TO VERIFY]** at that time. The PR was subsequently merged at `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`; see the post-merge baseline below.
 - Static guard command `npm run check:profile-media-boundary` is included in `check:enterprise`; it asserts that profile direct Storage reads remain denied, protected profile photos are not rendered from direct `img src` URLs, profile download-token URLs are not persisted, request URL diagnostics are redacted, and active Helmet applies `no-referrer`.
 - E1 excludes migration and token-revocation executables. Those are reserved for follow-up E2 under P1 #206. `productionApproved=false`; release remains **NO-GO**.
+
+## Verified MAIN_BASELINE_GREEN — post-PR #394 merge (2026-11-21)
+
+- PR [#394](https://github.com/Veselin-Takev/Klar-Dating/pull/394) merged into `main` at merge commit / verified live HEAD `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`. First parent: `30250a1fc82f24834c7ada62f8453df04af20f2a`; second parent: validated PR HEAD `5ed0b507c64d8e27b2252fd7c2da523769a75d97`.
+- Merge tree SHA `07a8f7b7d758b247295e62f733f54063e558bb55` is identical to the pre-merge PR HEAD tree.
+- `Klar Enterprise CI` [Run #44940679530](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44940679530), exact main HEAD `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`: **SUCCESS** — Enterprise Static Gates (including `check-profile-media-boundary`), Typecheck, Functions Build, Build and Production Smoke passed; Tests: **212 files / 1,627 passed / 0 failed**; Playwright Browser Acceptance: **35/35 passed / 0 failed**.
+- `Enterprise Compliance & Security Audit Gate` [Run #44940679384](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44940679384), same exact main HEAD: **SUCCESS** — Quality / TypeScript, Unit Tests, Compliance & Security Checks and Production Build passed; Tier 1: **549 packages / 0 High+**; Full Supply-Chain: **1,245 packages / 0 High+**.
+- Post-merge Gitleaks in Run #44940679384 reported **0 commits / 0 bytes** because the push range excluded merge commits. Do not describe this as a content scan. Pre-merge PR Audit Gate [Run #44939574345](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44939574345) scanned the exact PR HEAD `5ed0b507c64d8e27b2252fd7c2da523769a75d97`: **1/1 commit, 56.67 KB, 0 leaks**. The scanned tree SHA `07a8f7b7d758b247295e62f733f54063e558bb55` is identical to the tree on the merge commit, so the merged content is covered.
+- These results are SHA-bound to the PR #394 merge commit; they supersede the previous E1 base baseline without deleting or relabeling historical PR #389–#393, #375 or PR #394 pre-merge evidence. PR #394 completes E1 only; legacy media-reference migration and Firebase token revocation remain separate E2 under P1 #206.
+- `productionApproved=false` and release **NO-GO** remain mandatory.
+
+## Active Draft PR — full Gitleaks PR-range scanning
+
+- Base: `main` at `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`; branch: `ci/fix-gitleaks-full-pr-range-20261121`; target: `main`; keep **Draft / unmerged**.
+- The audit workflow now uses `actions/checkout` with `fetch-depth: 0` and checks out the exact PR head. It resolves PR scans directly from `github.event.pull_request.base.sha..github.event.pull_request.head.sha`, and push scans from `before..after`; it does not call the Gitleaks Action or its unpaginated PR commits endpoint. The preflight checks commit objects, ancestry, non-empty range, complete `git log` enumeration and final HEAD equality, failing closed on mismatch.
+- The pinned Gitleaks CLI v8.24.3 verifies the official release checksum manifest before use. The root `.gitleaksignore`, `--redact`, `--exit-code=2`, SARIF output and SARIF artifact upload are preserved. Push and workflow-dispatch events retain explicit scan ranges.
+- Regression command: `node --test phase2_work/scripts/gitleaks-pr-range.test.mjs`. Its synthetic 32-commit history proves that commit 31, commit 32 and final HEAD are all selected; workflow assertions prohibit use of the unpaginated Action/API path.
+- This Draft PR's own Klar Enterprise CI and Audit Gate are **[TO VERIFY]** until completed on its exact final `head_sha`. Record Run IDs in the PR/final handover per `AGENTS.md`; do not create a SHA-chasing docs-only commit.
+- No app runtime code, dependencies, lockfiles, live cloud/IAM/Firestore/Storage resources or deployments are in scope. `productionApproved=false`; release **NO-GO**.

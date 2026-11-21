@@ -32,6 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -66,11 +67,77 @@ jobs:
           bun run scripts/check-ai-pii-sanitizer.mjs
           bun run scripts/check-art17-deletion-audit.mjs 0
 
+      - name: Gitleaks full-range regression test (>30 commits)
+        working-directory: .
+        run: node --test phase2_work/scripts/gitleaks-pr-range.test.mjs
+
+      - name: Prepare complete Gitleaks commit range
+        id: gitleaks_range
+        working-directory: .
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+          PUSH_BEFORE_SHA: ${{ github.event.before || '' }}
+          PUSH_AFTER_SHA: ${{ github.event.after || github.sha }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: node phase2_work/scripts/prepare-gitleaks-range.mjs
+
+      - name: Install pinned Gitleaks CLI
+        working-directory: .
+        env:
+          GITLEAKS_VERSION: '8.24.3'
+        run: |
+          set -euo pipefail
+          archive="gitleaks_"$GITLEAKS_VERSION"_linux_x64.tar.gz"
+          checksums="gitleaks_"$GITLEAKS_VERSION"_checksums.txt"
+          release_url="https://github.com/gitleaks/gitleaks/releases/download/v"$GITLEAKS_VERSION
+          install_root="$RUNNER_TEMP/gitleaks"
+          mkdir -p "$install_root" "$RUNNER_TEMP/bin"
+
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            "$release_url/$archive" -o "$install_root/$archive"
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            "$release_url/$checksums" -o "$install_root/$checksums"
+
+          (
+            cd "$install_root"
+            awk -v asset="$archive" '$2 == asset { print $1 "  " $2; count++ } END { if (count != 1) exit 1 }' \
+              "$checksums" > gitleaks-checksum.txt
+            sha256sum --check --strict gitleaks-checksum.txt
+          )
+
+          tar -xzf "$install_root/$archive" -C "$install_root"
+          install -m 0755 "$install_root/gitleaks" "$RUNNER_TEMP/bin/gitleaks"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/gitleaks" version
+
       - name: Gitleaks
         id: gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0 (Node 24)
+        working-directory: .
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LOG_OPTS: ${{ steps.gitleaks_range.outputs.log_opts }}
+          GITLEAKS_COMMIT_COUNT: ${{ steps.gitleaks_range.outputs.commit_count }}
+        run: |
+          set -euo pipefail
+          test -n "$GITLEAKS_LOG_OPTS"
+          printf 'Scanning complete Git range (%s commits): %s\n' "$GITLEAKS_COMMIT_COUNT" "$GITLEAKS_LOG_OPTS"
+          gitleaks detect \
+            --redact \
+            -v \
+            --exit-code=2 \
+            --report-format=sarif \
+            --report-path=results.sarif \
+            --log-level=debug \
+            --log-opts="$GITLEAKS_LOG_OPTS"
+
+      - name: Upload Gitleaks SARIF artifact
+        if: ${{ always() && hashFiles('results.sarif') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
+        with:
+          name: gitleaks-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: results.sarif
+          if-no-files-found: error
+          retention-days: 7
 
       - name: 5. Dependency Audit — Production Runtime (Hard-Fail High+)
         id: dep_audit
