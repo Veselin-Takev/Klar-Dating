@@ -33,7 +33,7 @@ export function hasUnsafeProfileDownloadUrlPersistence(source) {
 }
 
 export function profileStorageReadIsDenied(rules) {
-  const block = rules.match(/match\s+\/profiles\/\{uid\}\/\{datei\}\s*\{([\s\S]*?)\n\s*\}/);
+  const block = rules.match(/match\s+\/profiles\/\{uid\}\/\{datei\}\s*\{([\s\S]{0,200})/);
   return Boolean(block && /allow\s+read\s*:\s*if\s+false\s*;/.test(block[1]));
 }
 

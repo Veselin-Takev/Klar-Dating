@@ -32,5 +32,5 @@ test('aggregates missing boundary controls without altering the source', () => {
     apiSource: "const url = input.toString();",
     serverSource: "app.use(helmet({ referrerPolicy: { policy: 'origin' } }));",
   });
-  assert.equal(violations.length, 3);
+  assert.equal(violations.length, 4);
 });

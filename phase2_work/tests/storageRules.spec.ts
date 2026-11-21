@@ -27,7 +27,7 @@ const image = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 async function seedOwner(uid: string, overrides: Record<string, unknown> = {}) {
   await env.withSecurityRulesDisabled(async ctx => {
     await setDoc(doc(ctx.firestore(), 'users', uid), {
-      isAdult: true, active: true, isSuspended: false, isBlocked: false, ...overrides,
+      isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false, ...overrides,
     });
   });
 }
@@ -64,6 +64,8 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
       ['suspended-state-missing', { isSuspended: null }, false],
       ['blocked', { isBlocked: true }, false],
       ['blocked-state-missing', { isBlocked: null }, false],
+      ['deletion-flag-pending', { deletionPending: true }, false],
+      ['deletion-flag-missing', { deletionPending: null }, false],
       ['status-suspended', { status: 'suspended' }, false],
       ['status-deleted', { status: 'deleted' }, false],
       ['deletion-pending', {}, true],

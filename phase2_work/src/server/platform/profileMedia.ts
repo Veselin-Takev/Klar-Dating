@@ -105,12 +105,12 @@ async function streamAuthorizedProfileMedia(
     const requesterData = requesterSnap.data() ?? {};
     const targetData = targetSnap.data() ?? {};
     if (!requesterSnap.exists || requesterData.isAdult !== true || requesterData.active !== true ||
-        requesterData.isSuspended !== false || requesterData.isBlocked !== false || requesterData.deletionPending === true ||
+        requesterData.isSuspended !== false || requesterData.isBlocked !== false || requesterData.deletionPending !== false ||
         requesterData.status === 'blocked' || requesterData.status === 'suspended' || requesterData.status === 'deleted' || requesterDeletion.exists) {
       return res.status(403).end();
     }
     if (!targetSnap.exists || targetData.isAdult !== true || targetData.active !== true ||
-        targetData.isSuspended !== false || targetData.isBlocked !== false || targetData.deletionPending === true ||
+        targetData.isSuspended !== false || targetData.isBlocked !== false || targetData.deletionPending !== false ||
         targetData.status === 'blocked' || targetData.status === 'suspended' || targetData.status === 'deleted' ||
         targetDeletion.exists) return res.status(404).end();
 

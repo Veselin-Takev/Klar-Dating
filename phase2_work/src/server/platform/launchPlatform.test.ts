@@ -43,7 +43,7 @@ test('public profile contains only launch-safe fields', () => {
 test('public profile publishing requires explicit, eligible owner state', () => {
   const valid = {
     name: 'Anna', age: 29, location: 'München', isAdult: true, active: true,
-    isSuspended: false, isBlocked: false,
+    isSuspended: false, isBlocked: false, deletionPending: false,
   };
   assert.ok(toPublicProfile('u1', valid));
   const invalidStates = [
@@ -51,7 +51,7 @@ test('public profile publishing requires explicit, eligible owner state', () => 
     { active: false }, { active: undefined },
     { isSuspended: true }, { isSuspended: undefined },
     { isBlocked: true }, { isBlocked: undefined },
-    { deletionPending: true },
+    { deletionPending: true }, { deletionPending: undefined },
     { status: 'blocked' }, { status: 'suspended' }, { status: 'deleted' },
   ];
   for (const state of invalidStates) {

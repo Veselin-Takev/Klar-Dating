@@ -45,6 +45,7 @@ service firebase.storage {
           && owner.active == true
           && owner.isSuspended == false
           && owner.isBlocked == false
+          && owner.deletionPending == false
           && owner.get('status', '') != 'blocked'
           && owner.get('status', '') != 'suspended'
           && owner.get('status', '') != 'deleted'
