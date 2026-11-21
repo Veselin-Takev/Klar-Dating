@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
-**Snapshot:** 2026-11-20
-**Main HEAD (verified after PR #392 merge):** `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3`
+**Snapshot:** 2026-11-21
+**Main HEAD (verified after PR #393 merge):** `b2ae22fab32d1cb017c82116769e1d372bd384b0`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -290,3 +290,28 @@ The hardening change removes that early blocking `page.unroute` call and invokes
 - No dependency, lockfile or workflow file is changed. Art. 17 erasure, Consent, Accessibility and existing E2E assertions remain in place. No Cloud, IAM, Firestore, Storage or deployment mutation is performed.
 - Anti-SHA-Chasing: after the active PR's workflows complete, report exact Run IDs and head_sha in the PR/final handover; do not create a recursive docs-only commit solely to add the PR's own run IDs.
 - productionApproved=false remains unchanged; Production remains NO-GO.
+
+## Verified MAIN_BASELINE_GREEN — post-PR #393 main baseline (2026-11-21)
+
+- PR [#393](https://github.com/Veselin-Takev/Klar-Dating/pull/393) is merged; verified `main` HEAD is exactly `b2ae22fab32d1cb017c82116769e1d372bd384b0`. This supersedes PR #392 baseline `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3). The existing #389–#392 history and exact-SHA workflow evidence above remain unchanged and historical.
+- `Klar Enterprise CI` [Run #44822376842](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44822376842), job `validate` / ID `136586244158`, exact `head_sha` `b2ae22fab32d1cb017c82116769e1d372bd384b0`: **SUCCESS**. Tests: **1,603 passed / 210 files / 0 failed**; Production Smoke **PASS**; Browser Acceptance **35/35 passed**. TypeScript, Functions build, and application build completed successfully.
+- `Enterprise Compliance & Security Audit Gate` [Run #44822377108](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44822377108), job `Enterprise Compliance & Security Audit` / ID `136586244987`, same exact `head_sha`: **SUCCESS**. Gitleaks: **PASS**, no leaks found; Tier 1 Production Runtime Audit: **PASS**, 549 packages / 0 High+; Full Supply-Chain Audit: **PASS**, 1,245 packages / 0 High+; Production Build: **PASS**. The below-threshold counts were 3 (runtime) and 7 (full graph); no High-or-higher finding was reported.
+- These workflow results certify only the immutable `main` SHA above. They are not evidence for an active PR head and do not authorize production. `productionApproved=false` and release **NO-GO** remain mandatory.
+
+### Issue #373 — canonical Draft remediation PR #375
+
+- GitHub issue #373 remains **OPEN**. Canonical PR [#375](https://github.com/Veselin-Takev/Klar-Dating/pull/375), branch `security/iteration2-p0-privacy-2026-11-16`, targets `main` and remains **Draft / unmerged**. The branch is based on exact baseline `b2ae22fab32d1cb017c82116769e1d372bd384b0`; the initial verified PR head was `762bfa8067f76ee20a24375df8739a722289c4f3` (five commits ahead, zero behind). Keep #375 as the sole remediation PR for #373; do not create a parallel PR.
+- Source review confirms `POST /profile/publish` reads `users/{uid}` and `account_deletions/{uid}` within one Firestore transaction before staging `public_profiles/{uid}`. Any existing erasure document blocks publication; Firestore transaction contention retries re-read the barrier, preventing a stale publication from winning after deletion. Missing user, non-adult, example-profile, and incomplete-projection conditions fail closed.
+- Firestore Rules deny direct reads of an existing `public_profiles/{userId}` when `account_deletions/{userId}` exists, while retaining authentication, guest denial, requester/target Adult gating, and both-direction block checks. The Rules Emulator test seeds an actual target public-profile document before asserting the deletion-barrier read is denied.
+- The endpoint suite now contains **27 expanded cases** (the original 23 plus four explicit GET requester regressions for missing user documents and persisted `blocked`, `suspended`, and `deleted` states). It also covers authentication, existing/missing erasure barrier, deletion winning a transaction retry, missing/underage/incomplete publication state, malformed recommendation queries, Guest/Adult/Block/Suspension/deletion-pending requester gates, and fail-closed recommendation errors. The Rules test explicitly verifies denial for a pre-existing public projection under an active target erasure barrier.
+- These are source-level findings, not a test-pass claim. PR #375 exact-head `Klar Enterprise CI`, Rules Emulator execution, and `Enterprise Compliance & Security Audit Gate` remain **[TO VERIFY]** until their workflow runs complete on the final PR `head_sha`.
+
+### Remaining open P0/P1 and operational blockers (GitHub issue state checked 2026-11-21)
+
+The following tracked issues were returned as **OPEN** by GitHub at this snapshot. Their issue state is not a substitute for acceptance evidence or closure:
+
+- **P0 privacy/security/compliance:** #202 legacy photo-retention scheduler/live verification (source-side protection is present; live scheduler/deployment evidence remains `[TO VERIFY]`); #254 multi-tenant live cutover, legacy mapping and Art. 17/RBAC isolation; #371 Art. 17 erasure worker versus verification-photo hold decisions; #373 publication/deletion race (addressed in Draft #375, pending exact-head gates and independent review); #70 TTL provisioning coverage; #55 partner conversion authenticity; #56 GDPR inventory/tracking-token/legal-basis/Art. 17 retention; #48 referral Zero-Trust identity, abuse and reward gates.
+- **P1 security/privacy/functionality/governance:** #204 Storage profile-image visibility policy; #206 revocable authorization for legacy Firebase download URLs; #237 retired verification-status endpoint; #372 recommendation scan truncation at 500 profiles; #73 CODEOWNERS/specialist-review alignment; #71 API P95 SLO consistency/evidence; #57 reward/ledger lifecycle and reversal; #58 partner-pilot E2E/load/cost/operations evidence; #49 invite pass/deep links/accessibility; #50 consent-based referral measurement/experiment; #51 local liquidity/free-offer readiness; #53 reward unit-economics decision.
+- **Release operations:** #8 production controls, monitoring and operational approvals remain open. No item above is cleared by the green main baseline or by PR #375 source changes.
+
+No production approval, merge, deployment, live cloud/IAM/Firestore/Storage mutation, or production-data operation is authorized or performed by this workstream.

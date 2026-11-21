@@ -10,22 +10,62 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function dbFor(user: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean } = {}) {
-  const set = vi.fn(async () => undefined);
+function dbFor(
+  user: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean } = {},
+  deletionExists = false,
+  simulateDeletionRace = false,
+) {
+  const set = vi.fn(async (_ref: unknown, _data: unknown) => undefined);
   const get = vi.fn(async () => ({
     exists: user.exists ?? true,
     data: () => ({ isAdult: true, active: true, location: 'München', ...(user.data ?? {}) }),
   }));
-  const db = {
-    collection: vi.fn((name: string) => ({
-      doc: vi.fn(() => name === 'users' ? { get } : name === 'account_deletions' ? { get: vi.fn(async () => ({ exists: user.deletionPending === true })) } : { set }),
-    })),
-  } as any;
-  return { db, set, get };
+  const refs = new Map<string, { collection: string; id: string }>();
+  const collection = vi.fn((name: string) => ({
+    doc: vi.fn((id: string) => {
+      const ref = { collection: name, id };
+      refs.set(name + '/' + id, ref);
+      return { ...ref, get: name === 'account_deletions' ? vi.fn(async () => ({ exists: deletionBarrierExists })) : get, set };
+    }),
+  }));
+  let deletionBarrierExists = deletionExists || user.deletionPending === true;
+  // Firestore invokes the transaction callback again after a contention retry;
+  // runTransaction itself is still called only once by the route.
+  const transactionAttempts = vi.fn();
+  const runTransaction = vi.fn(async (work: (tx: any) => Promise<unknown>) => {
+    let attempt = 0;
+    while (true) {
+      const stagedWrites: Array<[ref: unknown, data: unknown]> = [];
+      transactionAttempts();
+      const result = await work({
+        get: async (ref: { collection: string }) => ref.collection === 'account_deletions'
+          ? { exists: deletionBarrierExists, data: () => ({ status: 'pending' }) }
+          : { exists: user.exists ?? true, data: () => user.data ?? { isAdult: true, location: 'München' } },
+        set: (ref: unknown, data: unknown) => { stagedWrites.push([ref, data]); },
+      });
+      // Simulate Firestore retry after the deletion transaction wins the
+      // conflict: writes from attempt one are discarded, and attempt two
+      // observes the durable deletion barrier.
+      if (simulateDeletionRace && attempt === 0) {
+        deletionBarrierExists = true;
+        attempt += 1;
+        continue;
+      }
+      for (const [ref, data] of stagedWrites) set(ref, data);
+      return result;
+    }
+  });
+  const db = { collection, runTransaction } as any;
+  return { db, set, get, runTransaction, transactionAttempts };
 }
 
-async function endpoint(overrides: Partial<ProfileRecommendationsRouterDeps> = {}, user?: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean }) {
-  const store = dbFor(user);
+async function endpoint(
+  overrides: Partial<ProfileRecommendationsRouterDeps> = {},
+  user?: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean },
+  deletionExists = false,
+  simulateDeletionRace = false,
+) {
+  const store = dbFor(user, deletionExists, simulateDeletionRace);
   const getRecommendations = vi.fn(async () => [{ id: 'candidate-1' }]);
   const deps: ProfileRecommendationsRouterDeps = {
     currentUserId: () => 'user-a',
@@ -68,8 +108,28 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint({ toPublicProfile: vi.fn(() => profile) });
     const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
     expect(response.status).toBe(200);
-    expect(ctx.store.set).toHaveBeenCalledWith(profile);
+    expect(ctx.store.runTransaction).toHaveBeenCalledOnce();
+    expect(ctx.store.set).toHaveBeenCalledWith(expect.objectContaining({ collection: 'public_profiles', id: 'user-a' }), profile);
     expect(await response.json()).toEqual({ ok: true, city: 'München' });
+  });
+
+  it('does not publish while an account-erasure barrier exists', async () => {
+    const ctx = await endpoint({}, undefined, true);
+    const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
+    expect(ctx.store.set).not.toHaveBeenCalled();
+  });
+
+  it('does not resurrect a public profile when deletion wins a transaction retry race', async () => {
+    const ctx = await endpoint({}, undefined, false, true);
+    const response = await fetch(ctx.base + '/profile/publish', { method: 'POST' });
+    expect(response.status).toBe(200);
+    // The route starts one Firestore transaction; Firestore retries its callback.
+    expect(ctx.store.runTransaction).toHaveBeenCalledTimes(1);
+    expect(ctx.store.transactionAttempts).toHaveBeenCalledTimes(2);
+    expect(await response.json()).toEqual({ ok: false, reason: 'Kontolöschung läuft bereits.' });
+    expect(ctx.store.set).not.toHaveBeenCalled();
   });
 
   it('does not publish example profiles', async () => {
@@ -110,9 +170,19 @@ describe('profile publication and recommendation HTTP boundary', () => {
     ['inactive', { active: false }, false],
     ['blocked', { isBlocked: true }, false],
     ['suspended', { isSuspended: true }, false],
+    ['blocked-status', { status: 'blocked' }, false],
+    ['suspended-status', { status: 'suspended' }, false],
+    ['deleted-status', { status: 'deleted' }, false],
     ['deletion-pending', {}, true],
   ] as const)('rejects %s requesters before recommendation computation', async (_label, data, deletionPending) => {
     const ctx = await endpoint({}, { data: { ...data, location: 'München' }, deletionPending });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects a requester whose user document is missing', async () => {
+    const ctx = await endpoint({}, { exists: false, data: {} });
     const response = await fetch(ctx.base + '/recommendations');
     expect(response.status).toBe(403);
     expect(ctx.getRecommendations).not.toHaveBeenCalled();

@@ -189,6 +189,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && !istGast()
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdult == true
         && get(/databases/$(database)/documents/users/$(userId)).data.isAdult == true
+        && !exists(/databases/$(database)/documents/account_deletions/$(userId))
         && !(
           exists(/databases/$(database)/documents/blocks/$(request.auth.uid + '_' + userId)) ||
           exists(/databases/$(database)/documents/blocks/$(userId + '_' + request.auth.uid))

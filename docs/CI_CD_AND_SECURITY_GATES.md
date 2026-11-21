@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `e1eac9ffefbb70d376cbcc72b735c8c3901e37d3` (PR #392 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `b2ae22fab32d1cb017c82116769e1d372bd384b0` (PR #393 merged; exact post-merge HEAD verified).  
 
 ## Pinned toolchain
 
@@ -337,3 +337,22 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - No dependency, lockfile or workflow changes. No existing Art. 17 erasure, Consent, Accessibility or E2E assertions are removed or weakened.
 - Anti-SHA-Chasing: record this PR's completed exact-head Run IDs in the PR/final handover; no recursive docs-only commit to chase this PR's moving SHA.
 - Preserve productionApproved=false; a passing CI does not authorize a production release.
+
+## Verified main baseline — PR #393 merge (2026-11-21)
+
+- Exact current `main` HEAD: `b2ae22fab32d1cb017c82116769e1d372bd384b0`. This entry supersedes the prior #392 baseline; historical PR #389–#392 run records above remain immutable and are not re-labelled.
+- `Klar Enterprise CI` [Run #44822376842](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44822376842), exact `head_sha` `b2ae22fab32d1cb017c82116769e1d372bd384b0`: **SUCCESS**. Unit Tests: **1,603 passed / 210 files**; Production Smoke passed; Browser Acceptance **35/35 passed**. TypeScript, Functions build and Production Build passed.
+- `Enterprise Compliance & Security Audit Gate` [Run #44822377108](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44822377108), exact same `head_sha`: **SUCCESS**. Gitleaks reported **no leaks found**; Tier 1 production runtime audit checked **549 packages / 0 High+**; full supply-chain audit checked **1,245 packages / 0 High+**; Production Build passed. Below-threshold advisory counts were 3 (runtime) and 7 (full dependency graph).
+- The Audit Gate log records a non-empty Gitleaks commit range from `5291b9fb8eb6c3afa94fa6566e5818726b850db9^..b2ae22fab32d1cb017c82116769e1d372bd384b0` and `no leaks found`. This is distinct from earlier merge-event runs whose `--no-merges --first-parent` range scanned zero commits.
+- Exact run-to-SHA association is mandatory: these results certify only `b2ae22fab32d1cb017c82116769e1d372bd384b0`, not PR #375 or any later SHA. `productionApproved=false` remains unchanged; green CI is not production authorization.
+
+## P0 Issue #373 — canonical Draft PR #375 acceptance and pending gates
+
+- Canonical branch: `security/iteration2-p0-privacy-2026-11-16`; target `main`; keep PR [#375](https://github.com/Veselin-Takev/Klar-Dating/pull/375) **Draft / unmerged**. No parallel PR.
+- `profileRecommendations.ts`: publication reads the user document and erasure barrier in one Firestore transaction and only writes the public projection if the barrier does not exist. Firestore retries on contention; the retry path re-reads the barrier and rejects publication after concurrent deletion wins.
+- `firestore.rules`: direct reads of `public_profiles/{userId}` are denied when the target `account_deletions/{userId}` document exists; existing authentication, Guest, requester/target Adult and bilateral Block checks remain intact.
+- `profileRecommendationsEndpoint.spec.ts`: 27 expanded endpoint cases after four added requester-state regressions (missing user document plus persisted `blocked`, `suspended`, `deleted` states), alongside active/missing erasure-barrier behavior, deletion-on-transaction-retry, profile publish validation and preserved main GET requester protections.
+- `rules.spec.ts`: the Rules Emulator test seeds an existing target public-profile projection, creates the erasure marker, then asserts the direct read fails. The test also leaves the guest and bilateral-block regressions intact.
+- PR #375's own `Klar Enterprise CI`, Rules Emulator results, and `Enterprise Compliance & Security Audit Gate` for the final head remain **[TO VERIFY]** until exact `head_sha` workflow runs complete. Baseline Runs #44822376842 and #44822377108 above do not validate PR #375.
+- No dependencies, lockfiles or workflow files are in scope. Do not create a recursive docs-only commit merely to record PR #375's own moving Run IDs; record exact IDs and head SHA in the final/PR handover once observed, per `AGENTS.md` Anti-SHA-Chasing.
+- Preserve all P0/P1 and operational blockers listed in `docs/HANDOVER_STATUS.md`; PR #375 only addresses the #373 publish/read erasure race. No cloud, IAM, Firestore, Storage or deployment mutation is authorized or performed.
