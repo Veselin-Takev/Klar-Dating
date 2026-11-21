@@ -170,9 +170,19 @@ describe('profile publication and recommendation HTTP boundary', () => {
     ['inactive', { active: false }, false],
     ['blocked', { isBlocked: true }, false],
     ['suspended', { isSuspended: true }, false],
+    ['blocked-status', { status: 'blocked' }, false],
+    ['suspended-status', { status: 'suspended' }, false],
+    ['deleted-status', { status: 'deleted' }, false],
     ['deletion-pending', {}, true],
   ] as const)('rejects %s requesters before recommendation computation', async (_label, data, deletionPending) => {
     const ctx = await endpoint({}, { data: { ...data, location: 'München' }, deletionPending });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects a requester whose user document is missing', async () => {
+    const ctx = await endpoint({}, { exists: false, data: {} });
     const response = await fetch(ctx.base + '/recommendations');
     expect(response.status).toBe(403);
     expect(ctx.getRecommendations).not.toHaveBeenCalled();
