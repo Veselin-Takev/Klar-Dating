@@ -34,7 +34,12 @@ test('evaluates city launch readiness and recommendations accurately', () => {
 });
 
 test('public profile contains only launch-safe fields', () => {
-  const p = toPublicProfile('u1', { name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'], isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false, plan: 'plus', moodHistory: ['secret'] });
+  const accountState = { isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false };
+  const p = toPublicProfile('u1', {
+    name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'],
+    isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false,
+    plan: 'plus', moodHistory: ['secret'],
+  }, { accountState, deletionBarrierExists: false });
   assert.equal(p?.id, 'u1');
   assert.equal('plan' in (p ?? {}), false);
   assert.equal('moodHistory' in (p ?? {}), false);
@@ -45,18 +50,36 @@ test('public profile publishing requires explicit, eligible owner state', () => 
     name: 'Anna', age: 29, location: 'München', isAdult: true, active: true,
     isSuspended: false, isBlocked: false, deletionPending: false,
   };
-  assert.ok(toPublicProfile('u1', valid));
+  assert.ok(toPublicProfile('u1', { ...valid, isAdult: true, active: true }, {
+    accountState: valid,
+    deletionBarrierExists: false,
+  }));
   const invalidStates = [
     { isAdult: false }, { isAdult: undefined },
     { active: false }, { active: undefined },
     { isSuspended: true }, { isSuspended: undefined },
     { isBlocked: true }, { isBlocked: undefined },
-    { deletionPending: true }, { deletionPending: undefined },
+    { deletionPending: true }, { deletionPending: null }, { deletionPending: 'false' }, { deletionPending: 0 },
     { status: 'blocked' }, { status: 'suspended' }, { status: 'deleted' },
   ];
   for (const state of invalidStates) {
-    assert.equal(toPublicProfile('u1', { ...valid, ...state }), null, JSON.stringify(state));
+    const invalid = { ...valid, ...state };
+    assert.equal(toPublicProfile('u1', { ...invalid, isAdult: true, active: true }, {
+      accountState: invalid,
+      deletionBarrierExists: false,
+    }), null, JSON.stringify(state));
   }
+
+  const legacy = { ...valid };
+  delete (legacy as Partial<typeof valid>).deletionPending;
+  assert.ok(toPublicProfile('u1', { ...legacy, isAdult: true, active: true }, {
+    accountState: legacy,
+    deletionBarrierExists: false,
+  }), 'legacy deletionPending omission is allowed only with a confirmed absent barrier');
+  assert.equal(toPublicProfile('u1', { ...legacy, isAdult: true, active: true }, {
+    accountState: legacy,
+    deletionBarrierExists: true,
+  }), null, 'an existing account_deletions barrier always denies publication');
 });
 
 test('referral code is deterministic and bounded', () => {

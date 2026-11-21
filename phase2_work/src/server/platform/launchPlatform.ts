@@ -22,6 +22,11 @@ export function normalizeLaunchCity(value: unknown): LaunchCity | null {
   return CITY_ALIASES[value.trim().toLowerCase()] ?? null;
 }
 
+export type PublicProfileLifecycleGate = {
+  accountState: Record<string, unknown>;
+  deletionBarrierExists: boolean;
+};
+
 export type PublicProfile = {
   id: string;
   name: string;
@@ -43,6 +48,36 @@ export type PublicProfile = {
   lastActiveAt?: unknown;
 };
 
+function hasNoRestrictedAccountStatus(data: Record<string, unknown>): boolean {
+  return data.status !== 'blocked' && data.status !== 'suspended' && data.status !== 'deleted';
+}
+
+/**
+ * The users/{uid} record is authoritative for account lifecycle state.
+ * A legacy record may omit deletionPending only when the separately-read
+ * account_deletions/{uid} barrier is confirmed absent by the caller.
+ */
+function isEligibleProfileLifecycleState(data: Record<string, unknown>): boolean {
+  return data.isAdult === true
+    && data.active === true
+    && data.isSuspended === false
+    && data.isBlocked === false
+    && (data.deletionPending === undefined || data.deletionPending === false)
+    && hasNoRestrictedAccountStatus(data);
+}
+
+/**
+ * public_profiles is a privacy-reduced projection and intentionally omits
+ * private lifecycle fields. Omission is compatible; explicit deny/corrupt
+ * values are not. The user record and deletion barrier are checked separately.
+ */
+function isPublicProfileLifecycleProjectionCompatible(data: Record<string, unknown>): boolean {
+  return (data.isSuspended === undefined || data.isSuspended === false)
+    && (data.isBlocked === undefined || data.isBlocked === false)
+    && (data.deletionPending === undefined || data.deletionPending === false)
+    && hasNoRestrictedAccountStatus(data);
+}
+
 function cleanStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string').slice(0, 30) : [];
 }
@@ -54,13 +89,19 @@ export function cleanMusicPreferences(value: unknown): UserMusicPreferences | un
   return { genres: cleanStringList(music.genres).map(genre => genre.slice(0, 80)), concertGoer: music.concertGoer, playingInstrument: music.playingInstrument };
 }
 
-export function toPublicProfile(uid: string, data: Record<string, unknown>): PublicProfile | null {
+export function toPublicProfile(
+  uid: string,
+  data: Record<string, unknown>,
+  lifecycle: PublicProfileLifecycleGate,
+): PublicProfile | null {
   const city = normalizeLaunchCity(data.location);
   const name = typeof data.name === 'string' ? data.name.trim().slice(0, 80) : '';
   const age = typeof data.age === 'number' ? Math.floor(data.age) : 0;
-  if (!city || !name || age < 18 || age > 100 || data.isAdult !== true || data.active !== true ||
-      data.isSuspended !== false || data.isBlocked !== false || data.deletionPending !== false ||
-      data.status === 'blocked' || data.status === 'suspended' || data.status === 'deleted') return null;
+  if (lifecycle.deletionBarrierExists !== false ||
+      !isEligibleProfileLifecycleState(lifecycle.accountState) ||
+      data.isAdult !== true || data.active !== true ||
+      !isPublicProfileLifecycleProjectionCompatible(data) ||
+      !city || !name || age < 18 || age > 100) return null;
   return {
     id: uid,
     name,
@@ -200,14 +241,32 @@ export async function getRecommendations(
     }
   }
 
-  const pendingDeletion = new Set<string>();
+  const lifecycleGates = new Map<string, PublicProfileLifecycleGate>();
   await Promise.all(snap.docs.map(async document => {
-    const marker = await db.collection('account_deletions').doc(document.id).get();
-    if (marker.exists) pendingDeletion.add(document.id);
+    const [owner, deletion] = await Promise.all([
+      db.collection('users').doc(document.id).get(),
+      db.collection('account_deletions').doc(document.id).get(),
+    ]);
+    lifecycleGates.set(document.id, {
+      accountState: owner.exists ? owner.data() ?? {} : {},
+      deletionBarrierExists: deletion.exists,
+    });
   }));
   const candidates = snap.docs
     .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
-    .filter(({ id, data }) => id !== uid && data.isAdult === true && data.isExample !== true && !pendingDeletion.has(id) && !blocked.has(id) && data.active === true && data.isSuspended === false && data.isBlocked === false && data.deletionPending === false && data.status !== 'blocked' && data.status !== 'suspended' && data.status !== 'deleted' && data.isVerified === true)
+    .filter(({ id, data }) => {
+      const lifecycle = lifecycleGates.get(id);
+      return id !== uid
+        && data.isAdult === true
+        && data.isExample !== true
+        && data.active === true
+        && data.isVerified === true
+        && !blocked.has(id)
+        && lifecycle !== undefined
+        && lifecycle.deletionBarrierExists === false
+        && isEligibleProfileLifecycleState(lifecycle.accountState)
+        && isPublicProfileLifecycleProjectionCompatible(data);
+    })
     .filter(({ data }) => typeof data.age === 'number' && data.age >= minAge && data.age <= maxAge)
     .filter(({ data }) => daysSince(data.lastActiveAt) <= 7)
     .map(({ id, data }) => {
@@ -233,7 +292,7 @@ export async function getRecommendations(
         meaningfulConnectionScore: meaningfulScore,
         explanation,
         reasons,
-        profile: toPublicProfile(id, data),
+        profile: toPublicProfile(id, data, lifecycleGates.get(id)!),
       };
     })
     .filter(item => item.profile !== null)
