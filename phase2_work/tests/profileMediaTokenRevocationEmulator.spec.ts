@@ -120,6 +120,7 @@ describe.runIf(emulatorEnabled)('profile media token revocation against Firebase
             metageneration: postPatchMetadata?.metageneration,
             customMetadataKeys: Object.keys(metadata).sort(),
             tokenKeyState: !hasTokenKey ? 'absent' : tokenValue === null ? 'null' : tokenValue === 'null' ? 'literal-null-string' : typeof tokenValue === 'string' ? 'string-present' : 'unexpected-type',
+            tokenValueMatchesFixture: tokenValue === 'emulator-proxy-token',
             preserveMe: metadata.preserveMe,
           },
           cause: error instanceof Error ? error.message : 'unknown failure',
