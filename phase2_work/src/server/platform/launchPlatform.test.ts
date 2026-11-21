@@ -54,6 +54,20 @@ test('public profile publication fails closed when owner authorization state is 
   }
 });
 
+test('public profile publication fails closed when owner authorization state is missing or ineligible', () => {
+  const base = { name: 'Anna', age: 29, location: 'München', isAdult: true, active: true, isSuspended: false, isBlocked: false };
+  for (const state of [
+    {},
+    { isAdult: false },
+    { active: false },
+    { isSuspended: true },
+    { isBlocked: true },
+    { status: 'deleted' },
+  ]) {
+    assert.equal(toPublicProfile('u1', { ...base, ...state }), null);
+  }
+});
+
 test('referral code is deterministic and bounded', () => {
   const a = referralCodeFor('user-1');
   assert.equal(a, referralCodeFor('user-1'));
