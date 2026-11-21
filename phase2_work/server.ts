@@ -284,6 +284,7 @@ export async function baueApp() {
     );
   }
   app.use(helmet({
+    referrerPolicy: { policy: 'no-referrer' },
     contentSecurityPolicy: istProduktion
       ? {
           directives: {

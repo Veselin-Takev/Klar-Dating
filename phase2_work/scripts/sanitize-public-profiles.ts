@@ -13,8 +13,17 @@ for (;;) {
   if (page.empty) break;
   const batch = db.batch();
   for (const doc of page.docs) {
-    const source = await db.collection('users').doc(doc.id).get();
-    const safe = source.data()?.isVerified === true ? toPublicProfile(doc.id, source.data()) : null;
+    const [source, deletion] = await Promise.all([
+      db.collection('users').doc(doc.id).get(),
+      db.collection('account_deletions').doc(doc.id).get(),
+    ]);
+    const sourceData = source.data() ?? {};
+    const safe = source.exists && !deletion.exists && sourceData.isVerified === true
+      ? toPublicProfile(doc.id, sourceData, {
+        accountState: sourceData,
+        deletionBarrierExists: deletion.exists,
+      })
+      : null;
     inspected++;
     if (safe) { replaced++; if (apply) batch.set(doc.ref, safe); }
     else { removed++; if (apply) batch.delete(doc.ref); }

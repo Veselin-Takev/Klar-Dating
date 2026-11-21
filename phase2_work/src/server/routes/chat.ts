@@ -42,13 +42,17 @@ async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: s
   addRef(ownDeletionRef);
 
   const profileRefs = new Map<string, DocumentReference>();
+  const accountRefs = new Map<string, DocumentReference>();
   for (const entry of entries) {
     addRef(db.collection('blocks').doc(`${uid}_${entry.recipientId}`));
     addRef(db.collection('blocks').doc(`${entry.recipientId}_${uid}`));
     addRef(db.collection('account_deletions').doc(entry.recipientId));
     const profileRef = db.collection('public_profiles').doc(entry.recipientId);
+    const accountRef = db.collection('users').doc(entry.recipientId);
     addRef(profileRef);
+    addRef(accountRef);
     profileRefs.set(entry.recipientId, profileRef);
+    accountRefs.set(entry.recipientId, accountRef);
   }
 
   return db.runTransaction(async tx => {
@@ -69,14 +73,18 @@ async function loadChatListAccess(db: Firestore, snapshot: QuerySnapshot, uid: s
       const blockA = byPath.get(db.collection('blocks').doc(`${uid}_${entry.recipientId}`).path);
       const blockB = byPath.get(db.collection('blocks').doc(`${entry.recipientId}_${uid}`).path);
       const ownRecipientDeletion = byPath.get(db.collection('account_deletions').doc(entry.recipientId).path);
-      if (blockA?.exists || blockB?.exists || ownRecipientDeletion?.exists) return null;
+      const recipientAccount = byPath.get(accountRefs.get(entry.recipientId)!.path);
+      if (blockA?.exists || blockB?.exists || !ownRecipientDeletion || ownRecipientDeletion.exists || !recipientAccount?.exists) return null;
 
       const profile = byPath.get(profileRefs.get(entry.recipientId)!.path);
       if (profile?.exists && profile.data()?.isExample === true) return null;
       return {
         ...chatData,
         id: entry.docId,
-        profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!) : null,
+        profile: profile?.exists ? toPublicProfile(entry.recipientId, profile.data()!, {
+          accountState: recipientAccount.data() ?? {},
+          deletionBarrierExists: ownRecipientDeletion.exists,
+        }) : null,
       };
     }).filter((chat): chat is NonNullable<typeof chat> => chat !== null);
   });
@@ -144,7 +152,10 @@ export function createChatRouter() {
       const access = await db.runTransaction(tx => readChatAccess(db, tx, String(req.params.chatId ?? ''), uid));
       const profile = await db.collection('public_profiles').doc(access.recipientId).get();
       if (profile.exists && profile.data()?.isExample === true) return res.status(404).json({ error: 'Beispielprofile sind nicht erreichbar.' });
-      return res.json({ profile: profile.exists ? toPublicProfile(access.recipientId, profile.data()!) : null });
+      return res.json({ profile: profile.exists ? toPublicProfile(access.recipientId, profile.data()!, {
+        accountState: access.recipientAccountState,
+        deletionBarrierExists: access.recipientDeletionBarrierExists,
+      }) : null });
     } catch (error) {
       if (error instanceof ChatAccessError) return res.status(error.status).json({ error: error.message });
       return res.status(503).json({ error: 'Gespräch konnte nicht geladen werden.' });

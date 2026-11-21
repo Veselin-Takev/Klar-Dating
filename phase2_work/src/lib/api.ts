@@ -2,6 +2,26 @@ import { auth } from './firebase';
 import { melde } from "../lib/fehler";
 import { sollWiederholen } from "./wiederholung";
 
+function safeRequestPath(input: RequestInfo | URL): string {
+  try {
+    const raw = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : typeof Request !== 'undefined' && input instanceof Request
+          ? input.url
+          : '';
+    if (!raw) return '/request';
+    const base = typeof window !== 'undefined' ? window.location.origin : 'https://klar.invalid';
+    const pathname = new URL(raw, base).pathname;
+    if (pathname === '/api/profile-media/self') return pathname;
+    if (/^\/api\/profile-media\/[^/]+\/[^/]+$/.test(pathname)) return '/api/profile-media/:uid/:mediaRef';
+    return pathname.slice(0, 180) || '/';
+  } catch {
+    return '/request';
+  }
+}
+
 export async function getAuthToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
@@ -38,7 +58,7 @@ async function hashRequestBody(body: string): Promise<string> {
 }
 
 async function cacheKeyFor(uid: string, resource: RequestInfo, body: string): Promise<string> {
-  return `${uid}:${resource.toString()}:${await hashRequestBody(body)}`;
+  return `${uid}:${safeRequestPath(resource)}:${await hashRequestBody(body)}`;
 }
 
 function memoryCacheGet(key: string): unknown | undefined {
@@ -156,14 +176,14 @@ export async function fetchWithTimeout(resource: RequestInfo, options: RequestIn
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('klar_api_retry_end'));
           window.dispatchEvent(new CustomEvent('klar_api_error', {
-            detail: { message: error instanceof Error ? error.message : 'Netzwerkfehler', url: resource.toString() }
+            detail: { message: error instanceof Error && error.name === 'AbortError' ? 'Zeitüberschreitung' : 'Netzwerkfehler', route: safeRequestPath(resource) }
           }));
         }
 
         if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Zeitüberschreitung bei der Server-Anfrage. Bitte versuche es später nochmal.');
         }
-        throw error;
+        throw new Error('Netzwerkfehler bei der Server-Anfrage.');
       }
 
       // Wait before retrying (exponential backoff)
@@ -480,18 +500,18 @@ export async function monitoredFetch(input: RequestInfo | URL, init?: RequestIni
     const duration = performance.now() - startTime;
 
     // In a real scenario with Sentry installed, this would be:
-    // Sentry.metrics.distribution('fetch_latency', duration, { tags: { url: input.toString(), status: response.status }});
+    // Telemetry must not receive bearer URLs, query strings or object paths.
     // For now, we mock the Sentry reporting metric logic:
     if (duration > 500) {
-      console.debug(`[Latency Alert] Request to ${input.toString()} took ${Math.round(duration)}ms`);
+      console.debug(`[Latency Alert] Request ${safeRequestPath(input)} took ${Math.round(duration)}ms`);
     }
 
     return response;
   } catch (error) {
     const duration = performance.now() - startTime;
-    // Sentry.captureException(error, { extra: { duration, url: input.toString() } });
-    melde(`[Fetch Error] Request to ${input.toString()} failed after ${Math.round(duration)}ms`, error);
-    throw error;
+    // Do not forward the raw URL or the original error message to diagnostics.
+    melde(`[Fetch Error] Request ${safeRequestPath(input)} failed after ${Math.round(duration)}ms`, { name: error instanceof Error ? error.name : 'Error' });
+    throw new Error('Netzwerkfehler bei der Server-Anfrage.');
   }
 }
 

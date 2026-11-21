@@ -33,9 +33,16 @@ beforeAll(async () => {
     if (typeof data.localId !== 'string' || typeof data.idToken !== 'string') throw new Error('Invalid emulator signup response');
     accounts.push({ uid: data.localId, token: data.idToken });
     expect((await getAuth(getServerFirebaseApp()).verifyIdToken(data.idToken, true)).uid).toBe(data.localId);
-    await db().doc(`users/${data.localId}`).set({ isAdult: index !== 3 });
+    await db().doc(`users/${data.localId}`).set({
+      isAdult: index !== 3,
+      active: true,
+      isSuspended: false,
+      isBlocked: false,
+    });
   }
-  for (const index of [0, 1]) await db().doc(`public_profiles/${identity(index).uid}`).set({ name: `Synthetic ${index}`, age: 25, location: 'Berlin', bio: marker });
+  for (const index of [0, 1]) await db().doc(`public_profiles/${identity(index).uid}`).set({
+    name: `Synthetic ${index}`, age: 25, location: 'Berlin', bio: marker, isAdult: true, active: true,
+  });
 }, 30_000);
 beforeEach(async () => {
   if (!enabled) return;

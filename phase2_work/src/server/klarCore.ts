@@ -385,7 +385,7 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
     await firestore.runTransaction(async tx => {
       const userRef = firestore.collection('users').doc(ziel);
       const [user, deletion] = await tx.getAll(userRef, firestore.collection('account_deletions').doc(ziel));
-      if (!user?.exists || deletion?.exists) throw new InputError('Konto nicht verfügbar.');
+      if (!user?.exists || !deletion || deletion.exists) throw new InputError('Konto nicht verfügbar.');
       const userData = user.data() ?? {};
       const requestId = typeof userData.verificationRequestId === 'string' ? userData.verificationRequestId : '';
       const storagePath = typeof userData.verificationPfad === 'string' ? userData.verificationPfad : '';
@@ -398,12 +398,16 @@ export async function handleVerificationDecide(req: Request, res: Response): Pro
       const decision = { isVerified: bestaetigt, verificationStatus: entscheidung,
         verificationBegruendung: begruendung || null, verificationEntschiedenAm: FieldValue.serverTimestamp(),
         verificationRequestId: null, verificationPfad: null };
+      const ownerState = { ...userData, ...decision };
       tx.update(userRef, decision);
       tx.update(requestRef, { status: entscheidung, entscheidung, begruendung: begruendung || null, entschiedenAm: FieldValue.serverTimestamp() });
       tx.create(firestore.collection('verification_events').doc(), { uid: ziel, moderatorUid: uid(req),
         entscheidung, begruendung: begruendung || null, at: FieldValue.serverTimestamp(), decidedAt,
         storagePath, photoPurged: false, fotoLoeschenAb: new Date(decidedAt.getTime() + 30 * 86_400_000) });
-      const publicProfile = toPublicProfile(ziel, { ...user.data(), ...decision });
+      const publicProfile = toPublicProfile(ziel, ownerState, {
+        accountState: ownerState,
+        deletionBarrierExists: deletion.exists,
+      });
       const publicRef = firestore.collection('public_profiles').doc(ziel);
       if (bestaetigt && publicProfile) tx.set(publicRef, publicProfile); else tx.delete(publicRef);
     });
