@@ -34,7 +34,7 @@ test('evaluates city launch readiness and recommendations accurately', () => {
 });
 
 test('public profile contains only launch-safe fields', () => {
-  const p = toPublicProfile('u1', { name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'], isAdult: true, active: true, isSuspended: false, isBlocked: false, plan: 'plus', moodHistory: ['secret'] });
+  const p = toPublicProfile('u1', { name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'], isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false, plan: 'plus', moodHistory: ['secret'] });
   assert.equal(p?.id, 'u1');
   assert.equal('plan' in (p ?? {}), false);
   assert.equal('moodHistory' in (p ?? {}), false);
