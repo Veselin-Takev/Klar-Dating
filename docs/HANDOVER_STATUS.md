@@ -315,3 +315,14 @@ The following tracked issues were returned as **OPEN** by GitHub at this snapsho
 - **Release operations:** #8 production controls, monitoring and operational approvals remain open. No item above is cleared by the green main baseline or by PR #375 source changes.
 
 No production approval, merge, deployment, live cloud/IAM/Firestore/Storage mutation, or production-data operation is authorized or performed by this workstream.
+ 
+## Verified MAIN_BASELINE_GREEN — E1 base baseline (2026-11-21)
+
+- The verified base for E1 is `main` at exact HEAD `30250a1fc82f24834c7ada62f8453df04af20f2a`. This supersedes the older #393 main baseline above; prior #389–#393 merge history and PR #375 evidence remain preserved and SHA-bound as historical records.
+- `Klar Enterprise CI` [Run #44879246458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246458) validates the stated baseline: **210 test files** and **35/35 Playwright** passed.
+- `Enterprise Compliance & Security Audit Gate` [Run #44879246487](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246487) validates the stated baseline: **0 High+** findings and **Build PASS**.
+- Pre-merge tree-equivalent Gitleaks [Run #44878055568](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44878055568): **16.50 KB scanned / 0 leaks**. This is scoped to the equivalent tree evidence; it is not evidence for subsequent changed trees.
+- These results certify only the exact `main` baseline above. They do not approve production or transfer to an E1 branch HEAD.
+- Canonical E1 Draft PR [#394](https://github.com/Veselin-Takev/Klar-Dating/pull/394), branch `security/issue-374-e1-rules-ui-cutover-20261121`, remains open / Draft / unmerged. Its own exact-HEAD Klar Enterprise CI and Enterprise Compliance & Security Audit Gate results are **[TO VERIFY]** pending completion on the final PR head.
+- E1 covers Storage Rules + pure-model parity, authenticated UI media consumers, diagnostics/active Helmet, static boundary enforcement and docs reconciliation. E2 is a separate follow-up for the legacy Firestore media-reference migration and Firebase download-token revocation CLI for P1 #206.
+- `productionApproved=false` remains mandatory; release remains **NO-GO**. No cloud, IAM, Firestore, Storage, bucket or deployment mutation is authorized or performed by this source change.

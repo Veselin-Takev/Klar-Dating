@@ -1,3 +1,4 @@
+import { AuthenticatedProfileImage } from "../components/AuthenticatedProfileImage";
 import { resolveProfileDisplayName } from '../lib/profileDisplayName';
 import { ConsentSettings } from '../components/ConsentSettings';
 import { PartnerReferralWidget } from "../components/PartnerReferralWidget";
@@ -73,7 +74,6 @@ import { triggerHaptic } from "../lib/haptics";
 import { Cloud, Database } from "lucide-react";
 import { melde } from "../lib/fehler";
 import { useModalAccessibility } from "../lib/useModalAccessibility";
-import { useAuthenticatedProfileMedia } from '../lib/profileMediaClient';
 
 function OfflineCacheStatus() {
   const { t } = useTranslation();
@@ -334,11 +334,6 @@ export default function Profile() {
     { id: 'einstellungen', beschriftung: t('profileTabs.settings') },
   ];
   const { user, logOut, updateProfileData, profileData, refreshProfile } = useAuth();
-  const selfProfileMedia = useAuthenticatedProfileMedia(
-    profileData?.photoURL && !profileData.photoURL.includes('/_/upload/') ? { kind: 'self' } : null,
-    user?.uid ?? null,
-    profileData?.photoURL ?? null,
-  );
   const [activeRadarValue, setActiveRadarValue] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -884,12 +879,11 @@ Antworte nur mit einer unformatierten Liste (jede Frage in einer neuen Zeile, oh
           <label className="cursor-pointer block group">
             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoSelect} />
             <div className="w-14 h-[70px] bg-stone-200 dark:bg-stone-800 rounded-xl overflow-hidden border-2 border-white dark:border-stone-900 shadow-sm relative">
-              <img
-                src={selfProfileMedia.src ?? "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200"}
+              <AuthenticatedProfileImage
+                target={profileData?.photoURL && !profileData.photoURL.includes('/_/upload/') ? { kind: 'self' } : null}
+                viewerUid={user?.uid ?? null}
+                revision={profileData?.photoURL ?? null}
                 alt={t('profileScreen.header.avatar')}
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200";
-                }}
                 className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">

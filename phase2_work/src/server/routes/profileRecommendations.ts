@@ -1,12 +1,12 @@
 import { Router, type Request } from 'express';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { CompatibilityProfile } from '../platform/compatibility';
-import type { LaunchCity, PublicProfile } from '../platform/launchPlatform';
+import type { LaunchCity, PublicProfile, PublicProfileLifecycleGate } from '../platform/launchPlatform';
 
 export type ProfileRecommendationsRouterDeps = {
   currentUserId: (req: Request) => string | null;
   getFirestore: () => Firestore;
-  toPublicProfile: (uid: string, data: Record<string, unknown>) => PublicProfile | null;
+  toPublicProfile: (uid: string, data: Record<string, unknown>, lifecycle: PublicProfileLifecycleGate) => PublicProfile | null;
   normalizeLaunchCity: (value: unknown) => LaunchCity | null;
   isGuest?: (req: Request) => boolean;
   getRecommendations: (
@@ -67,7 +67,10 @@ export function createProfileRecommendationsRouter(deps: ProfileRecommendationsR
           return { ok: false as const, reason: 'Profil noch nicht für Vorschläge freigegeben.' };
         }
 
-        const publicProfile = deps.toPublicProfile(uid, userData as Record<string, unknown>);
+        const publicProfile = deps.toPublicProfile(uid, userData as Record<string, unknown>, {
+          accountState: userData,
+          deletionBarrierExists: deletionSnap.exists,
+        });
         if (!publicProfile) {
           return { ok: false as const, reason: 'Für die Veröffentlichung fehlen Profilangaben.' };
         }
