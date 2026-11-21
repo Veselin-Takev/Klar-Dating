@@ -113,3 +113,17 @@ E1 does not contain `profile-media-migration.ts`, `profile-media-token-revocatio
 The stated E1 base is `main` at `30250a1fc82f24834c7ada62f8453df04af20f2a`. Its own hosted Klar Enterprise CI and Audit Gate results are **[TO VERIFY]** on the final PR head. The earlier Package D Run #2150 is not transferable to E1.
 
 Direct client Storage reads for `/profiles/{uid}/{datei}` remain denied. `productionApproved=false` and **NO-GO** remain in force. No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation is authorized or evidenced.
+
+
+## 7. Current E1/E2 status and verified main baseline — 2026-11-21
+
+This section supersedes the earlier planning-time PR lifecycle statements above while preserving all historical Package A–D and Run #2150 evidence.
+
+- **E1 / PR #394:** merged into `main` at `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`. E1 completed Storage Rules/pure-model parity, authenticated UI media consumers, diagnostics/Helmet and the profile-media boundary guard. It did not include Firestore media-reference migration or token metadata changes.
+- **PR #395 / Gitleaks full-range CI fix:** merged at verified `main` HEAD `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`; merge tree `6f240c6e4ce0d4eced8a47918bc5dd163cc91da7` matches its validated PR head tree.
+- **Klar Enterprise CI** [Run #44943576348](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576348), exact HEAD `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`: completed/success; Static Gates including profile-media boundary PASS; Typecheck, Functions Build, Build, Production Smoke PASS; **212 files / 1,627 tests / 0 failed**; Playwright **35/35**.
+- **Enterprise Compliance & Security Audit Gate** [Run #44943576333](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576333), same exact HEAD: completed/success; Gitleaks **2 commits / 42.97 KB / 0 leaks** with CLI v8.24.3 checksum verification and 4/4 range regression; Tier 1 **549 packages / 0 High+**; Full Supply-Chain **1,245 packages / 0 High+**; Production Build PASS.
+- **E2 / P1 #206:** implementation is in Draft branch `security/issue-206-e2-media-migration-revocation-20261121`, based on the exact baseline above. It adds inventory alias/version coverage, deterministic dry-run-first migration with Firestore CAS and bounded checkpoints, and explicit-manifest metageneration-gated token revocation. Both tools fail closed on an unrecognized target and do not log raw URLs, tokens or UIDs.
+- AC-07–AC-13 unit and emulator tests were added, including the paired authenticated proxy test following test-token removal. E2's own hosted Klar Enterprise CI and Audit Gate results remain **[TO VERIFY]** on the final Draft PR head.
+- **Staging remains pending:** no real staging project/bucket/cohort has been selected or mutated. The real old-token negative test and the post-revocation authenticated-proxy staging verification remain required before any separately authorized staging canary.
+- `productionApproved=false` remains mandatory. No production migration, revocation, Cloud/IAM/Firestore/Storage/bucket mutation or deployment is authorized or evidenced.

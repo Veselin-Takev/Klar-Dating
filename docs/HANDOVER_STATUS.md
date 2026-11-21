@@ -1,7 +1,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-21
-**Main HEAD (verified after PR #394 merge):** `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`
+**Main HEAD (verified after PR #395 merge):** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## 5-minute quickstart
@@ -345,3 +345,23 @@ No production approval, merge, deployment, live cloud/IAM/Firestore/Storage muta
 - Regression proof: `node --test phase2_work/scripts/gitleaks-pr-range.test.mjs` builds a deterministic 32-commit Git history and asserts that all commits, including PR commits 31, 32 and final HEAD, are in the exact scan log range; static checks reject the unpaginated action/API path.
 - This Draft PR's own `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` runs remain **[TO VERIFY]** until completed on its exact final `head_sha`. Per `AGENTS.md` Anti-SHA-Chasing, record resulting Run IDs in the final handover/PR metadata; do not create a self-referential docs-only follow-up commit.
 - No application runtime code, app dependencies, lockfiles, live Cloud/IAM/Firestore/Storage state or deployment configuration is changed. `productionApproved=false`; release remains **NO-GO**.
+
+
+## Verified MAIN_BASELINE_GREEN — post-PR #395 merge (2026-11-21)
+
+- PR [#395](https://github.com/Veselin-Takev/Klar-Dating/pull/395) merged to `main` at merge SHA / verified live `main` HEAD `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`. Previous `main` parent: `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`; validated PR HEAD: `67fdcd40c3cd27da3f31fc9ad4fc928f23a05399`.
+- Merge tree SHA `6f240c6e4ce0d4eced8a47918bc5dd163cc91da7` is identical to the validated PR #395 HEAD tree. Preserve the PR #389–#395 and #375 records above as immutable SHA-specific history.
+- `Klar Enterprise CI` [Run #44943576348](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576348), exact `head_sha` `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`: **SUCCESS** — Enterprise Static Gates including `check-profile-media-boundary` PASS; Typecheck, Functions Build, Tests (**212 files / 1,627 passed / 0 failed**), Build and Production Smoke PASS; Playwright Browser Acceptance **35/35 passed / 0 failed**.
+- `Enterprise Compliance & Security Audit Gate` [Run #44943576333](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44943576333), same exact `head_sha`: **SUCCESS** — Quality / TypeScript, Unit Tests, Compliance & Security Checks and Production Build PASS; Tier 1 Runtime Audit **549 packages / 0 High+**; Full Supply-Chain Audit **1,245 packages / 0 High+**.
+- Post-merge Gitleaks in Run #44943576333 resolved the explicit push range `7389e57a11e4a5e3e384cbfc6992345453a5dcaa..83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`, used `--full-history --diff-merges=separate`, verified the official Gitleaks CLI **v8.24.3** checksum (`gitleaks_8.24.3_linux_x64.tar.gz: OK`), passed the full-range regression **4/4**, and scanned **2 commits / 42.97 KB / 0 leaks**.
+- This is a development/integration baseline only. `productionApproved=false` and release **NO-GO** remain mandatory. No live Cloud, IAM, Firestore, Storage, bucket or deployment mutation is authorized or evidenced.
+
+
+## Active P1 #206 E2 — media migration and token-revocation implementation
+
+- Feature branch: `security/issue-206-e2-media-migration-revocation-20261121`, created directly from verified `main` SHA `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`; target `main`; lifecycle **Draft / unmerged**.
+- E1 PR #394 is merged at `7389e57a11e4a5e3e384cbfc6992345453a5dcaa`. E2 is the separate P1 #206 implementation: inventory alias/version coverage, dry-run-first canonical-reference migration with Firestore compare-and-set and bounded local checkpoints, and explicitly approved, metageneration-gated removal of only `firebaseStorageDownloadTokens`.
+- CLI target selection fails closed unless the project and bucket exactly match the separately provisioned staging allowlist. Execution additionally requires a staging-approved manifest, its independently pinned SHA-256 digest and explicit confirmation. Dry-run is the default for both CLIs. No project/bucket has been approved or selected for a real staging run in this PR.
+- Unit and emulator coverage has been added for AC-07–AC-13, including the paired authenticated proxy verification. The PR's own exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` are **[TO VERIFY]** until hosted workflows complete on the final PR HEAD.
+- Anti-SHA-Chasing: preserve the exact baseline Run IDs above; do not create a follow-up docs-only commit to record this active PR's own moving Run IDs. Report those IDs and the final head SHA in the PR/final handover.
+- Staging-only migration/revocation execution, old-token negative verification in the real staging environment, independent AppSec/DPO/SRE review and Release Owner approval remain pending. `productionApproved=false`; production remains **NO-GO**.

@@ -17,10 +17,10 @@ describe('read-only legacy profile media token inventory', () => {
     let storagePage = 0;
 
     const metadataByPath = new Map<string, ProfileMediaObjectInspection>([
-      [objectA, { exists: true, hasFirebaseDownloadTokenMetadata: true }],
-      [objectB, { exists: true, hasFirebaseDownloadTokenMetadata: false }],
+      [objectA, { exists: true, hasFirebaseDownloadTokenMetadata: true, generation: '11', metageneration: '3' }],
+      [objectB, { exists: true, hasFirebaseDownloadTokenMetadata: false, generation: '12', metageneration: '4' }],
       [missingObject, { exists: false, hasFirebaseDownloadTokenMetadata: false }],
-      [orphanObject, { exists: true, hasFirebaseDownloadTokenMetadata: true }],
+      [orphanObject, { exists: true, hasFirebaseDownloadTokenMetadata: true, generation: '13', metageneration: '2' }],
     ]);
 
     const listUsersPage = vi.fn(async (cursor: unknown, pageSize: number) => {
@@ -30,6 +30,7 @@ describe('read-only legacy profile media token inventory', () => {
           users: [{
             uid: 'user-a',
             data: {
+              photoStoragePath: objectA,
               photoURL: storageUrl(objectA, 'token-a'),
               photos: [storageUrl(objectA, 'token-a'), storageUrl(objectB, 'token-b')],
               bio: 'must-not-be-returned',
@@ -40,7 +41,7 @@ describe('read-only legacy profile media token inventory', () => {
       }
       if (cursor === 'user-a-cursor') {
         return {
-          users: [{ uid: 'user-b', data: { photoUrl: storageUrl(missingObject, 'token-c') } }],
+          users: [{ uid: 'user-b', data: { photoPath: objectB, photoUrl: storageUrl(missingObject, 'token-c') } }],
         };
       }
       return { users: [] };
@@ -77,11 +78,16 @@ describe('read-only legacy profile media token inventory', () => {
       profileRecordsWithLegacyDownloadUrls: 2,
       legacyDownloadUrlReferences: 4,
       unresolvedLegacyDownloadUrls: 0,
+      profileMediaReferencesScanned: 6,
+      canonicalProfileMediaReferences: 0,
+      rawProfileMediaPathReferences: 2,
       uniqueReferencedObjects: 3,
-      duplicateObjectReferences: 1,
+      duplicateObjectReferences: 3,
       referencedObjectsMissing: 1,
       referencedObjectsWithFirebaseDownloadTokenMetadata: 1,
       referencedObjectsWithoutFirebaseDownloadTokenMetadata: 1,
+      referencedObjectsWithVersionMetadata: 2,
+      referencedObjectsWithoutVersionMetadata: 0,
       storageObjectsScanned: 3,
       storageObjectsWithFirebaseDownloadTokenMetadata: 2,
       storageObjectsWithoutFirebaseDownloadTokenMetadata: 1,
@@ -116,6 +122,7 @@ describe('read-only legacy profile media token inventory', () => {
     expect(result.legacyDownloadUrlReferences).toBe(1);
     expect(result.unresolvedLegacyDownloadUrls).toBe(1);
     expect(result.uniqueReferencedObjects).toBe(0);
+    expect(result.profileMediaReferencesScanned).toBe(1);
     expect(JSON.stringify(result)).not.toContain('secret-token');
   });
 
