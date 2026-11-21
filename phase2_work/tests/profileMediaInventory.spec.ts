@@ -41,7 +41,7 @@ describe('read-only legacy profile media token inventory', () => {
       }
       if (cursor === 'user-a-cursor') {
         return {
-          users: [{ uid: 'user-b', data: { photoPath: objectB, photoUrl: storageUrl(missingObject, 'token-c') } }],
+          users: [{ uid: 'user-b', data: { photoPath: missingObject, photoUrl: storageUrl(missingObject, 'token-c') } }],
         };
       }
       return { users: [] };
