@@ -9,6 +9,7 @@ import {
 const USER_ALICE = { uid: 'usr_alice', token: { firebase: { sign_in_provider: 'password' } } };
 const USER_BOB = { uid: 'usr_bob', token: { firebase: { sign_in_provider: 'google.com' } } };
 const GAST_USER = { uid: 'usr_guest', token: { firebase: { sign_in_provider: 'anonymous' } } };
+const ACTIVE_OWNER = { exists: true, isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false };
 
 test('Storage Rules: Helper methods validate MIME types and guest markers', () => {
   assert.equal(isImageContentType('image/jpeg'), true);
@@ -104,6 +105,7 @@ test('Storage Rules: /profiles/{uid}/{datei} denies direct reads and retains own
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_ALICE,
     resource: validResource,
+    ownerState: ACTIVE_OWNER,
   });
   assert.equal(aliceWrites.allowed, true);
 
@@ -122,6 +124,7 @@ test('Storage Rules: /profiles/{uid}/{datei} denies direct reads and retains own
     operation: 'delete',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_ALICE,
+    ownerState: ACTIVE_OWNER,
   });
   assert.equal(aliceDeletes.allowed, true);
 
@@ -143,4 +146,37 @@ test('Storage Rules: Default deny-all on unregistered collections or incomplete 
   });
   assert.equal(unknownPath.allowed, false);
   assert.equal(unknownPath.code, 'PERMISSION_DENIED');
+});
+
+test('Storage Rules: profile create/update/delete fail closed for missing or ineligible Firestore owner state', () => {
+  const path = '/profiles/usr_alice/avatar.png';
+  const invalidStates = [
+    undefined,
+    { exists: false, isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false },
+    { ...ACTIVE_OWNER, isAdult: false },
+    { ...ACTIVE_OWNER, active: false },
+    { ...ACTIVE_OWNER, isSuspended: true },
+    { ...ACTIVE_OWNER, isBlocked: true },
+    { ...ACTIVE_OWNER, status: 'suspended' },
+    { ...ACTIVE_OWNER, status: 'blocked' },
+    { ...ACTIVE_OWNER, status: 'deleted' },
+    { ...ACTIVE_OWNER, deletionPending: true },
+    { ...ACTIVE_OWNER, deletionPending: undefined },
+  ];
+  for (const ownerState of invalidStates) {
+    for (const operation of ['write', 'delete'] as const) {
+      const decision = evaluateStorageSecurityRule({ operation, path, auth: USER_ALICE, ownerState,
+        ...(operation === 'write' ? { resource: { size: 100, contentType: 'image/jpeg' } } : {}) });
+      assert.equal(decision.allowed, false, `unexpected allow for ${operation}: ${JSON.stringify(ownerState)}`);
+    }
+  }
+});
+
+test('Storage Rules: valid Firestore owner state is required for both profile writes and deletion', () => {
+  const path = '/profiles/usr_alice/avatar.png';
+  for (const operation of ['write', 'delete'] as const) {
+    const decision = evaluateStorageSecurityRule({ operation, path, auth: USER_ALICE, ownerState: ACTIVE_OWNER,
+      ...(operation === 'write' ? { resource: { size: 100, contentType: 'image/jpeg' } } : {}) });
+    assert.equal(decision.allowed, true);
+  }
 });
