@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
+import express from 'express';
+import { Readable } from 'node:stream';
+import type { AddressInfo } from 'node:net';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +12,7 @@ import {
   executeProfileMediaTokenRevocation,
   type ProfileMediaTokenMetadata,
 } from '../src/server/platform/profileMediaTokenRevocation';
+import { createCanonicalMediaRef, createProfileMediaRouter } from '../src/server/platform/profileMedia';
 
 const manifestDigest = 'b'.repeat(64);
 const objectPath = 'profiles/test-user/avatar.jpg';
@@ -78,6 +82,60 @@ describe('metageneration-gated profile media token revocation', () => {
     expect(result).toEqual({ revoked: 1, alreadyAbsent: 0, missing: 0, conflicts: 0, stopped: false });
     expect(patch).toHaveBeenCalledTimes(1);
     expect(current.customMetadata).toEqual({ retentionClass: 'profile-image', ownerVerified: 'true' });
+
+    const bytes = Buffer.from('profile-media-bytes-after-revocation');
+    const profileState = {
+      isAdult: true, active: true, isSuspended: false, isBlocked: false, deletionPending: false,
+    };
+    const db = {
+      collection: (name: string) => {
+        if (name === 'users') return {
+          doc: (_uid: string) => ({ get: async () => ({ exists: true, data: () => profileState }) }),
+        };
+        if (name === 'account_deletions') return {
+          doc: (_uid: string) => ({ get: async () => ({ exists: false }) }),
+        };
+        return {
+          where: (_field: string, _op: string, _value: string) => ({
+            where: (_nextField: string, _nextOp: string, _nextValue: string) => ({
+              limit: (_count: number) => ({ get: async () => ({ empty: true }) }),
+            }),
+          }),
+        };
+      },
+    };
+    const file = {
+      exists: async () => [true],
+      getMetadata: async () => [{
+        contentType: 'image/jpeg',
+        size: String(bytes.length),
+        metadata: current.customMetadata,
+      }],
+      createReadStream: () => Readable.from([bytes]),
+    };
+    const app = express();
+    app.use('/api', createProfileMediaRouter({
+      getFirestore: () => db as never,
+      getAuth: () => ({
+        verifyIdToken: async (token: string, checkRevoked: boolean) => {
+          if (token !== 'proxy-auth-token' || checkRevoked !== true) throw new Error('invalid test token');
+          return { uid: 'test-viewer', firebase: { sign_in_provider: 'password' } };
+        },
+      }) as never,
+      getBucket: () => ({ file: (_path: string) => file }) as never,
+    }));
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    try {
+      const canonical = createCanonicalMediaRef('test-user', objectPath);
+      const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/profile-media/test-user/${encodeURIComponent(canonical)}`;
+      const response = await fetch(url, { headers: { Authorization: 'Bearer proxy-auth-token' } });
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toContain('no-store');
+      expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
   });
 
   it('stops on a metageneration precondition conflict without retrying or processing later objects', async () => {
