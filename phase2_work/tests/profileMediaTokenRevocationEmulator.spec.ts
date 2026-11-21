@@ -75,8 +75,9 @@ describe.runIf(emulatorEnabled)('profile media token revocation against Firebase
     expect(JSON.stringify(plan.summary)).not.toContain(uid);
   });
 
-  it('revokes only the Firebase token key with a metageneration precondition and keeps the proxy working', async () => {
-    await file.save(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x02]), {
+  it('fails closed when the Storage Emulator re-exposes the token and keeps authenticated proxy delivery working', async () => {
+    const bytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x02]);
+    await file.save(bytes, {
       metadata: {
         contentType: 'image/jpeg',
         metadata: { firebaseStorageDownloadTokens: 'emulator-proxy-token', preserveMe: 'keep-this' },
@@ -94,43 +95,29 @@ describe.runIf(emulatorEnabled)('profile media token revocation against Firebase
       generation: before.generation!,
       metageneration: before.metageneration!,
     }], readMetadata, manifestDigest);
-    let postPatchMetadata: Awaited<ReturnType<typeof readMetadata>> | undefined;
-    let result;
-    try {
-      result = await executeProfileMediaTokenRevocation(plan, {
-        readMetadata,
-        patchCustomMetadata: async (path, patch, options) => {
-          await bucket.file(path).setMetadata(
-            { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } },
-            { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
-          );
-          postPatchMetadata = await readMetadata(path);
-        },
-      });
-    } catch (error) {
-      const metadata = postPatchMetadata?.customMetadata ?? {};
-      const hasTokenKey = Object.prototype.hasOwnProperty.call(metadata, 'firebaseStorageDownloadTokens');
-      const tokenValue = metadata.firebaseStorageDownloadTokens;
-      throw new Error(
-        'Revocation emulator diagnostic (values redacted): ' + JSON.stringify({
-          before: { generation: before.generation, metageneration: before.metageneration },
-          after: {
-            exists: postPatchMetadata?.exists,
-            generation: postPatchMetadata?.generation,
-            metageneration: postPatchMetadata?.metageneration,
-            customMetadataKeys: Object.keys(metadata).sort(),
-            tokenKeyState: !hasTokenKey ? 'absent' : tokenValue === null ? 'null' : tokenValue === 'null' ? 'literal-null-string' : typeof tokenValue === 'string' ? 'string-present' : 'unexpected-type',
-            tokenValueMatchesFixture: tokenValue === 'emulator-proxy-token',
-            preserveMe: metadata.preserveMe,
-          },
-          cause: error instanceof Error ? error.message : 'unknown failure',
-        }),
-      );
-    }
+
+    // firebase-tools 15.31.0 keeps the token in StoredFileMetadata.downloadTokens
+    // after a GCS custom-metadata PATCH removes the matching customMetadata key.
+    // The serializer re-emits it on GET, so the production verifier must refuse
+    // to report revocation success. This is an emulator limitation, not a waiver.
+    await expect(executeProfileMediaTokenRevocation(plan, {
+      readMetadata,
+      patchCustomMetadata: async (path, patch, options) => {
+        await bucket.file(path).setMetadata(
+          { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } },
+          { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
+        );
+      },
+    })).rejects.toThrow('Post-revocation verification failed; stop and reconcile the object manually.');
+
     const after = await readMetadata(objectPath);
-    expect(result).toMatchObject({ revoked: 1, conflicts: 0, stopped: false });
-    expect(after.customMetadata?.firebaseStorageDownloadTokens).toBeUndefined();
+    expect(after.exists).toBe(true);
+    expect(after.generation).toBe(before.generation);
+    expect(Number(after.metageneration)).toBe(Number(before.metageneration) + 1);
+    expect(after.customMetadata?.firebaseStorageDownloadTokens).toBe('emulator-proxy-token');
     expect(after.customMetadata?.preserveMe).toBe('keep-this');
+    const [storedBytes] = await file.download();
+    expect(storedBytes).toEqual(bytes);
 
     const app = express();
     app.use('/api', createProfileMediaRouter({
@@ -151,7 +138,7 @@ describe.runIf(emulatorEnabled)('profile media token revocation against Firebase
     const response = await fetch(url, { headers: { Authorization: 'Bearer emulator-auth-token' } });
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toContain('no-store');
-    expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x02]));
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
   });
 
   it('stops safely when the object metageneration changed after the manifest was approved', async () => {
