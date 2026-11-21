@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { validateProfileMediaE2Manifest } from '../src/server/platform/profileMediaE2Manifest';
 import {
   createProfileMediaTokenRevocationPlan,
@@ -21,6 +24,25 @@ const baseMetadata = () => ({
 });
 
 describe('metageneration-gated profile media token revocation', () => {
+  it.each([
+    ['migration', 'profile-media-migration.ts', 'Profile-media migration stopped safely.'],
+    ['token revocation', 'profile-media-token-revocation.ts', 'Profile-media token revocation stopped safely.'],
+  ])('parses the %s CLI entrypoint and fails closed before target selection without a manifest', (_name, filename, expectedMessage) => {
+    const testDirectory = dirname(fileURLToPath(import.meta.url));
+    const packageDirectory = resolve(testDirectory, '..');
+    const scriptPath = resolve(packageDirectory, 'scripts', filename);
+    const child = spawnSync(process.execPath, ['--import=tsx', scriptPath], {
+      cwd: packageDirectory,
+      encoding: 'utf8',
+      timeout: 15_000,
+      env: { ...process.env, KLAR_E2_STAGING_PROJECT_ID: '', KLAR_E2_STAGING_BUCKET: '' },
+    });
+    expect(child.error).toBeUndefined();
+    expect(child.status).toBe(1);
+    expect(child.stderr).toContain(expectedMessage);
+    expect(child.stderr).not.toMatch(/SyntaxError|Unexpected token|Cannot use import/i);
+    expect(child.stdout).toBe('');
+  });
   it('dry-run plans only approved, version-matching objects and performs zero mutations', async () => {
     const patch = vi.fn();
     const inspect = vi.fn(async () => baseMetadata());

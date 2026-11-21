@@ -115,12 +115,10 @@ async function main(): Promise<void> {
   const result = await executeProfileMediaTokenRevocation(plan, {
     readMetadata,
     patchCustomMetadata: async (objectPath, patch, options) => {
-      try {
-        await bucket.file(objectPath).setMetadata(
-          { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } },
-          { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
-        );
-      }
+      await bucket.file(objectPath).setMetadata(
+        { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } } as never,
+        { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
+      );
     },
   });
   console.log(JSON.stringify({
