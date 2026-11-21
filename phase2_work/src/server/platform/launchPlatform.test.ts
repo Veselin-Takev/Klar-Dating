@@ -34,10 +34,24 @@ test('evaluates city launch readiness and recommendations accurately', () => {
 });
 
 test('public profile contains only launch-safe fields', () => {
-  const p = toPublicProfile('u1', { name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'], plan: 'plus', moodHistory: ['secret'] });
+  const p = toPublicProfile('u1', { name: 'Anna', age: 29, location: 'München', bio: 'x', interests: ['Hiking'], isAdult: true, active: true, isSuspended: false, isBlocked: false, plan: 'plus', moodHistory: ['secret'] });
   assert.equal(p?.id, 'u1');
   assert.equal('plan' in (p ?? {}), false);
   assert.equal('moodHistory' in (p ?? {}), false);
+});
+
+test('public profile publication fails closed when owner authorization state is missing or ineligible', () => {
+  const base = { name: 'Anna', age: 29, location: 'München', isAdult: true, active: true, isSuspended: false, isBlocked: false };
+  for (const state of [
+    {},
+    { isAdult: false },
+    { active: false },
+    { isSuspended: true },
+    { isBlocked: true },
+    { status: 'deleted' },
+  ]) {
+    assert.equal(toPublicProfile('u1', { ...base, ...state }), null);
+  }
 });
 
 test('referral code is deterministic and bounded', () => {
