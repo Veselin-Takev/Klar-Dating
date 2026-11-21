@@ -87,7 +87,7 @@ jobs:
           echo "KLAR_RELEASE_DIGEST=$digest" >> "$GITHUB_ENV"
 
       - name: Generate GitHub container provenance attestation
-        uses: actions/attest@b60c2628ab941b449db82e38ba8d500980ce8a54
+        uses: actions/attest@4d7d407517fe0a9f57ab8ca277dfd2efb1188c7f
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/klar-app
           subject-digest: ${{ env.KLAR_RELEASE_DIGEST }}
