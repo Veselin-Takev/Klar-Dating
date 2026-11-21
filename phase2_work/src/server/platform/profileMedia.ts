@@ -4,40 +4,59 @@ import type { Bucket } from '@google-cloud/storage';
 import type { Auth } from 'firebase-admin/auth';
 
 const PREFIX = 'klar-media:v1:';
+const UID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const OBJECT_PATH_PATTERN = /^[A-Za-z0-9_./-]+$/;
+const LEGACY_STORAGE_HOSTS = new Set(['firebasestorage.googleapis.com', 'storage.googleapis.com']);
+
+function isOwnerScopedObjectPath(uid: string, path: string): boolean {
+  return UID_PATTERN.test(uid)
+    && path.startsWith(`profiles/${uid}/`)
+    && OBJECT_PATH_PATTERN.test(path)
+    && path.split('/').every(segment => segment.length > 0 && segment !== '.' && segment !== '..');
+}
+
 export function createCanonicalMediaRef(uid: string, objectPath: string): string {
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid) || !objectPath.startsWith(`profiles/${uid}/`) || objectPath.includes('\\\\') || objectPath.split('/').some(segment => segment === '..' || segment === '.' || segment === '')) {
-    throw new Error('Invalid profile media path');
-  }
+  if (!isOwnerScopedObjectPath(uid, objectPath)) throw new Error('Invalid profile media path');
   return PREFIX + Buffer.from(objectPath, 'utf8').toString('base64url');
 }
+
 export function parseCanonicalMediaRef(uid: string, value: unknown): string | null {
-  if (typeof value !== 'string' || !value.startsWith(PREFIX)) return null;
+  if (!UID_PATTERN.test(uid) || typeof value !== 'string' || !value.startsWith(PREFIX)) return null;
+  const encoded = value.slice(PREFIX.length);
+  if (!/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
   try {
-    const path = Buffer.from(value.slice(PREFIX.length), 'base64url').toString('utf8');
-    if (!path.startsWith(`profiles/${uid}/`) || path.includes('..') || path.includes('\\\\')) return null;
-    return path;
+    const path = Buffer.from(encoded, 'base64url').toString('utf8');
+    if (Buffer.from(path, 'utf8').toString('base64url') !== encoded) return null;
+    return isOwnerScopedObjectPath(uid, path) ? path : null;
   } catch { return null; }
 }
+
 export function normalizeProfileMedia(uid: string, data: Record<string, unknown>): string | null {
+  if (!UID_PATTERN.test(uid)) return null;
   const explicit = typeof data.photoStoragePath === 'string' ? data.photoStoragePath : null;
   const legacy = typeof data.photoPath === 'string' ? data.photoPath : null;
   const aliases = [data.photoURL, data.photoUrl, ...(Array.isArray(data.photos) ? data.photos : [])]
     .filter((value): value is string => typeof value === 'string');
-  // New writers persist the opaque canonical reference directly. Accept it
-  // only when decoding proves that it belongs to this profile UID.
-  const canonicalAlias = aliases.find(value => parseCanonicalMediaRef(uid, value) !== null);
+
+  for (const alias of aliases) {
+    const canonicalPath = parseCanonicalMediaRef(uid, alias);
+    if (canonicalPath) return createCanonicalMediaRef(uid, canonicalPath);
+  }
+
   const aliasPath = aliases.map(value => {
+    if (value.startsWith(`profiles/${uid}/`)) return value;
     try {
       const parsed = new URL(value);
-      const marker = parsed.pathname.indexOf('/o/');
-      return marker >= 0 ? decodeURIComponent(parsed.pathname.slice(marker + 3)) : null;
-    } catch {
-      return value.startsWith(`profiles/${uid}/`) ? value : null;
-    }
-  }).find((value): value is string => !!value && value.startsWith(`profiles/${uid}/`));
+      if (!LEGACY_STORAGE_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) return null;
+      const marker = parsed.pathname.lastIndexOf('/o/');
+      if (marker < 0) return null;
+      return decodeURIComponent(parsed.pathname.slice(marker + 3));
+    } catch { return null; }
+  }).find((value): value is string => !!value && isOwnerScopedObjectPath(uid, value));
+
   const path = explicit ?? legacy ?? aliasPath;
-  if (path) return createCanonicalMediaRef(uid, path);
-  return canonicalAlias ?? null;
+  if (!path || !isOwnerScopedObjectPath(uid, path)) return null;
+  try { return createCanonicalMediaRef(uid, path); } catch { return null; }
 }
 export type ProfileMediaDeps = {
   getFirestore: () => Firestore;
