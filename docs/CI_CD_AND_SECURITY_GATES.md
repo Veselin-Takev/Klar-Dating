@@ -356,3 +356,14 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - PR #375's own `Klar Enterprise CI`, Rules Emulator results, and `Enterprise Compliance & Security Audit Gate` for the final head remain **[TO VERIFY]** until exact `head_sha` workflow runs complete. Baseline Runs #44822376842 and #44822377108 above do not validate PR #375.
 - No dependencies, lockfiles or workflow files are in scope. Do not create a recursive docs-only commit merely to record PR #375's own moving Run IDs; record exact IDs and head SHA in the final/PR handover once observed, per `AGENTS.md` Anti-SHA-Chasing.
 - Preserve all P0/P1 and operational blockers listed in `docs/HANDOVER_STATUS.md`; PR #375 only addresses the #373 publish/read erasure race. No cloud, IAM, Firestore, Storage or deployment mutation is authorized or performed.
+
+## Verified main baseline for E1 — 2026-11-21
+
+- Exact `main` HEAD: `30250a1fc82f24834c7ada62f8453df04af20f2a`.
+- `Klar Enterprise CI` [Run #44879246458](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246458): **210 test files / 35 of 35 Playwright checks PASS** on the stated baseline.
+- `Enterprise Compliance & Security Audit Gate` [Run #44879246487](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44879246487): **0 High+ / Build PASS** on the stated baseline.
+- Pre-merge tree-equivalent Gitleaks [Run #44878055568](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44878055568): **16.50 KB / 0 leaks**.
+- These three results are tied to this immutable main baseline; they do not certify a later PR commit. Historical PR #389–#393 records and PR #375 evidence above remain unchanged.
+- Canonical E1 Draft PR [#394](https://github.com/Veselin-Takev/Klar-Dating/pull/394) remains **Draft / unmerged**; its own exact-head CI and Audit Gate are **[TO VERIFY]** until the workflows complete on its current head SHA.
+- Static guard command `npm run check:profile-media-boundary` is included in `check:enterprise`; it asserts that profile direct Storage reads remain denied, protected profile photos are not rendered from direct `img src` URLs, profile download-token URLs are not persisted, request URL diagnostics are redacted, and active Helmet applies `no-referrer`.
+- E1 excludes migration and token-revocation executables. Those are reserved for follow-up E2 under P1 #206. `productionApproved=false`; release remains **NO-GO**.

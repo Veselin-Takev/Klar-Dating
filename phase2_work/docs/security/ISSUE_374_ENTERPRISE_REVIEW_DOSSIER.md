@@ -1,7 +1,7 @@
 # Issues #374 / #206 — Consolidated Enterprise AppSec, DPO & SRE Review Dossier
 
 **Repository:** `Veselin-Takev/Klar-Dating`  
-**Review scope:** Packages A–D for revocable profile media, recommendation adult gates, client media delivery, upload cutover, legacy-token inventory and the proposed staged migration/revocation.  
+**Review scope:** Packages A–D (merged) plus E1 implementation for revocable profile media, recommendation adult gates, authenticated UI delivery, upload cutover, diagnostics and the proposed E2 migration/revocation boundary.  
 **Status:** Consolidated technical review baseline; independent sign-off is still required.  
 **Release decision:** `productionApproved=false` — **NO-GO**.  
 **Data / cloud boundary:** This dossier records implementation evidence and proposed controls. It does not authorize a staging or production deployment, Firestore migration, Storage metadata mutation, IAM change or release.
@@ -14,12 +14,12 @@ Issues #374 and #206 concern the profile-media authorization and lifecycle bound
 
 | Package | PR | Scope | CI evidence | Current PR state |
 |---|---:|---|---|---|
-| A | #380 | Server authorization, recommendation adult gate, authenticated media proxy | Run #2140 / `44282332776` — reported FULL ENTERPRISE CI PASS | Open, Draft, unmerged |
-| B | #381 | Authenticated client media abstraction, temporary object URLs, secure self-view | Run #2144 / `44293821811` — FULL ENTERPRISE CI PASS | Open, Draft, unmerged |
-| C | #382 | Upload writer cutover to canonical opaque refs; read-only token inventory | Run #2146 / `44302073866` — FULL ENTERPRISE CI PASS | Open, Draft, unmerged |
-| D | #383 | Migration and staged token-revocation blueprint (documentation only) | Run #2147 / `44304654837` — workflow completed successfully | Open, Draft, unmerged |
+| A | #380 | Server authorization, recommendation adult gate, authenticated media proxy | Run #2140 / `44282332776` — historical CI evidence | Merged to main; `ae56d2390fae9d4512a01e1607943fac1ab60f96` |
+| B | #381 | Authenticated client media abstraction, temporary object URLs, secure self-view | Run #2144 / `44293821811` — historical CI evidence | Merged to main; `5d6f2e9972111d23d64f1df4af43f0ac475fdfd3` |
+| C | #382 | Upload writer cutover to canonical opaque refs; read-only token inventory | Run #2146 / `44302073866` — historical CI evidence | Merged to main; `30690f549f7eac1b925076b1227ee5508845eae2` |
+| D | #383 | Migration and staged token-revocation blueprint (documentation only) | Run #2147 / `44304654837` — historical workflow success | Merged to main; `1b30ea60dc9acab31020533fd55ba1cf69feaf33` |
 
-Package D is based on Package C commit `3e7a8e53ffdc2355906006afa7a89f9294cce006`. Its own commit at dossier preparation time is `73b6d0c864c41efec0743370a238a1b555af43ff`. Package D does not implement or execute a migration or revocation.
+Packages A–D were merged via PRs #380–#383. Package D is a planning document only and did not implement or execute a migration or revocation. The next remediation layer is split deliberately: E1 (#394) covers Storage Rules, authenticated UI consumers, diagnostics/Helmet and static boundary tests; E2 will implement migration/revocation CLI work for P1 #206 in a separate reviewed PR. The exact E1 base is `main` at `30250a1fc82f24834c7ada62f8453df04af20f2a`; E1's own hosted checks remain [TO VERIFY].
 
 **Important interpretation:** CI success validates the code and checks executed by each exact workflow run. It is not independent AppSec approval, DPO approval, SRE change approval, proof of production readiness, or authorization to mutate cloud data.
 
@@ -240,11 +240,10 @@ No package in this dossier authorizes:
 
 ## 9. Current verified release posture
 
-- PR #380: open, Draft, unmerged.
-- PR #381: open, Draft, unmerged.
-- PR #382: open, Draft, unmerged.
-- PR #383: open, Draft, unmerged.
-- Package D CI Run #2147 (`44304654837`): completed, workflow conclusion `success`; validate job and listed required steps completed successfully.
+- PRs #380–#383: merged to main; their exact merge SHAs are recorded in §1 above.
+- Package D CI Run #2147 (`44304654837`): historical workflow success for the Package D source SHA only.
+- PR #394: canonical E1 Draft, open and unmerged; its own current-head CI and Audit Gate remain [TO VERIFY].
+- E2 migration/revocation CLI implementation remains a separate P1 #206 follow-up.
 - `productionApproved=false` — **NO-GO**.
 - No staging migration or token revocation is evidenced by this dossier.
 - No live cloud, Storage object, download-token metadata, IAM or deployment mutation is authorized or performed by this dossier.
@@ -257,3 +256,12 @@ No package in this dossier authorizes:
 - [Node.js Cloud Storage File API](https://googleapis.dev/nodejs/storage/latest/File.html) — SDK metadata operations; validate exact behavior against the pinned package version before any staging mutation.
 
 **End of dossier.**
+
+
+## 11. E1/E2 workstream boundary — 2026-11-21
+
+E1 is tracked in [Draft PR #394](https://github.com/Veselin-Takev/Klar-Dating/pull/394), branch `security/issue-374-e1-rules-ui-cutover-20261121`, based on `main` SHA `30250a1fc82f24834c7ada62f8453df04af20f2a`. E1 includes Firestore-backed fail-closed profile Storage owner rules and pure-model parity, authenticated media rendering across the nine agreed UI consumers, diagnostics redaction, active Helmet `no-referrer`, static boundary enforcement and regression coverage.
+
+E1 explicitly excludes any migration worker or download-token revocation executor. E2 will implement `profile-media-migration.ts` and `profile-media-token-revocation.ts` for P1 #206 only after a separately reviewed PR and explicit staging-only authorization. No E2 action or cloud mutation is performed by E1.
+
+The PR remains Draft/unmerged; exact-head hosted CI and Audit Gate are [TO VERIFY]. `productionApproved=false` remains mandatory.

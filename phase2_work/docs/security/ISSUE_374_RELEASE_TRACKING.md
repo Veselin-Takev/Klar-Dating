@@ -2,14 +2,16 @@
 
 Repository: Veselin-Takev/Klar-Dating
 Tracking scope: PRs #380–#383, profile-media authorization, legacy bearer URL exposure, migration and revocation readiness.
-Last recorded: 2026-11-18
+Last recorded: 2026-11-21 (superseding status added in §6)
 Release control: productionApproved=false — NO-GO.
 
 ## 1. Current baseline
 
-- Target: Draft PR #383 — https://github.com/Veselin-Takev/Klar-Dating/pull/383
-- Branch: security/issue-374-package-d-migration-strategy-20261118
-- CI-certified branch HEAD at time of Run #2150: eb7ce3eac381b7481ad99f293e2f71d29d3274b4
+- Historical Package D plan: PR #383 — https://github.com/Veselin-Takev/Klar-Dating/pull/383 (merged to main; see §6).
+- Current E1 implementation: Draft PR #394 — https://github.com/Veselin-Takev/Klar-Dating/pull/394
+- E1 branch: security/issue-374-e1-rules-ui-cutover-20261121
+- E1 base: main at 30250a1fc82f24834c7ada62f8453df04af20f2a
+- Package D Run #2150 evidence below is historical evidence for the Package D source SHA, not for PR #394.
 - Executive summary commit: 92b0986abbfef64b241e8d1841ab9d5f24bbc739
 - Executive summary: ISSUE_374_EXECUTIVE_SUMMARY.md
 - Consolidated review dossier: ISSUE_374_ENTERPRISE_REVIEW_DOSSIER.md
@@ -85,10 +87,29 @@ The published handoff package includes:
 ## 5. Prohibited actions / immutable governance
 
 Until separately authorized:
-- No merge of PR #383 or its stacked predecessors into main.
+- PRs #380–#383 were subsequently merged into main (historical merge state); PR #394 remains Draft/unmerged and must not be merged without separate authorization.
 - No staging or production migration, token revocation or other cloud mutation.
 - No Firestore writes; no Storage object writes, deletes, rewrites, copies or moves.
 - No modification of firebaseStorageDownloadTokens.
 - No IAM, project, billing, Storage Rules or deployment-configuration changes.
 
 productionApproved=false remains mandatory. CI success and publication of the review package do not change this decision.
+
+
+## 6. Superseding repository and E1/E2 status — 2026-11-21
+
+The earlier sections retain their exact historical Package D CI and review evidence. Their PR lifecycle statements are superseded by this current status:
+
+| Package | PR | Current verified state | Merge SHA |
+|---|---:|---|---|
+| A — server authorization / media proxy | #380 | Merged to `main` (2026-11-19) | `ae56d2390fae9d4512a01e1607943fac1ab60f96` |
+| B — authenticated media client / self-view | #381 | Merged to `main` (2026-11-19) | `5d6f2e9972111d23d64f1df4af43f0ac475fdfd3` |
+| C — canonical upload writer / read-only inventory | #382 | Merged to `main` (2026-11-20) | `30690f549f7eac1b925076b1227ee5508845eae2` |
+| D — migration/revocation plan only | #383 | Merged to `main` (2026-11-20); no worker/CLI was implemented | `1b30ea60dc9acab31020533fd55ba1cf69feaf33` |
+| E1 — Rules, pure-model parity, authenticated UI consumers, diagnostics/Helmet, static guard | #394 | Open / Draft / unmerged | Pending |
+
+E1 does not contain `profile-media-migration.ts`, `profile-media-token-revocation.ts`, Firestore data migration or Storage token metadata changes. Those are E2 deliverables for P1 #206 and require their own reviewed PR and separate staging-mutation approval.
+
+The stated E1 base is `main` at `30250a1fc82f24834c7ada62f8453df04af20f2a`. Its own hosted Klar Enterprise CI and Audit Gate results are **[TO VERIFY]** on the final PR head. The earlier Package D Run #2150 is not transferable to E1.
+
+Direct client Storage reads for `/profiles/{uid}/{datei}` remain denied. `productionApproved=false` and **NO-GO** remain in force. No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation is authorized or evidenced.
