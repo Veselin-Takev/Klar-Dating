@@ -12,7 +12,7 @@ export function LogoLoader({ sizeClass = "w-20 h-20", text = "Wird geladen..." }
     >
       {!hasError ? (
         <img
-          src="/Klar_Logo.png"
+          src="/logo.svg"
           alt="Klar Logo"
           className={`${sizeClass} animate-pulse opacity-90 object-contain`}
           aria-hidden="true"

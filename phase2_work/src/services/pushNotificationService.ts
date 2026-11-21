@@ -34,7 +34,7 @@ export class PushNotificationService {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
         body,
-        icon: icon || '/favicon.ico',
+        icon: icon || '/logo.svg',
         tag: 'klar-app-notification'
       });
     }
