@@ -94,15 +94,38 @@ describe.runIf(emulatorEnabled)('profile media token revocation against Firebase
       generation: before.generation!,
       metageneration: before.metageneration!,
     }], readMetadata, manifestDigest);
-    const result = await executeProfileMediaTokenRevocation(plan, {
-      readMetadata,
-      patchCustomMetadata: async (path, patch, options) => {
-        await bucket.file(path).setMetadata(
-          { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } },
-          { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
-        );
-      },
-    });
+    let postPatchMetadata: Awaited<ReturnType<typeof readMetadata>> | undefined;
+    let result;
+    try {
+      result = await executeProfileMediaTokenRevocation(plan, {
+        readMetadata,
+        patchCustomMetadata: async (path, patch, options) => {
+          await bucket.file(path).setMetadata(
+            { metadata: { firebaseStorageDownloadTokens: patch.firebaseStorageDownloadTokens } },
+            { ifMetagenerationMatch: Number(options.ifMetagenerationMatch) },
+          );
+          postPatchMetadata = await readMetadata(path);
+        },
+      });
+    } catch (error) {
+      const metadata = postPatchMetadata?.customMetadata ?? {};
+      const hasTokenKey = Object.prototype.hasOwnProperty.call(metadata, 'firebaseStorageDownloadTokens');
+      const tokenValue = metadata.firebaseStorageDownloadTokens;
+      throw new Error(
+        'Revocation emulator diagnostic (values redacted): ' + JSON.stringify({
+          before: { generation: before.generation, metageneration: before.metageneration },
+          after: {
+            exists: postPatchMetadata?.exists,
+            generation: postPatchMetadata?.generation,
+            metageneration: postPatchMetadata?.metageneration,
+            customMetadataKeys: Object.keys(metadata).sort(),
+            tokenKeyState: !hasTokenKey ? 'absent' : tokenValue === null ? 'null' : tokenValue === 'null' ? 'literal-null-string' : typeof tokenValue === 'string' ? 'string-present' : 'unexpected-type',
+            preserveMe: metadata.preserveMe,
+          },
+          cause: error instanceof Error ? error.message : 'unknown failure',
+        }),
+      );
+    }
     const after = await readMetadata(objectPath);
     expect(result).toMatchObject({ revoked: 1, conflicts: 0, stopped: false });
     expect(after.customMetadata?.firebaseStorageDownloadTokens).toBeUndefined();
