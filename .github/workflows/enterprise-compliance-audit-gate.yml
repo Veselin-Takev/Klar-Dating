@@ -1,0 +1,187 @@
+name: Enterprise Compliance & Security Audit Gate
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  enterprise-compliance-audit:
+    name: Enterprise Compliance & Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: phase2_work
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.23.3'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install dependencies (frozen lockfile)
+        id: install_dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Quality - TypeScript
+        id: quality
+        run: bun run typecheck
+
+      - name: Unit Tests
+        id: unit_tests
+        run: bun run test:pure
+
+      - name: Compliance & Security Checks
+        id: compliance
+        run: |
+          bun run check:enterprise
+          bun run check:secrets
+          bun run check:auth-boundary
+          bun run scripts/check-public-firestore-rules.mjs
+          bun run scripts/check-ai-pii-sanitizer.mjs
+          bun run scripts/check-art17-deletion-audit.mjs 0
+
+      - name: Gitleaks
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0 (Node 24)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 5. Dependency Audit — Production Runtime (Hard-Fail High+)
+        id: dep_audit
+        run: bun audit --prod --audit-level=high
+
+      - name: 5b. Dependency Audit — Full Supply Chain incl. Dev (Advisory)
+        id: dep_audit_full
+        if: ${{ !cancelled() && steps.install_dependencies.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          if ! bun audit --audit-level=high; then
+            echo "::warning title=Full Supply-Chain Audit (Dev-Dependencies)::High/Critical advisory detected in devDependencies. Review logs for upstream patch availability."
+            exit 1
+          fi
+
+      - name: Production Build
+        id: build
+        run: bun run build
+
+      - name: Post Truthful Audit Results to PR (Upsert)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0 (Node 24)
+        env:
+          QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+          UNIT_TESTS_OUTCOME: ${{ steps.unit_tests.outcome }}
+          COMPLIANCE_OUTCOME: ${{ steps.compliance.outcome }}
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
+          OUTCOME_DEP_AUDIT: ${{ steps.dep_audit.outcome }}
+          OUTCOME_DEP_AUDIT_FULL: ${{ steps.dep_audit_full.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        with:
+          script: |
+            const marker = '<!-- enterprise-compliance-audit-gate -->';
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+
+            const checks = [
+              ['Quality / TypeScript', process.env.QUALITY_OUTCOME],
+              ['Unit tests', process.env.UNIT_TESTS_OUTCOME],
+              ['Compliance & security', process.env.COMPLIANCE_OUTCOME],
+              ['Gitleaks', process.env.GITLEAKS_OUTCOME],
+              ['Production dependency audit (hard-fail High+)', process.env.OUTCOME_DEP_AUDIT],
+              ['Full Supply-Chain Audit (incl. Dev)', process.env.OUTCOME_DEP_AUDIT_FULL],
+              ['Build', process.env.BUILD_OUTCOME],
+            ];
+
+            const hardFailOutcomes = [
+              process.env.QUALITY_OUTCOME,
+              process.env.UNIT_TESTS_OUTCOME,
+              process.env.COMPLIANCE_OUTCOME,
+              process.env.GITLEAKS_OUTCOME,
+              process.env.OUTCOME_DEP_AUDIT,
+              process.env.BUILD_OUTCOME,
+            ];
+            const overallPass = hardFailOutcomes.every(outcome => outcome === 'success');
+
+            const render = (outcome) => {
+              if (outcome === 'success') return '✅ PASS';
+              if (outcome === 'failure') return '❌ FAIL';
+              if (outcome === 'skipped') return '⏭️ SKIPPED';
+              return `⚠️ ${outcome || 'unknown'}`;
+            };
+            const renderFullAudit = (outcome) => {
+              if (outcome === 'failure') return '⚠️ ADVISORY';
+              return render(outcome);
+            };
+
+            const rows = checks
+              .map(([name, outcome]) => {
+                const result = name === 'Full Supply-Chain Audit (incl. Dev)'
+                  ? renderFullAudit(outcome)
+                  : render(outcome);
+                return `| ${name} | ${result} |`;
+              })
+              .join('\n');
+
+            const body = [
+              marker,
+              '## Enterprise Compliance & Security Audit Gate',
+              '',
+              `**Audited PR head:** \`${headSha}\``,
+              '',
+              `**Hard-fail gate (6 required checks):** ${overallPass ? '✅ PASS' : '❌ FAIL'}`,
+              '',
+              '| Check | Result |',
+              '|---|---|',
+              rows,
+              '',
+              '_The hard-fail gate is determined only by TypeScript, unit tests, compliance/security, Gitleaks, production dependency audit, and build. Full Supply-Chain Audit is separately reported as advisory._',
+              '_Results reflect the actual GitHub Actions step outcomes for this workflow run; skipped checks are not reported as passes._',
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 }
+            );
+            const existing = comments.find(comment => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }

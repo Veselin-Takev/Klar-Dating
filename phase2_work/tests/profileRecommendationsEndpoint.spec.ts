@@ -11,24 +11,24 @@ afterEach(async () => {
 });
 
 function dbFor(
-  user: { exists?: boolean; data?: Record<string, unknown> } = {},
+  user: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean } = {},
   deletionExists = false,
   simulateDeletionRace = false,
 ) {
   const set = vi.fn(async (_ref: unknown, _data: unknown) => undefined);
   const get = vi.fn(async () => ({
     exists: user.exists ?? true,
-    data: () => user.data ?? { isAdult: true, location: 'München' },
+    data: () => ({ isAdult: true, active: true, location: 'München', ...(user.data ?? {}) }),
   }));
   const refs = new Map<string, { collection: string; id: string }>();
   const collection = vi.fn((name: string) => ({
     doc: vi.fn((id: string) => {
       const ref = { collection: name, id };
       refs.set(name + '/' + id, ref);
-      return { ...ref, get, set };
+      return { ...ref, get: name === 'account_deletions' ? vi.fn(async () => ({ exists: deletionBarrierExists })) : get, set };
     }),
   }));
-  let deletionBarrierExists = deletionExists;
+  let deletionBarrierExists = deletionExists || user.deletionPending === true;
   // Firestore invokes the transaction callback again after a contention retry;
   // runTransaction itself is still called only once by the route.
   const transactionAttempts = vi.fn();
@@ -61,7 +61,7 @@ function dbFor(
 
 async function endpoint(
   overrides: Partial<ProfileRecommendationsRouterDeps> = {},
-  user?: { exists?: boolean; data?: Record<string, unknown> },
+  user?: { exists?: boolean; data?: Record<string, unknown>; deletionPending?: boolean },
   deletionExists = false,
   simulateDeletionRace = false,
 ) {
@@ -162,6 +162,26 @@ describe('profile publication and recommendation HTTP boundary', () => {
     const ctx = await endpoint();
     const response = await fetch(ctx.base + '/recommendations?' + query);
     expect(response.status).toBe(400);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['underage', { isAdult: false }, false],
+    ['inactive', { active: false }, false],
+    ['blocked', { isBlocked: true }, false],
+    ['suspended', { isSuspended: true }, false],
+    ['deletion-pending', {}, true],
+  ] as const)('rejects %s requesters before recommendation computation', async (_label, data, deletionPending) => {
+    const ctx = await endpoint({}, { data: { ...data, location: 'München' }, deletionPending });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
+    expect(ctx.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects guest requesters before reading recommendations', async () => {
+    const ctx = await endpoint({ isGuest: () => true });
+    const response = await fetch(ctx.base + '/recommendations');
+    expect(response.status).toBe(403);
     expect(ctx.getRecommendations).not.toHaveBeenCalled();
   });
 

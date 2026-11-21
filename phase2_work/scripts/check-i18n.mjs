@@ -8,6 +8,7 @@ function leaves(value, prefix = '') {
 }
 const read = lang => new Map(leaves(JSON.parse(fs.readFileSync(`src/i18n/locales/${lang}.json`, 'utf8'))));
 const base = read('de');
+for (const [key, value] of base) assert.ok(value.trim(), `de.${key}: empty translation`);
 const placeholders = text => [...text.matchAll(/{{\s*([^{}]+?)\s*}}/g)].map(match => match[1]).sort();
 for (const lang of ['en', 'es', 'fr']) {
   const catalog = read(lang);

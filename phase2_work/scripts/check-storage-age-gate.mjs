@@ -1,23 +1,20 @@
-import fs from 'node:fs';
+// Legacy script name maintained for callers: the retired verification flow
+// must be sealed, not "age-gated"; profile IAM/adult policy is reviewed separately.
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
 
-const rules = fs.readFileSync('storage.rules', 'utf8');
-const engine = fs.readFileSync('src/server/platform/storageRulesEngine.ts', 'utf8');
-const required = [
-  'function istVolljaehrig()',
-  'firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdult == true',
-  'allow read: if istVolljaehrig();',
-  'allow create, update: if istVolljaehrig() && request.auth.uid == uid',
-];
-for (const needle of required) {
-  if (!rules.includes(needle)) throw new Error(`storage.rules missing age-gate invariant: ${needle}`);
+const rules = readFileSync('storage.rules', 'utf8');
+const engine = readFileSync('src/server/platform/storageRulesEngine.ts', 'utf8');
+const client = readFileSync('src/lib/klar.ts', 'utf8');
+
+const match = rules.match(/match \/verification\/\{uid\}\/\{datei\} \{([\s\S]*?)\n    \}/);
+assert.ok(match, 'Verification Storage rules block must exist');
+const block = match[1];
+for (const rule of ['allow read: if false;', 'allow create, update: if false;', 'allow delete: if false;']) {
+  assert.ok(block.includes(rule), 'Verification path must deny every Firebase client operation: ' + rule);
 }
-if (!/match \/verification\/\{uid\}\/\{datei\}[\s\S]*allow create, update: if istVolljaehrig\(\)/.test(rules)) {
-  throw new Error('verification uploads are not bound to the adult gate');
-}
-if (!/match \/profiles\/\{uid\}\/\{datei\}[\s\S]*allow read: if istVolljaehrig\(\);/.test(rules)) {
-  throw new Error('profile reads are not bound to the adult gate');
-}
-for (const needle of ['isAdult?: boolean', 'Altersfreigabe erforderlich.']) {
-  if (!engine.includes(needle)) throw new Error(`storageRulesEngine missing age-gate invariant: ${needle}`);
-}
-console.log('Storage age-gate invariants: PASS');
+assert.doesNotMatch(block, /allow (?:write|create|update): if (?!false;)/, 'No permissive client writes');
+assert.match(engine, /Die clientseitige Fotoverifizierung ist eingestellt/, 'Policy model must deny retired verification uploads');
+assert.match(client, /Legacy gesture\/photo verification was retired/, 'Client must not depend on legacy verification uploads');
+assert.match(rules, /match \/profiles\/\{uid\}\/\{datei\}/, 'Profile photo rule must remain separate');
+console.log('Retired biometric photo Storage write-lockdown: PASS (static source, not active cloud rules)');

@@ -50,58 +50,22 @@ test('Storage Rules: /verification/{uid}/{datei} strictly enforces Art. 9 zero-r
   assert.equal(unauthRead.allowed, false);
 });
 
-test('Storage Rules: /verification/{uid}/{datei} validates upload constraints and blocks guest/stranger uploads', () => {
-  const validResource = { size: 2 * 1024 * 1024, contentType: 'image/jpeg' };
-
-  // 1. Owner upload succeeds
-  const ownerUpload = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/verification/usr_alice/gesture.jpg',
-    auth: USER_ALICE,
-    resource: validResource,
-  });
-  assert.equal(ownerUpload.allowed, true);
-  assert.equal(ownerUpload.code, 'ALLOWED');
-
-  // 2. Stranger upload into Alice folder rejected
-  const strangerUpload = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/verification/usr_alice/gesture.jpg',
-    auth: USER_BOB,
-    resource: validResource,
-  });
-  assert.equal(strangerUpload.allowed, false);
-  assert.equal(strangerUpload.code, 'PERMISSION_DENIED');
-
-  // 3. Guest upload rejected
-  const guestUpload = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/verification/usr_guest/gesture.jpg',
-    auth: GAST_USER,
-    resource: validResource,
-  });
-  assert.equal(guestUpload.allowed, false);
-  assert.equal(guestUpload.code, 'ANONYMOUS_BLOCKED');
-
-  // 4. Invalid MIME type (e.g. executable/pdf) rejected
-  const badMimeUpload = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/verification/usr_alice/script.sh',
-    auth: USER_ALICE,
-    resource: { size: 1000, contentType: 'application/x-sh' },
-  });
-  assert.equal(badMimeUpload.allowed, false);
-  assert.equal(badMimeUpload.code, 'INVALID_MIME');
-
-  // 5. Oversized file (> 8 MB) rejected
-  const oversizedUpload = evaluateStorageSecurityRule({
-    operation: 'write',
-    path: '/verification/usr_alice/large.jpg',
-    auth: USER_ALICE,
-    resource: { size: 10 * 1024 * 1024, contentType: 'image/jpeg' },
-  });
-  assert.equal(oversizedUpload.allowed, false);
-  assert.equal(oversizedUpload.code, 'SIZE_LIMIT_EXCEEDED');
+test('Storage Rules: retired verification path denies every Firebase client upload (owner, guest, stranger, malformed)', () => {
+  const cases = [
+    { auth: USER_ALICE, resource: { size: 2048, contentType: 'image/jpeg' } },
+    { auth: USER_BOB, resource: { size: 2048, contentType: 'image/jpeg' } },
+    { auth: GAST_USER, resource: { size: 2048, contentType: 'image/jpeg' } },
+    { auth: null, resource: { size: 2048, contentType: 'image/jpeg' } },
+    { auth: USER_ALICE, resource: { size: 50, contentType: 'application/pdf' } },
+    { auth: USER_ALICE, resource: { size: 9 * 1024 * 1024, contentType: 'image/png' } },
+  ];
+  for (const entry of cases) {
+    const decision = evaluateStorageSecurityRule({
+      operation: 'write', path: '/verification/usr_alice/gesture.jpg', ...entry,
+    });
+    assert.equal(decision.allowed, false);
+    assert.equal(decision.code, 'PERMISSION_DENIED');
+  }
 });
 
 test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-side', () => {
@@ -114,16 +78,16 @@ test('Storage Rules: /verification/{uid}/{datei} deletion is forbidden client-si
   assert.equal(ownerDelete.code, 'PERMISSION_DENIED');
 });
 
-test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner write and owner delete', () => {
+test('Storage Rules: /profiles/{uid}/{datei} denies direct reads and retains owner write/delete', () => {
   const validResource = { size: 1 * 1024 * 1024, contentType: 'image/png' };
 
-  // 1. Any signed in user can read profile picture
+  // 1. All direct client reads are denied; backend media proxy is the only read path
   const bobReadsAlice = evaluateStorageSecurityRule({
     operation: 'read',
     path: '/profiles/usr_alice/avatar.png',
     auth: USER_BOB,
   });
-  assert.equal(bobReadsAlice.allowed, true);
+  assert.equal(bobReadsAlice.allowed, false);
 
   // 2. Unauthenticated cannot read profile picture
   const unauthRead = evaluateStorageSecurityRule({
@@ -132,7 +96,7 @@ test('Storage Rules: /profiles/{uid}/{datei} enforces authenticated read, owner 
     auth: null,
   });
   assert.equal(unauthRead.allowed, false);
-  assert.equal(unauthRead.code, 'UNAUTHENTICATED');
+  assert.equal(unauthRead.code, 'PERMISSION_DENIED');
 
   // 3. Owner can write profile picture
   const aliceWrites = evaluateStorageSecurityRule({

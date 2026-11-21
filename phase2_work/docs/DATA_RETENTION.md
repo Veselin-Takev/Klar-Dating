@@ -55,10 +55,13 @@ Die Einrichtung erfolgt nicht über `firestore.rules`, sondern über die Google 
 - **Setup:** `gcloud firestore fields ttls update expiresAt --collection-group=deletion_log --enable-ttl`
 
 ## 10. Verifizierungsfotos (Storage)
-- **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`
-- **Frist:** 30 Tage nach der serverseitig gespeicherten Moderationsentscheidung, nicht 30 Tage nach Upload.
-- **Worker:** `functions/src/deleteExpiredPhotos.ts` verarbeitet fällige `verification_events` und löscht mit Generation-Precondition. Offene Prüfungen ohne Entscheidung werden nicht vom Retention-Worker gelöscht.
-- **Audit:** Nach erfolgreicher Löschung wird `photoPurged`, `photoPurgedAt` und ein SHA-256-Löschdigest im Event gesetzt.
+- **Feld/Marker:** `verification_events.fotoLoeschenAb` plus `storagePath`.
+- **Frist:** 30 Tage nach einer serverseitig dokumentierten Moderationsentscheidung, **nicht** 30 Tage nach Upload. Offene oder ungültige Entscheidungsdatensätze dürfen nicht durch einen Upload-Alter-Scanner gelöscht werden.
+- **Entscheidungsbasierter Worker:** `functions/src/purgeVerificationStorage.ts` ruft den signierten API-Endpunkt `/api/admin/purge-verification-storage` auf. Die Route `src/server/routes/complianceStorage.ts` ermittelt fällige `verification_events` und nutzt `src/server/platform/storageRetentionEngine.ts` zur Prüfung von Entscheidung und `decidedAt`, zur Löschung und zur Audit-Aktualisierung.
+- **Client-Upload-Lockdown:** Nach Einstellung der alten Gesten-/Fotoverifizierung verweigert `storage.rules` auf `verification/{uid}/{datei}` sämtliche Firebase-Clientoperationen einschließlich **Create/Overwrite**. Nur berechtigte Admin-SDK-Prozesse können Bestandsdaten für Retention/Art. 17 behandeln; Admin-SDK/IAM und signierte URLs sind gesondert zu prüfen. Ob die neuen Rules im Zielprojekt aktiv sind, ist **nicht** nachgewiesen.
+- **Legacy-Cron:** `functions/src/deleteExpiredPhotos.ts` war zusätzlich als Scheduler registriert und nutzte früher `deleteExpiredPhotoPage` zum Löschen von `verification/`-Objekten allein anhand `timeCreated`. **P0 #202:** Der neue isolierte Quellpatch deaktiviert nur diesen Upload-Alter-Löschpfad; der Scheduler-Einstiegspunkt bleibt für die bestehende `funnel_events`-Bereinigung erhalten. Weder die tatsächliche Cloud-Bereitstellung noch die Scheduler-Migration sind hiermit bestätigt.
+- **Audit:** Der entscheidungsbasierte Pfad aktualisiert nach dem Löschversuch `photoPurged`, `photoPurgedAt` und einen SHA-256-Löschdigest. Vor Produktionsfreigabe sind Storage-Generationsschutz, Holds, Fehlerbehandlung, Retention-Wirksamkeit und Datenschutzfreigabe unabhängig nachzuweisen.
+- **Sicherer Rollout-Interlock (Draft #203, 03.11.2026):** Die signierte Retention-API verweigert standardmäßig jede Foto-Löschung mit HTTP 503 `verification_storage_purge_disabled`, solange `KLAR_VERIFICATION_PHOTO_PURGE_ENABLED` nicht exakt `true` ist. Die Abweisung erfolgt vor Firestore- und GCS-Zugriffen; ungültige Signaturen bleiben 401. **Nicht für produktive Aktivierung freigegeben:** Vor Freischaltung braucht es Cross-Service-Fencing, dokumentierte Backlog-/Fristenbehandlung, unabhängige DPO/AppSec/SRE- und Release-Owner-Freigaben sowie Staging-/Live-Controls. Ist der Schalter aus, wird der 30-Tage-Anspruch nicht automatisch erfüllt; der Retention-Rückstau muss nachvollziehbar überwacht und fachlich bewertet werden.
 
 ## Security Rules Architektur (Least Privilege)
 Die `firestore.rules` (siehe Datei) sind nach dem Prinzip "Default Deny" aufgebaut.
@@ -76,13 +79,14 @@ KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/confi
 # KLAR_APPLY_RETENTION=true KLAR_ENVIRONMENT=staging KLAR_APPROVED_STAGING_PROJECT_ID=... \
 # KLAR_PRODUCTION_PROJECT_ID=... KLAR_CONFIRM_RETENTION='<project>/<database>' \
 # KLAR_RETENTION_LEGAL_APPROVED=true KLAR_RETENTION_INVENTORY_APPROVED=true \
+# KLAR_RETENTION_MATRIX_REVISION_APPROVED=expiresAt-20-2026-10-19 \
 # KLAR_PROJECT_ID=... KLAR_DATABASE_ID=... bash scripts/configure-retention.sh
 gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
 ```
 
-Der zweite Befehl muss für alle 13 dokumentierten Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+Der zweite Befehl muss für alle 20 freigegebenen Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
 
-**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 13 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
+**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 20 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
 
 ### Kündigungsnachweise nach § 312k BGB
 
@@ -200,3 +204,19 @@ POST /api/partner/open/:campaignId now returns the validated current campaign de
 ## 2026-10-25 — #56: Template-only request telemetry
 
 server.ts uses requestRouteForTelemetry for initial/final span routes, structured request logs and failedApiCalls diagnostics. Registered Express templates or unmatched replace raw request paths; authentication and redirect behavior remain unchanged. Twelve local unit/HTTP tests PASS (including 200/401/404/429/500 canary-token paths), and the observability source gate passes. Full CI remains required; no live exporter/CDN log, historical erasure or retention approval is claimed. See ADR_REQUEST_TELEMETRY_ROUTE_PRIVACY_2026-10-25.md. #56/#70/#8 remain OPEN, production NO-GO.
+
+### 2026-10-29 — P0 #202: Zwei konkurrierende Verifizierungsfoto-Worker
+
+Quellcodeprüfung von `functions/src/index.ts` ergab zwei exportierte Scheduler. Der alte `deleteExpiredPhotosCron` nutzte die Upload-Zeit `timeCreated`, unabhängig von Moderationsentscheidungen. Das widerspricht der oben dokumentierten Entscheidungsfrist. Der isolierte Fix entfernt den Zugriff des Legacy-Crons auf Storage, ohne einen Cloud-Scheduler zu löschen; die bestehende signierte `purgeVerificationStorageCron`-Route bleibt die einzige vorgesehene entscheidungsbasierte Foto-Löschung. **Dies ist nur ein Quellcode-Fix, kein Nachweis des Produktionszustands.** Issue #202 verlangt Cloud-Inventar, Staging-Integration, Retention-/Hold-/Generationstests und unabhängige Legal/Security/SRE-Freigaben. Die 20-gruppige Firestore-TTL-Matrix (#70) ist weiterhin nicht durch Live-Cloud-Nachweise freigegeben. **PRODUCTION NO-GO.**
+
+### P0 #202: Fail-closed Checkpoint bei Einzelfehlern (05.11.2026)
+
+Der resumierbare Verifikationsfoto-Purge darf bei `failed > 0` einen Seiten-Cursor nicht über fehlgeschlagene Artefakte hinaus persistieren: andernfalls würde die nächste Ausführung sie bis zum nächsten vollständigen Umlauf überspringen. `scanPurgePages()` liefert deshalb die tatsächlichen Fehlerzähler mit `hasMore=true` zurück, ohne `checkpoint()` aufzurufen; erfolgreich bearbeitete Elemente derselben Seite müssen bei Wiederholung idempotent sein. Der Offline-Negativtest prüft, dass bei einem fehlgeschlagenen Element **kein** Checkpoint geschrieben wird. Dies ist nur Source-/Test-Härtung im Draft-PR #203; Emulator, End-to-End-Idempotenz, Cloud-Generation/Legal-Hold, Lease- und Retry-Verhalten sind weiterhin unabhängig nachzuweisen. Keine automatische Produktionsfreigabe (`productionApproved=false`).
+
+### P0 #202: CI-Regressionskorrektur (05.11.2026)
+
+GitHub Actions [42013807049](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42013807049) für `283426b4d3e2d0f5d5f3b576907ddfb43c01e112` schlug im Job `validate` / `Tests` fehl: 10 von 1.432 Tests in `verificationPurgeHttpEmulator.spec.ts` erwarteten die bestehenden HTTP-503-Fehlerzähler, erhielten aber durch den neuen Scanner-Throw keine entsprechenden Zähler. Korrektur: `scanPurgePages()` liefert bei `failed > 0` die tatsächlichen Seitenzähler mit `hasMore=true` zurück, **ohne** `checkpoint()` aufzurufen. Damit bleibt die Seite erneut ausführbar und der HTTP-Handler kann den bestehenden 503-Vertrag erfüllen. Der Offline-Test fordert zugleich `failed=1`, `hasMore=true` und null Checkpoint-Aufrufe. Die ältere Aussage, dass bei Einzelfehlern eine Exception geworfen wird, ist damit überholt; invariant bleibt **kein Cursor-Fortschritt bei fehlgeschlagenen Artefakten**. Neuer exact-SHA-CI-Nachweis erforderlich. Keine Cloud-Änderung, keine Freigabe; `productionApproved=false`.
+
+### P0 #202: Multi-Page-Retry-Regressionsnachweis (05.11.2026)
+
+Für den Head `e12760a51c1b4132be00b4336f5f048543dd127a` bestand [CI 42015845796](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/42015845796) (`completed/success`). Ein zusätzlicher Offline-Test prüft nun den Fall, dass die erste Scan-Seite vollständig gelingt und die zweite ein fehlgeschlagenes Artefakt enthält: Ergebniszähler enthalten beide Seiten, `hasMore=true`, aber der persistierte Cursor bleibt auf der **letzten erfolgreich abgeschlossenen Seite**; die fehlgeschlagene Seite wird beim nächsten Lauf erneut geprüft. Die neue Teständerung hat einen neuen Head und benötigt eigenen exact-SHA-CI-Nachweis. Es bleibt bei `productionApproved=false` bis zur unabhängigen Sicherheits-, Datenschutz- und Betriebsfreigabe und Cloud-/Emulator-Verifikation.

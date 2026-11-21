@@ -14,5 +14,5 @@ export function resolveProfileDisplayName(
     const prefix = email.split('@')[0]?.trim().replace(/[._-]+/g, ' ') ?? '';
     if (prefix) return prefix.slice(0, 80);
   }
-  return 'Namen im Profil ergänzen';
+  return '';
 }

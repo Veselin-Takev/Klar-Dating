@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { X, MapPin, Briefcase, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 type ProfileDetail = {
   photos?: string[];
@@ -13,6 +14,7 @@ type ProfileDetail = {
   interests?: string[];
 };
 export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetail | null, onClose: () => void }) {
+  const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetai
               className="w-full aspect-[4/5] object-cover"
             />
             <button
-              aria-label="Schließen"
+              aria-label={t('profileScreen.modal.close')}
               onClick={onClose}
               className="absolute top-4 right-4 p-2 bg-black/40 rounded-full text-white hover:bg-black/60 transition-colors"
             >
@@ -76,14 +78,14 @@ export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetai
 
             {profile.bio && (
               <div>
-                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 uppercase tracking-wider mb-2">Über mich</h3>
+                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 uppercase tracking-wider mb-2">{t('profileScreen.modal.aboutMe')}</h3>
                 <p className="text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
               </div>
             )}
 
             {profile.interests && profile.interests.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 uppercase tracking-wider mb-2">Interessen</h3>
+                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 uppercase tracking-wider mb-2">{t('profileScreen.modal.interests')}</h3>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest: string) => (
                     <span key={interest} className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-full text-sm">
@@ -96,7 +98,7 @@ export function ProfileDetailModal({ profile, onClose }: { profile: ProfileDetai
 
             <div className="pt-4">
               <button onClick={onClose} className="w-full py-3 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-white rounded-full font-medium hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
-                Schließen
+                {t('profileScreen.modal.close')}
               </button>
             </div>
           </div>

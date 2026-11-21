@@ -21,3 +21,69 @@ describe('request-scoped translation instances', () => {
     expect(instance.t('settings.language', { defaultValue: 'SHOULD_NOT_BE_USED' })).toBe('Language');
   });
 });
+
+describe('core journey translations', () => {
+  it.each(['de', 'en', 'es', 'fr'] as const)('resolves core journey UI keys in %s', language => {
+    const instance = createRequestI18n(language);
+    const keys = ['accessibility.mainContent', 'accessibility.profileSections', 'consentCenter.title', 'consentCenter.actions.grant', 'consentCenter.messages.failed', 'datePrep.title', 'datePrep.close', 'theme.switchToDark', 'profileTabs.settings', 'app.offline.title', 'privacy.dialogTitle', 'privacy.pauseMenu', 'profileSafety.signOut', 'profileSafety.signOutConfirmTitle', 'profileSafety.signOutConfirmDescription'] as const;
+    for (const key of keys) {
+      expect(instance.exists(key)).toBe(true);
+      expect(instance.t(key)).not.toBe(key);
+    }
+  });
+});
+
+
+describe('profile flow translation coverage', () => {
+  const keys = [
+    'profileScreen.header.title', 'profileScreen.header.avatar',
+    'profileScreen.name.missing', 'profileScreen.name.edit', 'profileScreen.name.label',
+    'profileScreen.name.saved', 'profileScreen.name.saveFailed',
+    'profileScreen.import.title', 'profileScreen.import.ariaLabel',
+    'profileScreen.interests.title', 'profileScreen.interests.newLabel',
+    'profileScreen.noGos.title', 'profileScreen.noGos.remove',
+    'profileScreen.bio.title', 'profileScreen.bio.ariaLabel',
+    'profileScreen.bio.coachFeedback', 'profileScreen.radar.title',
+    'profileScreen.radar.compare', 'profileScreen.settings.categories',
+    'profileScreen.settings.smartConnectionHints',
+    'profileScreen.feedback.ratingLabel', 'profileScreen.feedback.suggestions',
+    'profileScreen.theme.title', 'profileScreen.milestones.title',
+    'profileCheck.heading', 'profileCheck.errors.profileIncomplete',
+    'profileCheck.insight.empty', 'profileCheck.history.title',
+    'profileCheck.closePdf',
+    'profileScreen.ui.importTitle',
+    'profileScreen.ui.optimizeTitle',
+    'profileScreen.ui.icebreakersTitle',
+    'profileScreen.ui.radarTutorial',
+    'profileScreen.ui.filters.similarity',
+    'profileScreen.ui.currentPlan',
+    'profileScreen.ui.appearance.dark',
+    'profileScreen.ui.smartConnectionNotificationsDescription',
+    'profileScreen.ui.growthEmpty',
+    'profileCheck.ui.analysisLoading',
+    'profileCheck.ui.ready',
+    'profileCheck.ui.trendGain',
+    'profileCheck.ui.quickInsights',
+    'profileCheck.ui.categories.languageStyle',
+    'profileCheck.ui.categories.interestFocus',
+    'profileCheck.ui.categories.icebreakerQuality',
+    'profileCheck.ui.analysis',
+    'profileCheck.ui.ready',
+    'profileCheck.ui.quickInsights',
+    'profileCheck.ui.optimizationFocus',
+    'profileCheck.ui.whyScore',
+    'profileCheck.ui.download'
+  ] as const;
+
+  it.each(['de', 'en', 'es', 'fr'] as const)('resolves profile UI keys and interpolations in %s', language => {
+    const instance = createRequestI18n(language);
+    for (const key of keys) {
+      expect(instance.exists(key)).toBe(true);
+      expect(instance.t(key)).not.toBe(key);
+    }
+    expect(instance.t('profileScreen.feedback.ratingLabel', { rating: 4 })).toContain('4');
+    expect(instance.t('profileScreen.cache.local', { items: 'Bio' })).toContain('Bio');
+    expect(instance.t('profileScreen.milestones.summary', { completed: 2, total: 6 })).toContain('2');
+    expect(instance.t('profileCheck.ui.trendGain', { trend: 7 })).toContain('7');
+  });
+});

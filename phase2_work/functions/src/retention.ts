@@ -1,43 +1,64 @@
 // Minimal structural port keeps the app and Functions SDK installations independent.
-type Metadata = { timeCreated?: string; generation?: string | number; temporaryHold?: boolean | null; eventBasedHold?: boolean | null };
+type Metadata = { generation?: unknown; temporaryHold?: unknown; eventBasedHold?: unknown };
 type Photo = { getMetadata(): Promise<[Metadata, ...unknown[]]>; delete(options: { ifGenerationMatch: string | number }): Promise<unknown> };
 type Bucket = {
   getFiles(options: { prefix: string; maxResults: number; autoPaginate: false; pageToken?: string }): Promise<[Photo[], { pageToken?: string } | null | undefined, ...unknown[]]>;
 };
 
-export const PHOTO_RETENTION_MS = 30 * 86_400_000;
-
-/** One bounded page. Generation preconditions protect a concurrently replaced photo. */
-export async function deleteExpiredPhotoPage(bucket: Bucket, now: Date, pageToken?: string) {
-  const [files, next] = await bucket.getFiles({ prefix: 'verification/', maxResults: 200, autoPaginate: false, ...(pageToken ? { pageToken } : {}) });
-  let deleted = 0;
-  for (const file of files) {
-    const [metadata] = await file.getMetadata();
-    const created = Date.parse(metadata.timeCreated ?? '');
-    if (!Number.isFinite(created)) throw new Error('Photo creation timestamp missing');
-    if (created > now.getTime() - PHOTO_RETENTION_MS || metadata.temporaryHold || metadata.eventBasedHold) continue;
-    if (!metadata.generation) throw new Error('Photo generation missing');
-    try {
-      await file.delete({ ifGenerationMatch: metadata.generation });
-      deleted++;
-    } catch (error) {
-      const code = (error as { code?: number }).code;
-      if (code !== 404 && code !== 412) throw error;
-    }
-  }
-  return { deleted, scanned: files.length, nextPageToken: next?.pageToken };
-}
-
 /** One bounded page per prefix; false means acknowledged progress, not completion.
  * Re-list from the beginning because deleted objects disappear. Never skip a hold
  * or generation conflict and then declare the account's storage empty.
+ *
+ * VES-5: verification photos are owned by a cross-service decision/hold
+ * protocol that is NOT yet safely fenced. Real account deletion may erase
+ * ordinary profile photos, but MUST NOT delete verification objects or claim
+ * account erasure complete while verification objects exist.
+ *
+ * The explicit legacy mode is reserved for isolated emulator/unit regression
+ * tests; it cannot run in a production Node process. Never enable it in any
+ * server/Functions account-deletion caller before the all-writer P0 review.
  */
-export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<boolean> {
+export async function deleteAccountPhotos(
+  bucket: Bucket, uid: string,
+  mode: 'profile-only' | 'unsafe-emulator-test-only' = 'profile-only',
+): Promise<boolean> {
   if (!uid || uid.includes('/') || uid === '.' || uid === '..') throw new Error('Invalid storage owner');
+  if (mode !== 'profile-only' && mode !== 'unsafe-emulator-test-only') {
+    throw new Error('invalid_account_photo_erasure_mode');
+  }
+  if (mode === 'unsafe-emulator-test-only') {
+    // A test-only destructive override is never a production capability.
+    // NODE_ENV may be unset on deployed runtimes: allowlist a local emulator
+    // and an explicit test opt-in instead of merely rejecting "production".
+    const emulatorHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '';
+    const isolatedLocalTest = process.env.NODE_ENV === 'test'
+      && process.env.KLAR_TEST_VERIFICATION_DELETE === 'allow'
+      && /^(127\.0\.0\.1|localhost|\[::1\]):[1-9][0-9]{1,4}$/.test(emulatorHost)
+      && !process.env.K_SERVICE
+      && !process.env.FUNCTION_TARGET
+      && !process.env.VERCEL_ENV;
+    if (!isolatedLocalTest) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
+  }
+  const verificationPrefix = `verification/${uid}/`;
+  const assertNoUnfencedVerificationPhotos = async () => {
+    const [files, next] = await bucket.getFiles({
+      prefix: verificationPrefix, maxResults: 1, autoPaginate: false,
+    });
+    if (files.length > 0 || Boolean(next?.pageToken)) {
+      throw new Error('verification_photo_p0_fencing_unverified');
+    }
+  };
+  if (mode === 'profile-only') await assertNoUnfencedVerificationPhotos();
+
   let deleted = 0;
   let listed = 0;
   let more = false;
-  for (const prefix of [`verification/${uid}/`, `profiles/${uid}/`]) {
+  const prefixes = mode === 'profile-only'
+    ? [`profiles/${uid}/`]
+    : [verificationPrefix, `profiles/${uid}/`];
+  for (const prefix of prefixes) {
     const [files, next] = await bucket.getFiles({ prefix, maxResults: 100, autoPaginate: false });
     if (files.length > 100) throw new Error('storage_page_limit_exceeded');
     listed += files.length;
@@ -45,9 +66,20 @@ export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<
     for (const file of files) {
       try {
         const [metadata] = await file.getMetadata();
-        if (metadata.temporaryHold || metadata.eventBasedHold) throw new Error('storage_object_held');
-        if (!metadata.generation) throw new Error('Photo generation missing');
-        await file.delete({ ifGenerationMatch: metadata.generation });
+        // A legal/preservation hold field is trusted only when absent or
+        // literally false. Malformed Storage metadata is not deletion consent.
+        if (!metadata
+          || (metadata.temporaryHold !== undefined && metadata.temporaryHold !== false)
+          || (metadata.eventBasedHold !== undefined && metadata.eventBasedHold !== false)) {
+          throw new Error('storage_object_held_or_invalid');
+        }
+        const generation = metadata.generation;
+        if ((typeof generation !== 'string' && typeof generation !== 'number')
+          || !/^[1-9][0-9]*$/.test(String(generation))
+          || (typeof generation === 'number' && !Number.isSafeInteger(generation))) {
+          throw new Error('Photo generation missing or invalid');
+        }
+        await file.delete({ ifGenerationMatch: generation });
         deleted++;
       } catch (error) {
         // Concurrent deletion is harmless, but is not evidence of our progress.
@@ -56,6 +88,11 @@ export async function deleteAccountPhotos(bucket: Bucket, uid: string): Promise<
       }
     }
   }
+  // Recheck before reporting completion so a verification object added
+  // during profile cleanup cannot be silently treated as erased. This check
+  // alone is not an all-writer fence: concurrent creators still need the
+  // independently reviewed account-deletion tombstone protocol.
+  if (mode === 'profile-only') await assertNoUnfencedVerificationPhotos();
   if (!listed && !more) return true;
   if (!deleted) throw new Error('storage_erasure_no_progress');
   return false;
