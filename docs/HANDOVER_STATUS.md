@@ -1,9 +1,18 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-22
-**Main HEAD (verified after PR #398 merge):** `58888c8e9d970c5ca514dcb9960918a64c703491`
-**Previous main HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (the exact baseline before PR #398)
+**Main HEAD (verified after PR #399 merge):** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`
+**Previous main HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491` (the exact baseline before PR #399)
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — PR #399 / P0 #254 Package 1 (2026-11-22)
+
+PR [#399](https://github.com/Veselin-Takev/Klar-Dating/pull/399) merged into `main` at `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`, from previous main `58888c8e9d970c5ca514dcb9960918a64c703491`. The validated PR HEAD was `e4cd968e7dc2b07b12e28bd576ace690dd1efe9b`; merge tree `5fffb9d272b3c8a124aea1ab97735294a803f51b` is identical to that pre-merge PR HEAD tree. This is immutable evidence for this exact main SHA only.
+
+- **Klar Enterprise CI** [Run #45028506636](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45028506636) — post-merge `push` on `main`, exact `head_sha=abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`, **SUCCESS**. Enterprise Static Gates including `check-profile-media-boundary`, Typecheck, Functions Build, Build and Production Smoke passed; **218 test files / 1,691 tests / 0 failed**; `tenantContext.spec.ts` **19/19**; Playwright Browser Acceptance **35/35**.
+- **Enterprise Compliance & Security Audit Gate** [Run #45028506610](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45028506610) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**. Gitleaks scanned the non-empty range `58888c8e9d970c5ca514dcb9960918a64c703491..abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`: **1 commit / approximately 97.47 KB / 0 leaks**; official CLI **v8.24.3** archive checksum `OK`; range regression **4/4**; Tier 1 **549 packages / 0 High+**; Full Supply-Chain **1,245 packages / 0 High+**; Production Build **PASS**.
+- These runs certify only this exact source baseline. They do not prove live Cloud/IAM/Firestore/Storage configuration, tenant mapping, legal approval or production readiness. P0 #254 remains **OPEN**; `productionApproved=false`; release **NO-GO**.
+- Preserve the preceding PR #398 / `58888c8...` baseline and all historical PR #375 / #389–#399 evidence below as immutable SHA-specific records. Do not transfer these results to a later SHA or an active PR head.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
 
@@ -431,3 +440,21 @@ No production approval, merge, deployment, live cloud/IAM/Firestore/Storage muta
 - P0 #254 remains OPEN / BLOCKED pending approved row-level legacy mapping, tenant-aware Rules/routes/client cut-over, full Art. 17/legal-hold and cross-tenant negative evidence, IAM/staging evidence and independent security/DPO/Legal/SRE review.
 - This branch's exact-head Klar Enterprise CI and Enterprise Compliance & Security Audit Gate results are [TO VERIFY] until completed on the final PR head SHA. Per AGENTS.md Anti-SHA-Chasing, record exact PR head and run IDs in final handover/PR metadata; do not create recursive docs-only commits for the PR's own run IDs.
 - productionApproved=false; production remains NO-GO.
+
+## Active Draft PR — P0 #254 Package 2 tenant-scoped repository boundary
+
+- Branch `security/p0-254-package2-tenant-repository-boundary-20261122` is based on exact verified `main@abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`; target: `main`; lifecycle: **Draft / Open / Unmerged**. PR number and current branch HEAD are recorded in GitHub PR metadata and the final handover report.
+- Exact four-file scope: `phase2_work/src/server/multitenant/tenantRepository.ts`, `phase2_work/tests/tenantRepository.spec.ts`, `docs/HANDOVER_STATUS.md`, and `docs/CI_CD_AND_SECURITY_GATES.md`.
+- The isolated repository accepts only a genuine, frozen `TenantContext` issued by `tenantContext.ts`; derives tenant authority only from that context; constructs document paths under `tenants/{tenantId}/...`; rejects tenant-prefixed, traversal, malformed, UID-only and legacy-root paths; and requires a separately injected trusted resource-metadata policy with matching tenant/path, explicit owner and complete non-contradictory participant list.
+- Object access is owner-or-verified-participant for reads; only the owner may create/update/delete. `admin` and `super_admin` have no implicit bypass. Context, path and resource authorization are completed before the underlying injectable store is called. Missing/throwing policy or invalid evidence fails closed.
+- The test suite uses only an in-memory fake store and covers cross-tenant BOLA, same-tenant foreign-UID IDOR, non-participant chat access, forged/reconstructed contexts, 13 invalid/prefixed/traversal/legacy path variants, missing owner/participant metadata, contradictory participants, missing/throwing policy, admin/super_admin bypass attempts, authorized owner CRUD, participant read and participant mutation denial (**29 parameter-expanded cases authored**). Test execution results for this Draft PR remain **[TO VERIFY]** until exact-head CI completes.
+- The resolver/repository is **not** mounted or wired into `server.ts` or existing routes. Package 2 does not alter Firestore/Storage Rules, the production `complianceStorage.ts` 503 interlock, workflows, dependencies, lockfiles, client Firebase access paths or existing route behavior.
+- No legacy UID/chat/pair/provider records are assigned to any tenant. No emulator/staging/live scan, migration or cutover is run. No Cloud, IAM, Firestore, Storage, bucket or deployment mutation is performed.
+- This Draft PR's own **Klar Enterprise CI** and **Enterprise Compliance & Security Audit Gate** exact-head runs: **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, report PR number, final HEAD and exact completed run IDs in GitHub metadata/final handover; do not add a recursive docs-only commit for self-referential Run IDs.
+- Package 3 — deterministic legacy-to-tenant mapping and quarantine dry-run foundation — remains pending and separately scoped. All existing legacy records remain **UNMAPPED** absent an approved, evidence-backed mapping. P0 #254 remains **OPEN**; `productionApproved=false`; release remains **NO-GO**.
+
+
+
+## Historical Iteration-2 register notice
+
+`phase2_work/docs/ITERATION_2_REMEDIATION_REGISTER_2026-11-16.md` is a point-in-time historical snapshot, not the live repository status. Its current-state function is superseded by `docs/HANDOVER_STATUS.md` and `docs/CI_CD_AND_SECURITY_GATES.md`; retain it only as historical audit evidence and do not use it as the authoritative current register.
