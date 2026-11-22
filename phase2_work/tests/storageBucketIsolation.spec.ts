@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const doubles = vi.hoisted(() => ({
   projectId: 'klar-admin',
   storageBucket: undefined as string | undefined,
-  config: { projectId: 'legacy-project', storageBucket: 'legacy-project.firebasestorage.app' },
+  config: { projectId: 'legacy-project', storageBucket: 'legacy-project.firebasestorage.app' } as { projectId: string; storageBucket?: string },
   bucket: vi.fn((name: string) => ({ name })),
 }));
 
