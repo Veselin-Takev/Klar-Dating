@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Candidate contract only. Direct client reads remain denied for all media.
+    function authenticatedNonAnonymous() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function activeTenantMember(tenantId) {
+      return authenticatedNonAnonymous()
+        && request.auth.token.tenantId is string
+        && request.auth.token.tenantId == tenantId
+        && firestore.get(/databases/(default)/documents/tenants/$(tenantId)/members/$(request.auth.uid)).data.tenantId == tenantId
+        && firestore.get(/databases/(default)/documents/tenants/$(tenantId)/members/$(request.auth.uid)).data.uid == request.auth.uid
+        && firestore.get(/databases/(default)/documents/tenants/$(tenantId)/members/$(request.auth.uid)).data.active == true;
+    }
+
+    function ownsTenantProfile(tenantId, uid) {
+      return activeTenantMember(tenantId)
+        && request.auth.uid == uid;
+    }
+
+    function validProfileUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    // Cloud Storage Rules expose read/write methods (write covers create/update/delete).
+    // Delete has request.resource == null; uploads/overwrites must pass content checks.
+    match /tenants/{tenantId}/profiles/{uid}/{filePath=**} {
+      allow read: if false;
+      allow write: if ownsTenantProfile(tenantId, uid)
+        && (request.resource == null || validProfileUpload());
+    }
+
+    // Explicit legacy-root quarantine and a final deny for every other object path.
+    match /users/{legacyPath=**} { allow read, write: if false; }
+    match /profiles/{legacyPath=**} { allow read, write: if false; }
+    match /verification/{legacyPath=**} { allow read, write: if false; }
+    match /verification_events/{legacyPath=**} { allow read, write: if false; }
+
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}
