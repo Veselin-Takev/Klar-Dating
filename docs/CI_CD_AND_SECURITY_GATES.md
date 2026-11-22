@@ -1,8 +1,19 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `6f0457c1b12967415ee02a12669c94999ac8ec8b` (PR #403 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `b6093992bbfd5e68ac75ace34861ac36860dfe41`.
+**Current verified `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406` (PR #404 merged; exact post-merge branch ref verified).  
+**Previous `main` HEAD:** `6f0457c1b12967415ee02a12669c94999ac8ec8b`.
 
+
+## Immutable verified main baseline — PR #404 / P0 #254 Package 6 (2026-11-22)
+
+PR [#404](https://github.com/Veselin-Takev/Klar-Dating/pull/404) merged at `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`; previous main `6f0457c1b12967415ee02a12669c94999ac8ec8b`; merge tree `5c17337773b86d0c09baff9615921e673750117b`, identical to the validated pre-merge PR HEAD tree.
+
+| Workflow | Exact post-merge Run | Result | Evidence |
+|---|---:|---|---|
+| Klar Enterprise CI | [#45076269868](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45076269868) | **SUCCESS** | Exact `head_sha=8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`; 222 test files / 1,760 tests / 0 failed; cutover readiness 19/19; Route Guard Adapter 23/23; Rules Contract 9/9; Playwright 35/35; Typecheck, Functions Build, Build and Production Smoke PASS |
+| Enterprise Compliance & Security Audit Gate | [#45076269957](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45076269957) | **SUCCESS** | Same exact SHA; Gitleaks 1 commit / ~33.46 KB / 0 leaks; CLI v8.24.3 checksum OK; range regression 4/4; Tier 1 549 pkg and Full Supply-Chain 1,245 pkg / 0 High+; Production Build PASS |
+
+P0 #254 engineering status: `AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW` (issue remains OPEN; this status does not imply approval). P0 #374 remains OPEN; Package 1 Draft branch `security/p0-374-package1-profile-media-access-contract-20261122` is active. Its PR number, final HEAD and exact-head CI/Audit runs remain **[TO VERIFY]** until observed. `productionApproved=false`; production NO-GO. All previous baseline entries below remain immutable and unchanged.
 
 ## Immutable verified main baseline — PR #403 / P0 #254 Package 5 (2026-11-22)
 
