@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createTenantRouteGuardAdapter,
   type TenantRouteGuardDependencies,
+  type TenantRouteGuardRequest,
 } from '../src/server/multitenant/tenantRouteGuardAdapter';
 import type { TenantContextDependencies } from '../src/server/multitenant/tenantContext';
 import type { TenantResourceAuthorizationPolicy, TenantScopedStore } from '../src/server/multitenant/tenantRepository';
@@ -16,26 +17,30 @@ function makeHarness(options: {
   membership?: unknown;
   evidence?: unknown;
   policyError?: Error;
+  hostHint?: string | null;
 } = {}) {
   const counters = { verify: 0, tenant: 0, membership: 0, policy: 0, reads: 0, writes: 0 };
+  const identity = options.identity ?? { uid: 'owner-a', tenantId: 'tenant-a', roles: ['user'] };
+  const tenantId = identity.tenantId;
+  const uid = identity.uid;
   const tenantContext: TenantContextDependencies = {
     verifyIdToken: vi.fn(async (_token: string, checkRevoked: true) => {
       counters.verify += 1;
       expect(checkRevoked).toBe(true);
       if (options.tokenError) throw options.tokenError;
-      return options.identity ?? { uid: 'owner-a', tenantId: 'tenant-a', roles: ['user'] };
+      return identity;
     }),
     readTenant: vi.fn(async () => {
       counters.tenant += 1;
-      return options.tenant === undefined ? { tenantId: 'tenant-a', active: true } : options.tenant;
+      return options.tenant === undefined ? { tenantId, active: true } : options.tenant;
     }),
     readMembership: vi.fn(async () => {
       counters.membership += 1;
       return options.membership === undefined
-        ? { tenantId: 'tenant-a', uid: 'owner-a', active: true, roles: ['user'] }
+        ? { tenantId, uid, active: true, roles: ['user'] }
         : options.membership;
     }),
-    resolveHostTenantHint: vi.fn(() => null),
+    resolveHostTenantHint: vi.fn(() => options.hostHint ?? null),
   };
   const store: TenantScopedStore = {
     read: vi.fn(async (path: string) => {
@@ -61,10 +66,10 @@ function makeHarness(options: {
   };
   const dependencies: TenantRouteGuardDependencies = { tenantContext, store, authorizationPolicy };
   const adapter = createTenantRouteGuardAdapter(
-    options.enabled === undefined ? { enabled: true } : { enabled: options.enabled },
+    Object.prototype.hasOwnProperty.call(options, 'enabled') ? { enabled: options.enabled } : { enabled: true },
     dependencies,
   );
-  const request = (overrides: Record<string, unknown> = {}) => ({
+  const request = (overrides: Partial<TenantRouteGuardRequest> = {}): TenantRouteGuardRequest => ({
     authorizationHeader: authHeader,
     operation: 'read' as const,
     resourcePath: 'chats/chat-a',
@@ -137,7 +142,7 @@ describe('isolated default-off tenant route guard adapter', () => {
     expectNoAuthorityOrStoreCalls(h);
   });
 
-  it('returns 403 for an X-Tenant-ID or host/subdomain mismatch before membership reads', async () => {
+  it('returns 403 for an X-Tenant-ID mismatch before membership reads', async () => {
     const h = makeHarness();
     const headerMismatch = await h.adapter.execute(h.request({ xTenantId: 'tenant-b' }));
     expect(headerMismatch).toMatchObject({ ok: false, status: 403, code: 'tenant_context_denied' });
@@ -146,14 +151,28 @@ describe('isolated default-off tenant route guard adapter', () => {
     expectNoAuthorityOrStoreCalls(h);
   });
 
+  it('returns 403 for a host/subdomain mismatch before membership reads', async () => {
+    const h = makeHarness({ hostHint: 'tenant-b' });
+    const result = await h.adapter.execute(h.request({ host: 'tenant-b.example.test' }));
+    expect(result).toMatchObject({ ok: false, status: 403, code: 'tenant_context_denied' });
+    expect(h.counters.tenant).toBe(0);
+    expect(h.counters.membership).toBe(0);
+    expectNoAuthorityOrStoreCalls(h);
+  });
+
   it('returns 403 for inactive or contradictory membership', async () => {
-    const h = makeHarness({
+    const inactive = makeHarness({
+      membership: { tenantId: 'tenant-a', uid: 'owner-a', active: false, roles: ['user'] },
+    });
+    const contradictory = makeHarness({
       membership: { tenantId: 'tenant-b', uid: 'owner-a', active: true, roles: ['user'] },
     });
-    await expect(h.adapter.execute(h.request())).resolves.toMatchObject({
-      ok: false, status: 403, code: 'tenant_context_denied',
-    });
-    expectNoAuthorityOrStoreCalls(h);
+    for (const h of [inactive, contradictory]) {
+      await expect(h.adapter.execute(h.request())).resolves.toMatchObject({
+        ok: false, status: 403, code: 'tenant_context_denied',
+      });
+      expectNoAuthorityOrStoreCalls(h);
+    }
   });
 
   it('denies cross-tenant BOLA before any store read or write', async () => {
