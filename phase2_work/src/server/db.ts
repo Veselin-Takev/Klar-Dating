@@ -25,7 +25,19 @@ function readConfig(): Record<string, unknown> {
 }
 export function getServerFirebaseApp() {
   const { projectId } = resolveFirebaseRuntime(readConfig());
-  return getApps()[0] ?? initializeApp(projectId ? { projectId } : undefined);
+  if (!projectId) {
+    throw new Error('Firebase runtime project ID is not configured; refusing unverified Admin initialization');
+  }
+  // Do not reuse an arbitrary named Admin app: Auth, Firestore and Storage
+  // must share the intended default app and verified project identity.
+  const existing = getApps().find(app => app.name === '[DEFAULT]');
+  if (existing) {
+    if (existing.options.projectId !== projectId) {
+      throw new Error('Existing Firebase Admin app project ID disagrees with runtime selection (or is missing)');
+    }
+    return existing;
+  }
+  return initializeApp({ projectId });
 }
 export function getDb(): Firestore {
   if (!proxyDbInstance) {

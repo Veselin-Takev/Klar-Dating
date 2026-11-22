@@ -1,9 +1,28 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-22
-**Main HEAD (verified after PR #396 merge):** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`
-**Previous main HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c` (the exact baseline before PR #396)
+**Main HEAD (verified after PR #397 merge):** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`
+**Previous main HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` (the exact baseline before PR #397)
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — PR #397 (2026-11-22)
+
+PR [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) merged into `main` at `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, with previous main parent `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`. The merge tree `cced2fb91275abd0474c7209029a6aac3e4be47d` is identical to the validated PR #397 tree. This is immutable source/CI evidence for this exact SHA only.
+
+- **Klar Enterprise CI** [run #45018481241](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481241) — post-merge `push`, exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, **SUCCESS**. Enterprise static gates, TypeScript, Functions build, unit tests, application build, Production Smoke and Browser Acceptance passed; **216 test files / 1,652 tests / 0 failed**; the four P0 #371 suites passed **73/73** (19 + 25 + 5 + 24); Playwright Browser Acceptance **35/35** passed.
+- **Enterprise Compliance & Security Audit Gate** [run #45018481240](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481240) — post-merge `push`, exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, **SUCCESS**. Gitleaks scanned the non-empty one-commit range from `18dd4a3dd753bdfb01875b9aea625064eb7ecce9..6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, checked **208 rules**, and found **0 leaks**; pinned CLI **v8.24.3** official archive checksum verification passed; Gitleaks range regression **4/4** passed; Tier 1 checked **549 packages / 0 High+** and Full Supply-Chain checked **1,245 packages / 0 High+**; Production Build passed.
+
+These runs certify only this exact `main` source baseline. They do not prove live Cloud/Scheduler/IAM/Storage configuration, real staging identity, legal approval, or production readiness. `productionApproved=false`; release remains **NO-GO**.
+
+## Active Draft — Firebase runtime project and Storage bucket identity
+
+- Fresh branch `security/firebase-runtime-identity-hardening-20261122` starts from exact `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`; it ports PR #369's three runtime files and three focused regression-test files after re-review against the current baseline. The two docs-as-code files are updated in this same change.
+- Stale reference [PR #369](https://github.com/Veselin-Takev/Klar-Dating/pull/369) remains an untouched Draft reference on its old base `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (6 commits ahead / 423 behind `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`); it is not rebased, pushed to, or closed. The fresh-base Draft PR supersedes it for current review.
+- This branch adds fail-closed environment-ID agreement and blank-ID rejection, verifies default Admin-app project identity before reuse, rejects an unverified runtime project, includes Storage-only emulator isolation, requires an explicit cross-project bucket instead of falling back to another project's checked-in config, and rejects a conflicting pre-initialized Admin-app default bucket.
+- Regression tests cover conflicting/consistent/blank project IDs, Firestore/Auth/Storage emulator demo-project selection, matching/mismatching/missing Admin project identity, named-app non-reuse, missing/cross-project/explicit Storage bucket selection, Admin default-bucket mismatch and existing isolated emulator behavior. Existing E1/E2/#371 code and tests are not modified or weakened.
+- This PR's own `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` exact-head runs: **[TO VERIFY]**. Do not transfer the main-baseline run IDs above to this PR. Record its PR number/head SHA and completed exact-head run IDs in the PR/final handover; do not create a recursive docs-only commit for moving self-referential run IDs.
+- No dependencies, lockfiles, workflows, `storage.rules`, compliance Storage route, Cloud/IAM/Firestore/Storage/bucket resources, or deployments are changed. `productionApproved=false`; production remains **NO-GO**.
+
 
 ## Immutable verified main baseline — 2026-11-21
 
@@ -22,15 +41,13 @@ These results certify the source/CI baseline only. They do not prove deployed Cl
 - **#371 — OPEN P0 CODE/INTEGRATION GAP; Draft workstream.** The existing deletion fence primitives do not by themselves prove atomicity across every verification writer and Art. 17 final-sweep transaction. The substantive branch `security/issue-371-account-erasure-writer-fence-20261122` adds the missing tombstone/writer-intent integration and adversarial emulator coverage. It is not merged or production-authorized; held/unresolved evidence remains blocked pending DPO/Legal policy.
 - **#254 — OPEN P0 MULTI-TENANT ISOLATION GAP.** Main still requires a separately governed tenant-context, legacy data mapping, rules/repository cutover and BOLA/IDOR emulator validation. Work on `release/v0.1.1-rc1` does not certify tenant isolation on `main`.
 
-## Active PR evidence lifecycle — Art. 17 writer fence
+## Verified post-merge PR #397 — Art. 17 writer fence
 
-**Branch:** `security/issue-371-account-erasure-writer-fence-20261122`  
-**Base:** `main` at `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`  
-**PR:** [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) — Open, Draft, unmerged against `main`; current HEAD SHA is authoritative in GitHub PR metadata and the final handover report.  
-**Klar Enterprise CI (this PR's exact HEAD):** **[TO VERIFY]**  
-**Enterprise Compliance & Security Audit Gate (this PR's exact HEAD):** **[TO VERIFY]**
+PR [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) merged into `main` at `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` from previous parent `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`; the merge tree is `cced2fb91275abd0474c7209029a6aac3e4be47d` and matches the validated PR tree. The merge did not authorize production use.
 
-Do not transfer the successful main Run IDs above to this PR. Record exact PR Run IDs, `head_sha`, status and conclusion after completion in the PR/final handover report. Do not create a recursive commit solely to add the PR's own self-referencing run IDs; such a commit would move the validated HEAD.
+- `Klar Enterprise CI` [run #45018481241](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481241), exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`: **SUCCESS** — 216 test files / 1,652 tests / 0 failed; the four P0 #371 suites passed 73/73; Playwright Browser Acceptance 35/35; static gates, TypeScript, Functions build, application build and Production Smoke passed.
+- `Enterprise Compliance & Security Audit Gate` [run #45018481240](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481240), same exact `head_sha`: **SUCCESS** — one commit scanned by Gitleaks, 208 rules / 0 leaks, CLI v8.24.3 checksum OK, regression 4/4, Tier 1 549 packages / 0 High+, Full Supply-Chain 1,245 packages / 0 High+, Production Build passed.
+- The merged #371 writer-intent/tombstone fence remains subject to independent DPO/Legal and operational evidence; CI does not certify live purge, retention, or production deployment. `productionApproved=false` remains mandatory.
 
 ---
 
@@ -67,7 +84,7 @@ Verified dependency order:
 
 Other active candidates:
 - [#368](https://github.com/Veselin-Takev/Klar-Dating/pull/368): Draft P0 safety interlock to keep legacy upload-age verification-photo purge disabled. CI success does not prove deployed scheduler state or all-writer fencing.
-- [#369](https://github.com/Veselin-Takev/Klar-Dating/pull/369): Draft Firebase runtime project/Storage identity boundary; live staging identity remains unproven.
+- [#369](https://github.com/Veselin-Takev/Klar-Dating/pull/369): untouched stale Draft reference on base `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b`; superseded for current review by the new fresh-base Firebase runtime identity Draft branch above. PR #369 remains open and unmodified.
 - [#375](https://github.com/Veselin-Takev/Klar-Dating/pull/375): Draft public-profile read/publication barrier during account erasure.
 - [#384](https://github.com/Veselin-Takev/Klar-Dating/pull/384): Draft two-tier dependency audit gate; latest Audit Gate run [44584526500](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44584526500) failed on production `re2js@2.8.6`.
 
