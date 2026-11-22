@@ -38,7 +38,7 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     await artifactRef.set({ uid, state: 'held', moderationHoldActive: true });
     await runAccountDeletion(uid, deps);
     expect(deps.removeAuth).not.toHaveBeenCalled();
-    expect((await ref.get()).data()).toMatchObject({ status: 'pending', lastError: 'retry_required' });
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', lastError: 'verification_artifacts_unresolved' });
     expect((await getDb().collection('deletion_log').doc(deletionReceiptId((await ref.get()).data()!.requestId)).get()).exists).toBe(false);
     await artifactRef.delete();
   });
@@ -73,7 +73,7 @@ describe('durable account deletion lifecycle', { timeout: 20_000 }, () => {
     });
     advance(62 * 60_000);
     await runAccountDeletion(uid, deps);
-    expect((await ref.get()).data()).toMatchObject({ status: 'pending', phase: 'final_sweep', lastError: 'retry_required' });
+    expect((await ref.get()).data()).toMatchObject({ status: 'pending', phase: 'final_sweep', lastError: 'verification_artifacts_unresolved' });
     expect((await getDb().collection('deletion_log').doc(deletionReceiptId((await ref.get()).data()!.requestId)).get()).exists).toBe(false);
     await lateFenceRef.delete();
   });

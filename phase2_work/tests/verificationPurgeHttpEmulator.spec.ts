@@ -121,7 +121,7 @@ async function startApi(
 async function withEvent(
   testBody: (args: {
     db: Firestore; event: ReturnType<Firestore['doc']>;
-    path: string;
+    path: string; uid: string;
   }) => Promise<void>,
 ) {
   const suffix = randomUUID().replace(/-/g, '');
@@ -140,10 +140,18 @@ async function withEvent(
       fotoLoeschenAb: new Date(Date.now() - 86_400_000),
       photoPurged: false,
     });
-    await testBody({ db, event, path });
+    await testBody({ db, event, path, uid });
   } finally {
     try {
-      await Promise.all([event.delete(), checkpoint.delete()]);
+      const fences = await db.collection('verificationDeletionFences').where('uid', '==', uid).get();
+      const attempts = await db.collection('verificationDeletionAttempts').where('uid', '==', uid).get();
+      const intents = await db.collection('verificationDeletionWriterIntents').where('uid', '==', uid).get();
+      await Promise.all([
+        event.delete(), checkpoint.delete(), db.collection('account_deletions').doc(uid).delete(),
+        ...fences.docs.map(doc => doc.ref.delete()),
+        ...attempts.docs.map(doc => doc.ref.delete()),
+        ...intents.docs.map(doc => doc.ref.delete()),
+      ]);
     } finally {
       await deleteApp(app);
     }
@@ -151,6 +159,40 @@ async function withEvent(
 }
 
 describe.skipIf(!active)('signed verification storage purge HTTP route (Firestore Emulator)', () => {
+
+  it('blocks the scheduled purge for a tombstoned owner and records a held fence without a Storage delete', async () => {
+    await withEvent(async ({ db, event, uid }) => {
+      await db.collection('account_deletions').doc(uid).set({
+        requestId: randomUUID(), status: 'pending', phase: 'purge',
+        verificationArtifactsUnresolved: false,
+      });
+      const deleted: string[] = [];
+      const api = await startApi(db, async path => { deleted.push(path); });
+      try {
+        const response = await api.request();
+        expect(response.status).toBe(503);
+        expect(deleted).toEqual([]);
+        expect((await event.get()).data()).toMatchObject({
+          photoPurged: false,
+        });
+        expect((await event.get()).data()?.photoPurgeIntent).toMatchObject({ generation: '773', metageneration: '1' });
+        expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
+        const fences = await db.collection('verificationDeletionFences').where('uid', '==', uid).get();
+        expect(fences.size).toBe(1);
+        const heldFenceSnapshot = fences.docs[0];
+        if (!heldFenceSnapshot) throw new Error('verification_deletion_held_fence_missing');
+        expect(heldFenceSnapshot.data()).toMatchObject({
+          state: 'held', accountErasureActive: true,
+          decisionReason: 'account_erasure_barrier_present',
+        });
+        expect((await db.collection('account_deletions').doc(uid).get()).data())
+          .toMatchObject({ verificationArtifactsUnresolved: true, verificationArtifactsReviewRequired: true });
+      } finally {
+        await api.close();
+      }
+    });
+  }, 90_000);
+
   it('rejects an authenticated purge when the default-deny deployment gate is unset', async () => {
     await withEvent(async ({ db, event }) => {
       let deleted = false;

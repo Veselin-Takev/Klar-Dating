@@ -3,6 +3,7 @@ import { Timestamp, type DocumentReference, type Firestore } from 'firebase-admi
 
 export const VERIFICATION_DELETION_FENCE_COLLECTION = 'verificationDeletionFences';
 export const VERIFICATION_DELETION_ATTEMPT_COLLECTION = 'verificationDeletionAttempts';
+export const VERIFICATION_DELETION_WRITER_INTENT_COLLECTION = 'verificationDeletionWriterIntents';
 export const VERIFICATION_DELETION_FENCE_SCHEMA_VERSION = 1 as const;
 export const DEFAULT_DELETION_RESERVATION_TTL_MS = 5 * 60_000;
 
@@ -64,6 +65,14 @@ export interface CreateVerificationDeletionFenceInput {
   legalHoldActive?: boolean;
   moderationHoldActive?: boolean;
   accountErasureActive?: boolean;
+  createdBy: string;
+}
+
+export interface BeginVerificationDeletionWriterIntentInput {
+  uid: string;
+  challengeId: string;
+  bucket: string;
+  storagePath: string;
   createdBy: string;
 }
 
@@ -193,6 +202,32 @@ function readHoldFlag(value: unknown): boolean {
 function hasActiveHold(fence: Pick<VerificationDeletionFence,
   'legalHoldActive' | 'moderationHoldActive' | 'accountErasureActive'>): boolean {
   return fence.legalHoldActive || fence.moderationHoldActive || fence.accountErasureActive;
+}
+
+/** An account-erasure tombstone is an irreversible interlock, never purge approval. */
+function applyAccountErasureHold(
+  fence: VerificationDeletionFence,
+  actor = 'account-erasure-tombstone',
+): VerificationDeletionFence {
+  const alreadyDeleted = fence.state === 'deleted';
+  if (fence.accountErasureActive && (alreadyDeleted || fence.state === 'held')) return fence;
+  const now = Timestamp.now();
+  return {
+    ...fence,
+    accountErasureActive: true,
+    // Preserve the exact deletion receipt for an already absent generation.
+    state: alreadyDeleted ? 'deleted' : 'held',
+    ...(alreadyDeleted ? {} : {
+      reservationToken: null, reservationOwner: null, reservedAt: null,
+      reservationExpiresAt: null, activeDeleteAttemptId: null,
+    }),
+    holdVersion: fence.holdVersion + 1,
+    decisionVersion: fence.decisionVersion + 1,
+    decisionReason: 'account_erasure_barrier_present',
+    updatedAt: now,
+    lastTransitionAt: now,
+    lastTransitionBy: actor,
+  };
 }
 
 /** Build and validate a schema-v1 record without performing Firestore I/O. */
@@ -329,15 +364,34 @@ export async function createVerificationDeletionFence(
   db: Firestore,
   input: CreateVerificationDeletionFenceInput,
 ): Promise<VerificationDeletionFence> {
-  const fence = buildVerificationDeletionFence(input);
-  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(fence.objectKey);
-  await db.runTransaction(async tx => {
-    const existing = await tx.get(ref);
+  const proposed = buildVerificationDeletionFence(input);
+  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(proposed.objectKey);
+  const deletionRef = db.collection('account_deletions').doc(proposed.uid);
+  return db.runTransaction(async tx => {
+    const [existing, deletion] = await Promise.all([tx.get(ref), tx.get(deletionRef)]);
     if (existing.exists) fail('verification_deletion_fence_already_exists');
-    // Create, never merge: UID/path/generation identity is immutable.
+    const fence = deletion.exists
+      ? applyAccountErasureHold(proposed, 'verification-object-registration')
+      : proposed;
+    // The authoritative tombstone read and fence create serialize atomically.
+    // A post-tombstone object is durable but never an ordinary eligible fence.
     tx.create(ref, fence);
+    if (deletion.exists) {
+      const deletionData = deletion.data() ?? {};
+      tx.set(deletionRef, {
+        verificationArtifactsUnresolved: true,
+        verificationArtifactsLastSeenAt: Timestamp.now(),
+        verificationArtifactsLastSeenObjectKey: fence.objectKey,
+        verificationArtifactsReviewRequired: true,
+        ...(deletionData.status === 'completed' ? {
+          status: 'manual_review', phase: 'manual_review', completedAt: null,
+          nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0,
+          lastError: 'verification_object_finalized_after_account_erasure_completion',
+        } : {}),
+      }, { merge: true });
+    }
+    return fence;
   });
-  return fence;
 }
 
 /**
@@ -351,23 +405,120 @@ export async function ensureVerificationDeletionFenceForUploadedObject(
   input: CreateVerificationDeletionFenceInput,
 ): Promise<VerificationDeletionFence> {
   const proposed = buildVerificationDeletionFence(input);
-  try {
-    return await createVerificationDeletionFence(db, input);
-  } catch (error) {
-    if (!(error instanceof VerificationDeletionFenceError)
-      || error.code !== 'verification_deletion_fence_already_exists') throw error;
-  }
+  const ref = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(proposed.objectKey);
+  const deletionRef = db.collection('account_deletions').doc(proposed.uid);
 
-  const existing = await readVerificationDeletionFence(db, proposed.objectKey);
-  if (existing.uid !== proposed.uid
-    || existing.challengeId !== proposed.challengeId
-    || existing.bucket !== proposed.bucket
-    || existing.storagePath !== proposed.storagePath
-    || existing.observedGeneration !== proposed.observedGeneration
-    || existing.observedMetageneration !== proposed.observedMetageneration) {
-    fail('verification_deletion_fence_identity_mismatch');
-  }
-  return existing;
+  return db.runTransaction(async tx => {
+    const [snapshot, deletion] = await Promise.all([tx.get(ref), tx.get(deletionRef)]);
+    let fence: VerificationDeletionFence;
+    if (snapshot.exists) {
+      fence = parseFence(snapshot.data(), proposed.objectKey);
+      if (fence.uid !== proposed.uid
+        || fence.challengeId !== proposed.challengeId
+        || fence.bucket !== proposed.bucket
+        || fence.storagePath !== proposed.storagePath
+        || fence.observedGeneration !== proposed.observedGeneration
+        || fence.observedMetageneration !== proposed.observedMetageneration) {
+        fail('verification_deletion_fence_identity_mismatch');
+      }
+      if (deletion.exists) {
+        const held = applyAccountErasureHold(fence, 'verification-object-registration');
+        if (held !== fence) tx.set(ref, held);
+        fence = held;
+      }
+    } else {
+      fence = deletion.exists
+        ? applyAccountErasureHold(proposed, 'verification-object-registration')
+        : proposed;
+      tx.create(ref, fence);
+    }
+
+    if (deletion.exists) {
+      const deletionData = deletion.data() ?? {};
+      tx.set(deletionRef, {
+        verificationArtifactsUnresolved: true,
+        verificationArtifactsLastSeenAt: Timestamp.now(),
+        verificationArtifactsLastSeenObjectKey: fence.objectKey,
+        verificationArtifactsReviewRequired: true,
+        ...(deletionData.status === 'completed' ? {
+          status: 'manual_review', phase: 'manual_review', completedAt: null,
+          nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0,
+          lastError: 'verification_object_finalized_after_account_erasure_completion',
+        } : {}),
+      }, { merge: true });
+    }
+    return fence;
+  });
+}
+
+/**
+ * Persist an intent before a legacy Admin SDK write to verification/. The
+ * tombstone read serializes this operation with requestAccountDeletion.
+ */
+export async function beginVerificationDeletionWriterIntent(
+  db: Firestore,
+  input: BeginVerificationDeletionWriterIntentInput,
+): Promise<string> {
+  const uid = requireIdentifier(input.uid, 'verification_deletion_uid_invalid');
+  const challengeId = requireIdentifier(input.challengeId, 'verification_deletion_challenge_invalid');
+  const bucket = requireIdentifier(input.bucket, 'verification_deletion_bucket_invalid');
+  const storagePath = requireVerificationStoragePath(input.storagePath, uid);
+  const createdBy = requireIdentifier(input.createdBy, 'verification_deletion_actor_invalid', 128);
+  const intentId = randomUUID();
+  const intentRef = db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).doc(intentId);
+  const deletionRef = db.collection('account_deletions').doc(uid);
+
+  await db.runTransaction(async tx => {
+    const deletion = await tx.get(deletionRef);
+    if (deletion.exists) fail('verification_deletion_account_erasure_active');
+    const now = Timestamp.now();
+    tx.create(intentRef, {
+      schemaVersion: VERIFICATION_DELETION_FENCE_SCHEMA_VERSION,
+      intentId, uid, challengeId, bucket, storagePath, createdBy,
+      status: 'pending', createdAt: now, updatedAt: now,
+    });
+  });
+  return intentId;
+}
+
+/** Close a writer intent only after an exact identity-matching fence is durable. */
+export async function completeVerificationDeletionWriterIntent(
+  db: Firestore,
+  intentId: string,
+  objectKey: string,
+  expectedGeneration: string | number,
+  expectedMetageneration: string | number,
+): Promise<void> {
+  const id = requireIdentifier(intentId, 'verification_deletion_writer_intent_invalid', 128);
+  const key = requireIdentifier(objectKey, 'verification_deletion_object_key_invalid', 128);
+  const generation = normalizeGeneration(expectedGeneration, 'verification_deletion_generation_missing_or_invalid');
+  const metageneration = normalizeGeneration(expectedMetageneration, 'verification_deletion_metageneration_invalid');
+  const intentRef = db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).doc(id);
+  return db.runTransaction(async tx => {
+    const intentSnapshot = await tx.get(intentRef);
+    if (!intentSnapshot.exists) fail('verification_deletion_writer_intent_missing');
+    const raw = intentSnapshot.data();
+    if (!isRecord(raw) || raw.schemaVersion !== VERIFICATION_DELETION_FENCE_SCHEMA_VERSION
+      || raw.intentId !== id || raw.status !== 'pending'
+      || typeof raw.uid !== 'string' || typeof raw.bucket !== 'string'
+      || typeof raw.storagePath !== 'string' || typeof raw.challengeId !== 'string') {
+      fail('verification_deletion_writer_intent_invalid');
+    }
+    const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(key);
+    const [fenceSnapshot, deletion] = await Promise.all([
+      tx.get(fenceRef),
+      tx.get(db.collection('account_deletions').doc(raw.uid)),
+    ]);
+    if (!fenceSnapshot.exists) fail('verification_deletion_writer_fence_missing');
+    const fence = parseFence(fenceSnapshot.data(), key);
+    if (fence.uid !== raw.uid || fence.bucket !== raw.bucket
+      || fence.storagePath !== raw.storagePath || fence.challengeId !== raw.challengeId
+      || fence.observedGeneration !== generation || fence.observedMetageneration !== metageneration) {
+      fail('verification_deletion_writer_fence_identity_mismatch');
+    }
+    if (deletion.exists) fail('verification_deletion_account_erasure_active');
+    tx.delete(intentRef);
+  });
 }
 
 export async function readVerificationDeletionFence(
@@ -402,10 +553,29 @@ export async function reconcileVerificationDeletionArtifactsForAccountErasure(
         .where('uid', '==', owner).limit(200);
       const fencesQuery = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION)
         .where('uid', '==', owner).limit(200);
-      const [attemptSnapshots, fenceSnapshots] = await Promise.all([
+      const writerIntentsQuery = db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION)
+        .where('uid', '==', owner).limit(1);
+      const deletionRef = db.collection('account_deletions').doc(owner);
+      const [attemptSnapshots, fenceSnapshots, writerIntentSnapshots, deletionSnapshot] = await Promise.all([
         tx.get(attemptsQuery),
         tx.get(fencesQuery),
+        tx.get(writerIntentsQuery),
+        tx.get(deletionRef),
       ]);
+
+      if (!writerIntentSnapshots.empty) {
+        if (deletionSnapshot.exists) {
+          tx.set(deletionRef, {
+            verificationArtifactsUnresolved: true,
+            verificationArtifactsLastSeenAt: Timestamp.now(),
+            verificationArtifactsReviewRequired: true,
+          }, { merge: true });
+        }
+        return { removedFences: 0, removedAttempts: 0, blocked: true };
+      }
+      if (deletionSnapshot.data()?.verificationArtifactsUnresolved === true) {
+        return { removedFences: 0, removedAttempts: 0, blocked: true };
+      }
 
       for (const snapshot of attemptSnapshots.docs) {
         const raw = snapshot.data();
@@ -446,7 +616,7 @@ export async function reconcileVerificationDeletionArtifactsForAccountErasure(
 
       if (!attemptSnapshots.empty) {
         for (const snapshot of attemptSnapshots.docs) tx.delete(snapshot.ref);
-        return { removedFences: 0, removedAttempts: attemptSnapshots.size };
+        return { removedFences: 0, removedAttempts: attemptSnapshots.size, blocked: false };
       }
 
       for (const snapshot of fenceSnapshots.docs) {
@@ -461,9 +631,10 @@ export async function reconcileVerificationDeletionArtifactsForAccountErasure(
         }
       }
       for (const snapshot of fenceSnapshots.docs) tx.delete(snapshot.ref);
-      return { removedFences: fenceSnapshots.size, removedAttempts: 0 };
+      return { removedFences: fenceSnapshots.size, removedAttempts: 0, blocked: false };
     });
 
+    if (page.blocked) fail('verification_deletion_account_erasure_artifacts_unresolved');
     removedFences += page.removedFences;
     removedAttempts += page.removedAttempts;
     if (page.removedFences === 0 && page.removedAttempts === 0) {
@@ -479,11 +650,16 @@ export async function assertNoVerificationDeletionArtifacts(
 ): Promise<void> {
   const owner = requireIdentifier(uid, 'verification_deletion_uid_invalid');
   await db.runTransaction(async tx => {
-    const [fences, attempts] = await Promise.all([
+    const deletion = await tx.get(db.collection('account_deletions').doc(owner));
+    const [fences, attempts, writerIntents] = await Promise.all([
       tx.get(db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).where('uid', '==', owner).limit(1)),
       tx.get(db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).where('uid', '==', owner).limit(1)),
+      tx.get(db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).where('uid', '==', owner).limit(1)),
     ]);
-    if (!fences.empty || !attempts.empty) fail('verification_deletion_artifacts_unresolved');
+    if (!fences.empty || !attempts.empty || !writerIntents.empty
+      || deletion.data()?.verificationArtifactsUnresolved === true) {
+      fail('verification_deletion_artifacts_unresolved');
+    }
   });
 }
 
@@ -517,6 +693,19 @@ export async function reserveVerificationDeletion(
     const snapshot = await tx.get(ref);
     if (!snapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(snapshot.data(), key);
+    const deletionRef = db.collection('account_deletions').doc(fence.uid);
+    const deletion = await tx.get(deletionRef);
+    if (deletion.exists) {
+      const held = applyAccountErasureHold(fence, owner);
+      if (held !== fence) tx.set(ref, held);
+      tx.set(deletionRef, {
+        verificationArtifactsUnresolved: true,
+        verificationArtifactsLastSeenAt: Timestamp.now(),
+        verificationArtifactsLastSeenObjectKey: key,
+        verificationArtifactsReviewRequired: true,
+      }, { merge: true });
+      return { status: 'held' as const, objectKey: key, fence: held };
+    }
     if (fence.state !== 'eligible') {
       fail(fence.state === 'held'
         ? 'verification_deletion_held'
@@ -713,6 +902,9 @@ export async function verifyVerificationDeletionReservation(
     const snapshot = await tx.get(ref);
     if (!snapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(snapshot.data(), key);
+    if ((await tx.get(db.collection('account_deletions').doc(fence.uid))).exists) {
+      fail('verification_deletion_account_erasure_active');
+    }
     if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
     if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
     if (fence.observedGeneration !== generation) fail('verification_deletion_generation_changed');
@@ -747,6 +939,9 @@ export async function logVerificationDeleteAttempt(
     const snapshot = await tx.get(fenceRef);
     if (!snapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(snapshot.data(), key);
+    if ((await tx.get(db.collection('account_deletions').doc(fence.uid))).exists) {
+      fail('verification_deletion_account_erasure_active');
+    }
     if (fence.state !== 'delete_reserved') fail('verification_deletion_not_reserved');
     if (fence.reservationToken !== token) fail('verification_deletion_fencing_token_mismatch');
     if (fence.observedGeneration !== generation) fail('verification_deletion_generation_changed');
@@ -973,15 +1168,12 @@ export async function prepareVerificationDeleteCas(
 
   let fence: VerificationDeletionFence;
   try {
-    fence = await createVerificationDeletionFence(db, createInput);
+    // Serialize new and existing CAS fences with account_deletions/{uid}.
+    fence = await ensureVerificationDeletionFenceForUploadedObject(db, createInput);
   } catch (error) {
-    if (!(error instanceof VerificationDeletionFenceError)
-      || error.code !== 'verification_deletion_fence_already_exists') {
-      const reason = prepareConflictReason(error);
-      if (reason) return { readyForGcs: false, reason, objectKey };
-      throw error;
-    }
-    fence = await readVerificationDeletionFence(db, objectKey);
+    const reason = prepareConflictReason(error);
+    if (reason) return { readyForGcs: false, reason, objectKey };
+    throw error;
   }
 
   // The deterministic key intentionally binds UID/bucket/path/generation.
@@ -1142,6 +1334,9 @@ export async function writeVerificationDeletionReceipt(
     const fenceSnapshot = await tx.get(fenceRef);
     if (!fenceSnapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(fenceSnapshot.data(), key);
+    if ((await tx.get(db.collection('account_deletions').doc(fence.uid))).exists) {
+      fail('verification_deletion_account_erasure_active');
+    }
 
     if (generation !== rawAttempt.generation || generation !== fence.observedGeneration) {
       fail('verification_deletion_generation_changed');
@@ -1209,6 +1404,7 @@ export async function failVerificationDeletionAttempt(
     const fenceSnapshot = await tx.get(fenceRef);
     if (!fenceSnapshot.exists) fail('verification_deletion_fence_missing');
     const fence = parseFence(fenceSnapshot.data(), key);
+    const deletion = await tx.get(db.collection('account_deletions').doc(fence.uid));
     const now = Timestamp.now();
     tx.set(attemptRef, {
       ...(rawAttempt as unknown as VerificationDeleteAttempt),
@@ -1216,9 +1412,10 @@ export async function failVerificationDeletionAttempt(
     });
     if (fence.activeDeleteAttemptId === id && fence.state === 'delete_reserved'
       && fence.reservationToken === rawAttempt.reservationToken) {
-      const held = hasActiveHold(fence);
+      const nextFence = deletion.exists ? applyAccountErasureHold(fence, by) : fence;
+      const held = hasActiveHold(nextFence);
       tx.set(fenceRef, {
-        ...fence,
+        ...nextFence,
         state: held ? 'held' : 'eligible',
         reservationToken: null, reservationOwner: null, reservedAt: null,
         reservationExpiresAt: null, activeDeleteAttemptId: null,
@@ -1250,6 +1447,9 @@ export async function reclaimVerificationDeletionAttemptForActiveWorker(
       || lease.leaseUntil.toMillis() <= Date.now()) fail('verification_deletion_successor_lease_not_active');
     if (!fenceSnapshot.exists) return false;
     const fence = parseFence(fenceSnapshot.data(), key);
+    if ((await tx.get(db.collection('account_deletions').doc(fence.uid))).exists) {
+      fail('verification_deletion_account_erasure_active');
+    }
     if (fence.state !== 'delete_reserved' || fence.reservationOwner === owner) return false;
     if (fence.activeDeleteAttemptId) {
       const oldRef = db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).doc(fence.activeDeleteAttemptId);
@@ -1295,7 +1495,11 @@ export async function reconcileVerificationDeletionAbsence(
   });
   const fenceRef = db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).doc(objectKey);
   return db.runTransaction(async tx => {
-    const fenceSnapshot = await tx.get(fenceRef);
+    const [fenceSnapshot, deletion] = await Promise.all([
+      tx.get(fenceRef),
+      tx.get(db.collection('account_deletions').doc(input.uid)),
+    ]);
+    if (deletion.exists) fail('verification_deletion_account_erasure_active');
     if (!fenceSnapshot.exists) return null;
     const fence = parseFence(fenceSnapshot.data(), objectKey);
     if (fence.uid !== input.uid || fence.challengeId !== input.challengeId

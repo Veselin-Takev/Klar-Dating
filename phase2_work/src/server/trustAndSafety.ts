@@ -5,7 +5,10 @@ import { distributedRateLimit } from './distributedRateLimiter';
 import { getAuth } from 'firebase-admin/auth';
 import { getAppBucket } from './storage';
 import { deleteAccountPhotos } from '../../functions/src/retention';
-import { reconcileVerificationDeletionArtifactsForAccountErasure } from './platform/verificationDeletionFence';
+import {
+  assertNoVerificationDeletionArtifacts,
+  reconcileVerificationDeletionArtifactsForAccountErasure,
+} from './platform/verificationDeletionFence';
 import type { Request, Response } from 'express';
 import type { Query } from 'firebase-admin/firestore';
 import { FieldValue } from './db';
@@ -498,6 +501,9 @@ export async function purgeAccountData(meineUid: string, deletionRequestId: stri
     // prefix is empty. Only now may terminal, unheld, UID-scoped fence/attempt
     // artifacts be removed; holds and ambiguous work remain a hard Art. 17 stop.
     await reconcileVerificationDeletionArtifactsForAccountErasure(db, meineUid);
+    // A finalize event may arrive after the first Storage-prefix scan. Re-read
+    // fences, attempts, writer intents and the tombstone marker before progressing.
+    await assertNoVerificationDeletionArtifacts(db, meineUid);
     await loescheAbfrage(db.collection('mail_queue').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_requests').where('uid', '==', meineUid));
     await loescheAbfrage(db.collection('verification_events').where('uid', '==', meineUid));
