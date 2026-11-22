@@ -1,7 +1,7 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `c20dca0d11595f91b8a86687038ea86ba89aa453` (PR #401 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `b516d56cec7ffb21f45e9544e3cc015391071697`.
+**Current verified `main` HEAD:** `b6093992bbfd5e68ac75ace34861ac36860dfe41` (PR #402 merged; exact post-merge branch ref verified).  
+**Previous `main` HEAD:** `c20dca0d11595f91b8a86687038ea86ba89aa453`.
 
 ## Immutable verified main baseline — PR #401 / P0 #254 Package 3 (2026-11-22)
 
@@ -12,14 +12,22 @@ PR [#401](https://github.com/Veselin-Takev/Klar-Dating/pull/401) merged into `ma
 - These runs certify only this exact source baseline. They do not prove live Cloud/IAM/Firestore/Storage configuration, tenant migration, legal approval or production readiness. P0 #254 remains **OPEN**; `productionApproved=false`; release **NO-GO**.
 - Preserve preceding PR #400 / `b516d56...`, PR #399 / `abb3c4e...`, PR #398 / `58888c8...` and historical PR #375 / #389–#401 evidence below unchanged.
 
-## Active Draft — P0 #254 Package 4: isolated tenant Rules contract
+## Immutable verified main baseline — PR #402 / P0 #254 Package 4 (2026-11-22)
 
-- Branch: `security/p0-254-package4-tenant-rules-contract-20261122`, based on exact `main@c20dca0d11595f91b8a86687038ea86ba89aa453`.
-- Scope: two isolated candidate Rules files, a separate demo-project emulator config, nine-group Firestore/Storage negative and boundary suite, script-only registration and concept/Docs-as-Code updates.
-- The candidate configuration alone references `firestore.tenant-candidate.rules` and `storage.tenant-candidate.rules`; existing `firebase.json` and active Rules remain untouched. It is not a deployment or cutover.
-- Candidate policy requires signed tenant claim plus active `tenants/{tenantId}/members/{uid}` membership; profile reads are owner-only, chat reads require server-written participant membership, profile media client reads remain denied, and owner media writes enforce image MIME / 5 MiB limits. No admin/super_admin bypass.
-- Local command: `npm run test:tenant-rules-contract` from `phase2_work/`, using only `demo-klar` Firestore/Storage emulators on dedicated ports. The harness refuses to run without emulator endpoint variables.
-- This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-HEAD results: **[TO VERIFY]**. Do not transfer the immutable main-baseline Run IDs to this PR or chase its moving SHA with a docs-only commit.
+PR [#402](https://github.com/Veselin-Takev/Klar-Dating/pull/402) merged into `main` at `b6093992bbfd5e68ac75ace34861ac36860dfe41`; previous main was `c20dca0d11595f91b8a86687038ea86ba89aa453`. The merge tree `4aefa2d8e36e66dfe82c674bba49327faa102b4d` is identical to the validated pre-merge PR #402 HEAD tree. This immutable evidence applies only to this exact main SHA.
+
+- **Klar Enterprise CI** [Run #45066992154](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45066992154) — post-merge `push` on `main`, exact `head_sha=b6093992bbfd5e68ac75ace34861ac36860dfe41`, **SUCCESS**. Enterprise Static Gates including `check-profile-media-boundary` and `test:tenant-rules-contract` passed; Typecheck, Functions Build, Tests, Build, Production Smoke and Playwright Browser Acceptance passed; **221 test files / 1,737 tests / 0 failed**; `tenantRulesContract.spec.ts` **9/9** on `demo-klar`; Playwright **35/35**.
+- **Enterprise Compliance & Security Audit Gate** [Run #45066992124](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45066992124) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**. Gitleaks scanned the non-empty range `c20dca0d11595f91b8a86687038ea86ba89aa453..b6093992bbfd5e68ac75ace34861ac36860dfe41`: **1 commit / approximately 33.59 KB / 0 leaks**; official CLI **v8.24.3** checksum `OK`; range regression **4/4**; Tier 1 **549 packages / 0 High+**; Full Supply-Chain **1,245 packages / 0 High+**; Production Build **PASS**.
+- These runs certify only this exact source baseline. They do not prove live Cloud/IAM/Firestore/Storage configuration, tenant migration, legal approval or production readiness. P0 #254 remains **OPEN**; `productionApproved=false`; release **NO-GO**.
+- Preserve prior PR #401 / `c20dca0...`, PR #400 / `b516d56...`, PR #399 / `abb3c4e...`, PR #398 / `58888c8...`, PR #375 and historical PR #389–#402 records below unchanged.
+
+## Active Draft — P0 #254 Package 5: default-off tenant route guard adapter
+
+- Branch: `security/p0-254-package5-tenant-route-guard-adapter-20261122`, based on exact `main@b6093992bbfd5e68ac75ace34861ac36860dfe41`; target `main`; keep **Draft / Open / Unmerged**.
+- Scope: isolated injectable `tenantRouteGuardAdapter.ts`; synthetic fake-store end-to-end negative/boundary suite; concept document; script-only registration in `phase2_work/package.json`; this handover and CI/security-gates document.
+- The adapter captures server-owned `enabled === true` only. Missing/undefined/non-true values deny before token verifier, resolver, policy or store. Enabled requests delegate Bearer verification with revocation check to `tenantContext.ts`, then pass only its genuine frozen context to `tenantRepository.ts`. No request body or client claim supplies owner/participant authority; admin/super_admin have no bypass.
+- No server bootstrap or production route is mounted. Candidate Firestore/Storage Rules remain inactive. No migration, automatic tenant assignment, real PII, Cloud/IAM/Firestore/Storage/bucket/deployment mutation.
+- Exact PR number and final PR HEAD are held in GitHub PR metadata and final handover. This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-HEAD results: **[TO VERIFY]** until observed. Do not transfer the immutable baseline Run IDs above to this PR or create a recursive docs-only commit for its moving self-referential Run IDs.
 - P0 #254 remains **OPEN**; `productionApproved=false`; production remains **NO-GO**.
 
 ## Immutable verified main baseline — PR #400 / P0 #254 Package 2 (2026-11-22)
