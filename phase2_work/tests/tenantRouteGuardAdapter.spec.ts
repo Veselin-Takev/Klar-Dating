@@ -70,10 +70,10 @@ function makeHarness(options: {
     dependencies,
   );
   const request = (overrides: Partial<TenantRouteGuardRequest> = {}): TenantRouteGuardRequest => ({
-    authorizationHeader: authHeader,
-    operation: 'read' as const,
-    resourcePath: 'chats/chat-a',
     ...overrides,
+    authorizationHeader: overrides.authorizationHeader ?? authHeader,
+    operation: overrides.operation ?? 'read',
+    resourcePath: overrides.resourcePath ?? 'chats/chat-a',
   });
   return { adapter, dependencies, counters, request };
 }
