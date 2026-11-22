@@ -10,6 +10,15 @@ import { getAppBucket } from '../src/server/storage';
 import { createCanonicalProfileMediaRef } from '../src/lib/profileMediaRef';
 import { handleDeleteAccount } from '../src/server/trustAndSafety';
 import { purgeAccountData } from '../src/server/trustAndSafety';
+import { runAccountDeletion } from '../src/server/accountDeletion';
+import {
+  registerFinalizedVerificationObject,
+  TRUSTED_VERIFICATION_WRITER_MARKER,
+} from '../src/server/platform/verificationObjectRegistration';
+import {
+  VERIFICATION_DELETION_FENCE_COLLECTION,
+  VERIFICATION_DELETION_WRITER_INTENT_COLLECTION,
+} from '../src/server/platform/verificationDeletionFence';
 
 describe('account erasure including archived messages and photos', () => {
   beforeEach(() => vi.stubEnv('CONSENT_AUDIT_SECRET', 'test-only-erasure-audit-key-not-for-production'));
@@ -175,5 +184,70 @@ describe('account erasure including archived messages and photos', () => {
     expect(status).toBe(401);
     expect((await getDb().doc('account_deletions/stale-session').get()).exists).toBe(false);
   });
+
+  it.runIf(!!process.env.FIRESTORE_EMULATOR_HOST)(
+    'keeps Art. 17 pending when a finalized verification object appears after the initial Storage-prefix scan',
+    async () => {
+      const uid = `erase-late-finalize-${randomUUID()}`;
+      const db = getDb();
+      const requestId = randomUUID();
+      const job = db.doc(`account_deletions/${uid}`);
+      const objectPath = `verification/${uid}/late-capture.jpg`;
+      const bucket = 'synthetic-klar-verification-test';
+      let removeAuthCalled = false;
+
+      await job.set({
+        requestId, status: 'pending', phase: 'purge',
+        createdAt: new Date(), nextAttemptAt: new Date(Date.now() - 1_000),
+        leaseUntil: 0, attempts: 0, accountingVersion: 2,
+        deletedCounts: emptyDeletionCounts(), hasDidit: false,
+        verificationArtifactsUnresolved: false, verificationArtifactsReviewRequired: false,
+      });
+      try {
+        await runAccountDeletion(uid, {
+          db,
+          now: Date.now,
+          disable: async () => undefined,
+          cancelSubscription: async () => undefined,
+          eraseProvider: async () => true,
+          // Represents the point after the initial Storage-prefix scan returned
+          // empty: a previously in-flight object-finalize event now arrives.
+          purge: async () => {
+            const fence = await registerFinalizedVerificationObject(db, bucket, {
+              bucket, name: objectPath, generation: '8801', metageneration: '1',
+              metadata: {
+                klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+                uid, challengeId: `challenge-${uid}`, createdBy: 'late-finalize-emulator',
+              },
+            });
+            expect(fence).toMatchObject({ state: 'held', accountErasureActive: true });
+          },
+          removeAuth: async () => { removeAuthCalled = true; },
+        });
+
+        expect(removeAuthCalled).toBe(false);
+        expect((await db.collection(VERIFICATION_DELETION_FENCE_COLLECTION)
+          .where('uid', '==', uid).get()).docs.map(doc => doc.data()))
+          .toEqual([expect.objectContaining({
+            state: 'held', accountErasureActive: true, storagePath: objectPath,
+          })]);
+        expect((await job.get()).data()).toMatchObject({
+          status: 'pending',
+          verificationArtifactsUnresolved: true,
+          verificationArtifactsReviewRequired: true,
+          lastError: 'verification_artifacts_unresolved',
+        });
+        expect((await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION)
+          .where('uid', '==', uid).get()).empty).toBe(true);
+      } finally {
+        const fences = await db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).where('uid', '==', uid).get();
+        await Promise.all(fences.docs.map(doc => doc.ref.delete()));
+        const intents = await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).where('uid', '==', uid).get();
+        await Promise.all(intents.docs.map(doc => doc.ref.delete()));
+        await job.delete().catch(() => undefined);
+      }
+    },
+  );
+
 });
 

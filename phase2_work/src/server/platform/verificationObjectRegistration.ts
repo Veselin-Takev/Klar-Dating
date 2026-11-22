@@ -64,6 +64,8 @@ export async function registerFinalizedVerificationObject(
     throw new Error('verification_deletion_finalize_version_missing');
   }
 
+  // Post-tombstone events are durably fenced as held; the shared transaction
+  // also marks the deletion job unresolved instead of dropping late objects.
   return ensureVerificationDeletionFenceForUploadedObject(db, {
     uid,
     challengeId: custom.challengeId,

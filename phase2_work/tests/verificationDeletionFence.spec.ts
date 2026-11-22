@@ -4,6 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import {
+  assertNoVerificationDeletionArtifacts,
+  beginVerificationDeletionWriterIntent,
+  completeVerificationDeletionWriterIntent,
   buildVerificationDeletionFence,
   createVerificationDeletionFence,
   ensureVerificationDeletionFenceForUploadedObject,
@@ -17,6 +20,7 @@ import {
   verifyVerificationDeletionReservation,
   writeVerificationDeletionReceipt,
   verificationDeletionObjectKey,
+  VERIFICATION_DELETION_WRITER_INTENT_COLLECTION,
   VerificationDeletionFenceError,
   type CreateVerificationDeletionFenceInput,
 } from '../src/server/platform/verificationDeletionFence';
@@ -63,6 +67,8 @@ async function withEmulatorDb(testBody: (db: Firestore) => Promise<void>): Promi
     try {
       await db.recursiveDelete(db.collection('verificationDeletionAttempts'));
       await db.recursiveDelete(db.collection('verificationDeletionFences'));
+      await db.recursiveDelete(db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION));
+      await db.recursiveDelete(db.collection('account_deletions'));
     } finally {
       await deleteApp(app);
     }
@@ -512,6 +518,148 @@ describe.skipIf(!emulatorActive)('verification deletion fence Firestore Emulator
         .resolves.toMatchObject({ removedFences: 1, removedAttempts: 1 });
       expect((await db.collection('verificationDeletionFences').where('uid', '==', input.uid).get()).empty).toBe(true);
       expect((await db.collection('verificationDeletionAttempts').where('uid', '==', input.uid).get()).empty).toBe(true);
+    });
+  }, 30_000);
+
+
+  it('serializes a post-tombstone finalized object into a durable account-erasure hold', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('barrier-before-finalize');
+      await db.collection('account_deletions').doc(input.uid).set({
+        requestId: randomUUID(), status: 'pending', phase: 'purge',
+        verificationArtifactsUnresolved: false,
+      });
+
+      const fence = await registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket, name: input.storagePath, generation: input.observedGeneration,
+        metageneration: input.observedMetageneration,
+        metadata: {
+          klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+          uid: input.uid, challengeId: input.challengeId, createdBy: 'verification-backend',
+        },
+      });
+      expect(fence).toMatchObject({
+        state: 'held', accountErasureActive: true,
+        decisionReason: 'account_erasure_barrier_present',
+      });
+      const deletion = (await db.collection('account_deletions').doc(input.uid).get()).data();
+      expect(deletion).toMatchObject({
+        verificationArtifactsUnresolved: true,
+        verificationArtifactsReviewRequired: true,
+        verificationArtifactsLastSeenObjectKey: fence!.objectKey,
+      });
+      const reservation = await reserveVerificationDeletion(db, fence!.objectKey, 'purge-worker');
+      expect(reservation).toMatchObject({ status: 'held', fence: { state: 'held', accountErasureActive: true } });
+      await expect(assertNoVerificationDeletionArtifacts(db, input.uid))
+        .rejects.toMatchObject({ code: 'verification_deletion_artifacts_unresolved' });
+    });
+  }, 30_000);
+
+  it('reconciles a pre-existing registration against the tombstone and keeps Art. 17 unresolved', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('registration-before-barrier');
+      const first = await registerFinalizedVerificationObject(db, input.bucket, {
+        bucket: input.bucket, name: input.storagePath, generation: input.observedGeneration,
+        metageneration: input.observedMetageneration,
+        metadata: {
+          klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+          uid: input.uid, challengeId: input.challengeId, createdBy: 'verification-backend',
+        },
+      });
+      expect(first?.state).toBe('eligible');
+      await db.collection('account_deletions').doc(input.uid).set({
+        requestId: randomUUID(), status: 'pending', phase: 'purge',
+        verificationArtifactsUnresolved: false,
+      });
+
+      const reconciled = await ensureVerificationDeletionFenceForUploadedObject(db, input);
+      expect(reconciled).toMatchObject({ objectKey: first!.objectKey, state: 'held', accountErasureActive: true });
+      expect((await db.collection('account_deletions').doc(input.uid).get()).data())
+        .toMatchObject({ verificationArtifactsUnresolved: true, verificationArtifactsReviewRequired: true });
+      await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, input.uid))
+        .rejects.toMatchObject({ code: 'verification_deletion_account_erasure_artifacts_unresolved' });
+      await expect(assertNoVerificationDeletionArtifacts(db, input.uid))
+        .rejects.toMatchObject({ code: 'verification_deletion_artifacts_unresolved' });
+      expect((await readVerificationDeletionFence(db, first!.objectKey)).state).toBe('held');
+    });
+  }, 30_000);
+
+  it('serializes writer-intent creation against the account-deletion tombstone under transaction retry', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('concurrent-writer-barrier');
+      const deletionRef = db.collection('account_deletions').doc(input.uid);
+      const writer = beginVerificationDeletionWriterIntent(db, {
+        uid: input.uid, challengeId: input.challengeId, bucket: input.bucket,
+        storagePath: input.storagePath, createdBy: 'legacy-verification-writer',
+      });
+      const barrier = db.runTransaction(async tx => {
+        const existing = await tx.get(deletionRef);
+        if (!existing.exists) tx.create(deletionRef, {
+          requestId: randomUUID(), status: 'pending', phase: 'purge',
+          verificationArtifactsUnresolved: false,
+        });
+      });
+      const [writerResult, barrierResult] = await Promise.allSettled([writer, barrier]);
+      expect(barrierResult.status).toBe('fulfilled');
+      expect((await deletionRef.get()).exists).toBe(true);
+
+      if (writerResult.status === 'fulfilled') {
+        const pending = await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION)
+          .where('uid', '==', input.uid).get();
+        expect(pending.size).toBe(1);
+        await expect(reconcileVerificationDeletionArtifactsForAccountErasure(db, input.uid))
+          .rejects.toMatchObject({ code: 'verification_deletion_account_erasure_artifacts_unresolved' });
+        expect((await deletionRef.get()).data()?.verificationArtifactsUnresolved).toBe(true);
+        await expect(assertNoVerificationDeletionArtifacts(db, input.uid))
+          .rejects.toMatchObject({ code: 'verification_deletion_artifacts_unresolved' });
+      } else {
+        expect(writerResult.reason).toMatchObject({ code: 'verification_deletion_account_erasure_active' });
+        expect((await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION)
+          .where('uid', '==', input.uid).get()).empty).toBe(true);
+      }
+
+      await expect(beginVerificationDeletionWriterIntent(db, {
+        uid: input.uid, challengeId: input.challengeId, bucket: input.bucket,
+        storagePath: input.storagePath, createdBy: 'late-writer',
+      })).rejects.toMatchObject({ code: 'verification_deletion_account_erasure_active' });
+    });
+  }, 30_000);
+
+
+  it('closes a legacy writer intent only after a matching fence is durable and the tombstone is absent', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('writer-intent-closed');
+      const intentId = await beginVerificationDeletionWriterIntent(db, {
+        uid: input.uid, challengeId: input.challengeId, bucket: input.bucket,
+        storagePath: input.storagePath, createdBy: 'legacy-verification-writer',
+      });
+      const fence = await ensureVerificationDeletionFenceForUploadedObject(db, input);
+      await expect(completeVerificationDeletionWriterIntent(db, intentId, fence.objectKey, input.observedGeneration, input.observedMetageneration ?? '1'))
+        .resolves.toBeUndefined();
+      expect((await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).doc(intentId).get()).exists)
+        .toBe(false);
+    });
+  }, 30_000);
+
+  it('retains a writer intent if the tombstone wins before upload finalization and intent close', async () => {
+    await withEmulatorDb(async db => {
+      const input = baseInput('writer-intent-tombstone');
+      const intentId = await beginVerificationDeletionWriterIntent(db, {
+        uid: input.uid, challengeId: input.challengeId, bucket: input.bucket,
+        storagePath: input.storagePath, createdBy: 'legacy-verification-writer',
+      });
+      await db.collection('account_deletions').doc(input.uid).set({
+        requestId: randomUUID(), status: 'pending', phase: 'purge',
+        verificationArtifactsUnresolved: false,
+      });
+      const fence = await ensureVerificationDeletionFenceForUploadedObject(db, input);
+      expect(fence).toMatchObject({ state: 'held', accountErasureActive: true });
+      await expect(completeVerificationDeletionWriterIntent(db, intentId, fence.objectKey, input.observedGeneration, input.observedMetageneration ?? '1'))
+        .rejects.toMatchObject({ code: 'verification_deletion_account_erasure_active' });
+      expect((await db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).doc(intentId).get()).data())
+        .toMatchObject({ status: 'pending', uid: input.uid });
+      await expect(assertNoVerificationDeletionArtifacts(db, input.uid))
+        .rejects.toMatchObject({ code: 'verification_deletion_artifacts_unresolved' });
     });
   }, 30_000);
 

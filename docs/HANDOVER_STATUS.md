@@ -1,8 +1,38 @@
 # Klar Developer Handover Status
 
-**Snapshot:** 2026-11-21
-**Main HEAD (verified after PR #395 merge):** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`
+**Snapshot:** 2026-11-22
+**Main HEAD (verified after PR #396 merge):** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`
+**Previous main HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c` (the exact baseline before PR #396)
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — 2026-11-21
+
+PR [#396](https://github.com/Veselin-Takev/Klar-Dating/pull/396) merged into `main` at `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`, with previous main parent `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`. The baseline is immutable evidence; results below validate only this exact SHA.
+
+- **Klar Enterprise CI** [run #44951316282](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44951316282) — `push` on `main`, exact HEAD `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`, **SUCCESS**. Enterprise static gates, TypeScript, Functions build, application build and Production Smoke passed; **216 test files / 1,645 tests** passed; Playwright Browser Acceptance **35/35** passed. Profile-media E2E boundary coverage: **22/22** across six suites.
+- **Enterprise Compliance & Security Audit Gate** [run #44951316301](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44951316301) — `push` on `main`, exact HEAD `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`, **SUCCESS**. Post-merge Gitleaks scanned approximately **88 KB** from previous main `83c4e31...` to this SHA with **0 leaks**; Tier 1 production audit checked **549 packages** with **0 High+** findings; full supply-chain audit checked **1,245 packages** with **0 High+** findings; production build passed.
+
+These results certify the source/CI baseline only. They do not prove deployed Cloud/Scheduler/IAM state, actual staging migration/revocation, independent legal/security approvals, or production readiness.
+
+## Code-vs-issue reconciliation at main `18dd4a3...`
+
+- **#374 / #206 — CODE_COMPLETE_ON_MAIN (source implementation; operations/sign-off remain open).** E1 and E2 implementation are merged through PRs #394 and #396. The Storage rules copies deny direct client reads for protected verification/profile media; authenticated media proxy and migration/token-revocation tooling are present. Live inventory and migration execution, legacy token/cache/copy-link revocation proof, staging evidence, and independent AppSec/DPO/Legal/SRE/Release sign-off remain **[TO VERIFY]**.
+- **#373 — CODE_COMPLETE_ON_MAIN (source implementation).** The account-deletion barrier is used transactionally by public-profile publication and candidate selection, and Firestore rules deny reads when the target deletion barrier exists. Live operational and independent compliance evidence remains **[TO VERIFY]**.
+- **#202 — CODE_COMPLETE_ON_MAIN (unsafe-age-purge containment and decision-aware source path).** The legacy verification-photo upload-age deletion behavior has been removed/contained; decision-aware retention code remains fail-closed. The production route still returns **503** with `verification_storage_purge_p0_fencing_unverified` while production fencing is unverified. Scheduler inventory, live retention execution, retention/legal policy and DPO approval remain **[TO VERIFY]**.
+- **#371 — OPEN P0 CODE/INTEGRATION GAP; Draft workstream.** The existing deletion fence primitives do not by themselves prove atomicity across every verification writer and Art. 17 final-sweep transaction. The substantive branch `security/issue-371-account-erasure-writer-fence-20261122` adds the missing tombstone/writer-intent integration and adversarial emulator coverage. It is not merged or production-authorized; held/unresolved evidence remains blocked pending DPO/Legal policy.
+- **#254 — OPEN P0 MULTI-TENANT ISOLATION GAP.** Main still requires a separately governed tenant-context, legacy data mapping, rules/repository cutover and BOLA/IDOR emulator validation. Work on `release/v0.1.1-rc1` does not certify tenant isolation on `main`.
+
+## Active PR evidence lifecycle — Art. 17 writer fence
+
+**Branch:** `security/issue-371-account-erasure-writer-fence-20261122`  
+**Base:** `main` at `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`  
+**PR:** Draft against `main`; exact PR number and head SHA are authoritative in GitHub PR metadata and the handover report.  
+**Klar Enterprise CI (this PR's exact HEAD):** **[TO VERIFY]**  
+**Enterprise Compliance & Security Audit Gate (this PR's exact HEAD):** **[TO VERIFY]**
+
+Do not transfer the successful main Run IDs above to this PR. Record exact PR Run IDs, `head_sha`, status and conclusion after completion in the PR/final handover report. Do not create a recursive commit solely to add the PR's own self-referencing run IDs; such a commit would move the validated HEAD.
+
+---
 
 ## 5-minute quickstart
 

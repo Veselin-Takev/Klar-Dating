@@ -1,6 +1,34 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c` (PR #395 merged; exact post-merge HEAD verified).  
+**Current `main` HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` (PR #396 merged; exact post-merge branch ref verified).
+**Previous `main` HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`.
+
+## Immutable post-merge CI/Audit baseline — PR #396
+
+Both workflows below are push-triggered runs on `main` and validate only the exact commit `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.
+
+| Workflow | Run | Result | Exact-head evidence |
+|---|---:|---|---|
+| Klar Enterprise CI | [#44951316282](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44951316282) | **SUCCESS** | 216 files / 1,645 tests; profile-media E2E 22/22; Playwright Browser Acceptance 35/35; typecheck, Functions build, application build, static gates and Production Smoke PASS |
+| Enterprise Compliance & Security Audit Gate | [#44951316301](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/44951316301) | **SUCCESS** | Gitleaks ~88 KB / 0 leaks from `83c4e31...` to this SHA; Tier 1 production audit 549 packages / 0 High+; full supply-chain audit 1,245 packages / 0 High+; production build PASS |
+
+The prior SHA remains historical evidence, not the current main baseline. Green CI/Audit results do not demonstrate live Cloud/Scheduler/IAM state, legal review, staging migration/revocation, or production GO.
+
+## Code-vs-issue release reconciliation at `18dd4a3...`
+
+- **#374 / #206:** code-complete on main via merged E1/E2 (PRs #394/#396); live migration, legacy URL/cache/token revocation evidence and independent AppSec/DPO/Legal/SRE/Release sign-offs remain **[TO VERIFY]**.
+- **#373:** source-level transactional deletion barrier, publication/candidate filtering and rules guard are on main; live operational and independent compliance evidence remains **[TO VERIFY]**.
+- **#202:** unsafe verification-photo upload-age purge is contained and decision-aware retention source remains fail-closed. Production endpoint retains 503 `verification_storage_purge_p0_fencing_unverified`; live Scheduler/retention execution and legal approvals remain **[TO VERIFY]**.
+- **#371:** all-writer Art. 17/tombstone finalization gap; current substantive branch is `security/issue-371-account-erasure-writer-fence-20261122`. The branch is Draft and its own checks are **[TO VERIFY]**.
+- **#254:** tenant isolation/legacy data migration remains an open main-branch gap; RC1-branch work does not establish main production tenant isolation.
+
+## Active Draft PR #371 exact-head checks
+
+**Base:** `main@18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.  
+**Klar Enterprise CI:** **[TO VERIFY]** — do not infer success from the main baseline.  
+**Enterprise Compliance & Security Audit Gate:** **[TO VERIFY]** — do not infer success from the main baseline.
+
+After these workflows complete, report their exact Run IDs, exact `head_sha`, status and conclusion in the Draft PR/final handover report. Per `AGENTS.md`, do not create a follow-up docs-only commit or chase these self-referential Run IDs: changing the source docs would invalidate exact-HEAD evidence.
 
 ## Pinned toolchain
 

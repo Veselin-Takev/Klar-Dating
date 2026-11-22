@@ -12,6 +12,7 @@ import {
   assertNoVerificationDeletionArtifacts,
   VERIFICATION_DELETION_FENCE_COLLECTION,
   VERIFICATION_DELETION_ATTEMPT_COLLECTION,
+  VERIFICATION_DELETION_WRITER_INTENT_COLLECTION,
 } from './platform/verificationDeletionFence';
 
 const DIDIT_RESPONSE_MAX_BYTES = 64 * 1024;
@@ -62,6 +63,7 @@ export async function requestAccountDeletion(uid: string, db: Firestore = getDb(
     const requestId = randomUUID();
     tx.create(ref, { requestId, status: 'pending', phase: 'purge', createdAt: new Date(), nextAttemptAt: new Date(),
       leaseUntil: 0, attempts: 0, accountingVersion: 2, deletedCounts: emptyDeletionCounts(), hasDidit: kyc!.exists,
+      verificationArtifactsUnresolved: false, verificationArtifactsReviewRequired: false,
       subscriptionId: user!.data()?.subscriptionId ?? null, customerId: user!.data()?.stripeCustomerId ?? null });
     // Remove discoverability at the same instant the durable write barrier appears.
     tx.delete(db.doc(`public_profiles/${uid}`));
@@ -168,11 +170,13 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
           lastError: null,
         });
       } else if (current.phase === 'final_sweep') {
-        const [fences, attempts] = await Promise.all([
+        const [fences, attempts, writerIntents] = await Promise.all([
           tx.get(deps.db.collection(VERIFICATION_DELETION_FENCE_COLLECTION).where('uid', '==', uid).limit(1)),
           tx.get(deps.db.collection(VERIFICATION_DELETION_ATTEMPT_COLLECTION).where('uid', '==', uid).limit(1)),
+          tx.get(deps.db.collection(VERIFICATION_DELETION_WRITER_INTENT_COLLECTION).where('uid', '==', uid).limit(1)),
         ]);
-        if (!fences.empty || !attempts.empty) {
+        if (!fences.empty || !attempts.empty || !writerIntents.empty
+          || current.verificationArtifactsUnresolved === true) {
           throw new Error('verification_deletion_artifacts_unresolved');
         }
         const counts = readDeletionCounts(current);
@@ -214,12 +218,15 @@ export async function runAccountDeletion(uid: string, deps = deletionDependencie
     }
     // No provider error bodies, email addresses, photos or raw identity data in logs/receipts.
     const attempts = (typeof job.attempts === 'number' ? job.attempts : 0) + 1;
+    const safeError = error instanceof Error
+      && (error.message.startsWith('verification_deletion_') || error.message.startsWith('verification_object_'))
+      ? 'verification_artifacts_unresolved' : 'retry_required';
     const maxAttempts = 50;
     if (attempts >= maxAttempts) {
-      await runObservedTransaction(deps.db, 'accountDeletion.markManualReview', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { status: 'manual_review', lastError: 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
+      await runObservedTransaction(deps.db, 'accountDeletion.markManualReview', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { status: 'manual_review', lastError: safeError === 'verification_artifacts_unresolved' ? safeError : 'retry_limit_reached', nextAttemptAt: new Date('9999-01-01'), leaseUntil: 0 }); });
     } else {
       const backoffMs = Math.min(60 * 60_000, 60_000 * 2 ** Math.min(attempts, 6));
-      await runObservedTransaction(deps.db, 'accountDeletion.scheduleRetry', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { lastError: 'retry_required', nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }); });
+      await runObservedTransaction(deps.db, 'accountDeletion.scheduleRetry', async tx => { const current = (await tx.get(ref)).data(); if (current?.lease !== lease) return; tx.update(ref, { lastError: safeError, nextAttemptAt: new Date(now + backoffMs), leaseUntil: 0 }); });
     }
   }
 }

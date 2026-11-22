@@ -15,7 +15,12 @@ import type { Request, Response } from 'express';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue } from './db';
 import { getDb as getFirestore } from './db';
-import { ensureVerificationDeletionFenceForUploadedObject } from './platform/verificationDeletionFence';
+import {
+  beginVerificationDeletionWriterIntent,
+  completeVerificationDeletionWriterIntent,
+  ensureVerificationDeletionFenceForUploadedObject,
+} from './platform/verificationDeletionFence';
+import { TRUSTED_VERIFICATION_WRITER_MARKER } from './platform/verificationObjectRegistration';
 import { ContractError, acceptDeclaration, declarationSchema } from './contracts';
 import {
   CHALLENGE_TTL_MS,
@@ -289,15 +294,24 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
       : mimeType === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
       : bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
     if (!signatureValid) throw new InputError('Bildinhalt passt nicht zum Format.');
-    // Retired legacy writer: keep its storage lifecycle fenced as well, so
-    // accidental future reactivation cannot create an unregistered object.
-    const deletion = await db().collection('account_deletions').doc(meine).get();
-    if (deletion.exists) throw new InputError('Konto wird gerade gelöscht.');
     const challengeAt = zuDatum(d.verificationChallengeAt);
     if (!challengeAt) throw new InputError('Verifizierungschallenge ist nicht verfügbar.');
     const bucket = getAppBucket();
     const file = bucket.file(pfad);
-    await file.save(bytes, { metadata: { contentType: mimeType }, resumable: false });
+    const challengeId = challengeAt.toISOString();
+    const firestore = db() as Firestore;
+    const writerIntentId = await beginVerificationDeletionWriterIntent(firestore, {
+      uid: meine, challengeId, bucket: bucket.name, storagePath: pfad, createdBy: meine,
+    });
+    // An ambiguous upload intentionally leaves this pending intent in place:
+    // Art. 17 cannot pass until the object is reconciled or independently reviewed.
+    await file.save(bytes, { metadata: {
+      contentType: mimeType,
+      metadata: {
+        klarWriter: TRUSTED_VERIFICATION_WRITER_MARKER,
+        uid: meine, challengeId, createdBy: meine,
+      },
+    }, resumable: false });
     const [storedMetadata] = await file.getMetadata();
     if (typeof storedMetadata.generation !== 'string'
       || !/^[1-9][0-9]*$/.test(storedMetadata.generation)
@@ -305,16 +319,15 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
       || !/^[1-9][0-9]*$/.test(storedMetadata.metageneration)) {
       throw new Error('verification_upload_metadata_unavailable');
     }
-    await ensureVerificationDeletionFenceForUploadedObject(db() as Firestore, {
+    const fence = await ensureVerificationDeletionFenceForUploadedObject(firestore, {
       uid: meine,
-      challengeId: challengeAt.toISOString(),
+      challengeId,
       bucket: bucket.name,
       storagePath: pfad,
       observedGeneration: storedMetadata.generation,
       observedMetageneration: storedMetadata.metageneration,
       createdBy: meine,
     });
-
     const antrag = await db().collection('verification_requests').add({
       uid: meine,
       geste: d.verificationGeste ?? null,
@@ -333,6 +346,12 @@ export async function handleVerificationSubmit(req: Request, res: Response): Pro
         verificationBegruendung: null,
       },
       { merge: true },
+    );
+    // Close the durable intent only after all upload-related Firestore writes;
+    // if the tombstone won meanwhile, the intent remains pending for Art. 17.
+    await completeVerificationDeletionWriterIntent(
+      firestore, writerIntentId, fence.objectKey,
+      storedMetadata.generation, storedMetadata.metageneration,
     );
     res.json({
       ok: true,
