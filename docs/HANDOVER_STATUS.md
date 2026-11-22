@@ -1,9 +1,18 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-22  
-**Main HEAD (verified after PR #402 merge):** `b6093992bbfd5e68ac75ace34861ac36860dfe41`  
-**Previous main HEAD:** `c20dca0d11595f91b8a86687038ea86ba89aa453`  
+**Main HEAD (verified after PR #403 merge):** `6f0457c1b12967415ee02a12669c94999ac8ec8b`  
+**Previous main HEAD:** `b6093992bbfd5e68ac75ace34861ac36860dfe41`  
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+
+## Immutable verified main baseline — PR #403 / P0 #254 Package 5 (2026-11-22)
+
+PR [#403](https://github.com/Veselin-Takev/Klar-Dating/pull/403) merged into `main` at `6f0457c1b12967415ee02a12669c94999ac8ec8b`; previous main was `b6093992bbfd5e68ac75ace34861ac36860dfe41`. The verified tree is `95692d6af3db1012dca2319c9960ce47f03e007d`, identical to the validated PR HEAD tree. This entry is immutable evidence for this exact baseline only.
+
+- **Klar Enterprise CI** [Run #45071907030](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45071907030) — post-merge `push` on `main`, exact `head_sha=6f0457c1b12967415ee02a12669c94999ac8ec8b`, **SUCCESS**; 222 test files / 1,760 tests / 0 failed; Tenant Rules Contract 9/9; Tenant Route Guard Adapter 23/23; Playwright 35/35; Typecheck, Functions Build, Build, Production Smoke and Profile Media boundary gate passed.
+- **Enterprise Compliance & Security Audit Gate** [Run #45071907022](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45071907022) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**; Gitleaks range 1 commit / ~36.09 KB / 0 leaks; CLI v8.24.3 checksum OK; Tier 1 549 packages / 0 High+; Full Supply Chain 1,245 packages / 0 High+; Production Build passed.
+- These runs certify only the exact SHA above. They do not authorize production activation or change `productionApproved=false`; P0 #254 remains OPEN and production remains NO-GO.
 
 ## Immutable verified main baseline — PR #401 / P0 #254 Package 3 (2026-11-22)
 
