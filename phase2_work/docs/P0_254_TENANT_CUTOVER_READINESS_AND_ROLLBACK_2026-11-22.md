@@ -49,9 +49,9 @@ The validator checks declared fields and SHA binding only. Independent functions
 From `phase2_work`:
 
 ```sh
-node scripts/check-tenant-cutover-readiness.mjs \\
-  --manifest ./cutover-evidence/manifest.json \\
-  --expected-code-sha <40-hex-commit> \\
+node scripts/check-tenant-cutover-readiness.mjs \
+  --manifest ./cutover-evidence/manifest.json \
+  --expected-code-sha <40-hex-commit> \
   --expected-rules-baseline-sha <40-hex-commit>
 ```
 

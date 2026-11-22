@@ -12,7 +12,7 @@ const SHA256 = /^[a-f0-9]{64}$/i;
 const ROLES = ['APPSEC', 'DPO_LEGAL', 'BACKEND_SRE', 'RELEASE_OWNER'];
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
-const isoTimestamp = value => typeof value === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
+const isoTimestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
 const refs = (section, name, ids, errors) => {
   if (!record(section) || !Array.isArray(section.evidenceArtifactIds) || !section.evidenceArtifactIds.length) {
     errors.push(name + ' must reference verified evidence artifacts');
