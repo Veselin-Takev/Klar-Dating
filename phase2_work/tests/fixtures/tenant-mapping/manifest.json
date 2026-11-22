@@ -71,6 +71,16 @@
       ],
       "reviewed": true,
       "evidenceRef": "synthetic-review:012"
+    },
+    {
+      "recordId": "synthetic-orphan-005",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-e",
+      "participantUids": [
+        "synthetic-member-e"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:005"
     }
   ]
 }
