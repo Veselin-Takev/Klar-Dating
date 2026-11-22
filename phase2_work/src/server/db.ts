@@ -33,7 +33,7 @@ export function getServerFirebaseApp() {
   const existing = getApps().find(app => app.name === '[DEFAULT]');
   if (existing) {
     if (existing.options.projectId !== projectId) {
-      throw new Error('Existing Firebase Admin app project ID is missing or disagrees with runtime selection');
+      throw new Error('Existing Firebase Admin app project ID disagrees with runtime selection (or is missing)');
     }
     return existing;
   }
