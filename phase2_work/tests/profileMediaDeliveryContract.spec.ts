@@ -256,8 +256,17 @@ describe('isolated default-off profile media delivery contract', () => {
   });
 
   it('rejects a signer URL that exceeds the requested TTL ceiling', async () => {
-    const h = harness({ expiresAtEpochMs: NOW + 121_001 });
+    const h = harness({ expiresAtEpochMs: NOW + 120_001 });
     expect(await h.contract.execute(h.request({ ttlSeconds: 120 }))).toMatchObject({
+      ok: false, status: 503, code: 'profile_media_signed_url_invalid',
+    });
+  });
+
+  it('rejects a persistent Firebase token URL even if its host is allow-listed', async () => {
+    const h = harness({
+      signedUrl: 'https://media.example.test/object?token=persistent-token',
+    });
+    expect(await h.contract.execute(h.request())).toMatchObject({
       ok: false, status: 503, code: 'profile_media_signed_url_invalid',
     });
   });

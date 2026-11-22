@@ -237,14 +237,16 @@ export function createProfileMediaDeliveryContract(
         return failure(503, 'profile_media_signed_url_invalid');
       }
       const expiry = signed.expiresAtEpochMs;
-      const latestAllowedExpiry = issuedAt + request.ttlSeconds * 1000 + 1000;
+      const latestAllowedExpiry = issuedAt + request.ttlSeconds * 1000;
       if (
         parsedUrl.protocol !== 'https:' ||
         parsedUrl.username !== '' ||
         parsedUrl.password !== '' ||
         (parsedUrl.port !== '' && parsedUrl.port !== '443') ||
+        parsedUrl.hostname.toLowerCase() === 'firebasestorage.googleapis.com' ||
+        Array.from(parsedUrl.searchParams.keys()).some(key => key.toLowerCase() === 'token') ||
         !allowedHosts.has(parsedUrl.hostname.toLowerCase()) ||
-        !Number.isFinite(expiry) ||
+        !Number.isSafeInteger(expiry) ||
         expiry <= issuedAt ||
         expiry > latestAllowedExpiry
       ) {
