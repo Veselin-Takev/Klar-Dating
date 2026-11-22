@@ -1,9 +1,27 @@
 # Klar Developer Handover Status
 
-**Snapshot:** 2026-11-22
-**Main HEAD (verified after PR #399 merge):** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`
-**Previous main HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491` (the exact baseline before PR #399)
+**Snapshot:** 2026-11-22  
+**Main HEAD (verified after PR #400 merge):** `b516d56cec7ffb21f45e9544e3cc015391071697`  
+**Previous main HEAD:** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`  
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — PR #400 / P0 #254 Package 2 (2026-11-22)
+
+PR [#400](https://github.com/Veselin-Takev/Klar-Dating/pull/400) merged into `main` at `b516d56cec7ffb21f45e9544e3cc015391071697`, with previous main `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`. The validated pre-merge PR HEAD was `e2dde776287c33e19044196039ee75e089ca9579`; merge tree `19274303931cf84596d8208a28f33bf43715e800` is identical to the pre-merge PR tree. This is immutable evidence for this exact main SHA only.
+
+- **Klar Enterprise CI** [Run #45035415288](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45035415288) — post-merge `push` on `main`, exact `head_sha=b516d56cec7ffb21f45e9544e3cc015391071697`, **SUCCESS**. Enterprise Static Gates including `check-profile-media-boundary`, Typecheck, Functions Build, Build and Production Smoke passed; **219 test files / 1,721 tests / 0 failed**; `tenantRepository.spec.ts` **30/30**; Playwright Browser Acceptance **35/35**.
+- **Enterprise Compliance & Security Audit Gate** [Run #45035415323](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45035415323) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**. Gitleaks scanned the non-empty range `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0..b516d56cec7ffb21f45e9544e3cc015391071697`: **1 commit / approximately 34.63 KB / 0 leaks**; official CLI **v8.24.3** archive checksum `OK`; range regression **4/4**; Tier 1 **549 packages / 0 High+**; Full Supply-Chain **1,245 packages / 0 High+**; Production Build **PASS**.
+- These runs certify only this exact source baseline. They do not prove live Cloud/IAM/Firestore/Storage configuration, tenant mapping, legal approval or production readiness. P0 #254 remains **OPEN**; `productionApproved=false`; release **NO-GO**.
+- Preserve the preceding PR #399 / `abb3c4eb...` baseline and all historical PR #375 / #389–#400 evidence below as immutable records.
+
+## Active Draft — P0 #254 Package 3: deterministic legacy mapping & quarantine
+
+- Branch: `security/p0-254-package3-legacy-mapping-quarantine-20261122`, based on exact `main@b516d56cec7ffb21f45e9544e3cc015391071697`.
+- Scope: pure offline classification engine, local-file-only dry-run CLI, synthetic fixtures and adversarial tests, plus concept and Docs-as-Code updates.
+- Only explicit, reviewed row-level mapping entries with consistent tenant/owner/participant evidence can produce `MAPPED`; ambiguous, orphaned, contradictory, duplicate, cross-tenant and invalid records remain `UNMAPPED`. UID/pairId/providerId and all other legacy identifiers are forbidden as tenant inference sources.
+- This Draft PR does not connect to a database or Firebase SDK, does not activate Rules, does not write back or migrate records, and does not modify runtime routes or cloud resources.
+- This PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-head runs: **[TO VERIFY]**. Do not transfer the immutable main-baseline run IDs above to this PR. Do not create a recursive docs-only commit for this PR's moving self-referential run IDs.
+- P0 #254 remains **OPEN**; `productionApproved=false`; production remains **NO-GO**.
 
 ## Immutable verified main baseline — PR #399 / P0 #254 Package 1 (2026-11-22)
 
