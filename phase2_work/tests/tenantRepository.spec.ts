@@ -46,9 +46,7 @@ function evidence(
   };
 }
 
-function makePolicy(
-  metadata: unknown = evidence(),
-): TenantResourceAuthorizationPolicy & { resolve: ReturnType<typeof vi.fn> } {
+function makePolicy(metadata: unknown = evidence()) {
   return { resolve: vi.fn(async () => metadata) };
 }
 
