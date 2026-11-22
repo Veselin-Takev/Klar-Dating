@@ -159,6 +159,32 @@ describe('isolated default-off profile media delivery contract', () => {
     expect(h.calls).toMatchObject({ auth: 1, policy: 1, storage: 0, signer: 0 });
   });
 
+  it('fails closed when target deletion or either block decision is missing', async () => {
+    const incomplete = {
+      targetExists: true,
+      targetActive: true,
+      targetAdult: true,
+      targetAgeVerified: true,
+    } as unknown as ProfileMediaAccessPolicy;
+    const h = harness({ policy: incomplete });
+    expect(await h.contract.execute(h.request())).toMatchObject({
+      ok: false, status: 404, code: 'target_unavailable',
+    });
+    expectNoDeliveryCalls(h);
+  });
+
+  it('fails closed when either block-direction decision is missing', async () => {
+    const incomplete = {
+      ...allowedPolicy,
+      requesterBlockedTarget: undefined,
+    } as unknown as ProfileMediaAccessPolicy;
+    const h = harness({ policy: incomplete });
+    expect(await h.contract.execute(h.request())).toMatchObject({
+      ok: false, status: 403, code: 'profile_media_blocked',
+    });
+    expectNoDeliveryCalls(h);
+  });
+
   it('returns 404 for a missing target profile', async () => {
     const h = harness({ policy: null });
     expect(await h.contract.execute(h.request())).toMatchObject({

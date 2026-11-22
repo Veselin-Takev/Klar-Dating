@@ -195,13 +195,13 @@ export function createProfileMediaDeliveryContract(
         return failure(503, 'profile_media_policy_unavailable');
       }
       if (!policy || policy.targetExists !== true) return failure(404, 'target_not_found');
-      if (policy.targetDeleted === true || policy.targetActive !== true) {
+      if (policy.targetDeleted !== false || policy.targetActive !== true) {
         return failure(404, 'target_unavailable');
       }
       if (policy.targetAgeVerified !== true || policy.targetAdult !== true) {
         return failure(403, 'target_not_verified_adult');
       }
-      if (policy.requesterBlockedTarget === true || policy.targetBlockedRequester === true) {
+      if (policy.requesterBlockedTarget !== false || policy.targetBlockedRequester !== false) {
         return failure(403, 'profile_media_blocked');
       }
 
@@ -224,6 +224,9 @@ export function createProfileMediaDeliveryContract(
         return failure(503, 'profile_media_signer_unavailable');
       }
 
+      if (!signed || typeof signed.url !== 'string') {
+        return failure(503, 'profile_media_signed_url_invalid');
+      }
       let parsedUrl: URL;
       try {
         parsedUrl = new URL(signed.url);
@@ -236,6 +239,7 @@ export function createProfileMediaDeliveryContract(
         parsedUrl.protocol !== 'https:' ||
         parsedUrl.username !== '' ||
         parsedUrl.password !== '' ||
+        (parsedUrl.port !== '' && parsedUrl.port !== '443') ||
         !allowedHosts.has(parsedUrl.hostname.toLowerCase()) ||
         !Number.isFinite(expiry) ||
         expiry <= issuedAt ||
