@@ -22,8 +22,9 @@ The prior SHA remains historical evidence, not the current main baseline. Green 
 - **#371:** all-writer Art. 17/tombstone finalization gap; current substantive branch is `security/issue-371-account-erasure-writer-fence-20261122`. The branch is Draft and its own checks are **[TO VERIFY]**.
 - **#254:** tenant isolation/legacy data migration remains an open main-branch gap; RC1-branch work does not establish main production tenant isolation.
 
-## Active Draft PR #371 exact-head checks
+## Active Draft PR for Issue #371 — exact-head checks
 
+**PR:** [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) — Open, Draft, unmerged. The current PR HEAD is recorded in GitHub PR metadata and the final handover report.
 **Base:** `main@18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.  
 **Klar Enterprise CI:** **[TO VERIFY]** — do not infer success from the main baseline.  
 **Enterprise Compliance & Security Audit Gate:** **[TO VERIFY]** — do not infer success from the main baseline.

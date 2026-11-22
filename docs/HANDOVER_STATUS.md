@@ -26,7 +26,7 @@ These results certify the source/CI baseline only. They do not prove deployed Cl
 
 **Branch:** `security/issue-371-account-erasure-writer-fence-20261122`  
 **Base:** `main` at `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`  
-**PR:** Draft against `main`; exact PR number and head SHA are authoritative in GitHub PR metadata and the handover report.  
+**PR:** [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) — Open, Draft, unmerged against `main`; current HEAD SHA is authoritative in GitHub PR metadata and the final handover report.  
 **Klar Enterprise CI (this PR's exact HEAD):** **[TO VERIFY]**  
 **Enterprise Compliance & Security Audit Gate (this PR's exact HEAD):** **[TO VERIFY]**
 

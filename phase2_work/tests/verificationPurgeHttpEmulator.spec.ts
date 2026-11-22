@@ -179,7 +179,9 @@ describe.skipIf(!active)('signed verification storage purge HTTP route (Firestor
         expect((await event.get()).data()?.photoPurgeProof).toBeUndefined();
         const fences = await db.collection('verificationDeletionFences').where('uid', '==', uid).get();
         expect(fences.size).toBe(1);
-        expect(fences.docs[0].data()).toMatchObject({
+        const heldFenceSnapshot = fences.docs[0];
+        if (!heldFenceSnapshot) throw new Error('verification_deletion_held_fence_missing');
+        expect(heldFenceSnapshot.data()).toMatchObject({
           state: 'held', accountErasureActive: true,
           decisionReason: 'account_erasure_barrier_present',
         });
