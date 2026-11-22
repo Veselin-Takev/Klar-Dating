@@ -176,7 +176,16 @@ describe('isolated default-off tenant route guard adapter', () => {
   });
 
   it('denies cross-tenant BOLA before any store read or write', async () => {
-    const h = makeHarness({ identity: { uid: 'attacker', tenantId: 'tenant-b', roles: ['user'] } });
+    const h = makeHarness({
+      identity: { uid: 'attacker', tenantId: 'tenant-b', roles: ['user'] },
+      evidence: {
+        verified: true,
+        tenantId: 'tenant-a',
+        resourcePath: 'tenants/tenant-b/chats/chat-a',
+        ownerUid: 'attacker',
+        participantUids: ['attacker'],
+      },
+    });
     await expect(h.adapter.execute(h.request())).resolves.toMatchObject({
       ok: false, status: 403, code: 'tenant_resource_denied',
     });
