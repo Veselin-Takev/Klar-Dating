@@ -1,8 +1,8 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-22
-**Main HEAD (verified after PR #397 merge):** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`
-**Previous main HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` (the exact baseline before PR #397)
+**Main HEAD (verified after PR #398 merge):** `58888c8e9d970c5ca514dcb9960918a64c703491`
+**Previous main HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (the exact baseline before PR #398)
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
@@ -412,3 +412,22 @@ No production approval, merge, deployment, live cloud/IAM/Firestore/Storage muta
 - Unit and emulator coverage has been added for AC-07–AC-13, including the paired authenticated proxy verification. The PR's own exact-head `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` are **[TO VERIFY]** until hosted workflows complete on the final PR HEAD.
 - Anti-SHA-Chasing: preserve the exact baseline Run IDs above; do not create a follow-up docs-only commit to record this active PR's own moving Run IDs. Report those IDs and the final head SHA in the PR/final handover.
 - Staging-only migration/revocation execution, old-token negative verification in the real staging environment, independent AppSec/DPO/SRE review and Release Owner approval remain pending. `productionApproved=false`; production remains **NO-GO**.
+
+
+## Verified MAIN_BASELINE_GREEN — post-PR #398 merge (2026-11-22)
+
+- PR #398 merged to main on 2026-11-22 at 12:25:54 UTC. Merge commit and verified main HEAD: 58888c8e9d970c5ca514dcb9960918a64c703491. Previous main HEAD / first parent: 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0. Merge tree SHA: 414c1ac8340b28c5fbc0a87314dddc820cf67f69; this is identical to PR #398 pre-merge HEAD tree. PR #369 is closed, unmerged (merged=false); do not revive it as an integration base.
+- Klar Enterprise CI [Run #45022239754](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239754), exact main SHA 58888c8e9d970c5ca514dcb9960918a64c703491: SUCCESS — 217 test files / 1,672 tests passed / 0 failed; firebaseRuntime 9/9, nativeFirestoreBoundary 19/19, storageBucketIsolation 9/9; Production Smoke passed; Playwright Browser Acceptance 35/35 passed. Enterprise static gates, Typecheck, Functions Build and Build passed.
+- Enterprise Compliance & Security Audit Gate [Run #45022239746](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239746), same exact main SHA: SUCCESS — quality/TypeScript, unit tests, compliance/security checks and production build passed. Gitleaks full-range regression 4/4; official CLI v8.24.3 checksum verified; post-merge range 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0..58888c8e9d970c5ca514dcb9960918a64c703491 scanned 1 commit / approximately 25.69 KB / 0 leaks. Tier 1 production audit: 549 packages / 0 High+; full supply-chain audit: 1,245 packages / 0 High+.
+- Preserve all earlier baseline evidence as immutable history. These runs certify only main@58888c8e9d970c5ca514dcb9960918a64c703491. They do not transfer to a later feature-branch SHA and do not approve production.
+- PR #398 did not change the Firestore or Storage Rules, complianceStorage production interlock, workflows or dependency lockfiles. PR #369 remains closed/unmerged. **Status correction:** the earlier #369 entry above records its then-open historical state; after PR #398 merged, #369 was closed unmerged. This current state supersedes that earlier snapshot. Package 1 does not use or revive #369.
+- productionApproved=false remains mandatory; release remains NO-GO. Green CI, merge and successful secret scanning do not authorize production operations.
+
+## Active Draft workstream — P0 #254 Package 1 tenant-context foundation
+
+- Branch: security/p0-254-package1-tenant-context-inventory-20261122; target main at exact base 58888c8e9d970c5ca514dcb9960918a64c703491; keep Draft / unmerged. PR number and final head SHA are recorded in GitHub metadata after creation.
+- Package 1 adds a source-level Firestore/Storage/Art. 17 inventory, an injectable read-only tenant context resolver and focused boundary tests. The resolver verifies Firebase ID tokens with revocation checking, reads tenants/{tenantId} and tenants/{tenantId}/members/{uid} independently, intersects signed roles with active membership roles, treats X-Tenant-ID/host only as mismatch-detecting hints, and issues a frozen non-forgeable context. It is deliberately not mounted in server.ts.
+- Flat legacy collections and client SDK consumers remain unmapped. No default tenant assignment, migration, live/staging data query, Firestore/Storage Rules change, route/client rewrite, Cloud/IAM mutation, or deployment is in scope. Explicit exclusions include complianceStorage.ts (503 interlock), both Rules files, server.ts, workflows, dependencies and lockfiles. Old Draft PRs #253, #287 and #288 were not used.
+- P0 #254 remains OPEN / BLOCKED pending approved row-level legacy mapping, tenant-aware Rules/routes/client cut-over, full Art. 17/legal-hold and cross-tenant negative evidence, IAM/staging evidence and independent security/DPO/Legal/SRE review.
+- This branch's exact-head Klar Enterprise CI and Enterprise Compliance & Security Audit Gate results are [TO VERIFY] until completed on the final PR head SHA. Per AGENTS.md Anti-SHA-Chasing, record exact PR head and run IDs in final handover/PR metadata; do not create recursive docs-only commits for the PR's own run IDs.
+- productionApproved=false; production remains NO-GO.

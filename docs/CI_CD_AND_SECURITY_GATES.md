@@ -1,7 +1,7 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (PR #397 merged; exact post-merge branch ref verified).
-**Previous `main` HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.
+**Current `main` HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491` (PR #398 merged; exact post-merge branch ref verified).
+**Previous `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
 
@@ -455,3 +455,21 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - AC-07–AC-13 unit/emulator tests have been added, including the paired test that the authenticated proxy continues serving the unchanged object after token metadata removal. Test results for this Draft PR's exact HEAD remain **[TO VERIFY]** until both hosted workflows finish.
 - `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` Run IDs for this active PR: **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, record exact run IDs and `head_sha` in PR/final handover; do not add recursive docs-only commits.
 - Real staging revocation verification remains pending and requires separate change approval. No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation was performed. `productionApproved=false`; release remains **NO-GO**.
+
+
+## Verified MAIN_BASELINE_GREEN — main after PR #398 (2026-11-22)
+
+- PR #398 merge: 58888c8e9d970c5ca514dcb9960918a64c703491; prior main parent: 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0; merge tree: 414c1ac8340b28c5fbc0a87314dddc820cf67f69. PR #369 was closed unmerged; it is not a valid new branch base. This current state supersedes the earlier historical Active Draft description of #369 as open; Package 1 did not use or revive #369.
+- Klar Enterprise CI [Run #45022239754](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239754), exact SHA 58888c8e9d970c5ca514dcb9960918a64c703491: PASS — 217 files / 1,672 tests / 0 failed; firebaseRuntime 9/9; nativeFirestoreBoundary 19/19; storageBucketIsolation 9/9; Playwright 35/35; Production Smoke PASS.
+- Enterprise Compliance & Security Audit Gate [Run #45022239746](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239746), exact same SHA: PASS — Gitleaks range 1 commit / approximately 25.69 KB / 0 leaks, regression 4/4, Gitleaks v8.24.3 checksum verified; Tier 1 production dependencies 549 packages / 0 High+; full supply-chain 1,245 packages / 0 High+; Production Build PASS.
+- This is an immutable baseline record. It is evidence for the exact main SHA only. Do not transfer it to the Package 1 branch or later SHAs.
+
+## Package 1 — P0 #254 read-only tenant-context foundation (Draft)
+
+- Branch security/p0-254-package1-tenant-context-inventory-20261122 is created from the exact baseline above. Target: main. Lifecycle: Draft / unmerged. PR number and final HEAD are held in live GitHub metadata.
+- New resolver is injectable and read-only: Firebase Admin verifyIdToken(token, true); two independent document get() calls for tenant and membership; strict tenant/UID/active-state checks; effective roles = signed-claim roles intersected with active membership roles; routing hints can only match, never select authority; issued context is frozen and WeakSet/private-symbol validated.
+- Focused tests cover absent/invalid/revoked bearer credentials, malformed claims, routing mismatches, missing/inactive/inconsistent tenant/membership, stale/over-privileged role intersection, context forgery, cross-tenant reuse and zero write operations.
+- The resolver is not mounted globally. No current routes or client consumers are rewritten. No data migration, default-tenant assignment, emulator/staging/live data scan, Rules or complianceStorage 503 interlock change, Cloud/IAM/Storage/bucket/deployment mutation, workflow change, dependency or lockfile change.
+- Inventory explicitly identifies source paths, SDK actors, operations, current gates, UID/Art. 17 links, candidate keys and review status. Existing flat records remain UNMAPPED until DPO/Legal-approved row-level evidence exists. P0 #254 is not closed by Package 1.
+- Exact Package 1 PR-head Typecheck/tests/Enterprise CI/Audit Gate are [TO VERIFY] until hosted workflows finish on the final branch HEAD. Do not claim mainline runs as branch evidence. Per AGENTS.md Anti-SHA-Chasing, report exact branch SHA/run IDs in the final handover without recursive docs-only commits.
+- productionApproved=false; release NO-GO.
