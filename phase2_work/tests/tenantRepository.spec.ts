@@ -7,7 +7,6 @@ import {
   buildTenantCollectionPath,
   createTenantScopedRepository,
   type TenantResourceAuthorizationEvidence,
-  type TenantResourceAuthorizationPolicy,
   type TenantScopedStore,
 } from '../src/server/multitenant/tenantRepository';
 
