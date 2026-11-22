@@ -1,7 +1,7 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (PR #397 merged; exact post-merge branch ref verified).
-**Previous `main` HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.
+**Current `main` HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491` (PR #398 merged; exact post-merge branch ref verified).
+**Previous `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
 
@@ -459,7 +459,7 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 
 ## Verified MAIN_BASELINE_GREEN — main after PR #398 (2026-11-22)
 
-- PR #398 merge: 58888c8e9d970c5ca514dcb9960918a64c703491; prior main parent: 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0; merge tree: 414c1ac8340b28c5fbc0a87314dddc820cf67f69. PR #369 was closed unmerged; it is not a valid new branch base.
+- PR #398 merge: 58888c8e9d970c5ca514dcb9960918a64c703491; prior main parent: 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0; merge tree: 414c1ac8340b28c5fbc0a87314dddc820cf67f69. PR #369 was closed unmerged; it is not a valid new branch base. This current state supersedes the earlier historical Active Draft description of #369 as open; Package 1 did not use or revive #369.
 - Klar Enterprise CI [Run #45022239754](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239754), exact SHA 58888c8e9d970c5ca514dcb9960918a64c703491: PASS — 217 files / 1,672 tests / 0 failed; firebaseRuntime 9/9; nativeFirestoreBoundary 19/19; storageBucketIsolation 9/9; Playwright 35/35; Production Smoke PASS.
 - Enterprise Compliance & Security Audit Gate [Run #45022239746](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239746), exact same SHA: PASS — Gitleaks range 1 commit / approximately 25.69 KB / 0 leaks, regression 4/4, Gitleaks v8.24.3 checksum verified; Tier 1 production dependencies 549 packages / 0 High+; full supply-chain 1,245 packages / 0 High+; Production Build PASS.
 - This is an immutable baseline record. It is evidence for the exact main SHA only. Do not transfer it to the Package 1 branch or later SHAs.
