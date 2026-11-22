@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createTenantRouteGuardAdapter,
   type TenantRouteGuardDependencies,
@@ -55,7 +55,7 @@ function makeHarness(options: {
     resolve: vi.fn(async request => {
       counters.policy += 1;
       if (options.policyError) throw options.policyError;
-      return options.evidence ?? {
+      return 'evidence' in options ? options.evidence : {
         verified: true,
         tenantId: request.tenantId,
         resourcePath: request.resourcePath,
@@ -71,7 +71,7 @@ function makeHarness(options: {
   );
   const request = (overrides: Partial<TenantRouteGuardRequest> = {}): TenantRouteGuardRequest => ({
     ...overrides,
-    authorizationHeader: overrides.authorizationHeader ?? authHeader,
+    authorizationHeader: 'authorizationHeader' in overrides ? overrides.authorizationHeader : authHeader,
     operation: overrides.operation ?? 'read',
     resourcePath: overrides.resourcePath ?? 'chats/chat-a',
   });
