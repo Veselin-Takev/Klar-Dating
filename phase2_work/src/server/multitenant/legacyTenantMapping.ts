@@ -123,6 +123,12 @@ export function classifyLegacyRecords(
     });
     if ((recordCounts.get(record.recordId) ?? 0) > 1) return unmapped('DUPLICATE_RECORD_ID');
     const rows = manifestById.get(record.recordId) ?? [];
+    const hasAmbiguousTenantCandidates = Array.isArray(record.candidateTenantIds)
+      && record.candidateTenantIds.every(nonEmptyString)
+      && sortedUnique(record.candidateTenantIds).length > 1;
+    if (rows.length === 0 && hasAmbiguousTenantCandidates) {
+      return unmapped('AMBIGUOUS_TENANT_CANDIDATES');
+    }
     if (rows.length === 0) {
       const hasOnlyForbiddenIdentifiers = ['uid', 'pairId', 'participantIds', 'providerId',
         'kycId', 'sessionId', 'emailHash', 'documentId', 'hostname', 'profileTenantId',
