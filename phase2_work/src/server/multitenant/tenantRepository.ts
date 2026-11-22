@@ -103,29 +103,52 @@ function isTenantId(value: unknown): value is string {
  * path or a path that already contains its tenant prefix. Even segment counts
  * enforce Firestore document-path shape (collection/document pairs).
  */
-function resolveTenantDocumentPath(
+function resolveTenantRelativePath(
   tenantId: string,
   relativePath: unknown,
+  expectedParity: 0 | 1,
 ): string | null {
   if (typeof relativePath !== 'string' || !relativePath || relativePath.trim() !== relativePath) {
     return null;
   }
-  if (/[\\\u0000-\u001f\u007f%?#]/.test(relativePath)) return null;
+  if (/[\\\\\u0000-\u001f\u007f%?#]/.test(relativePath)) return null;
 
   const segments = relativePath.split('/');
-  if (segments.length < 2 || segments.length % 2 !== 0) return null;
+  if (segments.length < 1 || segments.length % 2 !== expectedParity) return null;
+  if (expectedParity === 0 && segments.length < 2) return null;
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return null;
   if (segments.some(segment => segment.toLowerCase() === 'tenants')) return null;
   if (segments.some(segment => !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(segment))) return null;
 
   // Explicitly reject legacy root families rather than remapping their old
   // UID/pair/provider identifiers into the new tenant namespace.
-  if (!TENANT_NATIVE_ROOTS.has(segments[0])) return null;
-  if (segments[0] === tenantId || segments[0].startsWith('tenant-') || segments[0].startsWith('tenant_')) {
+  const rootCollection = segments[0];
+  if (!rootCollection || !TENANT_NATIVE_ROOTS.has(rootCollection)) return null;
+  if (rootCollection === tenantId || rootCollection.startsWith('tenant-') || rootCollection.startsWith('tenant_')) {
     return null;
   }
 
   return 'tenants/' + tenantId + '/' + segments.join('/');
+}
+
+function resolveTenantDocumentPath(
+  tenantId: string,
+  relativePath: unknown,
+): string | null {
+  return resolveTenantRelativePath(tenantId, relativePath, 0);
+}
+
+/**
+ * Builds a tenant-native collection path from a genuine issued context.
+ * One or more collection/document pairs are accepted, ending at a collection.
+ * Legacy roots and caller-supplied tenant prefixes remain rejected.
+ */
+export function buildTenantCollectionPath(
+  context: unknown,
+  relativePath: unknown,
+): string | null {
+  if (!isTenantContext(context) || !isTenantId(context.tenantId)) return null;
+  return resolveTenantRelativePath(context.tenantId, relativePath, 1);
 }
 
 function validateAuthorizationEvidence(

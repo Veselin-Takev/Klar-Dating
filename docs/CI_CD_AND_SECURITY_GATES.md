@@ -494,3 +494,8 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - Explicit exclusions: no Rules, Storage Rules, `complianceStorage.ts` interlock, workflows, dependencies, lockfiles, client Firebase SDK or existing route changes; no legacy record assignment, live/staging scan, migration, cutover, or Cloud/IAM/Firestore/Storage/bucket/deployment mutation.
 - Package 3 deterministic mapping/quarantine dry-run remains pending. P0 #254 stays **OPEN**; `productionApproved=false`; production **NO-GO**. Do not treat main baseline runs #45028506636/#45028506610 as evidence for this Draft PR.
 
+
+
+## Historical Iteration-2 register notice
+
+`phase2_work/docs/ITERATION_2_REMEDIATION_REGISTER_2026-11-16.md` is a point-in-time historical snapshot, not the live repository status. Its current-state function is superseded by `docs/HANDOVER_STATUS.md` and `docs/CI_CD_AND_SECURITY_GATES.md`; retain it only as historical audit evidence and do not use it as the authoritative current register.

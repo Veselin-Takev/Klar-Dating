@@ -453,3 +453,8 @@ No production approval, merge, deployment, live cloud/IAM/Firestore/Storage muta
 - This Draft PR's own **Klar Enterprise CI** and **Enterprise Compliance & Security Audit Gate** exact-head runs: **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, report PR number, final HEAD and exact completed run IDs in GitHub metadata/final handover; do not add a recursive docs-only commit for self-referential Run IDs.
 - Package 3 — deterministic legacy-to-tenant mapping and quarantine dry-run foundation — remains pending and separately scoped. All existing legacy records remain **UNMAPPED** absent an approved, evidence-backed mapping. P0 #254 remains **OPEN**; `productionApproved=false`; release remains **NO-GO**.
 
+
+
+## Historical Iteration-2 register notice
+
+`phase2_work/docs/ITERATION_2_REMEDIATION_REGISTER_2026-11-16.md` is a point-in-time historical snapshot, not the live repository status. Its current-state function is superseded by `docs/HANDOVER_STATUS.md` and `docs/CI_CD_AND_SECURITY_GATES.md`; retain it only as historical audit evidence and do not use it as the authoritative current register.

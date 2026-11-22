@@ -4,6 +4,7 @@ import {
   type TenantContext,
 } from '../src/server/multitenant/tenantContext';
 import {
+  buildTenantCollectionPath,
   createTenantScopedRepository,
   type TenantResourceAuthorizationEvidence,
   type TenantResourceAuthorizationPolicy,
@@ -71,6 +72,18 @@ describe('isolated tenant-scoped repository boundary', () => {
 
   beforeEach(() => {
     store = makeStore();
+  });
+
+  it('builds collection paths only from a genuine context under the tenant prefix', async () => {
+    const context = await makeContext();
+
+    expect(buildTenantCollectionPath(context, 'chats'))
+      .toBe('tenants/tenant-a/chats');
+    expect(buildTenantCollectionPath(context, 'chats/chat-a/messages'))
+      .toBe('tenants/tenant-a/chats/chat-a/messages');
+    expect(buildTenantCollectionPath(context, 'tenants/tenant-a/chats')).toBeNull();
+    expect(buildTenantCollectionPath(context, 'users')).toBeNull();
+    expect(buildTenantCollectionPath({ ...context }, 'chats')).toBeNull();
   });
 
   it('denies a cross-tenant BOLA context before touching the tenant-A resource', async () => {
