@@ -7,7 +7,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import {
   deleteObject,
   getDownloadURL,
@@ -126,7 +126,7 @@ describe('P0 #254 Package 4 — isolated tenant Rules contract', () => {
     await assertFails(getDoc(doc(firestoreAs('synthetic-owner'), path)));
     await assertFails(getDoc(doc(firestoreAs('synthetic-owner', {
       tenantId: '../tenant-a',
-    }).firestore(), path)));
+    }), path)));
   });
 
   it('2. denies missing, inactive and contradictory server-managed membership', async () => {
@@ -275,6 +275,8 @@ describe('P0 #254 Package 4 — isolated tenant Rules contract', () => {
 
     await assertFails(getDoc(doc(db, 'tenants/tenant-a/resources/undefined-document')));
     await assertFails(getDoc(doc(db, 'tenants/tenant-a/members/synthetic-default-deny')));
+    await assertFails(getDocs(collection(db, `tenants/${TENANT_A}/profiles`)));
+    await assertFails(getDocs(collection(db, `tenants/${TENANT_A}/chats`)));
     await assertFails(setDoc(doc(db, `tenants/${TENANT_A}/profiles/synthetic-default-deny`), {
       uid: 'synthetic-default-deny',
       displayLabel: 'client-write-must-fail',
