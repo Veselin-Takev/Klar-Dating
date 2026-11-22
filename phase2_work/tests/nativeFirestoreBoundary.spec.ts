@@ -3,19 +3,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const doubles = vi.hoisted(() => {
   const nativeDb = { collection: vi.fn(), runTransaction: vi.fn(), batch: vi.fn(), recursiveDelete: vi.fn() };
   const durableDb = { collection: vi.fn(), runTransaction: vi.fn() };
-  return { nativeDb, durableDb, createDurableDbProxy: vi.fn(() => durableDb), sdkFailure: { enabled: false } };
+  const apps: Array<{ name: string; options: { projectId?: string } }> = [];
+  const initializeApp = vi.fn((options?: { projectId?: string }) => ({
+    name: '[DEFAULT]', options: options ?? {},
+  }));
+  return { nativeDb, durableDb, createDurableDbProxy: vi.fn(() => durableDb),
+    sdkFailure: { enabled: false }, apps, initializeApp, runtimeProjectId: 'demo-klar' as string | undefined };
 });
 
 vi.mock('firebase-admin/app', () => ({
-  getApps: () => [],
-  initializeApp: () => ({ name: 'unit-test' }),
+  getApps: () => doubles.apps,
+  initializeApp: doubles.initializeApp,
 }));
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => { if (doubles.sdkFailure.enabled) throw new Error('Firestore SDK unavailable'); return doubles.nativeDb; },
   FieldValue: {},
 }));
 vi.mock('../src/server/firebaseRuntime', () => ({
-  resolveFirebaseRuntime: () => ({ projectId: 'demo-klar' }),
+  resolveFirebaseRuntime: () => ({ projectId: doubles.runtimeProjectId }),
 }));
 vi.mock('../src/server/durableStore', () => ({
   createDurableDbProxy: doubles.createDurableDbProxy,
@@ -32,6 +37,9 @@ describe('Firestore production boundary', () => {
     vi.resetModules();
     doubles.createDurableDbProxy.mockClear();
     doubles.sdkFailure.enabled = false;
+    doubles.apps.length = 0;
+    doubles.initializeApp.mockClear();
+    doubles.runtimeProjectId = 'demo-klar';
     delete process.env.KLAR_ALLOW_DURABLE_DB_FALLBACK;
   });
   afterEach(() => {
@@ -73,6 +81,48 @@ describe('Firestore production boundary', () => {
     const { getDb } = await import('../src/server/db');
     expect(() => getDb()).toThrow(/Firestore initialization failed/);
     expect(doubles.createDurableDbProxy).not.toHaveBeenCalled();
+  });
+
+  it('refuses an existing default Admin app bound to an unrelated project', async () => {
+    doubles.apps.push({ name: '[DEFAULT]', options: { projectId: 'other-project' } });
+    const { getServerFirebaseApp, getDb } = await import('../src/server/db');
+    expect(() => getServerFirebaseApp()).toThrow(/project ID disagrees/);
+    process.env.NODE_ENV = 'production';
+    expect(() => getDb()).toThrow(/Firestore initialization failed/);
+    expect(doubles.initializeApp).not.toHaveBeenCalled();
+  });
+
+  it('refuses an existing default Admin app with an unverifiable project ID', async () => {
+    doubles.apps.push({ name: '[DEFAULT]', options: {} });
+    const { getServerFirebaseApp } = await import('../src/server/db');
+    expect(() => getServerFirebaseApp()).toThrow(/project ID disagrees/);
+    expect(doubles.initializeApp).not.toHaveBeenCalled();
+  });
+
+  it('reuses an existing default Admin app only when its project identity matches', async () => {
+    const existing = { name: '[DEFAULT]', options: { projectId: 'demo-klar' } };
+    doubles.apps.push(existing);
+    const { getServerFirebaseApp } = await import('../src/server/db');
+    expect(getServerFirebaseApp()).toBe(existing);
+    expect(doubles.initializeApp).not.toHaveBeenCalled();
+  });
+
+  it('does not reuse an unrelated named Admin app as the default', async () => {
+    const named = { name: 'legacy', options: { projectId: 'old-project' } };
+    doubles.apps.push(named);
+    const { getServerFirebaseApp } = await import('../src/server/db');
+    expect(getServerFirebaseApp()).toEqual({
+      name: '[DEFAULT]', options: { projectId: 'demo-klar' },
+    });
+    expect(doubles.initializeApp).toHaveBeenCalledWith({ projectId: 'demo-klar' });
+  });
+
+  it('refuses to initialize or reuse an Admin app when runtime project identity is unknown', async () => {
+    doubles.runtimeProjectId = undefined;
+    doubles.apps.push({ name: '[DEFAULT]', options: { projectId: 'demo-klar' } });
+    const { getServerFirebaseApp } = await import('../src/server/db');
+    expect(() => getServerFirebaseApp()).toThrow(/runtime project ID is not configured/);
+    expect(doubles.initializeApp).not.toHaveBeenCalled();
   });
 
   it('retains native transaction and batch identities without a local opt-in', async () => {

@@ -1,7 +1,26 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` (PR #396 merged; exact post-merge branch ref verified).
-**Previous `main` HEAD:** `83c4e31cca1a9f9e5bfb14d432f9d1bd8886532c`.
+**Current `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (PR #397 merged; exact post-merge branch ref verified).
+**Previous `main` HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.
+
+## Immutable verified main baseline — PR #397 (2026-11-22)
+
+PR [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) merged into `main` at `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, with previous main parent `18dd4a3dd753bdfb01875b9aea625064eb7ecce9`. The merge tree `cced2fb91275abd0474c7209029a6aac3e4be47d` is identical to the validated PR #397 tree. This is immutable source/CI evidence for this exact SHA only.
+
+- **Klar Enterprise CI** [run #45018481241](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481241) — post-merge `push`, exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, **SUCCESS**. Enterprise static gates, TypeScript, Functions build, unit tests, application build, Production Smoke and Browser Acceptance passed; **216 test files / 1,652 tests / 0 failed**; the four P0 #371 suites passed **73/73** (19 + 25 + 5 + 24); Playwright Browser Acceptance **35/35** passed.
+- **Enterprise Compliance & Security Audit Gate** [run #45018481240](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481240) — post-merge `push`, exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, **SUCCESS**. Gitleaks scanned the non-empty one-commit range from `18dd4a3dd753bdfb01875b9aea625064eb7ecce9..6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, checked **208 rules**, and found **0 leaks**; pinned CLI **v8.24.3** official archive checksum verification passed; Gitleaks range regression **4/4** passed; Tier 1 checked **549 packages / 0 High+** and Full Supply-Chain checked **1,245 packages / 0 High+**; Production Build passed.
+
+These runs certify only this exact `main` source baseline. They do not prove live Cloud/Scheduler/IAM/Storage configuration, real staging identity, legal approval, or production readiness. `productionApproved=false`; release remains **NO-GO**.
+
+## Active Draft — Firebase runtime project and Storage bucket identity
+
+- Fresh branch `security/firebase-runtime-identity-hardening-20261122` starts from exact `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`; it ports PR #369's three runtime files and three focused regression-test files after re-review against the current baseline. The two docs-as-code files are updated in this same change.
+- Stale reference [PR #369](https://github.com/Veselin-Takev/Klar-Dating/pull/369) remains an untouched Draft reference on its old base `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (6 commits ahead / 423 behind `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`); it is not rebased, pushed to, or closed. The fresh-base Draft PR supersedes it for current review.
+- This branch adds fail-closed environment-ID agreement and blank-ID rejection, verifies default Admin-app project identity before reuse, rejects an unverified runtime project, includes Storage-only emulator isolation, requires an explicit cross-project bucket instead of falling back to another project's checked-in config, and rejects a conflicting pre-initialized Admin-app default bucket.
+- Regression tests cover conflicting/consistent/blank project IDs, Firestore/Auth/Storage emulator demo-project selection, matching/mismatching/missing Admin project identity, named-app non-reuse, missing/cross-project/explicit Storage bucket selection, Admin default-bucket mismatch and existing isolated emulator behavior. Existing E1/E2/#371 code and tests are not modified or weakened.
+- This PR's own `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` exact-head runs: **[TO VERIFY]**. Do not transfer the main-baseline run IDs above to this PR. Record its PR number/head SHA and completed exact-head run IDs in the PR/final handover; do not create a recursive docs-only commit for moving self-referential run IDs.
+- No dependencies, lockfiles, workflows, `storage.rules`, compliance Storage route, Cloud/IAM/Firestore/Storage/bucket resources, or deployments are changed. `productionApproved=false`; production remains **NO-GO**.
+
 
 ## Immutable post-merge CI/Audit baseline — PR #396
 
@@ -22,14 +41,21 @@ The prior SHA remains historical evidence, not the current main baseline. Green 
 - **#371:** all-writer Art. 17/tombstone finalization gap; current substantive branch is `security/issue-371-account-erasure-writer-fence-20261122`. The branch is Draft and its own checks are **[TO VERIFY]**.
 - **#254:** tenant isolation/legacy data migration remains an open main-branch gap; RC1-branch work does not establish main production tenant isolation.
 
-## Active Draft PR for Issue #371 — exact-head checks
+## Verified post-merge PR #397 — Art. 17 writer fence
 
-**PR:** [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) — Open, Draft, unmerged. The current PR HEAD is recorded in GitHub PR metadata and the final handover report.
-**Base:** `main@18dd4a3dd753bdfb01875b9aea625064eb7ecce9`.  
-**Klar Enterprise CI:** **[TO VERIFY]** — do not infer success from the main baseline.  
-**Enterprise Compliance & Security Audit Gate:** **[TO VERIFY]** — do not infer success from the main baseline.
+PR [#397](https://github.com/Veselin-Takev/Klar-Dating/pull/397) merged to `main` at `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`, with previous parent `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` and merge tree `cced2fb91275abd0474c7209029a6aac3e4be47d` (identical to the validated PR tree).
 
-After these workflows complete, report their exact Run IDs, exact `head_sha`, status and conclusion in the Draft PR/final handover report. Per `AGENTS.md`, do not create a follow-up docs-only commit or chase these self-referential Run IDs: changing the source docs would invalidate exact-HEAD evidence.
+- `Klar Enterprise CI` [Run #45018481241](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481241), exact `head_sha=6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`: **SUCCESS** — 216 files / 1,652 tests / 0 failed; #371 P0 suites 73/73; Playwright 35/35; static gates, typecheck, Functions build, application build and Production Smoke PASS.
+- `Enterprise Compliance & Security Audit Gate` [Run #45018481240](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45018481240), same exact `head_sha`: **SUCCESS** — non-empty one-commit Gitleaks range, 208 rules / 0 leaks, Gitleaks v8.24.3 checksum OK, regression 4/4, Tier 1 549 packages / 0 High+, Full Supply-Chain 1,245 packages / 0 High+, Production Build PASS.
+- These checks validate only the merged source SHA. Live purge, retention, staging, IAM, DPO/Legal sign-off and production deployment remain unverified. `productionApproved=false`; NO-GO.
+
+- Fresh branch `security/firebase-runtime-identity-hardening-20261122` starts from exact `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`; it ports PR #369's three runtime files and three focused regression-test files after re-review against the current baseline. The two docs-as-code files are updated in this same change.
+- Stale reference [PR #369](https://github.com/Veselin-Takev/Klar-Dating/pull/369) remains an untouched Draft reference on its old base `2fa3ba223989ff248ad1abaea67f4f454f7c9f6b` (6 commits ahead / 423 behind `main@6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`); it is not rebased, pushed to, or closed. The fresh-base Draft PR supersedes it for current review.
+- This branch adds fail-closed environment-ID agreement and blank-ID rejection, verifies default Admin-app project identity before reuse, rejects an unverified runtime project, includes Storage-only emulator isolation, requires an explicit cross-project bucket instead of falling back to another project's checked-in config, and rejects a conflicting pre-initialized Admin-app default bucket.
+- Regression tests cover conflicting/consistent/blank project IDs, Firestore/Auth/Storage emulator demo-project selection, matching/mismatching/missing Admin project identity, named-app non-reuse, missing/cross-project/explicit Storage bucket selection, Admin default-bucket mismatch and existing isolated emulator behavior. Existing E1/E2/#371 code and tests are not modified or weakened.
+- This PR's own `Klar Enterprise CI` and `Enterprise Compliance & Security Audit Gate` exact-head runs: **[TO VERIFY]**. Do not transfer the main-baseline run IDs above to this PR. Record its PR number/head SHA and completed exact-head run IDs in the PR/final handover; do not create a recursive docs-only commit for moving self-referential run IDs.
+- No dependencies, lockfiles, workflows, `storage.rules`, compliance Storage route, Cloud/IAM/Firestore/Storage/bucket resources, or deployments are changed. `productionApproved=false`; production remains **NO-GO**.
+
 
 ## Pinned toolchain
 
