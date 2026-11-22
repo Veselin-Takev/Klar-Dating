@@ -52,3 +52,5 @@ test('mismatched sign-off SHA blocks',()=>fixture((dir,m)=>{m.signoffs[0].audite
 test('malformed manifest blocks',()=>fixture(dir=>blocked(run(dir,[]))));
 test('path traversal blocks',()=>fixture((dir,m)=>{m.evidenceArtifacts[0].path='../outside.txt';blocked(run(dir,m));}));
 test('missing evidence directory or expected SHAs blocks',()=>{blocked(validateCutoverReadiness({manifest:make(),expectedCodeSha:CODE,expectedRulesBaselineSha:RULES}));});
+
+test('non-ISO sign-off timestamp blocks',()=>fixture((dir,m)=>{m.signoffs[0].signedAt='not-a-timestamp';blocked(run(dir,m));}));

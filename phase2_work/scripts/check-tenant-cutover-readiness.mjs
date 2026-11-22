@@ -12,6 +12,7 @@ const SHA256 = /^[a-f0-9]{64}$/i;
 const ROLES = ['APPSEC', 'DPO_LEGAL', 'BACKEND_SRE', 'RELEASE_OWNER'];
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
+const isoTimestamp = value => typeof value === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
 const refs = (section, name, ids, errors) => {
   if (!record(section) || !Array.isArray(section.evidenceArtifactIds) || !section.evidenceArtifactIds.length) {
     errors.push(name + ' must reference verified evidence artifacts');
@@ -153,7 +154,7 @@ function checkSignoffs(m, ids, errors) {
     if (!record(s) || !ROLES.includes(s.role) || roles.has(s.role)) { errors.push('signoffs['+i+'] role invalid or duplicate'); continue; }
     roles.add(s.role);
     if (s.status !== 'APPROVED' || s.auditedSha !== m.baseline?.codeSha || !nonempty(s.signer)
-      || !nonempty(s.signedAt) || !Number.isFinite(Date.parse(s.signedAt))) errors.push('signoffs['+i+'] incomplete or SHA-mismatched');
+      || !isoTimestamp(s.signedAt)) errors.push('signoffs['+i+'] incomplete or SHA-mismatched');
     refs(s, 'signoffs['+i+']', ids, errors);
   }
   for (const role of ROLES) if (!roles.has(role)) errors.push('missing ' + role + ' sign-off');
