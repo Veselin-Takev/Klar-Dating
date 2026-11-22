@@ -5,12 +5,13 @@ import path from 'node:path';
 import {
   buildMappingReportArtifacts,
   classifyLegacyRecords,
+  type LegacyRecord,
   validateLegacyMappingManifest,
 } from '../src/server/multitenant/legacyTenantMapping';
 
 const fixtureDir = path.join(process.cwd(), 'tests/fixtures/tenant-mapping');
-const records = JSON.parse(readFileSync(path.join(fixtureDir, 'fixtures.json'), 'utf8'));
-const manifest = JSON.parse(readFileSync(path.join(fixtureDir, 'manifest.json'), 'utf8'));
+const records: LegacyRecord[] = JSON.parse(readFileSync(path.join(fixtureDir, 'fixtures.json'), 'utf8')) as LegacyRecord[];
+const manifest: unknown = JSON.parse(readFileSync(path.join(fixtureDir, 'manifest.json'), 'utf8')) as unknown;
 const sha = (value: string) => createHash('sha256').update(value).digest('hex');
 
 describe('P0 #254 Package 3 — deterministic legacy tenant mapping quarantine', () => {

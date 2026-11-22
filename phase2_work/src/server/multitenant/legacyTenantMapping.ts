@@ -79,7 +79,8 @@ export function validateLegacyMappingManifest(input: unknown): LegacyMappingMani
   if (!isObject(input) || input.schemaVersion !== 1 || !Array.isArray(input.entries)) {
     throw new Error('MALFORMED_MANIFEST: expected schemaVersion=1 and entries[]');
   }
-  for (const [index, entry] of input.entries.entries()) {
+  const entries: unknown[] = input.entries;
+  for (const [index, entry] of entries.entries()) {
     if (!isObject(entry)
       || !nonEmptyString(entry.recordId)
       || !nonEmptyString(entry.tenantId)
@@ -130,6 +131,7 @@ export function classifyLegacyRecords(
     }
     if (rows.length > 1) return unmapped('DUPLICATE_MANIFEST_ENTRY');
     const entry = rows[0];
+    if (!entry) return unmapped('INVALID_MAPPING_EVIDENCE');
 
     if (!TENANT_ID_PATTERN.test(entry.tenantId)) return unmapped('INVALID_TENANT_ID');
     if (Array.isArray(record.candidateTenantIds) && sortedUnique(record.candidateTenantIds).length > 1) {
@@ -143,7 +145,7 @@ export function classifyLegacyRecords(
       return unmapped('INCOMPLETE_PARTICIPANT_EVIDENCE');
     }
     if (Array.isArray(record.participantTenantIds)
-      && record.participantTenantIds.some(value => value !== entry.tenantId)) {
+      && record.participantTenantIds.some((value: unknown) => value !== entry.tenantId)) {
       return unmapped('CROSS_TENANT_MULTI_PARTY');
     }
     if (entry.ownerUid !== record.ownerUid) return unmapped('CONTRADICTORY_OWNER_EVIDENCE');
