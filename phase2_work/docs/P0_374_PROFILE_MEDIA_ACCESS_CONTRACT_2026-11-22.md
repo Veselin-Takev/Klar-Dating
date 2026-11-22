@@ -30,7 +30,7 @@ Replace implicit trust in long-lived Firebase download-token URLs with a server-
 
 ## Offline adversarial test matrix
 
-Synthetic tests cover default-off zero downstream calls; absent identity; guest; underage and unverified requester; missing consent; both block directions; missing/deleted/deactivated target; unverified/non-adult target; persistent Firebase token URL; traversal and encoded traversal; legacy UID path; zero/negative/fractional/over-ceiling TTL; expired and excessive signer expiry; untrusted signer host; mandatory no-store headers; valid adult access; and `super_admin` non-bypass.
+Synthetic tests cover default-off zero downstream calls; absent identity; guest; underage and unverified requester; missing consent; both block directions; incomplete target/block policy; missing/deleted/deactivated target; unverified/non-adult target; persistent Firebase token URL; traversal and encoded traversal; legacy UID path; zero/negative/fractional/over-ceiling TTL; expired and excessive signer expiry; untrusted signer host; mandatory no-store headers; valid adult access; and `admin`/`super_admin` non-bypass.
 
 ## Explicit non-goals and operational exclusions
 

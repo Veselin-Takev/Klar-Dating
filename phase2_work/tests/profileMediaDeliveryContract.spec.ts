@@ -129,6 +129,18 @@ describe('isolated default-off profile media delivery contract', () => {
     expect(h.calls).toMatchObject({ auth: 1, policy: 0, storage: 0, signer: 0 });
   });
 
+  it('fails closed when the authenticated identity omits an explicit non-guest decision', async () => {
+    const incomplete = {
+      ...adultRequester,
+      guest: undefined,
+    } as unknown as ProfileMediaRequester;
+    const h = harness({ requester: incomplete });
+    expect(await h.contract.execute(h.request())).toMatchObject({
+      ok: false, status: 401, code: 'guest_not_allowed',
+    });
+    expect(h.calls).toMatchObject({ auth: 1, policy: 0, storage: 0, signer: 0 });
+  });
+
   it.each([
     ['underage', { ...adultRequester, adult: false }],
     ['not age verified', { ...adultRequester, ageVerified: false }],
@@ -274,9 +286,9 @@ describe('isolated default-off profile media delivery contract', () => {
     expect(h.calls).toEqual({ auth: 1, policy: 1, storage: 1, signer: 1 });
   });
 
-  it('does not grant admin or super_admin a policy bypass', async () => {
+  it.each(['admin', 'super_admin'])('does not grant %s a policy bypass', async role => {
     const h = harness({
-      requester: { ...adultRequester, roles: ['super_admin'] },
+      requester: { ...adultRequester, roles: [role] },
       policy: { ...allowedPolicy, targetDeleted: true },
     });
     expect(await h.contract.execute(h.request())).toMatchObject({

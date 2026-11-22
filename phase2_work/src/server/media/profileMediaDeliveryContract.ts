@@ -175,8 +175,11 @@ export function createProfileMediaDeliveryContract(
       } catch {
         return failure(503, 'profile_media_policy_unavailable');
       }
-      if (!requester || !requester.uid || requester.guest) {
-        return failure(requester?.guest ? 401 : 401, requester?.guest ? 'guest_not_allowed' : 'authentication_required');
+      if (!requester || typeof requester.uid !== 'string' || requester.uid.trim() === '') {
+        return failure(401, 'authentication_required');
+      }
+      if (requester.guest !== false) {
+        return failure(401, 'guest_not_allowed');
       }
       if (requester.ageVerified !== true || requester.adult !== true) {
         return failure(403, 'requester_not_verified_adult');
