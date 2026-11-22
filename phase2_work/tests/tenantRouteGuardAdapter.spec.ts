@@ -37,7 +37,7 @@ function makeHarness(options: {
     readMembership: vi.fn(async () => {
       counters.membership += 1;
       return options.membership === undefined
-        ? { tenantId, uid, active: true, roles: ['user'] }
+        ? { tenantId, uid, active: true, roles: Array.isArray(identity.roles) ? identity.roles : ['user'] }
         : options.membership;
     }),
     resolveHostTenantHint: vi.fn(() => options.hostHint ?? null),
