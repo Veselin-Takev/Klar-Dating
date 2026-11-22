@@ -14,6 +14,15 @@ PR [#403](https://github.com/Veselin-Takev/Klar-Dating/pull/403) merged into `ma
 - **Enterprise Compliance & Security Audit Gate** [Run #45071907022](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45071907022) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**; Gitleaks range 1 commit / ~36.09 KB / 0 leaks; CLI v8.24.3 checksum OK; Tier 1 549 packages / 0 High+; Full Supply Chain 1,245 packages / 0 High+; Production Build passed.
 - These runs certify only the exact SHA above. They do not authorize production activation or change `productionApproved=false`; P0 #254 remains OPEN and production remains NO-GO.
 
+
+## Active Draft — P0 #254 Package 6 cutover-readiness evidence gate
+
+- Draft PR [#404](https://github.com/Veselin-Takev/Klar-Dating/pull/404), branch `security/p0-254-package6-cutover-readiness-20261122`, targets `main` from immutable baseline `6f0457c1b12967415ee02a12669c94999ac8ec8b`. Keep **Open / Draft / Unmerged**.
+- Scope is exactly six files: the cutover/rollback concept, offline evidence validator, synthetic fail-closed tests, `phase2_work/package.json` scripts only, and the two Docs-as-Code files. No workflow/dependency/lockfile or protected runtime/rules file is in scope.
+- The validator is offline and local-file-only. Its maximum result is `ELIGIBLE_FOR_INDEPENDENT_REVIEW`; it cannot approve or activate production. Synthetic fixtures are not live evidence.
+- Exact final-head Klar Enterprise CI and Enterprise Compliance & Security Audit Gate results: **[TO VERIFY]** until both complete on the final PR `head_sha`. Do not reuse immutable main-baseline runs #45071907030 / #45071907022 as PR evidence; report exact final-head run IDs in the final handover without recursive SHA-chasing.
+- Release invariants remain `productionApproved=false`, production **NO-GO**, P0 #254 **OPEN**. No route activation, migration, Rules publication or live Cloud/IAM/Firestore/Storage operation is authorized.
+
 ## Immutable verified main baseline — PR #401 / P0 #254 Package 3 (2026-11-22)
 
 PR [#401](https://github.com/Veselin-Takev/Klar-Dating/pull/401) merged into `main` at `c20dca0d11595f91b8a86687038ea86ba89aa453`; previous main was `b516d56cec7ffb21f45e9544e3cc015391071697`. The validated pre-merge PR HEAD `e7b0b7b798570c20d21a5d6ec7965995aa60a2a7` and merge commit have identical tree SHA `711a47cc6fb56e0f77f1ff4d73a9b014aa782970`. This is immutable evidence for this exact main SHA only.
