@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "recordId": "synthetic-mapped-001",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-a",
+      "participantUids": [
+        "synthetic-owner-a",
+        "synthetic-member-a"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:001"
+    },
+    {
+      "recordId": "synthetic-owner-conflict-004",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-other-owner",
+      "participantUids": [
+        "synthetic-owner-d",
+        "synthetic-member-d"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:004"
+    },
+    {
+      "recordId": "synthetic-incomplete-006",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-f",
+      "participantUids": [],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:006"
+    },
+    {
+      "recordId": "synthetic-cross-tenant-007",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-g",
+      "participantUids": [
+        "synthetic-owner-g",
+        "synthetic-member-g"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:007"
+    },
+    {
+      "recordId": "synthetic-duplicate-011",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-k",
+      "participantUids": [
+        "synthetic-owner-k"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:011a"
+    },
+    {
+      "recordId": "synthetic-duplicate-011",
+      "tenantId": "tenant-beta",
+      "ownerUid": "synthetic-owner-k",
+      "participantUids": [
+        "synthetic-owner-k"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:011b"
+    },
+    {
+      "recordId": "synthetic-invalid-tenant-012",
+      "tenantId": "invalid/tenant",
+      "ownerUid": "synthetic-owner-l",
+      "participantUids": [
+        "synthetic-owner-l"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:012"
+    },
+    {
+      "recordId": "synthetic-orphan-005",
+      "tenantId": "tenant-alpha",
+      "ownerUid": "synthetic-owner-e",
+      "participantUids": [
+        "synthetic-member-e"
+      ],
+      "reviewed": true,
+      "evidenceRef": "synthetic-review:005"
+    }
+  ]
+}

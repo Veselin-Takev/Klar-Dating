@@ -1,7 +1,24 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0` (PR #399 merged; exact post-merge branch ref verified).
-**Previous `main` HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491`.
+**Current verified `main` HEAD:** `b516d56cec7ffb21f45e9544e3cc015391071697` (PR #400 merged; exact post-merge branch ref verified).  
+**Previous `main` HEAD:** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`.
+
+## Immutable verified main baseline — PR #400 / P0 #254 Package 2 (2026-11-22)
+
+PR [#400](https://github.com/Veselin-Takev/Klar-Dating/pull/400) merged at `b516d56cec7ffb21f45e9544e3cc015391071697`; pre-merge PR HEAD `e2dde776287c33e19044196039ee75e089ca9579` and merge commit have identical tree SHA `19274303931cf84596d8208a28f33bf43715e800`.
+
+| Workflow | Exact-head Run | Result | Evidence |
+|---|---:|---|---|
+| Klar Enterprise CI | [#45035415288](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45035415288) | **SUCCESS** | Exact `head_sha=b516d56cec7ffb21f45e9544e3cc015391071697`; Enterprise Static Gates including profile-media boundary, Typecheck, Functions Build, Tests (**219 files / 1,721 passed / 0 failed**), `tenantRepository.spec.ts` **30/30**, Build, Production Smoke and Playwright **35/35** PASS |
+| Enterprise Compliance & Security Audit Gate | [#45035415323](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45035415323) | **SUCCESS** | Same exact `head_sha`; Gitleaks non-zero range **1 commit / ~34.63 KB / 0 leaks**, CLI v8.24.3 checksum OK, regression **4/4**, Tier 1 **549 packages / 0 High+**, Full Supply-Chain **1,245 packages / 0 High+**, Production Build PASS |
+
+The Gitleaks range was `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0..b516d56cec7ffb21f45e9544e3cc015391071697`; the workflow log confirms one commit scanned, approximately 34,630 bytes scanned and `no leaks found`. These results validate only this immutable main SHA. They do not prove live tenant isolation, Cloud/IAM state, legal approval or production readiness. Preserve the previous PR #399 baseline and historical PR #375 / #389–#400 evidence unchanged.
+
+## Active Draft — P0 #254 Package 3: deterministic legacy mapping & quarantine
+
+- Branch `security/p0-254-package3-legacy-mapping-quarantine-20261122` starts from exact `main@b516d56cec7ffb21f45e9544e3cc015391071697`; implementation is offline-only and uses synthetic fixtures with an explicit reviewed row-level mapping manifest.
+- Gates added by this package: deterministic classification/report hashing, input immutability, malformed-manifest fail-closed behavior, duplicate/collision quarantine, forbidden-inference checks, and static absence of Firebase/database/network imports.
+- This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-head runs: **[TO VERIFY]**. Do not transfer main-baseline Run IDs to this PR and do not chase its moving SHA with a docs-only commit.
 
 ## Immutable verified main baseline — PR #399 / P0 #254 Package 1 (2026-11-22)
 

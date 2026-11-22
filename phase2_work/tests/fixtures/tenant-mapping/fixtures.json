@@ -1,0 +1,90 @@
+[
+  {
+    "recordId": "synthetic-mapped-001",
+    "ownerUid": "synthetic-owner-a",
+    "participantUids": [
+      "synthetic-owner-a",
+      "synthetic-member-a"
+    ],
+    "participantTenantIds": [
+      "tenant-alpha",
+      "tenant-alpha"
+    ]
+  },
+  {
+    "recordId": "synthetic-missing-002",
+    "ownerUid": "synthetic-owner-b",
+    "participantUids": [
+      "synthetic-owner-b"
+    ]
+  },
+  {
+    "recordId": "synthetic-ambiguous-003",
+    "ownerUid": "synthetic-owner-c",
+    "participantUids": [
+      "synthetic-owner-c",
+      "synthetic-member-c"
+    ],
+    "candidateTenantIds": [
+      "tenant-alpha",
+      "tenant-beta"
+    ]
+  },
+  {
+    "recordId": "synthetic-owner-conflict-004",
+    "ownerUid": "synthetic-owner-d",
+    "participantUids": [
+      "synthetic-owner-d",
+      "synthetic-member-d"
+    ]
+  },
+  {
+    "recordId": "synthetic-orphan-005",
+    "participantUids": [
+      "synthetic-member-e"
+    ]
+  },
+  {
+    "recordId": "synthetic-incomplete-006",
+    "ownerUid": "synthetic-owner-f",
+    "participantUids": []
+  },
+  {
+    "recordId": "synthetic-cross-tenant-007",
+    "ownerUid": "synthetic-owner-g",
+    "participantUids": [
+      "synthetic-owner-g",
+      "synthetic-member-g"
+    ],
+    "participantTenantIds": [
+      "tenant-alpha",
+      "tenant-beta"
+    ]
+  },
+  {
+    "recordId": "synthetic-uid-only-008",
+    "uid": "synthetic-user-h"
+  },
+  {
+    "recordId": "synthetic-pair-only-009",
+    "pairId": "synthetic-pair-i"
+  },
+  {
+    "recordId": "synthetic-provider-only-010",
+    "providerId": "synthetic-provider-j"
+  },
+  {
+    "recordId": "synthetic-duplicate-011",
+    "ownerUid": "synthetic-owner-k",
+    "participantUids": [
+      "synthetic-owner-k"
+    ]
+  },
+  {
+    "recordId": "synthetic-invalid-tenant-012",
+    "ownerUid": "synthetic-owner-l",
+    "participantUids": [
+      "synthetic-owner-l"
+    ]
+  }
+]
