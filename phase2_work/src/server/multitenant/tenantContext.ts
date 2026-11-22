@@ -253,11 +253,27 @@ export function createSubdomainTenantHintResolver(
   }
 
   return (host: string): string | null => {
-    const normalizedHost = host.trim().toLowerCase().replace(/:\d+$/, '').replace(/\.$/, '');
+    const rawHost = host.trim().toLowerCase();
+    if (!rawHost || /[\s,/@?#]/.test(rawHost)) {
+      throw new Error('Invalid Host header');
+    }
+
+    const normalizedHost = rawHost.replace(/:\d+$/, '').replace(/\.$/, '');
+    if (!normalizedHost || normalizedHost.includes(':') || normalizedHost.includes('..')) {
+      throw new Error('Invalid Host header');
+    }
+
+    // The apex and unrelated hostnames do not carry a tenant routing hint.
+    if (normalizedHost === root) return null;
     const suffix = `.${root}`;
     if (!normalizedHost.endsWith(suffix)) return null;
+
+    // Once a hostname claims this tenant namespace, malformed or nested
+    // subdomains are rejected rather than silently treated as "no hint".
     const subdomain = normalizedHost.slice(0, -suffix.length);
-    if (!isTenantId(subdomain) || subdomain.includes('.')) return null;
+    if (!isTenantId(subdomain) || subdomain.includes('.')) {
+      throw new Error('Invalid tenant subdomain');
+    }
     return subdomain;
   };
 }
