@@ -1,7 +1,15 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `b6093992bbfd5e68ac75ace34861ac36860dfe41` (PR #402 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `c20dca0d11595f91b8a86687038ea86ba89aa453`.
+**Current verified `main` HEAD:** `6f0457c1b12967415ee02a12669c94999ac8ec8b` (PR #403 merged; exact post-merge branch ref verified).  
+**Previous `main` HEAD:** `b6093992bbfd5e68ac75ace34861ac36860dfe41`.
+
+
+## Immutable verified main baseline — PR #403 / P0 #254 Package 5 (2026-11-22)
+
+PR [#403](https://github.com/Veselin-Takev/Klar-Dating/pull/403) merged into `main` at `6f0457c1b12967415ee02a12669c94999ac8ec8b`; previous main `b6093992bbfd5e68ac75ace34861ac36860dfe41`; tree `95692d6af3db1012dca2319c9960ce47f03e007d`, identical to the validated PR HEAD tree.
+- **Klar Enterprise CI** [#45071907030](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45071907030), exact post-merge main SHA, **SUCCESS**: 222 files / 1,760 tests / 0 failed; Rules Contract 9/9; Route Guard Adapter 23/23; Playwright 35/35; typecheck, Functions Build, Build, Production Smoke and Profile Media boundary gate passed.
+- **Enterprise Compliance & Security Audit Gate** [#45071907022](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45071907022), exact same SHA, **SUCCESS**: Gitleaks 1 commit / ~36.09 KB / 0 leaks; CLI v8.24.3 checksum OK; Tier 1 549 packages / 0 High+; Full Supply Chain 1,245 packages / 0 High+; Production Build passed.
+- Immutable evidence applies only to this SHA. It is not production approval; `productionApproved=false`, production NO-GO and P0 #254 OPEN remain unchanged.
 
 ## Immutable verified main baseline — PR #401 / P0 #254 Package 3 (2026-11-22)
 
