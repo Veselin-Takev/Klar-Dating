@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Candidate contract only. This file is NOT referenced by firebase.json.
+    // Membership documents are server-managed and never client-readable/writable.
+    function authenticatedNonAnonymous() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function tenantClaimMatches(tenantId) {
+      return authenticatedNonAnonymous()
+        && request.auth.token.tenantId is string
+        && request.auth.token.tenantId == tenantId;
+    }
+
+    function activeTenantMember(tenantId) {
+      let membershipPath = /databases/$(database)/documents/tenants/$(tenantId)/members/$(request.auth.uid);
+      return tenantClaimMatches(tenantId)
+        && exists(membershipPath)
+        && get(membershipPath).data.tenantId == tenantId
+        && get(membershipPath).data.uid == request.auth.uid
+        && get(membershipPath).data.active == true;
+    }
+
+    function ownsProfile(tenantId, uid) {
+      return activeTenantMember(tenantId)
+        && request.auth.uid == uid;
+    }
+
+    function isVerifiedChatParticipant(tenantId) {
+      return activeTenantMember(tenantId)
+        && resource.data.participantUids is list
+        && request.auth.uid in resource.data.participantUids;
+    }
+
+    // Tenant-native profile: owner-only document reads; no client writes or listing.
+    match /tenants/{tenantId}/profiles/{uid} {
+      allow get: if ownsProfile(tenantId, uid);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Chat participants are authoritative server-written metadata.
+    // Membership alone, including admin/super_admin roles, grants no chat access.
+    match /tenants/{tenantId}/chats/{chatId} {
+      allow get: if isVerifiedChatParticipant(tenantId);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Membership authority is never client-controlled or client-readable.
+    match /tenants/{tenantId}/members/{uid} {
+      allow read, write: if false;
+    }
+
+    // Explicit legacy-root quarantine. These are never aliases for tenant paths.
+    match /users/{legacyPath=**} { allow read, write: if false; }
+    match /public_profiles/{legacyPath=**} { allow read, write: if false; }
+    match /profiles/{legacyPath=**} { allow read, write: if false; }
+    match /verification/{legacyPath=**} { allow read, write: if false; }
+    match /verification_events/{legacyPath=**} { allow read, write: if false; }
+    match /connections/{legacyPath=**} { allow read, write: if false; }
+    match /blocks/{legacyPath=**} { allow read, write: if false; }
+    match /chats/{legacyPath=**} { allow read, write: if false; }
+    match /subscriptions/{legacyPath=**} { allow read, write: if false; }
+    match /refund_queue/{legacyPath=**} { allow read, write: if false; }
+    match /contacts/{legacyPath=**} { allow read, write: if false; }
+    match /account_deletions/{legacyPath=**} { allow read, write: if false; }
+
+    // Deny every unlisted path and every operation not explicitly allowed above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
