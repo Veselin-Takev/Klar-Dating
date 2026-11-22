@@ -128,7 +128,22 @@ describe('isolated tenant context boundary', () => {
     expect(resolveHint('tenant-a.example.test')).toBe('tenant-a');
     expect(resolveHint('tenant-a.example.test:443')).toBe('tenant-a');
     expect(resolveHint('other.test')).toBeNull();
-    expect(resolveHint('nested.tenant-a.example.test')).toBeNull();
+    expect(() => resolveHint('nested.tenant-a.example.test')).toThrow('Invalid tenant subdomain');
+    expect(() => resolveHint('tenant a.example.test')).toThrow('Invalid Host header');
+  });
+
+  it('returns 403 for malformed hosts claiming the configured tenant namespace', async () => {
+    const harness = makeHarness();
+    const resolve = createTenantContextResolver({
+      ...harness.dependencies,
+      resolveHostTenantHint: createSubdomainTenantHintResolver('example.test'),
+    });
+    await expect(resolve({
+      authorizationHeader,
+      host: 'nested.tenant-a.example.test',
+    })).resolves.toMatchObject({
+      ok: false, status: 403, code: 'tenant_routing_hint_mismatch',
+    });
   });
 
   it('returns 403 when the tenant document is missing or inactive', async () => {
@@ -278,12 +293,10 @@ describe('isolated tenant context boundary', () => {
             }),
           };
         },
+        set: () => { writes += 1; },
+        update: () => { writes += 1; },
+        delete: () => { writes += 1; },
       }),
-      set: () => { writes += 1; },
-      update: () => { writes += 1; },
-      delete: () => { writes += 1; },
-      runTransaction: () => { writes += 1; },
-      batch: () => { writes += 1; },
     };
 
     const fakeAuth = {
