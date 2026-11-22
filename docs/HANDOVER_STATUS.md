@@ -25,12 +25,12 @@ PR [#403](https://github.com/Veselin-Takev/Klar-Dating/pull/403) merged into `ma
 - These runs certify only the exact SHA above. They do not authorize production activation or change `productionApproved=false`; P0 #254 remains OPEN and production remains NO-GO.
 
 
-## Active Draft — P0 #254 Package 6 cutover-readiness evidence gate
+## Completed integration — PR #404 / P0 #254 Package 6 cutover-readiness evidence gate
 
-- Draft PR [#404](https://github.com/Veselin-Takev/Klar-Dating/pull/404), branch `security/p0-254-package6-cutover-readiness-20261122`, targets `main` from immutable baseline `6f0457c1b12967415ee02a12669c94999ac8ec8b`. Keep **Open / Draft / Unmerged**.
-- Scope is exactly six files: the cutover/rollback concept, offline evidence validator, synthetic fail-closed tests, `phase2_work/package.json` scripts only, and the two Docs-as-Code files. No workflow/dependency/lockfile or protected runtime/rules file is in scope.
+- PR [#404](https://github.com/Veselin-Takev/Klar-Dating/pull/404), branch `security/p0-254-package6-cutover-readiness-20261122`, merged into `main` at `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`; validated merge tree `5c17337773b86d0c09baff9615921e673750117b`.
+- Scope was exactly six files: offline cutover/rollback concept, local-only evidence validator, synthetic fail-closed tests, script-only `phase2_work/package.json` changes, and the two Docs-as-Code files. No workflow/dependency/lockfile or protected runtime/rules file changed.
 - The validator is offline and local-file-only. Its maximum result is `ELIGIBLE_FOR_INDEPENDENT_REVIEW`; it cannot approve or activate production. Synthetic fixtures are not live evidence.
-- Exact final-head Klar Enterprise CI and Enterprise Compliance & Security Audit Gate results: **[TO VERIFY]** until both complete on the final PR `head_sha`. Do not reuse immutable main-baseline runs #45071907030 / #45071907022 as PR evidence; report exact final-head run IDs in the final handover without recursive SHA-chasing.
+- Post-merge exact-main Klar Enterprise CI [#45076269868](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45076269868) and Enterprise Compliance & Security Audit Gate [#45076269957](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45076269957) both **SUCCESS** on exact `head_sha=8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`. These are immutable main-baseline results, not evidence for any later PR head.
 - Release invariants remain `productionApproved=false`, production **NO-GO**, P0 #254 **OPEN**. No route activation, migration, Rules publication or live Cloud/IAM/Firestore/Storage operation is authorized.
 
 ## Immutable verified main baseline — PR #401 / P0 #254 Package 3 (2026-11-22)
