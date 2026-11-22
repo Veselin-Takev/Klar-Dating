@@ -1,8 +1,8 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-22
-**Main HEAD (verified after PR #397 merge):** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`
-**Previous main HEAD:** `18dd4a3dd753bdfb01875b9aea625064eb7ecce9` (the exact baseline before PR #397)
+**Main HEAD (verified after PR #398 merge):** `58888c8e9d970c5ca514dcb9960918a64c703491`
+**Previous main HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0` (the exact baseline before PR #398)
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
@@ -420,7 +420,7 @@ No production approval, merge, deployment, live cloud/IAM/Firestore/Storage muta
 - Klar Enterprise CI [Run #45022239754](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239754), exact main SHA 58888c8e9d970c5ca514dcb9960918a64c703491: SUCCESS — 217 test files / 1,672 tests passed / 0 failed; firebaseRuntime 9/9, nativeFirestoreBoundary 19/19, storageBucketIsolation 9/9; Production Smoke passed; Playwright Browser Acceptance 35/35 passed. Enterprise static gates, Typecheck, Functions Build and Build passed.
 - Enterprise Compliance & Security Audit Gate [Run #45022239746](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45022239746), same exact main SHA: SUCCESS — quality/TypeScript, unit tests, compliance/security checks and production build passed. Gitleaks full-range regression 4/4; official CLI v8.24.3 checksum verified; post-merge range 6ef75da0b6f9effb297137ad2d0b8665a4cac1a0..58888c8e9d970c5ca514dcb9960918a64c703491 scanned 1 commit / approximately 25.69 KB / 0 leaks. Tier 1 production audit: 549 packages / 0 High+; full supply-chain audit: 1,245 packages / 0 High+.
 - Preserve all earlier baseline evidence as immutable history. These runs certify only main@58888c8e9d970c5ca514dcb9960918a64c703491. They do not transfer to a later feature-branch SHA and do not approve production.
-- PR #398 did not change the Firestore or Storage Rules, complianceStorage production interlock, workflows or dependency lockfiles. PR #369 remains closed/unmerged.
+- PR #398 did not change the Firestore or Storage Rules, complianceStorage production interlock, workflows or dependency lockfiles. PR #369 remains closed/unmerged. **Status correction:** the earlier #369 entry above records its then-open historical state; after PR #398 merged, #369 was closed unmerged. This current state supersedes that earlier snapshot. Package 1 does not use or revive #369.
 - productionApproved=false remains mandatory; release remains NO-GO. Green CI, merge and successful secret scanning do not authorize production operations.
 
 ## Active Draft workstream — P0 #254 Package 1 tenant-context foundation
