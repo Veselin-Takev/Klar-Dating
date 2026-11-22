@@ -1,7 +1,18 @@
 # CI/CD and Security Gates
 
-**Current `main` HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491` (PR #398 merged; exact post-merge branch ref verified).
-**Previous `main` HEAD:** `6ef75da0b6f9effb297137ad2d0b8665a4cac1a0`.
+**Current `main` HEAD:** `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0` (PR #399 merged; exact post-merge branch ref verified).
+**Previous `main` HEAD:** `58888c8e9d970c5ca514dcb9960918a64c703491`.
+
+## Immutable verified main baseline — PR #399 / P0 #254 Package 1 (2026-11-22)
+
+PR [#399](https://github.com/Veselin-Takev/Klar-Dating/pull/399) merged into `main` at `abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`; previous main was `58888c8e9d970c5ca514dcb9960918a64c703491`. The pre-merge PR HEAD `e4cd968e7dc2b07b12e28bd576ace690dd1efe9b` and merge commit have identical tree SHA `5fffb9d272b3c8a124aea1ab97735294a803f51b`.
+
+| Workflow | Exact-head Run | Result | Evidence |
+|---|---:|---|---|
+| Klar Enterprise CI | [#45028506636](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45028506636) | **SUCCESS** | Exact `head_sha=abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`; Enterprise Static Gates including profile-media boundary, Typecheck, Functions Build, Tests (**218 files / 1,691 passed / 0 failed**), `tenantContext.spec.ts` **19/19**, Build, Production Smoke and Playwright **35/35** PASS |
+| Enterprise Compliance & Security Audit Gate | [#45028506610](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45028506610) | **SUCCESS** | Same exact `head_sha`; Gitleaks non-zero range **1 commit / ~97.47 KB / 0 leaks**, CLI v8.24.3 checksum OK, regression **4/4**, Tier 1 **549 packages / 0 High+**, Full Supply-Chain **1,245 packages / 0 High+**, Production Build PASS |
+
+The Gitleaks range was `58888c8e9d970c5ca514dcb9960918a64c703491..abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`; the log confirms one commit scanned, approximately 97,471 bytes scanned and `no leaks found`. These results validate only this immutable main SHA. They do not prove live tenant isolation, live Cloud/IAM state, legal approval or production readiness. Preserve the previous PR #398 / `58888c8...` baseline and all historical PR #375 / #389–#399 records unchanged.
 
 ## Immutable verified main baseline — PR #397 (2026-11-22)
 
@@ -473,3 +484,13 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - Inventory explicitly identifies source paths, SDK actors, operations, current gates, UID/Art. 17 links, candidate keys and review status. Existing flat records remain UNMAPPED until DPO/Legal-approved row-level evidence exists. P0 #254 is not closed by Package 1.
 - Exact Package 1 PR-head Typecheck/tests/Enterprise CI/Audit Gate are [TO VERIFY] until hosted workflows finish on the final branch HEAD. Do not claim mainline runs as branch evidence. Per AGENTS.md Anti-SHA-Chasing, report exact branch SHA/run IDs in the final handover without recursive docs-only commits.
 - productionApproved=false; release NO-GO.
+
+## Active Draft PR — P0 #254 Package 2 tenant-scoped repository boundary
+
+- Branch: `security/p0-254-package2-tenant-repository-boundary-20261122`; base: `main@abb3c4ebffef9efc1a4be8a2a19cac3f0c7e12e0`; target: `main`; lifecycle: **Draft / Open / Unmerged**. PR number and final HEAD are held in GitHub PR metadata/final handover.
+- Exact four-file scope: new isolated `phase2_work/src/server/multitenant/tenantRepository.ts`; new fake-store BOLA/IDOR suite `phase2_work/tests/tenantRepository.spec.ts`; this file and `docs/HANDOVER_STATUS.md`.
+- Gate requirements: genuine `TenantContext` WeakSet/frozen validation; tenant-only path derivation and path-shape/legacy-root rejection; trusted resource metadata bound to exact tenant and canonical path; mandatory owner and complete consistent participants; owner-only mutations; participant reads only; no `admin`/`super_admin` shortcut; no underlying store call before all authorization checks pass.
+- Tests are injected/fake-store only. No production route or server bootstrap mount is permitted. New test result (**29 parameter-expanded cases authored**) and both Draft PR hosted workflow results remain **[TO VERIFY]** until completed on the final PR HEAD.
+- Explicit exclusions: no Rules, Storage Rules, `complianceStorage.ts` interlock, workflows, dependencies, lockfiles, client Firebase SDK or existing route changes; no legacy record assignment, live/staging scan, migration, cutover, or Cloud/IAM/Firestore/Storage/bucket/deployment mutation.
+- Package 3 deterministic mapping/quarantine dry-run remains pending. P0 #254 stays **OPEN**; `productionApproved=false`; production **NO-GO**. Do not treat main baseline runs #45028506636/#45028506610 as evidence for this Draft PR.
+
