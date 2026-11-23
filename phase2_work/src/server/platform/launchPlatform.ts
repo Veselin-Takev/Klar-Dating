@@ -254,7 +254,7 @@ export async function getRecommendations(
   const maxAge = Math.max(minAge, Math.min(100, profile.maxAge ?? 80));
   const limit = Math.max(1, Math.min(30, profile.limit ?? 12));
   const candidateQuery = db.collection('public_profiles').where('location', '==', city).orderBy(FieldPath.documentId());
-  const candidateDocs = await scanRecommendationPages(async (cursor, pageSize) => {
+  const candidateDocs = await scanRecommendationPages<import('firebase-admin/firestore').QueryDocumentSnapshot>(async (cursor, pageSize) => {
     const query = cursor ? candidateQuery.startAfter(cursor) : candidateQuery;
     return (await query.limit(pageSize).get()).docs;
   });
