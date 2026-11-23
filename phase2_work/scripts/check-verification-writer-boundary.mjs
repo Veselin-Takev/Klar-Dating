@@ -4,7 +4,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const MUTATION = /\.(?:save|delete|deleteFiles|setMetadata|createWriteStream|copy|move|rename)\s*\(/;
-const STORAGE_HANDLE = /\.(?:file|getFiles)\s*\(|\b(?:getStorage|storageBucket|getAppBucket)\s*\(/;
 const EXCLUDED = new Set(['node_modules', 'dist', 'coverage', '.git', '__tests__']);
 const ALLOWED_MUTATION_FILES = new Set([
   'src/server/klarCore.ts',
