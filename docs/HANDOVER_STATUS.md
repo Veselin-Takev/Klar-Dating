@@ -1,8 +1,16 @@
+## Immutable verified main baseline — PR #410 / P0 #371 Package 2 (2026-11-23)
+
+- Verified `main` HEAD / merge commit `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`; parent `2854162816037486031cec8fb169ccda1a10deaa`; Tree `4106ab148b7b34043a0afbb3069956e1f010ed3a`; merge tree matches validated PR #410 head tree.
+- Klar Enterprise CI [Run #45251602063](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45251602063), exact SHA above, **SUCCESS**: writer boundary 135 production files / 8 of 8; deletion cutover readiness 30/30; profile-media readiness 25/25; Storage Rules 28/28; token dry-run 14/14; delivery 40/40; tenant cutover 19/19; route guard 23/23; tenant Rules 9/9; media boundary 4/4; Vitest 225 files / 1,842 tests / 0 failed; three-tsconfig typecheck; Functions Build, Build, Production Smoke; Playwright 35/35.
+- Enterprise Compliance & Security Audit Gate [Run #45251601920](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45251601920), same exact SHA, **SUCCESS**: Gitleaks 1 commit / 0 leaks; CLI v8.24.3 checksum OK; regression 4/4; Tier 1 549 packages / 0 High+; Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- Immutable evidence applies only to this exact SHA. P0 #254 Packages 1–6, P0 #374 Packages 1–4 and P0 #371 Packages 1–2 are offline-complete / **AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW**; all remain OPEN.
+- Active P1 #372 Draft: `fix/p1-372-recommendation-pagination-20261123`; own exact-HEAD CI/Audit: **[TO VERIFY]**. `productionApproved=false`; release **NO-GO**.
+
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-23
-**Main HEAD (verified after PR #408 merge):** `a15d8950bc67a7eb9c9893455ee83cfdd1174957`
-**Previous main HEAD:** `d0f766dce8dd907a59398ccbdfd081415601db18`
+**Main HEAD (verified after PR #410 merge):** `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`
+**Previous main HEAD:** `2854162816037486031cec8fb169ccda1a10deaa`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## Immutable verified main baseline — PR #408 / P0 #374 Package 4 (2026-11-23)
