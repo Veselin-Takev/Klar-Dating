@@ -104,7 +104,11 @@ describe('published preferences and recommendation privacy', () => {
   it('re-evaluates mutable eligibility after later cursor pages are read', async () => {
     const rows = Array.from({ length: 5 }, (_, index) => ({ id: String(index), active: true }));
     const fetchPage = async (cursor: typeof rows[number] | undefined, size: number) => {
-      if (cursor?.id === '1') rows[0].active = false;
+      if (cursor?.id === '1') {
+        const firstRow = rows[0];
+        if (firstRow === undefined) throw new Error('Expected first row during eligibility mutation test');
+        firstRow.active = false;
+      }
       const start = cursor ? Number(cursor.id) + 1 : 0; return rows.slice(start, start + size);
     };
     const scanned = await scanRecommendationPages(fetchPage, 2, 10);
