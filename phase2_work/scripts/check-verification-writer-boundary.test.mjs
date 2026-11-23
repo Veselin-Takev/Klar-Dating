@@ -3,6 +3,16 @@ import test from 'node:test';
 import { inspectVerificationWriterBoundary } from './check-verification-writer-boundary.mjs';
 
 const baseline = [
+  ['server.ts', [
+    'app.use("/api/admin", createVerificationDeletionHoldRouter({',
+    'getBucket: bucketName => {',
+    'const storage = getStorage();',
+    'const bucket = bucketName ? storage.bucket(bucketName) : storage.bucket();',
+    'file: path => {',
+    'const file = bucket.file(path);',
+    'getMetadata: () => file.getMetadata(),',
+    'setMetadata: (metadata, options) => file.setMetadata(metadata, options as never),',
+  ].join('\n')],
   ['src/server/klarCore.ts', [
     'const file = bucket.file(pfad);',
     'const writerIntentId = await beginVerificationDeletionWriterIntent(firestore, input);',
@@ -33,7 +43,7 @@ function inspect(extra = []) {
   return inspectVerificationWriterBoundary([...baseline, ...extra]);
 }
 
-test('registered baseline satisfies the static writer boundary', () => {
+test('registered baseline including the top-level hold adapter satisfies the static writer boundary', () => {
   assert.deepEqual(inspect(), []);
 });
 
@@ -61,4 +71,26 @@ test('path/prefix construction evasion is rejected even when assembled dynamical
   const violations = inspect([['src/server/obfuscatedWriter.ts',
     "const prefix = ['veri', 'fication'].join(''); const file = bucket.file(prefix + '/' + owner); await file.save(bytes);"]]);
   assert.ok(violations.some(value => value.includes('unregistered Storage mutation path')));
+});
+
+test('unregistered Storage mutation in top-level server.ts fails closed', () => {
+  const server = baseline.find(([file]) => file === 'server.ts')[1]
+    + '\nconst rogue = bucket.file(path); await rogue.delete();';
+  const violations = inspect([['server.ts', server]]);
+  assert.ok(violations.some(value => value.includes('server.ts: unregistered Storage write/delete/metadata mutation')));
+});
+
+test('aliased bucket/file factory reference bypassing literal .file() fails closed', () => {
+  const server = baseline.find(([file]) => file === 'server.ts')[1]
+    .replace('const file = bucket.file(path);', 'const fileFactory = bucket.file; const file = fileFactory(path);');
+  const violations = inspect([['server.ts', server]]);
+  assert.ok(violations.some(value => value.includes('aliased Storage factory or method reference')));
+});
+
+test('indirect bucket factory alias fails closed', () => {
+  const server = baseline.find(([file]) => file === 'server.ts')[1]
+    .replace('const bucket = bucketName ? storage.bucket(bucketName) : storage.bucket();',
+      'const bucketFactory = storage.bucket; const bucket = bucketFactory(bucketName);');
+  const violations = inspect([['server.ts', server]]);
+  assert.ok(violations.some(value => value.includes('aliased Storage factory or method reference')));
 });
