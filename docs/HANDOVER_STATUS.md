@@ -22,11 +22,6 @@ PR [#406](https://github.com/Veselin-Takev/Klar-Dating/pull/406) merged into `ma
 - This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-HEAD results are **[TO VERIFY]**. Do not transfer PR #406 baseline runs to this branch or create a recursive docs-only commit for self-referencing run IDs.
 - No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation. P0 #254 and P0 #374 remain OPEN; `productionApproved=false`; production NO-GO.
 
-**Snapshot:** 2026-11-23  
-**Main HEAD (verified after PR #405 merge):** `616b165d6df783b5fe9c1b45dcb9c5dd53def583`  
-**Previous main HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`  
-**Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
-
 
 ## Immutable verified main baseline — PR #404 / P0 #254 Package 6 (2026-11-22)
 

@@ -21,9 +21,6 @@ P0 #254 remains **OPEN**, `AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW`; P0 #374 
 - The command is registered in `check:enterprise`; no workflow, Vitest config, dependency or lockfile changes.
 - Candidate Rules deny all direct client Storage reads/writes and are not wired into active `firebase.json`. Persistent download-token URLs are outside Rules revocation semantics and require a separately approved revocation operation.
 
-**Current verified `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583` (PR #405 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`.
-
 
 ## Immutable verified main baseline — PR #404 / P0 #254 Package 6 (2026-11-22)
 
