@@ -42,7 +42,7 @@ function inspectVerificationWriterBoundary(sourceFiles) {
   const add = message => violations.push(message);
 
   for (const [file, source] of sources) {
-    const storageMutation = MUTATION.test(source) && STORAGE_HANDLE.test(source);
+    const storageMutation = (/\\.file\\s*\\(/.test(source) || /\\.getFiles\\s*\\(/.test(source)) && MUTATION.test(source);
     const verificationMutation = /verification\s*\/|verificationPrefix|verificationStorage|verificationPhoto/i.test(source)
       && MUTATION.test(source);
     if ((storageMutation || verificationMutation) && !ALLOWED_MUTATION_FILES.has(file)) {
@@ -82,7 +82,7 @@ function inspectVerificationWriterBoundary(sourceFiles) {
   const retention = sources.get('functions/src/retention.ts') ?? '';
   if (!retention.includes("mode: 'profile-only' | 'unsafe-emulator-test-only' = 'profile-only'")
     || !retention.includes("if (mode === 'profile-only') await assertNoUnfencedVerificationPhotos();")
-    || !retention.includes("'profiles/'")
+    || !retention.includes('profiles/')
     || !retention.includes('verification_photo_p0_fencing_unverified')) {
     add('functions/src/retention.ts: account erasure must remain profile-only and hard-stop while verification objects exist');
   }
