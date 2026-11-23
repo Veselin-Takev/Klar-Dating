@@ -1,5 +1,27 @@
 # Klar Developer Handover Status
 
+**Snapshot:** 2026-11-23
+**Main HEAD (verified after PR #406 merge):** `6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`
+**Previous main HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583`
+**Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — PR #406 / P0 #374 Package 2 (2026-11-23)
+
+PR [#406](https://github.com/Veselin-Takev/Klar-Dating/pull/406) merged into `main` at `6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`; previous main was `616b165d6df783b5fe9c1b45dcb9c5dd53def583`. Merge tree `726effe0ec7f70d1039ed531a299504a281fecb4` is identical to the validated pre-merge PR #406 HEAD tree. This immutable evidence applies only to this exact main baseline.
+
+- **Klar Enterprise CI** [Run #45136353988](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45136353988) (workflow run #2312) — post-merge `push` on `main`, exact `head_sha=6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`, **SUCCESS**: 224 test files / 1,814 tests / 0 failed; profile-media token dry-run 14/14; profile-media delivery contract 40/40; tenant cutover readiness 19/19; route guard adapter 23/23; tenant Rules contract 9/9; Playwright 35/35; Enterprise Static Gates, Typecheck, Functions Build, Build and Production Smoke passed.
+- **Enterprise Compliance & Security Audit Gate** [Run #45136354255](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45136354255) (workflow run #147) — post-merge `push` on `main`, exact same `head_sha`, **SUCCESS**: Gitleaks non-empty range 1 commit / 0 leaks; CLI v8.24.3 checksum OK; range regression 4/4; Tier 1 549 packages / 0 High+; Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- P0 #254 remains **OPEN**, status `AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW`; this is not approval. P0 #374 remains **OPEN**. `productionApproved=false`; production NO-GO.
+- Preserve all preceding immutable baselines (including `616b165d...`, `8c239dd71...`, `6f0457c1...`, `b6093992...`, `c20dca0d...`, `b516d56c...`, `abb3c4eb...`, `58888c8e...`) and historical PR #375 / #389–#406 entries below unchanged.
+
+## Active Draft — P0 #374 Package 3: isolated candidate Storage Rules contract
+
+- Branch: `security/p0-374-package3-storage-rules-contract-20261123`; base `main@6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`; target `main`; Draft / Open / Unmerged. PR number and exact final HEAD are held in GitHub PR metadata.
+- Scope: isolated candidate Storage Rules artifact, deterministic offline Vitest denial suite, Package 3 technical evidence, one Vitest script registration, and these Docs-as-Code baseline/handover updates.
+- Direct client Storage reads and writes are denied; candidate Rules are not referenced by active Firebase configuration. Persistent download-token URLs cannot be invalidated by Rules; Package 2 inventory/revocation remains offline and separately gated.
+- This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-HEAD results are **[TO VERIFY]**. Do not transfer PR #406 baseline runs to this branch or create a recursive docs-only commit for self-referencing run IDs.
+- No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation. P0 #254 and P0 #374 remain OPEN; `productionApproved=false`; production NO-GO.
+
 **Snapshot:** 2026-11-23  
 **Main HEAD (verified after PR #405 merge):** `616b165d6df783b5fe9c1b45dcb9c5dd53def583`  
 **Previous main HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`  

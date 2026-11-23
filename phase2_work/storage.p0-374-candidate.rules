@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // P0 #374 Package 3 — isolated candidate only; never referenced by firebase.json.
+    // All direct client access is denied. Profile media reads use the separate,
+    // default-off server delivery contract from Package 1.
+    match /profile-media/v1/{opaqueObjectId} {
+      allow read, write: if false;
+    }
+
+    // Explicit legacy UID/path quarantine.
+    match /users/{legacyPath=**} { allow read, write: if false; }
+    match /profiles/{legacyPath=**} { allow read, write: if false; }
+    match /verification/{legacyPath=**} { allow read, write: if false; }
+    match /verification_events/{legacyPath=**} { allow read, write: if false; }
+
+    // Default-deny catch-all: no public fallback and no client upload exception.
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}
