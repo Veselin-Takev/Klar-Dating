@@ -174,13 +174,9 @@ export function evaluateCityLaunchReadiness(activeUsers: number, verifiedUsers: 
 }
 
 export async function getLocalDensity(db: Firestore, city: LaunchCity) {
-  const candidateQuery = db.collection('public_profiles').where('location', '==', city).orderBy(FieldPath.documentId());
-  const candidateDocs = await scanRecommendationPages(async (cursor, pageSize) => {
-    const query = cursor ? candidateQuery.startAfter(cursor) : candidateQuery;
-    return (await query.limit(pageSize).get()).docs;
-  });
-  const active = candidateDocs.filter(doc => doc.data().active !== false && daysSince(doc.data().lastActiveAt) <= 7).length;
-  const verified = candidateDocs.filter(doc => doc.data().active !== false && doc.data().isVerified === true && daysSince(doc.data().lastActiveAt) <= 7).length;
+  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
+  const active = snap.docs.filter(doc => doc.data().active !== false && daysSince(doc.data().lastActiveAt) <= 7).length;
+  const verified = snap.docs.filter(doc => doc.data().active !== false && doc.data().isVerified === true && daysSince(doc.data().lastActiveAt) <= 7).length;
   return { city, activeUsers: active, verifiedUsers: verified, band: densityBand(active), threshold: active < 5 ? 5 : active < 20 ? 20 : active < 50 ? 50 : 100 };
 }
 
@@ -257,7 +253,11 @@ export async function getRecommendations(
   const minAge = Math.max(18, Math.min(80, profile.minAge ?? 18));
   const maxAge = Math.max(minAge, Math.min(100, profile.maxAge ?? 80));
   const limit = Math.max(1, Math.min(30, profile.limit ?? 12));
-  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
+  const candidateQuery = db.collection('public_profiles').where('location', '==', city).orderBy(FieldPath.documentId());
+  const candidateDocs = await scanRecommendationPages(async (cursor, pageSize) => {
+    const query = cursor ? candidateQuery.startAfter(cursor) : candidateQuery;
+    return (await query.limit(pageSize).get()).docs;
+  });
   const blocked = new Set<string>();
   // Never truncate an exclusion list: an omitted block is a privacy failure.
   // Bound work and fail closed if an exceptional account exceeds the scan budget.
