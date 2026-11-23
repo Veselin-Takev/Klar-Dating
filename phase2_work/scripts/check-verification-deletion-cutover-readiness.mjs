@@ -332,7 +332,7 @@ export function validateVerificationDeletionCutoverReadiness({
 
 export function policyCheck() {
   if (VERDICT.ELIGIBLE !== 'ELIGIBLE_FOR_INDEPENDENT_REVIEW' || VERDICT.BLOCKED !== 'BLOCKED'
-      || Object.values(VERDICT).length !== 2 || 'PRODUCTION_APPROVED' in VERDICT) {
+      || Object.values(VERDICT).length !== 2 || Object.keys(VERDICT).some(key => key.includes('PRODUCTION'))) {
     throw new Error('verdict policy must expose only BLOCKED and ELIGIBLE_FOR_INDEPENDENT_REVIEW');
   }
   return true;
