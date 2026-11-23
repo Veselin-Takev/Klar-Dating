@@ -34,7 +34,7 @@ export function createProfileMediaTokenDryRunPlan(inventory:OfflineMediaInventor
  for(const s of versionsByObject.values())if(s.size>1)counts.contradictoryReferences++;
  const refVersions=new Map<string,Set<string>>();
  for(const ref of inventory.references){const v=String(ref.generation??'')+':'+String(ref.metageneration??'');const s=refVersions.get(ref.objectPath)??new Set<string>();s.add(v);refVersions.set(ref.objectPath,s);const object=objectByPath.get(ref.objectPath);if(!object||!object.exists){counts.missingObjects++;continue;}if(ref.generation!==undefined&&ref.generation!==object.generation)counts.generationMismatches++;if(ref.metageneration!==undefined&&ref.metageneration!==object.metageneration)counts.metagenerationMismatches++;}
- for(const [path,s] of refVersions)if(s.size>1&&!versionsByObject.has(path))counts.contradictoryReferences++;
+ for(const s of refVersions.values())if(s.size>1)counts.contradictoryReferences++;
  counts.tokenMetadataPresent=[...objectByPath.values()].filter(o=>o.exists&&o.tokenMetadataPresent).length;
  counts.alreadyAbsent=[...objectByPath.values()].filter(o=>o.exists&&!o.tokenMetadataPresent).length;
  const conflicts={missingObjects:counts.missingObjects,contradictoryReferences:counts.contradictoryReferences,generationMismatches:counts.generationMismatches,metagenerationMismatches:counts.metagenerationMismatches,invalidRecords:counts.invalidRecords};
