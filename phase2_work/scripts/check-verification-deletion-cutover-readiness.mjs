@@ -72,7 +72,8 @@ export function gitBlobSha(content) {
 }
 
 function safeEvidencePath(root, relativePath) {
-  if (!nonempty(relativePath) || path.isAbsolute(relativePath)) {
+  if (!nonempty(relativePath) || path.isAbsolute(relativePath) || path.win32.isAbsolute(relativePath)
+      || /^[a-z]:/i.test(relativePath) || relativePath.includes('\0') || lstatSync(root).isSymbolicLink()) {
     throw new Error('evidence path must be non-empty and relative');
   }
   const parts = relativePath.split(/[\\/]+/);
@@ -228,7 +229,7 @@ function checkWriterFence(artifacts, evidenceDirectory, errors) {
     ['VERIFICATION_DELETION_WRITER_INTENT_COLLECTION', 'prepareVerificationDeleteCas', 'beginVerificationDeletionHold'], errors);
 }
 
-function checkExternalEvidence(manifest, artifacts, errors) {
+function checkExternalEvidence(manifest, artifacts, now, errors) {
   if (!Array.isArray(manifest.externalEvidence) || manifest.externalEvidence.length !== EXTERNAL_CATEGORIES.length) {
     errors.push('all six external and policy evidence categories must be supplied exactly once');
     return;
@@ -247,7 +248,7 @@ function checkExternalEvidence(manifest, artifacts, errors) {
     const timestamp = validIso(item.timestamp) ? Date.parse(item.timestamp) : NaN;
     if (item.status !== 'VERIFIED' || !nonempty(item.evidenceRef) || !artifacts.has(item.evidenceRef)
         || !nonempty(item.owner) || !Number.isFinite(timestamp)
-        || timestamp > Date.now() || Date.now() - timestamp > MAX_EVIDENCE_AGE_MS) {
+        || timestamp > now || now - timestamp > MAX_EVIDENCE_AGE_MS) {
       errors.push(label + ' must be VERIFIED with an artifact reference, accountable owner and fresh valid timestamp');
     }
   }
@@ -313,7 +314,7 @@ export function validateVerificationDeletionCutoverReadiness({
   checkPackage1(manifest, artifacts, errors);
   checkWriterFence(artifacts, evidenceDirectory, errors);
   checkHardStops(artifacts, evidenceDirectory, manifest, errors);
-  checkExternalEvidence(manifest, artifacts, errors);
+  checkExternalEvidence(manifest, artifacts, now, errors);
   if (!HEX64.test(manifest.evidenceDigest || '') || manifest.evidenceDigest !== computeEvidenceDigest(manifest)) {
     errors.push('evidence digest is missing or mismatched');
   }
