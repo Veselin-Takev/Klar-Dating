@@ -11,6 +11,7 @@ export const VERDICT = Object.freeze({
 export const EXPECTED_BASELINE = Object.freeze({
   mainSha: '2854162816037486031cec8fb169ccda1a10deaa',
   mainTreeSha: '59d93e346cb5805ba8efaf57d076af93f30beab2',
+  pr397MergeSha: '6ef75da0b6f9effb297137ad2d0b8665a4cac1a0',
   sourceBlobShas: Object.freeze({
   "writer": "11ecd1ca9837d7c153137393c21c44f69f806215",
   "writerTests": "eba4a6152f31892dfa8974ebec3bc43c9a9cf5ee",
@@ -36,6 +37,7 @@ const EXTERNAL_CATEGORIES = Object.freeze([
 ]);
 const REQUIRED_REVIEW_ROLES = Object.freeze(['APPSEC', 'DPO_LEGAL', 'SRE']);
 const OPTIONAL_REVIEW_ROLE = 'RELEASE_OWNER';
+const MAX_EVIDENCE_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 const HEX40 = /^[a-f0-9]{40}$/i;
 const HEX64 = /^[a-f0-9]{64}$/i;
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -170,6 +172,9 @@ function checkBaseline(manifest, expectedMainSha, expectedMainTreeSha, expectedS
       || baseline.mainTreeSha !== expectedMainTreeSha || !HEX40.test(baseline.mainTreeSha || '')) {
     errors.push('main Tree SHA is missing or differs from the pinned verified baseline');
   }
+  if (baseline.pr397MergeSha !== EXPECTED_BASELINE.pr397MergeSha) {
+    errors.push('PR #397 canonical fence integration merge SHA is missing or mismatched');
+  }
   for (const id of REQUIRED_SOURCE_IDS) {
     if (baseline.sourceBlobShas?.[id] !== expectedSourceBlobShas[id] || !artifacts.has(id)
         || artifacts.get(id)?.gitBlobSha !== expectedSourceBlobShas[id]) {
@@ -229,6 +234,7 @@ function checkExternalEvidence(manifest, artifacts, errors) {
     return;
   }
   const seen = new Set();
+  const evidenceRefs = new Set();
   for (const [index, item] of manifest.externalEvidence.entries()) {
     const label = 'externalEvidence[' + index + ']';
     if (!isRecord(item) || !EXTERNAL_CATEGORIES.includes(item.category) || seen.has(item.category)) {
@@ -236,9 +242,13 @@ function checkExternalEvidence(manifest, artifacts, errors) {
       continue;
     }
     seen.add(item.category);
+    if (nonempty(item.evidenceRef) && evidenceRefs.has(item.evidenceRef)) errors.push(label + ' evidence reference is reused across categories');
+    evidenceRefs.add(item.evidenceRef);
+    const timestamp = validIso(item.timestamp) ? Date.parse(item.timestamp) : NaN;
     if (item.status !== 'VERIFIED' || !nonempty(item.evidenceRef) || !artifacts.has(item.evidenceRef)
-        || !nonempty(item.owner) || !validIso(item.timestamp)) {
-      errors.push(label + ' must be VERIFIED with an artifact reference, accountable owner and valid timestamp');
+        || !nonempty(item.owner) || !Number.isFinite(timestamp)
+        || timestamp > Date.now() || Date.now() - timestamp > MAX_EVIDENCE_AGE_MS) {
+      errors.push(label + ' must be VERIFIED with an artifact reference, accountable owner and fresh valid timestamp');
     }
   }
   for (const category of EXTERNAL_CATEGORIES) if (!seen.has(category)) errors.push('missing external evidence category: ' + category);
@@ -264,9 +274,12 @@ function checkApprovals(manifest, now, errors) {
       errors.push(label + ' reviewer identity claim and distinct signer reference are required');
     }
     signers.add(approval.signerRef);
+    const signedAt = validIso(approval.signedAt) ? Date.parse(approval.signedAt) : NaN;
+    const expiresAt = validIso(approval.expiresAt) ? Date.parse(approval.expiresAt) : NaN;
     if (approval.decision !== 'APPROVED' || approval.scope !== 'P0_371_PACKAGE_2_OFFLINE_CUTOVER_READINESS'
-        || !validIso(approval.signedAt) || !validIso(approval.expiresAt)
-        || Date.parse(approval.expiresAt) <= now
+        || !Number.isFinite(signedAt) || !Number.isFinite(expiresAt)
+        || signedAt > now || now - signedAt > MAX_EVIDENCE_AGE_MS
+        || expiresAt <= now || expiresAt <= signedAt
         || approval.evidenceDigest !== manifest.evidenceDigest) {
       errors.push(label + ' approval must be current, in-scope, APPROVED and bound to the exact evidence digest');
     }

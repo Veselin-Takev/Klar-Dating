@@ -63,6 +63,7 @@ function makeFixture(mutator = () => {}) {
       baseline: {
         mainSha: MAIN,
         mainTreeSha: TREE,
+        pr397MergeSha: '6ef75da0b6f9effb297137ad2d0b8665a4cac1a0',
         sourceBlobShas: sourceBlobMap(artifacts),
       },
       evidenceArtifacts: artifacts,
@@ -157,6 +158,13 @@ test('missing and mismatched main SHA block', () => withFixture(f => {
   blocked(run(f));
 }));
 
+test('missing or mismatched PR #397 canonical fence merge identity blocks', () => withFixture(f => {
+  f.manifest.baseline.pr397MergeSha = '';
+  blocked(run(f));
+  f.manifest.baseline.pr397MergeSha = 'f'.repeat(40);
+  blocked(run(f));
+}));
+
 test('missing and mismatched main Tree SHA block', () => withFixture(f => {
   f.manifest.baseline.mainTreeSha = '';
   blocked(run(f));
@@ -211,6 +219,19 @@ test('external evidence without owner, timestamp or artifact reference blocks', 
   blocked(run(f));
   f.manifest.externalEvidence[1].owner = 'owner';
   f.manifest.externalEvidence[1].evidenceRef = 'missing-artifact';
+  blocked(run(f));
+}));
+
+test('stale external evidence and future-dated approvals block', () => withFixture(f => {
+  f.manifest.externalEvidence[0].timestamp = '2026-01-01T00:00:00.000Z';
+  blocked(run(f));
+  f.manifest.externalEvidence[0].timestamp = '2026-11-23T11:00:00.000Z';
+  f.manifest.approvals[0].signedAt = '2026-11-24T11:00:00.000Z';
+  blocked(run(f));
+}));
+
+test('missing production interlock source artifact blocks', () => withFixture(f => {
+  f.manifest.evidenceArtifacts = f.manifest.evidenceArtifacts.filter(item => item.id !== 'compliance');
   blocked(run(f));
 }));
 
