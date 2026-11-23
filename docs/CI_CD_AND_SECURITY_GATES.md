@@ -1,6 +1,6 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583` (PR #404 merged; exact post-merge branch ref verified).  
+**Current verified `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583` (PR #405 merged; exact post-merge branch ref verified).  
 **Previous `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`.
 
 
