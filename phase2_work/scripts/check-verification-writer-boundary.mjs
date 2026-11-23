@@ -42,7 +42,7 @@ function inspectVerificationWriterBoundary(sourceFiles) {
   const add = message => violations.push(message);
 
   for (const [file, source] of sources) {
-    const storageMutation = (/\\.file\\s*\\(/.test(source) || /\\.getFiles\\s*\\(/.test(source)) && MUTATION.test(source);
+    const storageMutation = /\.(?:file|getFiles)\s*\(/.test(source) && MUTATION.test(source);
     const verificationMutation = /verification\s*\/|verificationPrefix|verificationStorage|verificationPhoto/i.test(source)
       && MUTATION.test(source);
     if ((storageMutation || verificationMutation) && !ALLOWED_MUTATION_FILES.has(file)) {
