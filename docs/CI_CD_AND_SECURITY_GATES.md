@@ -631,3 +631,20 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 - No operational inventory/revocation CLI was executed or changed. No active production route, Rules, workflow, dependency or lockfile changes. No live migration or token revocation.
 - This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-head Run IDs/status/conclusions: **[TO VERIFY]** until observed. Per `AGENTS.md` Anti-SHA-Chasing, report exact run IDs and `head_sha` in final handover; do not create recursive docs-only commits to chase this PR's moving SHA.
 - P0 #374 remains **OPEN**; P0 #254 remains **OPEN** and awaiting independent AppSec/DPO/SRE review; `productionApproved=false`; production **NO-GO**.
+
+
+## Immutable verified main baseline — PR #409 / P0 #371 Package 1 (2026-11-23)
+
+- Exact verified `main` HEAD: `2854162816037486031cec8fb169ccda1a10deaa`; previous parent `a15d8950bc67a7eb9c9893455ee83cfdd1174957`; merge Tree `59d93e346cb5805ba8efaf57d076af93f30beab2`, identical to PR #409 validated head Tree.
+- Klar Enterprise CI [Run #45245284270](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45245284270), workflow #2328, exact SHA above: **SUCCESS** — Enterprise Static Gates; verification writer boundary 135 production source files / 8 of 8 tests; profile-media cutover readiness 25/25; Storage Rules contract 28/28; token dry-run 14/14; delivery contract 40/40; tenant cutover readiness 19/19; tenant route guard 23/23; tenant Rules 9/9; profile-media boundary 4/4; Typecheck all three tsconfigs; Functions Build; 225 test files / 1,842 passed / 0 failed; Build; Production Smoke; Playwright 35/35 passed.
+- Enterprise Compliance & Security Audit Gate [Run #45245284461](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45245284461), workflow #163, exact same SHA: **SUCCESS** — Gitleaks 1 commit scanned / 0 leaks; CLI v8.24.3 checksum OK; regression 4/4; Tier 1 549 packages / 0 High+; Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- This baseline is SHA-bound and immutable; preserve all earlier baseline history. It is not production approval.
+
+## Active Draft PR — P0 #371 Package 2 offline verification-deletion cutover-readiness
+
+- Base `main@2854162816037486031cec8fb169ccda1a10deaa` (Tree `59d93e346cb5805ba8efaf57d076af93f30beab2`); branch `security/p0-371-package2-offline-cutover-readiness-20261123`; keep **Draft / Open / Unmerged**.
+- Six-file scope: offline validator, hermetic synthetic `node:test` suite, readiness evidence document, package script registration only, `docs/HANDOVER_STATUS.md` and this file.
+- Gate exposes only `BLOCKED` and `ELIGIBLE_FOR_INDEPENDENT_REVIEW`. It verifies exact main/source Blob identities, Package 1 writer boundary evidence, PR #397 writer-intent/finalize/fence/hold-CAS sources, account-erasure profile-only hard-stop, production compliance Storage 503 interlock, all six external/policy evidence categories, APPSEC/DPO_LEGAL/SRE reviewer records, digest and expiry binding, SHA-256/Git-Blob-SHA-1, safe non-symlink relative paths and four explicit zero-operation counters.
+- Local validator checks reviewer evidence structure and digest binding only; it does not authenticate reviewer identity. Synthetic positive fixtures do not establish actual IAM, bucket, trigger, scheduler, legal or SRE facts.
+- PR's own exact-head Klar Enterprise CI and Audit Gate Run IDs remain **[TO VERIFY]** until hosted completion on its final HEAD. Do not chase self-referential Run IDs with a docs-only commit.
+- P0 #254 (Packages 1–6) and P0 #374 (Packages 1–4): offline work complete / **AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW**; P0 #373: implementation remediated on main by PR #375 merge `30250a1fc82f24834c7ada62f8453df04af20f2a`, pending issue-evidence reconciliation; P0 #371 remains **OPEN** with Package 2 in Draft. `productionApproved=false`; production **NO-GO**.
