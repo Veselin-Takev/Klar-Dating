@@ -1,9 +1,20 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-23
-**Main HEAD (verified after PR #407 merge):** `d0f766dce8dd907a59398ccbdfd081415601db18`
-**Previous main HEAD:** `6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`
+**Main HEAD (verified after PR #408 merge):** `a15d8950bc67a7eb9c9893455ee83cfdd1174957`
+**Previous main HEAD:** `d0f766dce8dd907a59398ccbdfd081415601db18`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
+
+## Immutable verified main baseline — PR #408 / P0 #374 Package 4 (2026-11-23)
+
+PR [#408](https://github.com/Veselin-Takev/Klar-Dating/pull/408) merged into \`main\` at \`a15d8950bc67a7eb9c9893455ee83cfdd1174957\`; previous main \`d0f766dce8dd907a59398ccbdfd081415601db18\`; merge tree \`342ed00ddd999ae7acc4b221ce858325ccd92e1b\`, identical to the validated PR #408 HEAD tree.
+
+- **Klar Enterprise CI** [Run #45233295182](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45233295182) (workflow #2317), exact post-merge \`push\` on \`main\`, \`head_sha=a15d8950bc67a7eb9c9893455ee83cfdd1174957\`, **SUCCESS**: 225 test files / 1,842 tests / 0 failed; Profile Media Cutover Readiness 25/25; Storage Rules Contract 28/28; Token Dry-Run 14/14; Delivery Contract 40/40; Tenant Cutover Readiness 19/19; Tenant Route Guard Adapter 23/23; Tenant Rules Contract 9/9; Profile Media Boundary 4/4; Playwright 35/35; Typecheck across all three tsconfigs, Functions Build, Build and Production Smoke PASS.
+- **Enterprise Compliance & Security Audit Gate** [Run #45233295138](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45233295138) (workflow #152), exact same \`head_sha\`, **SUCCESS**: Gitleaks non-empty range 1 commit / 0 leaks; CLI v8.24.3 checksum OK; range regression 4/4; Tier 1 549 packages and Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- PR #408's six-file tree is the verified main tree; no workflow, dependency or lockfile changes were part of that merge. This immutable evidence applies only to this exact main SHA.
+- P0 #254 Packages 1–6: offline engineering packages complete; \`AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW\`; issue remains OPEN. P0 #374 Packages 1–4: offline engineering packages complete; \`AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW\`; issue remains OPEN.
+- P0 #371 Package 1 is the active Draft PR on \`security/p0-371-all-writer-inventory-package1-20261123\`; its own exact-HEAD Klar Enterprise CI and Enterprise Compliance & Security Audit Gate runs are **[TO VERIFY]**. Do not transfer the baseline runs above to this Draft head.
+- P0 #254, #374 and #371 remain OPEN; \`productionApproved=false\`; production **NO-GO**.
 
 ## Immutable verified main baseline — PR #407 / P0 #374 Package 3 (2026-11-23)
 
