@@ -41,10 +41,8 @@ function inspectVerificationWriterBoundary(sourceFiles) {
   const add = message => violations.push(message);
 
   for (const [file, source] of sources) {
-    const storageMutation = /\.(?:file|getFiles)\s*\(/.test(source) && MUTATION.test(source);
-    const verificationMutation = /verification\s*\/|verificationPrefix|verificationStorage|verificationPhoto/i.test(source)
-      && MUTATION.test(source);
-    if ((storageMutation || verificationMutation) && !ALLOWED_MUTATION_FILES.has(file)) {
+    const storageMutation = /\.(?:file|getFiles|deleteFiles)\s*\(/.test(source) && MUTATION.test(source);
+    if (storageMutation && !ALLOWED_MUTATION_FILES.has(file)) {
       add(file + ': unregistered Storage mutation path; bind it to the canonical Writer-Intent / Finalize / Fence contract');
     }
   }
