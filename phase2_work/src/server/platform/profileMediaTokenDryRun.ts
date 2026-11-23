@@ -17,9 +17,9 @@ function validVersion(value:string|undefined):value is string{return typeof valu
 function hash(value:string):string{return createHash('sha256').update(value,'utf8').digest('hex');}
 function canonicalInventory(inventory:OfflineMediaInventory):string{
  const objects=inventory.objects.map(item=>({objectPath:item.objectPath,exists:item.exists,generation:item.generation??null,metageneration:item.metageneration??null,tokenMetadataPresent:item.tokenMetadataPresent}))
- .sort((a,b)=>a.objectPath.localeCompare(b.objectPath)||String(a.generation).localeCompare(String(b.generation))||String(a.metageneration).localeCompare(String(b.metageneration)));
+ .sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
  const references=inventory.references.map(item=>({objectPath:item.objectPath,generation:item.generation??null,metageneration:item.metageneration??null}))
- .sort((a,b)=>a.objectPath.localeCompare(b.objectPath)||String(a.generation).localeCompare(String(b.generation))||String(a.metageneration).localeCompare(String(b.metageneration)));
+ .sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
  return JSON.stringify({version:1,objects,references});
 }
 /** Pure offline planner: no SDK, filesystem, network, clock or mutation dependency. */
