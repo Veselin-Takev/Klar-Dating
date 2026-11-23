@@ -5,8 +5,10 @@ import { getRecommendations, scanRecommendationPages, toPublicProfile } from '..
 import { compatibilityScore } from '../src/server/platform/compatibility';
 const ids: string[] = [];
 const blockIds: string[] = [];
+const deletionIds: string[] = [];
 afterEach(async () => {
   for (const id of blockIds.splice(0)) await getDb().collection('blocks').doc(id).delete();
+  for (const id of deletionIds.splice(0)) await getDb().collection('account_deletions').doc(id).delete();
   for (const id of ids.splice(0)) {
     await Promise.all([
       getDb().collection('public_profiles').doc(id).delete(),
@@ -61,7 +63,8 @@ describe('published preferences and recommendation privacy', () => {
   });
   it('scans beyond 500 ineligible city profiles and finds the later eligible profile', async () => {
     const viewer = `pagination-viewer-${crypto.randomUUID()}`;
-    const candidateIds = Array.from({ length: 501 }, (_, index) => `pagination-${crypto.randomUUID()}-${String(index).padStart(3, '0')}`);
+    const prefix = `pagination-${crypto.randomUUID()}`;
+    const candidateIds = Array.from({ length: 501 }, (_, index) => `${prefix}-${String(index).padStart(3, '0')}`);
     ids.push(...candidateIds);
     for (let offset = 0; offset < candidateIds.length; offset += 400) {
       const batch = getDb().batch();
@@ -110,7 +113,7 @@ describe('published preferences and recommendation privacy', () => {
 
   it('preserves block, deletion, age, adult, verification and activity exclusions', async () => {
     const viewer = `filter-viewer-${crypto.randomUUID()}`;
-    const cases = [
+    const cases: Array<{ key: string; block?: boolean; deletion?: boolean; age?: number; verified?: boolean; active?: boolean; adult?: boolean }> = [
       { key: 'blocked', block: true }, { key: 'deleted', deletion: true },
       { key: 'underage', age: 17 }, { key: 'unverified', verified: false },
       { key: 'inactive', active: false }, { key: 'not-adult', adult: false }, { key: 'eligible' },
@@ -123,7 +126,7 @@ describe('published preferences and recommendation privacy', () => {
         isVerified: spec.verified ?? true, active: spec.active ?? true, isExample: false, lastActiveAt: new Date(),
       });
       batch.set(getDb().collection('users').doc(id), { isAdult: true, active: true, isSuspended: false, isBlocked: false });
-      if (spec.deletion) batch.set(getDb().collection('account_deletions').doc(id), { pending: true });
+      if (spec.deletion) { deletionIds.push(id); batch.set(getDb().collection('account_deletions').doc(id), { pending: true }); }
       if (spec.block) { const blockId = `block-${id}`; blockIds.push(blockId); batch.set(getDb().collection('blocks').doc(blockId), { blockerUid: viewer, blockedUid: id }); }
     }
     await batch.commit();
