@@ -8,8 +8,8 @@
 
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `a15d8950bc67a7eb9c9893455ee83cfdd1174957` (PR #408 merged; exact post-merge branch ref, parent and tree verified).
-**Previous `main` HEAD:** `d0f766dce8dd907a59398ccbdfd081415601db18`.
+**Current verified `main` HEAD:** `4956fb09f81a9bf6e9686dd8abded577b7aff8b5` (PR #410 merged; exact post-merge branch ref, parent and tree verified).
+**Previous `main` HEAD:** `2854162816037486031cec8fb169ccda1a10deaa`.
 
 ## Immutable verified main baseline — PR #408 / P0 #374 Package 4 (2026-11-23)
 

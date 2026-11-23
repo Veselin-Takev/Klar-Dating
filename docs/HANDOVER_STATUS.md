@@ -9,8 +9,8 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-23
-**Main HEAD (verified after PR #408 merge):** `a15d8950bc67a7eb9c9893455ee83cfdd1174957`
-**Previous main HEAD:** `d0f766dce8dd907a59398ccbdfd081415601db18`
+**Main HEAD (verified after PR #410 merge):** `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`
+**Previous main HEAD:** `2854162816037486031cec8fb169ccda1a10deaa`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
 ## Immutable verified main baseline — PR #408 / P0 #374 Package 4 (2026-11-23)
