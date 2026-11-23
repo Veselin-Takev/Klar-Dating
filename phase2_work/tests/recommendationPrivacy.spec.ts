@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 import { getDb } from '../src/server/db';
-import { getRecommendations, toPublicProfile } from '../src/server/platform/launchPlatform';
+import { getRecommendations, scanRecommendationPages, toPublicProfile } from '../src/server/platform/launchPlatform';
 import { compatibilityScore } from '../src/server/platform/compatibility';
 const ids: string[] = [];
 const blockIds: string[] = [];
@@ -59,4 +59,77 @@ describe('published preferences and recommendation privacy', () => {
     const profile = rows.find(row => row.id === id)?.profile;
     expect(profile).toBeDefined(); expect(profile).not.toHaveProperty('email'); expect(profile).not.toHaveProperty('einwilligung'); expect(profile).not.toHaveProperty('role');
   });
+  it('scans beyond 500 ineligible city profiles and finds the later eligible profile', async () => {
+    const viewer = `pagination-viewer-${crypto.randomUUID()}`;
+    const candidateIds = Array.from({ length: 501 }, (_, index) => `pagination-${crypto.randomUUID()}-${String(index).padStart(3, '0')}`);
+    ids.push(...candidateIds);
+    for (let offset = 0; offset < candidateIds.length; offset += 400) {
+      const batch = getDb().batch();
+      candidateIds.slice(offset, offset + 400).forEach((id, index) => {
+        const absolute = offset + index;
+        batch.set(getDb().collection('public_profiles').doc(id), {
+          name: 'Synthetic', age: 28, location: 'Frankfurt am Main', isAdult: true,
+          isVerified: absolute === 500, active: true, isExample: false, lastActiveAt: new Date(),
+        });
+        batch.set(getDb().collection('users').doc(id), { isAdult: true, active: true, isSuspended: false, isBlocked: false });
+      });
+      await batch.commit();
+    }
+    const rows = await getRecommendations(getDb(), viewer, { location: 'Frankfurt am Main', limit: 30 });
+    expect(rows.map(row => row.id)).toContain(candidateIds[500]);
+  }, 60_000);
+
+  it('repeats stable cursor scans without skipped or duplicated IDs', async () => {
+    const source = Array.from({ length: 257 }, (_, index) => ({ id: String(index).padStart(4, '0') }));
+    const fetchPage = async (cursor: typeof source[number] | undefined, size: number) => source.slice(cursor ? source.findIndex(item => item.id === cursor.id) + 1 : 0, (cursor ? source.findIndex(item => item.id === cursor.id) + 1 : 0) + size);
+    const first = await scanRecommendationPages(fetchPage, 37, 500);
+    const retry = await scanRecommendationPages(fetchPage, 37, 500);
+    expect(first.map(item => item.id)).toEqual(source.map(item => item.id));
+    expect(retry.map(item => item.id)).toEqual(first.map(item => item.id));
+    expect(new Set(first.map(item => item.id)).size).toBe(source.length);
+  });
+
+  it('fails closed when a further page exists beyond the hard scan budget', async () => {
+    const source = Array.from({ length: 6 }, (_, index) => ({ id: String(index) }));
+    const fetchPage = async (cursor: typeof source[number] | undefined, size: number) => {
+      const start = cursor ? Number(cursor.id) + 1 : 0; return source.slice(start, start + size);
+    };
+    await expect(scanRecommendationPages(fetchPage, 2, 5)).rejects.toThrow('Recommendation scan budget exceeded');
+    await expect(scanRecommendationPages(fetchPage, 2, 6)).resolves.toHaveLength(6);
+  });
+
+  it('re-evaluates mutable eligibility after later cursor pages are read', async () => {
+    const rows = Array.from({ length: 5 }, (_, index) => ({ id: String(index), active: true }));
+    const fetchPage = async (cursor: typeof rows[number] | undefined, size: number) => {
+      if (cursor?.id === '1') rows[0].active = false;
+      const start = cursor ? Number(cursor.id) + 1 : 0; return rows.slice(start, start + size);
+    };
+    const scanned = await scanRecommendationPages(fetchPage, 2, 10);
+    expect(scanned.filter(row => row.active).map(row => row.id)).toEqual(['1', '2', '3', '4']);
+  });
+
+  it('preserves block, deletion, age, adult, verification and activity exclusions', async () => {
+    const viewer = `filter-viewer-${crypto.randomUUID()}`;
+    const cases = [
+      { key: 'blocked', block: true }, { key: 'deleted', deletion: true },
+      { key: 'underage', age: 17 }, { key: 'unverified', verified: false },
+      { key: 'inactive', active: false }, { key: 'not-adult', adult: false }, { key: 'eligible' },
+    ];
+    const batch = getDb().batch();
+    for (const spec of cases) {
+      const id = `filter-${viewer}-${spec.key}`; ids.push(id);
+      batch.set(getDb().collection('public_profiles').doc(id), {
+        name: 'Synthetic', age: spec.age ?? 28, location: 'Köln', isAdult: spec.adult ?? true,
+        isVerified: spec.verified ?? true, active: spec.active ?? true, isExample: false, lastActiveAt: new Date(),
+      });
+      batch.set(getDb().collection('users').doc(id), { isAdult: true, active: true, isSuspended: false, isBlocked: false });
+      if (spec.deletion) batch.set(getDb().collection('account_deletions').doc(id), { pending: true });
+      if (spec.block) { const blockId = `block-${id}`; blockIds.push(blockId); batch.set(getDb().collection('blocks').doc(blockId), { blockerUid: viewer, blockedUid: id }); }
+    }
+    await batch.commit();
+    const rows = await getRecommendations(getDb(), viewer, { location: 'Köln', minAge: 18, maxAge: 35 });
+    expect(rows.map(row => row.id)).toContain(`filter-${viewer}-eligible`);
+    for (const spec of cases.filter(item => item.key !== 'eligible')) expect(rows.map(row => row.id)).not.toContain(`filter-${viewer}-${spec.key}`);
+  }, 30_000);
+
 });

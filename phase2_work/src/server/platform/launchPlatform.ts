@@ -1,7 +1,7 @@
 import type { UserMusicPreferences } from '../../types/user';
 import crypto from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import { normalizeProfileMedia } from './profileMedia';
 import { explainCompatibility, type CompatibilityProfile } from './compatibility';
 
@@ -174,9 +174,13 @@ export function evaluateCityLaunchReadiness(activeUsers: number, verifiedUsers: 
 }
 
 export async function getLocalDensity(db: Firestore, city: LaunchCity) {
-  const snap = await db.collection('public_profiles').where('location', '==', city).limit(500).get();
-  const active = snap.docs.filter(doc => doc.data().active !== false && daysSince(doc.data().lastActiveAt) <= 7).length;
-  const verified = snap.docs.filter(doc => doc.data().active !== false && doc.data().isVerified === true && daysSince(doc.data().lastActiveAt) <= 7).length;
+  const candidateQuery = db.collection('public_profiles').where('location', '==', city).orderBy(FieldPath.documentId());
+  const candidateDocs = await scanRecommendationPages(async (cursor, pageSize) => {
+    const query = cursor ? candidateQuery.startAfter(cursor) : candidateQuery;
+    return (await query.limit(pageSize).get()).docs;
+  });
+  const active = candidateDocs.filter(doc => doc.data().active !== false && daysSince(doc.data().lastActiveAt) <= 7).length;
+  const verified = candidateDocs.filter(doc => doc.data().active !== false && doc.data().isVerified === true && daysSince(doc.data().lastActiveAt) <= 7).length;
   return { city, activeUsers: active, verifiedUsers: verified, band: densityBand(active), threshold: active < 5 ? 5 : active < 20 ? 20 : active < 50 ? 50 : 100 };
 }
 
@@ -215,6 +219,34 @@ function reasonsFor(a: CompatibilityProfile, b: CompatibilityProfile): Recommend
     .map(item => ({ ...item, overlap: Math.round(item.overlap * 100) }));
 }
 
+
+export const RECOMMENDATION_PAGE_SIZE = 100;
+export const RECOMMENDATION_SCAN_BUDGET = 5_000;
+export async function scanRecommendationPages<T extends { id: string }>(
+  fetchPage: (cursor: T | undefined, pageSize: number) => Promise<T[]>,
+  pageSize = RECOMMENDATION_PAGE_SIZE,
+  scanBudget = RECOMMENDATION_SCAN_BUDGET,
+): Promise<T[]> {
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1 ||
+      !Number.isSafeInteger(scanBudget) || scanBudget < 1) throw new Error('Invalid recommendation pagination bounds');
+  const scanned: T[] = [];
+  const seen = new Set<string>();
+  let cursor: T | undefined;
+  while (scanned.length < scanBudget) {
+    const requested = Math.min(pageSize, scanBudget - scanned.length);
+    const page = await fetchPage(cursor, requested);
+    if (page.length > requested) throw new Error('Recommendation page exceeded requested size');
+    for (const item of page) {
+      if (seen.has(item.id)) throw new Error('Recommendation cursor returned a duplicate profile');
+      seen.add(item.id); scanned.push(item);
+    }
+    if (page.length < requested) return scanned;
+    cursor = page[page.length - 1];
+  }
+  if ((await fetchPage(cursor, 1)).length > 0) throw new Error('Recommendation scan budget exceeded');
+  return scanned;
+}
+
 export async function getRecommendations(
   db: Firestore,
   uid: string,
@@ -242,7 +274,7 @@ export async function getRecommendations(
   }
 
   const lifecycleGates = new Map<string, PublicProfileLifecycleGate>();
-  await Promise.all(snap.docs.map(async document => {
+  await Promise.all(candidateDocs.map(async document => {
     const [owner, deletion] = await Promise.all([
       db.collection('users').doc(document.id).get(),
       db.collection('account_deletions').doc(document.id).get(),
@@ -252,7 +284,7 @@ export async function getRecommendations(
       deletionBarrierExists: deletion.exists,
     });
   }));
-  const candidates = snap.docs
+  const candidates = candidateDocs
     .map(d => ({ id: d.id, data: d.data() as Record<string, unknown> }))
     .filter(({ id, data }) => {
       const lifecycle = lifecycleGates.get(id);
