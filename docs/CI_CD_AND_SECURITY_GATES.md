@@ -1,7 +1,25 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583` (PR #405 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`.
+**Current verified `main` HEAD:** `6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7` (PR #406 merged; exact post-merge branch ref, parent and tree verified).
+**Previous `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583`.
+
+## Immutable verified main baseline — PR #406 / P0 #374 Package 2 (2026-11-23)
+
+PR [#406](https://github.com/Veselin-Takev/Klar-Dating/pull/406) merged at `6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`; previous main `616b165d6df783b5fe9c1b45dcb9c5dd53def583`; merge tree `726effe0ec7f70d1039ed531a299504a281fecb4`, identical to the validated pre-merge PR HEAD tree.
+
+| Workflow | Exact post-merge Run | Result | Evidence |
+|---|---:|---|---|
+| Klar Enterprise CI | [#45136353988](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45136353988) (#2312) | **SUCCESS** | Exact `head_sha=6f3f4f6ed8662ece91e4522d5c6dbb29abc015f7`; 224 files / 1,814 tests / 0 failed; token dry-run 14/14; delivery contract 40/40; cutover readiness 19/19; route guard adapter 23/23; Rules contract 9/9; Playwright 35/35; Typecheck, Functions Build, Build and Production Smoke PASS |
+| Enterprise Compliance & Security Audit Gate | [#45136354255](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45136354255) (#147) | **SUCCESS** | Same exact SHA; Gitleaks non-empty range 1 commit / 0 leaks; CLI v8.24.3 checksum OK; range regression 4/4; Tier 1 549 packages and Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS |
+
+P0 #254 remains **OPEN**, `AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW`; P0 #374 remains **OPEN**. `productionApproved=false`; production NO-GO. The Package 3 branch `security/p0-374-package3-storage-rules-contract-20261123` is active Draft / Unmerged; its own exact-HEAD CI and Audit runs remain **[TO VERIFY]**. Do not transfer PR #406 baseline evidence to the Draft PR.
+
+## Package 3 candidate Storage Rules contract — CI gate addition
+
+- `npm run test:profile-media-storage-rules-contract` runs the isolated Vitest suite from `phase2_work/`.
+- The suite is hermetic and emulator-free: local candidate Rules/source reads, synthetic fixtures, and Git-blob SHA verification only; no `node:test`, Java, Firebase Emulator or cloud connection.
+- The command is registered in `check:enterprise`; no workflow, Vitest config, dependency or lockfile changes.
+- Candidate Rules deny all direct client Storage reads/writes and are not wired into active `firebase.json`. Persistent download-token URLs are outside Rules revocation semantics and require a separately approved revocation operation.
 
 
 ## Immutable verified main baseline — PR #404 / P0 #254 Package 6 (2026-11-22)
