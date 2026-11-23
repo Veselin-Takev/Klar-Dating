@@ -1,7 +1,7 @@
 # CI/CD and Security Gates
 
-**Current verified `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406` (PR #404 merged; exact post-merge branch ref verified).  
-**Previous `main` HEAD:** `6f0457c1b12967415ee02a12669c94999ac8ec8b`.
+**Current verified `main` HEAD:** `616b165d6df783b5fe9c1b45dcb9c5dd53def583` (PR #405 merged; exact post-merge branch ref verified).  
+**Previous `main` HEAD:** `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`.
 
 
 ## Immutable verified main baseline — PR #404 / P0 #254 Package 6 (2026-11-22)
@@ -562,3 +562,23 @@ On initial PR #389 HEAD `ddfb358d3d955524b4a3215e01c336ee975429f3`: `Klar Enterp
 ## Historical Iteration-2 register notice
 
 `phase2_work/docs/ITERATION_2_REMEDIATION_REGISTER_2026-11-16.md` is a point-in-time historical snapshot, not the live repository status. Its current-state function is superseded by `docs/HANDOVER_STATUS.md` and `docs/CI_CD_AND_SECURITY_GATES.md`; retain it only as historical audit evidence and do not use it as the authoritative current register.
+
+
+## Immutable verified main baseline — PR #405 / P0 #374 Package 1 (2026-11-23)
+
+- PR [#405](https://github.com/Veselin-Takev/Klar-Dating/pull/405) merged to `main` at `616b165d6df783b5fe9c1b45dcb9c5dd53def583`; previous main `8c239dd71bbeb1bfdd5373cfbe763ab2c9e5a406`; merge tree `a71eaaf97c22854b1c57ad15296fb5128e36d5ea`, identical to validated PR #405 head tree.
+- **Klar Enterprise CI** [Run #45126660444](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45126660444), exact `head_sha=616b165d6df783b5fe9c1b45dcb9c5dd53def583`, **SUCCESS**: 223 test files / 1,800 tests / 0 failed; `profileMediaDeliveryContract.spec.ts` 40/40; `check-tenant-cutover-readiness` 19/19; `tenantRouteGuardAdapter.spec.ts` 23/23; `tenantRulesContract.spec.ts` 9/9; Playwright 35/35; Enterprise Static Gates, Typecheck, Functions Build, Build and Production Smoke PASS.
+- **Enterprise Compliance & Security Audit Gate** [Run #45126660669](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45126660669), exact same `head_sha`, **SUCCESS**: post-merge Gitleaks scanned 1 commit / 0 leaks; CLI v8.24.3 checksum OK; Tier 1 549 packages and Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- These runs certify only this immutable main SHA. PR #405 delivered the isolated/default-OFF Package 1 profile-media access contract; it did not activate a production route or approve production.
+- P0 #374 Package 2 is the active Draft PR on branch `security/p0-374-package2-token-inventory-dry-run-20261123`; exact PR number and head are held in GitHub metadata. Its own Klar Enterprise CI and Audit Gate runs remain **[TO VERIFY]** until completed on the exact PR head.
+- P0 #254 remains **OPEN** with status `AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW`; P0 #374 remains **OPEN**. `productionApproved=false`; production **NO-GO**. No live Cloud/IAM/Firestore/Storage/bucket/deployment mutation was performed.
+
+## Active Draft PR — P0 #374 Package 2 offline token inventory and dry-run verification
+
+- Base: exact verified `main@616b165d6df783b5fe9c1b45dcb9c5dd53def583`; target `main`; branch `security/p0-374-package2-token-inventory-dry-run-20261123`; keep **Draft / Open / Unmerged**.
+- Scope: pure offline deterministic SHA-256 inventory/plan builder; synthetic-only negative/boundary suite; concept/governance document; script-only registration and `check:enterprise` integration; handover and CI/security-gate baseline synchronization.
+- Plan output contains aggregate counts and conflict taxonomy only. It does not return UIDs, object paths, download URLs, token values, generation values or raw metadata. Every generated plan explicitly asserts `storageMutations=0` and `databaseWrites=0`.
+- Offline tests use synthetic fixtures only and cover deterministic digesting, missing objects, contradictory references, generation/metageneration mismatches, stale/tampered plans, independent approval rejection and sensitive-value redaction. The pure module has no Firebase, Google Cloud, database, network or filesystem dependency.
+- No operational inventory/revocation CLI was executed or changed. No active production route, Rules, workflow, dependency or lockfile changes. No live migration or token revocation.
+- This Draft PR's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate exact-head Run IDs/status/conclusions: **[TO VERIFY]** until observed. Per `AGENTS.md` Anti-SHA-Chasing, report exact run IDs and `head_sha` in final handover; do not create recursive docs-only commits to chase this PR's moving SHA.
+- P0 #374 remains **OPEN**; P0 #254 remains **OPEN** and awaiting independent AppSec/DPO/SRE review; `productionApproved=false`; production **NO-GO**.
