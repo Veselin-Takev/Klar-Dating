@@ -16,6 +16,14 @@ describe('canonical profile media references', () => {
     expect(normalizeProfileMedia('user-1', { photoURL: 'https://evil.example/o/profiles%2Fuser-1%2Fa.jpg?token=x' })).toBeNull();
     expect(normalizeProfileMedia('user-1', { photoURL: 'https://firebasestorage.googleapis.com/v0/b/bucket/o/profiles%2Fuser-2%2Fa.jpg?token=x' })).toBeNull();
   });
+  it.each([
+    ['Firebase token URL', 'https://firebasestorage.googleapis.com/v0/b/bucket/o/profiles%2Fuser-1%2Fa.jpg?alt=media&token=synthetic-token'],
+    ['GCS token URL', 'https://storage.googleapis.com/bucket/profiles/user-1/a.jpg?token=synthetic-token'],
+    ['Firebase URL without token', 'https://firebasestorage.googleapis.com/v0/b/bucket/o/profiles%2Fuser-1%2Fa.jpg?alt=media'],
+    ['malformed URL-shaped alias', 'https://firebasestorage.googleapis.com/%zz'],
+  ])('rejects %s as a profile media alias', (_label, value) => {
+    expect(normalizeProfileMedia('user-1', { photoURL: value })).toBeNull();
+  });
   it('normalizes supported storage path aliases, never bearer download URLs', () => {
     expect(normalizeProfileMedia('user-1', { photoStoragePath: 'profiles/user-1/a.jpg' })).toBe(createCanonicalMediaRef('user-1', 'profiles/user-1/a.jpg'));
     expect(normalizeProfileMedia('user-1', { photos: ['profiles/user-1/b.jpg'] })).toBe(createCanonicalMediaRef('user-1', 'profiles/user-1/b.jpg'));

@@ -74,6 +74,20 @@ describe('AuthenticatedProfileImage', () => {
     expect(mocks.authFetch).not.toHaveBeenCalled();
   });
 
+  it('keeps an accessible localized placeholder when the authenticated media request is offline', async () => {
+    mocks.authFetch.mockRejectedValueOnce(new Error('offline'));
+    render(
+      <AuthenticatedProfileImage
+        target={{ kind: 'profile', uid: 'person-2', mediaRef: 'klar-media:v1:YWJj' }}
+        viewerUid="viewer-1"
+        alt="Profilbild derzeit nicht verfügbar"
+      />,
+    );
+    const placeholder = await screen.findByRole('img', { name: 'Profilbild derzeit nicht verfügbar' });
+    await waitFor(() => expect(placeholder).toHaveAttribute('data-profile-media-status', 'error'));
+    expect(placeholder).not.toHaveAttribute('src');
+  });
+
   it('routes the own image through the identity-bound self endpoint', async () => {
     render(<AuthenticatedProfileImage target={{ kind: 'self' }} viewerUid="viewer-1" alt="Eigenes Profilbild" />);
     await waitFor(() => expect(mocks.authFetch).toHaveBeenCalledWith(

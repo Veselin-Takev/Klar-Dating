@@ -6,7 +6,6 @@ import type { Auth } from 'firebase-admin/auth';
 const PREFIX = 'klar-media:v1:';
 const UID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const OBJECT_PATH_PATTERN = /^[A-Za-z0-9_./-]+$/;
-const LEGACY_STORAGE_HOSTS = new Set(['firebasestorage.googleapis.com', 'storage.googleapis.com']);
 
 function isOwnerScopedObjectPath(uid: string, path: string): boolean {
   return UID_PATTERN.test(uid)
@@ -43,16 +42,13 @@ export function normalizeProfileMedia(uid: string, data: Record<string, unknown>
     if (canonicalPath) return createCanonicalMediaRef(uid, canonicalPath);
   }
 
-  const aliasPath = aliases.map(value => {
-    if (value.startsWith(`profiles/${uid}/`)) return value;
-    try {
-      const parsed = new URL(value);
-      if (!LEGACY_STORAGE_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) return null;
-      const marker = parsed.pathname.lastIndexOf('/o/');
-      if (marker < 0) return null;
-      return decodeURIComponent(parsed.pathname.slice(marker + 3));
-    } catch { return null; }
-  }).find((value): value is string => !!value && isOwnerScopedObjectPath(uid, value));
+  // Transitional raw object-path aliases remain owner-scoped and are served
+  // only through this authenticated proxy. URL-shaped values are never
+  // normalized: Firebase/GCS download URLs are bearer capabilities, even
+  // when their token query parameter is absent or malformed.
+  const aliasPath = aliases.find(value =>
+    value.startsWith(`profiles/${uid}/`) && isOwnerScopedObjectPath(uid, value),
+  ) ?? null;
 
   const path = explicit ?? legacy ?? aliasPath;
   if (!path || !isOwnerScopedObjectPath(uid, path)) return null;
@@ -70,6 +66,15 @@ async function streamAuthorizedProfileMedia(
   res: Response,
   selfView: boolean,
 ) {
+  // Media bytes are viewer-authorized capabilities: never let an intermediary
+  // cache them or disclose the request path as a referrer.
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Vary', 'Authorization');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !/^Bearer\s+[^\s]+$/i.test(header.trim())) {
     return res.status(401).end();
@@ -123,8 +128,8 @@ async function streamAuthorizedProfileMedia(
     }
 
     // Self-view resolves media only from the authenticated user's own profile
-    // document. Legacy download-token URLs are parsed server-side to an
-    // owner-scoped object path; the bearer URL is never returned to the client.
+    // document. Legacy/token-bearing, malformed, and URL-shaped media aliases
+    // are rejected; they are never translated into Storage object paths.
     const requestedMediaRef = req.params.mediaRef;
     const canonicalRef = selfView
       ? normalizeProfileMedia(target, targetData)
@@ -140,8 +145,6 @@ async function streamAuthorizedProfileMedia(
     const size = Number(metadata.size);
     if (!Number.isFinite(size) || size <= 0 || size >= 8 * 1024 * 1024) return res.status(413).end();
     res.setHeader('Content-Type', String(contentType));
-    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.status(200);
     const stream = file.createReadStream();
     stream.on('error', () => { if (!res.headersSent) res.status(404).end(); else res.destroy(); });
