@@ -94,15 +94,31 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     getDb: deps.getFirestore,
   });
 
-  router.get('/launch/summary', launchSummaryReadLimiter, async (req, res) => {
+  // Even aggregate density responses are derived from a private user's profile.
+  // Apply privacy headers before auth, rate limiting and handler errors.
+  router.get('/launch/summary', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  }, launchSummaryReadLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
-      const userSnap = await deps.getFirestore().collection('users').doc(uid).get();
-      const userData = userSnap.data() ?? {};
+      // Account deletion and profile hydration must share an atomic read boundary.
+      // Refuse to derive or disclose community context for deletion-pending users.
+      const db = deps.getFirestore();
+      const userRef = db.collection('users').doc(uid);
+      const deletionRef = db.collection('account_deletions').doc(uid);
+      const userData = await db.runTransaction(async tx => {
+        const [userSnap, deletionSnap] = await tx.getAll(userRef, deletionRef);
+        if (!userSnap?.exists || deletionSnap?.exists) return null;
+        return userSnap.data() ?? {};
+      });
+      if (!userData) return res.status(409).json({ error: 'Launch-Information für dieses Konto derzeit nicht verfügbar.' });
       const city = deps.normalizeLaunchCity(req.query.city ?? userData.location);
       if (!city) return res.status(400).json({ error: 'Bitte wähle eine unterstützte Stadt.' });
-      const density = await deps.getLocalDensity(deps.getFirestore(), city);
+      const density = await deps.getLocalDensity(db, city);
       return res.json({
         ...density,
         message: density.activeUsers < 5
@@ -117,7 +133,16 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.get('/referral', referralGenerationLimiter, async (req, res) => {
+  // Referral codes and attribution results are private, security-sensitive
+  // responses. Disable intermediaries/browser storage even on errors.
+  const noStoreReferralResponse = (_req: Request, res: express.Response, next: express.NextFunction) => {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  };
+
+  router.get('/referral', noStoreReferralResponse, referralGenerationLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
@@ -131,7 +156,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
       const deletionRef = db.collection('account_deletions').doc(uid);
       const available = await db.runTransaction(async tx => {
         const [user, deletion] = await tx.getAll(userRef, deletionRef);
-        if (!user || !deletion || !user.exists || deletion.exists) return false;
+        if (!user || !deletion || !user.exists || deletion.exists || user.data()?.isAdult !== true || user.data()?.active === false) return false;
         tx.update(userRef, { referralCode: code });
         return true;
       });
@@ -144,32 +169,55 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Router {
     }
   });
 
-  router.post('/referral/claim', express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
+  router.post('/referral/claim', noStoreReferralResponse, express.json({ inflate: false, limit: '8kb', strict: true }), referralClaimLimiter, async (req, res) => {
     try {
       const uid = deps.currentUserId(req);
       if (!uid) return res.status(401).json({ error: 'Unauthorized' });
       const code = typeof req.body?.code === 'string' ? req.body.code.trim().toUpperCase() : '';
       if (!/^[A-Z0-9_-]{10}$/.test(code)) return res.status(400).json({ error: 'Ungültiger Einladungslink.' });
       const db = deps.getFirestore();
-      const inviterSnap = await db.collection('users').where('referralCode', '==', code).limit(1).get();
-      if (inviterSnap.empty || inviterSnap.docs[0]?.id === uid) return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
+      // A legacy or truncated-code collision must never silently select an arbitrary owner.
+      const inviterSnap = await db.collection('users').where('referralCode', '==', code).limit(2).get();
+      if (inviterSnap.docs.length !== 1 || inviterSnap.docs[0]?.id === uid) {
+        return res.status(400).json({ error: 'Einladung nicht verfügbar.' });
+      }
       const userRef = db.collection('users').doc(uid);
       const inviterRef = inviterSnap.docs[0]?.ref;
       const available = await db.runTransaction(async (tx: Transaction) => {
         if (!inviterRef) return false;
-        const [userSnap, inviter, userDeletion, inviterDeletion] = await tx.getAll(
+        const eventRef = db.collection('referral_events').doc(`${inviterRef.id}_${uid}`);
+        const [userSnap, inviter, userDeletion, inviterDeletion, eventSnap] = await tx.getAll(
           userRef, inviterRef,
           db.collection('account_deletions').doc(uid),
-          db.collection('account_deletions').doc(inviterRef.id),
+          db.collection('account_deletions').doc(inviterRef.id), eventRef,
         );
         if (!userSnap || !inviter || !userDeletion || !inviterDeletion
           || !userSnap.exists || !inviter.exists || userDeletion.exists || inviterDeletion.exists
-          || inviter.data()?.referralCode !== code) return false;
-        if (userSnap.data()?.referredBy) return true;
+          || inviter.data()?.referralCode !== code
+          || userSnap.data()?.isAdult !== true || inviter.data()?.isAdult !== true
+          || userSnap.data()?.active === false || inviter.data()?.active === false) return false;
+        // A previously accepted attribution is immutable. Only the exact
+        // original inviter can be acknowledged as an idempotent retry.
+        // Existing malformed/empty attribution fields are quarantined, never
+        // silently interpreted as a fresh unclaimed account.
+        const storedInvitee = userSnap.data() ?? {};
+        if (Object.prototype.hasOwnProperty.call(storedInvitee, 'referredBy')) {
+          // An idempotent acknowledgement must be backed by the original
+          // attribution record, not merely an unverified profile field.
+          const priorEvent = eventSnap?.exists ? eventSnap.data() : undefined;
+          return typeof storedInvitee.referredBy === 'string'
+            && storedInvitee.referredBy.length > 0
+            && storedInvitee.referredBy === inviterRef.id
+            && priorEvent?.inviterUid === inviterRef.id
+            && priorEvent?.inviteeUid === uid;
+        }
+        // An orphaned or pre-existing event must not be silently overwritten:
+        // attribution is one-time and its existing evidence is immutable.
+        if (!eventSnap || eventSnap.exists) return false;
         tx.update(userRef, { referredBy: inviterRef.id, referralQualified: false });
-        tx.set(db.collection('referral_events').doc(`${inviterRef.id}_${uid}`), {
+        tx.create(eventRef, {
           inviterUid: inviterRef.id, inviteeUid: uid, createdAt: deps.serverTimestamp(), status: 'attributed',
-        }, { merge: true });
+        });
         return true;
       });
       if (!available) return res.status(409).json({ error: 'Einladung für dieses Konto derzeit nicht verfügbar.' });
