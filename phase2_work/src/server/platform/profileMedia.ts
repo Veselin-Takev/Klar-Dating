@@ -128,8 +128,8 @@ async function streamAuthorizedProfileMedia(
     }
 
     // Self-view resolves media only from the authenticated user's own profile
-    // document. Legacy download-token URLs are parsed server-side to an
-    // owner-scoped object path; the bearer URL is never returned to the client.
+    // document. Legacy/token-bearing, malformed, and URL-shaped media aliases
+    // are rejected; they are never translated into Storage object paths.
     const requestedMediaRef = req.params.mediaRef;
     const canonicalRef = selfView
       ? normalizeProfileMedia(target, targetData)
