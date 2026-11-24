@@ -1,3 +1,19 @@
+## Immutable verified main baseline — PR #411 / P1 #372 (2026-11-23)
+
+- Verified `main` HEAD / merge commit: `76cf36186ab087356171283fa3efab61ca12cb7d`; previous `main`: `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`; PR #411 pre-merge HEAD: `b7767633c2c4dab759410512c05aed5726a92ef9`; merge Tree `f928545afe0cd89232f9f1d6812298f4be45f4c4`, identical to the pre-merge PR HEAD tree. PR #411 is closed and merged.
+- Klar Enterprise CI [Run #45269379701](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45269379701), exact post-merge `push` on `main`, `head_sha=76cf36186ab087356171283fa3efab61ca12cb7d`, **SUCCESS**: Enterprise Static Gates; Typecheck across `tsconfig.json`, `tsconfig.server.json`, and `tsconfig.tests.json`; Functions Build; Vitest 225 files / 1,847 tests / 0 failed; `recommendationPrivacy.spec.ts` 9/9; `recommendationAdultGate.spec.ts` 1/1; Build; Production Smoke; Playwright Browser Acceptance 35/35.
+- Enterprise Compliance & Security Audit Gate [Run #45269379576](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45269379576), exact same SHA, **SUCCESS**: post-merge Gitleaks scanned a non-empty range of 1 commit / 0 leaks; CLI v8.24.3 checksum OK; range regression 4/4; Tier 1 549 packages / 0 High+; Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- This is immutable evidence for this exact main SHA only; it is not production approval. P0 #254, P0 #374 and P0 #371 engineering packages are offline-complete and **AWAITING_INDEPENDENT_APPSEC_DPO_SRE_REVIEW**; all remain OPEN. P0 #373 (PR #375) and P1 #372 (PR #411) are merged into `main`, pending issue-evidence reconciliation and external reviews; the P0 #373 issue remains OPEN. P1 #237 is the active Draft PR on `fix/p1-237-profile-refresh-retired-verification-endpoint-20261124`; PR number, exact PR HEAD and its own CI/Audit runs are **[TO VERIFY]** until GitHub reports them. P0 #202, #70, #55, #56, #48 and #47 remain OPEN. `productionApproved=false`; release **NO-GO**.
+
+## Active Draft — P1 #237: Profile refresh uses the canonical Didit status contract
+
+- Base: `main@76cf36186ab087356171283fa3efab61ca12cb7d`; branch: `fix/p1-237-profile-refresh-retired-verification-endpoint-20261124`; target `main`; keep **Draft / Open / Unmerged**. PR number and final HEAD are held in GitHub metadata; own CI/Audit evidence is **[TO VERIFY]** until observed.
+- Finding: the Profile screen's `BiometricsVerificationModal` refresh called retired `GET /api/verification/status` (HTTP 410) and checked the legacy `isVerified` field. The canonical authenticated provider-backed endpoint is `GET /api/kyc/status`.
+- Fix contract: only exact `status === 'approved'` invokes success. `pending`, `review`, `not_started` remain unverified; `unavailable`, unknown/malformed states and non-2xx responses fail closed. The signed Didit webhook remains the only identity-verification grant path.
+- Added hermetic synthetic-response Vitest regression coverage for approved, pending, review, not_started, unavailable, unknown/malformed and non-2xx states, including a retired-endpoint non-use assertion. Exact-head CI is **[TO VERIFY]**.
+- Explicit exclusions respected: no weakened verification/auth/Art. 17 guards; no active root `firestore.rules`, `storage.rules` or `firebase.json`; no workflow, Vitest config, dependency or lockfile changes; no real PII/UID/token/URL; no live Cloud/IAM/Firestore/Storage/production mutation.
+- `productionApproved=false`; release **NO-GO**; all P0 issues remain OPEN.
+
 ## Immutable verified main baseline — PR #410 / P0 #371 Package 2 (2026-11-23)
 
 - Verified `main` HEAD / merge commit `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`; parent `2854162816037486031cec8fb169ccda1a10deaa`; Tree `4106ab148b7b34043a0afbb3069956e1f010ed3a`; merge tree matches validated PR #410 head tree.
