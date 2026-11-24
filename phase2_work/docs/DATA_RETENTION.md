@@ -1,7 +1,8 @@
 # Data Retention & Privacy-by-Design Policy
 
-Diese Richtlinie definiert die strikten Datenlebenszyklen (Time-to-Live / TTL) für das Projekt **Klar**.
-Als Dating-App verarbeitet Klar besondere Kategorien personenbezogener Daten (Art. 9 DSGVO). Dem Grundsatz der Speicherbegrenzung (Art. 5 Abs. 1 lit. e DSGVO) wird durch automatisierte Löschroutinen (Firestore TTL Policies) Genüge getan.
+Diese Richtlinie dokumentiert technische Datenlebenszyklen (Time-to-Live / TTL) für das Projekt **Klar**. Ob und in welchem Umfang Klar besondere Kategorien personenbezogener Daten im Sinne von Art. 9 DSGVO verarbeitet und welche Rechtsgrundlagen nach Art. 6/9 DSGVO je Zweck gelten, ist **[TO VERIFY]** durch DPO/Legal. Die technische TTL-Konfiguration allein belegt weder DSGVO-Konformität noch die Erfüllung des Grundsatzes der Speicherbegrenzung.
+
+**Governance-Hinweis zu allen Fristen in diesem Dokument:** Die genannten Zeiträume sind dokumentierte technische/designseitige Werte und keine bestätigten oder rechtlich genehmigten Aufbewahrungsfristen. Zweckbindung, Erforderlichkeit, gesetzliche Aufbewahrung, Vertrags-/Finanzpflichten, Legal Holds und konkrete Fristen je Datenkategorie bleiben **[TO VERIFY]** durch DPO/Legal/Finance. Keine Frist und keine Art.-6-/Art.-9-Rechtsgrundlage gilt durch diese Dokumentation als freigegeben.
 
 ## Firestore TTL (Time-To-Live) Konfiguration
 
@@ -84,9 +85,9 @@ KLAR_PROJECT_ID=klar-staging-123 KLAR_DATABASE_ID='(default)' bash scripts/confi
 gcloud firestore fields ttls list --project "$KLAR_PROJECT_ID" --database "$KLAR_DATABASE_ID"
 ```
 
-Der zweite Befehl muss für alle 20 freigegebenen Collection Groups den aktiven TTL-Zustand zeigen. Der Nachweis wird im Change-Ticket abgelegt. Zusätzlich prüfen automatisierte Tests, dass neue Dokumente ein plausibles `expiresAt` erhalten; ein vierteljährlicher Stichprobentest weist tatsächliche Löschung nach. Legal Holds müssen explizit, zeitlich begrenzt und auditierbar sein.
+Der read-only `gcloud firestore fields ttls list`-Snapshot muss für die vollständige kanonische Matrix alle 20 Collection Groups mit `ttlConfig.state=ACTIVE` zeigen. Projekt- und Datenbankidentität, Abrufzeitpunkt und Vollständigkeit des Snapshots sind unabhängig zu attestieren und im Change-Ticket zu hinterlegen. **[TO VERIFY]**: genehmigte Staging-Projekt-/Datenbankidentität, tatsächlich vorhandene Policies und 20/20 ACTIVE-Zustand. Der Dry-Run zeigt nur den Plan. Der Apply-Pfad führt bis zu 20 Updates sequenziell aus; bei einem Fehler nach bereits erfolgreichen Updates kann ein Teilzustand verbleiben. Die Ausführung ist nicht atomar und stellt keinen automatischen Rollback sicher. Nach jedem genehmigten Staging-Apply ist deshalb eine vollständige erneute ACTIVE-Evidenzprüfung erforderlich.
 
-**Verifikationspflicht:** Die lokale Matrix-Prüfung `node scripts/check-retention-matrix.mjs` sowie ihre Negativtests `node scripts/test-retention-matrix.mjs` prüfen ausschließlich Repository-Code und Dokumentation. TTL löscht nicht sofort und nicht transaktional. Der tatsächliche Status `ACTIVE` aller 20 Gruppen muss in der genehmigten **Staging**-Umgebung mit Projekt- und Datenbankbezug nachgewiesen werden; das Schreiben gültiger `expiresAt`-Zeitstempel, Legal Holds und der sofortige Art.-17-Löschpfad bedürfen gesonderter Emulator-/E2E- und DPO-Prüfung. Ein Staging-Setup ist keine Produktionsfreigabe.
+**Verifikationspflicht / Evidenzgrenzen:** Offline/code-verifiziert sind die im Provisionierungsskript definierte 20er-Gruppe, das `expiresAt`-Feld, die Fail-Closed-Prüfung, das Preflight-Verhalten und die Validatoranforderung an vollständige Evidenz. Diese Quellprüfung beweist weder tatsächliche Cloud-Policies noch ein Live-`ACTIVE`-Ergebnis. **[TO VERIFY]** bleiben insbesondere DPO-/Legal-/Finance-Prüfung, Art.-6-/Art.-9-Einordnung, Verantwortlichen-/Auftragsverarbeiterrollen, genehmigte Aufbewahrungsfristen, Legal Holds, Staging-Projekt-/Datenbankidentität, IAM-/Rules-/SRE-Freigaben und ein frisch erfasster, unabhängig attestierter 20/20 ACTIVE-Snapshot. Emulator-/E2E-Tests müssen außerdem das Setzen plausibler `expiresAt`-Zeitstempel, tatsächliche TTL-Löschwirksamkeit und die separate, sofortige Art.-17-Kaskade einschließlich Legal-Hold-Verhalten nachweisen. TTL löscht asynchron und ersetzt keine Art.-17-Löschkaskade. Ein Staging-Setup oder eine erfolgreiche Offline-Prüfung ist keine Produktionsfreigabe.
 
 ### Kündigungsnachweise nach § 312k BGB
 
@@ -116,13 +117,13 @@ node scripts/check-retention-active-evidence.mjs --evidence staging-ttl-evidence
 node scripts/test-retention-active-evidence.mjs
 ```
 
-Der Prüfer verlangt 13 distinct `expiresAt`-Felder mit `ttlConfig.state=ACTIVE`, exakt zum angegebenen Projekt und zur angegebenen Datenbank. Abweichende, fehlende, doppelte, nicht aktive oder umkonfigurierte Felder verursachen einen Fehler. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projektidentität und Zeitpunkt des `gcloud`-Abrufs müssen im Change-Ticket unabhängig attestiert werden. Dieser Check aktiviert keine TTL, ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung und autorisiert keinen Produktions-Deploy.
+Der Prüfer verlangt exakt **20 distinct `expiresAt`-Felder** mit `ttlConfig.state=ACTIVE`, entsprechend der kanonischen 20-Gruppen-Liste in `configure-retention.sh`, und exakt passend zum angegebenen Projekt und zur Datenbank. Abweichende, fehlende, doppelte, nicht aktive, zusätzliche oder umkonfigurierte Policies verursachen einen Fehler. Der Validator leitet seine erwartete Gruppenliste direkt aus `configure-retention.sh` ab und prüft im vollständigen Modus die Gleichheit der tatsächlichen und erwarteten Gruppen. Die JSON-Datei ist ein **Snapshot**, kein signierter Live-Nachweis; Projekt-/Datenbankidentität, Abrufzeitpunkt und Vollständigkeit müssen unabhängig attestiert werden. Dieser Check aktiviert keine TTL, belegt keine DPO-/Legal-Freigabe und ersetzt keine Legal-Hold-/DSGVO-Art.-17-Kaskadenlöschung.
 
 ---
 
 ## Staging TTL verification (read-only, separate from provisioning)
 
-Use `npm run verify:retention-staging-live` under approved credentials and exactly scoped project/database identity. See `docs/PRODUCTION_RUNBOOK.md` for required `KLAR_*` environment values, fresh private evidence path and independent reviewer procedure. The script only performs `gcloud projects describe` and `gcloud firestore fields ttls list`; it validates all 13 ACTIVE TTL fields and records a JSON SHA-256 with UTC capture time. Unlike `configure-retention.sh`, it never requests any TTL mutation. A passing unit test uses **mock gcloud only**, and no live Staging TTL state is confirmed here. **NO-GO.**
+Use `npm run verify:retention-staging-live` only under separately approved credentials and an independently confirmed, exactly scoped staging project/database identity. See `docs/PRODUCTION_RUNBOOK.md` for required `KLAR_*` environment values, fresh private evidence path and independent reviewer procedure. The read-only verifier performs `gcloud projects describe` and `gcloud firestore fields ttls list`; it must validate all **20/20 ACTIVE TTL fields** against the canonical 20-group matrix and record a JSON SHA-256 with UTC capture time. Unlike `configure-retention.sh`, it does not request TTL mutations. A passing unit test uses **mock gcloud only** and proves no live state. **[TO VERIFY]**: DPO/Legal/Finance approval, approved retention durations and legal holds, staging project/database identity, IAM/Rules scope, and an independently attested fresh 20/20 ACTIVE snapshot. No live Staging TTL state is confirmed here. **NO-GO.**
 
 
 ### P0 #70 — 2026-10-19: sieben weitere TTL-Feld-Schreibpfade (20 Gruppen, **noch nicht freigegeben**)
