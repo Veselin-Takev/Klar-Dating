@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { Readable } from 'node:stream';
 import type { AddressInfo } from 'node:net';
+import type { Auth } from 'firebase-admin/auth';
+import type { Firestore } from 'firebase-admin/firestore';
+import type { Bucket } from '@google-cloud/storage';
 import { createProfileMediaRouter, createCanonicalMediaRef } from '../src/server/platform/profileMedia';
 
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
@@ -27,7 +30,7 @@ async function setup(options: { token?: string; provider?: string; requester?: R
     if (name === 'users') return { doc: (uid: string) => ({ get: async () => ({ exists: true, data: () => uid === 'viewer' ? requester : target }) }) };
     if (name === 'account_deletions') return { doc: (uid: string) => ({ get: async () => ({ exists: uid === 'viewer' ? !!options.requesterDeleted : !!options.targetDeleted }) }) };
     return { where: () => ({ where: () => ({ limit: () => ({ get: async () => ({ empty: !options.blocked }) }) }) }) };
-  } } as any;
+  } } as unknown as Firestore;
   const file = {
     exists: async () => [options.exists !== false],
     getMetadata: async () => [{ contentType: 'image/jpeg', size: '12' }],
@@ -43,8 +46,8 @@ async function setup(options: { token?: string; provider?: string; requester?: R
       if (options.firestoreFailure) throw new Error('Firestore unavailable');
       return db;
     },
-    getAuth: () => ({ verifyIdToken }) as any,
-    getBucket: () => ({ file: (path: string) => { requestedPaths.push(path); return file; } }) as any,
+    getAuth: () => ({ verifyIdToken }) as unknown as Auth,
+    getBucket: () => ({ file: (path: string) => { requestedPaths.push(path); return file; } }) as unknown as Bucket,
   }));
   const server = app.listen(0, '127.0.0.1'); servers.push(server);
   await new Promise<void>(resolve => server.once('listening', resolve));
