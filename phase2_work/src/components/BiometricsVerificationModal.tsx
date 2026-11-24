@@ -15,11 +15,25 @@ export function BiometricsVerificationModal({ isOpen, onSuccess, onCancel }: Pro
   const check = async () => {
     setBusy(true); setMessage('');
     try {
-      const response = await authFetch('/api/verification/status');
+      const response = await authFetch('/api/kyc/status');
       if (!response.ok) throw new Error('status unavailable');
-      const result = await response.json();
-      if (result.isVerified === true) onSuccess();
-      else setMessage(t('kyc.photoPending'));
+      const result: unknown = await response.json();
+      if (typeof result !== 'object' || result === null || !('status' in result) || typeof result.status !== 'string') {
+        throw new Error('status unavailable');
+      }
+      switch (result.status) {
+        case 'approved':
+          onSuccess();
+          return;
+        case 'pending':
+        case 'review':
+        case 'not_started':
+          setMessage(t('kyc.photoPending'));
+          return;
+        case 'unavailable':
+        default:
+          throw new Error('status unavailable');
+      }
     } catch { setMessage(t('kyc.statusUnavailable')); }
     finally { setBusy(false); }
   };
