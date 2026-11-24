@@ -8,14 +8,16 @@ import { createProfileMediaRouter, createCanonicalMediaRef } from '../src/server
 const servers: ReturnType<ReturnType<typeof express>['listen']>[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(s => new Promise<void>(r => s.close(() => r())))); vi.restoreAllMocks(); });
 
-async function setup(options: { token?: string; provider?: string; requester?: Record<string, unknown>; target?: Record<string, unknown>; requesterDeleted?: boolean; targetDeleted?: boolean; blocked?: boolean; exists?: boolean; selfView?: boolean; targetUid?: string; firestoreFailure?: boolean } = {}) {
+async function setup(options: { token?: string; provider?: string; requester?: Record<string, unknown>; target?: Record<string, unknown>; requesterDeleted?: boolean; targetDeleted?: boolean; blocked?: boolean; exists?: boolean; selfView?: boolean; canonicalSelfView?: boolean; targetUid?: string; firestoreFailure?: boolean } = {}) {
   const requester = {
     isAdult: true,
     active: true,
     isSuspended: false,
     isBlocked: false,
     deletionPending: false,
-    ...(options.selfView ? { photoURL: 'https://firebasestorage.googleapis.com/v0/b/demo-klar.appspot.com/o/profiles%2Fviewer%2Fphoto.jpg?alt=media&token=legacy-test-token' } : {}),
+    ...(options.selfView ? { photoURL: options.canonicalSelfView
+      ? createCanonicalMediaRef('viewer', 'profiles/viewer/photo.jpg')
+      : 'https://firebasestorage.googleapis.com/v0/b/demo-klar.appspot.com/o/profiles%2Fviewer%2Fphoto.jpg?alt=media&token=legacy-test-token' } : {}),
     ...(options.requester ?? {}),
   };
   const targetUid = options.targetUid ?? 'target';
@@ -98,12 +100,23 @@ describe('authenticated profile media delivery', () => {
     expect(ctx.requestedPaths).toEqual([]);
   });
   it('serves own profile media through the UID-bound self-view route', async () => {
-    const ctx = await setup({ token: 'valid', selfView: true });
+    const ctx = await setup({ token: 'valid', selfView: true, canonicalSelfView: true });
     const response = await fetch(ctx.url, { headers: ctx.headers });
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+    expect(response.headers.get('vary')).toBe('Authorization');
     expect(await response.text()).toBe('image-bytes');
     expect(ctx.requestedPaths).toEqual(['profiles/viewer/photo.jpg']);
+  });
+  it('rejects legacy bearer download URLs on self-view without reading Storage', async () => {
+    const ctx = await setup({ token: 'valid', selfView: true });
+    const response = await fetch(ctx.url, { headers: ctx.headers });
+    expect(response.status).toBe(404);
+    expect(ctx.requestedPaths).toEqual([]);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
   });
   it('denies self-view for deletion-pending accounts', async () => {
     const ctx = await setup({ token: 'valid', selfView: true, requesterDeleted: true });

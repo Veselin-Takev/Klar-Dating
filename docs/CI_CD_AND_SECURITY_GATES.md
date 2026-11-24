@@ -1,3 +1,20 @@
+## Immutable verified main baseline — PR #413 / P1 #237 (2026-11-24)
+
+- Verified `main` HEAD / merge commit: `2043811c584c41232fd85509b7a6b36083f6f69c`; previous `main`: `76cf36186ab087356171283fa3efab61ca12cb7d`; PR #413 merged; Tree `3cb2d220f13d5e1a6c1ac49f2b9831e727b65435`.
+- Klar Enterprise CI [Run #45343718813](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45343718813) (#2345), exact post-merge `push` on `main`, `head_sha=2043811c584c41232fd85509b7a6b36083f6f69c`, **SUCCESS**: 226 files / 1,858 tests / 0 failed; `BiometricsVerificationModal.spec.tsx` 11/11; all three TypeScript configurations; Production Smoke; Playwright 35/35.
+- Enterprise Compliance & Security Audit Gate [Run #45343718823](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45343718823) (#180), exact same SHA, **SUCCESS**: Gitleaks 1 commit / 0 leaks; CLI v8.24.3 checksum OK; regression 4/4; Tier 1 549 packages and Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- Immutable evidence applies only to this SHA. P0 #47, #48, #55, #56, #70, #202, #254, #371, #373 and #374 remain **OPEN**. P1 #206 is the active Draft workstream below. `productionApproved=false`; production **NO-GO**.
+
+## Active Draft — P1 #206: revocable authenticated profile media
+
+- Base: exact verified `main@2043811c584c41232fd85509b7a6b36083f6f69c`; target `main`; branch `fix/p1-206-revocable-profile-media-20261124`; intended title: `fix(media): enforce revocable authenticated profile media reads and reject legacy bearer URLs (#206)`; keep **Draft / Open / Unmerged**. PR number and final HEAD are held in GitHub metadata.
+- Static inventory and canonical contract are documented in `phase2_work/docs/P1_206_REVOCABLE_PROFILE_MEDIA_2026-11-24.md`. The code change rejects URL-shaped legacy aliases before any Storage read, retains owner-scoped canonical references and authenticated per-request viewer/target authorization, and explicitly applies private/no-store/no-cache/no-referrer/Authorization-variance headers.
+- Hermetic Vitest coverage covers legacy Firebase/GCS URL rejection, canonical self-read, denial without Storage access for legacy URL, requester/target lifecycle and block gates, and response privacy headers. Existing client/UI suites cover session revocation, object URL cleanup and placeholders.
+- This Draft's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate runs are **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, do not create recursive docs-only commits to record self-referencing run IDs.
+- No active Storage Rules/Auth boundary, Art. 17 erasure/retention guard, workflow, Vitest config, dependency or lockfile change. No live inventory, Firestore/Storage mutation, token rotation, IAM/bucket change or deployment. `productionApproved=false`; production **NO-GO**.
+
+
+
 ## Immutable verified main baseline — PR #411 / P1 #372 (2026-11-23)
 
 - Verified `main` HEAD / merge commit: `76cf36186ab087356171283fa3efab61ca12cb7d`; previous `main`: `4956fb09f81a9bf6e9686dd8abded577b7aff8b5`; PR #411 pre-merge HEAD: `b7767633c2c4dab759410512c05aed5726a92ef9`; merge Tree `f928545afe0cd89232f9f1d6812298f4be45f4c4`, identical to the pre-merge PR HEAD tree. PR #411 is closed and merged.
