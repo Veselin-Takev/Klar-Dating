@@ -68,22 +68,25 @@ export function isGuestAuth(auth: StorageAuthContext | null): boolean {
  * Deterministically evaluates an incoming Cloud Storage request against storage.rules.
  */
 export function evaluateStorageSecurityRule(request: StorageSecurityRequest): StorageSecurityDecision {
-  const normalizedPath = request.path.startsWith('/') ? request.path : `/${request.path}`;
-  const segments = normalizedPath.split('/').filter(Boolean);
-
-  if (segments.length < 3) {
+  // Firebase Storage Rules match exactly /{collection}/{uid}/{file}.
+  // Do not normalize leading, repeated or nested separators: doing so can
+  // make this model authorize paths that the deployable Rules do not match.
+  const segments = request.path.split('/');
+  if (segments.length !== 3 || segments.some(segment =>
+    segment.length === 0 || segment === '.' || segment === '..' || segment.includes('\\'),
+  )) {
     return {
       allowed: false,
-      reason: 'Path must match a registered collection pattern (/verification/{uid}/{file} or /profiles/{uid}/{file})',
+      reason: 'Path must contain exactly one UID and one non-traversing file segment',
       code: 'PERMISSION_DENIED',
     };
   }
 
-  const [topCollection, uid, ...rest] = segments;
-  if (!topCollection || !uid || rest.length === 0) {
+  const [topCollection, uid, fileName] = segments;
+  if (!topCollection || !uid || !fileName || fileName.includes('%')) {
     return {
       allowed: false,
-      reason: 'Incomplete path specification',
+      reason: 'Incomplete or non-canonical path specification',
       code: 'PERMISSION_DENIED',
     };
   }

@@ -53,6 +53,18 @@ describe.runIf(!!process.env.FIREBASE_STORAGE_EMULATOR_HOST)('Storage rules and 
     await assertFails(user(prefix).ref(path).getDownloadURL());
     await assertFails(user('another').ref(path).getDownloadURL());
     await assertFails(user(prefix, 'anonymous').ref(path).getDownloadURL());
+    await assertFails(env.unauthenticatedContext().storage('gs://demo-klar.appspot.com').ref(path).getDownloadURL());
+  });
+
+  it.runIf(hasFirestoreEmulator)('rejects nested profile object paths that do not match /profiles/{uid}/{file}', async () => {
+    const uid = `${prefix}-path-boundary`;
+    await seedOwner(uid);
+    const owner = user(uid);
+    await assertFails(Promise.resolve(owner.ref(`profiles/${uid}/nested/photo.jpg`).put(image, { contentType: 'image/jpeg' })));
+    await assertFails(Promise.resolve(owner.ref(`profiles/${uid}/../other.jpg`).put(image, { contentType: 'image/jpeg' })));
+    const exactPath = owner.ref(`profiles/${uid}/photo.jpg`);
+    await assertSucceeds(Promise.resolve(exactPath.put(image, { contentType: 'image/jpeg' })));
+    await assertSucceeds(exactPath.delete());
   });
 
   it.runIf(hasFirestoreEmulator)('denies profile create, update and delete for missing, underage, inactive, suspended, blocked and deletion-pending owners', async () => {

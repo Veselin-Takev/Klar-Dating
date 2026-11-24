@@ -1,3 +1,19 @@
+## Immutable verified main baseline — PR #414 / P1 #206 (2026-11-24)
+
+- Verified `main` HEAD / merge commit: `e80f909abfa4e43df4ccb56e9587d57ed6670656`; previous main: `2043811c584c41232fd85509b7a6b36083f6f69c`; PR #414 merged; Tree `1b29600cf1f8b5ea3c124f528567c4dff8d94ba9`.
+- Klar Enterprise CI [Run #45355969349](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45355969349) (#2350), exact post-merge `push` on `main`, same SHA, **SUCCESS**: 226 files / 1,864 tests / 0 failed; `profileMedia.spec.ts` 8/8; `profileMediaEndpoint.spec.ts` 24/24; `AuthenticatedProfileImage.spec.tsx` 5/5; Typecheck across all 3 tsconfigs; Functions Build; Build; Production Smoke; Playwright Browser Acceptance 35/35.
+- Enterprise Compliance & Security Audit Gate [Run #45355969420](https://github.com/Veselin-Takev/Klar-Dating/actions/runs/45355969420) (#185), exact same SHA, **SUCCESS**: post-merge Gitleaks 1 commit / 0 leaks; CLI v8.24.3 checksum OK; full-range regression PASS; Tier 1 549 packages and Full Supply-Chain 1,245 packages / 0 High+; Production Build PASS.
+- All ten P0 issues #47, #48, #55, #56, #70, #202, #254, #371, #373 and #374 remain **OPEN**. P1 #206 / PR #414 is merged, pending independent AppSec/DPO review and separate operational token-rotation approval. P1 #204 is the active Draft workstream below. This immutable evidence applies only to this exact SHA; `productionApproved=false`; production **NO-GO**.
+
+## Active Draft — P1 #204: Storage visibility contract and adult-gate enforcement
+
+- Base: exact verified `main@e80f909abfa4e43df4ccb56e9587d57ed6670656`; target `main`; branch `fix/p1-204-storage-visibility-adult-gate-20261124`; intended PR title: `fix(storage): harden storage visibility contracts and adult-gate enforcement (#204)`; keep **Draft / Open / Unmerged**. PR number and final HEAD are held in GitHub metadata.
+- Verified gap: the deterministic `storageRulesEngine.ts` previously collapsed empty path segments and accepted nested paths such as `profiles/{uid}/nested/photo.jpg`, although deployable `storage.rules` matches exactly `/profiles/{uid}/{datei}`. This could make model-only authorization tests pass for a path the deployed Rules do not match.
+- Fix: fail closed on leading/trailing/repeated separators, nested segments, dot traversal segments, backslashes and percent-encoded path aliases. No active Storage Rules were weakened or modified.
+- New Vitest regression suite checks root/phase2 Storage Rules parity, direct-read denial, unauthenticated/non-owner denial, adult/unknown-age and lifecycle denial, exact owner-path allow, and malformed/nested path rejection. Existing `profileMediaEndpoint.spec.ts` covers authenticated proxy requester/target adult gates, blocks, deletion state and unauthenticated denial; `storageRules.spec.ts` adds local Storage Emulator checks for unauthenticated visibility and nested/traversal path denial with an exact-path positive control.
+- This Draft's own Klar Enterprise CI and Enterprise Compliance & Security Audit Gate runs are **[TO VERIFY]**. Per `AGENTS.md` Anti-SHA-Chasing, do not create recursive docs-only commits to record self-referencing run IDs.
+- Explicit exclusions: no changes to active `storage.rules`, `firestore.rules`, authentication boundaries, revocable media proxy checks or Art. 17 erasure/retention guards; no workflow, Vitest config, dependency or lockfile changes; no real PII, UID, token or signed/download URL; no live Cloud/IAM/Firestore/Storage/bucket/scheduler/token-rotation/production mutation. `productionApproved=false`; production **NO-GO**.
+
 ## Immutable verified main baseline — PR #413 / P1 #237 (2026-11-24)
 
 - Verified `main` HEAD / merge commit: `2043811c584c41232fd85509b7a6b36083f6f69c`; previous `main`: `76cf36186ab087356171283fa3efab61ca12cb7d`; PR #413 merged; Tree `3cb2d220f13d5e1a6c1ac49f2b9831e727b65435`.
@@ -42,7 +58,7 @@
 # Klar Developer Handover Status
 
 **Snapshot:** 2026-11-24
-**Main HEAD (verified after PR #413 merge):** `2043811c584c41232fd85509b7a6b36083f6f69c`
+**Main HEAD (verified after PR #414 merge):** `e80f909abfa4e43df4ccb56e9587d57ed6670656`
 **Previous main HEAD:** `76cf36186ab087356171283fa3efab61ca12cb7d`
 **Release decision:** **NO-GO** — `productionApproved=false` is a hard invariant.
 
