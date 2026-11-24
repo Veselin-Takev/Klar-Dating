@@ -98,6 +98,29 @@ describe('Klar & Partner transactional service boundary', () => {
     });
   });
 
+  it('rejects the private referral overview during account deletion even with zero campaigns', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'account_deletions', id: 'user-1', data: { status: 'pending' } },
+    ]);
+    await expect(listPartnerReferralLinks(deps(db), 'user-1'))
+      .rejects.toMatchObject({ status: 409, code: 'partner_account_deleting' });
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referrals/'))).toHaveLength(0);
+  });
+
+  it('fails closed when the referral overview cannot read the deletion marker', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+    ]);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async () => { throw new Error('Firestore unavailable'); },
+    });
+    await expect(listPartnerReferralLinks(deps(db), 'user-1'))
+      .rejects.toThrow('Firestore unavailable');
+    expect([...db._store.keys()].filter(key => key.startsWith('partner_referrals/'))).toHaveLength(0);
+  });
+
   it('never exposes referral links when consent is missing', async () => {
     const db = makeFirestore([{ collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: false } }]);
     await expect(listPartnerReferralLinks(deps(db), 'user-1')).rejects.toMatchObject({
