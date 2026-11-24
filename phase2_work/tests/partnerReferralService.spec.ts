@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Firestore } from 'firebase-admin/firestore';
-import { createPartnerCampaign, listPartnerReferralLinks, openPartnerReferral, recordPartnerClick, recordPartnerConversion, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
+import { createPartnerCampaign, listPartnerReferralLinks, getPartnerConsentState, openPartnerReferral, recordPartnerClick, recordPartnerConversion, setPartnerConsent, updatePartnerCampaign, type PartnerReferralServiceDeps } from '../src/server/partnerReferralService';
 import { derivePartnerReferralToken, partnerReferralDocumentId, pseudonymousPartnerUid } from '../src/server/partnerReferralCore';
 import { verifyHmacAuditPayload } from '../src/server/consentAudit';
 
@@ -96,6 +96,31 @@ describe('Klar & Partner transactional service boundary', () => {
     await expect(listPartnerReferralLinks(configured, 'user-1')).resolves.toEqual({
       consent: { allowed: true }, referrals: [],
     });
+  });
+
+  it('reports withdrawn partner eligibility while account deletion is pending', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+      { collection: 'account_deletions', id: 'user-1', data: { status: 'pending' } },
+    ]);
+    await expect(getPartnerConsentState(deps(db), 'user-1')).resolves.toEqual({ allowed: false });
+  });
+
+  it('keeps an active partner grant readable when no deletion is pending', async () => {
+    const db = makeFirestore([
+      { collection: 'users', id: 'user-1', data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } },
+    ]);
+    await expect(getPartnerConsentState(deps(db), 'user-1')).resolves.toEqual({ allowed: true });
+  });
+
+  it('fails closed if the consent status cannot read the deletion marker', async () => {
+    const db = makeFirestore([{ collection: 'users', id: 'user-1',
+      data: { isAdult: true, partnerReferralConsent: true, partnerReferralVersion: 1 } }]);
+    Object.defineProperty(db, 'runTransaction', {
+      configurable: true,
+      value: async () => { throw new Error('Firestore unavailable'); },
+    });
+    await expect(getPartnerConsentState(deps(db), 'user-1')).rejects.toThrow('Firestore unavailable');
   });
 
   it('never exposes referral links when consent is missing', async () => {

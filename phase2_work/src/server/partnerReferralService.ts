@@ -302,10 +302,22 @@ function requirePartnerUserData(data: Record<string, unknown> | undefined): { ve
 }
 
 export async function getPartnerConsentState(deps: PartnerReferralServiceDeps, uid: string): Promise<{ allowed: boolean }> {
-  const snapshot = await deps.getFirestore().collection('users').doc(uid).get();
-  const data = snapshot.data();
-  requirePartnerUserData(data);
-  return { allowed: data?.partnerReferralConsent === true && data?.partnerReferralEpochQuarantined !== true };
+  const db = deps.getFirestore();
+  // A pending Art.17 deletion must never appear as a currently valid
+  // partner-tracking grant, even while the user profile still exists.
+  return db.runTransaction(async tx => {
+    const [user, deletion] = await tx.getAll(
+      db.collection('users').doc(uid),
+      db.collection('account_deletions').doc(uid),
+    );
+    if (!user || !deletion) {
+      throw new PartnerReferralError(503, 'partner_read_incomplete', 'Die Partnerdaten konnten nicht vollständig geprüft werden.');
+    }
+    if (deletion.exists) return { allowed: false };
+    const data = user.data();
+    requirePartnerUserData(data);
+    return { allowed: data?.partnerReferralConsent === true && data?.partnerReferralEpochQuarantined !== true };
+  });
 }
 
 export async function setPartnerConsent(
