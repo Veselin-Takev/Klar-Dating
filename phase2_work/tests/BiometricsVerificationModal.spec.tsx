@@ -33,7 +33,8 @@ describe('Profile verification refresh uses the canonical KYC status contract', 
     mocks.request.mockResolvedValueOnce(jsonResponse({ status: 'approved' }));
     const onSuccess = renderModal();
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(mocks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+    expect(mocks.request).toHaveBeenCalledTimes(1);
+    expect(mocks.request).toHaveBeenCalledWith('/api/kyc/status');
   });
 
   it.each(['pending', 'review', 'not_started'])('keeps %s unverified', async status => {
@@ -41,7 +42,8 @@ describe('Profile verification refresh uses the canonical KYC status contract', 
     const onSuccess = renderModal();
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('kyc.photoPending'));
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(mocks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+    expect(mocks.request).toHaveBeenCalledTimes(1);
+    expect(mocks.request).toHaveBeenCalledWith('/api/kyc/status');
   });
 
   it('fails closed for an explicit unavailable status', async () => {
@@ -49,7 +51,8 @@ describe('Profile verification refresh uses the canonical KYC status contract', 
     const onSuccess = renderModal();
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('kyc.statusUnavailable'));
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(mocks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+    expect(mocks.request).toHaveBeenCalledTimes(1);
+    expect(mocks.request).toHaveBeenCalledWith('/api/kyc/status');
   });
 
   it.each([{}, { isVerified: true }, { status: 'verified' }, { status: null }])(
@@ -59,7 +62,8 @@ describe('Profile verification refresh uses the canonical KYC status contract', 
       const onSuccess = renderModal();
       await waitFor(() => expect(screen.getByRole('status').textContent).toBe('kyc.statusUnavailable'));
       expect(onSuccess).not.toHaveBeenCalled();
-      expect(mocks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+      expect(mocks.request).toHaveBeenCalledTimes(1);
+    expect(mocks.request).toHaveBeenCalledWith('/api/kyc/status');
     },
   );
 
@@ -68,7 +72,8 @@ describe('Profile verification refresh uses the canonical KYC status contract', 
     const onSuccess = renderModal();
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('kyc.statusUnavailable'));
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(mocks.request).toHaveBeenCalledExactlyOnceWith('/api/kyc/status');
+    expect(mocks.request).toHaveBeenCalledTimes(1);
+    expect(mocks.request).toHaveBeenCalledWith('/api/kyc/status');
   });
 
   it('never calls the retired verification-status endpoint', async () => {
